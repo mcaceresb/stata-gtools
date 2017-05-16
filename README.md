@@ -98,7 +98,7 @@ Installation
 ------------
 
 ```stata
-net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/)
+net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/build/)
 ```
 
 To update, run
@@ -114,7 +114,7 @@ ado uninstall gtools
 Building
 --------
 
-I provide a python-based wrapper that should be cross-platform,
+I provide a python-based solution that should be cross-platform,
 but I have not had the opportunity to test it outside of Linux.
 To place the contents of the package on `./build`, simply run
 ```

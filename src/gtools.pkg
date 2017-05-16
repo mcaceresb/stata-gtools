@@ -1,0 +1,24 @@
+v 0.1.0
+d
+d 'GTOOLS': Faster -egen- and -collapse- using C plugins
+d
+d This package provides C-based implementations of Stata's -egen- and
+d collapse via -gegen- and -gcollapse- via Stata plugins. I got the
+d original idea after finding Sergio Correia's ftools.
+d
+d KW: gtools
+d KW: egen
+d KW: collapse
+d KW: gegen
+d KW: gcollapse
+d
+d Requires: Stata version 13.1
+d
+d Author: Mauricio Caceres Bravo
+d Support: email mauricio.caceres.bravo@gmail.com
+d
+d Distribution-Date: 20170516
+d
+f gcollapse.ado
+f gcollapse.sthlp
+f gcollapse.plugin

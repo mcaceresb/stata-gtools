@@ -1,41 +1,29 @@
 Faster Stata for Group Operations
 ---------------------------------
 
-This package was inspired by Sergio Correia's `ftools`, who extensively
-uses mata in order to provide faster alternatives to `egen`, `collapse`,
-`sort`, and `merge`.
+This is currently a proof-of-concept package that uses a C-plugin
+to provide a faster implementation for Stata's `collapse` called
+`gcollapse` and is also (almost always) faster than Sergio Correia's
+`fcollapse` from `ftools`.
 
-This package uses Stata plugins written in C to implement faster,
-multi-threaded versions of `egen` and `collapse`, named `gegen` and
-`gcollapse`. A full speed comparison is provided below.
+Currently, memoy management is **VERY** bad, so if you are generating
+many summary variables from a single source variable, please see the
+memory management section below.
 
-Currently this is only available for Unix.
+Currently only `gcollapse` for Unix is available. Feature releases
+will also provide `gegen` and be cross-platform.
 
-[ ] collapse
-[ ] egen
+Requirements
+------------
 
-In ftools:
-    mean
-    median
-    sd
-    sum
-    count
-    percent
-    max
-    min
-    iqr
-    first
-    last
-    firstnm
-    lastnm
-    percentiles (p\d+) <- What happens if I pass 3-digits?
+I only have access to Stata 13.1, so I impose that to be the minimum.
+My own machine and the servers I have access to run Linux, so I have
+only developed this for Stata for Unix so far. Future releases will be
+cross-platform.
 
-Not in ftools:
-    semean
-    sebinomial
-    sepoisson
-    rawsum
-    quantiles (p\d{1,2}(.\d+)?)
+If you want to compile the plugin yourself, atop the C standard library
+- [`ceanturian`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
+- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
 FAQs
 ----
@@ -44,18 +32,22 @@ FAQs
 
 In theory, C shouldn't be faster than Stata native commands because,
 as I understand it, many of Stata's underpinnings are compiled C code.
-However, there are two possible explanations why this is faster than
-Stata's native commands:
+However, there are two explanations why this is faster than Stata's
+native commands:
 
-1. Efficiency: It is possible that Stata's algorithms are not particularly
+1. Hashing: I hash the data using a 128-bit hash and sort on this hash
+   using a radix sort (a counting sort that sorts large integers X-bits
+   at a time; I choose X to be 16). This is much faster than sorting
+   on arbitrary data. Further, with a 128-bit hash you shouldn't have
+   to worry about collisions (unless you're working with groups in the
+   quintillions, 10^18 _levels_, not observations). Hashing here is also
+   faster than Hashing in Sergio Correia's `ftools`, which uses a 32-bit
+   hash and will run into collisions just with levels in the thousands,
+   so he has to resolve collisions.
+
+2. Efficiency: It is possible that Stata's algorithms are not particularly
    efficient (this is, for example, the explanation given for why `ftools`
    is faster than Stata even though Mata should not be particularly fast).
-
-2. Multi-threading: Stata charges per core (#profit). When you implement
-   multi-threading in C, however, it uses all the cores it finds. This
-   package is ripe for parallelism because it implements alternatives
-   to programs that oeprate on groups, and each group can be processed
-   independent of other groups.
 
 ### Why use platform-dependent plugins?
 
@@ -64,35 +56,80 @@ OSX. Sorry! I use Linux on my personal computer and on all the servers
 where I do my work. If anyone is willing to try compiling the plugins
 out on Windows and OSX, I'd be happy to take pull requests!
 
-NOTE:
+WARNING
+-------
 
 This is intented as a proof-of-concept at the moment and is very alpha.
 The code has not been optimized at all and several features area missing:
-
-- I ignore types and do all operations using double precision
-- I sort using Stata
+- Computing quantiles is inefficient to the point that if you are
+  requesting multiple quantile summaries for a large number of levels
+  (hundreds of thousands or millions), `fcollapse` may be faster. In
+  testing, this was the only scenario in which `fcollapse` was faster
+  or performed at comparable speeds.
+- Memory management is terrible (see below).
 - It is only available in Unix
-- It is very memory hungry
-- The C implementation is very crude and relatively inefficient (e.g. no multithreading)
-- It does not sort the output data by default
+- Unless requesting first, firstnm, last, lastnm, min, or max, I ignore
+  types and do all operations in double precision. I should try to use
+  whatever the user-specified default is. (PS: Since Stata does not implement
+  `long long` or unsigned ingeters, just long, even operations like `sum`
+  need to be double).
+- I sort the resulting data using using Stata.
+- The C implementation is very crude (e.g. no multithreading)
+- Unlike `fcollapse`, the user cannot add functions easily (it uses compiled C code).
 
-Despite this, it has some advantages over gtools
-- It's up to 4-6x faster than fcollapse, but that's not a fair comparison because it does not sort the collapse data by default. I have not implemented sorting an arbitrary number of variables of mixed type in C. If I sort using stata, it's only just over 3 times faster. I expect that sorting in C would result in a speedup north of 4x over fcollapse.
-- fcollapse requires the by variables be all numeric or all strings, whereas there is no such limitation here
+Despite this, it has some advantages:
+- It's several times faster than `fcollapse`, which is in turn several times faster than plain `collapse`.
+- Grouping variables can be a mix of numeric and string variables,
+  unlike `fcollapse` which requires the by variables be all numeric or
+  all strings.
+- Percentiles are computed to match Stata's (fcollapse uses a quantile
+  function from moremata that does not necessarily match collapse's
+  percentile function)
+- Can have quantiles not just percentiles (e.g. p2.5 and p.97.5 would be
+  valid stat calls in gcollapse )
 
-gcollapse's improvement over fcollapse is not strict:
+Memory Management
+-----------------
 
-Improvements over fcollapse:
-- Can have any mix of numeric and string variables as grouping variables, as in Stata
-- Percentiles are computed to match Stata's (fcollapse uses a quantile function from moremata that does not necessarily match collapse's percentile function)
-- Can have quantiles not just percentiles (e.g. p2.5 and p.97.5 would be valid stat calls in gcollapse )
+_**Pending**_
 
-Things it does worse than fcollapse
-- Memory management is worse
-- Computing quantiles is MASSIVELY inefficient: Though the definition
-  is slightly different than Stata's, moremata's implementation of the
-  quantile function is leaps and bounds more efficient than what I'm
-  doing (sort and select, and yes I did try quickselect algorithms and
-  they were slower than C's built-in qsort). If you have groups in
-  the order of millions and need to compute quantiles, fcollapse may
-  actually be faster.
+Installation
+------------
+
+```stata
+net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/)
+```
+
+To update, run
+```stata
+adoupdate, update
+```
+
+To uninstall, run
+```stata
+ado uninstall gtools
+```
+
+Building
+--------
+
+I provide a python-based solution that should be cross-platform,
+but I have not had the opportunity to test it outside of Linux.
+To place the contents of the package on `./build`, simply run
+```
+./build.py
+```
+
+TODO
+----
+
+- [ ] Improve memory management.
+- [ ] Efficient quantile implementation.
+- [ ] Implement `gegen`.
+- [ ] Compile for Windows and OSX.
+- [ ] Clean up C code-base.
+
+License
+-------
+
+[MIT](https://github.com/mcaceresb/stata-gtools/blob/master/LICENSE)

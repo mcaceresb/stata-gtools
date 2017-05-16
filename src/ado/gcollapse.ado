@@ -1,5 +1,8 @@
-*! version 0.1 14May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.0 16May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
+
+* TODO: If the number of observations is < 2^31 - 1, then count can be
+* long instead of double. // 2017-05-16 07:28 EDT
 
 capture program drop gcollapse
 program gcollapse
@@ -14,10 +17,20 @@ program gcollapse
         smart                  /// use Stata's collapse if data is sorted
         unsorted               /// do not sort final output (current implementation of final
                                /// sort is super slow bc it uses Stata)
-        unsafe                 /// planned
-        nomissing              /// planned
+        merge                  /// planned: merge back to original data
+        unsafe                 /// planned: unsafe C execution
+        nomissing              /// planned: data has no missing values
     ]
+    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
+
+    if ("`merge'"     != "") di as err "Option -merge- not yet available (planned for next release)."
+    if ("`unsafe'"    != "") di as err "Option -unsafe- not yet available (planned for next release)."
+    if ("`nomissing'" != "") di as err "Option -nomissing- not yet available (planned for next release)."
+
     if ("`fast'" == "") preserve
+
+    // Verbose printing debug info
+    // ---------------------------
 
     if ("`verbose'" == "") {
         local verbose = 0
@@ -74,12 +87,14 @@ program gcollapse
 		ParseList `anything'
 	}
 
+    * Locals to be read by C
     local gtools_targets    `__gtools_targets'
     local gtools_vars       `__gtools_vars'
     local gtools_stats      `__gtools_stats'
 	local gtools_uniq_vars  `__gtools_uniq_vars'
 	local gtools_uniq_stats `__gtools_uniq_stats'
 
+    * Available Stats
     local stats sum     ///
                 mean    ///
                 sd      ///
@@ -94,6 +109,7 @@ program gcollapse
                 firstnm ///
                 lastnm
 
+    * Parse quantiles
     local quantiles : list gtools_uniq_stats - stats
 	foreach quantile of local quantiles {
         local quantbad = !regexm("`quantile'", "^p[0-9][0-9]?(\.[0-9]+)?$")
@@ -103,6 +119,7 @@ program gcollapse
 		}
 	}
 
+    * Can't collapse grouping variables
 	local intersection: list gtools_targets & by
 	if ("`intersection'" != "") {
 		di as error "targets in collapse are also in by(): `intersection'"
@@ -112,6 +129,7 @@ program gcollapse
     * Call plugin
     * -----------
 
+    * Subset if requested
 	if  ( ("`if'`in'" != "") | ("`cw'" != "") ) {
 		marksample touse, strok novarlist
 		if ("`cw'" != "") {
@@ -120,6 +138,7 @@ program gcollapse
 		keep if `touse'
     }
 
+    * Parse type of each by variable
     ParseByTypes `by'
 
     * slow, but saves mem
@@ -192,9 +211,10 @@ program gcollapse
     * J will contain how many obs to keep; nstr contains # of string grouping vars
     scalar __gtools_J    = 1
     scalar __gtools_nstr = `:list sizeof bystr'
-    plugin call gtools `by' `gtools_uniq_vars' `gtools_targets' `bystr'
+    plugin call gcollapse_plugin `by' `gtools_uniq_vars' `gtools_targets' `bystr'
 
-    { 
+    * If verbose, output pugin time
+    {
         timer off 99
         qui timer list
         if ("`verbose'" != "") di "The plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
@@ -214,8 +234,56 @@ program gcollapse
 	if ("`fast'" == "") restore, not
 end
 
-* This mostly is taken from Sergio Correia's fcollapse.ado
-* --------------------------------------------------------
+* Set up plugin call
+* ------------------
+
+capture program drop ParseByTypes
+program ParseByTypes
+    syntax varlist
+    cap matrix drop __gtools_byk
+    cap matrix drop __gtools_bymin
+    cap matrix drop __gtools_bymax
+
+    * See help data_types
+    foreach byvar of varlist `varlist' {
+        local bytype: type `byvar'
+        if inlist("`bytype'", "byte", "int", "long") {
+            qui sum `byvar'
+
+            matrix __gtools_byk   = nullmat(__gtools_byk), -1
+            matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
+            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)'
+        }
+        else {
+            matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)
+            matrix __gtools_bymax = J(1, `:list sizeof varlist', 0)
+
+            if regexm("`bytype'", "str([1-9][0-9]*|L)") {
+                if (regexs(1) == "L") {
+                    tempvar strlen
+                    gen `strlen' = length(`byvar')
+                    qui sum `strlen'
+                    matrix __gtools_byk = nullmat(__gtools_byk), `r(max)'
+                }
+                else {
+                    matrix __gtools_byk = nullmat(__gtools_byk), `:di regexs(1)'
+                }
+            }
+            else if inlist("`bytype'", "float", "double") {
+                matrix __gtools_byk = nullmat(__gtools_byk), 0
+            }
+            else {
+                di as err "variable `byvar' has unknown type '`bytype''"
+            }
+        }
+    }
+end
+
+cap program drop gcollapse_plugin
+if ("`c(os)'" == "Unix") program gcollapse_plugin, plugin using("gcollapse.plugin")
+
+* Parsing is adapted from Sergio Correia's fcollapse.ado
+* ------------------------------------------------------
 
 capture program drop ParseList
 program define ParseList
@@ -236,9 +304,9 @@ program define ParseList
 		foreach var of local vars {
 			if ("`target'" == "") local target `var'
 
-            local full_vars    `full_vars'    `var'    
-            local full_targets `full_targets' `target' 
-            local full_stats   `full_stats'   `stat'   
+            local full_vars    `full_vars'    `var'
+            local full_targets `full_targets' `target'
+            local full_stats   `full_stats'   `stat'
 
 			local target
 		}
@@ -286,49 +354,4 @@ program define GetTarget
 		c_local `lhs' `target'
 		c_local `rhs' `rest'
 	}
-end
-
-* Set up plugin call
-* ------------------
-
-capture program drop ParseByTypes
-program ParseByTypes
-    syntax varlist
-    cap matrix drop __gtools_byk
-    cap matrix drop __gtools_bymin
-    cap matrix drop __gtools_bymax
-
-    * See help data_types
-    foreach byvar of varlist `varlist' {
-        local bytype: type `byvar'
-        if inlist("`bytype'", "byte", "int", "long") {
-            qui sum `byvar'
-
-            matrix __gtools_byk   = nullmat(__gtools_byk), -1
-            matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)'
-        }
-        else {
-            matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)
-            matrix __gtools_bymax = J(1, `:list sizeof varlist', 0)
-
-            if regexm("`bytype'", "str([1-9][0-9]*|L)") {
-                if (regexs(1) == "L") {
-                    tempvar strlen
-                    gen `strlen' = length(`byvar')
-                    qui sum `strlen'
-                    matrix __gtools_byk = nullmat(__gtools_byk), `r(max)'
-                }
-                else {
-                    matrix __gtools_byk = nullmat(__gtools_byk), `:di regexs(1)'
-                }
-            }
-            else if inlist("`bytype'", "float", "double") {
-                matrix __gtools_byk = nullmat(__gtools_byk), 0
-            }
-            else {
-                di as err "variable `byvar' has unknown type '`bytype''"
-            }
-        }
-    }
 end

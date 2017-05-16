@@ -1,3 +1,25 @@
+/*********************************************************************
+ * Program: gcollapse.c
+ * Author:  Mauricio Caceres Bravo <caceres@nber.org>
+ * Created: Sat May 13 18:12:26 EDT 2017
+ * Updated: Tue May 16 08:54:24 EDT 2017
+ * Purpose: Stata plugin to compute a faster -collapse-
+ * Note:    See stata.com/plugins for more on Stata plugins
+ * Version: 0.1.0
+ *********************************************************************/
+
+/**
+ * @file gcollapse.c
+ * @author Mauricio Caceres Bravo
+ * @date 16 May 2017
+ * @brief Stata plugin for a faster -collapse- implementation
+ *
+ * This file should only ever be called from gcollapse.ado
+ *
+ * @see help gcollapse
+ * @see http://www.stata.com/plugins for more on Stata plugins
+ */
+
 #include <math.h>
 #include <omp.h>
 #include <regex.h>
@@ -17,13 +39,11 @@
 #include "gtools_utils.c"
 #include "gtools_hash.c"
 #include "gtools_sort.c"
-#include "gtools_collapse.c"
 #include "gtools_math.c"
 
-int mf_strcmp_wrapper (char * fname, char *compare);
-int mf_strcmp_wrapper (char * fname, char *compare) {
-    return ( strcmp (fname, compare)  == 0 );
-}
+#define RADIX_SHIFT 16
+
+// TODO: Add comments throughout this file (document) // 2017-05-16 08:52 EDT
 
 STDLL stata_call(int argc, char *argv[])
 {
@@ -41,8 +61,12 @@ STDLL stata_call(int argc, char *argv[])
     size_t in2 = SF_in2();
     size_t N   = in2 - in1 + 1;
 
-    size_t byvars_k      = sf_get_vector_length("__gtools_byk");
-    size_t collapse_from = byvars_k + 1;
+    int byvars_k      = sf_get_vector_length("__gtools_byk");
+    int collapse_from = byvars_k + 1;
+    if (byvars_k < 0) {
+        sf_errprintf("Failed to parse __gtools_byk\n");
+        return(198);
+    }
 
     // Hashing: Throughout the code we allocate to heap bc C may run out
     // of memory in the stack

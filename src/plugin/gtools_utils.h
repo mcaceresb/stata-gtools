@@ -1,6 +1,8 @@
 #ifndef GTOOLS_UTILS
 #define GTOOLS_UTILS
 
+int mf_strcmp_wrapper (char * fname, char *compare);
+
 int sf_get_vector_length(char * st_matrix);
 int sf_get_vector(char * st_matrix, double v[]);
 

@@ -1,6 +1,22 @@
 #include "gtools_hash.h"
 #include "spookyhash/src/spookyhash_api.h"
 
+/**
+ * @brief Hash single variable (string or float|double)
+ *
+ * Use the latest version of Jenkin's one-at-a-time hash, the spooky
+ * hash, to hash the data into 128-bit integers stored in 2 unsinged
+ * 64-bit arrays.
+ *
+ * @param h1 Where to store first halfs of each 128-bit hash
+ * @param h2 Where to store second halfs of each 128-bit hash
+ * @param k Hash kth variable passed from Stata
+ * @param in1 Hash starting from in1th obs
+ * @param in2 Hash starting from in2th obs
+ * @param strlen Lenght of string if string or 0, -1 if double, integer
+ * @return Store 128-bit hashes in 2 parts into @h1 and @h2
+ *
+ */
 int sf_get_variable_hash (
     uint64_t h1[],
     uint64_t h2[],
@@ -47,6 +63,27 @@ int sf_get_variable_hash (
     return(0);
 }
 
+/**
+ * @brief Hash set of variables (strings or floats|doubles)
+ *
+ * Use the latest version of Jenkin's one-at-a-time hash, the spooky
+ * hash, to hash the data into 128-bit integers stored in 2 unsinged
+ * 64-bit arrays.
+ *
+ * We can hash a mix of string and numeric variable's due to this
+ * specific implementation of spooky hash, which uses context variables
+ * to hash multi-part content.
+ *
+ * @param h1 Where to store first halfs of each 128-bit hash
+ * @param h2 Where to store second halfs of each 128-bit hash
+ * @param k1 Hash from k1th variable passed from Stata
+ * @param k2 Hash through k2th variable passed from Stata
+ * @param in1 Hash starting from in1th obs
+ * @param in2 Hash starting from in2th obs
+ * @param karr Lenght of each string varaible or 0, -1 if double, integer
+ * @return Store 128-bit hashes in 2 parts into @h1 and @h2
+ *
+ */
 int sf_get_varlist_hash (
     uint64_t h1[],
     uint64_t h2[],
@@ -69,10 +106,10 @@ int sf_get_varlist_hash (
 
     ST_retcode rc ;
     ST_double  z ;
-    size_t N = in2 - in1 + 1;
-    size_t K = k2 - k1 + 1;
-    int kmax = mf_max_signed(karr, K);
-    int kmin = mf_min_signed(karr, K);
+    size_t N = in2 - in1 + 1;          // Number of obse to hash
+    size_t K = k2 - k1 + 1;            // Number of vars to hash
+    int kmax = mf_max_signed(karr, K); // To detemrine if there are strings
+    int kmin = mf_min_signed(karr, K); // To determine if there are nubmers
     char s[kmax + 1];
     spookyhash_context sc;
     int i, k;
@@ -82,8 +119,11 @@ int sf_get_varlist_hash (
     // not work, so subset before starting the plugin. All the if
     // statements are so we have fewer if conditions inside long loops
 
+    // Note: The length of the character data is at most kmax; the
+    // lenght of numeric data is at most 8 bytes.
     if (kmax > 0) {
         if (kmin > 0) {
+            // All variables are strings (all have a length)
             for (i = 0; i < N; i++) {
                 spookyhash_context_init(&sc, 1, 2);
 
@@ -97,6 +137,7 @@ int sf_get_varlist_hash (
             }
         }
         else {
+            // Mix of variables and numeric.
             for (i = 0; i < N; i++) {
                 spookyhash_context_init(&sc, 1, 2);
 
@@ -117,6 +158,7 @@ int sf_get_varlist_hash (
         }
     }
     else {
+        // All variables are numeric
         for (i = 0; i < N; i++) {
             spookyhash_context_init(&sc, 1, 2);
 
@@ -132,6 +174,20 @@ int sf_get_varlist_hash (
     return(0);
 }
 
+/**
+ * @brief Use the grouping variable as a hassh
+ *
+ * The grouping variable is an integer and can be used as a hash.
+ * Simply map values to whole numbers 1 to N.
+ *
+ * @param h1 Where to store the map to the whole nubmers
+ * @param k Use kth variable as hash
+ * @param in1 Hash starting from in1th obs
+ * @param in2 Hash starting from in2th obs
+ * @param min Smallest integer
+ * @return Store map to whole numbers in @h1
+ *
+ */
 int sf_get_variable_ashash (
     uint64_t h1[],
     size_t k,
@@ -163,33 +219,51 @@ int sf_get_variable_ashash (
     return(0);
 }
 
-// If we have only integers, you want a function f f: Z^K -> N. In this
-// case, the function we use is as follows (using 1-based indexing):
-//
-// offset = 1
-// hash   = z[, 1] - min(z[, 1]) + 1
-// for k = 2 to K
-//     offset *= (zmax[k - 1] - zmin[k - 1] + 1)
-//     hash   += ( z[, k] - min(z[, k]) ) * offset
-//
-// What is happening is that we are fisrt mapping
-//
-//     var1 -> 1 to range of var1
-//
-// Call this vmap1. Then we are mapping
-//
-//     Smallest # of var2 -> vmap1
-//     2-smallest # of var2 -> vmap1 + range of vmap1
-//     ...
-//     ith-smallest # of var2 -> vmap1 + range of vmap1
-//
-// Call this vmap2. Then we do
-//
-//     Smallest # of vark -> vmap(k - 1)
-//     2-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
-//     ...
-//     ith-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
-
+/**
+ * @brief Use the grouping variables as a hassh
+ *
+ * The grouping variables are all integer and can be used as a hash.
+ * With all-integer variables, we can construct a bijection to the whole
+ * numbers. Generally speaking, we want a function f so that f: X^K
+ * -> N, where X is a subset of Z. Though there are generic ways to
+ * impement this function for X = Z, in this case we know the bounds for
+ * X. The function we use is as follows (using 1-based indexing for ease
+ * of exposition):
+ *
+ *     offset = 1
+ *     hash   = z[, 1] - min(z[, 1]) + 1
+ *     for k = 2 to K
+ *         offset *= (zmax[k - 1] - zmin[k - 1] + 1)
+ *         hash   += ( z[, k] - min(z[, k]) ) * offset
+ *    
+ * What is happening is that we are fisrt mapping
+ *    
+ *     var1 -> 1 to range of var1
+ *    
+ * Call this vmap1. Then we are mapping
+ *    
+ *     Smallest # of var2 -> vmap1
+ *     2-smallest # of var2 -> vmap1 + range of vmap1
+ *     ...
+ *     ith-smallest # of var2 -> vmap1 + range of vmap1
+ *    
+ * Call this vmap2. Then we do
+ *    
+ *     Smallest # of vark -> vmap(k - 1)
+ *     2-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
+ *     ...
+ *     ith-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
+ *
+ * @param h1 Where to store the map to the whole nubmers
+ * @param k1 Biject from k1th variable passed from Stata
+ * @param k2 Biject through k2th variable passed from Stata
+ * @param in1 Hash starting from in1th obs
+ * @param in2 Hash starting from in2th obs
+ * @param mins Minima for each variable
+ * @param maxs Maxima for each variable
+ * @return Store map to whole numbers in @h1
+ *
+ */
 int sf_get_varlist_bijection (
     uint64_t h1[],
     size_t k1,
@@ -223,6 +297,7 @@ int sf_get_varlist_bijection (
         offsets[k + 1] = offset;
     }
 
+    // Construct bijection to whole numbers
     for (i = 0; i < N; i++) {
         if ( (rc = SF_vdata(1, i + in1, &z)) ) return(rc);
         h1[i] = z - mins[0] + 1;

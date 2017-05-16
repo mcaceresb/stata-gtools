@@ -22,7 +22,7 @@ only developed this for Stata for Unix so far. Future releases will be
 cross-platform.
 
 If you want to compile the plugin yourself, atop the C standard library
-- [`ceanturian`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
+- [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
 - v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
 FAQs
@@ -41,13 +41,14 @@ native commands:
    on arbitrary data. Further, with a 128-bit hash you shouldn't have
    to worry about collisions (unless you're working with groups in the
    quintillions, 10^18 _levels_, not observations). Hashing here is also
-   faster than Hashing in Sergio Correia's `ftools`, which uses a 32-bit
+   faster than hashing in Sergio Correia's `ftools`, which uses a 32-bit
    hash and will run into collisions just with levels in the thousands,
    so he has to resolve collisions.
 
-2. Efficiency: It is possible that Stata's algorithms are not particularly
-   efficient (this is, for example, the explanation given for why `ftools`
-   is faster than Stata even though Mata should not be particularly fast).
+2. Efficiency: It is possible that Stata's algorithms are not
+   particularly efficient (this is, for example, the explanation given
+   for why `ftools` is faster than Stata even though Mata should not be
+   faster than compiled C code).
 
 ### Why use platform-dependent plugins?
 
@@ -69,10 +70,10 @@ The code has not been optimized at all and several features area missing:
 - Memory management is terrible (see below).
 - It is only available in Unix
 - Unless requesting first, firstnm, last, lastnm, min, or max, I ignore
-  types and do all operations in double precision. I should try to use
-  whatever the user-specified default is. (PS: Since Stata does not implement
-  `long long` or unsigned ingeters, just long, even operations like `sum`
-  need to be double).
+  types and do all operations in double precision. Future releases will
+  be smarter handling data types and use user-specified types. (PS:
+  Since Stata does not implement `long long` or unsigned ingeters, just
+  long, even operations like `sum` may need to be float or double).
 - I sort the resulting data using using Stata.
 - The C implementation is very crude (e.g. no multithreading)
 - Unlike `fcollapse`, the user cannot add functions easily (it uses compiled C code).
@@ -84,9 +85,9 @@ Despite this, it has some advantages:
   all strings.
 - Percentiles are computed to match Stata's (fcollapse uses a quantile
   function from moremata that does not necessarily match collapse's
-  percentile function)
+  percentile function).
 - Can have quantiles not just percentiles (e.g. p2.5 and p.97.5 would be
-  valid stat calls in gcollapse )
+  valid stat calls in `gcollapse`).
 
 Memory Management
 -----------------
@@ -113,7 +114,7 @@ ado uninstall gtools
 Building
 --------
 
-I provide a python-based solution that should be cross-platform,
+I provide a python-based wrapper that should be cross-platform,
 but I have not had the opportunity to test it outside of Linux.
 To place the contents of the package on `./build`, simply run
 ```

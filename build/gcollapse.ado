@@ -1,4 +1,4 @@
-*! version 0.1.0 16May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.1 18May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 * TODO: If the number of observations is < 2^31 - 1, then count can be
@@ -308,8 +308,10 @@ program gcollapse
 
     * Keep only one obs per group; keep only relevant vars
     qui {
-        keep in 1 / `:di scalar(__gtools_J)'
-        keep `by' `gtools_targets'
+        * keep in 1 / `:di scalar(__gtools_J)'
+        * keep `by' `gtools_targets'
+        mata: st_keepobsin((1, `:di scalar(__gtools_J)'))
+        mata: st_keepvar((`:di subinstr(`""`by' `gtools_targets'""', " ", `"", ""', .)'))
 
         * This is really slow; implement in C
         if ("`unsorted'" == "") sort `by'

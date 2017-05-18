@@ -46,10 +46,11 @@ end
 * set segmentsize 128m
 * set niceness 10, permanently
 
+gen_data `:di 1 * 1000 * 1000' 3
 * gen_data `:di 1 * 1000 * 1000' 15
 * gen_data `:di 5 * 1000 * 1000' 15
 * gen_data `:di 20 * 1000 * 1000' 15
-gen_data `:di 20 * 1000 * 1000' 6
+* gen_data `:di 20 * 1000 * 1000' 6
 * loc clist (mean) x1 y1-y3 (median) X1=x1 Y1=y1 Y2=y2 Y3=y3 // (median) x5 (max) z=x5
 * set processors 3
 * sort `all_vars'
@@ -60,9 +61,9 @@ save `test_data'
 cd /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build
 !cd ..; ./build.py
 do gcollapse.ado
-* preserve
-*     gcollapse (sum) x5 (mean) x5 (sd) x5, by(x3) verbose benchmark
-* restore
+preserve
+    gcollapse (sum) x5 (mean) x5 (sd) x5, by(x1 x2 x3 x4) verbose benchmark
+restore
 
 ***********************************************************************
 *                             Simple run                              *
@@ -72,8 +73,8 @@ do gcollapse.ado
 	timer clear
 	local by x3
 	local stats sum
-	* local vars y1-y15
-	local vars y1-y6
+	local vars y1-y15
+	* local vars y1-y6
 
 	di as text "{bf:by    = `by'}"
 	di as text "{bf:stats = `stats'}"
@@ -148,7 +149,7 @@ timer clear
 	local msg
 
 	* loc methods collapse gcol fcol fcolp tab
-	loc methods fcol gcol
+	loc methods gcol fcol
 
 	foreach method of local methods {
         use `test_data', clear
@@ -200,6 +201,13 @@ timer clear
 ***********************************************************************
 *                           Complex groups                            *
 ***********************************************************************
+
+* NOTE(mauricio): Error with fcollapse? // 2017-05-18 15:10 EDT
+* (obs: 20,000,000; levels: 100; method: hash1; dict size: 30,000,000)
+*       st_varvaluelabel():   181  Stata returned error
+*     Factor::store_keys():     -  function returned error
+*             f_collapse():     -  function returned error
+*                  <istmt>:     -  function returned error
 
 * preserve
 	timer clear

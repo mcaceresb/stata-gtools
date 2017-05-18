@@ -112,7 +112,22 @@ compare_gf, nj(`:di 10^4') by(grouplong groupsub)
 compare_gf, nj(`:di 10^4') by(grouplong groupsub) pct
 
 sim, n(`:di 10^7') nj(`:di 10^6') string njsub(5)
-compare_gf, nj(`:di 10^5') by(groupstr)
-compare_gf, nj(`:di 10^5') by(groupstr) pct
-compare_gf, nj(`:di 10^5') by(grouplong groupsub)
-compare_gf, nj(`:di 10^5') by(grouplong groupsub) pct
+compare_gf, nj(`:di 10^6') by(groupstr)
+compare_gf, nj(`:di 10^6') by(groupstr) pct
+compare_gf, nj(`:di 10^6') by(grouplong groupsub)
+compare_gf, nj(`:di 10^6') by(grouplong groupsub) pct
+
+sim, n(`:di 10^7') nj(`:di 10^2') string njsub(5)
+compare_gf, nj(`:di 10^2') by(groupstr)
+compare_gf, nj(`:di 10^2') by(groupstr) pct
+compare_gf, nj(`:di 10^2') by(grouplong groupsub)
+compare_gf, nj(`:di 10^2') by(grouplong groupsub) pct
+
+sim, n(`:di 2 * 10^7') nj(`:di 10^2') string njsub(5)
+gen str xx = "u" + string(ceil(uniform() * 100), "%5.0f")
+compare_gf, nj(`:di 10^2') by(xx)
+compare_gf, nj(`:di 10^2') by(xx) pct
+compare_gf, nj(`:di 10^2') by(groupstr)
+compare_gf, nj(`:di 10^2') by(groupstr) pct
+compare_gf, nj(`:di 10^2') by(grouplong groupsub)
+compare_gf, nj(`:di 10^2') by(grouplong groupsub) pct

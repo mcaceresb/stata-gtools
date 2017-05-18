@@ -97,6 +97,28 @@ int mf_strcmp_wrapper (char * fname, char *compare) {
     return ( strcmp (fname, compare)  == 0 );
 }
 
+/**
+ * @brief Implement memcpy as a dummy function for memset
+ * 
+ * Stata requires plugins to be compied as shared executables. Since
+ * this is being compiled on a relatively new linux system (by 2017
+ * standards), some of the dependencies set in this way cannot be
+ * fulfilled by older Linux systems. In particular, using memcpy as
+ * provided by my system creates a dependency to Glib 2.14, which cannot
+ * be fulfilled on some older systems (notably the servers where I
+ * intend to use the plugin; hence we implement memcpy outselves and get
+ * rid of that particular dependency.
+ *
+ * @param dest pointer to place in memory to copy @src
+ * @param src pointer to place in memory that is source of data
+ * @param n how many bytes to copy
+ * @return move @src to @dest
+ */
+void * memcpy (void *dest, const void *src, size_t n)
+{
+	return memmove(dest, src, n);
+}
+
 /*********************************************************************
  *                          Stata utilities                          *
  *********************************************************************/
@@ -148,4 +170,22 @@ int sf_get_vector(char * st_matrix, double v[])
         }
     }
     return(0);
+}
+
+/**
+ * @brief Update a running timer and print a message to satata console
+ * 
+ * Prints a messasge to Stata that the running timer @timer was last set
+ * @diff seconds ago. It then updates the timer to the current time.
+ *
+ * @param timer clock object containing time since last udpate
+ * @param msg message to print before # of seconds
+ * @return Print time since last update to Stata console
+ */
+void sf_running_timer (clock_t *timer, const char *msg)
+{
+    double diff  = (double) (clock() - *timer) / CLOCKS_PER_SEC;
+    sf_printf (msg);
+    sf_printf ("; %.3f seconds.\n", diff);
+    *timer = clock();
 }

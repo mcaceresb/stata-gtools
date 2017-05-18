@@ -30,7 +30,8 @@ void mf_radix_sort_index (
     uint64_t exp   = 1;
     uint64_t max   = mf_max(x, N);
     uint64_t min   = mf_min(x, N);
-    uint64_t ctol  = pow(2, 31) - 1;
+    uint64_t range = max - min + 1;
+    uint64_t ctol  = pow(2, 24);
 
     size_t shift; uint64_t loops;
     if (raw) {
@@ -45,7 +46,7 @@ void mf_radix_sort_index (
     for (int i = 0; i < N; i++)
         index[i] = i;
 
-    if ( max < ctol ) {
+    if ( range < ctol ) {
         mf_counting_sort_index (x, index, N, min, max);
         if ( verbose ) {
             sf_printf("counting sort on hash; min = %'lu, max = %'lu\n", min, max);
@@ -133,12 +134,13 @@ void mf_counting_sort_index(
     const size_t min,
     const size_t max)
 {
+    int i, s;
     size_t range = max - min + 1;
 
     // Allocate space for x, index copies and x mod 
     uint64_t *xcopy = calloc(N, sizeof *xcopy);
     size_t   *icopy = calloc(N, sizeof *icopy);
-    int i, s, count[range + 1];
+    int      *count = calloc(range + 1, sizeof *count);
 
     // Initialize count as 0s
     for (i = 0; i < range + 1; i++)
@@ -161,8 +163,9 @@ void mf_counting_sort_index(
     }
 
     // Free space
-    free(xcopy);
-    free(icopy);
+    free (count);
+    free (xcopy);
+    free (icopy);
 }
 
 

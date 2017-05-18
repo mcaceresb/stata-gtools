@@ -175,9 +175,9 @@ int sf_get_varlist_hash (
 }
 
 /**
- * @brief Use the grouping variable as a hassh
+ * @brief Use the grouping variable as a hash
  *
- * The grouping variable is an integer and can be used as a hash.
+ * The grouping variable is an integers and can be used as a hash.
  * Simply map values to whole numbers 1 to N.
  *
  * @param h1 Where to store the map to the whole nubmers

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Tue May 16 07:47:05 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.1.0
+* Version: 0.1.1
 * Manual:  help gcollapse
 
 * Stata start-up options
@@ -72,6 +72,63 @@ program exit_message
     di "`subject'"
     di ""
     di "`message'"
+end
+
+* Wrapper for easy timer use
+cap program drop mytimer
+program mytimer, rclass
+    * args number what step
+    syntax anything, [minutes ts]
+
+    tokenize `anything'
+    local number `1'
+    local what   `2'
+    local step   `3'
+
+    if ("`what'" == "end") {
+        qui {
+            timer clear `number'
+            timer off   `number'
+        }
+        if ("`ts'" == "ts") mytimer_ts `step'
+    }
+    else if ("`what'" == "info") {
+        qui {
+            timer off `number'
+            timer list `number'
+        }
+        local seconds = r(t`number')
+        local prints  `:di trim("`:di %21.2gc `seconds''")' seconds
+        if ("`minutes'" != "") {
+            local minutes = `seconds' / 60
+            local prints  `:di trim("`:di %21.3gc `minutes''")' minutes
+        }
+        mytimer_ts Step `step' took `prints'
+        qui {
+            timer clear `number'
+            timer on    `number'
+        }
+    }
+    else {
+        qui {
+            timer clear `number'
+            timer on    `number'
+            timer off   `number'
+            timer list  `number'
+            timer on    `number'
+        }
+        if ("`ts'" == "ts") mytimer_ts `step'
+    }
+end
+
+capture program drop mytimer_ts
+program mytimer_ts
+    display _n(1) "{hline 79}"
+    if ("`0'" != "") display `"`0'"'
+    display `"        Base: $S_FN"'
+    display  "        In memory: `:di trim("`:di %21.0gc _N'")' observations"
+    display  "        Timestamp: $S_TIME $S_DATE"
+    display  "{hline 79}" _n(1)
 end
 
 * ---------------------------------------------------------------------

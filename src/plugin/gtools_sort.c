@@ -23,11 +23,14 @@ void mf_radix_sort_index (
     size_t index[],
     const size_t N,
     const size_t dshift,
-    const size_t raw)
+    const size_t raw,
+    const int verbose)
 {
     size_t nloops  = 0;
     uint64_t exp   = 1;
     uint64_t max   = mf_max(x, N);
+    uint64_t min   = mf_min(x, N);
+    uint64_t ctol  = pow(2, 31) - 1;
 
     size_t shift; uint64_t loops;
     if (raw) {
@@ -42,13 +45,26 @@ void mf_radix_sort_index (
     for (int i = 0; i < N; i++)
         index[i] = i;
 
-    do {
-        mf_counting_sort_index (x, index, N, exp, shift);
-    } while ( (max > (exp *= shift)) & (nloops++ < loops) );
+    if ( max < ctol ) {
+        mf_counting_sort_index (x, index, N, min, max);
+        if ( verbose ) {
+            sf_printf("counting sort on hash; min = %'lu, max = %'lu\n", min, max);
+        }
+    }
+    else {
+        do {
+            mf_radix_sort_index_pass (x, index, N, exp, shift);
+        } while ( (max > (exp *= shift)) & (nloops++ < loops) );
+        if ( verbose ) {
+            sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = %'lu\n",
+                      nloops + 1, dshift, shift);
+        }
+    }
+
 }
 
 /**
- * @brief Counting sort with index
+ * @brief One pass of radix sort: Counting sort with index
  * 
  * Perform one pass of the counting sort for the radix sort using
  * the modulus operator to sort log2(shift) bits at a time.
@@ -60,7 +76,7 @@ void mf_radix_sort_index (
  * @param shift number of bits to sort at a time (equal to 2^d)
  * @return jth pass of radix sort for @x and corresponding @index
  */
-void mf_counting_sort_index (
+void mf_radix_sort_index_pass (
     uint64_t x[],
     size_t index[],
     const size_t N,
@@ -98,6 +114,57 @@ void mf_counting_sort_index (
     free(outx);
     free(outi);
 }
+
+/**
+ * @brief Counting sort with index
+ * 
+ * Perform counting sort, additionally storing data shuffle
+ * in index variable.
+ * 
+ * @param x vector of unsigned 64-bit integers to sort
+ * @param index vector of same length where to store the sort index
+ * @param N length of array
+ * @return Counting sort on integer array.
+ */
+void mf_counting_sort_index(
+    uint64_t x[],
+    size_t index[],
+    const size_t N,
+    const size_t min,
+    const size_t max)
+{
+    size_t range = max - min + 1;
+
+    // Allocate space for x, index copies and x mod 
+    uint64_t *xcopy = calloc(N, sizeof *xcopy);
+    size_t   *icopy = calloc(N, sizeof *icopy);
+    int i, s, count[range + 1];
+
+    // Initialize count as 0s
+    for (i = 0; i < range + 1; i++)
+        count[i] = 0;
+
+    // Freq count of x
+    for (i = 0; i < N; i++) {
+        count[ xcopy[i] = (x[i] + 1 - min) ]++;
+        icopy[i] = index[i];
+    }
+
+    // Cummulative freq count (position in output)
+    for (i = 1; i < range; i++)
+        count[i] += count[i - 1];
+
+    // Copy back in stable sorted order
+    for (i = N - 1; i >= 0; i--) {
+        index[ s = count[xcopy[i] - 1]++ ] = icopy[i];
+        x[s] = xcopy[i] - 1 + min;
+    }
+
+    // Free space
+    free(xcopy);
+    free(icopy);
+}
+
 
 /**
  * @brief Set up variables for panel using 128-bit hashes
@@ -162,7 +229,7 @@ size_t * mf_panelsetup128 (
                 for (size_t j = start_l; j < i; j++)
                     h2_l[j - start_l] = h2[j];
 
-                mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0);
+                mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0, 0);
                 free (h2_l);
                 for (size_t j = 0; j < range_l; j++)
                     ix_c[j] = index[ix_l[j] + start_l];

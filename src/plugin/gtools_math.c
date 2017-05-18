@@ -1,6 +1,7 @@
 #define square(x) ((x) * (x))
 #define MAX_MATCHES 1
 #include "gtools_math.h"
+#include "quickselect.c"
 
 /**
  * @brief Standard deviation entries in range of array
@@ -132,15 +133,15 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
         qsort (v + start, N, sizeof(double), mf_qsort_compare);
     }
     double q = v[qth];
-    if ( (double) qth == (quantile * N) ) {
-        q += v[qth + 1];
+    if ( (double) (qth - start) == (quantile * N) ) {
+        q += v[qth - 1];
         q /= 2;
     }
 
     // In testing, this was slower than qsort
     // double q = mf_quickselect (v, left, right, qth);
     // if ( (double) qth == (quantile * N) ) {
-    //     q += mf_quickselect (v, left, right, qth + 1);
+    //     q += mf_quickselect (v, left, right, qth - 1);
     //     q /= 2;
     // }
     return (q);
@@ -216,10 +217,12 @@ double mf_parse_percentile (char *matchstr) {
 
 	if (regexec(&regexp, matchstr, MAX_MATCHES, matches, 0) == 0) {
         char qstr[matches[0].rm_eo + 1];
+        // strcpy ( qstr, &matchstr[1] );
+        // memmove ( qstr, &matchstr[1], matches[0].rm_eo );
         memcpy ( qstr, &matchstr[1], matches[0].rm_eo );
         qstr[matches[0].rm_eo] = '\0';
         regfree (&regexp);
-        printf("%s\t", qstr);
+        // sf_printf("%s\t", qstr);
         return ((double) atof(qstr));
 	}
     else {

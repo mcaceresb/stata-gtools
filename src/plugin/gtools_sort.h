@@ -6,15 +6,24 @@ void mf_radix_sort_index (
     size_t index[], 
     const size_t N,
     const size_t dshift,
-    const size_t raw
+    const size_t raw,
+    const int verbose
+);
+
+void mf_radix_sort_index_pass (
+    uint64_t x[],
+    size_t index[], 
+    const size_t N,
+    const size_t exp,
+    const size_t shift
 );
 
 void mf_counting_sort_index (
     uint64_t x[],
     size_t index[], 
     const size_t N,
-    const size_t exp,
-    const size_t shift
+    const size_t min,
+    const size_t max
 );
 
 size_t * mf_panelsetup128 (

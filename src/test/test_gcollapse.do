@@ -27,9 +27,11 @@ end
 
 capture program drop checks_simplest_gcollapse
 program checks_simplest_gcollapse
+    syntax, [tol(real 1e-6)]
     di _n(1) "{hline 80}" _n(1) "checks_simplest_gcollapse" _n(1) "{hline 80}" _n(1)
 
-    sim, n(500000) nj(8) njsub(4) string groupmiss outmiss
+    * sim, n(500000) nj(8) njsub(4) string groupmiss outmiss
+    sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
 
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
     local collapse_str ""
@@ -39,32 +41,112 @@ program checks_simplest_gcollapse
     local collapse_str `collapse_str' (p23) p23 = rsort
     local collapse_str `collapse_str' (p77) p77 = rsort
 
-    set rmsg on
+    local i = 0
+    mytimer 9
     preserve
-        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupsub groupstr) verbose
-        l
+        mytimer 9 info
+        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupsub groupstr) verbose benchmark
+        mytimer 9 info "gcollapse 2 groups"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore, preserve
+        mytimer 9 info
         fcollapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupsub group) verbose
-        l
+        mytimer 9 info "fcollapse 2 groups"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore, preserve
+        mytimer 9 info
         collapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupsub groupstr)
-        l
+        mytimer 9 info "collapse 2 groups"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore
-    set rmsg off
 
-    set rmsg on
     preserve
-        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupstr) verbose
-        l
+        mytimer 9 info
+        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupstr) verbose benchmark
+        mytimer 9 info "gcollapse 1 group"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore, preserve
+        mytimer 9 info
         fcollapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupstr) verbose
-        l
+        mytimer 9 info "fcollapse 1 group"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore, preserve
+        mytimer 9 info
         collapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupstr)
-        l
+        mytimer 9 info "collapse 1 group"
+        * l
+        tempfile f`i'
+        save `f`i''
+        local ++i
     restore
-    set rmsg off
+    mytimer 9 off
 
+    preserve
+    use `f2', clear
+        local bad_any = 0
+        local bad groupsub groupstr
+        foreach var in `stats' p23 p77 {
+            rename `var' c_`var'
+        }
+        merge 1:1 groupsub groupstr using `f0', assert(3)
+        foreach var in `stats' p23 p77 {
+            qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
+            if ( `r(N)' > 0 ) {
+                gen byte bad_`var' = abs(`var' - c_`var') > `tol'
+                local bad `bad' *`var'
+                di "`var' has `:di r(N)' mismatches".
+                local bad_any = 1
+            }
+        }
+        if ( `bad_any' ) {
+            order `bad'
+            l `bad'
+        }
+        else {
+            di "gcollapse produced identical data to collapse (tol = `tol')"
+        }
+
+    restore, preserve
+
+    use `f5', clear
+        local bad_any = 0
+        local bad groupstr
+        foreach var in `stats' p23 p77 {
+            rename `var' c_`var'
+        }
+        merge 1:1 groupstr using `f3', assert(3)
+        foreach var in `stats' p23 p77 {
+            qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
+            if ( `r(N)' > 0 ) {
+                gen byte bad_`var' = abs(`var' - c_`var') > `tol'
+                local bad `bad' *`var'
+                di "`var' has `:di r(N)' mismatches".
+                local bad_any = 1
+            }
+        }
+        if ( `bad_any' ) {
+            order `bad'
+            l `bad'
+        }
+        else {
+            di "gcollapse produced identical data to collapse (tol = `tol')"
+        }
+    restore
 
     di ""
     di as txt "Passed! checks_simplest_gcollapse"

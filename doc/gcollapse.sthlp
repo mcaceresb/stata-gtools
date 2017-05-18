@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0 16May2017}{...}
+{* *! version 0.1.1 18May2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -77,6 +77,10 @@ user press {hi:Break}
 {synopt :{opt unsorted}}do not sort the final data.
 Saves speed but leaves resulting collapse unsorted.
 {p_end}
+{synopt :{opt verbose}}verbose printing (for debugging).
+{p_end}
+{synopt :{opt benchmark}}print performance time info for each step.
+{p_end}
 
 {synoptline}
 {p2colreset}{...}
@@ -117,8 +121,15 @@ should the user press {hi:Break}.
 {phang}
 {opt unsorted} does not sort the resulting data.
 
+{phang}
+{opt verbose} prints some useful debugging info to the console.
+
+{phang}
+{opt benchmark} prints how long in seconds various parts of the program
+take to execute.
+
 {marker example}{...}
-{title:Example: Adding your own aggregation functions}
+{title:Examples}
 
 {pstd}
 Pending...

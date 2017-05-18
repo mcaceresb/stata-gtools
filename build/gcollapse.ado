@@ -14,6 +14,7 @@ program gcollapse
         cw                     /// case-wise non-missing
         fast                   /// do not preserve/restore
         Verbose                /// debugging
+        Benchmark              /// print benchmark info
         smart                  /// use Stata's collapse if data is sorted
         unsorted               /// do not sort final output (current implementation of final
                                /// sort is super slow bc it uses Stata)
@@ -27,10 +28,25 @@ program gcollapse
     if ("`unsafe'"    != "") di as err "Option -unsafe- not yet available (planned for next release)."
     if ("`nomissing'" != "") di as err "Option -nomissing- not yet available (planned for next release)."
 
+    * Time the entire function execution
+    {
+        cap timer off 98
+        cap timer clear 98
+        timer on 98
+    }
+
+    * Time program setup
+    {
+        cap timer off 97
+        cap timer clear 97
+        timer on 97
+    }
+
     if ("`fast'" == "") preserve
 
-    // Verbose printing debug info
-    // ---------------------------
+
+    // Verbose and benchmark printing
+    // ------------------------------
 
     if ("`verbose'" == "") {
         local verbose = 0
@@ -40,6 +56,16 @@ program gcollapse
         local verbose = 1
         scalar __gtools_verbose = 1
     }
+
+    if ("`benchmark'" == "") {
+        local benchmark = 0
+        scalar __gtools_benchmark = 0
+    }
+    else {
+        local benchmark = 1
+        scalar __gtools_benchmark = 1
+    }
+
 
     * Collapse to summary stats
     * -------------------------
@@ -141,10 +167,37 @@ program gcollapse
     * Parse type of each by variable
     ParseByTypes `by'
 
+    * Be smart about creating new variable columns
+    local   gtools_vars      = subinstr(" `gtools_vars' ",        " ", "  ", .)
+    local   gtools_uniq_vars = subinstr(" `gtools_uniq_vars' ",   " ", "  ", .)
+    local __gtools_vars      = subinstr(" `__gtools_vars' ",      " ", "  ", .)
+    local __gtools_uniq_vars = subinstr(" `__gtools_uniq_vars' ", " ", "  ", .)
+    local K = `:list sizeof gtools_targets'
+    forvalues k = 1 / `K' {
+        local k_target: word `k' of `gtools_targets'
+        local k_var:    word `k' of `gtools_vars'
+        if ( `:list k_var in __gtools_uniq_vars' ) {
+            local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
+            if ( !`:list k_var in __gtools_targets' ) {
+                local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        " `k_var' ", " `k_target' ", .))
+                local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   " `k_var' ", " `k_target' ", .))
+                local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      " `k_var' ", " `k_target' ", .))
+                local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", " `k_var' ", " `k_target' ", .))
+                rename `k_var' `k_target'
+            }
+        }
+    }
+    local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        "  ", " ", .))
+    local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   "  ", " ", .))
+    local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      "  ", " ", .))
+    local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", "  ", " ", .))
+
     * slow, but saves mem
-    keep `by' `gtools_uniq_vars'
+    * keep `by' `gtools_uniq_vars'
+    mata: st_keepvar((`:di subinstr(`""`by' `gtools_uniq_vars'""', " ", `"", ""', .)'))
 
     * Unfortunately, this is necessary for C
+    local dropme ""
     qui foreach var of local gtools_targets {
         gettoken sourcevar __gtools_vars: __gtools_vars
         gettoken collstat  __gtools_stats: __gtools_stats
@@ -153,8 +206,23 @@ program gcollapse
         else local targettype double
         di "type for `var' is `targettype'"
         if ( _rc ) mata: st_addvar("`targettype'", "`var'", 1)
-        else recast `targettype' `var'
+        else {
+            local already_float_double = inlist("`:type `var''", "float", "double")
+            local already_same_type    = ("`targettype'" == "`:type `var''")
+            if !( `already_float_double' | `already_same_type' ) {
+                tempname dropvar
+                rename `var' `dropvar'
+                local drop `drop' `dropvar'
+                mata: st_addvar("`targettype'", "`var'", 1)
+                replace `var' = `dropvar'
+                * gen `targettype' `var' = `dropvar'
+                * recast `targettype' `var'
+            }
+        }
     }
+
+    * if ("`dropme'" != "") drop `dropme'
+    if ("`dropme'" != "") mata: st_keepvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
 
     * This is not, but I need to figure out how to handle strings in C
     * efficiently; will improve on a future release.
@@ -201,6 +269,15 @@ program gcollapse
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in by'
     }
 
+    * If benchmark, output program setup time
+    {
+        timer off 97
+        qui timer list
+        if ( `benchmark' ) di "Program set up executed in `:di trim("`:di %21.4gc r(t97)'")' seconds"
+        timer off 97
+        timer clear 97
+    }
+
     * Time just the plugin
     {
         cap timer off 99
@@ -209,17 +286,24 @@ program gcollapse
     }
 
     * J will contain how many obs to keep; nstr contains # of string grouping vars
-    scalar __gtools_J    = 1
+    scalar __gtools_J    = `=_N'
     scalar __gtools_nstr = `:list sizeof bystr'
     plugin call gcollapse_plugin `by' `gtools_uniq_vars' `gtools_targets' `bystr'
 
-    * If verbose, output pugin time
+    * If benchmark, output pugin time
     {
         timer off 99
         qui timer list
-        if ("`verbose'" != "") di "The plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
+        if ( `benchmark' ) di "The plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
         timer off 99
         timer clear 99
+    }
+
+    * Time program exit
+    {
+        cap timer off 97
+        cap timer clear 97
+        timer on 97
     }
 
     * Keep only one obs per group; keep only relevant vars
@@ -232,6 +316,24 @@ program gcollapse
     }
 
 	if ("`fast'" == "") restore, not
+
+    * If benchmark, output program ending time
+    {
+        timer off 97
+        qui timer list
+        if ( `benchmark' ) di "Program exit executed in `:di trim("`:di %21.4gc r(t97)'")' seconds"
+        timer off 97
+        timer clear 97
+    }
+
+    * If benchmark, output function time
+    {
+        timer off 98
+        qui timer list
+        if ( `benchmark' ) di "The program executed in `:di trim("`:di %21.4gc r(t98)'")' seconds"
+        timer off 98
+        timer clear 98
+    }
 end
 
 * Set up plugin call

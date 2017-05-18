@@ -8,11 +8,13 @@
 //  which has worst-case performance O (n log n) instead of O(n^2), which
 //  is the worst-case performance of quickselect.
 
+#include "quickselect.h"
+
 // double mf_quickselect (double *A, int left, int right, int k)
 // {
 //     // p is position of pivot in the partitioned array
 //     int p = mf_quickselect_partition(A, left, right);
-// 
+//
 //     // k equals pivot; got lucky
 //     if ( p == k - 1 ) {
 //         return (A[p]);
@@ -78,4 +80,3 @@ void _mf_swap (double *a, double *b)
     *a = *b;
     *b = temp;
 }
-

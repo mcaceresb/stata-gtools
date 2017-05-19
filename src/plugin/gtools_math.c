@@ -1,7 +1,24 @@
 #define square(x) ((x) * (x))
+
+#define MAX(a, b)        \
+{                        \
+    typeof (a) _a = (a); \
+    typeof (b) _b = (b); \
+    _a > _b ? _a : _b;   \
+}
+
+#define MIN(a, b)        \
+{                        \
+    typeof (a) _a = (a); \
+    typeof (b) _b = (b); \
+    _a > _b ? _b : _a;   \
+}
+
 #define MAX_MATCHES 1
+
 #include "gtools_math.h"
 #include "quickselect.c"
+#include "quickselect2.c"
 
 /**
  * @brief Standard deviation entries in range of array
@@ -102,7 +119,7 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
     int left      = start;
     int right     = end - 1;
     size_t N      = end - left;
-    size_t qth    = left + floor(N * quantile);
+    size_t qth    = ceil(N * quantile) - 1;
     double qlower = v[left];
     double qupper = v[right];
 
@@ -123,27 +140,17 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
             return ( (qlower + qupper) / 2 );
         }
     }
-    if ( qth == start ) return (mf_array_dmin_range(v, start, end));
-    if ( qth == end )   return (mf_array_dmax_range(v, start, end));
+    if ( qth == 0 )       return (mf_array_dmin_range(v, start, end));
+    if ( qth == (N - 1) ) return (mf_array_dmax_range(v, start, end));
 
     // Full selection algorithm
     // ------------------------
 
-    if ( !mf_array_dsorted_range(v, start, end) ) {
-        qsort (v + start, N, sizeof(double), mf_qsort_compare);
-    }
-    double q = v[qth];
-    if ( (double) (qth - start) == (quantile * N) ) {
-        q += v[qth - 1];
+    double q = mf_qselect_range (v, left, right, qth);
+    if ( (double) (qth + 1) == (quantile * N) ) {
+        q += mf_qselect_range (v, left, right, qth + 1);
         q /= 2;
     }
-
-    // In testing, this was slower than qsort
-    // double q = mf_quickselect (v, left, right, qth);
-    // if ( (double) qth == (quantile * N) ) {
-    //     q += mf_quickselect (v, left, right, qth - 1);
-    //     q /= 2;
-    // }
     return (q);
 }
 

@@ -1,4 +1,3 @@
-#define RADIX_SHIFT 16
 #include "gtools_sort.h"
 
 /**

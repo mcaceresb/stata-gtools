@@ -8,7 +8,8 @@ program sim, rclass
         gen group  = ceil(`nj' *  _n / _N) + `offset'
         bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
         bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
-        gen rsort = runiform()
+        gen rsort = runiform() - 0.5
+        gen rnorm = rnormal()
         if ("`sortg'" == "")  sort rsort
         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
@@ -36,16 +37,16 @@ program checks_simplest_gcollapse
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
     local collapse_str ""
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') `stat' = rsort
+        local collapse_str `collapse_str' (`stat') `stat' = rnorm
     }
-    local collapse_str `collapse_str' (p23) p23 = rsort
-    local collapse_str `collapse_str' (p77) p77 = rsort
+    local collapse_str `collapse_str' (p23) p23 = rnorm
+    local collapse_str `collapse_str' (p77) p77 = rnorm
 
     local i = 0
     mytimer 9
     preserve
         mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupsub groupstr) verbose benchmark
+        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupsub groupstr) verbose benchmark
         mytimer 9 info "gcollapse 2 groups"
         * l
         tempfile f`i'
@@ -53,7 +54,7 @@ program checks_simplest_gcollapse
         local ++i
     restore, preserve
         mytimer 9 info
-        fcollapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupsub group) verbose
+        fcollapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub group) verbose
         mytimer 9 info "fcollapse 2 groups"
         * l
         tempfile f`i'
@@ -61,7 +62,7 @@ program checks_simplest_gcollapse
         local ++i
     restore, preserve
         mytimer 9 info
-        collapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupsub groupstr)
+        collapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub groupstr)
         mytimer 9 info "collapse 2 groups"
         * l
         tempfile f`i'
@@ -71,7 +72,7 @@ program checks_simplest_gcollapse
 
     preserve
         mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rsort, by(groupstr) verbose benchmark
+        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupstr) verbose benchmark
         mytimer 9 info "gcollapse 1 group"
         * l
         tempfile f`i'
@@ -79,7 +80,7 @@ program checks_simplest_gcollapse
         local ++i
     restore, preserve
         mytimer 9 info
-        fcollapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupstr) verbose
+        fcollapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr) verbose
         mytimer 9 info "fcollapse 1 group"
         * l
         tempfile f`i'
@@ -87,7 +88,7 @@ program checks_simplest_gcollapse
         local ++i
     restore, preserve
         mytimer 9 info
-        collapse `collapse_str' (p2) p2 = rsort (p3) p3 = rsort, by(groupstr)
+        collapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr)
         mytimer 9 info "collapse 1 group"
         * l
         tempfile f`i'
@@ -159,27 +160,83 @@ program checks_byvars_gcollapse
     sim, n(1000) nj(250) string
     set rmsg on
     preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(group) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(groupstr) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(grouplong) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(group groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(grouplong groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose
     restore, preserve
-        gcollapse (mean) rsort (sum) sum = rsort (sd) sd = rsort, by(groupstr groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose
     restore
     set rmsg off
 
 
     di ""
     di as txt "Passed! checks_byvars_gcollapse"
+end
+
+capture program drop checks_options_gcollapse
+program checks_options_gcollapse
+    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse" _n(1) "{hline 80}" _n(1)
+
+    local stats mean count median iqr
+    local collapse_str ""
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') `stat' = rnorm `stat'2 = rnorm
+    }
+
+    sim, n(200) nj(10) string outmiss
+    preserve
+        gcollapse `collapse_str', by(groupstr) verbose benchmark
+        l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) verbose unsorted
+        l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) verbose benchmark cw
+        l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) double
+        l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) merge
+        l
+    restore
+
+    sort groupstr groupsub
+    preserve
+        gcollapse `collapse_nopct', by(groupstr groupsub) verbose benchmark
+        l in 1 / 5
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupstr groupsub) verbose benchmark smart
+        l in 1 / 5
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupsub groupstr) verbose benchmark smart
+        l in 1 / 5
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupstr) verbose benchmark
+        l in 1 / 5
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupstr) verbose benchmark smart
+        l in 1 / 5
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupsub) verbose benchmark smart
+        l
+    restore, preserve
+        gcollapse `collapse_nopct', by(groupsub) verbose benchmark
+        l
+    restore
+
+    di ""
+    di as txt "Passed! checks_options_gcollapse"
 end
 
 * TODO: Edge cases (nothing in anything, no -by-, should mimic collapse // 2017-05-16 08:03 EDT

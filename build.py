@@ -107,7 +107,7 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 # --------------------
 
 if platform == "linux" or platform == "linux2":
-    print("Trying to compile plugins for -algorithm(fast|faster)-")
+    print("Trying to compile plugins for -gtools-")
     rc = system("make")
     print("Success!" if rc == 0 else "Failed.")
 elif platform == "darwin":

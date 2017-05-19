@@ -1,16 +1,16 @@
 Faster Stata for Group Operations
 ---------------------------------
 
-This is currently an alpha release. This package uses a C-plugin
+This is currently a beta release. This package uses a C-plugin
 to provide a faster implementation for Stata's `collapse` called
-`gcollapse` and is also faster than Sergio Correia's `fcollapse` from
+`gcollapse` that is also faster than Sergio Correia's `fcollapse` from
 `ftools`.
 
 Currently, memory management is **VERY** bad, so if you are generating
 many summary variables from a single source variable, please see the
 memory management section below. Support for `egen` is limited, and only
-`gcollapse` for Unix is available. Future releases will support the full
-range of `egen` functions and will be cross-platform.
+Unix versions of the plugins are available. Future releases will support
+the full range of `egen` functions and will be cross-platform.
 
 - [Requirements](#requirements)
 - [Installation](#installation)
@@ -31,6 +31,7 @@ only developed this for Stata for Unix so far. Future releases will be
 cross-platform.
 
 If you want to compile the plugin yourself, atop the C standard library
+you will need
 - [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
 - v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
@@ -84,6 +85,11 @@ We vary N for J = 100 and collapse 15 variables:
     vars  = y1-y15 ~ 123.456 + U(0, 1)
     stats = sum
 
+    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |    200,000 |      0.16 |              0.15 |      0.28 |  1.75 |          1.87 |
+    |  2,000,000 |      1.49 |              1.65 |      3.01 |  2.02 |          1.83 |
+    | 20,000,000 |     14.24 |             13.37 |     55.24 |  3.88 |          4.13 |
 ```
 
 We vary N for J = 100 and collapse 3 variables:
@@ -91,6 +97,11 @@ We vary N for J = 100 and collapse 3 variables:
     vars  = y1-y3 ~ 123.456 + U(0, 1)
     stats = mean median
 
+    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |    200,000 |      0.09 |              0.10 |      0.32 |  3.38 |          3.18 |
+    |  2,000,000 |      0.98 |              0.87 |      3.87 |  3.94 |          4.45 |
+    | 20,000,000 |      9.45 |              7.44 |     66.88 |  7.08 |          8.99 |
 ```
 
 ### Increasing the sample size
@@ -100,14 +111,26 @@ We vary N for J = 10:
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean sd max min count percent first last firstnm lastnm
 
+    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |    200,000 |      0.11 |              0.11 |      0.34 |  2.94 |          3.07 |
+    |  2,000,000 |      1.49 |              1.45 |      3.28 |  2.20 |          2.27 |
+    | 20,000,000 |     14.57 |             14.06 |     35.36 |  2.43 |          2.52 |
+
     vars  = x1 x2
     stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
 
+    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |    200,000 |      0.15 |              0.12 |      1.00 |  6.79 |          8.04 |
+    |  2,000,000 |      1.86 |              1.79 |     15.53 |  8.33 |          8.69 |
+    | 20,000,000 |     20.83 |             19.04 |    256.49 | 12.32 |         13.47 |
 ```
 
 The `gcollapse` and `fcollapse` columns show the execution time in
 seconds. We can see `gcollapse` is several times faster than `fcollapse`
-in our benchmarks.
+in our benchmarks, and that `fcollapse` is specially slow relative to
+`gcollapse` at computing quantiles for large groups.
 
 ### Increasing the number of levels
 
@@ -116,18 +139,33 @@ We vary J for N = 5,000,000:
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean sd max min count percent first last firstnm lastnm
 
+    |         J | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | --------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |        10 |      3.31 |              3.33 |      7.51 |  2.26 |          2.25 |
+    |       100 |      4.07 |              3.95 |      7.59 |  1.86 |          1.92 |
+    |     1,000 |      4.54 |              4.29 |      8.64 |  1.90 |          2.02 |
+    |    10,000 |      5.17 |              5.26 |     10.49 |  2.03 |          1.99 |
+    |   100,000 |      6.09 |              5.78 |     14.15 |  2.32 |          2.45 |
+    | 1,000,000 |      8.89 |              7.87 |     32.71 |  3.68 |          4.15 |
+
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
 
+    |         J | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
+    | --------- | --------- | ----------------- | --------- | ----- | ------------- |
+    |        10 |      5.16 |              4.88 |     50.86 |  9.86 |         10.43 |
+    |       100 |      5.48 |              5.23 |     30.55 |  5.57 |          5.84 |
+    |     1,000 |      6.26 |              5.79 |     24.02 |  3.84 |          4.14 |
+    |    10,000 |      7.74 |              6.30 |     22.60 |  2.92 |          3.59 |
+    |   100,000 |     19.83 |             13.16 |     28.75 |  1.45 |          2.19 |
+    | 1,000,000 |    146.76 |             59.05 |     86.43 |  0.59 |          1.46 |
 ```
 
-We can see that as group size increases, `gcollapse` is worse at
-computing percentiles than `fcollapse`, to the point `fcollapse` beats
-it handily in our last benchmark. However, the multi-threaded version of
-`gcollapse` is still faster. This is specific to computing percentiles
-with a large number of groups: We can see that without percentiles this
-inefficiency is nor present, and computing percentiles for a small
-number of groups is also efficient even with millions of variables.
+While `fcollapse` is inefficient at computing quantiles for large of
+groups relative to `gcollapse`, the converse is true for a large number
+of small groups: With 1M groups and 5M observations, `fcollapse` is
+faster at computing quantiles than the single-threaded version of
+`gcollapse`, and the multi-threaded version is only 33% faster.
 
 A word of caution
 -----------------
@@ -136,22 +174,21 @@ At the moment this code is very beta and has not been extensively tested
 in the way collapse has. Furthermore, there are some glaring problems:
 - Memory management is terrible (see below).
 - It is only available in Unix.
-- The C implementation is very crude (e.g. no multi-threading).
+- Computing quantiles is inefficient.
 - Unlike `fcollapse`, the user cannot add functions easily (it uses compiled C code).
 
 Despite this, it has several advantages:
 - It's several times faster than `fcollapse`. On smaller data (thousands
-  or low millions) it is usually 2-5 times faster than `fcollapse` , which
-  is in turn ~3 times faster than plain `collapse`. See benchmarks above.
-  (for data in the tens of millions the speed gains compound because the
-  main bottleneck in `gcollapse` is the overhead involved in setting up
-  the data before calling the C plugin)
+  or low millions) it is 2-10 times faster than `fcollapse`, which is in
+  turn ~3 times faster than plain `collapse`. See benchmarks above. (for
+  data in the tens of millions the speed gains compound because the main
+  bottleneck in `gcollapse` is the overhead involved in setting up the
+  data before calling the C plugin)
 - Grouping variables can be a mix of numeric and string variables,
-  unlike `fcollapse` which requires the by variables be all numeric or
-  all strings.
+  unlike `fcollapse` which limits by variables to be of the same type.
 - Quantiles are computed to match Stata's `collapse`, unlike `fcollapse`.
-- Can compute arbitrary quantiles, not just percentiles (e.g. p2.5 and
-  p.97.5 would be valid stat calls in `gcollapse`).
+- Quantiles can be quantiles, not just percentiles (e.g. p2.5 and
+  p97.5 are be valid stat calls in `gcollapse`).
 
 FAQs
 ----
@@ -209,30 +246,36 @@ though a variable in the collapsed data would only take up 80 bytes, they
 have to be allocated ~8MiB (8 * 1e6 / 1024 / 1024).
 
 On most systems, this will not be an issue with observations in the low
-millions, but if you have, for example, 100M observations, then a singe
+millions. However, if you have, for example, 100M observations, a singe
 variable will take up ~0.8GiB in memory. In that scenario, even a dozen
 targets for a single variable may exceed the memory capacity of most
 personal computers.
 
 The function tries to be smart about this: Variables are only created
 from the _**second**_ target onward. If you have one target per
-variable, memory consumption should not exceed that of `collapse` of `fcollapse`.
+variable, memory consumption should not exceed that of `collapse` or `fcollapse`.
 
 Building
 --------
 
-I provide a python-based solution that should be cross-platform,
-but I have not had the opportunity to test it outside of Linux.
-To place the contents of the package on `./build`, simply run
+To compile the plugin, simply run
+```
+make
+```
+
+This is NOT cross-platform. You have to edit `./Makefile` to have
+it compile elsewhere. To copy the files to `./build`, run
 ```
 ./build.py
 ```
+
+This script also compiles the plugin, so you can just run `./build.py`.
 
 A brief note on hashing
 -----------------------
 
 The idea behind using a hash is simple: Sorting a single integer
-grouping variable is much faster than sorting o multiple variables
+grouping variable is much faster than sorting on multiple variables
 with arbitrary data (in particular, we can use a counting sort, which
 asymptotically performs in `O(n)` time compared to `O(n log n)` for the
 fastest general-purpose sorting algorithms).
@@ -246,21 +289,21 @@ and outputs data of fixed size.
 
 In particular we use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
 devised by Bob Jenkins, which is a 128-bit hash in two 64-bit parts.
-This is perfect for our purposes: We sort on this hash using a counting
-sort, and if the integer key is too large then this becomes unfeasible.
-We sort the first half 16-bits at a time using a radix sort (multiple
-passes of a counting sort). Sorting on the 64-bit key will be enough for
-most data (remember it's one hash per _level_, not per observation, and
-64 bits is enough until we have levels in the billions). However, we
-check all the elements of the second 64-bit portion of the hash are the
-same for a given 64-bit entry, and if there is a 64-bit hash collision,
-so to speak, we sort by the second half of the hash.
+This is perfect for our purposes: We want to use a counting sort, but if
+the integer key is too large then this becomes unfeasible. We sort the
+first half 16-bits at a time using a radix sort (multiple passes of a
+counting sort). Sorting on the 64-bit key will be enough for most data
+(remember it's one hash per _level_, not per observation, and 64 bits
+is enough until we have levels in the billions). However, we check all
+the elements of the second 64-bit portion of the hash are the same for
+a given 64-bit entry, and if there is a 64-bit hash collision, so to
+speak, we sort by the second half of the hash as well.
 
 A 128-bit hash collision is _de facto_ impossible, unless someone
 is actively trying to corrupt your data. Remember this is not a
 general-purpose hash, but merely a way to index the levels implied by a
 set of variables in a particular dataset (where observations are capped
-at a few dozen billion anyway), and hence only needs to produce numbers
+at just over 20 billion anyway), and hence only needs to produce numbers
 that are unique _for that particular dataset_.
 
 TODO

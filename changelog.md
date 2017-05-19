@@ -31,9 +31,6 @@ Change Log
 
 * `checkmem` feature to call `fcollapse` or `collapse` when the plugin
   suspects there will not be enough memory.
-
-### Planned
-
 * `gegen` as a drop-in replacement for `egen` that should be faster than
   `fegen` and also implementes `egenmore`.
 * Improve memory management.

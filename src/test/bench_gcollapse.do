@@ -249,11 +249,8 @@ end
 * do gcollapse.ado
 * do gtools_tests.do
 
-* bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
-* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
-* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4) pct(median iqr p23 p77)
-* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5)
-* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5) pct(median iqr p23 p77)
+* Benchmarks in the README
+* ------------------------
 
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
 * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
@@ -263,6 +260,15 @@ end
 * bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
 * bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
 * bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+
+* Misc
+* ----
+
+* bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
+* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
+* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4) pct(median iqr p23 p77)
+* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5)
+* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5) pct(median iqr p23 p77)
 
 * bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6)
 * bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)

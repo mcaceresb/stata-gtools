@@ -1,24 +1,11 @@
 #define square(x) ((x) * (x))
-
-#define MAX(a, b)        \
-{                        \
-    typeof (a) _a = (a); \
-    typeof (b) _b = (b); \
-    _a > _b ? _a : _b;   \
-}
-
-#define MIN(a, b)        \
-{                        \
-    typeof (a) _a = (a); \
-    typeof (b) _b = (b); \
-    _a > _b ? _b : _a;   \
-}
+#define MAX(a, b) ( (a) > (b) ? (a) : (b) )
+#define MIN(a, b) ( (a) > (b) ? (b) : (a) )
 
 #define MAX_MATCHES 1
 
 #include "gtools_math.h"
-#include "quickselect.c"
-#include "quickselect2.c"
+#include "qselect.c"
 
 /**
  * @brief Standard deviation entries in range of array
@@ -113,42 +100,41 @@ double mf_array_dmax_range (const double v[], const size_t start, const size_t e
  */
 double mf_array_dquantile_range (double v[], const size_t start, const size_t end, const double quantile)
 {
+    size_t N   = end - start;
+    size_t qth = floor(N * quantile);
+
     // Special cases
     // -------------
 
-    int left      = start;
-    int right     = end - 1;
-    size_t N      = end - left;
-    size_t qth    = ceil(N * quantile) - 1;
-    double qlower = v[left];
-    double qupper = v[right];
-
-    // If only 1 or 2 entries, handle manually
-    if ( N == 1 ) return (v[start]);
-    if ( N == 2 ) {
-        if (v[left] > v[right]) {
-            qlower = v[right];
-            qupper = v[left];
-        }
+    if ( N == 1 ) {
+        // If only 1 entry, can't take quantile
+        return (v[start]);
+    }
+    else if ( N == 2 ) {
+        // If 2 entries, only 3 options
         if ( quantile > 0.5 ) {
-            return (qupper);
+            return (MAX(v[start], v[end - 1]));
         }
         else if ( quantile < 0.5 ) {
-            return (qlower);
+            return (MIN(v[start], v[end - 1]));
         }
         else {
-            return ( (qlower + qupper) / 2 );
+            return ( (v[start] + v[end - 1]) / 2 );
         }
     }
-    if ( qth == 0 )       return (mf_array_dmin_range(v, start, end));
-    if ( qth == (N - 1) ) return (mf_array_dmax_range(v, start, end));
+    else if ( qth == 0 ) {
+        // 0th quantile is not a thing, so we can just take the min
+        return (mf_array_dmin_range(v, start, end));
+    }
 
     // Full selection algorithm
     // ------------------------
 
-    double q = mf_qselect_range (v, left, right, qth);
-    if ( (double) (qth + 1) == (quantile * N) ) {
-        q += mf_qselect_range (v, left, right, qth + 1);
+    size_t left = start, right = end;
+    int dmax = ( qth == (N - 1) );
+    double q = dmax? mf_array_dmax_range(v, left, right): mf_qselect_range (v, left, right, qth);
+    if ( (double) qth == (quantile * N) ) {
+        q += mf_qselect_range (v, left, right, qth - 1);
         q /= 2;
     }
     return (q);

@@ -3,10 +3,10 @@ Faster Stata for Group Operations
 
 This is currently an alpha release. This package uses a C-plugin
 to provide a faster implementation for Stata's `collapse` called
-`gcollapse` and is also (almost always) faster than Sergio Correia's
-`fcollapse` from `ftools`.
+`gcollapse` and is also faster than Sergio Correia's `fcollapse` from
+`ftools`.
 
-Currently, memoy management is **VERY** bad, so if you are generating
+Currently, memory management is **VERY** bad, so if you are generating
 many summary variables from a single source variable, please see the
 memory management section below. Support for `egen` is limited, and only
 `gcollapse` for Unix is available. Future releases will support the full
@@ -54,34 +54,102 @@ ado uninstall gtools
 Benchmark
 ---------
 
+See `src/test/bench_gcollapse.do` for the benchmark code. We have 4 benchmarks:
+- `ftools`-style benchmark: This collapses 20M observations to 100
+  groups by summing 15 variables.
+
+- `ftools`-style alternative benchmark: This collapses 20M observations
+  to 100 groups by taking the mean and median of 3 variables.
+
+- Increasing group size: We fix the sample size at 5M and increase
+  the group size from 10 to 1M in geometric succession. We compute
+  all available stats (and 2 sample percentiles) for 2 variables.
+
+- Increasing sample size: We fix the group size at 10 and increase the
+  sample size from 2,000 to 20M in geometric succession. We compute all
+  available stats (and 2 sample percentiles) for 2 variables.
+
+Software and hardware specifications:
+- Program: Stata/SE 13.1
+- OS: Linux (4.10.13-1-ARCH x86\_64 GNU/Linux)
+- Processor: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
+- Cores: 2 cores with 2 virtual threads per core.
+- Memory: 15.6GiB
+- Swap: 7.8GiB
+
+### Compared to `fcollapse`
+
+We vary N for J = 100 and collapse 15 variables:
+```
+    vars  = y1-y15 ~ 123.456 + U(0, 1)
+    stats = sum
+
+```
+
+We vary N for J = 100 and collapse 3 variables:
+```
+    vars  = y1-y3 ~ 123.456 + U(0, 1)
+    stats = mean median
+
+```
+
+### Increasing the sample size
+
+We vary N for J = 10:
+```
+    vars  = x1 x2 ~ N(0, 1)
+    stats = sum mean sd max min count percent first last firstnm lastnm
+
+    vars  = x1 x2
+    stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
+
+```
+
+The `gcollapse` and `fcollapse` columns show the execution time in
+seconds. We can see `gcollapse` is several times faster than `fcollapse`
+in our benchmarks.
+
+### Increasing the number of levels
+
+We vary J for N = 5,000,000:
+```
+    vars  = x1 x2 ~ N(0, 1)
+    stats = sum mean sd max min count percent first last firstnm lastnm
+
+    vars  = x1 x2 ~ N(0, 1)
+    stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
+
+```
+
+We can see that as group size increases, `gcollapse` is worse at
+computing percentiles than `fcollapse`, to the point `fcollapse` beats
+it handily in our last benchmark. However, the multi-threaded version of
+`gcollapse` is still faster. This is specific to computing percentiles
+with a large number of groups: We can see that without percentiles this
+inefficiency is nor present, and computing percentiles for a small
+number of groups is also efficient even with millions of variables.
+
 A word of caution
 -----------------
 
-At the moment this code is very alpha. While it produces identical
-results to collapse (up to numerical precision rounding), it has not
-been extensively tested in the way collapse has. Furthermore, there are
-some glaring problems:
-- Computing quantiles is hugely inefficient. Under most scenarios,
-  `gcollapse` will be 2-5 times faster than `fcollapse`. In testing,
-  however, computing multiple quantiles on data with hundreds of
-  thousands or millions of levels resulted in slower speeds. (Short of
-  that, evel with several million observations and tens of thousands of
-  levels, `gcollapse` will be faster.)
+At the moment this code is very beta and has not been extensively tested
+in the way collapse has. Furthermore, there are some glaring problems:
 - Memory management is terrible (see below).
-- It is only available in Unix
-- I sort the resulting data using using Stata.
-- The C implementation is very crude (e.g. no multithreading)
+- It is only available in Unix.
+- The C implementation is very crude (e.g. no multi-threading).
 - Unlike `fcollapse`, the user cannot add functions easily (it uses compiled C code).
 
 Despite this, it has several advantages:
-- It's almost always 2-5 times faster than `fcollapse`, which is in turn
-  ~3 times faster than plain `collapse`. See benchmarks above.
+- It's several times faster than `fcollapse`. On smaller data (thousands
+  or low millions) it is usually 2-5 times faster than `fcollapse` , which
+  is in turn ~3 times faster than plain `collapse`. See benchmarks above.
+  (for data in the tens of millions the speed gains compound because the
+  main bottleneck in `gcollapse` is the overhead involved in setting up
+  the data before calling the C plugin)
 - Grouping variables can be a mix of numeric and string variables,
   unlike `fcollapse` which requires the by variables be all numeric or
   all strings.
-- Percentiles are computed to match Stata's (`fcollapse` uses a quantile
-  function from moremata that does not necessarily match `collapse`'s
-  percentile function).
+- Quantiles are computed to match Stata's `collapse`, unlike `fcollapse`.
 - Can compute arbitrary quantiles, not just percentiles (e.g. p2.5 and
   p.97.5 would be valid stat calls in `gcollapse`).
 
@@ -198,9 +266,8 @@ that are unique _for that particular dataset_.
 TODO
 ----
 
+- [ ] Implement all of `gegen`.
 - [ ] Improve memory management.
-- [ ] Efficient quantile implementation.
-- [ ] Implement `gegen`.
 - [ ] Compile for Windows and OSX.
 
 License

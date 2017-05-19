@@ -1,15 +1,17 @@
 /*********************************************************************
- * Program: gcollapse.c
+ * Program: gcollapse_multi.c
  * Author:  Mauricio Caceres Bravo <caceres@nber.org>
  * Created: Sat May 13 18:12:26 EDT 2017
  * Updated: Thu May 18 19:54:58 EDT 2017
- * Purpose: Stata plugin to compute a faster -collapse-
+ * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.2.0
  *********************************************************************/
 
+#include <omp.h>
+
 /**
- * @brief Collapse stata variables
+ * @brief Collapse stata variables (multi-threaded version)
  *
  * @param st_info Pointer to container structure for Stata info
  * @return Stores collapsed data in Stata
@@ -110,62 +112,105 @@ int sf_collapse (struct StataInfo *st_info)
     // Collapse variables by group
     // ---------------------------
 
-    for (j = 0; j < st_info->J; j++) {
-        offset_output = j * st_info->kvars_targets;
-        offset_source = j * st_info->kvars_source;
-        offset_buffer = offsets_buffer[j];
-        nj = st_info->info[j + 1] - st_info->info[j];
-        for (k = 0; k < st_info->kvars_targets; k++) {
-            // For each target, grab start and end position of source variable
-            sel   = offset_source + st_info->pos_targets[k];
-            start = offset_buffer + nj * st_info->pos_targets[k];
-            end   = all_nonmiss[sel];
+    int nloops;
+    #pragma omp parallel        \
+            private (           \
+                k,              \
+                sel,            \
+                nloops,         \
+                start,          \
+                end,            \
+                nj,             \
+                offset_output,  \
+                offset_source,  \
+                offset_buffer   \
+            )                   \
+            shared (            \
+                st_info,        \
+                stat,           \
+                offsets_buffer, \
+                all_nonmiss,    \
+                all_firstmiss,  \
+                all_lastmiss,   \
+                all_buffer,     \
+                output,         \
+                outmiss         \
+            )
+    {
+        // Initialize private variables
+        sel    = 0;
+        nloops = 0;
+        start  = 0;
+        end    = 0;
+        nj     = 0;
+        offset_output = 0;
+        offset_source = 0;
+        offset_buffer = 0;
 
-            // If there is at least one non-missing observation, we
-            // store the result in output. If all observations are
-            // missing then we note it in outmiss. We will later write
-            // to Stata the contents of output if outmiss is 0 or a
-            // missing value if outmiss is 1.
-            if ( mf_strcmp_wrapper (stat[k], "count") ) {
-                // If count, you just need to know how many non-missing obs there are
-                output[offset_output + k] = end;
+        #pragma omp for
+        for (j = 0; j < st_info->J; j++) {
+            ++nloops;
+            offset_output = j * st_info->kvars_targets;
+            offset_source = j * st_info->kvars_source;
+            offset_buffer = offsets_buffer[j];
+            nj = st_info->info[j + 1] - st_info->info[j];
+            for (k = 0; k < st_info->kvars_targets; k++) {
+                // For each target, grab start and end position of source variable
+                sel   = offset_source + st_info->pos_targets[k];
+                start = offset_buffer + nj * st_info->pos_targets[k];
+                end   = all_nonmiss[sel];
+
+                // If there is at least one non-missing observation, we
+                // store the result in output. If all observations are
+                // missing then we note it in outmiss. We will later write
+                // to Stata the contents of output if outmiss is 0 or a
+                // missing value if outmiss is 1.
+                if ( mf_strcmp_wrapper (stat[k], "count") ) {
+                    // If count, you just need to know how many non-missing obs there are
+                    output[offset_output + k] = end;
+                }
+                else if ( mf_strcmp_wrapper (stat[k], "percent")  ) {
+                    // Percent outputs the % of all non-missing values of
+                    // that variable in that group relative to the number
+                    // of non-missing values of that variable in the entire
+                    // data. This latter count is stored in nmfreq; we
+                    // divide by this when writing to Stata.
+                    output[offset_output + k] = 100 * end;
+                }
+                else if ( all_firstmiss[sel] & (mf_strcmp_wrapper (stat[k], "first") ) ) {
+                    // If first observation is missing, will write missing value
+                    outmiss[offset_output + k] = 1;
+                }
+                else if ( all_lastmiss[sel] & (mf_strcmp_wrapper (stat[k], "last") ) ) {
+                    // If last observation is missing, will write missing value
+                    outmiss[offset_output + k] = 1;
+                }
+                else if ( mf_strcmp_wrapper (stat[k], "first") | (mf_strcmp_wrapper (stat[k], "firstnm") ) ) {
+                    // First obs/first non-missing is the first entry in the inputs buffer
+                    output[offset_output + k] = all_buffer[start];
+                }
+                else if ( mf_strcmp_wrapper (stat[k], "last") | (mf_strcmp_wrapper (stat[k], "lastnm") ) ) {
+                    // Last obs/last non-missing is the last entry in the inputs buffer
+                    output[offset_output + k] = all_buffer[start + end - 1];
+                }
+                else if ( mf_strcmp_wrapper (stat[k], "sd") &  (end < 2) ) {
+                    // Standard deviation requires at least 2 observations
+                    outmiss[offset_output + k] = 1;
+                }
+                else if ( end == 0 ) {
+                    // If everything is missing, write a missing value
+                    outmiss[offset_output + k] = 1;
+                }
+                else {
+                    // Otherwise compute the requested summary stat
+                    output[offset_output + k] = mf_switch_fun (stat[k], all_buffer, start, start + end);
+                }
             }
-            else if ( mf_strcmp_wrapper (stat[k], "percent")  ) {
-                // Percent outputs the % of all non-missing values of
-                // that variable in that group relative to the number
-                // of non-missing values of that variable in the entire
-                // data. This latter count is stored in nmfreq; we
-                // divide by this when writing to Stata.
-                output[offset_output + k] = 100 * end;
-            }
-            else if ( all_firstmiss[sel] & (mf_strcmp_wrapper (stat[k], "first") ) ) {
-                // If first observation is missing, will write missing value
-                outmiss[offset_output + k] = 1;
-            }
-            else if ( all_lastmiss[sel] & (mf_strcmp_wrapper (stat[k], "last") ) ) {
-                // If last observation is missing, will write missing value
-                outmiss[offset_output + k] = 1;
-            }
-            else if ( mf_strcmp_wrapper (stat[k], "first") | (mf_strcmp_wrapper (stat[k], "firstnm") ) ) {
-                // First obs/first non-missing is the first entry in the inputs buffer
-                output[offset_output + k] = all_buffer[start];
-            }
-            else if ( mf_strcmp_wrapper (stat[k], "last") | (mf_strcmp_wrapper (stat[k], "lastnm") ) ) {
-                // Last obs/last non-missing is the last entry in the inputs buffer
-                output[offset_output + k] = all_buffer[start + end - 1];
-            }
-            else if ( mf_strcmp_wrapper (stat[k], "sd") &  (end < 2) ) {
-                // Standard deviation requires at least 2 observations
-                outmiss[offset_output + k] = 1;
-            }
-            else if ( end == 0 ) {
-                // If everything is missing, write a missing value
-                outmiss[offset_output + k] = 1;
-            }
-            else {
-                // Otherwise compute the requested summary stat
-                output[offset_output + k] = mf_switch_fun (stat[k], all_buffer, start, start + end);
-            }
+        }
+
+        #pragma omp critical
+        {
+            if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d groups.\n", omp_get_thread_num(), nloops);
         }
     }
 

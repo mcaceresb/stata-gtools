@@ -37,6 +37,7 @@ program bench_sim_ftools
 	gen byte x3  = ceil(uniform() * 100)
 	gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
 	gen long x5  = ceil(uniform() * 5000)
+	gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
 	noi di "(Xs set)"
 	forv i = 1 / `k' {
 		gen double y`i' = 123.456 + runiform()
@@ -45,14 +46,13 @@ program bench_sim_ftools
 end
 
 ***********************************************************************
-*                              fcollapse                              *
+*                       ftools-style benchmarks                       *
 ***********************************************************************
 
-capture program drop bench_sample_size
-program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str)]
-    if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
-    local stats `stats' `pct'
+capture program drop bench_ftools
+program bench_ftools
+    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7)]
+    if ("`stats'" == "") local stats sum
 
     local collapse ""
     foreach stat of local stats {
@@ -64,18 +64,26 @@ program bench_sample_size
 
     local i = 0
     local N ""
-    di "Benchmarking N for nj = `nj'; by(`by')"
+    di "Benchmarking N for J = 100; by(`by')"
     di "    vars  = `anything'"
     di "    stats = `stats'"
-    forvalues k = 4 / 7 {
-        di "    `:di %21.0gc `:di 5 * 10^`k'''"
-        local N `N' `:di 5 * 10^`k''
-        qui bench_sim, n(`:di 5 * 10^`k'') nj(`nj') njsub(2) nvars(2)
+    forvalues k = `kmin' / `kmax' {
+        di "    `:di %21.0gc `:di 2 * 10^`k'''"
+        local N `N' `:di 2 * 10^`k''
+        qui bench_sim_ftools `:di 2 * 10^`k'' `kvars'
         preserve
             local ++i
             timer clear
             timer on `i'
                 qui gcollapse `collapse', by(`by')
+            timer off `i'
+            qui timer list
+            local r`i' = `r(t`i')'
+        restore, preserve
+            local ++i
+            timer clear
+            timer on `i'
+                qui gcollapse `collapse', by(`by') multi
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -91,11 +99,81 @@ program bench_sample_size
     }
 
     local i = 1
-    di "Results varying N for nj = `nj'; by(`by')"
-    di "                    N | gcollapse | fcollapse |     ratio "
+    di "Results varying N for J = 100; by(`by')"
+    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
     foreach nn in `N' {
-        local ii = `i' + 1
-        di "`:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`ii'' / `r`i'''"
+        local ii  = `i' + 1
+        local iii = `i' + 2
+        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        local ++i
+        local ++i
+        local ++i
+    }
+    timer clear
+end
+
+***********************************************************************
+*                             benchmarks                              *
+***********************************************************************
+
+capture program drop bench_sample_size
+program bench_sample_size
+    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7)]
+    if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
+    local stats `stats' `pct'
+
+    local collapse ""
+    foreach stat of local stats {
+        local collapse `collapse' (`stat')
+        foreach var of local anything {
+            local collapse `collapse' `stat'_`var' = `var'
+        }
+    }
+
+    local i = 0
+    local N ""
+    di "Benchmarking N for J = `nj'; by(`by')"
+    di "    vars  = `anything'"
+    di "    stats = `stats'"
+    forvalues k = `kmin' / `kmax' {
+        di "    `:di %21.0gc `:di 2 * 10^`k'''"
+        local N `N' `:di 2 * 10^`k''
+        qui bench_sim, n(`:di 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
+        preserve
+            local ++i
+            timer clear
+            timer on `i'
+                qui gcollapse `collapse', by(`by')
+            timer off `i'
+            qui timer list
+            local r`i' = `r(t`i')'
+        restore, preserve
+            local ++i
+            timer clear
+            timer on `i'
+                qui gcollapse `collapse', by(`by') multi
+            timer off `i'
+            qui timer list
+            local r`i' = `r(t`i')'
+        restore, preserve
+            local ++i
+            timer clear
+            timer on `i'
+                qui fcollapse `collapse', by(`by')
+            timer off `i'
+            qui timer list
+            local r`i' = `r(t`i')'
+        restore
+    }
+
+    local i = 1
+    di "Results varying N for J = `nj'; by(`by')"
+    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    foreach nn in `N' {
+        local ii  = `i' + 1
+        local iii = `i' + 2
+        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        local ++i
         local ++i
         local ++i
     }
@@ -104,7 +182,7 @@ end
 
 capture program drop bench_group_size
 program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6)]
+    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6)]
     if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
     local stats `stats' `pct'
 
@@ -119,18 +197,26 @@ program bench_group_size
     local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
     local i = 0
     local N ""
-    di "Benchmarking nj for N = `nstr'; by(`by')"
+    di "Benchmarking J for N = `nstr'; by(`by')"
     di "    vars  = `anything'"
     di "    stats = `stats'"
-    forvalues k = 1 / 6 {
+    forvalues k = `kmin' / `kmax' {
         di "    `:di %21.0gc `:di 10^`k'''"
-        local N `N' `:di 5 * 10^`k''
+        local N `N' `:di 10^`k''
         qui bench_sim, n(`:di 5 * 10^`obsexp'') nj(`:di 10^`k'') njsub(2) nvars(2)
         preserve
             local ++i
             timer clear
             timer on `i'
                 qui gcollapse `collapse', by(`by')
+            timer off `i'
+            qui timer list
+            local r`i' = `r(t`i')'
+        restore, preserve
+            local ++i
+            timer clear
+            timer on `i'
+                qui gcollapse `collapse', by(`by') multi
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -146,68 +232,39 @@ program bench_group_size
     }
 
     local i = 1
-    di "Results varying nj for N = `nstr'; by(`by')"
-    di "                   nj | gcollapse | fcollapse |     ratio "
+    di "Results varying J for N = `nstr'; by(`by')"
+    di "|                     J | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
     foreach nn in `N' {
-        local ii = `i' + 1
-        di "`:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`ii'' / `r`i'''"
+        local ii  = `i' + 1
+        local iii = `i' + 2
+        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        local ++i
         local ++i
         local ++i
     }
     timer clear
 end
 
-* bench_group_size x1 x2,  by(group groupsub)
-* bench_group_size x1 x2,  by(group groupsub) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(group groupsub)
-* bench_sample_size x1 x2, by(group groupsub) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr)
-* bench_group_size x1 x2,  by(groupstr) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(groupstr)
-* bench_sample_size x1 x2, by(groupstr) pct(median iqr p23 p77)
-
-* bench_ftools // todo
-* bench_ftools // todo
-
-* cd /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build
 * !cd ..; ./build.py
 * do gcollapse.ado
 * do gtools_tests.do
 
-qui bench_sim, n(`:di 10^6') nj(`:di 10') njsub(2) nvars(2)
-local i = 0
-preserve
-    gcollapse `collapse', by(`by') verbose benchmark
-    tempfile f`i'
-    save `f`i''
-    local ++i
-restore
+* bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
+* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
+* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4) pct(median iqr p23 p77)
+* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5)
+* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5) pct(median iqr p23 p77)
 
-preserve
-local tol 1e-6
-use `f1', clear
-    local bad_any = 0
-    local bad `by'
-    qui ds *x1 *x2
-    foreach var in `r(varlist)'  {
-        rename `var' c_`var'
-    }
-    merge 1:1 `by' using `f0', assert(3)
-    foreach varc of varlist c_* {
-        local var: subinstr local varc "c_" ""
-        qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
-        if ( `r(N)' > 0 ) {
-            gen byte bad_`var' = abs(`var' - c_`var') > `tol'
-            local bad `bad' *`var'
-            di "`var' has `:di r(N)' mismatches".
-            local bad_any = 1
-        }
-    }
-    if ( `bad_any' ) {
-        order `bad'
-        l `bad'
-    }
-    else {
-        di "gcollapse produced identical data to collapse (tol = `tol')"
-    }
-restore
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
+* bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
+
+* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
+* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
+* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+
+* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6)
+* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)

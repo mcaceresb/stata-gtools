@@ -159,7 +159,7 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
 chdir("build")
 print("Compressing build files for gtools-{0}".format(version))
 if rc == 0:
-    plugins = ["gcollapse.plugin"]
+    plugins = ["gtools.plugin", "gtools_multi.plugin"]
     gtools_zip += plugins
     for plug in plugins:
         rename(path.join(plug), path.join("gtools", plug))

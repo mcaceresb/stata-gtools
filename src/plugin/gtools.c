@@ -5,7 +5,7 @@
  * Updated: Thu May 18 20:03:24 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.1.1
+ * Version: 0.2.0
  *********************************************************************/
 
 /**
@@ -27,7 +27,12 @@
 #include "gtools_hash.c"
 #include "gtools_sort.c"
 #include "gtools_math.c"
+
+#if GMULTI
+#include "gcollapse_multi.c"
+#else
 #include "gcollapse.c"
+#endif
 
 STDLL stata_call(int argc, char *argv[])
 {

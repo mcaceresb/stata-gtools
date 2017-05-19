@@ -1,3 +1,5 @@
+// Adapted from: http://stackoverflow.com/questions/42077009
+
 #define SWAP(a, b)       \
 do {                     \
     typeof (a) _a = (a); \

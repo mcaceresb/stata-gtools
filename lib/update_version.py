@@ -49,7 +49,9 @@ main = [path.join("src", "gtools.pkg"),
         path.join("src", "ado", "gcollapse.ado"),
         path.join("doc", "gcollapse.sthlp")]
 test = [path.join("src", "test", "gtools_tests.do")]
-plug = [path.join("src", "plugin", "gcollapse.c")]
+plug = [path.join("src", "plugin", "gcollapse.c"),
+        path.join("src", "plugin", "gcollapse_multi.c"),
+        path.join("src", "plugin", "gtools.c")]
 
 callok = False
 todo   = main

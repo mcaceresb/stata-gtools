@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Tue May 16 07:47:05 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.1.1
+* Version: 0.2.0
 * Manual:  help gcollapse
 
 * Stata start-up options
@@ -36,8 +36,23 @@ program main
 
     `capture' `noisily' {
         * do test_gcollapse.do
+        * do bench_gcollapse.do
         checks_simplest_gcollapse
         checks_byvars_gcollapse
+        checks_options_gcollapse
+
+        checks_simplest_gcollapse, multi
+        checks_byvars_gcollapse,   multi
+        checks_options_gcollapse,  multi
+
+        * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
+        * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+        * bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
+
+        * bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
+        * bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
+        * bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
+        * bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
     }
     local rc = _rc
 
@@ -161,7 +176,7 @@ end
 
 capture program drop checks_simplest_gcollapse
 program checks_simplest_gcollapse
-    syntax, [tol(real 1e-6)]
+    syntax, [tol(real 1e-6) multi]
     di _n(1) "{hline 80}" _n(1) "checks_simplest_gcollapse" _n(1) "{hline 80}" _n(1)
 
     * sim, n(500000) nj(8) njsub(4) string groupmiss outmiss
@@ -179,7 +194,7 @@ program checks_simplest_gcollapse
     mytimer 9
     preserve
         mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupsub groupstr) verbose benchmark
+        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupsub groupstr) verbose benchmark `multi'
         mytimer 9 info "gcollapse 2 groups"
         * l
         tempfile f`i'
@@ -205,7 +220,7 @@ program checks_simplest_gcollapse
 
     preserve
         mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupstr) verbose benchmark
+        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupstr) verbose benchmark `multi'
         mytimer 9 info "gcollapse 1 group"
         * l
         tempfile f`i'
@@ -249,7 +264,7 @@ program checks_simplest_gcollapse
         }
         if ( `bad_any' ) {
             order `bad'
-            l `bad'
+            l *count* `bad'
         }
         else {
             di "gcollapse produced identical data to collapse (tol = `tol')"
@@ -275,7 +290,7 @@ program checks_simplest_gcollapse
         }
         if ( `bad_any' ) {
             order `bad'
-            l `bad'
+            l *count* `bad'
         }
         else {
             di "gcollapse produced identical data to collapse (tol = `tol')"
@@ -288,26 +303,27 @@ end
 
 capture program drop checks_byvars_gcollapse
 program checks_byvars_gcollapse
+    syntax, [multi]
     di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse" _n(1) "{hline 80}" _n(1)
 
     sim, n(1000) nj(250) string
     set rmsg on
     preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `multi'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `multi'
     restore
     set rmsg off
 
@@ -318,6 +334,7 @@ end
 
 capture program drop checks_options_gcollapse
 program checks_options_gcollapse
+    syntax, [multi]
     di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse" _n(1) "{hline 80}" _n(1)
 
     local stats mean count median iqr
@@ -328,43 +345,43 @@ program checks_options_gcollapse
 
     sim, n(200) nj(10) string outmiss
     preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark
+        gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
         l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose unsorted
+        gcollapse `collapse_str', by(groupstr) verbose unsorted `multi'
         l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark cw
+        gcollapse `collapse_str', by(groupstr) verbose benchmark cw `multi'
         l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) double
+        gcollapse `collapse_str', by(groupstr) double `multi'
         l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) merge
+        gcollapse `collapse_str', by(groupstr) merge `multi'
         l
     restore
 
     sort groupstr groupsub
     preserve
-        gcollapse `collapse_nopct', by(groupstr groupsub) verbose benchmark
+        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `multi'
         l in 1 / 5
     restore, preserve
-        gcollapse `collapse_nopct', by(groupstr groupsub) verbose benchmark smart
+        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `multi'
         l in 1 / 5
     restore, preserve
-        gcollapse `collapse_nopct', by(groupsub groupstr) verbose benchmark smart
+        gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `multi'
         l in 1 / 5
     restore, preserve
-        gcollapse `collapse_nopct', by(groupstr) verbose benchmark
+        gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
         l in 1 / 5
     restore, preserve
-        gcollapse `collapse_nopct', by(groupstr) verbose benchmark smart
+        gcollapse `collapse_str', by(groupstr) verbose benchmark smart `multi'
         l in 1 / 5
     restore, preserve
-        gcollapse `collapse_nopct', by(groupsub) verbose benchmark smart
+        gcollapse `collapse_str', by(groupsub) verbose benchmark smart `multi'
         l
     restore, preserve
-        gcollapse `collapse_nopct', by(groupsub) verbose benchmark
+        gcollapse `collapse_str', by(groupsub) verbose benchmark `multi'
         l
     restore
 

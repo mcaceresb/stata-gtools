@@ -1,4 +1,4 @@
-*! version 0.1.1 18May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 19May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 * TODO: If the number of observations is < 2^31 - 1, then count can be
@@ -20,6 +20,7 @@ program gcollapse
                                /// sort is super slow bc it uses Stata)
         double                 /// Do all operations in double precision
         merge                  /// Merge statistics back to original data, replacing where applicable
+        multi                  /// Multi-threaded version of gcollapse
     ]
     if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix." 
 
@@ -334,7 +335,7 @@ program gcollapse
     scalar __gtools_J    = `=_N'
     scalar __gtools_nstr = `:list sizeof bystr'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-    cap `noi' plugin call gtools_plugin `plugvars', collapse
+    cap `noi' plugin call gtools`multi'_plugin `plugvars', collapse
     if ( _rc != 0 ) exit _rc
 
     * If benchmark, output pugin time
@@ -439,6 +440,9 @@ end
 
 cap program drop gtools_plugin
 if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
+
+cap program drop gtoolsmulti_plugin
+if ("`c(os)'" == "Unix") program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
 
 * Parsing is adapted from Sergio Correia's fcollapse.ado
 * ------------------------------------------------------

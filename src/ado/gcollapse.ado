@@ -1,9 +1,6 @@
 *! version 0.2.0 19May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
-* TODO: If the number of observations is < 2^31 - 1, then count can be
-* long instead of double. // 2017-05-16 07:28 EDT
-
 capture program drop gcollapse
 program gcollapse
     version 13
@@ -102,6 +99,13 @@ program gcollapse
         }
 
         if ( `indexed' ) {
+            if  ( (("`if'`in'" != "") | ("`cw'" != "")) ) {
+                marksample touse, strok novarlist
+                if ("`cw'" != "") {
+                    markout `touse' `by' `gtools_uniq_vars', strok
+                }
+                keep if `touse'
+            }
             tempvar bysmart
             by `by': gen long `bysmart' = (_n == 1)
         }
@@ -162,7 +166,7 @@ program gcollapse
     * -----------
 
     * Subset if requested
-	qui if  ( ("`if'`in'" != "") | ("`cw'" != "") ) {
+	qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & (`touse' == "") ) {
 		marksample touse, strok novarlist
 		if ("`cw'" != "") {
 			markout `touse' `by' `gtools_uniq_vars', strok

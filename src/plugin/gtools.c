@@ -12,11 +12,11 @@
  * @file gtools.c
  * @author Mauricio Caceres Bravo
  * @date 16 May 2017
- * @brief Stata plugin for a faster -collapse- implementation
+ * @brief Stata plugin for a faster -collapse- and -egen- implementation
  *
- * This file should only ever be called from gcollapse.ado
+ * This file should only ever be called from gcollapse.ado or gegen.ado
  *
- * @see help gcollapse, gcollapse.c, gegen.c
+ * @see help gcollapse, help egen, gcollapse.c, gegen.c
  * @see http://www.stata.com/plugins for more on Stata plugins
  */
 
@@ -30,34 +30,50 @@
 
 #if GMULTI
 #include "gcollapse_multi.c"
+#include "gegen.c"
 #else
 #include "gcollapse.c"
+#include "gegen.c"
 #endif
 
 STDLL stata_call(int argc, char *argv[])
 {
     if (argc < 1) {
-        // sf_errprintf ("Nothing to do. Available: -collapse- and -egen-\n");
-        sf_errprintf ("Nothing to do. Available: -collapse-\n");
+        sf_errprintf ("Nothing to do. Available: -collapse- and -egen-\n");
         return (198);
     }
 
     ST_retcode rc ;
     setlocale (LC_ALL, "");
     struct StataInfo st_info;
-    char todo[8]; strcpy (todo, argv[0]);
+    char todo[8], tostat[8];
+    strcpy (todo, argv[0]);
 
-    if ( strcmp(todo, "collapse") == 0 ) sf_printf ("collapsing! ^^\n");
-    if ( strcmp(todo, "egen")== 0 ) {
-        sf_printf ("-egen- not yet implemented! ):\n");
-        return (198);
+    if ( strcmp(todo, "collapse") == 0 ) {
+        if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
+        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+        if ( (rc = sf_collapse    (&st_info))    ) return (rc);
+        if ( (rc = SF_scal_save   ("__gtools_J", st_info.J)) ) return (rc);
     }
+    else if ( strcmp(todo, "egen") == 0 ) {
+        if (argc < 2) {
+            sf_errprintf ("No stats requested. See: -help egen-\n");
+            return (198);
+        }
+        if ( (rc = sf_parse_info  (&st_info, 1)) ) return (rc);
+        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
 
-    if ( (rc = sf_parse_info  (&st_info)) ) return (rc);
-    if ( (rc = sf_hash_byvars (&st_info)) ) return (rc);
-    if ( (rc = sf_collapse    (&st_info)) ) return (rc);
-    if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
-
+        strcpy (tostat, argv[1]);
+        if ( strcmp(tostat, "group") == 0 ) {
+            if ( (rc = sf_egen_group (&st_info)) ) return (rc);
+        }
+        else if ( strcmp(tostat, "tag") == 0 ) {
+            if ( (rc = sf_egen_tag (&st_info)) ) return (rc);
+        }
+        else {
+            if ( (rc = sf_egen (&st_info)) ) return (rc);
+        }
+    }
 
     sf_free (&st_info);
     return(0);
@@ -69,7 +85,7 @@ STDLL stata_call(int argc, char *argv[])
  * @param st_info Pointer to container structure for Stata info
  * @return Stores in @st_info various info from Stata for the pugin run
  */
-int sf_parse_info (struct StataInfo *st_info)
+int sf_parse_info (struct StataInfo *st_info, int level)
 {
     ST_retcode rc ;
     int i, k;
@@ -212,82 +228,99 @@ int sf_parse_info (struct StataInfo *st_info)
      *                     Parse by vars info macros                     *
      *********************************************************************/
 
-    ST_double __gtools_k_targets,
-              __gtools_k_vars,
-              __gtools_k_stats,
-              __gtools_k_uniq_vars,
-              __gtools_k_uniq_stats,
-              __gtools_l_targets,
-              __gtools_l_vars,
-              __gtools_l_stats,
-              __gtools_l_uniq_vars,
-              __gtools_l_uniq_stats;
+    size_t kvars_targets = 1;
+    size_t kvars_source  = 1;
+    if ( level == 0 ) {
+        ST_double __gtools_k_targets,
+                  __gtools_k_vars,
+                  __gtools_k_stats,
+                  __gtools_k_uniq_vars,
+                  __gtools_k_uniq_stats,
+                  __gtools_l_targets,
+                  __gtools_l_vars,
+                  __gtools_l_stats,
+                  __gtools_l_uniq_vars,
+                  __gtools_l_uniq_stats;
 
-    if ( (rc = SF_scal_use ("__gtools_k_targets",    &__gtools_k_targets))    ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_k_vars",       &__gtools_k_vars))       ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_k_stats",      &__gtools_k_stats))      ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_k_uniq_vars",  &__gtools_k_uniq_vars))  ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_k_uniq_stats", &__gtools_k_uniq_stats)) ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_k_targets",    &__gtools_k_targets))    ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_k_vars",       &__gtools_k_vars))       ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_k_stats",      &__gtools_k_stats))      ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_k_uniq_vars",  &__gtools_k_uniq_vars))  ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_k_uniq_stats", &__gtools_k_uniq_stats)) ) return(rc);
 
-    if ( (rc = SF_scal_use ("__gtools_l_targets",    &__gtools_l_targets))    ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_l_vars",       &__gtools_l_vars))       ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_l_stats",      &__gtools_l_stats))      ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_l_uniq_vars",  &__gtools_l_uniq_vars))  ) return(rc);
-    if ( (rc = SF_scal_use ("__gtools_l_uniq_stats", &__gtools_l_uniq_stats)) ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_targets",    &__gtools_l_targets))    ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_vars",       &__gtools_l_vars))       ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_stats",      &__gtools_l_stats))      ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_uniq_vars",  &__gtools_l_uniq_vars))  ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_uniq_stats", &__gtools_l_uniq_stats)) ) return(rc);
 
-    // Number of variables, targets, stats
-    size_t l_targets    = (size_t) __gtools_l_targets + 1;
-    size_t l_vars       = (size_t) __gtools_l_vars + 1;
-    size_t l_stats      = (size_t) __gtools_l_stats + 1;
-    size_t l_uniq_vars  = (size_t) __gtools_l_uniq_vars + 1;
-    size_t l_uniq_stats = (size_t) __gtools_l_uniq_stats + 1;
+        // Number of variables, targets, stats
+        size_t l_targets    = (size_t) __gtools_l_targets + 1;
+        size_t l_vars       = (size_t) __gtools_l_vars + 1;
+        size_t l_stats      = (size_t) __gtools_l_stats + 1;
+        size_t l_uniq_vars  = (size_t) __gtools_l_uniq_vars + 1;
+        size_t l_uniq_stats = (size_t) __gtools_l_uniq_stats + 1;
 
-    size_t kvars_targets = (size_t) __gtools_k_targets;
-    size_t kvars_source  = (size_t) __gtools_k_uniq_vars;
+        kvars_targets = (size_t) __gtools_k_targets;
+        kvars_source  = (size_t) __gtools_k_uniq_vars;
 
-    // Names of variables, targets, stats
-    char targets    [l_targets];
-    char vars       [l_vars];
-    char stats      [l_stats];
-    char uniq_vars  [l_uniq_vars];
-    char uniq_stats [l_uniq_stats];
+        // Names of variables, targets, stats
+        char targets    [l_targets];
+        char vars       [l_vars];
+        char stats      [l_stats];
+        char uniq_vars  [l_uniq_vars];
+        char uniq_stats [l_uniq_stats];
 
-    // <rant>
-    // Have you ever wondered why Stata globals can be up to 32
-    // characters in length but locals can only be up to 31? No? Well,
-    // when you are trying to copy local macros into C you run into
-    // this problem: Local macros in Stata are actually global macros
-    // preceded with an underscore.
-    //
-    // I know; mind = blown. Try this in stata
-    //
-    //     local a = 12
-    //     di $_a, `a'
-    //
-    // Right? Where is this documented? How does this make sense? Why is
-    // this implemented like this? Who knows!
-    //
-    // </rant>
+        // <rant>
+        // Have you ever wondered why Stata globals can be up to 32
+        // characters in length but locals can only be up to 31? No? Well,
+        // when you are trying to copy local macros into C you run into
+        // this problem: Local macros in Stata are actually global macros
+        // preceded with an underscore.
+        //
+        // I know; mind = blown. Try this in stata
+        //
+        //     local a = 12
+        //     di $_a, `a'
+        //
+        // Right? Where is this documented? How does this make sense? Why is
+        // this implemented like this? Who knows!
+        //
+        // </rant>
 
-    // Read in macros with space-delimited variable, target, and statistic names
-    if ( (rc = SF_macro_use ("_gtools_targets",    targets,    l_targets))    ) return(rc);
-    if ( (rc = SF_macro_use ("_gtools_vars",       vars,       l_vars))       ) return(rc);
-    if ( (rc = SF_macro_use ("_gtools_stats",      stats,      l_stats))      ) return(rc);
-    if ( (rc = SF_macro_use ("_gtools_uniq_vars",  uniq_vars,  l_uniq_vars))  ) return(rc);
-    if ( (rc = SF_macro_use ("_gtools_uniq_stats", uniq_stats, l_uniq_stats)) ) return(rc);
+        // Read in macros with space-delimited variable, target, and statistic names
+        if ( (rc = SF_macro_use ("_gtools_targets",    targets,    l_targets))    ) return(rc);
+        if ( (rc = SF_macro_use ("_gtools_vars",       vars,       l_vars))       ) return(rc);
+        if ( (rc = SF_macro_use ("_gtools_stats",      stats,      l_stats))      ) return(rc);
+        if ( (rc = SF_macro_use ("_gtools_uniq_vars",  uniq_vars,  l_uniq_vars))  ) return(rc);
+        if ( (rc = SF_macro_use ("_gtools_uniq_stats", uniq_stats, l_uniq_stats)) ) return(rc);
 
-    // Save summary statistics to be computed
-    st_info->statstr = malloc (sizeof(char*) * l_stats);
-    memcpy (st_info->statstr, stats, l_stats);
+        // Save summary statistics to be computed
+        st_info->statstr = malloc (sizeof(char*) * l_stats);
+        memcpy (st_info->statstr, stats, l_stats);
 
-    // NOTE: I can't do this here bc C complains about pointers. I don't
-    // need this until collapse anyway, so I do it there.
-    // char *stat[kvars_targets], *strstat, *ptr;
-    // strstat = strtok_r (stats, " ", &ptr);
-    // for (k = 0; k < kvars_targets; k++) {
-    //     stat[k] = strstat;
-    //     strstat = strtok_r (NULL, " ", &ptr);
-    // }
+        st_info->kvars_targets = kvars_targets;
+        st_info->kvars_source  = kvars_source;
+    }
+    else if ( level == 1 ) {
+        ST_double __gtools_k_vars, __gtools_l_stats;
+
+        if ( (rc = SF_scal_use ("__gtools_k_vars",  &__gtools_k_vars))  ) return(rc);
+        if ( (rc = SF_scal_use ("__gtools_l_stats", &__gtools_l_stats)) ) return(rc);
+
+        kvars_targets  = 1;
+        kvars_source   = (size_t) __gtools_k_vars;
+        size_t l_stats = (size_t) __gtools_l_stats + 1;
+
+        char stats [l_stats];
+        if ( (rc = SF_macro_use ("_gtools_stats", stats, l_stats)) ) return(rc);
+
+        st_info->statstr = malloc (sizeof(char*) * l_stats);
+        memcpy (st_info->statstr, stats, l_stats);
+
+        st_info->kvars_targets = kvars_targets;
+        st_info->kvars_source  = kvars_source;
+    }
 
     /*********************************************************************
      *           Relative position of targets and by variables           *
@@ -295,7 +328,6 @@ int sf_parse_info (struct StataInfo *st_info)
 
     size_t strlen = byvars_maxlen > 0? byvars_maxlen + 1: 1;
 
-    // size_t start_target_vars = start_collapse_vars;
     size_t start_target_vars = start_collapse_vars + kvars_source;
     size_t start_str_byvars  = start_target_vars + kvars_targets;
 
@@ -303,14 +335,19 @@ int sf_parse_info (struct StataInfo *st_info)
     st_info->pos_num_byvars = calloc(kvars_by_num,  sizeof st_info->pos_num_byvars);
     st_info->pos_str_byvars = calloc(kvars_by_str,  sizeof st_info->pos_str_byvars);
 
-    double pos_targets_double[kvars_targets];
     double pos_str_byvars_double[kvars_by_str];
     double pos_num_byvars_double[kvars_by_num];
 
     // pos_targets[k] gives the source variable for the kth target
-    if ( (rc = sf_get_vector("__gtools_outpos", pos_targets_double)) ) return(rc);
-    for (k = 0; k < kvars_targets; k++)
-        st_info->pos_targets[k] = (int) pos_targets_double[k];
+    if  ( level == 0 ) {
+        double pos_targets_double[kvars_targets];
+        if ( (rc = sf_get_vector("__gtools_outpos", pos_targets_double)) ) return(rc);
+        for (k = 0; k < kvars_targets; k++)
+            st_info->pos_targets[k] = (int) pos_targets_double[k];
+    }
+    else if ( level == 1 ) {
+        st_info->pos_targets[0] = start_target_vars;
+    }
 
     // pos_str_byvars[k] gives the position in the by variables of the kth string variable
     if ( kvars_by_str > 0 ) {
@@ -330,8 +367,6 @@ int sf_parse_info (struct StataInfo *st_info)
     st_info->in1                 = in1;
     st_info->in2                 = in2;
     st_info->N                   = N;
-    st_info->kvars_targets       = kvars_targets;
-    st_info->kvars_source        = kvars_source;
     st_info->kvars_by            = kvars_by;
     st_info->kvars_by_num        = kvars_by_num;
     st_info->kvars_by_str        = kvars_by_str;
@@ -393,7 +428,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Set up index from Stata");
 
         info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main collapse loop");
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else if ( st_info->integers_ok ) {
 
@@ -434,7 +469,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
         info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main collapse loop");
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else {
 
@@ -499,7 +534,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
         info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J);
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main collapse loop");
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
         free (ghash);
     }
     free (ghash1);

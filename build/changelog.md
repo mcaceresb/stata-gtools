@@ -1,6 +1,42 @@
 Change Log
 ==========
 
+## gtools-0.2.0 (2017-05-19)
+
+### Features
+
+* `gcollapse` `smart` option indexes thye data based on the sorted groups
+  so no hashing and sorting is necessary. It no longer calls `collapse`,
+  which is slower.
+* `gcollapse` provides `merge` to merge the collapsed data back with the
+  original data. This is much fastere than collapsing and then merging.
+* `gcollapse` provides `multi` to invoke the multi-threaded version of
+  the collapse routine.
+* Computing percentiles is less inefficient, but it is still inefficient.
+  When this is particularly slow, the `multi` option can compensate.
+* The code base is cleaner and the C code is (mostly) commented.
+
+### Problems
+
+* Only available when `c(os)` is Unix.
+* Memory management is terrible. See previous notes or `README.md`
+  section on memory management.
+* Not provided
+    * semean
+    * sebinomial
+    * sepoisson
+    * rawsum
+
+### Planned
+
+* `checkmem` feature to call `fcollapse` or `collapse` when the plugin
+  suspects there will not be enough memory.
+* `gegen` as a drop-in replacement for `egen` that should be faster than
+  `fegen` and also implementes `egenmore`.
+* Improve memory management.
+
+------------------------------------------------------------------------
+
 ## gtools-0.1.0 (2017-05-16)
 
 ### Features

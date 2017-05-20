@@ -47,7 +47,9 @@ def makedirs_safe(directory):
 
 gtools_ssc = [
     "gcollapse.ado",
-    "gcollapse.sthlp"
+    "gcollapse.sthlp",
+    "gegen.ado",
+    "gegen.sthlp"
 ]
 
 gtools_zip = [
@@ -146,7 +148,9 @@ copy2("changelog.md", gdir)
 copy2(path.join("src", "gtools.pkg"), gdir)
 copy2(path.join("src", "stata.toc"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"), gdir)
+copy2(path.join("src", "ado", "gegen.ado"), gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
+copy2(path.join("doc", "gegen.sthlp"), gdir)
 
 # Copy files to .zip folder in ./releases
 # ---------------------------------------

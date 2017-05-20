@@ -78,6 +78,13 @@ Software and hardware specifications:
 - Memory: 15.6GiB
 - Swap: 7.8GiB
 
+### Why not use Stata/MP?
+
+I only have access to Stata/MP 14.2, and it would appear
+`fcollapse` cannot handle a large number of string levels in
+that version of Stata (I've filed a bug report about it; see
+[here](https://github.com/sergiocorreia/ftools/issues)).
+
 ### Compared to `fcollapse`
 
 We vary N for J = 100 and collapse 15 variables:
@@ -226,6 +233,72 @@ Despite this, it has several advantages:
 
 FAQs
 ----
+
+### Shouldn't multi-threading with 4 threads be faster?
+
+Multi-threading is tricky. 4 threads does not equal 4x, and in
+this case, the only scenario where multi-threading affords 
+multiple threads is only faster under some narrow use cases.
+We use the `bench_sim` program in `src/test/bench_gcollapse.do`:
+
+```stata
+. do src/test/bench_gcollapse.do
+. bench_sim, n(5000000) nj(100000)
+
+. local stats sum mean max min count percent first last firstnm lastnm
+. local stats median iqr p10 p90
+. local vars x1 x2
+. local collapse ""
+. foreach stat of local stats {
+.     local collapse `collapse' (`stat')
+.     foreach var of local vars {
+.         local collapse `collapse' `stat'_`var' = `var'
+.     }
+. }
+
+. preserve
+.     gcollapse `collapse', by(groupstr) benchmark verbose
+
+Program set up executed in 3.574 seconds
+        Plugin step 1: stata parsing done; 0.000 seconds.
+        Plugin step 2: Hashed by variables; 0.446 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.794 seconds.
+        Plugin step 4: Set up variables for main group loop; 0.101 seconds.
+        Plugin step 5.1: Read in source variables; 1.518 seconds.
+        Plugin step 5.2: Collapsed source variables; 0.151 seconds.
+        Plugin step 6: Copied collapsed variables back to stata; 0.073 seconds.
+The plugin executed in 3.127 seconds
+Program exit executed in .486 seconds
+The program executed in 7.194 seconds
+
+. restore, preserve
+.     gcollapse `collapse', by(groupstr) benchmark verbose multi
+
+Program set up executed in 3.568 seconds
+        Plugin step 1: stata parsing done; 0.000 seconds.
+        Plugin step 2: Hashed by variables; 0.465 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.821 seconds.
+        Plugin step 4: Set up variables for main group loop; 0.101 seconds.
+                Thread 3 processed 25000 groups.
+                Thread 2 processed 25000 groups.
+                Thread 0 processed 25000 groups.
+                Thread 1 processed 25000 groups.
+        Plugin step 5.1: Read in source variables; 1.707 seconds.
+                Thread 2 processed 25000 groups.
+                Thread 1 processed 25000 groups.
+                Thread 3 processed 25000 groups.
+                Thread 0 processed 25000 groups.
+        Plugin step 5.2: Collapsed source variables; 0.224 seconds.
+        Plugin step 6: Copied collapsed variables back to stata; 0.114 seconds.
+The plugin executed in 1.969 seconds
+Program exit executed in .481 seconds
+The program executed in 6.029 seconds
+
+. restore
+```
+
+and sorting are all single-threaded. The set-up and sorginis
+still done in Stata. The plugin execution will typically take
 
 ### How can this be faster?
 

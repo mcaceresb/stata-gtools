@@ -1,5 +1,5 @@
 *! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! -egen- implementation using C for faster processing
+*! implementation of by-able -egen- functions using C for faster processing
 
 /*
  * syntax:

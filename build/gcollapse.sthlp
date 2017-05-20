@@ -48,6 +48,7 @@ make dataset of summary statistics using C.{p_end}
 {p2col :{opt p99}}99th percentile{p_end}
 {p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
 {p2col :{opt sum}}sums{p_end}
+{p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
@@ -118,7 +119,7 @@ to be calculated. It can contain any mix of string or numeric variables.
 possible observations are used for each calculated statistic.
 
 {phang}
-{opt fast} specifies that {opt fcollapse} not restore the original dataset
+{opt fast} specifies that {opt gcollapse} not restore the original dataset
 should the user press {hi:Break}.
 
 {phang}

@@ -56,14 +56,16 @@ program checks_consistency_gcollapse
         mytimer 9 info "gcollapse to groups"
         tempfile f`i'
         save `f`i''
-    restore, preserve
-        mytimer 9 info
-        if (`i' != 0) {
-            fcollapse `collapse_str', by(`by') verbose
-            mytimer 9 info "fcollapse to groups"
-            tempfile f`:di `i' + 1'
-            save `f`:di `i' + 1''
-        }
+    * I originally was also testing fcollapse, but it can't do sd for
+    * some reason, and you can't mix string and numeric variables...
+    * restore, preserve
+    *     mytimer 9 info
+    *     if (`i' != 0) {
+    *         fcollapse `collapse_str', by(`by') verbose
+    *         mytimer 9 info "fcollapse to groups"
+    *         tempfile f`:di `i' + 1'
+    *         save `f`:di `i' + 1''
+    *     }
     restore, preserve
         mytimer 9 info
         collapse `collapse_str', by(`by')
@@ -86,14 +88,14 @@ program checks_consistency_gcollapse
         mytimer 9 info "gcollapse 2 groups"
         tempfile f`i'
         save `f`i''
-    restore, preserve
-        mytimer 9 info
-        if (`i' != 12) {
-            fcollapse `collapse_str', by(`by') verbose
-            mytimer 9 info "fcollapse to groups"
-            tempfile f`:di `i' + 1'
-            save `f`:di `i' + 1''
-        }
+    * restore, preserve
+    *     mytimer 9 info
+    *     if (`i' != 12) {
+    *         fcollapse `collapse_str', by(`by') verbose
+    *         mytimer 9 info "fcollapse to groups"
+    *         tempfile f`:di `i' + 1'
+    *         save `f`:di `i' + 1''
+    *     }
     restore, preserve
         mytimer 9 info
         collapse `collapse_str', by(`by')
@@ -142,42 +144,42 @@ program checks_consistency_gcollapse
     restore
     }
 
-    foreach i in 4 7 10 16 19 22 {
-    preserve
-    use `f`:di `i' + 1'', clear
-        local bad_any = 0
-        if (`i' == 4)  local bad groupstr
-        if (`i' == 7)  local bad groupsub group
-        if (`i' == 10) local bad grouplong
-        if (`i' == 16) local bad groupstr
-        if (`i' == 19) local bad groupsub group
-        if (`i' == 22) local bad grouplong
-        local by `bad'
-        foreach var in `stats' p23 p77 {
-            rename `var' c_`var'
-        }
-        qui merge 1:1 `bad' using `f`i'', assert(3)
-        foreach var in `stats' p23 p77 {
-            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
-            if ( `r(N)' > 0 ) {
-                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
-                local bad `bad' *`var'
-                di "`var' has `:di r(N)' mismatches".
-                local bad_any = 1
-            }
-        }
-        if ( `bad_any' ) {
-            order `bad'
-            egen bad_any = rowmax(bad_*)
-            l *count* `bad' if bad_any & _n < 100
-            sum bad_*
-            di "fcollapse produced different data to collapse (tol = `tol', `by')"
-        }
-        else {
-            di "fcollapse produced identical data to collapse (tol = `tol', `by')"
-        }
-    restore
-    }
+    * foreach i in 4 7 10 16 19 22 {
+    * preserve
+    * use `f`:di `i' + 1'', clear
+    *     local bad_any = 0
+    *     if (`i' == 4)  local bad groupstr
+    *     if (`i' == 7)  local bad groupsub group
+    *     if (`i' == 10) local bad grouplong
+    *     if (`i' == 16) local bad groupstr
+    *     if (`i' == 19) local bad groupsub group
+    *     if (`i' == 22) local bad grouplong
+    *     local by `bad'
+    *     foreach var in `stats' p23 p77 {
+    *         rename `var' c_`var'
+    *     }
+    *     qui merge 1:1 `bad' using `f`i'', assert(3)
+    *     foreach var in `stats' p23 p77 {
+    *         qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
+    *         if ( `r(N)' > 0 ) {
+    *             gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
+    *             local bad `bad' *`var'
+    *             di "`var' has `:di r(N)' mismatches".
+    *             local bad_any = 1
+    *         }
+    *     }
+    *     if ( `bad_any' ) {
+    *         order `bad'
+    *         egen bad_any = rowmax(bad_*)
+    *         l *count* `bad' if bad_any & _n < 100
+    *         sum bad_*
+    *         di "fcollapse produced different data to collapse (tol = `tol', `by')"
+    *     }
+    *     else {
+    *         di "fcollapse produced identical data to collapse (tol = `tol', `by')"
+    *     }
+    * restore
+    * }
 
     di ""
     di as txt "Passed! checks_consistency_gcollapse `multi'"

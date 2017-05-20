@@ -1,14 +1,14 @@
 {smcl}
 {* *! version 0.3.0 20May2017}{...}
-{viewerdialog gcollapse "dialog gcollapse"}{...}
-{vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
-{viewerjumpto "Syntax" "gcollapse##syntax"}{...}
-{viewerjumpto "Description" "gcollapse##description"}{...}
-{viewerjumpto "Options" "gcollapse##options"}{...}
+{viewerdialog gegen "dialog gegen"}{...}
+{vieweralsosee "[R] gegen" "mansection R gegen"}{...}
+{viewerjumpto "Syntax" "gegen##syntax"}{...}
+{viewerjumpto "Description" "gegen##description"}{...}
+{viewerjumpto "Options" "gegen##options"}{...}
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
-{p2col :{cmd:gcollapse} {hline 2}}Efficiently
+{p2col :{cmd:gegen} {hline 2}}Efficiently
 make dataset of summary statistics using C.{p_end}
 {p2colreset}{...}
 
@@ -16,10 +16,10 @@ make dataset of summary statistics using C.{p_end}
 {title:Syntax}
 
 {p 8 17 2}
-{cmd:gcollapse}
+{cmd:gegen}
 {it:clist}
 {ifin}
-[{cmd:,} {it:{help gcollapse##table_options:options}}]
+[{cmd:,} {it:{help gegen##table_options:options}}]
 
 {pstd}where {it:clist} is either
 
@@ -75,11 +75,11 @@ user press {hi:Break}
 {synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
 {p_end}
 {synopt :{opt unsorted}}do not sort the final data.
-Saves speed but leaves resulting collapse unsorted.
+Saves speed but leaves resulting egen unsorted.
 {p_end}
-{synopt :{opt merge}}merge collapsed results back to oroginal data.
+{synopt :{opt merge}}merge egen results back to oroginal data.
 {p_end}
-{synopt :{opt multi}}invoke multi-threaded version of gcollapse plugin.
+{synopt :{opt multi}}invoke multi-threaded version of gegen plugin.
 {p_end}
 {synopt :{opt double}}store data in double precision.
 {p_end}
@@ -96,7 +96,7 @@ Saves speed but leaves resulting collapse unsorted.
 {title:Description}
 
 {pstd}
-{opt gcollapse} converts the dataset in memory into a dataset of means,
+{opt gegen} converts the dataset in memory into a dataset of means,
 sums, medians, etc. {it:clist} can refer to numeric and string variables
 although string variables are only supported by a few functions (first,
 last, firstnm, lastnm).
@@ -118,7 +118,7 @@ to be calculated. It can contain any mix of string or numeric variables.
 possible observations are used for each calculated statistic.
 
 {phang}
-{opt fast} specifies that {opt fcollapse} not restore the original dataset
+{opt fast} specifies that {opt gegen} not restore the original dataset
 should the user press {hi:Break}.
 
 {phang}
@@ -173,11 +173,6 @@ Pending...
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
-
-{pstd}
-This help file was based on StataCorp's own help file
-for {it:collapse} and Sergio Correia's help file for {it:fcollapse}.
-{p_end}
 
 {pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:

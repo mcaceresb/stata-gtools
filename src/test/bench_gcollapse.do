@@ -120,7 +120,8 @@ end
 capture program drop bench_sample_size
 program bench_sample_size
     syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7)]
-    if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
+    * NOTE: fcollapse can't do sd, apparently
+    if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
 
     local collapse ""
@@ -184,7 +185,8 @@ end
 capture program drop bench_group_size
 program bench_group_size
     syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6)]
-    if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
+    * NOTE: fcollapse can't do sd, apparently
+    if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
 
     local collapse ""
@@ -248,6 +250,7 @@ end
 
 * !cd ..; ./build.py
 * do gcollapse.ado
+* do gegen.ado
 * do gtools_tests.do
 
 * Benchmarks in the README

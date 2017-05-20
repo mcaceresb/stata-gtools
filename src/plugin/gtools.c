@@ -1,11 +1,11 @@
 /*********************************************************************
  * Program: gtools.c
- * Author:  Mauricio Caceres Bravo <caceres@nber.org>
+ * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Thu May 18 20:03:24 EDT 2017
+ * Updated: Sat May 20 14:08:15 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.2.0
+ * Version: 0.3.0
  *********************************************************************/
 
 /**
@@ -28,6 +28,7 @@
 #include "gtools_sort.c"
 #include "gtools_math.c"
 
+// -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
 #include "gcollapse_multi.c"
 #include "gegen_multi.c"
@@ -35,6 +36,10 @@
 #include "gcollapse.c"
 #include "gegen.c"
 #endif
+
+/* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
+ * objects in memory and print an error message based on 'level' // 2017-05-20 14:09 EDT
+ */
 
 STDLL stata_call(int argc, char *argv[])
 {
@@ -326,7 +331,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
      *           Relative position of targets and by variables           *
      *********************************************************************/
 
-    size_t strlen = byvars_maxlen > 0? byvars_maxlen + 1: 1;
+    size_t strmax = byvars_maxlen > 0? byvars_maxlen + 1: 1;
 
     size_t start_target_vars = start_collapse_vars + kvars_source;
     size_t start_str_byvars  = start_target_vars + kvars_targets;
@@ -380,7 +385,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->integers_ok         = integers_ok;
     st_info->byvars_minlen       = byvars_minlen;
     st_info->byvars_maxlen       = byvars_maxlen;
-    st_info->strlen              = strlen;
+    st_info->strmax              = strmax;
 
     if ( benchmark ) sf_running_timer (&timer, "\tPlugin step 1: stata parsing done");
     return (0);
@@ -574,7 +579,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     free (info);
 
     st_info->index = calloc(st_info->N, sizeof *index);
-    for (i = 0; i < st_info->N + 1; i++)
+    for (i = 0; i < st_info->N; i++)
         st_info->index[i] = index[i];
     free (index);
 

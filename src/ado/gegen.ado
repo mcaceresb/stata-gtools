@@ -1,4 +1,4 @@
-*! version 0.2.0 19May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -egen- implementation using C for faster processing
 
 /*
@@ -83,11 +83,15 @@ program define gegen, byable(onecall)
     * --------------------
 
 	if ( "`by'" == "" ) {
-		* tempvar byvar
-		* gen byte `byvar' = 0
-		* local by `byvar'
-        di as err "-gegen- only provides support for by-able egen functions"
-        exit 198
+        if inlist("`fcn'", "tag", "group") {
+            tempvar byvar
+            gen byte `byvar' = 0
+            local by `byvar'
+        }
+        else {
+            di as err "-gegen- only provides support for by-able egen functions"
+            exit 198
+        }
 	}
     else {
         qui ds `by'
@@ -256,7 +260,7 @@ program define gegen, byable(onecall)
     cap `noi' plugin call gtools`multi'_plugin `plugvars' `if' `in', egen `fcn' `options'
     if ( _rc != 0 ) exit _rc
 
-    if ( "`fcn'" == "tag" ) replace `dummy' = 0 if mi(`dummy')
+    if ( "`fcn'" == "tag" ) qui replace `dummy' = 0 if mi(`dummy')
 	quietly count if missing(`dummy')
 	if ( `r(N)' ) {
 		local s = cond(r(N) > 1, "s", "")
@@ -279,11 +283,13 @@ program ParseByTypes
     foreach byvar of varlist `varlist' {
         local bytype: type `byvar'
         if inlist("`bytype'", "byte", "int", "long") {
+            qui count if mi(`byvar')
+            local addmax = (`r(N)' > 0)
             qui sum `byvar'
 
             matrix __gtools_byk   = nullmat(__gtools_byk), -1
             matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)'
+            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)

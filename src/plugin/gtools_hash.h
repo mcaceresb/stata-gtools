@@ -17,7 +17,7 @@ int sf_get_variable_hash (
     size_t k,
     size_t in1,
     size_t in2,
-    int strlen
+    int strmax
 );
 
 int sf_get_varlist_hash (

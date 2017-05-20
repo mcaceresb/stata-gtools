@@ -1,11 +1,11 @@
 /*********************************************************************
  * Program: gcollapse_multi.c
- * Author:  Mauricio Caceres Bravo <caceres@nber.org>
+ * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Fri May 19 17:34:42 EDT 2017
+ * Updated: Sat May 20 14:06:52 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.2.0
+ * Version: 0.3.0
  *********************************************************************/
 
 #include <omp.h>
@@ -22,7 +22,7 @@ int sf_collapse (struct StataInfo *st_info)
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
-    char s[st_info->strlen];
+    char s[st_info->strmax];
     clock_t timer = clock();
 
     size_t nj, start, end, sel, out;

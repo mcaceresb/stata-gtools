@@ -221,7 +221,6 @@ Despite this, it has several advantages:
   data before calling the C plugin)
 - Grouping variables can be a mix of numeric and string variables,
   unlike `fcollapse` which limits by variables to be of the same type.
-- Quantiles are computed to match Stata's `collapse`, unlike `fcollapse`.
 - Quantiles can be quantiles, not just percentiles (e.g. p2.5 and
   p97.5 are be valid stat calls in `gcollapse`).
 

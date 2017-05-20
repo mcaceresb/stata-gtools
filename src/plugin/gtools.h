@@ -49,7 +49,7 @@ struct StataInfo {
     int *byvars_maxs;
     int byvars_minlen;
     int byvars_maxlen;
-    int strlen;
+    int strmax;
     char *statstr;
 };
 

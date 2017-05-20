@@ -44,8 +44,8 @@ void mf_qselect_range_partition(double *x, size_t start, size_t end, size_t *les
 
     /* Modified median-of-three and pivot selection. */
     size_t nj     = end - start;
-    size_t first  = 1;
-    size_t middle = start + (nj / 2);
+    size_t first  = start;
+    size_t middle = start + floor(nj / 2);
     size_t last   = end - 1 ;
 
     if ( x[first] > x[last]) {

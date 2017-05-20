@@ -16,6 +16,15 @@ Change Log
   use `egen`; `gegen` is only suitable when you want to index the data
   and you don't mind that it won't be sorted right away.
 
+### Bug fixes
+
+* Fixed bug in hashing strings so it now passes the correct number of
+  bytes to the spooky hash (in prior versions, string hashes were not
+  consistent).
+* Fixed bug in integer bijection so it can now handle missing values.
+* Fixed bug in quantile function where the first comparison element was
+  selected to be the first entry read from Stata, not the first group entry.
+
 ### Problems
 
 * Only available when `c(os)` is Unix.

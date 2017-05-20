@@ -1,4 +1,4 @@
-*! version 0.2.0 19May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -221,6 +221,7 @@ program gcollapse
         gettoken sourcevar __gtools_vars: __gtools_vars
         gettoken collstat  __gtools_stats: __gtools_stats
 
+        * I try to match Stata's types when possible
         if regexm("`collstat'", "first|last|min|max") {
             * First, last, min, max can preserve type, clearly
             local targettype: type `sourcevar'
@@ -229,15 +230,14 @@ program gcollapse
             local targettype double
         }
         else if ( ("`collstat'" == "count") & (`=_N' < 2^31) ) {
-            * Counts can be long if the source variable is an integer
-            * and we have fewer than 2^31 observations (the largest
-            * signed integer in long variables can be 2^31-1)
-            if !inlist("`:type `sourcevar''", "float", "double") {
-                local targettype long
-            }
-            else {
-                local targettype `c(type)'
-            }
+            * Counts can be long if we have fewer than 2^31 observations
+            * (largest signed integer in long variables can be 2^31-1)
+            local targettype long
+        }
+        else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
+            * Sums are double so we don't overflow, but I don't
+            * know why operations on long integers are also double.
+            local targettype double
         }
         else {
             * Otherwise, store results in specified user-default type
@@ -252,9 +252,10 @@ program gcollapse
         else {
             * We only recast integer types. Floats and doubles are
             * preserved unless requested.
-            local already_float_double = inlist("`:type `var''", "float", "double")
-            local already_same_type    = ("`targettype'" == "`:type `var''")
-            local recast = !`already_same_type' & ( ("`double'" != "") | !`already_float_double' )
+            * local already_float_double = inlist("`:type `var''", "float", "double")
+            local already_double    = inlist("`:type `var''", "double")
+            local already_same_type = ("`targettype'" == "`:type `var''")
+            local recast = !`already_same_type' & ( ("`double'" != "") | !`already_double' )
             if ( `recast' ) {
                 tempname dropvar
                 rename `var' `dropvar'
@@ -411,11 +412,13 @@ program ParseByTypes
     foreach byvar of varlist `varlist' {
         local bytype: type `byvar'
         if inlist("`bytype'", "byte", "int", "long") {
+            qui count if mi(`byvar')
+            local addmax = (`r(N)' > 0)
             qui sum `byvar'
 
             matrix __gtools_byk   = nullmat(__gtools_byk), -1
             matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)'
+            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)

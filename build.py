@@ -128,7 +128,8 @@ print("")
 # -------------------
 
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
-files    = [path.join("src", "test", "test_gcollapse.do")]
+files    = [path.join("src", "test", "test_gcollapse.do"),
+            path.join("src", "test", "test_gegen.do")]
 
 with open(path.join("build", "gtools_tests.do"), 'w') as outfile:
     outfile.writelines(testfile[:-4])

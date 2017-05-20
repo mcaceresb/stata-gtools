@@ -14,6 +14,7 @@ program bench_sim
     bys group: gen groupsub      = ceil(`njsub' *  _n / _N)
     bys group: gen groupsubfloat = ceil(`njsub' *  _n / _N) + 0.5
     tostring group, gen(groupstr)
+    replace groupstr = "i am a modesly long string" + groupstr
 
     forvalues i = 1 / `nvars' {
         gen x`i' = rnormal()

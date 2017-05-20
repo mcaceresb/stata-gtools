@@ -3,10 +3,10 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue May 16 07:47:05 EDT 2017
+* Updated: Sat May 20 14:03:27 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.2.0
-* Manual:  help gcollapse
+* Version: 0.3.0
+* Manual:  help gcollapse, help gegen
 
 * Stata start-up options
 * ----------------------
@@ -36,14 +36,17 @@ program main
 
     `capture' `noisily' {
         * do test_gcollapse.do
+        * do test_gegen.do
         * do bench_gcollapse.do
-        checks_simplest_gcollapse
         checks_byvars_gcollapse
         checks_options_gcollapse
+        checks_byvars_gcollapse,  multi
+        checks_options_gcollapse, multi
 
-        checks_simplest_gcollapse, multi
-        checks_byvars_gcollapse,   multi
-        checks_options_gcollapse,  multi
+        checks_consistency_gegen
+        checks_consistency_gegen, multi
+        checks_consistency_gcollapse
+        checks_consistency_gcollapse, multi
 
         * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
         * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
@@ -162,7 +165,11 @@ program sim, rclass
         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
         if ("`float'" != "")  replace group = group / `nj'
-        if ("`string'" != "") tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
+        if ("`string'" != "") {
+            tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
+            local target `:di cond("`replace'" == "", "groupstr", "group")'
+            replace `target' = "i am a modesly long string" + `target'
+        }
         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
     }
     sum rsort
@@ -174,13 +181,10 @@ program sim, rclass
     return local string = ("`string'" != "")
 end
 
-capture program drop checks_simplest_gcollapse
-program checks_simplest_gcollapse
-    syntax, [tol(real 1e-6) multi]
-    di _n(1) "{hline 80}" _n(1) "checks_simplest_gcollapse" _n(1) "{hline 80}" _n(1)
-
-    * sim, n(500000) nj(8) njsub(4) string groupmiss outmiss
-    sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
+capture program drop checks_consistency_gcollapse
+program checks_consistency_gcollapse
+    syntax, [tol(real 1e-6) multi NOIsily]
+    di _n(1) "{hline 80}" _n(1) "checks_consistency_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
 
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
     local collapse_str ""
@@ -190,99 +194,87 @@ program checks_simplest_gcollapse
     local collapse_str `collapse_str' (p23) p23 = rnorm
     local collapse_str `collapse_str' (p77) p77 = rnorm
 
-    local i = 0
+    sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
     mytimer 9
+    qui `noisily' foreach i in 0 3 6 9 {
+        if (`i' == 0) local by groupsub groupstr
+        if (`i' == 3) local by groupstr
+        if (`i' == 6) local by groupsub group
+        if (`i' == 9) local by grouplong
     preserve
         mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupsub groupstr) verbose benchmark `multi'
-        mytimer 9 info "gcollapse 2 groups"
-        * l
+        gcollapse `collapse_str', by(`by') verbose benchmark `multi'
+        mytimer 9 info "gcollapse to groups"
         tempfile f`i'
         save `f`i''
-        local ++i
     restore, preserve
         mytimer 9 info
-        fcollapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub group) verbose
-        mytimer 9 info "fcollapse 2 groups"
-        * l
-        tempfile f`i'
-        save `f`i''
-        local ++i
+        if (`i' != 0) {
+            fcollapse `collapse_str', by(`by') verbose
+            mytimer 9 info "fcollapse to groups"
+            tempfile f`:di `i' + 1'
+            save `f`:di `i' + 1''
+        }
     restore, preserve
         mytimer 9 info
-        collapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub groupstr)
-        mytimer 9 info "collapse 2 groups"
-        * l
-        tempfile f`i'
-        save `f`i''
-        local ++i
+        collapse `collapse_str', by(`by')
+        mytimer 9 info "collapse to groups"
+        tempfile f`:di `i' + 2'
+        save `f`:di `i' + 2''
     restore
-
-    preserve
-        mytimer 9 info
-        gcollapse `collapse_str' (p2.5) p2_5 = rnorm, by(groupstr) verbose benchmark `multi'
-        mytimer 9 info "gcollapse 1 group"
-        * l
-        tempfile f`i'
-        save `f`i''
-        local ++i
-    restore, preserve
-        mytimer 9 info
-        fcollapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr) verbose
-        mytimer 9 info "fcollapse 1 group"
-        * l
-        tempfile f`i'
-        save `f`i''
-        local ++i
-    restore, preserve
-        mytimer 9 info
-        collapse `collapse_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr)
-        mytimer 9 info "collapse 1 group"
-        * l
-        tempfile f`i'
-        save `f`i''
-        local ++i
-    restore
+    }
     mytimer 9 off
 
+    sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
+    qui `noisily' foreach i in 12 15 18 21 {
+        if (`i' == 12) local by groupsub groupstr
+        if (`i' == 15) local by groupstr
+        if (`i' == 18) local by groupsub group
+        if (`i' == 21) local by grouplong
     preserve
-    use `f2', clear
-        local bad_any = 0
-        local bad groupsub groupstr
-        foreach var in `stats' p23 p77 {
-            rename `var' c_`var'
-        }
-        merge 1:1 groupsub groupstr using `f0', assert(3)
-        foreach var in `stats' p23 p77 {
-            qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
-            if ( `r(N)' > 0 ) {
-                gen byte bad_`var' = abs(`var' - c_`var') > `tol'
-                local bad `bad' *`var'
-                di "`var' has `:di r(N)' mismatches".
-                local bad_any = 1
-            }
-        }
-        if ( `bad_any' ) {
-            order `bad'
-            l *count* `bad'
-        }
-        else {
-            di "gcollapse produced identical data to collapse (tol = `tol')"
-        }
-
+        mytimer 9 info
+        gcollapse `collapse_str', by(`by') verbose benchmark `multi'
+        mytimer 9 info "gcollapse 2 groups"
+        tempfile f`i'
+        save `f`i''
     restore, preserve
+        mytimer 9 info
+        if (`i' != 12) {
+            fcollapse `collapse_str', by(`by') verbose
+            mytimer 9 info "fcollapse to groups"
+            tempfile f`:di `i' + 1'
+            save `f`:di `i' + 1''
+        }
+    restore, preserve
+        mytimer 9 info
+        collapse `collapse_str', by(`by')
+        mytimer 9 info "collapse to groups"
+        tempfile f`:di `i' + 2'
+        save `f`:di `i' + 2''
+    restore
+    }
 
-    use `f5', clear
+    foreach i in 0 3 6 9 12 15 18 21 {
+    preserve
+    use `f`:di `i' + 2'', clear
         local bad_any = 0
-        local bad groupstr
+        if (`i' == 0)  local bad groupsub groupstr
+        if (`i' == 3)  local bad groupstr
+        if (`i' == 6)  local bad groupsub group
+        if (`i' == 9)  local bad grouplong
+        if (`i' == 12) local bad groupsub groupstr
+        if (`i' == 15) local bad groupstr
+        if (`i' == 18) local bad groupsub group
+        if (`i' == 21) local bad grouplong
+        local by `bad'
         foreach var in `stats' p23 p77 {
             rename `var' c_`var'
         }
-        merge 1:1 groupstr using `f3', assert(3)
+        qui merge 1:1 `by' using `f`i'', assert(3)
         foreach var in `stats' p23 p77 {
-            qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
+            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
             if ( `r(N)' > 0 ) {
-                gen byte bad_`var' = abs(`var' - c_`var') > `tol'
+                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
                 local bad `bad' *`var'
                 di "`var' has `:di r(N)' mismatches".
                 local bad_any = 1
@@ -290,21 +282,62 @@ program checks_simplest_gcollapse
         }
         if ( `bad_any' ) {
             order `bad'
-            l *count* `bad'
+            egen bad_any = rowmax(bad_*)
+            l *count* `bad' if bad_any
+            sum bad_*
+            exit 9
         }
         else {
-            di "gcollapse produced identical data to collapse (tol = `tol')"
+            di "gcollapse produced identical data to collapse (tol = `tol', `by')"
         }
     restore
+    }
+
+    foreach i in 4 7 10 16 19 22 {
+    preserve
+    use `f`:di `i' + 1'', clear
+        local bad_any = 0
+        if (`i' == 4)  local bad groupstr
+        if (`i' == 7)  local bad groupsub group
+        if (`i' == 10) local bad grouplong
+        if (`i' == 16) local bad groupstr
+        if (`i' == 19) local bad groupsub group
+        if (`i' == 22) local bad grouplong
+        local by `bad'
+        foreach var in `stats' p23 p77 {
+            rename `var' c_`var'
+        }
+        qui merge 1:1 `bad' using `f`i'', assert(3)
+        foreach var in `stats' p23 p77 {
+            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
+            if ( `r(N)' > 0 ) {
+                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
+                local bad `bad' *`var'
+                di "`var' has `:di r(N)' mismatches".
+                local bad_any = 1
+            }
+        }
+        if ( `bad_any' ) {
+            order `bad'
+            egen bad_any = rowmax(bad_*)
+            l *count* `bad' if bad_any & _n < 100
+            sum bad_*
+            di "fcollapse produced different data to collapse (tol = `tol', `by')"
+        }
+        else {
+            di "fcollapse produced identical data to collapse (tol = `tol', `by')"
+        }
+    restore
+    }
 
     di ""
-    di as txt "Passed! checks_simplest_gcollapse"
+    di as txt "Passed! checks_consistency_gcollapse `multi'"
 end
 
 capture program drop checks_byvars_gcollapse
 program checks_byvars_gcollapse
     syntax, [multi]
-    di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
 
     sim, n(1000) nj(250) string
     set rmsg on
@@ -329,13 +362,13 @@ program checks_byvars_gcollapse
 
 
     di ""
-    di as txt "Passed! checks_byvars_gcollapse"
+    di as txt "Passed! checks_byvars_gcollapse `multi'"
 end
 
 capture program drop checks_options_gcollapse
 program checks_options_gcollapse
     syntax, [multi]
-    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
 
     local stats mean count median iqr
     local collapse_str ""
@@ -346,50 +379,201 @@ program checks_options_gcollapse
     sim, n(200) nj(10) string outmiss
     preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose unsorted `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark cw `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) double `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) merge `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore
 
     sort groupstr groupsub
     preserve
         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `multi'
-        l in 1 / 5
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `multi'
-        l in 1 / 5
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `multi'
-        l in 1 / 5
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
-        l in 1 / 5
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark smart `multi'
-        l in 1 / 5
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupsub) verbose benchmark smart `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupsub) verbose benchmark `multi'
-        l
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
     restore
 
     di ""
-    di as txt "Passed! checks_options_gcollapse"
+    di as txt "Passed! checks_options_gcollapse `multi'"
 end
 
 * TODO: Edge cases (nothing in anything, no -by-, should mimic collapse // 2017-05-16 08:03 EDT
+capture program drop sim
+program sim, rclass
+    syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
+    qui {
+        if ("`offset'" == "") local offset 0
+        clear
+        set obs `n'
+        gen group  = ceil(`nj' *  _n / _N) + `offset'
+        bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
+        bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
+        gen rsort = runiform() - 0.5
+        gen rnorm = rnormal()
+        if ("`sortg'" == "")  sort rsort
+        if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
+        if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
+        if ("`float'" != "")  replace group = group / `nj'
+        if ("`string'" != "") {
+            tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
+            local target `:di cond("`replace'" == "", "groupstr", "group")'
+            replace `target' = "i am a modesly long string" + `target'
+        }
+        gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
+    }
+    sum rsort
+    di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
+    compress
+    return local n  = `n'
+    return local nj = `nj'
+    return local offset = `offset'
+    return local string = ("`string'" != "")
+end
+
+capture program drop checks_consistency_gegen
+program checks_consistency_gegen
+    syntax, [tol(real 1e-6) multi]
+    di _n(1) "{hline 80}" _n(1) "checks_consistency_gegen `multi'" _n(1) "{hline 80}" _n(1)
+
+    local stats total sum mean sd max min count median iqr
+    sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking full range"
+    foreach fun of local stats {
+        qui gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v b
+        qui  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
+        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    local fun tag
+    {
+        qui gegen g_`fun' = `fun'(groupstr groupsub)
+        qui  egen c_`fun' = `fun'(groupstr groupsub)
+        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking if range"
+    foreach fun of local stats {
+        qui gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+        qui  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    local fun tag
+    {
+        qui gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+        qui  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking in range"
+    foreach fun of local stats {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) v b
+        qui  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
+        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    local fun tag
+    {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b
+        qui  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
+        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking if in range"
+    foreach fun of local stats {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+        qui  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    local fun tag
+    {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+        qui  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    di ""
+    di as txt "Passed! checks_consistency_gegen `multi'"
+end
 
 * ---------------------------------------------------------------------
 * Run the things

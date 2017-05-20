@@ -60,7 +60,6 @@ void mf_radix_sort_index (
                       nloops + 1, dshift, shift);
         }
     }
-
 }
 
 /**
@@ -156,7 +155,8 @@ void mf_counting_sort_index(
         count[i] += count[i - 1];
 
     // Copy back in stable sorted order
-    for (i = N - 1; i >= 0; i--) {
+    // for (i = N - 1; i >= 0; i--) {
+    for (i = 0; i < N; i++) {
         index[ s = count[xcopy[i] - 1]++ ] = icopy[i];
         x[s] = xcopy[i] - 1 + min;
     }

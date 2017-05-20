@@ -14,7 +14,11 @@ program sim, rclass
         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
         if ("`float'" != "")  replace group = group / `nj'
-        if ("`string'" != "") tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
+        if ("`string'" != "") {
+            tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
+            local target `:di cond("`replace'" == "", "groupstr", "group")'
+            replace `target' = "i am a modesly long string" + `target'
+        }
         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
     }
     sum rsort
@@ -26,311 +30,110 @@ program sim, rclass
     return local string = ("`string'" != "")
 end
 
-capture program drop checks_simplest_gegen
-program checks_simplest_gegen
+capture program drop checks_consistency_gegen
+program checks_consistency_gegen
     syntax, [tol(real 1e-6) multi]
-    di _n(1) "{hline 80}" _n(1) "checks_simplest_gegen" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_consistency_gegen `multi'" _n(1) "{hline 80}" _n(1)
 
-    sim, n(1000) nj(200) njsub(4) string groupmiss outmiss
     local stats total sum mean sd max min count median iqr
-    sim, n(5000) nj(1000) njsub(4) string groupmiss outmiss
-    local stats sum
-    cap drop g_*
-    cap drop c_*
+    sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking full range"
     foreach fun of local stats {
-        gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v
-         egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
-        * gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v
-        *  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
-        cap noi assert abs(g_`fun' - c_`fun') < `tol'
+        qui gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v b
+        qui  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
+        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
         if ( _rc ) di as err "`fun' failed! (tol = `tol')"
-        else di as txt "`fun' was OK"
+        else di as txt "    `fun' was OK"
     }
-    sort groupstr rnorm
-    * gen tmp = abs(g_`fun' - c_`fun')
-    * l if abs(g_`fun' - c_`fun') < `tol' in 1/100
 
-    local funcs tag group quantile p23 quantile p77
+    local fun tag
+    {
+        qui gegen g_`fun' = `fun'(groupstr groupsub)
+        qui  egen c_`fun' = `fun'(groupstr groupsub)
+        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
 
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking if range"
     foreach fun of local stats {
-        gegen gif_`fun' = 
-         egen cif_`fun' = 
+        qui gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+        qui  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
     }
 
+    local fun tag
+    {
+        qui gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+        qui  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking in range"
     foreach fun of local stats {
-        gegen gin_`fun' = 
-         egen cin_`fun' = 
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) v b
+        qui  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
+        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
     }
 
+    local fun tag
+    {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b
+        qui  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
+        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
+
+    cap drop g*_*
+    cap drop c*_*
+    di "Checking if in range"
     foreach fun of local stats {
-        gegen gifin_`fun' = 
-         egen cifin_`fun' = 
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+        qui  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
     }
 
-* !cd ..; ./build.py
-* do gegen.ado
-* do gcollapse.ado
-* gcollapse (sum) tmp = rnorm, by(groupstr groupsub) merge v
-* preserve
-*     collapse (sum) c_tmp = rnorm, by(groupstr groupsub)
-*     tempfile waffle
-*     save `waffle'
-* restore
-* merge m:1 groupstr groupsub using `waffle'
-* preserve
-* gcollapse (sum) tmp = rnorm, by(groupstr groupsub)
-* restore
-* cls
-* cap drop z*
-* bench_sim_ftools 100000 5
-* gen long x = ceil(uniform() * 5000)
+    local fun tag
+    {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+        qui  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "    `fun' was OK"
+    }
 
-* bench_sim_ftools 100 3
-* gen byte ifif = (runiform() > 0.5)
-* gen long x = ceil(uniform() * 5)
-* tostring x, gen(xstr)
-* sort y1
-* cap drop *_id
-* cap drop *_tag
-* gegen g_tag = tag(xstr)  if ifif, v
-*  egen c_tag = tag(xstr)  if ifif
-* assert g_tag == c_tag
-* cap drop *_id
-* cap drop *_tag
-* gegen g_tag = tag(xstr)  if ifif in 10/87, v
-*  egen c_tag = tag(xstr)  if ifif in 10/87
-* assert g_tag == c_tag
-* gegen g_id = group(xstr) if ifif in 10/87, v
-* fegen f_id = group(xstr) if ifif in 10/87
-*  egen c_id = group(xstr) if ifif in 10/87
-* assert g_id == c_id      if ifif  in 10/87
-* tab xstr g_id if ifif  in 10/87
-* tab xstr c_id if ifif  in 10/87
-
-* gegen z1 = mean(y1), by(x3)
-* by  x3: gegen z2 = mean(y1)
-* bys x3 (x1): gegen z3 = mean(y1)
-* egen zz1 = mean(y1), by(x3)
-* by  x3: egen zz2 = mean(y1)
-* bys x3 (x1): egen zz3 = mean(y1)
-* sum z*
-* assert z1 == z1
-* assert z2 == z2
-* assert z3 == z3
-
-* capture program drop checks_simplest_gegen
-* program checks_simplest_gegen
-*     syntax, [tol(real 1e-6) multi]
-*     di _n(1) "{hline 80}" _n(1) "checks_simplest_gegen" _n(1) "{hline 80}" _n(1)
-* 
-*     * sim, n(500000) nj(8) njsub(4) string groupmiss outmiss
-*     sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
-* 
-*     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
-*     local egen_str ""
-*     foreach stat of local stats {
-*         local egen_str `egen_str' (`stat') `stat' = rnorm
-*     }
-*     local egen_str `egen_str' (p23) p23 = rnorm
-*     local egen_str `egen_str' (p77) p77 = rnorm
-* 
-*     local i = 0
-*     mytimer 9
-*     preserve
-*         mytimer 9 info
-*         gegen `egen_str' (p2.5) p2_5 = rnorm, by(groupsub groupstr) verbose benchmark `multi'
-*         mytimer 9 info "gegen 2 groups"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore, preserve
-*         mytimer 9 info
-*         fegen `egen_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub group) verbose
-*         mytimer 9 info "fegen 2 groups"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore, preserve
-*         mytimer 9 info
-*         egen `egen_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupsub groupstr)
-*         mytimer 9 info "egen 2 groups"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore
-* 
-*     preserve
-*         mytimer 9 info
-*         gegen `egen_str' (p2.5) p2_5 = rnorm, by(groupstr) verbose benchmark `multi'
-*         mytimer 9 info "gegen 1 group"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore, preserve
-*         mytimer 9 info
-*         fegen `egen_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr) verbose
-*         mytimer 9 info "fegen 1 group"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore, preserve
-*         mytimer 9 info
-*         egen `egen_str' (p2) p2 = rnorm (p3) p3 = rnorm, by(groupstr)
-*         mytimer 9 info "egen 1 group"
-*         * l
-*         tempfile f`i'
-*         save `f`i''
-*         local ++i
-*     restore
-*     mytimer 9 off
-* 
-*     preserve
-*     use `f2', clear
-*         local bad_any = 0
-*         local bad groupsub groupstr
-*         foreach var in `stats' p23 p77 {
-*             rename `var' c_`var'
-*         }
-*         merge 1:1 groupsub groupstr using `f0', assert(3)
-*         foreach var in `stats' p23 p77 {
-*             qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
-*             if ( `r(N)' > 0 ) {
-*                 gen byte bad_`var' = abs(`var' - c_`var') > `tol'
-*                 local bad `bad' *`var'
-*                 di "`var' has `:di r(N)' mismatches".
-*                 local bad_any = 1
-*             }
-*         }
-*         if ( `bad_any' ) {
-*             order `bad'
-*             l *count* `bad'
-*         }
-*         else {
-*             di "gegen produced identical data to egen (tol = `tol')"
-*         }
-* 
-*     restore, preserve
-* 
-*     use `f5', clear
-*         local bad_any = 0
-*         local bad groupstr
-*         foreach var in `stats' p23 p77 {
-*             rename `var' c_`var'
-*         }
-*         merge 1:1 groupstr using `f3', assert(3)
-*         foreach var in `stats' p23 p77 {
-*             qui count if (abs(`var' - c_`var') > `tol') & !mi(c_`var')
-*             if ( `r(N)' > 0 ) {
-*                 gen byte bad_`var' = abs(`var' - c_`var') > `tol'
-*                 local bad `bad' *`var'
-*                 di "`var' has `:di r(N)' mismatches".
-*                 local bad_any = 1
-*             }
-*         }
-*         if ( `bad_any' ) {
-*             order `bad'
-*             l *count* `bad'
-*         }
-*         else {
-*             di "gegen produced identical data to egen (tol = `tol')"
-*         }
-*     restore
-* 
-*     di ""
-*     di as txt "Passed! checks_simplest_gegen"
-* end
-* 
-* capture program drop checks_byvars_gegen
-* program checks_byvars_gegen
-*     syntax, [multi]
-*     di _n(1) "{hline 80}" _n(1) "checks_byvars_gegen" _n(1) "{hline 80}" _n(1)
-* 
-*     sim, n(1000) nj(250) string
-*     set rmsg on
-*     preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `multi'
-*     restore, preserve
-*         gegen (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `multi'
-*     restore
-*     set rmsg off
-* 
-* 
-*     di ""
-*     di as txt "Passed! checks_byvars_gegen"
-* end
-* 
-* capture program drop checks_options_gegen
-* program checks_options_gegen
-*     syntax, [multi]
-*     di _n(1) "{hline 80}" _n(1) "checks_options_gegen" _n(1) "{hline 80}" _n(1)
-* 
-*     local stats mean count median iqr
-*     local egen_str ""
-*     foreach stat of local stats {
-*         local egen_str `egen_str' (`stat') `stat' = rnorm `stat'2 = rnorm
-*     }
-* 
-*     sim, n(200) nj(10) string outmiss
-*     preserve
-*         gegen `egen_str', by(groupstr) verbose benchmark `multi'
-*         l
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) verbose unsorted `multi'
-*         l
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) verbose benchmark cw `multi'
-*         l
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) double `multi'
-*         l
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) merge `multi'
-*         l
-*     restore
-* 
-*     sort groupstr groupsub
-*     preserve
-*         gegen `egen_str', by(groupstr groupsub) verbose benchmark `multi'
-*         l in 1 / 5
-*     restore, preserve
-*         gegen `egen_str', by(groupstr groupsub) verbose benchmark smart `multi'
-*         l in 1 / 5
-*     restore, preserve
-*         gegen `egen_str', by(groupsub groupstr) verbose benchmark smart `multi'
-*         l in 1 / 5
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) verbose benchmark `multi'
-*         l in 1 / 5
-*     restore, preserve
-*         gegen `egen_str', by(groupstr) verbose benchmark smart `multi'
-*         l in 1 / 5
-*     restore, preserve
-*         gegen `egen_str', by(groupsub) verbose benchmark smart `multi'
-*         l
-*     restore, preserve
-*         gegen `egen_str', by(groupsub) verbose benchmark `multi'
-*         l
-*     restore
-* 
-*     di ""
-*     di as txt "Passed! checks_options_gegen"
-* end
-
-* TODO: Edge cases (nothing in anything, no -by-, should mimic egen // 2017-05-16 08:03 EDT
+    di ""
+    di as txt "Passed! checks_consistency_gegen `multi'"
+end

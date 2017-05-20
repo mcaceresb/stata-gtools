@@ -77,82 +77,33 @@ int sf_collapse (struct StataInfo *st_info)
      * a possible speed gain. // 2017-05-18 22:01 EDT
      */
 
-    int nloops;
-    int rcp = 0;
-    #pragma omp parallel        \
-            private (           \
-                k,              \
-                i,              \
-                z,              \
-                sel,            \
-                nloops,         \
-                start,          \
-                end,            \
-                nj,             \
-                offset_source,  \
-                offset_buffer,  \
-                rc              \
-            )                   \
-            shared (            \
-                st_info,        \
-                offsets_buffer, \
-                all_nonmiss,    \
-                all_firstmiss,  \
-                all_lastmiss,   \
-                all_buffer,     \
-                rcp             \
-            )
-    {
-
-        // Initialize private variables
-        z      = 0;
-        rc     = 0;
-        sel    = 0;
-        nloops = 0;
-        start  = 0;
-        end    = 0;
-        nj     = 0;
-        offset_source = 0;
-        offset_buffer = 0;
-
-        #pragma omp for
-        for (j = 0; j < st_info->J; j++) {
-            ++nloops;
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
-            nj     = end - start;
-            offset_buffer = start * st_info->kvars_source;
-            offset_source = j * st_info->kvars_source;
-
-            // Loop through group in sequence
-            for (i = start; i < end; i++) {
-                sel = st_info->index[i] + st_info->in1;
-                for (k = 0; k < st_info->kvars_source; k++) {
-                    // Read Stata out of order
-                    if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) continue; 
-                    if ( SF_is_missing(z) ) {
-                        if (i == start)   all_firstmiss[offset_source + k] = 1;
-                        if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
-                    }
-                    else {
-                        // Read into C in order, so non-missing entries of
-                        // given variable for each group occupy a contiguous
-                        // segment in memory.
-                        all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
-                    }
+    offset_buffer = offset_source = 0;
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        nj     = end - start;
+        // Loop through group in sequence
+        for (i = start; i < end; i++) {
+            sel = st_info->index[i] + st_info->in1;
+            for (k = 0; k < st_info->kvars_source; k++) {
+                // Read Stata out of order
+                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) return(rc);
+                if ( SF_is_missing(z) ) {
+                    if (i == start)   all_firstmiss[offset_source + k] = 1;
+                    if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
+                }
+                else {
+                    // Read into C in order, so non-missing entries of
+                    // given variable for each group occupy a contiguous
+                    // segment in memory.
+                    all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
                 }
             }
-            offsets_buffer[j] = offset_buffer;
         }
-
-        #pragma omp critical
-        {
-            if ( rc ) rcp = rc;
-            if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d groups.\n", omp_get_thread_num(), nloops);
-        }
+        offsets_buffer[j] = offset_buffer;
+        offset_buffer    += nj * st_info->kvars_source;
+        offset_source    += st_info->kvars_source;
     }
-    if ( rcp ) return (rcp);
-
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read in source variables");
 
     for (j = 0; j < st_info->J; j++)
@@ -162,6 +113,7 @@ int sf_collapse (struct StataInfo *st_info)
     // Collapse variables by group
     // ---------------------------
 
+    int nloops;
     #pragma omp parallel        \
             private (           \
                 k,              \
@@ -263,13 +215,13 @@ int sf_collapse (struct StataInfo *st_info)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Collapsed source variables");
-
     free (all_buffer);
     free (all_firstmiss);
     free (all_lastmiss);
     free (all_nonmiss);
     free (offsets_buffer);
+
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Collapsed source variables");
 
     // Copy output back into Stata
     // ---------------------------

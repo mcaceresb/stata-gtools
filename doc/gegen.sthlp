@@ -8,151 +8,25 @@
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
-{p2col :{cmd:gegen} {hline 2}}Efficiently
-make dataset of summary statistics using C.{p_end}
+{p2col :{cmd:gegen} {hline 2}}Efficient implementation of by-able egen functions using C.{p_end}
 {p2colreset}{...}
 
 {marker syntax}{...}
 {title:Syntax}
 
-{p 8 17 2}
-{cmd:gegen}
-{it:clist}
-{ifin}
-[{cmd:,} {it:{help gegen##table_options:options}}]
+{p 8 14 2}
+{cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 
+[{cmd:,} {it:options}]
 
-{pstd}where {it:clist} is either
-
-{p 8 17 2}
-[{opt (stat)}]
-{varlist}
-[ [{opt (stat)}] {it:...} ]{p_end}
-
-{p 8 17 2}
-[{opt (stat)}] {it:target_var}{cmd:=}{varname}
-        [{it:target_var}{cmd:=}{varname} {it:...}]
-        [ [{opt (stat)}] {it:...}]
-
-{p 4 4 2}or any combination of the {it:varlist} or {it:target_var} forms, and
-{it:stat} is one of{p_end}
-
-{p2colset 9 22 24 2}{...}
-{p2col :{opt mean}}means (default){p_end}
-{p2col :{opt median}}medians{p_end}
-{p2col :{opt p1}}1st percentile{p_end}
-{p2col :{opt p2}}2nd percentile{p_end}
-{p2col :{it:...}}3rd{hline 1}49th percentiles{p_end}
-{p2col :{opt p50}}50th percentile (same as {cmd:median}){p_end}
-{p2col :{it:...}}51st{hline 1}97th percentiles{p_end}
-{p2col :{opt p98}}98th percentile{p_end}
-{p2col :{opt p99}}99th percentile{p_end}
-{p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
-{p2col :{opt sum}}sums{p_end}
-{p2col :{opt count}}number of nonmissing observations{p_end}
-{p2col :{opt percent}}percentage of nonmissing observations{p_end}
-{p2col :{opt max}}maximums{p_end}
-{p2col :{opt min}}minimums{p_end}
-{p2col :{opt iqr}}interquartile range{p_end}
-{p2col :{opt first}}first value{p_end}
-{p2col :{opt last}}last value{p_end}
-{p2col :{opt firstnm}}first nonmissing value{p_end}
-{p2col :{opt lastnm}}last nonmissing value{p_end}
-{p2colreset}{...}
-
-{synoptset 15 tabbed}{...}
-{marker table_options}{...}
-{synopthdr}
-{synoptline}
-{syntab :Options}
-{synopt :{opth by(varlist)}}groups over which {it:stat} is to be calculated
-{p_end}
-{synopt :{opt cw}}casewise deletion instead of all possible observations
-{p_end}
-{synopt :{opt fast}}do not preserve and restore the original dataset;
-saves speed but leaves the data in an unusable state shall the
-user press {hi:Break}
-{p_end}
-{synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
-{p_end}
-{synopt :{opt unsorted}}do not sort the final data.
-Saves speed but leaves resulting egen unsorted.
-{p_end}
-{synopt :{opt merge}}merge egen results back to oroginal data.
-{p_end}
-{synopt :{opt multi}}invoke multi-threaded version of gegen plugin.
-{p_end}
-{synopt :{opt double}}store data in double precision.
-{p_end}
-{synopt :{opt verbose}}verbose printing (for debugging).
-{p_end}
-{synopt :{opt benchmark}}print performance time info for each step.
-{p_end}
-
-{synoptline}
-{p2colreset}{...}
-{p 4 6 2}
+{phang}
+Unlike {it:egen}, {cmd:by} is required in this case, except for {opt
+tag} or {group}, as noted below.
 
 {marker description}{...}
 {title:Description}
 
 {pstd}
-{opt gegen} converts the dataset in memory into a dataset of means,
-sums, medians, etc. {it:clist} can refer to numeric and string variables
-although string variables are only supported by a few functions (first,
-last, firstnm, lastnm).
-
-{pstd}
-Weights are currently not supported.
-
-{marker options}{...}
-{title:Options}
-
-{dlgtab:Options}
-
-{phang}
-{opth by(varlist)} specifies the groups over which the means, etc., are
-to be calculated. It can contain any mix of string or numeric variables.
-
-{phang}
-{opt cw} specifies casewise deletion.  If {opt cw} is not specified, all
-possible observations are used for each calculated statistic.
-
-{phang}
-{opt fast} specifies that {opt gegen} not restore the original dataset
-should the user press {hi:Break}.
-
-{phang}
-{opt smart} pre-indexes the data in Stata if it is already sorted. If the
-meta-data indicates the data is already sorted by the goruping variables,
-then we can greate a tag for each group and use that to construct an index
-in C much faster than via hashing.
-
-{phang}
-{opt merge} merges the collapsed data back to the original data set.
-Note that if you want to keep the source variable(s) then you {it:need}
-to assign a new name to it for each summary statistic. Otherwise it will
-be overwritten.
-
-{phang}
-{opt multi} invokes the multi-threaded version of the gcollapse plugin.
-Most of the time this will not yield significant improvements because
-typically the bulk of the execution time is taken up by overhead setting
-up the data in Stata to be fit for the plugin call. One case where
-multi-threding is encouraged is when collapsing quantiles to a large
-number of levels (hundreds of thousands or millions).
-
-{phang}
-{opt double} stores data in double precision.
-
-{phang}
-{opt unsorted} does not sort the resulting data.
-
-{phang}
-{opt verbose} prints some useful debugging info to the console.
-
-{phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+Pending...
 
 {marker example}{...}
 {title:Examples}

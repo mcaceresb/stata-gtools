@@ -61,9 +61,14 @@ int sf_egen (struct StataInfo *st_info)
         // Loop through group in sequence
         for (i = start; i < end; i++) {
             sel = st_info->index[i] + st_info->in1;
+            if (sel == 7) {
+                sf_printf ("Reading obs 7: j = %lu, start = %lu, end = %lu, nj = %lu, first = %lu, last = %lu\n",
+                           j, start, end - 1, nj, st_info->index[start], st_info->index[end - 1]);
+            }
             for (k = 0; k < st_info->kvars_source; k++) {
                 // Read Stata out of order
                 if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) return(rc);
+                /* TODO: This is wrong; follow the do start++ while seen in ... // 2017-05-20 00:36 EDT */
                 if ( SF_is_missing(z) | !SF_ifobs(st_info->in1 + st_info->index[i]) ) {
                     if (i == start)   all_firstmiss[j] = 1;
                     if (i == end - 1) all_lastmiss[j]  = 1;
@@ -74,7 +79,9 @@ int sf_egen (struct StataInfo *st_info)
                     // segment in memory.
                     all_buffer [offset_buffer + all_nonmiss[j]++] = z;
                 }
+                if (j == 2867) { sf_printf ("\t%lu = %.4f", st_info->in1 + st_info->index[i], z); }
             }
+            if (j == 2867) { sf_printf ("\n"); }
         }
         offsets_buffer[j] = offset_buffer;
         offset_buffer    += nj * st_info->kvars_source;

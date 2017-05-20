@@ -26,8 +26,60 @@ program sim, rclass
     return local string = ("`string'" != "")
 end
 
+capture program drop checks_simplest_gegen
+program checks_simplest_gegen
+    syntax, [tol(real 1e-6) multi]
+    di _n(1) "{hline 80}" _n(1) "checks_simplest_gegen" _n(1) "{hline 80}" _n(1)
+
+    sim, n(1000) nj(200) njsub(4) string groupmiss outmiss
+    local stats total sum mean sd max min count median iqr
+    sim, n(5000) nj(1000) njsub(4) string groupmiss outmiss
+    local stats sum
+    cap drop g_*
+    cap drop c_*
+    foreach fun of local stats {
+        gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v
+         egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
+        * gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v
+        *  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
+        cap noi assert abs(g_`fun' - c_`fun') < `tol'
+        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        else di as txt "`fun' was OK"
+    }
+    sort groupstr rnorm
+    * gen tmp = abs(g_`fun' - c_`fun')
+    * l if abs(g_`fun' - c_`fun') < `tol' in 1/100
+
+    local funcs tag group quantile p23 quantile p77
+
+    foreach fun of local stats {
+        gegen gif_`fun' = 
+         egen cif_`fun' = 
+    }
+
+    foreach fun of local stats {
+        gegen gin_`fun' = 
+         egen cin_`fun' = 
+    }
+
+    foreach fun of local stats {
+        gegen gifin_`fun' = 
+         egen cifin_`fun' = 
+    }
+
 * !cd ..; ./build.py
 * do gegen.ado
+* do gcollapse.ado
+* gcollapse (sum) tmp = rnorm, by(groupstr groupsub) merge v
+* preserve
+*     collapse (sum) c_tmp = rnorm, by(groupstr groupsub)
+*     tempfile waffle
+*     save `waffle'
+* restore
+* merge m:1 groupstr groupsub using `waffle'
+* preserve
+* gcollapse (sum) tmp = rnorm, by(groupstr groupsub)
+* restore
 * cls
 * cap drop z*
 * bench_sim_ftools 100000 5

@@ -154,6 +154,7 @@ int sf_get_varlist_hash (
 
                 spookyhash_final(&sc, &h1[i], &h2[i]);
                 // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
+                if ( i == 6 | i == 172 ) sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
             }
         }
     }

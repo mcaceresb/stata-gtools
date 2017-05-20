@@ -54,6 +54,7 @@ test = [path.join("src", "test", "gtools_tests.do")]
 plug = [path.join("src", "plugin", "gcollapse.c"),
         path.join("src", "plugin", "gcollapse_multi.c"),
         path.join("src", "plugin", "gegen.c"),
+        path.join("src", "plugin", "gegen_multi.c"),
         path.join("src", "plugin", "gtools.c")]
 
 callok = False

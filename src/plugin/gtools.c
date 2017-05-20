@@ -30,7 +30,7 @@
 
 #if GMULTI
 #include "gcollapse_multi.c"
-#include "gegen.c"
+#include "gegen_multi.c"
 #else
 #include "gcollapse.c"
 #include "gegen.c"

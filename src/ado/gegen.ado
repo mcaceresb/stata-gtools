@@ -48,6 +48,7 @@ program define gegen, byable(onecall)
 	gettoken fcn 0 : 0, parse(" =(")
 	gettoken args 0 : 0, parse(" ,") match(par)
 
+    if ( "`fcn'" == "total" ) local fcn sum
 	if ( `"`par'"' != "("  ) exit 198
 
     * TODO: Figure this out // 2017-05-19 18:00 EDT
@@ -82,9 +83,11 @@ program define gegen, byable(onecall)
     * --------------------
 
 	if ( "`by'" == "" ) {
-		tempvar byvar
-		gen byte `byvar' = 0
-		local by `byvar'
+		* tempvar byvar
+		* gen byte `byvar' = 0
+		* local by `byvar'
+        di as err "-gegen- only provides support for by-able egen functions"
+        exit 198
 	}
     else {
         qui ds `by'
@@ -176,8 +179,6 @@ program define gegen, byable(onecall)
 
     * Info for C
     * ----------
-
-    if ( "`fcn'" == "total" ) local fcn sum
 
     scalar __gtools_l_stats = length("`gtools_stats'")
     scalar __gtools_k_vars  = `:list sizeof gtools_vars'

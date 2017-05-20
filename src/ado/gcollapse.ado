@@ -166,7 +166,7 @@ program gcollapse
     * -----------
 
     * Subset if requested
-	qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & (`touse' == "") ) {
+	qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
 		marksample touse, strok novarlist
 		if ("`cw'" != "") {
 			markout `touse' `by' `gtools_uniq_vars', strok

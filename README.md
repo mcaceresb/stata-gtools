@@ -4,36 +4,25 @@ Faster Stata for Group Operations
 This is currently a beta release. This package uses a C-plugin
 to provide a faster implementation for Stata's `collapse` called
 `gcollapse` that is also faster than Sergio Correia's `fcollapse` from
-`ftools`.
+`ftools`. It also provides some support for by-able `egen` functions via
+`gegen`.
 
 Currently, memory management is **VERY** bad, so if you are generating
 many summary variables from a single source variable, please see the
 memory management section below. Support for `egen` is limited, and only
 Unix versions of the plugins are available. Future releases will support
-the full range of `egen` functions and will be cross-platform.
+the full range of by-able `egen` functions and will be cross-platform.
 
-- [Requirements](#requirements)
 - [Installation](#installation)
+- [Requirements](#requirements)
 - [Benchmark](#benchmark)
+- [Supported functions](#supported-functions)
 - [A word of caution](#a-word-of-caution)
 - [FAQs](#faqs)
 - [Memory Management](#memory-management)
 - [Building](#building)
 - [A brief note on hashing](#a-brief-note-on-hashing)
 - [License](#license)
-
-Requirements
-------------
-
-I only have access to Stata 13.1, so I impose that to be the minimum.
-My own machine and the servers I have access to run Linux, so I have
-only developed this for Stata for Unix so far. Future releases will be
-cross-platform.
-
-If you want to compile the plugin yourself, atop the C standard library
-you will need
-- [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
-- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
 Installation
 ------------
@@ -51,6 +40,17 @@ To uninstall, run
 ```stata
 ado uninstall gtools
 ```
+
+Requirements
+------------
+
+I only have access to Stata 13.1, so I impose that to be the minimum.
+My own machine and the servers I have access to run Linux, so I have
+only developed this for Stata for Unix so far. Future releases will be
+cross-platform. If you want to compile the plugin yourself, atop the C
+standard library you will need
+- [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
+- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
 Benchmark
 ---------
@@ -166,6 +166,41 @@ groups relative to `gcollapse`, the converse is true for a large number
 of small groups: With 1M groups and 5M observations, `fcollapse` is
 faster at computing quantiles than the single-threaded version of
 `gcollapse`, and the multi-threaded version is only 33% faster.
+
+Supported Functions
+-------------------
+
+The following functions are supported
+
+    | Function | gcollapse | gegen |
+    | -------- | --------- | ----- |
+    | tag      |           |   X   |
+    | group    |           |   X   |
+    | total    |           |   X   |
+    | sum      |     X     |   X   |
+    | mean     |     X     |   X   |
+    | sd       |     X     |   X   |
+    | max      |     X     |   X   |
+    | min      |     X     |   X   |
+    | count    |     X     |   X   |
+    | median   |     X     |   X   |
+    | iqr      |     X     |   X   |
+    | percent  |     X     |   X   |
+    | first    |     X     |   X   |
+    | last     |     X     |   X   |
+    | firstnm  |     X     |   X   |
+    | lastnm   |     X     |   X   |
+
+Quantiles are supported in both `gcollapse` and `gegen` via
+
+```stata
+gcollapse (p#) target = var [target = var ...] , by(varlist)
+gegen target = quantile(var), by(varlist) p#
+```
+
+Where # is a "percentile" (though it can have arbitrary decimal places,
+which allows computing quantiles; e.g. 2.5 or 97.5).
+
 
 A word of caution
 -----------------

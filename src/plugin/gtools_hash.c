@@ -13,7 +13,7 @@
  * @param k Hash kth variable passed from Stata
  * @param in1 Hash starting from in1th obs
  * @param in2 Hash starting from in2th obs
- * @param strlen Lenght of string if string or 0, -1 if double, integer
+ * @param strmax Lenght of string if string or 0, -1 if double, integer
  * @return Store 128-bit hashes in 2 parts into @h1 and @h2
  *
  */
@@ -23,7 +23,7 @@ int sf_get_variable_hash (
     size_t k,
     size_t in1,
     size_t in2,
-    int strlen)
+    int strmax)
 {
 
     if ( in2 < in1 ) {
@@ -34,7 +34,7 @@ int sf_get_variable_hash (
     ST_retcode rc ;
     ST_double  z ;
     size_t N = in2 - in1 + 1;
-    char s[strlen + 1];
+    char s[strmax + 1];
     spookyhash_context sc;
 
     // Get data on every row from in1 to in2 regardless of `if'; in case
@@ -42,11 +42,11 @@ int sf_get_variable_hash (
     // work, so subset before starting the plugin. The if condition is
     // so we do not have multiple ifs within the long for loop.
 
-    if ( strlen > 0 ) {
+    if ( strmax > 0 ) {
         for (int i = 0; i < N; i++) {
             if ( (rc = SF_sdata(k, i + in1, s)) ) return(rc);
             spookyhash_context_init(&sc, 1, 2);
-            spookyhash_update(&sc, &s, strlen);
+            spookyhash_update(&sc, &s, strlen(s));
             spookyhash_final(&sc, &h1[i], &h2[i]);
             // sf_printf ("Obs %9d = %s, %21lu, %21lu\n", i, s, h1[i], h2[i]);
         }
@@ -129,7 +129,7 @@ int sf_get_varlist_hash (
 
                 for (k = 0; k < K; k++) {
                     if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                    spookyhash_update(&sc, &s, kmax);
+                    spookyhash_update(&sc, &s, strlen(s));
                 }
 
                 spookyhash_final(&sc, &h1[i], &h2[i]);
@@ -144,7 +144,7 @@ int sf_get_varlist_hash (
                 for (k = 0; k < K; k++) {
                     if (karr[k] > 0) {
                         if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                        spookyhash_update(&sc, &s, kmax);
+                        spookyhash_update(&sc, &s, strlen(s));
                     }
                     else {
                         if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
@@ -297,12 +297,16 @@ int sf_get_varlist_bijection (
         offsets[k + 1] = offset;
     }
 
-    // Construct bijection to whole numbers
+    // Construct bijection to whole numbers (we index missing vaues to the
+    // largest number plus 1 as a convention; note we set the maximum to
+    // the actual max + 1 from Stata so the offsets are correct)
     for (i = 0; i < N; i++) {
         if ( (rc = SF_vdata(1, i + in1, &z)) ) return(rc);
+        if ( SF_is_missing(z) ) z = maxs[0];
         h1[i] = z - mins[0] + 1;
         for (k = 1; k < K; k++) {
             if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
+            if ( SF_is_missing(z) ) z = maxs[k];
             h1[i] += (z - mins[k]) * offsets[k];
         }
         // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);

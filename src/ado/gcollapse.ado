@@ -1,8 +1,5 @@
-*! version 0.1.1 18May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
-
-* TODO: If the number of observations is < 2^31 - 1, then count can be
-* long instead of double. // 2017-05-16 07:28 EDT
 
 capture program drop gcollapse
 program gcollapse
@@ -15,18 +12,14 @@ program gcollapse
         fast                   /// do not preserve/restore
         Verbose                /// debugging
         Benchmark              /// print benchmark info
-        smart                  /// use Stata's collapse if data is sorted
+        smart                  /// check if data is sorted to speed up hashing
         unsorted               /// do not sort final output (current implementation of final
                                /// sort is super slow bc it uses Stata)
-        merge                  /// planned: merge back to original data
-        unsafe                 /// planned: unsafe C execution
-        nomissing              /// planned: data has no missing values
+        double                 /// Do all operations in double precision
+        merge                  /// Merge statistics back to original data, replacing where applicable
+        multi                  /// Multi-threaded version of gcollapse
     ]
-    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
-
-    if ("`merge'"     != "") di as err "Option -merge- not yet available (planned for next release)."
-    if ("`unsafe'"    != "") di as err "Option -unsafe- not yet available (planned for next release)."
-    if ("`nomissing'" != "") di as err "Option -nomissing- not yet available (planned for next release)."
+    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix." 
 
     * Time the entire function execution
     {
@@ -45,8 +38,8 @@ program gcollapse
     if ("`fast'" == "") preserve
 
 
-    // Verbose and benchmark printing
-    // ------------------------------
+    * Verbose and benchmark printing
+    * ------------------------------
 
     if ("`verbose'" == "") {
         local verbose = 0
@@ -66,7 +59,6 @@ program gcollapse
         scalar __gtools_benchmark = 1
     }
 
-
     * Collapse to summary stats
     * -------------------------
 
@@ -80,27 +72,45 @@ program gcollapse
         local by `r(varlist)'
     }
 
-    * If data already sorted, no need to make a fuzz
-    * ----------------------------------------------
+    * If data already sorted, create index
+    * ------------------------------------
 
+    local bysmart ""
 	local smart = ("`smart'" != "") & ("`anything'" != "") & ("`by'" != "")
-    if ( `smart' ) {
+    qui if ( `smart' ) {
         local sortedby: sortedby
-        local stata = 1
-        if (`: list by == sortedby') {
-            if (`verbose') di as text "data already sorted; calling -collapse-"
+        local indexed = (`=_N' < 2^31)
+        if ( "`sortedby'" == "" ) {
+            local indexed = 0
         }
-        else if (`:list by === sortedby') {
-            if (`verbose') di as text "data sorted in similar order (`sortedby'); calling -collapse-"
-
+        else if ( `: list by == sortedby' ) {
+            if (`verbose') di as text "data already sorted; indexing in stata"
         }
-        else local stata = 0
+        else if ( `:list by === sortedby' ) {
+            local byorig `by'
+            local by `sortedby'
+            if ( `verbose' & `indexed' ) di as text "data sorted in similar order (`sortedby'); indexing in stata"
+        }
+        else {
+            forvalues k = 1 / `:list sizeof by' {
+                if ("`:word `k' of `by''" != "`:word `k' of `sortedby''") local indexed = 0
+                di "`:word `k' of `by'' vs `:word `k' of `sortedby''"
+            }
+        }
 
-        if (`stata') {
-            collapse `anything' `if' `in' , by(`by') `fast' `cw'
-            exit
+        if ( `indexed' ) {
+            if  ( (("`if'`in'" != "") | ("`cw'" != "")) ) {
+                marksample touse, strok novarlist
+                if ("`cw'" != "") {
+                    markout `touse' `by' `gtools_uniq_vars', strok
+                }
+                keep if `touse'
+            }
+            tempvar bysmart
+            by `by': gen long `bysmart' = (_n == 1)
         }
     }
+    else local indexed 0
 
     * Parse anything
     * --------------
@@ -156,7 +166,7 @@ program gcollapse
     * -----------
 
     * Subset if requested
-	if  ( ("`if'`in'" != "") | ("`cw'" != "") ) {
+	qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
 		marksample touse, strok novarlist
 		if ("`cw'" != "") {
 			markout `touse' `by' `gtools_uniq_vars', strok
@@ -167,49 +177,86 @@ program gcollapse
     * Parse type of each by variable
     ParseByTypes `by'
 
-    * Be smart about creating new variable columns
-    local   gtools_vars      = subinstr(" `gtools_vars' ",        " ", "  ", .)
-    local   gtools_uniq_vars = subinstr(" `gtools_uniq_vars' ",   " ", "  ", .)
-    local __gtools_vars      = subinstr(" `__gtools_vars' ",      " ", "  ", .)
-    local __gtools_uniq_vars = subinstr(" `__gtools_uniq_vars' ", " ", "  ", .)
-    local K = `:list sizeof gtools_targets'
-    forvalues k = 1 / `K' {
-        local k_target: word `k' of `gtools_targets'
-        local k_var:    word `k' of `gtools_vars'
-        if ( `:list k_var in __gtools_uniq_vars' ) {
-            local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
-            if ( !`:list k_var in __gtools_targets' ) {
-                local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        " `k_var' ", " `k_target' ", .))
-                local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   " `k_var' ", " `k_target' ", .))
-                local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      " `k_var' ", " `k_target' ", .))
-                local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", " `k_var' ", " `k_target' ", .))
-                rename `k_var' `k_target'
+    if ( "`merge'" == "" ) {
+        scalar __gtools_merge = 0
+
+        * Be smart about creating new variable columns
+        local   gtools_vars      = subinstr(" `gtools_vars' ",        " ", "  ", .)
+        local   gtools_uniq_vars = subinstr(" `gtools_uniq_vars' ",   " ", "  ", .)
+        local __gtools_vars      = subinstr(" `__gtools_vars' ",      " ", "  ", .)
+        local __gtools_uniq_vars = subinstr(" `__gtools_uniq_vars' ", " ", "  ", .)
+        local K = `:list sizeof gtools_targets'
+        forvalues k = 1 / `K' {
+            local k_target: word `k' of `gtools_targets'
+            local k_var:    word `k' of `gtools_vars'
+            if ( `:list k_var in __gtools_uniq_vars' ) {
+                local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
+                if ( !`:list k_var in __gtools_targets' ) {
+                    local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        " `k_var' ", " `k_target' ", .))
+                    local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   " `k_var' ", " `k_target' ", .))
+                    local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      " `k_var' ", " `k_target' ", .))
+                    local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", " `k_var' ", " `k_target' ", .))
+                    rename `k_var' `k_target'
+                }
             }
         }
+        local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        "  ", " ", .))
+        local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   "  ", " ", .))
+        local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      "  ", " ", .))
+        local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", "  ", " ", .))
+
+        * slow, but saves mem
+        * keep `by' `gtools_uniq_vars'
+        if ( `indexed' ) local keepvars `by' `bysmart' `gtools_uniq_vars'
+        else local keepvars `by' `gtools_uniq_vars'
+        mata: st_keepvar((`:di subinstr(`""`keepvars'""', " ", `"", ""', .)'))
     }
-    local   gtools_vars      = trim(subinstr(" `gtools_vars' ",        "  ", " ", .))
-    local   gtools_uniq_vars = trim(subinstr(" `gtools_uniq_vars' ",   "  ", " ", .))
-    local __gtools_vars      = trim(subinstr(" `__gtools_vars' ",      "  ", " ", .))
-    local __gtools_uniq_vars = trim(subinstr(" `__gtools_uniq_vars' ", "  ", " ", .))
+    else scalar __gtools_merge = 1
 
-    * slow, but saves mem
-    * keep `by' `gtools_uniq_vars'
-    mata: st_keepvar((`:di subinstr(`""`by' `gtools_uniq_vars'""', " ", `"", ""', .)'))
-
-    * Unfortunately, this is necessary for C
+    * Unfortunately, this is necessary for C. We cannot create variables
+    * from C, and we cannot halt the C execution, create the final data
+    * in Stata, and then go back to C.
     local dropme ""
     qui foreach var of local gtools_targets {
         gettoken sourcevar __gtools_vars: __gtools_vars
         gettoken collstat  __gtools_stats: __gtools_stats
+
+        * I try to match Stata's types when possible
+        if regexm("`collstat'", "first|last|min|max") {
+            * First, last, min, max can preserve type, clearly
+            local targettype: type `sourcevar'
+        }
+        else if ( "`double'" != "" ) {
+            local targettype double
+        }
+        else if ( ("`collstat'" == "count") & (`=_N' < 2^31) ) {
+            * Counts can be long if we have fewer than 2^31 observations
+            * (largest signed integer in long variables can be 2^31-1)
+            local targettype long
+        }
+        else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
+            * Sums are double so we don't overflow, but I don't
+            * know why operations on long integers are also double.
+            local targettype double
+        }
+        else {
+            * Otherwise, store results in specified user-default type
+            local targettype `c(type)'
+        }
+
+        * Create target variables as applicable. If it's the first
+        * instance, we use it to store the first summary statistic
+        * requested for that variable and recast as applicable.
         cap confirm variable `var'
-        if regexm("`collstat'", "first|last|min|max") local targettype: type `sourcevar'
-        else local targettype double
-        di "type for `var' is `targettype'"
         if ( _rc ) mata: st_addvar("`targettype'", "`var'", 1)
         else {
-            local already_float_double = inlist("`:type `var''", "float", "double")
-            local already_same_type    = ("`targettype'" == "`:type `var''")
-            if !( `already_float_double' | `already_same_type' ) {
+            * We only recast integer types. Floats and doubles are
+            * preserved unless requested.
+            * local already_float_double = inlist("`:type `var''", "float", "double")
+            local already_double    = inlist("`:type `var''", "double")
+            local already_same_type = ("`targettype'" == "`:type `var''")
+            local recast = !`already_same_type' & ( ("`double'" != "") | !`already_double' )
+            if ( `recast' ) {
                 tempname dropvar
                 rename `var' `dropvar'
                 local drop `drop' `dropvar'
@@ -222,10 +269,11 @@ program gcollapse
     }
 
     * if ("`dropme'" != "") drop `dropme'
-    if ("`dropme'" != "") mata: st_keepvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+    if ("`dropme'" != "") mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
 
-    * This is not, but I need to figure out how to handle strings in C
-    * efficiently; will improve on a future release.
+    * This is not, strictly speaking, necessaryy, but I have yet to
+    * figure out how to handle strings in C efficiently; will improve on
+    * a future release.
     local bystr_orig  ""
     local bystr       ""
     qui foreach byvar of varlist `by' {
@@ -285,10 +333,15 @@ program gcollapse
         timer on 99
     }
 
+    if ( `verbose'  | `benchmark' ) local noi noisily
+    local plugvars `by' `gtools_uniq_vars' `gtools_targets' `bystr' `bysmart'
+
     * J will contain how many obs to keep; nstr contains # of string grouping vars
     scalar __gtools_J    = `=_N'
     scalar __gtools_nstr = `:list sizeof bystr'
-    plugin call gcollapse_plugin `by' `gtools_uniq_vars' `gtools_targets' `bystr'
+    scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
+    cap `noi' plugin call gtools`multi'_plugin `plugvars', collapse
+    if ( _rc != 0 ) exit _rc
 
     * If benchmark, output pugin time
     {
@@ -307,12 +360,20 @@ program gcollapse
     }
 
     * Keep only one obs per group; keep only relevant vars
-    qui {
+    qui if ( "`merge'" == "" ) {
         keep in 1 / `:di scalar(__gtools_J)'
         keep `by' `gtools_targets'
 
         * This is really slow; implement in C
-        if ("`unsorted'" == "") sort `by'
+        if ( "`byorig'"   != "" ) local by `byorig'
+        if ( "`unsorted'" == "" ) sort `by'
+    }
+    else {
+        local dropvars ""
+        if ( "`bystr'" != "" ) local dropvars `dropvars' `bystr'
+        if ( `indexed' )       local dropvars `dropvars' `bysmart'
+        local dropvars = trim("`dropvars'")
+        if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
     }
 
 	if ("`fast'" == "") restore, not
@@ -334,6 +395,7 @@ program gcollapse
         timer off 98
         timer clear 98
     }
+    exit 0
 end
 
 * Set up plugin call
@@ -350,11 +412,13 @@ program ParseByTypes
     foreach byvar of varlist `varlist' {
         local bytype: type `byvar'
         if inlist("`bytype'", "byte", "int", "long") {
+            qui count if mi(`byvar')
+            local addmax = (`r(N)' > 0)
             qui sum `byvar'
 
             matrix __gtools_byk   = nullmat(__gtools_byk), -1
             matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)'
+            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)
@@ -381,8 +445,11 @@ program ParseByTypes
     }
 end
 
-cap program drop gcollapse_plugin
-if ("`c(os)'" == "Unix") program gcollapse_plugin, plugin using("gcollapse.plugin")
+cap program drop gtools_plugin
+if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
+
+cap program drop gtoolsmulti_plugin
+if ("`c(os)'" == "Unix") program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
 
 * Parsing is adapted from Sergio Correia's fcollapse.ado
 * ------------------------------------------------------

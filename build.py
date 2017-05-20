@@ -47,7 +47,9 @@ def makedirs_safe(directory):
 
 gtools_ssc = [
     "gcollapse.ado",
-    "gcollapse.sthlp"
+    "gcollapse.sthlp",
+    "gegen.ado",
+    "gegen.sthlp"
 ]
 
 gtools_zip = [
@@ -107,7 +109,7 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 # --------------------
 
 if platform == "linux" or platform == "linux2":
-    print("Trying to compile plugins for -algorithm(fast|faster)-")
+    print("Trying to compile plugins for -gtools-")
     rc = system("make")
     print("Success!" if rc == 0 else "Failed.")
 elif platform == "darwin":
@@ -126,7 +128,9 @@ print("")
 # -------------------
 
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
-files    = [path.join("src", "test", "test_gcollapse.do")]
+files    = [path.join("src", "test", "test_gcollapse.do"),
+            path.join("src", "test", "test_gegen.do"),
+            path.join("src", "test", "bench_gcollapse.do")]
 
 with open(path.join("build", "gtools_tests.do"), 'w') as outfile:
     outfile.writelines(testfile[:-4])
@@ -146,7 +150,9 @@ copy2("changelog.md", gdir)
 copy2(path.join("src", "gtools.pkg"), gdir)
 copy2(path.join("src", "stata.toc"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"), gdir)
+copy2(path.join("src", "ado", "gegen.ado"), gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
+copy2(path.join("doc", "gegen.sthlp"), gdir)
 
 # Copy files to .zip folder in ./releases
 # ---------------------------------------
@@ -159,7 +165,7 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
 chdir("build")
 print("Compressing build files for gtools-{0}".format(version))
 if rc == 0:
-    plugins = ["gcollapse.plugin"]
+    plugins = ["gtools.plugin", "gtools_multi.plugin"]
     gtools_zip += plugins
     for plug in plugins:
         rename(path.join(plug), path.join("gtools", plug))

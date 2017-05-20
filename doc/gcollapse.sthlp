@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1 18May2017}{...}
+{* *! version 0.3.0 20May2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -48,6 +48,7 @@ make dataset of summary statistics using C.{p_end}
 {p2col :{opt p99}}99th percentile{p_end}
 {p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
 {p2col :{opt sum}}sums{p_end}
+{p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
@@ -72,10 +73,16 @@ make dataset of summary statistics using C.{p_end}
 saves speed but leaves the data in an unusable state shall the
 user press {hi:Break}
 {p_end}
-{synopt :{opt smart}}invoke {cmd:collapse} if the data is already sorted.
+{synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
 {p_end}
 {synopt :{opt unsorted}}do not sort the final data.
 Saves speed but leaves resulting collapse unsorted.
+{p_end}
+{synopt :{opt merge}}merge collapsed results back to oroginal data.
+{p_end}
+{synopt :{opt multi}}invoke multi-threaded version of gcollapse plugin.
+{p_end}
+{synopt :{opt double}}store data in double precision.
 {p_end}
 {synopt :{opt verbose}}verbose printing (for debugging).
 {p_end}
@@ -112,11 +119,31 @@ to be calculated. It can contain any mix of string or numeric variables.
 possible observations are used for each calculated statistic.
 
 {phang}
-{opt fast} specifies that {opt fcollapse} not restore the original dataset
+{opt fast} specifies that {opt gcollapse} not restore the original dataset
 should the user press {hi:Break}.
 
 {phang}
-{opt smart} calls collapse if the data is already sorted.
+{opt smart} pre-indexes the data in Stata if it is already sorted. If the
+meta-data indicates the data is already sorted by the goruping variables,
+then we can greate a tag for each group and use that to construct an index
+in C much faster than via hashing.
+
+{phang}
+{opt merge} merges the collapsed data back to the original data set.
+Note that if you want to keep the source variable(s) then you {it:need}
+to assign a new name to it for each summary statistic. Otherwise it will
+be overwritten.
+
+{phang}
+{opt multi} invokes the multi-threaded version of the gcollapse plugin.
+Most of the time this will not yield significant improvements because
+typically the bulk of the execution time is taken up by overhead setting
+up the data in Stata to be fit for the plugin call. One case where
+multi-threding is encouraged is when collapsing quantiles to a large
+number of levels (hundreds of thousands or millions).
+
+{phang}
+{opt double} stores data in double precision.
 
 {phang}
 {opt unsorted} does not sort the resulting data.
@@ -157,4 +184,3 @@ for {it:collapse} and Sergio Correia's help file for {it:fcollapse}.
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
 {p_end}
-

@@ -3,10 +3,10 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue May 16 07:47:05 EDT 2017
+* Updated: Sat May 20 14:03:27 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.1.1
-* Manual:  help gcollapse
+* Version: 0.3.0
+* Manual:  help gcollapse, help gegen
 
 * Stata start-up options
 * ----------------------
@@ -22,7 +22,7 @@ set seed 42
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily]
+    syntax, [CAPture NOIsily checks BENCHmark]
 
     * Set up
     * ------
@@ -36,8 +36,36 @@ program main
 
     `capture' `noisily' {
         * do test_gcollapse.do
-        checks_simplest_gcollapse
-        checks_byvars_gcollapse
+        * do test_gegen.do
+        * do bench_gcollapse.do
+        if ( ("`checks'" == "") & ("`benchmark'" == "") ) {
+            di as err "Nothing to do. Specify -checks-, -bench-, or both"
+            exit 198
+        }
+
+        if ( "`checks'" != "" ) {
+            checks_byvars_gcollapse
+            checks_options_gcollapse
+            checks_byvars_gcollapse,  multi
+            checks_options_gcollapse, multi
+
+            checks_consistency_gegen
+            checks_consistency_gegen, multi
+            checks_consistency_gcollapse
+            checks_consistency_gcollapse, multi
+        }
+
+        if ( "`benchmark'" != "" ) {
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
+            bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+            * This fails in Stata/MP 14.2 because fcollapse can't handle too many levels there
+            * bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
+
+            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
+            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
+            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
+            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+        }
     }
     local rc = _rc
 
@@ -134,4 +162,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, cap noi
+main, cap noi checks

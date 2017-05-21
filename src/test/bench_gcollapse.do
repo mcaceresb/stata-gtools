@@ -28,22 +28,22 @@ end
 
 capture program drop bench_sim_ftools
 program bench_sim_ftools
-	args n k
-	clear
-	qui set obs `n'
-	noi di "(obs set)"
-	loc m = ceil(`n' / 10)
-	gen long x1  = ceil(uniform() * 10000) * 100
-	gen int  x2  = ceil(uniform() * 3000)
-	gen byte x3  = ceil(uniform() * 100)
-	gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
-	gen long x5  = ceil(uniform() * 5000)
-	gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
-	noi di "(Xs set)"
-	forv i = 1 / `k' {
-		gen double y`i' = 123.456 + runiform()
-	}
-	loc obs_k = ceil(`c(N)' / 1000)
+    args n k
+    clear
+    qui set obs `n'
+    noi di "(obs set)"
+    loc m = ceil(`n' / 10)
+    gen long x1  = ceil(uniform() * 10000) * 100
+    gen int  x2  = ceil(uniform() * 3000)
+    gen byte x3  = ceil(uniform() * 100)
+    gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
+    gen long x5  = ceil(uniform() * 5000)
+    gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
+    noi di "(Xs set)"
+    forv i = 1 / `k' {
+        gen double y`i' = 123.456 + runiform()
+    }
+    loc obs_k = ceil(`c(N)' / 1000)
 end
 
 ***********************************************************************
@@ -69,43 +69,50 @@ program bench_ftools
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 2 * 10^`k'''"
-        local N `N' `:di 2 * 10^`k''
-        qui bench_sim_ftools `:di 2 * 10^`k'' `kvars'
+        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
+        local N `N' `:di %21.0g 2 * 10^`k''
+        qui bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying N for J = 100; by(`by')"
-    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -138,43 +145,50 @@ program bench_sample_size
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 2 * 10^`k'''"
-        local N `N' `:di 2 * 10^`k''
-        qui bench_sim, n(`:di 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
+        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
+        local N `N' `:di %21.0g 2 * 10^`k''
+        qui bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying N for J = `nj'; by(`by')"
-    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -204,43 +218,50 @@ program bench_group_size
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 10^`k'''"
-        local N `N' `:di 10^`k''
-        qui bench_sim, n(`:di 5 * 10^`obsexp'') nj(`:di 10^`k'') njsub(2) nvars(2)
+        mata: printf("    `:di %21.0gc `:di 10^`k'''")
+        local N `N' `:di %21.0g 10^`k''
+        qui bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(2)
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying J for N = `nstr'; by(`by')"
-    di "|                     J | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -258,15 +279,16 @@ end
 
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
 * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
-
-* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
-* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
-* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
 
 * Misc
 * ----
+
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(5) kvars(15)
+* bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(5) kvars(3) stats(mean median)
+* bench_group_size x1 x2,  by(groupstr) obsexp(4) kmax(4) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(5) pct(median iqr p23 p77)
 
 * bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
 * bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
@@ -278,3 +300,4 @@ end
 * bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
 * bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7)
 * bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
+* bench_ftools y1 y2 y3,   by(x4 x6)    kmin(4)   kmax(7) kvars(3) stats(mean median)

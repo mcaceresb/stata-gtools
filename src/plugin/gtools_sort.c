@@ -57,7 +57,7 @@ void mf_radix_sort_index (
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
             sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = %'lu\n",
-                      nloops + 1, dshift, shift);
+                      nloops, dshift, shift);
         }
     }
 }
@@ -265,7 +265,7 @@ size_t * mf_panelsetup128 (
 /**
  * @brief Short utility to check if segment of array is equal
  * 
- * Check if elements from start to end of array @hash are equan
+ * Check if elements from start to end of array @hash are equal
  * from @start to @end.
  * 
  * @param hash Array of 64-bit integers to check are equal

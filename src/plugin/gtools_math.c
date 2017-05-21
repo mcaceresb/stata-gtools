@@ -1,4 +1,4 @@
-#define square(x) ((x) * (x))
+#define SQUARE(x) ( (x) * (x) )
 #define MAX(a, b) ( (a) > (b) ? (a) : (b) )
 #define MIN(a, b) ( (a) > (b) ? (b) : (a) )
 
@@ -19,7 +19,7 @@ double mf_array_dsd_range (const double v[], const size_t start, const size_t en
     double vvar  = 0;
     double vmean = mf_array_dmean_range(v, start, end);
     for (size_t i = start; i < end; i++)
-        vvar += square(v[i] - vmean);
+        vvar += SQUARE(v[i] - vmean);
     return (sqrt(vvar / (end - start - 1)));
 }
 
@@ -189,6 +189,55 @@ double mf_switch_fun (char * fname, double v[], const size_t start, const size_t
 }
 
 /**
+ * @brief Wrapper to encode summary function using an integer
+ *
+ * We use negative numbers so that we can return quantiles as is.
+ *
+ * @param fname Character with name of funtion
+ * @return internal code for summary function
+ */
+double mf_code_fun (char * fname)
+{
+    if ( strcmp (fname, "sum")     == 0 ) return (-1);  // sum
+    if ( strcmp (fname, "mean")    == 0 ) return (-2);  // mean
+    if ( strcmp (fname, "sd")      == 0 ) return (-3);  // sd
+    if ( strcmp (fname, "max")     == 0 ) return (-4);  // max
+    if ( strcmp (fname, "min")     == 0 ) return (-5);  // min
+    if ( strcmp (fname, "count")   == 0 ) return (-6);  // count
+    if ( strcmp (fname, "percent") == 0 ) return (-7);  // percent
+    if ( strcmp (fname, "median")  == 0 ) return (0.5); // median
+    if ( strcmp (fname, "iqr")     == 0 ) return (-9);  // iqr
+    if ( strcmp (fname, "first")   == 0 ) return (-10); // first
+    if ( strcmp (fname, "firstnm") == 0 ) return (-11); // firstnm
+    if ( strcmp (fname, "last")    == 0 ) return (-12); // last
+    if ( strcmp (fname, "lastnm")  == 0 ) return (-13); // lastnm
+    double q = mf_parse_percentile(fname) / 100;
+    return (q > 0? q: 0);
+}
+
+/**
+ * @brief Wrapper to choose summary function using internal code
+ *
+ * See mf_code_fun above
+ *
+ * @param fcode double with function code
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return @fname(@v[@start to @end])
+ */
+double mf_switch_fun_code (double fcode, double v[], const size_t start, const size_t end)
+{
+    if ( fcode == -1 )  return (mf_array_dsum_range  (v, start, end)); // sum
+    if ( fcode == -2 )  return (mf_array_dmean_range (v, start, end)); // mean
+    if ( fcode == -3 )  return (mf_array_dsd_range   (v, start, end)); // sd)
+    if ( fcode == -4 )  return (mf_array_dmax_range  (v, start, end)); // max
+    if ( fcode == -5 )  return (mf_array_dmin_range  (v, start, end)); // min
+    if ( fcode == -9 )  return (mf_array_diqr_range  (v, start, end)); // iqr
+    return (mf_array_dquantile_range(v, start, end, fcode));
+}
+
+/**
  * @brief Parse string into quantile
  *
  * THIS IS NOT GENERAL PURPOSE. It assumes Stata already checked that the
@@ -198,17 +247,17 @@ double mf_switch_fun (char * fname, double v[], const size_t start, const size_t
  * @return Numeric part of matchstr
  */
 double mf_parse_percentile (char *matchstr) {
-	int regrc;
-	regex_t regexp;
-	regmatch_t matches[MAX_MATCHES];
+    int regrc;
+    regex_t regexp;
+    regmatch_t matches[MAX_MATCHES];
 
-	regrc = regcomp(&regexp, "[0-9][0-9]?(\\.[0-9]+)?", REG_EXTENDED);
-	if (regrc != 0) {
+    regrc = regcomp(&regexp, "[0-9][0-9]?(\\.[0-9]+)?", REG_EXTENDED);
+    if (regrc != 0) {
         regfree (&regexp);
         return (0);
     }
 
-	if (regexec(&regexp, matchstr, MAX_MATCHES, matches, 0) == 0) {
+    if (regexec(&regexp, matchstr, MAX_MATCHES, matches, 0) == 0) {
         char qstr[matches[0].rm_eo + 1];
         // strcpy ( qstr, &matchstr[1] );
         // memmove ( qstr, &matchstr[1], matches[0].rm_eo );
@@ -217,7 +266,7 @@ double mf_parse_percentile (char *matchstr) {
         regfree (&regexp);
         // sf_printf("%s\t", qstr);
         return ((double) atof(qstr));
-	}
+    }
     else {
         regfree (&regexp);
         return (0);

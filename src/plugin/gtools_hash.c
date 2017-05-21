@@ -243,16 +243,16 @@ int sf_get_variable_ashash (
  * Call this vmap1. Then we are mapping
  *    
  *     Smallest # of var2 -> vmap1
- *     2-smallest # of var2 -> vmap1 + range of vmap1
+ *     2-smallest # of var2 -> vmap1 + 2 * range of vmap1
  *     ...
- *     ith-smallest # of var2 -> vmap1 + range of vmap1
+ *     ith-smallest # of var2 -> vmap1 + i * range of vmap1
  *    
  * Call this vmap2. Then we do
  *    
  *     Smallest # of vark -> vmap(k - 1)
- *     2-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
+ *     2-smallest # of vark -> vmap(k - 1) + 2 * range of vmap(k - 1)
  *     ...
- *     ith-smallest # of vark -> vmap(k - 1) + range of vmap(k - 1)
+ *     ith-smallest # of vark -> vmap(k - 1) + i * range of vmap(k - 1)
  *
  * @param h1 Where to store the map to the whole nubmers
  * @param k1 Biject from k1th variable passed from Stata

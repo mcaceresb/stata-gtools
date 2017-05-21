@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:08:15 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.0
+ * Version: 0.3.1
  *********************************************************************/
 
 /**
@@ -569,7 +569,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     // observations there will be and we want to pass info and index
     // across functions, we initialize them as pointers within the
     // st_info structure. Assignning elements to them as if they were
-    // arrays after they were initialized as pointers is a bit tricky
+    // arrays after they were initialized as pointers was a bit tricky
     // because I have to allocate space in memory for the arrays. Hence
     // we copy elements back like this:
 

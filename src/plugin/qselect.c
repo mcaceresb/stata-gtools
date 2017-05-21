@@ -42,7 +42,7 @@ double mf_qselect_range(double *x, size_t start, size_t end, size_t k)
 void mf_qselect_range_partition(double *x, size_t start, size_t end, size_t *less_size, size_t *equal_size)
 {
 
-    /* Modified median-of-three and pivot selection. */
+    // Modified median-of-three and pivot selection.
     size_t nj     = end - start;
     size_t first  = start;
     size_t middle = start + floor(nj / 2);
@@ -54,12 +54,12 @@ void mf_qselect_range_partition(double *x, size_t start, size_t end, size_t *les
     if ( x[first] > x[middle] ) {
         SWAP(x[first], x[middle]);
     }
-    if ( x[last] > x[middle] ) { // reversed
+    if ( x[last] > x[middle] ) {
         SWAP(x[last], x[middle]);
     }
     const double pivot_value = x[last];
 
-    /* Element swapping. */
+    // Element swapping
     size_t greater_idx = 0;
     size_t equal_idx   = nj - 1;
     size_t i = 0;

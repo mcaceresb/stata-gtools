@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sat May 20 14:03:27 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.3.0
+* Version: 0.3.1
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -46,11 +46,16 @@ program main
         if ( "`checks'" != "" ) {
             checks_byvars_gcollapse
             checks_options_gcollapse
+
             checks_byvars_gcollapse,  multi
             checks_options_gcollapse, multi
 
+            checks_options_gegen
+            checks_options_gegen, multi
+
             checks_consistency_gegen
             checks_consistency_gegen, multi
+
             checks_consistency_gcollapse
             checks_consistency_gcollapse, multi
         }
@@ -58,13 +63,8 @@ program main
         if ( "`benchmark'" != "" ) {
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
             bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-            * This fails in Stata/MP 14.2 because fcollapse can't handle too many levels there
-            * bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
-
-            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
-            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
-            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
-            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+            bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+            bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
         }
     }
     local rc = _rc
@@ -81,7 +81,7 @@ program exit_message
     di ""
     if (`rc' == 0) {
         di "End: $S_TIME $S_DATE"
-        local paux	  ran
+        local paux      ran
         local message "`progname' finished running" _n(2) "`time'"
         local subject "`progname' `paux'"
     }
@@ -491,11 +491,25 @@ program checks_consistency_gegen
     cap drop c*_*
     di "Checking full range"
     foreach fun of local stats {
-        qui gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) v b
+        qui gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub)
         qui  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
+    }
+
+    foreach p in 10 30 70 90 {
+        qui gegen g_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p')
+        qui  egen c_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p')
+        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+        if ( _rc ) {
+            di as err "percentile `p' failed! (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    percentile `p' was OK"
     }
 
     local fun tag
@@ -503,7 +517,10 @@ program checks_consistency_gegen
         qui gegen g_`fun' = `fun'(groupstr groupsub)
         qui  egen c_`fun' = `fun'(groupstr groupsub)
         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
     }
 
@@ -514,8 +531,22 @@ program checks_consistency_gegen
         qui gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
         qui  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
+    }
+
+    foreach p in 10 30 70 90 {
+        qui gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
+        qui  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
+        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+        if ( _rc ) {
+            di as err "percentile `p' failed! (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    percentile `p' was OK"
     }
 
     local fun tag
@@ -523,7 +554,10 @@ program checks_consistency_gegen
         qui gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0
         qui  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
     }
 
@@ -535,11 +569,29 @@ program checks_consistency_gegen
         local in2 = ceil(runiform() * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        qui gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) v b
+        qui gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
         qui  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
+    }
+
+    foreach p in 10 30 70 90 {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
+        qui  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
+        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+        if ( _rc ) {
+            di as err "percentile `p' failed! (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    percentile `p' was OK"
     }
 
     local fun tag
@@ -551,7 +603,10 @@ program checks_consistency_gegen
         qui gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b
         qui  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
     }
 
@@ -566,8 +621,26 @@ program checks_consistency_gegen
         qui gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
         qui  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
+    }
+
+    foreach p in 10 30 70 90 {
+        local in1 = ceil(runiform() * `=_N')
+        local in2 = ceil(runiform() * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
+        qui  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
+        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+        if ( _rc ) {
+            di as err "percentile `p' failed! (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    percentile `p' was OK"
     }
 
     local fun tag
@@ -579,12 +652,115 @@ program checks_consistency_gegen
         qui gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
         qui  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-        if ( _rc ) di as err "`fun' failed! (tol = `tol')"
+        if ( _rc ) {
+            di as err "`fun' failed! (tol = `tol')"
+            exit _rc
+        }
         else di as txt "    `fun' was OK"
     }
 
     di ""
     di as txt "Passed! checks_consistency_gegen `multi'"
+end
+
+capture program drop checks_options_gegen
+program checks_options_gegen
+    syntax, [tol(real 1e-6) multi]
+    di _n(1) "{hline 80}" _n(1) "checks_options_gegen `multi'" _n(1) "{hline 80}" _n(1)
+
+    sim, n(20000) nj(100) njsub(2) string outmiss
+
+    gegen id      = group(groupstr groupsub)
+    gegen mean    = mean   (rnorm),  by(groupstr groupsub) verbose benchmark `multi'
+    gegen sum     = sum    (rnorm),  by(groupstr groupsub) `multi'
+    gegen median  = median (rnorm),  by(groupstr groupsub) `multi'
+    gegen sd      = sd     (rnorm),  by(groupstr groupsub) `multi'
+    gegen iqr     = iqr    (rnorm),  by(groupstr groupsub) `multi'
+    gegen first   = first  (rnorm),  by(groupstr groupsub) v b
+    gegen last    = last   (rnorm),  by(groupstr groupsub)
+    gegen firstnm = firstnm(rnorm),  by(groupstr groupsub)
+    gegen lastnm  = lastnm (rnorm),  by(groupstr groupsub)
+    gegen q10     = pctile (rnorm),  by(groupstr groupsub) p(10.5)
+    gegen q30     = pctile (rnorm),  by(groupstr groupsub) p(30)
+    gegen q70     = pctile (rnorm),  by(groupstr groupsub) p(70)
+    gegen q90     = pctile (rnorm),  by(groupstr groupsub) p(90.5)
+
+    gcollapse (mean)    g_mean    = rnorm  ///
+              (sum)     g_sum     = rnorm  ///
+              (median)  g_median  = rnorm  ///
+              (sd)      g_sd      = rnorm  ///
+              (iqr)     g_iqr     = rnorm  ///
+              (first)   g_first   = rnorm  ///
+              (last)    g_last    = rnorm  ///
+              (firstnm) g_firstnm = rnorm  ///
+              (lastnm)  g_lastnm  = rnorm  ///
+              (p10.5)   g_q10     = rnorm  ///
+              (p30)     g_q30     = rnorm  ///
+              (p70)     g_q70     = rnorm  ///
+              (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `multi' merge
+
+    foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
+        cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+        if ( _rc ) {
+            di as err "`fun' vs gcollapse failed! (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    `fun' vs gcollapse was OK"
+    }
+
+    * clear
+    * set obs 20000000
+    * gen long x = ceil(uniform() * 5000)
+    * gen double xdbl = x  + 0.5
+    * tostring x, gen(xstr)
+    * replace xstr = "str" + xstr
+    * set rmsg on
+    *     gegen id  = group(x)
+    *     drop id*
+    *     gegen id  = group(xdbl)
+    *     drop id*
+    *     gegen id  = group(xstr)
+    *     drop id*
+    *     gegen tag = tag(x)
+    *     drop tag*
+    *     gegen tag = tag(xdbl)
+    *     drop tag*
+    *     gegen tag = tag(xstr)
+    *     drop tag*
+    *     fegen id  = group(x)
+    *     drop id*
+    *     fegen id  = group(xdbl)
+    *     drop id*
+    *     fegen id  = group(xstr)
+    *     drop id*
+    *     egen id   = group(x)
+    *     drop id*
+    *     egen id   = group(xdbl)
+    *     drop id*
+    *     egen id   = group(xstr)
+    *     drop id*
+    *     egen tag  = tag(x)
+    *     drop tag* 
+    *     egen tag  = tag(xdbl)
+    *     drop tag* 
+    *     egen tag  = tag(xstr)
+    *     drop tag*
+    * set rmsg off
+
+    * | variable | gegen | fegen |  egen | 
+    * | -------- | ----- | ----- | ----- | 
+    * |        x |  6.32 |  2.52 | 35.32 | 
+    * |     xstr |  8.13 | 35.39 | 41.16 | 
+    * |     xdbl |  8.09 | 21.36 | 38.33 | 
+
+    * | variable | gegen |  egen | 
+    * | -------- | ----- | ----- | 
+    * |        x |  4.58 | 47.61 | 
+    * |     xstr |  6.86 | 57.39 | 
+    * |     xdbl |  6.37 | 49.56 | 
+
+    di ""
+    di as txt "Passed! checks_options_gegen `multi'"
 end
 ***********************************************************************
 *                           Data simulation                           *
@@ -616,22 +792,22 @@ end
 
 capture program drop bench_sim_ftools
 program bench_sim_ftools
-	args n k
-	clear
-	qui set obs `n'
-	noi di "(obs set)"
-	loc m = ceil(`n' / 10)
-	gen long x1  = ceil(uniform() * 10000) * 100
-	gen int  x2  = ceil(uniform() * 3000)
-	gen byte x3  = ceil(uniform() * 100)
-	gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
-	gen long x5  = ceil(uniform() * 5000)
-	gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
-	noi di "(Xs set)"
-	forv i = 1 / `k' {
-		gen double y`i' = 123.456 + runiform()
-	}
-	loc obs_k = ceil(`c(N)' / 1000)
+    args n k
+    clear
+    qui set obs `n'
+    noi di "(obs set)"
+    loc m = ceil(`n' / 10)
+    gen long x1  = ceil(uniform() * 10000) * 100
+    gen int  x2  = ceil(uniform() * 3000)
+    gen byte x3  = ceil(uniform() * 100)
+    gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
+    gen long x5  = ceil(uniform() * 5000)
+    gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
+    noi di "(Xs set)"
+    forv i = 1 / `k' {
+        gen double y`i' = 123.456 + runiform()
+    }
+    loc obs_k = ceil(`c(N)' / 1000)
 end
 
 ***********************************************************************
@@ -657,43 +833,50 @@ program bench_ftools
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 2 * 10^`k'''"
-        local N `N' `:di 2 * 10^`k''
-        qui bench_sim_ftools `:di 2 * 10^`k'' `kvars'
+        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
+        local N `N' `:di %21.0g 2 * 10^`k''
+        qui bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying N for J = 100; by(`by')"
-    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -726,43 +909,50 @@ program bench_sample_size
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 2 * 10^`k'''"
-        local N `N' `:di 2 * 10^`k''
-        qui bench_sim, n(`:di 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
+        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
+        local N `N' `:di %21.0g 2 * 10^`k''
+        qui bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying N for J = `nj'; by(`by')"
-    di "|                     N | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -792,43 +982,50 @@ program bench_group_size
     di "    vars  = `anything'"
     di "    stats = `stats'"
     forvalues k = `kmin' / `kmax' {
-        di "    `:di %21.0gc `:di 10^`k'''"
-        local N `N' `:di 10^`k''
-        qui bench_sim, n(`:di 5 * 10^`obsexp'') nj(`:di 10^`k'') njsub(2) nvars(2)
+        mata: printf("    `:di %21.0gc `:di 10^`k'''")
+        local N `N' `:di %21.0g 10^`k''
+        qui bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(2)
         preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" gcollapse ")
                 qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
-                qui gcollapse `collapse', by(`by') multi
+            mata: printf(" collapse ")
+                qui collapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'') ")
         restore, preserve
             local ++i
             timer clear
             timer on `i'
+            mata: printf(" fcollapse ")
                 qui fcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
+            mata: printf(" (`r`i'')\n")
         restore
     }
 
     local i = 1
     di "Results varying J for N = `nstr'; by(`by')"
-    di "|                     J | gcollapse | gcollapse (multi) | fcollapse |     ratio | ratio (multi) |"
+    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
         local iii = `i' + 2
-        di "| `:di %21.0gc `nn'' | `:di %9.2f `r`i''' | `:di %17.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %9.2f `r`iii'' / `r`i''' | `:di %13.2f `r`iii'' / `r`ii''' |"
+        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
         local ++i
         local ++i
         local ++i
@@ -846,15 +1043,16 @@ end
 
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
 * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
-
-* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
-* bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
-* bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
 
 * Misc
 * ----
+
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(5) kvars(15)
+* bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(5) kvars(3) stats(mean median)
+* bench_group_size x1 x2,  by(groupstr) obsexp(4) kmax(4) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(5) pct(median iqr p23 p77)
 
 * bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
 * bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
@@ -866,6 +1064,7 @@ end
 * bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
 * bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7)
 * bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
+* bench_ftools y1 y2 y3,   by(x4 x6)    kmin(4)   kmax(7) kvars(3) stats(mean median)
 
 * ---------------------------------------------------------------------
 * Run the things

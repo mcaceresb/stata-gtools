@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-0.3.1 (2017-05-19)
+
+### Bug fixes
+
+* Speed up quantiles! (Also, all other functions). Encoded stat string
+  to numeric: It's WAY faster to select a function based on a number
+  than a string. String comparisons are expensive. I was also parsing
+  the quantile string at EVERY function call, which was the bottleneck
+  in computing quantiles, not quicksort.
+* first and last observations now computed correctly when quantiles are
+  also requested.
+* Fixed `gtools.pkg`
+* Added documentation for `gegen`
+
 ## gtools-0.3.0 (2017-05-19)
 
 ### Features

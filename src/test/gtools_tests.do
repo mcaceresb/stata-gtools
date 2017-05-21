@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sat May 20 14:03:27 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.3.0
+* Version: 0.3.1
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -46,11 +46,16 @@ program main
         if ( "`checks'" != "" ) {
             checks_byvars_gcollapse
             checks_options_gcollapse
+
             checks_byvars_gcollapse,  multi
             checks_options_gcollapse, multi
 
+            checks_options_gegen
+            checks_options_gegen, multi
+
             checks_consistency_gegen
             checks_consistency_gegen, multi
+
             checks_consistency_gcollapse
             checks_consistency_gcollapse, multi
         }
@@ -58,13 +63,8 @@ program main
         if ( "`benchmark'" != "" ) {
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
             bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-            * This fails in Stata/MP 14.2 because fcollapse can't handle too many levels there
-            * bench_ftools y1 y2 y3, by(x4 x6) kmin(4) kmax(7) kvars(3) stats(mean median)
-
-            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6)
-            bench_group_size x1 x2,  by(group) obsexp(6) kmax(6) pct(median iqr p23 p77)
-            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7)
-            bench_sample_size x1 x2, by(group) kmin(4)   kmax(7) pct(median iqr p23 p77)
+            bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+            bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
         }
     }
     local rc = _rc
@@ -81,7 +81,7 @@ program exit_message
     di ""
     if (`rc' == 0) {
         di "End: $S_TIME $S_DATE"
-        local paux	  ran
+        local paux      ran
         local message "`progname' finished running" _n(2) "`time'"
         local subject "`progname' `paux'"
     }

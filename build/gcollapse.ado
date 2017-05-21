@@ -1,4 +1,4 @@
-*! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.1 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -62,11 +62,11 @@ program gcollapse
     * Collapse to summary stats
     * -------------------------
 
-	if ("`by'" == "") {
-		tempvar byvar
-		gen byte `byvar' = 0
-		local by `byvar'
-	}
+    if ("`by'" == "") {
+        tempvar byvar
+        gen byte `byvar' = 0
+        local by `byvar'
+    }
     else {
         qui ds `by'
         local by `r(varlist)'
@@ -76,7 +76,7 @@ program gcollapse
     * ------------------------------------
 
     local bysmart ""
-	local smart = ("`smart'" != "") & ("`anything'" != "") & ("`by'" != "")
+    local smart = ("`smart'" != "") & ("`anything'" != "") & ("`by'" != "")
     qui if ( `smart' ) {
         local sortedby: sortedby
         local indexed = (`=_N' < 2^31)
@@ -115,20 +115,20 @@ program gcollapse
     * Parse anything
     * --------------
 
-	if ("`anything'" == "") {
+    if ("`anything'" == "") {
         di as err "invalid syntax"
         exit 198
-	}
-	else {
-		ParseList `anything'
-	}
+    }
+    else {
+        ParseList `anything'
+    }
 
     * Locals to be read by C
     local gtools_targets    `__gtools_targets'
     local gtools_vars       `__gtools_vars'
     local gtools_stats      `__gtools_stats'
-	local gtools_uniq_vars  `__gtools_uniq_vars'
-	local gtools_uniq_stats `__gtools_uniq_stats'
+    local gtools_uniq_vars  `__gtools_uniq_vars'
+    local gtools_uniq_stats `__gtools_uniq_stats'
 
     * Available Stats
     local stats sum     ///
@@ -147,31 +147,31 @@ program gcollapse
 
     * Parse quantiles
     local quantiles : list gtools_uniq_stats - stats
-	foreach quantile of local quantiles {
+    foreach quantile of local quantiles {
         local quantbad = !regexm("`quantile'", "^p[0-9][0-9]?(\.[0-9]+)?$")
-		if (`quantbad' | ("`quantile'" == "p0")) {
-			di as error "Invalid stat: (`quantile')"
-			error 110
-		}
-	}
+        if (`quantbad' | ("`quantile'" == "p0")) {
+            di as error "Invalid stat: (`quantile')"
+            error 110
+        }
+    }
 
     * Can't collapse grouping variables
-	local intersection: list gtools_targets & by
-	if ("`intersection'" != "") {
-		di as error "targets in collapse are also in by(): `intersection'"
-		error 110
-	}
+    local intersection: list gtools_targets & by
+    if ("`intersection'" != "") {
+        di as error "targets in collapse are also in by(): `intersection'"
+        error 110
+    }
 
     * Call plugin
     * -----------
 
     * Subset if requested
-	qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
-		marksample touse, strok novarlist
-		if ("`cw'" != "") {
-			markout `touse' `by' `gtools_uniq_vars', strok
-		}
-		keep if `touse'
+    qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
+        marksample touse, strok novarlist
+        if ("`cw'" != "") {
+            markout `touse' `by' `gtools_uniq_vars', strok
+        }
+        keep if `touse'
     }
 
     * Parse type of each by variable
@@ -290,14 +290,14 @@ program gcollapse
     scalar __gtools_l_targets    = length("`gtools_targets'")
     scalar __gtools_l_vars       = length("`gtools_vars'")
     scalar __gtools_l_stats      = length("`gtools_stats'")
-	scalar __gtools_l_uniq_vars  = length("`gtools_uniq_vars'")
-	scalar __gtools_l_uniq_stats = length("`gtools_uniq_stats'")
+    scalar __gtools_l_uniq_vars  = length("`gtools_uniq_vars'")
+    scalar __gtools_l_uniq_stats = length("`gtools_uniq_stats'")
 
     scalar __gtools_k_targets    = `:list sizeof gtools_targets'
     scalar __gtools_k_vars       = `:list sizeof gtools_vars'
     scalar __gtools_k_stats      = `:list sizeof gtools_stats'
-	scalar __gtools_k_uniq_vars  = `:list sizeof gtools_uniq_vars'
-	scalar __gtools_k_uniq_stats = `:list sizeof gtools_uniq_stats'
+    scalar __gtools_k_uniq_vars  = `:list sizeof gtools_uniq_vars'
+    scalar __gtools_k_uniq_stats = `:list sizeof gtools_uniq_stats'
 
     * Position of input to each target variable
     cap matrix drop __gtools_outpos
@@ -376,7 +376,7 @@ program gcollapse
         if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
     }
 
-	if ("`fast'" == "") restore, not
+    if ("`fast'" == "") restore, not
 
     * If benchmark, output program ending time
     {
@@ -456,8 +456,8 @@ if ("`c(os)'" == "Unix") program gtoolsmulti_plugin, plugin using("gtools_multi.
 
 capture program drop ParseList
 program define ParseList
-	syntax [anything(equalok)]
-	local stat mean
+    syntax [anything(equalok)]
+    local stat mean
 
     * Trim spaces
     while strpos("`0'", "  ") {
@@ -465,62 +465,62 @@ program define ParseList
     }
     local 0 = trim("`0'")
 
-	while (trim("`0'") != "") {
-		GetStat stat 0 : `0'
-		GetTarget target 0 : `0'
-		gettoken vars 0 : 0
-		unab vars : `vars'
-		foreach var of local vars {
-			if ("`target'" == "") local target `var'
+    while (trim("`0'") != "") {
+        GetStat stat 0 : `0'
+        GetTarget target 0 : `0'
+        gettoken vars 0 : 0
+        unab vars : `vars'
+        foreach var of local vars {
+            if ("`target'" == "") local target `var'
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'
             local full_stats   `full_stats'   `stat'
 
-			local target
-		}
-	}
+            local target
+        }
+    }
 
-	* Check that targets don't repeat
-	local dups : list dups targets
-	if ("`dups'" != "") {
-		di as error "repeated targets in collapse: `dups'"
-		error 110
-	}
+    * Check that targets don't repeat
+    local dups : list dups targets
+    if ("`dups'" != "") {
+        di as error "repeated targets in collapse: `dups'"
+        error 110
+    }
 
-	c_local __gtools_targets    `full_targets'
+    c_local __gtools_targets    `full_targets'
     c_local __gtools_stats      `full_stats'
     c_local __gtools_vars       `full_vars'
-	c_local __gtools_uniq_stats : list uniq full_stats
-	c_local __gtools_uniq_vars  : list uniq full_vars
+    c_local __gtools_uniq_stats : list uniq full_stats
+    c_local __gtools_uniq_vars  : list uniq full_vars
 end
 
 capture program drop GetStat
 program define GetStat
-	_on_colon_parse `0'
-	local before `s(before)'
-	gettoken lhs rhs : before
-	local rest `s(after)'
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
 
-	gettoken stat rest : rest , match(parens)
-	if ("`parens'" != "") {
-		c_local `lhs' `stat'
-		c_local `rhs' `rest'
-	}
+    gettoken stat rest : rest , match(parens)
+    if ("`parens'" != "") {
+        c_local `lhs' `stat'
+        c_local `rhs' `rest'
+    }
 end
 
 capture program drop GetTarget
 program define GetTarget
-	_on_colon_parse `0'
-	local before `s(before)'
-	gettoken lhs rhs : before
-	local rest `s(after)'
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
 
-	local rest : subinstr local rest "=" "= ", all
-	gettoken target rest : rest, parse("= ")
-	gettoken eqsign rest : rest
-	if ("`eqsign'" == "=") {
-		c_local `lhs' `target'
-		c_local `rhs' `rest'
-	}
+    local rest : subinstr local rest "=" "= ", all
+    gettoken target rest : rest, parse("= ")
+    gettoken eqsign rest : rest
+    if ("`eqsign'" == "=") {
+        c_local `lhs' `target'
+        c_local `rhs' `rest'
+    }
 end

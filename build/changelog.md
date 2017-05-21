@@ -14,6 +14,7 @@ Change Log
   also requested.
 * Fixed `gtools.pkg`
 * Added documentation for `gegen`
+* Function names and calls closer to `egen`
 
 ## gtools-0.3.0 (2017-05-19)
 

@@ -1,0 +1,131 @@
+[Hardware and software specifications]
+
+Program:   Stata/IC 13.1
+OS:        x86_64 GNU/Linux
+Processor: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
+Cores:     2 cores with 2 virtual threads per core.
+Memory:    15.6GiB
+Swap:      7.8GiB
+
+[This log file has been edited for the sake of readability]
+
+. do gtools_tests.do
+
+. * ---------------------------------------------------------------------
+. * Project: gtools
+. * Program: gtools_tests.do
+. * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
+. * Created: Tue May 16 07:23:02 EDT 2017
+. * Updated: Sat May 20 14:03:27 EDT 2017
+. * Purpose: Unit tests for gtools
+. * Version: 0.3.1
+. * Manual:  help gcollapse, help gegen
+.
+. * Stata start-up options
+. * ----------------------
+.
+. version 13
+
+. clear all
+
+. set more off
+
+. set varabbrev off
+
+. capture log close _all
+
+. set seed 42
+
+. do test_gcollapse.do
+
+[cut for space]
+
+. do test_gegen.do
+
+[cut for space]
+
+. do bench_gcollapse.do
+
+[cut for space]
+
+Start: 07:51:49 21 May 2017
+
+. bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
+
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
+    stats = sum
+                   20,000 gcollapse  (.066)  collapse  (.19)  fcollapse  (.091)
+                  200,000 gcollapse  (.16)  collapse  (1.09)  fcollapse  (.268)
+                2,000,000 gcollapse  (1.496)  collapse  (11.037)  fcollapse  (2.556)
+               20,000,000 gcollapse  (14.459)  collapse  (121.084)  fcollapse  (51.575)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|         20,000 |      0.07 |      0.19 |      0.09 |        1.38 |        2.88 |
+|        200,000 |      0.16 |      1.09 |      0.27 |        1.68 |        6.81 |
+|      2,000,000 |      1.50 |     11.04 |      2.56 |        1.71 |        7.38 |
+|     20,000,000 |     14.46 |    121.08 |     51.58 |        3.57 |        8.37 |
+
+. bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3
+    stats = mean median
+                   20,000 gcollapse  (.022)  collapse  (.14)  fcollapse  (.085)
+                  200,000 gcollapse  (.118)  collapse  (1.709)  fcollapse  (.317)
+                2,000,000 gcollapse  (.925)  collapse  (15.025)  fcollapse  (3.706)
+               20,000,000 gcollapse  (8.544)  collapse  (171.193)  fcollapse  (69.03)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|         20,000 |      0.02 |      0.14 |      0.09 |        3.86 |        6.36 |
+|        200,000 |      0.12 |      1.71 |      0.32 |        2.69 |       14.48 |
+|      2,000,000 |      0.93 |     15.03 |      3.71 |        4.01 |       16.24 |
+|     20,000,000 |      8.54 |    171.19 |     69.03 |        8.08 |       20.04 |
+
+. bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
+
+Benchmarking J for N = 5,000,000; by(groupstr)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                       10 gcollapse  (6.005)  collapse  (911.966)  fcollapse  (49.794)
+                      100 gcollapse  (8.836)  collapse  (920.559)  fcollapse  (31.466)
+                    1,000 gcollapse  (8.288)  collapse  (908.777)  fcollapse  (22.017)
+                   10,000 gcollapse  (7.98)  collapse  (887.002)  fcollapse  (21.783)
+                  100,000 gcollapse  (8.39)  collapse  (849.213)  fcollapse  (28.518)
+                1,000,000 gcollapse  (17.363)  collapse  (972.134)  fcollapse  (78.148)
+Results varying J for N = 5,000,000; by(groupstr)
+|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|             10 |      6.00 |    911.97 |     49.79 |        8.29 |      151.87 |
+|            100 |      8.84 |    920.56 |     31.47 |        3.56 |      104.18 |
+|          1,000 |      8.29 |    908.78 |     22.02 |        2.66 |      109.65 |
+|         10,000 |      7.98 |    887.00 |     21.78 |        2.73 |      111.15 |
+|        100,000 |      8.39 |    849.21 |     28.52 |        3.40 |      101.22 |
+|      1,000,000 |     17.36 |    972.13 |     78.15 |        4.50 |       55.99 |
+
+. bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
+
+Benchmarking N for J = 10; by(groupstr)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                   20,000 gcollapse  (.033)  collapse  (2.496)  fcollapse  (.101)
+                  200,000 gcollapse  (.192)  collapse  (27.197)  fcollapse  (.958)
+                2,000,000 gcollapse  (2.498)  collapse  (364.482)  fcollapse  (16.87)
+               20,000,000 gcollapse  (27.064)  collapse  (3880.132)  fcollapse  (229.127)
+Results varying N for J = 10; by(groupstr)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|         20,000 |      0.03 |      2.50 |      0.10 |        3.06 |       75.64 |
+|        200,000 |      0.19 |     27.20 |      0.96 |        4.99 |      141.65 |
+|      2,000,000 |      2.50 |    364.48 |     16.87 |        6.75 |      145.91 |
+|     20,000,000 |     27.06 |   3880.13 |    229.13 |        8.47 |      143.37 |
+
+End: 10:57:44 21 May 2017
+tests ran
+
+tests finished running
+
+Start: 07:51:49 21 May 2017
+End: 10:57:44 21 May 2017

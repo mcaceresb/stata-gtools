@@ -1,4 +1,4 @@
-*! version 0.3.1 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.2 21May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -18,6 +18,7 @@ program gcollapse
         double                 /// Do all operations in double precision
         merge                  /// Merge statistics back to original data, replacing where applicable
         multi                  /// Multi-threaded version of gcollapse
+        checkhash              /// Check for hash collisions
     ]
     if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix." 
 
@@ -37,6 +38,17 @@ program gcollapse
 
     if ("`fast'" == "") preserve
 
+    * Check hash collisions in C
+    * --------------------------
+
+    if ("`checkhash'" == "") {
+        local checkhash = 0
+        scalar __gtools_checkhash = 0
+    }
+    else {
+        local checkhash = 1
+        scalar __gtools_checkhash = 1
+    }
 
     * Verbose and benchmark printing
     * ------------------------------
@@ -271,7 +283,7 @@ program gcollapse
     * if ("`dropme'" != "") drop `dropme'
     if ("`dropme'" != "") mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
 
-    * This is not, strictly speaking, necessaryy, but I have yet to
+    * This is not, strictly speaking, necessary, but I have yet to
     * figure out how to handle strings in C efficiently; will improve on
     * a future release.
     local bystr_orig  ""
@@ -299,7 +311,7 @@ program gcollapse
     scalar __gtools_k_uniq_vars  = `:list sizeof gtools_uniq_vars'
     scalar __gtools_k_uniq_stats = `:list sizeof gtools_uniq_stats'
 
-    * Position of input to each target variable
+    * Position of input to each target variable (note C has 0-based indexing)
     cap matrix drop __gtools_outpos
     foreach var of local gtools_vars {
         matrix __gtools_outpos = nullmat(__gtools_outpos), (`:list posof `"`var'"' in gtools_uniq_vars' - 1)
@@ -311,6 +323,7 @@ program gcollapse
         matrix __gtools_strpos = nullmat(__gtools_strpos), `:list posof `"`var'"' in by'
     }
 
+    * Position of numeric variables
     cap matrix drop __gtools_numpos
     local bynum `:list by - bystr_orig'
     foreach var of local bynum {

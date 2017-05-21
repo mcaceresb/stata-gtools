@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:08:15 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.1
+ * Version: 0.3.2
  *********************************************************************/
 
 /**
@@ -57,6 +57,10 @@ STDLL stata_call(int argc, char *argv[])
     if ( strcmp(todo, "collapse") == 0 ) {
         if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
         if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+        if ( st_info.checkhash ) {
+            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+        }
+
         if ( (rc = sf_collapse    (&st_info))    ) return (rc);
         if ( (rc = SF_scal_save   ("__gtools_J", st_info.J)) ) return (rc);
     }
@@ -67,6 +71,9 @@ STDLL stata_call(int argc, char *argv[])
         }
         if ( (rc = sf_parse_info  (&st_info, 1)) ) return (rc);
         if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+        if ( st_info.checkhash ) {
+            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+        }
 
         strcpy (tostat, argv[1]);
         if ( strcmp(tostat, "group") == 0 ) {
@@ -110,6 +117,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
 
     // Starting position of collapse variables
     int start_collapse_vars = kvars_by + 1;
+
+    // Check for hash collisions
+    int checkhash;
+    ST_double checkhash_double ;
+    if ( (rc = SF_scal_use("__gtools_checkhash", &checkhash_double)) ) {
+        return(rc) ;
+    }
+    else {
+        checkhash = (int) checkhash_double;
+    }
 
     // Verbose printing
     int verbose;
@@ -378,6 +395,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->start_collapse_vars = start_collapse_vars;
     st_info->start_target_vars   = start_target_vars;
     st_info->start_str_byvars    = start_str_byvars;
+    st_info->checkhash           = checkhash;
     st_info->verbose             = verbose;
     st_info->benchmark           = benchmark;
     st_info->merge               = merge;

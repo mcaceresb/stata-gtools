@@ -41,6 +41,7 @@ struct StataInfo {
     int kvars_by_str;
     int verbose;
     int benchmark;
+    int checkhash;
     int merge;
     int indexed;
     int integers_ok;

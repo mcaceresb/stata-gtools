@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:34 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.1
+ * Version: 0.3.2
  *********************************************************************/
 
 #include "gegen.h"
@@ -65,7 +65,7 @@ int sf_egen (struct StataInfo *st_info)
             for (k = 0; k < st_info->kvars_source; k++) {
                 // Read Stata out of order
                 if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) return(rc);
-                /* TODO: This is wrong; follow the do start++ while seen in ... // 2017-05-20 00:36 EDT */
+                /* TODO: Follow the do start++ while seen in ... // 2017-05-20 00:36 EDT */
                 if ( SF_is_missing(z) | !SF_ifobs(st_info->in1 + st_info->index[i]) ) {
                     if (i == start)   all_firstmiss[j] = 1;
                     if (i == end - 1) all_lastmiss[j]  = 1;
@@ -200,6 +200,10 @@ int sf_egen_tag (struct StataInfo *st_info)
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     size_t *firstj = calloc(st_info->J, sizeof *firstj);
 
+    // Since we hash the data, the order in C has to be mapped to the
+    // order in Stata via info and index. First figure out the order in
+    // which the groups appear in Stata, and then write by looping over
+    // groups in that order
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[j];
         end   = st_info->info[j + 1];
@@ -216,10 +220,12 @@ int sf_egen_tag (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
+    // indexj[j] will contain the order in which the jth C group
+    // inappeared Stata
     mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Tagged groups in memory");
 
-    k = 0;
+    // We loop in C using indexj and write to Stata based on index
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[indexj[j]];
         end   = st_info->info[indexj[j] + 1];
@@ -229,7 +235,6 @@ int sf_egen_tag (struct StataInfo *st_info)
         if ( start < end ) {
             out = st_info->index[start] + st_info->in1;
             if ( (rc = SF_vstore(st_info->start_target_vars, out, 1)) ) return (rc);
-            ++k;
         }
     }
 
@@ -265,6 +270,10 @@ int sf_egen_group (struct StataInfo *st_info)
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     size_t *firstj = calloc(st_info->J, sizeof *firstj);
 
+    // Since we hash the data, the order in C has to be mapped to the
+    // order in Stata via info and index. First figure out the order in
+    // which the groups appear in Stata, and then write by looping over
+    // groups in that order
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[j];
         end   = st_info->info[j + 1];
@@ -281,15 +290,18 @@ int sf_egen_group (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
+    // indexj[j] will contain the order in which the jth C group
+    // inappeared Stata
     mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
 
+    // We loop in C using indexj and write to Stata based on index
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[indexj[j]];
         end    = st_info->info[indexj[j] + 1];
         for (i = start; i < end; i++) {
-            if ( SF_ifobs(st_info->in1 + st_info->index[i]) ) {
-                out = st_info->index[i] + st_info->in1;
+            out = st_info->index[i] + st_info->in1;
+            if ( SF_ifobs(out) ) {
                 if ( (rc = SF_vstore(st_info->start_target_vars, out, j + 1)) ) return (rc);
             }
         }

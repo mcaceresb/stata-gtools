@@ -1,4 +1,4 @@
-*! version 0.3.1 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.2 21May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -71,6 +71,7 @@ program define gegen, byable(onecall)
                     ///
         Verbose     /// debugging
         Benchmark   /// print benchmark info
+        checkhash   /// Check for hash collisions
         smart       /// check if data is sorted to speed up hashing
         multi    *  /// Multi-threaded version
     ]
@@ -132,6 +133,18 @@ program define gegen, byable(onecall)
         else local sub `if' `in'
     }
     else local sub `if' `in'
+
+    * Check hash collisions in C
+    * --------------------------
+
+    if ("`checkhash'" == "") {
+        local checkhash = 0
+        scalar __gtools_checkhash = 0
+    }
+    else {
+        local checkhash = 1
+        scalar __gtools_checkhash = 1
+    }
 
     * Verbose and benchmark printing
     * ------------------------------

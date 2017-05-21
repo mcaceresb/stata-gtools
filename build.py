@@ -3,9 +3,9 @@
 
 # ---------------------------------------------------------------------
 # Program: build.py
-# Author:  Mauricio Caceres Bravo <caceres@nber.org>
+# Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Tue May 16 06:12:25 EDT 2017
-# Updated: Tue May 16 06:39:35 EDT 2017
+# Updated: Sat May 20 16:57:01 EDT 2017
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -86,7 +86,6 @@ makedirs_safe(path.join("build", "gtools"))
 # Stata executable
 # ----------------
 
-# You should have Stata to run this script (to compile lgtools.mlib).
 # I don't have stata on my global path, so to make the script portable
 # I make it look for my local executable when Stata is not found.
 if args['stata'] is not None:

@@ -106,8 +106,8 @@ int mf_strcmp_wrapper (char * fname, char *compare) {
  * fulfilled by older Linux systems. In particular, using memcpy as
  * provided by my system creates a dependency to Glib 2.14, which cannot
  * be fulfilled on some older systems (notably the servers where I
- * intend to use the plugin; hence we implement memcpy outselves and get
- * rid of that particular dependency.
+ * intend to use the plugin; hence I implement memcpy and get rid of
+ * that particular dependency).
  *
  * @param dest pointer to place in memory to copy @src
  * @param src pointer to place in memory that is source of data
@@ -116,7 +116,7 @@ int mf_strcmp_wrapper (char * fname, char *compare) {
  */
 void * memcpy (void *dest, const void *src, size_t n)
 {
-	return memmove(dest, src, n);
+    return memmove(dest, src, n);
 }
 
 /*********************************************************************

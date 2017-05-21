@@ -1,4 +1,4 @@
-*! version 0.3.0 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.1 20May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -30,32 +30,32 @@ program define gegen, byable(onecall)
     * Parse egen call
     * ---------------
 
-	gettoken type 0 : 0, parse(" =(")
-	gettoken name 0 : 0, parse(" =(")
+    gettoken type 0 : 0, parse(" =(")
+    gettoken name 0 : 0, parse(" =(")
 
-	if (`"`name'"' == "=" ) {
-		local name `"`type'"'
-		local type : set type
-	}
-	else {
-		gettoken eqsign 0 : 0, parse(" =(")
-		if ( `"`eqsign'"' != "=" ) {
-			error 198
-		}
-	}
+    if (`"`name'"' == "=" ) {
+        local name `"`type'"'
+        local type : set type
+    }
+    else {
+        gettoken eqsign 0 : 0, parse(" =(")
+        if ( `"`eqsign'"' != "=" ) {
+            error 198
+        }
+    }
 
-	confirm new variable `name'
-	gettoken fcn 0 : 0, parse(" =(")
-	gettoken args 0 : 0, parse(" ,") match(par)
+    confirm new variable `name'
+    gettoken fcn 0 : 0, parse(" =(")
+    gettoken args 0 : 0, parse(" ,") match(par)
 
     if ( "`fcn'" == "total" ) local fcn sum
-	if ( `"`par'"' != "("  ) exit 198
+    if ( `"`par'"' != "("  ) exit 198
 
     * TODO: Figure this out // 2017-05-19 18:00 EDT
-	* if ( (`"`args'"' == "_all" ) | (`"`args'"' == "*") ) {
-	* 	unab args : _all
-	* 	local args : subinstr local args "`_sortindex'"  "", all word
-	* }
+    * if ( (`"`args'"' == "_all" ) | (`"`args'"' == "*") ) {
+    *     unab args : _all
+    *     local args : subinstr local args "`_sortindex'"  "", all word
+    * }
 
     * Parse egen by, if, in, and options
     * ----------------------------------
@@ -64,25 +64,30 @@ program define gegen, byable(onecall)
         [if] [in] , /// subset
     [               ///
         by(varlist) /// collapse by variabes
+                    ///
+        p(real 50)  /// percentiles (only used with pctile)
+                    ///
+        missing     /// for group(); treats
+                    ///
         Verbose     /// debugging
         Benchmark   /// print benchmark info
         smart       /// check if data is sorted to speed up hashing
         multi    *  /// Multi-threaded version
     ]
 
-	if ( _by() ) {
-		* local byopt "by(`_byvars')"
+    if ( _by() ) {
+        * local byopt "by(`_byvars')"
         local by `_byvars'
-		local cma ","
-	}
-	else if ( `"`options'"' != "" ) {
-		local cma ","
-	}
+        local cma ","
+    }
+    else if ( `"`options'"' != "" ) {
+        local cma ","
+    }
 
     * egen to summary stat
     * --------------------
 
-	if ( "`by'" == "" ) {
+    if ( "`by'" == "" ) {
         if inlist("`fcn'", "tag", "group") {
             tempvar byvar
             gen byte `byvar' = 0
@@ -92,13 +97,23 @@ program define gegen, byable(onecall)
             di as err "-gegen- only provides support for by-able egen functions"
             exit 198
         }
-	}
+    }
     else {
         qui ds `by'
         local by `r(varlist)'
     }
 
-	tempvar dummy
+    * Parse quantiles
+    if ( "`fcn'" == "pctile" ) {
+        local quantbad = !( (`p' < 100) & (`p' > 0) )
+        if ( `quantbad' ) {
+            di as error "Invalid quantile: `p'; p() should be in (0, 100)"
+            error 110
+        }
+        local fcn p`p'
+    }
+
+    tempvar dummy
     qui ds `args'
     local gtools_vars    `r(varlist)'
     local gtools_targets `dummy'
@@ -106,6 +121,17 @@ program define gegen, byable(onecall)
 
     * Tag and group are handled sepparately
     if inlist("`fcn'", "tag", "group") local by `gtools_vars'
+
+    * Parse missing option for group; else just pass `if' `in'
+    if ( "`fcn'" == "group" ) {
+		if ( "`missing'" == "" ) {
+            marksample touse
+            markout `touse' `by', strok
+            local sub if `touse'
+        }
+        else local sub `if' `in'
+    }
+    else local sub `if' `in'
 
     * Verbose and benchmark printing
     * ------------------------------
@@ -132,8 +158,7 @@ program define gegen, byable(onecall)
     * ------------------------------------
 
     local bysmart ""
-	local smart = ("`smart'" != "") & ("`anything'" != "") & ("`by'" != "")
-    qui if ( `smart' ) {
+    if ( "`smart'" != "" ) {
         local sortedby: sortedby
         local indexed = (`=_N' < 2^31)
         if ( "`sortedby'" == "" ) {
@@ -155,27 +180,27 @@ program define gegen, byable(onecall)
         }
 
         if ( `indexed' ) {
-            if inlist("`fcn'", "tag", "group") local restrict `if' `in'
+            if inlist("`fcn'", "tag", "group") local restrict `sub'
             tempvar bysmart
-            by `by': gen long `bysmart' = (_n == 1) `restrict'
+            qui by `by': gen long `bysmart' = (_n == 1) `restrict'
             if ( "`fcn'" == "tag" ) {
-                quietly count if missing(`bysmart')
+                qui count if missing(`bysmart')
                 if ( `r(N)' ) {
                     local s = cond(r(N) > 1, "s", "")
                     di in bl "(" r(N) " missing value`s' generated)"
                 }
                 rename `bysmart' `name'
-                exit
+                exit 0
             }
             if ( "`fcn'" == "group" ) {
-                replace `bysmart' = sum(`bysmart')
-                quietly count if missing(`bysmart')
+                qui replace `bysmart' = sum(`bysmart')
+                qui count if missing(`bysmart')
                 if ( `r(N)' ) {
                     local s = cond(r(N) > 1, "s", "")
                     di in bl "(" r(N) " missing value`s' generated)"
                 }
                 rename `bysmart' `name'
-                exit
+                exit 0
             }
         }
     }
@@ -203,17 +228,7 @@ program define gegen, byable(onecall)
                 last     ///
                 firstnm  ///
                 lastnm   ///
-                quantile
-
-    * Parse quantiles
-	if ( "`fcn'" == "quantile" ) {
-        local quantbad = !regexm("`options'", "^p[0-9][0-9]?(\.[0-9]+)?$")
-		if (`quantbad' | ("`options'" == "p0")) {
-			di as error "Invalid quantile: (`options')"
-			error 110
-		}
-        local fcn `options'
-	}
+                pctile
 
     * Parse type of each by variable
     ParseByTypes `by'
@@ -257,16 +272,50 @@ program define gegen, byable(onecall)
     if ( `verbose'  | `benchmark' ) local noi noisily
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-    cap `noi' plugin call gtools`multi'_plugin `plugvars' `if' `in', egen `fcn' `options'
+    cap `noi' plugin call gtools`multi'_plugin `plugvars' `sub', egen `fcn' `options'
     if ( _rc != 0 ) exit _rc
 
-    if ( "`fcn'" == "tag" ) qui replace `dummy' = 0 if mi(`dummy')
-	quietly count if missing(`dummy')
-	if ( `r(N)' ) {
-		local s = cond(r(N) > 1, "s", "")
-		di in bl "(" r(N) " missing value`s' generated)"
-	}
-	rename `dummy' `name'
+    * If benchmark, output pugin time
+    {
+        timer off 99
+        qui timer list
+        if ( `benchmark' ) di "The plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
+        timer off 99
+        timer clear 99
+    }
+
+    * Time program exit
+    {
+        cap timer off 97
+        cap timer clear 97
+        timer on 97
+    }
+
+    * if ( "`fcn'" == "tag" ) qui replace `dummy' = 0 if mi(`dummy')
+    quietly count if missing(`dummy')
+    if ( `r(N)' ) {
+        local s = cond(r(N) > 1, "s", "")
+        di in bl "(" r(N) " missing value`s' generated)"
+    }
+    rename `dummy' `name'
+
+    * If benchmark, output program ending time
+    {
+        timer off 97
+        qui timer list
+        if ( `benchmark' ) di "Program exit executed in `:di trim("`:di %21.4gc r(t97)'")' seconds"
+        timer off 97
+        timer clear 97
+    }
+
+    * If benchmark, output function time
+    {
+        timer off 98
+        qui timer list
+        if ( `benchmark' ) di "The program executed in `:di trim("`:di %21.4gc r(t98)'")' seconds"
+        timer off 98
+        timer clear 98
+    }
 end
 
 * Set up plugin call

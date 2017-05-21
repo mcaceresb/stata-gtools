@@ -1,4 +1,4 @@
-v 0.3.0
+v 0.3.1
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d
@@ -21,4 +21,7 @@ d Distribution-Date: 20170520
 d
 f gcollapse.ado
 f gcollapse.sthlp
-f gcollapse.plugin
+f gegen.ado
+f gegen.sthlp
+f gtools.plugin
+f gtools_multi.plugin

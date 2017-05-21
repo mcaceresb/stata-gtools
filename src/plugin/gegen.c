@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:34 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.0
+ * Version: 0.3.1
  *********************************************************************/
 
 #include "gegen.h"
@@ -25,7 +25,8 @@ int sf_egen (struct StataInfo *st_info)
     clock_t timer = clock();
 
     size_t nj, start, end, sel, out, offset_buffer;
-    size_t nmfreq = 0;
+    size_t nmfreq  = 0;
+    double statdbl = mf_code_fun (st_info->statstr);
 
     // Initialize variables for use in read, collapse, and write loops
     // ---------------------------------------------------------------
@@ -98,11 +99,11 @@ int sf_egen (struct StataInfo *st_info)
             // missing then we note it in outmiss. We will later write
             // to Stata the contents of output if outmiss is 0 or a
             // missing value if outmiss is 1.
-            if ( mf_strcmp_wrapper (st_info->statstr, "count") ) {
+            if ( statdbl == -6 ) { // count
                 // If count, you just need to know how many non-missing obs there are
                 output[j] = end;
             }
-            else if ( mf_strcmp_wrapper (st_info->statstr, "percent")  ) {
+            else if ( statdbl == -7  ) { // percent
                 // Percent outputs the % of all non-missing values of
                 // that variable in that group relative to the number
                 // of non-missing values of that variable in the entire
@@ -110,23 +111,23 @@ int sf_egen (struct StataInfo *st_info)
                 // divide by this when writing to Stata.
                 output[j] = 100 * end;
             }
-            else if ( all_firstmiss[j] & (mf_strcmp_wrapper (st_info->statstr, "first") ) ) {
+            else if ( all_firstmiss[j] & (statdbl == -10) ) { // first
                 // If first observation is missing, will write missing value
                 outmiss[j] = 1;
             }
-            else if ( all_lastmiss[j] & (mf_strcmp_wrapper (st_info->statstr, "last") ) ) {
+            else if ( all_lastmiss[j] & (statdbl == -12) ) { // last
                 // If last observation is missing, will write missing value
                 outmiss[j] = 1;
             }
-            else if ( mf_strcmp_wrapper (st_info->statstr, "first") | (mf_strcmp_wrapper (st_info->statstr, "firstnm") ) ) {
+            else if ( (statdbl == -10) | (statdbl == -11) ) { // first|firstnm
                 // First obs/first non-missing is the first entry in the inputs buffer
                 output[j] = all_buffer[start];
             }
-            else if ( mf_strcmp_wrapper (st_info->statstr, "last") | (mf_strcmp_wrapper (st_info->statstr, "lastnm") ) ) {
+            else if ( (statdbl == -12) | (statdbl == -13) ) { // last|lastnm
                 // Last obs/last non-missing is the last entry in the inputs buffer
                 output[j] = all_buffer[start + end - 1];
             }
-            else if ( mf_strcmp_wrapper (st_info->statstr, "sd") &  (end < 2) ) {
+            else if ( (statdbl == -3) &  (end < 2) ) { // sd
                 // Standard deviation requires at least 2 observations
                 outmiss[j] = 1;
             }
@@ -136,7 +137,7 @@ int sf_egen (struct StataInfo *st_info)
             }
             else {
                 // Otherwise compute the requested summary stat
-                output[j] = mf_switch_fun (st_info->statstr, all_buffer, start, start + end);
+                output[j] = mf_switch_fun_code (statdbl, all_buffer, start, start + end);
             }
         }
     }
@@ -158,15 +159,15 @@ int sf_egen (struct StataInfo *st_info)
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[j];
         end   = st_info->info[j + 1];
-        if ( mf_strcmp_wrapper (st_info->statstr, "percent") ) output[j] /= nmfreq;
+        if ( statdbl == -7 ) output[j] /= nmfreq;
         output_buffer = outmiss[j]? SV_missval: output[j];
 
         // Write the same value from start to end; we won't sort or
         // modify the input data, so the position of each value of the
         // jth group is index[i] for i = start to i < end.
         for (i = start; i < end; i++) {
-            if ( SF_ifobs(st_info->in1 + st_info->index[i]) ) {
-                out = st_info->index[i] + st_info->in1;
+            out = st_info->index[i] + st_info->in1;
+            if ( SF_ifobs(out) ) {
                 if ( (rc = SF_vstore(st_info->start_target_vars, out, output_buffer)) ) return (rc);
             }
         }
@@ -190,8 +191,9 @@ int sf_egen (struct StataInfo *st_info)
  */
 int sf_egen_tag (struct StataInfo *st_info)
 {
+    ST_double z ;
     ST_retcode rc ;
-    int i, j, out;
+    int i, j, k, out;
     size_t start, end, minj;
     clock_t timer = clock();
 
@@ -214,22 +216,32 @@ int sf_egen_tag (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
-    size_t max = mf_max(firstj, st_info->J);
-    size_t min = mf_min(firstj, st_info->J);
-    mf_counting_sort_index (firstj, indexj, st_info->J, min, max);
+    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Tagged groups in memory");
 
+    k = 0;
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[indexj[j]];
         end   = st_info->info[indexj[j] + 1];
         while ( !SF_ifobs(st_info->in1 + st_info->index[start]) & (start < end) ) {
             start++;
         }
-        out = st_info->index[start] + st_info->in1;
         if ( start < end ) {
+            out = st_info->index[start] + st_info->in1;
             if ( (rc = SF_vstore(st_info->start_target_vars, out, 1)) ) return (rc);
+            ++k;
         }
     }
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5: Tagged groups in Stata");
+
+    // Tag ignores if/in for missing values (all non-tagged are 0)
+    k = st_info->start_target_vars;
+    for (i = 1; i <= SF_nobs(); i++) {
+        if ( (rc = SF_vdata(k, i, &z)) ) return(rc);
+        if ( SF_is_missing(z) ) {
+            if ( (rc = SF_vstore(k, i, 0)) ) return (rc);
+        }
+    }
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied tag to Stata");
 
     free (indexj);
     free (firstj);
@@ -269,9 +281,8 @@ int sf_egen_group (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
-    size_t max = mf_max(firstj, st_info->J);
-    size_t min = mf_min(firstj, st_info->J);
-    mf_counting_sort_index (firstj, indexj, st_info->J, min, max);
+    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
 
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[indexj[j]];
@@ -283,7 +294,7 @@ int sf_egen_group (struct StataInfo *st_info)
             }
         }
     }
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5: Indexed groups in Stata");
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
 
     free (indexj);
     free (firstj);

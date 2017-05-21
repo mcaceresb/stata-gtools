@@ -92,11 +92,10 @@ We vary N for J = 100 and collapse 15 variables:
     vars  = y1-y15 ~ 123.456 + U(0, 1)
     stats = sum
 
-    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |    200,000 |      0.16 |              0.15 |      0.28 |  1.75 |          1.87 |
-    |  2,000,000 |      1.49 |              1.65 |      3.01 |  2.02 |          1.83 |
-    | 20,000,000 |     14.24 |             13.37 |     55.24 |  3.88 |          4.13 |
+    |          N | gcollapse | fcollapse | ratio |
+    | ---------- | --------- | --------- | ----- |
+    |  2,000,000 |      1.38 |      2.39 |  1.73 |
+    | 20,000,000 |     13.14 |     51.71 |  3.93 |
 ```
 
 We vary N for J = 100 and collapse 3 variables:
@@ -104,11 +103,10 @@ We vary N for J = 100 and collapse 3 variables:
     vars  = y1-y3 ~ 123.456 + U(0, 1)
     stats = mean median
 
-    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |    200,000 |      0.09 |              0.10 |      0.32 |  3.38 |          3.18 |
-    |  2,000,000 |      0.98 |              0.87 |      3.87 |  3.94 |          4.45 |
-    | 20,000,000 |      9.45 |              7.44 |     66.88 |  7.08 |          8.99 |
+    |          N | gcollapse | fcollapse | ratio |
+    | ---------- | --------- | --------- | ----- |
+    |  2,000,000 |      0.89 |      3.59 |  4.03 |
+    | 20,000,000 |      8.87 |     56.33 |  6.35 |
 ```
 
 ### Increasing the sample size
@@ -116,63 +114,68 @@ We vary N for J = 100 and collapse 3 variables:
 We vary N for J = 10:
 ```
     vars  = x1 x2 ~ N(0, 1)
-    stats = sum mean sd max min count percent first last firstnm lastnm
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
 
-    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |    200,000 |      0.11 |              0.11 |      0.34 |  2.94 |          3.07 |
-    |  2,000,000 |      1.49 |              1.45 |      3.28 |  2.20 |          2.27 |
-    | 20,000,000 |     14.57 |             14.06 |     35.36 |  2.43 |          2.52 |
-
-    vars  = x1 x2
-    stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
-
-    |          N | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | ---------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |    200,000 |      0.15 |              0.12 |      1.00 |  6.79 |          8.04 |
-    |  2,000,000 |      1.86 |              1.79 |     15.53 |  8.33 |          8.69 |
-    | 20,000,000 |     20.83 |             19.04 |    256.49 | 12.32 |         13.47 |
+    |          N | gcollapse | fcollapse | ratio |
+    | ---------- | --------- | --------- | ----- |
+    |  2,000,000 |      2.60 |     14.67 |  5.64 |
+    | 20,000,000 |     24.47 |    207.53 |  8.48 |
 ```
-
-The `gcollapse` and `fcollapse` columns show the execution time in
-seconds. We can see `gcollapse` is several times faster than `fcollapse`
-in our benchmarks, and that `fcollapse` is specially slow relative to
-`gcollapse` at computing quantiles for large groups.
 
 ### Increasing the number of levels
 
 We vary J for N = 5,000,000:
 ```
     vars  = x1 x2 ~ N(0, 1)
-    stats = sum mean sd max min count percent first last firstnm lastnm
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
 
-    |         J | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | --------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |        10 |      3.31 |              3.33 |      7.51 |  2.26 |          2.25 |
-    |       100 |      4.07 |              3.95 |      7.59 |  1.86 |          1.92 |
-    |     1,000 |      4.54 |              4.29 |      8.64 |  1.90 |          2.02 |
-    |    10,000 |      5.17 |              5.26 |     10.49 |  2.03 |          1.99 |
-    |   100,000 |      6.09 |              5.78 |     14.15 |  2.32 |          2.45 |
-    | 1,000,000 |      8.89 |              7.87 |     32.71 |  3.68 |          4.15 |
-
-    vars  = x1 x2 ~ N(0, 1)
-    stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
-
-    |         J | gcollapse | gcollapse (multi) | fcollapse | ratio | ratio (multi) |
-    | --------- | --------- | ----------------- | --------- | ----- | ------------- |
-    |        10 |      5.16 |              4.88 |     50.86 |  9.86 |         10.43 |
-    |       100 |      5.48 |              5.23 |     30.55 |  5.57 |          5.84 |
-    |     1,000 |      6.26 |              5.79 |     24.02 |  3.84 |          4.14 |
-    |    10,000 |      7.74 |              6.30 |     22.60 |  2.92 |          3.59 |
-    |   100,000 |     19.83 |             13.16 |     28.75 |  1.45 |          2.19 |
-    | 1,000,000 |    146.76 |             59.05 |     86.43 |  0.59 |          1.46 |
+    |         J | gcollapse | fcollapse | ratio |
+    | --------- | --------- | --------- | ----- |
+    |        10 |      6.06 |     49.56 |  8.17 |
+    |       100 |      6.65 |     27.23 |  4.09 |
+    |     1,000 |      6.85 |     21.92 |  3.20 |
+    |    10,000 |      6.95 |     21.17 |  3.04 |
+    |   100,000 |      7.53 |     23.85 |  3.17 |
+    | 1,000,000 |     10.92 |     67.79 |  6.21 |
 ```
 
-While `fcollapse` is inefficient at computing quantiles for large of
-groups relative to `gcollapse`, the converse is true for a large number
-of small groups: With 1M groups and 5M observations, `fcollapse` is
-faster at computing quantiles than the single-threaded version of
-`gcollapse`, and the multi-threaded version is only 33% faster.
+### `egen`
+
+In the style of `ftools`, we benchmark the performance of `egen id = group(varlist)`.
+`fegen` is faster for integers, but slower otherwise.
+```stata
+clear
+set obs 20000000
+gen long x = ceil(uniform() * 5000)
+gen double xdbl = x  + 0.5
+tostring x, gen(xstr)
+replace xstr = "str" + xstr
+```
+
+The results:
+```
+    gegen|fegen|egen id = group(variable)
+
+    | variable | gegen | fegen |  egen |
+    | -------- | ----- | ----- | ----- |
+    |        x |  6.32 |  2.52 | 35.32 |
+    |     xstr |  8.13 | 35.39 | 41.16 |
+    |     xdbl |  8.09 | 21.36 | 38.33 |
+
+    gegen|egen id = tag(variable)
+
+    | variable | gegen |  egen |
+    | -------- | ----- | ----- |
+    |        x |  4.58 | 47.61 |
+    |     xstr |  6.86 | 57.39 |
+    |     xdbl |  6.37 | 49.56 |
+```
+
+Clearly, `fegen` is faster for integers, but slower otherwise (and,
+like `gcollapse`, `gegen` can take a combination of strings and numeric
+variables for its group/by variables). _**WARNING:**_ `gegen` does NOT
+sort the data, so the ID is different than `fegen`'s or `egen`'s ID.
+`tag` does produce identical results to `egen`, however.
 
 Supported Functions
 -------------------
@@ -221,26 +224,22 @@ gegen tag = tag(varlist)
 
 Both are much faster than `egen` because they do not sort the data, and
 rather rely on hashes to tag the data and generate an id as new groups
-appear (_**warning**_: this means `group` will ID the first group that
+appear (_**WARNING**_: this means `group` will ID the first group that
 appears as 1 and the last as J; `egen` will sort the data first).
 
 A word of caution
 -----------------
 
 At the moment this code is very beta and has not been extensively tested
-in the way collapse has. Furthermore, there are some glaring problems:
+in the way collapse has. Furthermore, there are some notable problems:
 - Memory management is terrible (see below).
 - It is only available in Unix.
-- Computing quantiles is inefficient.
 - Unlike `fcollapse`, the user cannot add functions easily (it uses compiled C code).
 
 Despite this, it has several advantages:
-- It's several times faster than `fcollapse`. On smaller data (thousands
-  or low millions) it is 2-10 times faster than `fcollapse`, which is in
-  turn ~3 times faster than plain `collapse`. See benchmarks above. (for
-  data in the tens of millions the speed gains compound because the main
-  bottleneck in `gcollapse` is the overhead involved in setting up the
-  data before calling the C plugin)
+- It's several times faster than `fcollapse` (3-8 times faster in our
+  benchmarks, and `fcollapse` in turn is ~3 times faster than plain
+  `collapse`).
 - Grouping variables can be a mix of numeric and string variables,
   unlike `fcollapse` which limits by variables to be of the same type.
 - Quantiles can be quantiles, not just percentiles (e.g. p2.5 and

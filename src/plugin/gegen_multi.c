@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:40 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.0
+ * Version: 0.3.1
  *********************************************************************/
 
 #include <omp.h>
@@ -26,7 +26,8 @@ int sf_egen (struct StataInfo *st_info)
     clock_t timer = clock();
 
     size_t nj, start, end, sel, out, offset_buffer;
-    size_t nmfreq = 0;
+    size_t nmfreq  = 0;
+    double statdbl = mf_code_fun (st_info->statstr);
 
     // Initialize variables for use in read, collapse, and write loops
     // ---------------------------------------------------------------
@@ -95,6 +96,7 @@ int sf_egen (struct StataInfo *st_info)
             )                   \
             shared (            \
                 st_info,        \
+                statdbl,        \
                 offsets_buffer, \
                 all_nonmiss,    \
                 all_firstmiss,  \
@@ -121,11 +123,11 @@ int sf_egen (struct StataInfo *st_info)
                 // missing then we note it in outmiss. We will later write
                 // to Stata the contents of output if outmiss is 0 or a
                 // missing value if outmiss is 1.
-                if ( mf_strcmp_wrapper (st_info->statstr, "count") ) {
+                if ( statdbl == -6 ) { // count
                     // If count, you just need to know how many non-missing obs there are
                     output[j] = end;
                 }
-                else if ( mf_strcmp_wrapper (st_info->statstr, "percent")  ) {
+                else if ( statdbl == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
                     // of non-missing values of that variable in the entire
@@ -133,23 +135,23 @@ int sf_egen (struct StataInfo *st_info)
                     // divide by this when writing to Stata.
                     output[j] = 100 * end;
                 }
-                else if ( all_firstmiss[j] & (mf_strcmp_wrapper (st_info->statstr, "first") ) ) {
+                else if ( all_firstmiss[j] & (statdbl == -10) ) { // first
                     // If first observation is missing, will write missing value
                     outmiss[j] = 1;
                 }
-                else if ( all_lastmiss[j] & (mf_strcmp_wrapper (st_info->statstr, "last") ) ) {
+                else if ( all_lastmiss[j] & (statdbl == -12) ) { // last
                     // If last observation is missing, will write missing value
                     outmiss[j] = 1;
                 }
-                else if ( mf_strcmp_wrapper (st_info->statstr, "first") | (mf_strcmp_wrapper (st_info->statstr, "firstnm") ) ) {
+                else if ( (statdbl == -10) | (statdbl == -11) ) { // first|firstnm
                     // First obs/first non-missing is the first entry in the inputs buffer
                     output[j] = all_buffer[start];
                 }
-                else if ( mf_strcmp_wrapper (st_info->statstr, "last") | (mf_strcmp_wrapper (st_info->statstr, "lastnm") ) ) {
+                else if ( (statdbl == -12) | (statdbl == -13) ) { // last|lastnm
                     // Last obs/last non-missing is the last entry in the inputs buffer
                     output[j] = all_buffer[start + end - 1];
                 }
-                else if ( mf_strcmp_wrapper (st_info->statstr, "sd") &  (end < 2) ) {
+                else if ( (statdbl == -3) &  (end < 2) ) { // sd
                     // Standard deviation requires at least 2 observations
                     outmiss[j] = 1;
                 }
@@ -159,7 +161,7 @@ int sf_egen (struct StataInfo *st_info)
                 }
                 else {
                     // Otherwise compute the requested summary stat
-                    output[j] = mf_switch_fun (st_info->statstr, all_buffer, start, start + end);
+                    output[j] = mf_switch_fun_code (statdbl, all_buffer, start, start + end);
                 }
             }
         }
@@ -187,7 +189,7 @@ int sf_egen (struct StataInfo *st_info)
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[j];
         end   = st_info->info[j + 1];
-        if ( mf_strcmp_wrapper (st_info->statstr, "percent") ) output[j] /= nmfreq;
+        if ( statdbl == -7 ) output[j] /= nmfreq;
         output_buffer = outmiss[j]? SV_missval: output[j];
 
         // Write the same value from start to end; we won't sort or
@@ -243,9 +245,7 @@ int sf_egen_tag (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
-    size_t max = mf_max(firstj, st_info->J);
-    size_t min = mf_min(firstj, st_info->J);
-    mf_counting_sort_index (firstj, indexj, st_info->J, min, max);
+    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
 
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[indexj[j]];
@@ -298,9 +298,7 @@ int sf_egen_group (struct StataInfo *st_info)
         indexj[j] = j;
     }
 
-    size_t max = mf_max(firstj, st_info->J);
-    size_t min = mf_min(firstj, st_info->J);
-    mf_counting_sort_index (firstj, indexj, st_info->J, min, max);
+    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
 
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[indexj[j]];

@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:47 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.0
+ * Version: 0.3.1
  *********************************************************************/
 
 #include "gcollapse.h"
@@ -35,6 +35,15 @@ int sf_collapse (struct StataInfo *st_info)
            firstmiss[st_info->kvars_source],
            lastmiss[st_info->kvars_source];
 
+    // qselect modifies the input array, meaning if it is invoked before
+    // first, last, firstnm, or lastnm, the first observation that
+    // appeared for that gorup will not be the first observation in the
+    // corresponding segment of the input buffer. The fix is to simply
+    // read the frist and last entries to a temporary variable before
+    // applying any of the summary stats
+    double firstobs[st_info->kvars_source],
+           lastobs[st_info->kvars_source];
+
     // Initialize variables for use in read, collapse, and write loops
     // ---------------------------------------------------------------
 
@@ -49,12 +58,22 @@ int sf_collapse (struct StataInfo *st_info)
     size_t *all_nonmiss    = calloc(st_info->kvars_source * st_info->J, sizeof *all_nonmiss);
     size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
 
-    char *stat[st_info->kvars_targets], *strstat, *ptr;
+    double statcode[st_info->kvars_targets], dblstat;
+    // char *stat[st_info->kvars_targets];
+    char *strstat, *ptr;
     strstat = strtok_r (st_info->statstr, " ", &ptr);
     for (k = 0; k < st_info->kvars_targets; k++) {
-        stat[k] = strstat;
-        strstat = strtok_r (NULL, " ", &ptr);
-    }
+        dblstat = mf_code_fun (strstat);
+        if ( dblstat == 0 ) {
+            sf_errprintf ("C doesn't know stat ");
+            sf_errprintf (strstat);
+            sf_errprintf ("; Stata parsing failed!\n");
+            return (198);
+        }
+        statcode[k] = dblstat;
+        // stat[k]  = strstat;
+        strstat     = strtok_r (NULL, " ", &ptr);
+    }               
 
     for (i = 0; i < st_info->kvars_by_num * st_info->J; i++)
         bymiss[i] = 0;
@@ -112,11 +131,21 @@ int sf_collapse (struct StataInfo *st_info)
     // Collapse variables by group
     // ---------------------------
 
+    // We encoded stat string; see mf_code_fun in gtools_math.c
     for (j = 0; j < st_info->J; j++) {
         offset_output = j * st_info->kvars_targets;
         offset_source = j * st_info->kvars_source;
         offset_buffer = offsets_buffer[j];
         nj = st_info->info[j + 1] - st_info->info[j];
+
+        for (k = 0; k < st_info->kvars_source; k++) {
+            sel   = offset_source + k;
+            start = offset_buffer + nj * k;
+            end   = all_nonmiss[sel];
+            firstobs[k] = all_buffer[start];
+            lastobs[k]  = all_buffer[start + end - 1];
+        }
+
         for (k = 0; k < st_info->kvars_targets; k++) {
             // For each target, grab start and end position of source variable
             sel   = offset_source + st_info->pos_targets[k];
@@ -128,11 +157,11 @@ int sf_collapse (struct StataInfo *st_info)
             // missing then we note it in outmiss. We will later write
             // to Stata the contents of output if outmiss is 0 or a
             // missing value if outmiss is 1.
-            if ( mf_strcmp_wrapper (stat[k], "count") ) {
+            if ( statcode[k] == -6 ) { // count
                 // If count, you just need to know how many non-missing obs there are
                 output[offset_output + k] = end;
             }
-            else if ( mf_strcmp_wrapper (stat[k], "percent")  ) {
+            else if ( statcode[k] == -7  ) { // percent
                 // Percent outputs the % of all non-missing values of
                 // that variable in that group relative to the number
                 // of non-missing values of that variable in the entire
@@ -140,33 +169,33 @@ int sf_collapse (struct StataInfo *st_info)
                 // divide by this when writing to Stata.
                 output[offset_output + k] = 100 * end;
             }
-            else if ( all_firstmiss[sel] & (mf_strcmp_wrapper (stat[k], "first") ) ) {
+            else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
                 // If first observation is missing, will write missing value
                 outmiss[offset_output + k] = 1;
             }
-            else if ( all_lastmiss[sel] & (mf_strcmp_wrapper (stat[k], "last") ) ) {
+            else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
                 // If last observation is missing, will write missing value
                 outmiss[offset_output + k] = 1;
             }
-            else if ( mf_strcmp_wrapper (stat[k], "first") | (mf_strcmp_wrapper (stat[k], "firstnm") ) ) {
+            else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
                 // First obs/first non-missing is the first entry in the inputs buffer
-                output[offset_output + k] = all_buffer[start];
+                output[offset_output + k] = firstobs[st_info->pos_targets[k]];
             }
-            else if ( mf_strcmp_wrapper (stat[k], "last") | (mf_strcmp_wrapper (stat[k], "lastnm") ) ) {
+            else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
                 // Last obs/last non-missing is the last entry in the inputs buffer
-                output[offset_output + k] = all_buffer[start + end - 1];
+                output[offset_output + k] = lastobs[st_info->pos_targets[k]];
             }
-            else if ( mf_strcmp_wrapper (stat[k], "sd") &  (end < 2) ) {
+            else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
                 // Standard deviation requires at least 2 observations
                 outmiss[offset_output + k] = 1;
             }
-            else if ( end == 0 ) {
+            else if ( end == 0 ) { // no obs
                 // If everything is missing, write a missing value
                 outmiss[offset_output + k] = 1;
             }
-            else {
+            else { // etc
                 // Otherwise compute the requested summary stat
-                output[offset_output + k] = mf_switch_fun (stat[k], all_buffer, start, start + end);
+                output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
             }
         }
     }
@@ -193,7 +222,7 @@ int sf_collapse (struct StataInfo *st_info)
 
             for (k = 0; k < st_info->kvars_targets; k++) {
                 sel = offset_output + k;
-                if ( mf_strcmp_wrapper (stat[k], "percent") ) output[sel] /= nmfreq[st_info->pos_targets[k]];
+                if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
                 output_buffer[k] = outmiss[sel]? SV_missval: output[sel];
             }
 
@@ -204,7 +233,7 @@ int sf_collapse (struct StataInfo *st_info)
                 for (k = 0; k < st_info->kvars_targets; k++) {
                     out = st_info->index[i] + st_info->in1;
                     // sel = offset_output + k;
-                    // if ( mf_strcmp_wrapper (stat[k], "percent") ) output[sel] /= nmfreq[st_info->pos_targets[k]];
+                    // if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
                     // if ( (rc = SF_vstore(k + st_info->start_target_vars, out, outmiss[sel]? SV_missval: output[sel])) ) return (rc);
                     if ( (rc = SF_vstore(k + st_info->start_target_vars, out, output_buffer[k])) ) return (rc);
                 }
@@ -243,7 +272,7 @@ int sf_collapse (struct StataInfo *st_info)
             // Copy output, writing  missing values as appropriate
             for (k = 0; k < st_info->kvars_targets; k++) {
                 sel = offset_output + k;
-                if ( mf_strcmp_wrapper (stat[k], "percent") ) output[sel] /= nmfreq[st_info->pos_targets[k]];
+                if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
                 if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, outmiss[sel]? SV_missval: output[sel])) ) return (rc);
             }
             // Copy back string variables to replace them in the data

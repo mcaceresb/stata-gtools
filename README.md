@@ -71,42 +71,44 @@ See `src/test/bench_gcollapse.do` for the benchmark code. We have 4 benchmarks:
   available stats (and 2 sample percentiles) for 2 variables.
 
 Software and hardware specifications:
-- Program: Stata/SE 13.1
+- Program: Stata/IC 13.1
 - OS: Linux (4.10.13-1-ARCH x86\_64 GNU/Linux)
 - Processor: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
 - Cores: 2 cores with 2 virtual threads per core.
 - Memory: 15.6GiB
 - Swap: 7.8GiB
 
-### Why not use Stata/MP?
+### Isn't it unfair to benchmark against `collapse` outside Stata/MP?
 
-I only have access to Stata/MP 14.2, and it would appear `fcollapse`
-cannot handle a large number of string levels in that version of Stata
-(though it may be my server's specific Stata configuration; I'm not
-familiar enough with `fcollapse` to debug).
+I don't think so, but if you want to see benchmarks that use Stata/MP
+see `./src/test/bench_mp.log`. The server I ran these on has a slighly
+older processor (I suspect that is the reason why both `gcollapse` and
+`fcollapse` are markedly slower in those benchmarks) but the relative
+performance of `collapse` does improve quite a bit.
 
-### Compared to `fcollapse`
+### Benchmarks in the style of `ftools`
 
 We vary N for J = 100 and collapse 15 variables:
 ```
     vars  = y1-y15 ~ 123.456 + U(0, 1)
     stats = sum
 
-    |          N | gcollapse | fcollapse | ratio |
-    | ---------- | --------- | --------- | ----- |
-    |  2,000,000 |      1.38 |      2.39 |  1.73 |
-    | 20,000,000 |     13.14 |     51.71 |  3.93 |
+    |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
+    |  2,000,000 |      1.50 |     11.04 |      2.56 |        1.71 |        7.38 |
+    | 20,000,000 |     14.46 |    121.08 |     51.58 |        3.57 |        8.37 |
 ```
 
-We vary N for J = 100 and collapse 3 variables:
+In the table, `g`, `f`, and `c` are code for `gcollapse`, `fcollapse`,
+and `collapse`. We repeat the exercise but with more complex summary statistics:
 ```
     vars  = y1-y3 ~ 123.456 + U(0, 1)
     stats = mean median
 
-    |          N | gcollapse | fcollapse | ratio |
-    | ---------- | --------- | --------- | ----- |
-    |  2,000,000 |      0.89 |      3.59 |  4.03 |
-    | 20,000,000 |      8.87 |     56.33 |  6.35 |
+    |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |
+    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
+    |  2,000,000 |      0.93 |     15.03 |      3.71 |        4.01 |       16.24 |
+    | 20,000,000 |      8.54 |    171.19 |     69.03 |        8.08 |       20.04 |
 ```
 
 ### Increasing the sample size

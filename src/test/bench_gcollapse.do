@@ -52,7 +52,7 @@ end
 
 capture program drop bench_ftools
 program bench_ftools
-    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7)]
+    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) multi]
     if ("`stats'" == "") local stats sum
 
     local collapse ""
@@ -77,7 +77,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -107,7 +107,7 @@ program bench_ftools
 
     local i = 1
     di "Results varying N for J = 100; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
@@ -126,7 +126,7 @@ end
 
 capture program drop bench_sample_size
 program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7)]
+    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) multi]
     * NOTE: fcollapse can't do sd, apparently
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -153,7 +153,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -183,7 +183,7 @@ program bench_sample_size
 
     local i = 1
     di "Results varying N for J = `nj'; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
@@ -198,7 +198,7 @@ end
 
 capture program drop bench_group_size
 program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6)]
+    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) multi]
     * NOTE: fcollapse can't do sd, apparently
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -226,7 +226,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -256,7 +256,7 @@ program bench_group_size
 
     local i = 1
     di "Results varying J for N = `nstr'; by(`by')"
-    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1

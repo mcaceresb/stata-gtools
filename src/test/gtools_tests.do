@@ -17,6 +17,7 @@ set more off
 set varabbrev off
 capture log close _all
 set seed 42
+set linesize 128
 
 * Main program wrapper
 * --------------------

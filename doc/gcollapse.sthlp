@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.1 20May2017}{...}
+{* *! version 0.3.2 21May2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -87,6 +87,8 @@ Saves speed but leaves resulting collapse unsorted.
 {synopt :{opt verbose}}verbose printing (for debugging).
 {p_end}
 {synopt :{opt benchmark}}print performance time info for each step.
+{p_end}
+{synopt :{opt checkhash}}check for hash collisions.
 {p_end}
 
 {synoptline}

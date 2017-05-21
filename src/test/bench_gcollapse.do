@@ -14,7 +14,7 @@ program bench_sim
     bys group: gen groupsub      = ceil(`njsub' *  _n / _N)
     bys group: gen groupsubfloat = ceil(`njsub' *  _n / _N) + 0.5
     tostring group, gen(groupstr)
-    replace groupstr = "i am a modesly long string" + groupstr
+    replace groupstr = "i am a modestly long string" + groupstr
 
     forvalues i = 1 / `nvars' {
         gen x`i' = rnormal()
@@ -127,7 +127,7 @@ end
 capture program drop bench_sample_size
 program bench_sample_size
     syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) multi]
-    * NOTE: fcollapse can't do sd, apparently
+    * NOTE: sometimes, fcollapse can't do sd
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
 
@@ -269,7 +269,7 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
+* !cd ..; ./build.py --replace
 * do gcollapse.ado
 * do gegen.ado
 * do gtools_tests.do

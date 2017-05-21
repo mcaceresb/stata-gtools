@@ -30,4 +30,6 @@ int sf_get_varlist_hash (
     int karr[]
 );
 
+int sf_check_hash_index (struct StataInfo *st_info);
+
 #endif

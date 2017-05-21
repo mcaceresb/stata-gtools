@@ -298,6 +298,24 @@ program checks_options_gegen
     *     drop tag*
     * set rmsg off
 
+    * Stata/MP
+    * --------
+
+    * | variable | gegen | fegen |  egen | 
+    * | -------- | ----- | ----- | ----- | 
+    * |        x |  6.32 |  2.52 | 35.32 | 
+    * |     xstr |  8.13 | 35.39 | 41.16 | 
+    * |     xdbl |  8.09 | 21.36 | 38.33 | 
+
+    * | variable | gegen |  egen | 
+    * | -------- | ----- | ----- | 
+    * |        x |  4.58 | 47.61 | 
+    * |     xstr |  6.86 | 57.39 | 
+    * |     xdbl |  6.37 | 49.56 | 
+
+    * Stata/IC
+    * --------
+
     * | variable | gegen | fegen |  egen | 
     * | -------- | ----- | ----- | ----- | 
     * |        x |  6.32 |  2.52 | 35.32 | 

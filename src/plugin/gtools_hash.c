@@ -235,20 +235,20 @@ int sf_get_variable_ashash (
  *     for k = 2 to K
  *         offset *= (zmax[k - 1] - zmin[k - 1] + 1)
  *         hash   += ( z[, k] - min(z[, k]) ) * offset
- *    
+ *
  * What is happening is that we are fisrt mapping
- *    
+ *
  *     var1 -> 1 to range of var1
- *    
+ *
  * Call this vmap1. Then we are mapping
- *    
+ *
  *     Smallest # of var2 -> vmap1
  *     2-smallest # of var2 -> vmap1 + 2 * range of vmap1
  *     ...
  *     ith-smallest # of var2 -> vmap1 + i * range of vmap1
- *    
+ *
  * Call this vmap2. Then we do
- *    
+ *
  *     Smallest # of vark -> vmap(k - 1)
  *     2-smallest # of vark -> vmap(k - 1) + 2 * range of vmap(k - 1)
  *     ...
@@ -313,4 +313,170 @@ int sf_get_varlist_bijection (
     }
 
     return (0);
+}
+
+/**
+ * @brief Check whether there were hash collisions
+ *
+ * C indexes the data into info and index. info notes the number of
+ * observations in each group. index maps the ith observation of the jth
+ * group to its corresponding position in Stata (+- SF_in1()). Hence if
+ * all observations from info[j] to info[j + 1] are the same, there are
+ * no collisions. If they are not, we have a collision.
+ *
+ * @param st_info Object containing index, info, and other Stata params
+ * @return Store map to whole numbers in @h1
+ *
+ */
+int sf_check_hash_index (struct StataInfo *st_info)
+{
+    int i, j, k;
+    size_t start, end, sel, numpos, strpos;
+    size_t l_str  = 0;
+    size_t k_num  = 0;
+    size_t k1     = 1;
+    size_t k2     = st_info->kvars_by;
+    size_t K      = k2 - k1 + 1;
+    int    kmax   = mf_max_signed(st_info->byvars_lens, K);
+    clock_t timer = clock();
+
+    // Figure out the number of numeric by variables and the combined
+    // string length of string by variables.
+    for (k = 0; k < K; k++) {
+        if (st_info->byvars_lens[k] > 0) {
+            l_str += st_info->byvars_lens[k];
+        }
+        else {
+            k_num += 1;
+        }
+    }
+    l_str = l_str > 0? l_str: 1;
+
+    // Will compare string in st_strbase to st_strcomp and number as are
+    // being read to numbers in st_numbase and st_nummiss
+    ST_retcode rc ;
+    ST_double  z ;
+    char s[kmax > 0? kmax + 1: 1];
+    char *st_strbase; st_strbase = malloc(l_str * sizeof(char));
+    char *st_strcomp; st_strcomp = malloc(l_str * sizeof(char));
+    double st_numbase[k_num > 0? k_num: 1];
+    short st_nummiss[k_num > 0? k_num: 1];
+    size_t collisions_count = 0;
+    size_t collisions_row   = 0;
+
+    // Loop through each group's observations
+    for (j = 0; j < st_info->J; j++) {
+        start  = i = st_info->info[j];
+        end    = st_info->info[j + 1];
+        sel    = st_info->index[i] + st_info->in1;
+        numpos = 0;
+        strpos = 0;
+        memset(st_strbase, '\0', l_str);
+        for (k = 0; k < k_num; k++)
+            st_nummiss[numpos] = 0;
+
+        // Compare all entries in each group to the first entry that
+        // appears in Stata
+        for (k = 0; k < K; k++) {
+            if (st_info->byvars_lens[k] > 0) {
+                if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
+                memcpy ( st_strbase + strpos, &s, strlen(s) );
+                strpos += strlen(s);
+            }
+            else {
+                if ( (rc = SF_vdata(k + k1, sel, &z)) ) return(rc);
+                if ( SF_is_missing(z) ) {
+                    st_nummiss[numpos] = 1;
+                }
+                else {
+                    st_numbase[numpos] = z;
+                }
+                ++numpos;
+            }
+        }
+
+        // debugging
+        // sf_printf ("Checking: strings = '");
+        // sf_printf (st_strbase);
+        // sf_printf ("' and numbers = ");
+        // for (k = 0; k < k_num; k++) {
+        //     if ( st_nummiss[k] ) {
+        //         sf_printf ("[missing], ");
+        //     }
+        //     else {
+        //         sf_printf ("%.5f, ", st_numbase[k]);
+        //     }
+        // }
+        // sf_printf ("vs:\n");
+        // debugging
+
+        // Check 2nd entry of group onward
+        for (i = start + 1; i < end; i++) {
+            memset(st_strcomp, '\0', l_str);
+            collisions_row = 0;
+            numpos = 0;
+            strpos = 0;
+            sel    = st_info->index[i] + st_info->in1;
+            for (k = 0; k < K; k++) {
+                if (st_info->byvars_lens[k] > 0) {
+                    // Concatenate string and compare result
+                    if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
+                    memcpy ( st_strcomp + strpos, &s, strlen(s) );
+                    strpos += strlen(s);
+                }
+                else {
+                    // Compare each number individually
+                    if ( (rc = SF_vdata(k + k1, sel, &z)) ) return(rc);
+                    if ( SF_is_missing(z) ) {
+                        if ( !st_nummiss[numpos] ) ++collisions_row;
+                    }
+                    else {
+                        if ( st_numbase[numpos] != z ) ++collisions_row;
+                    }
+                    ++numpos;
+                }
+            }
+            // debugging
+            // sf_printf ("\tstrings = '");
+            // sf_printf (st_strbase);
+            // sf_printf ("' and numbers = ");
+            // for (k = 0; k < k_num; k++) {
+            //     if ( st_nummiss[k] ) {
+            //         sf_printf ("[missing], ");
+            //     }
+            //     else {
+            //         sf_printf ("%.5f, ", st_numbase[k]);
+            //     }
+            // }
+            // sf_printf ("\n");
+            // debugging
+            if ( kmax > 0 ) {
+                if ( (strlen (st_strbase) != strlen (st_strcomp)) ) {
+                    ++collisions_row;
+                }
+                else if ( strncmp(st_strbase, st_strcomp, strlen(st_strcomp)) != 0 ) {
+                    ++collisions_row;
+                }
+            }
+            if ( collisions_row > 0 ) ++collisions_count;
+        }
+    }
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.0: Checked for hash collisions");
+
+    // If there were any collisions, ask user to file bug report
+    if ( collisions_count > 0 ) {
+        sf_errprintf ("There were %'lu 128-bit hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+                      collisions_count, st_info->kvars_by, st_info->N, st_info->J);
+        sf_errprintf ("This is a serious bug; please file a report at github.com/mcaceresb/stata-gtools\n");
+        return (42000);
+    }
+    else {
+        sf_printf ("There were no hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+                   st_info->kvars_by, st_info->N, st_info->J);
+    }
+
+    free(st_strbase);
+    free(st_strcomp);
+
+    return(0);
 }

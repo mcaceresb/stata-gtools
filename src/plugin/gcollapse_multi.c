@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:52 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.1
+ * Version: 0.3.2
  *********************************************************************/
 
 #include <omp.h>
@@ -181,6 +181,8 @@ int sf_collapse (struct StataInfo *st_info)
             offset_buffer = offsets_buffer[j];
             nj = st_info->info[j + 1] - st_info->info[j];
 
+            // Get the position of the first and last obs of each source
+            // variable (in case they are modified by calling qselect)
             for (k = 0; k < st_info->kvars_source; k++) {
                 sel   = offset_source + k;
                 start = offset_buffer + nj * k;

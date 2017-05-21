@@ -96,6 +96,10 @@ elif which("stata") is None:
     statadir = path.expanduser("~/.local/stata13")
     stataexe = path.join(statadir, "stata")
     statado  = stataexe + " -b do"
+else:
+    statadir = path.abspath(".")
+    stataexe = 'stata'
+    statado  = stataexe + " -b do"
 
 # Temporary files
 # ---------------

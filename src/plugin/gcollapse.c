@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:47 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.1
+ * Version: 0.3.2
  *********************************************************************/
 
 #include "gcollapse.h"
@@ -73,7 +73,7 @@ int sf_collapse (struct StataInfo *st_info)
         statcode[k] = dblstat;
         // stat[k]  = strstat;
         strstat     = strtok_r (NULL, " ", &ptr);
-    }               
+    }
 
     for (i = 0; i < st_info->kvars_by_num * st_info->J; i++)
         bymiss[i] = 0;
@@ -90,9 +90,46 @@ int sf_collapse (struct StataInfo *st_info)
     // Read in variables from Stata
     // ----------------------------
 
-    /* TODO: It is faster to read in variables from Stata sequentially.
-     * Figure out if this is feasible and use index on all_buffer for
-     * a possible speed gain. // 2017-05-18 22:01 EDT
+    /*
+     *
+     * The following maps the C group index to Stata so we can read
+     * observations from Stata in order; however, this was not faster,
+     * in testing, than reading observations out of order
+     *
+     * size_t *index_st = calloc(st_info->N, sizeof *index_st);
+     * for (j = 0; j < st_info->J; j++) {
+     *     start  = st_info->info[j];
+     *     end    = st_info->info[j + 1];
+     *     offsets_buffer[j] = start * st_info->kvars_source;
+     *     for (i = start; i < end; i++)
+     *         index_st[st_info->index[i]] = j;
+     * }
+     *
+     * offset_buffer = offset_source = 0;
+     * for (i = 0; i < st_info->N; i++) {
+     *     j     = index_st[i];
+     *     start = st_info->info[j];
+     *     end   = st_info->info[j + 1];
+     *     nj    = end - start;
+     *     offset_buffer = start * st_info->kvars_source;
+     *     offset_source = j * st_info->kvars_source;
+     *     for (k = 0; k < st_info->kvars_source; k++) {
+     *         // Read Stata in order
+     *         if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) return(rc);
+     *         if ( SF_is_missing(z) ) {
+     *             if (i == start)   all_firstmiss[offset_source + k] = 1;
+     *             if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
+     *         }
+     *         else {
+     *             // Read into C in order as well, via index_st, so
+     *             // non-missing entries of given variable for each group
+     *             // occupy a contiguous segment in memory.
+     *             all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+     *         }
+     *     }
+     * }
+     * free (index_st);
+     * if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read in source variables");
      */
 
     offset_buffer = offset_source = 0;
@@ -138,6 +175,8 @@ int sf_collapse (struct StataInfo *st_info)
         offset_buffer = offsets_buffer[j];
         nj = st_info->info[j + 1] - st_info->info[j];
 
+        // Get the position of the first and last obs of each source
+        // variable (in case they are modified by calling qselect)
         for (k = 0; k < st_info->kvars_source; k++) {
             sel   = offset_source + k;
             start = offset_buffer + nj * k;

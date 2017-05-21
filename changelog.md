@@ -1,6 +1,23 @@
 Change Log
 ==========
 
+## gtools-0.3.2 (2017-05-20)
+
+### Features
+
+* Added `checkhash` option to check for hash collisions.
+
+### Bug fixes
+
+* Finished the benchmarks, both locally (IC) and on the server (MP)
+* Normalized the execution of `gegen` and `gegen, multi`
+
+### Misc
+
+* Tested reading data from Stata sequentially (it's not faster)
+* Improved README
+* Various typo fixes in comments
+
 ## gtools-0.3.1 (2017-05-19)
 
 ### Bug fixes

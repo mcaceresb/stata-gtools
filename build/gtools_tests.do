@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sat May 20 14:03:27 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.3.1
+* Version: 0.3.2
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -23,7 +23,7 @@ set linesize 128
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily checks BENCHmark]
+    syntax, [CAPture NOIsily checks test BENCHmark]
 
     * Set up
     * ------
@@ -39,8 +39,8 @@ program main
         * do test_gcollapse.do
         * do test_gegen.do
         * do bench_gcollapse.do
-        if ( ("`checks'" == "") & ("`benchmark'" == "") ) {
-            di as err "Nothing to do. Specify -checks-, -bench-, or both"
+        if ( ("`checks'" == "") & ("`benchmark'" == "") & ("`test'" == "") ) {
+            di as err "Nothing to do. Specify -checks-, -bench-, -test-, or all"
             exit 198
         }
 
@@ -59,6 +59,14 @@ program main
 
             checks_consistency_gcollapse
             checks_consistency_gcollapse, multi
+        }
+
+        if ( "`test'" != "" ) {
+            di "Short (quick) versions of the benchmarks"
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(5) kvars(15)
+            bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(5) kvars(3) stats(mean median)
+            bench_group_size x1 x2,  by(groupstr) obsexp(4) kmax(4) pct(median iqr p23 p77)
+            bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(5) pct(median iqr p23 p77)
         }
 
         if ( "`benchmark'" != "" ) {
@@ -748,6 +756,24 @@ program checks_options_gegen
     *     drop tag*
     * set rmsg off
 
+    * Stata/MP
+    * --------
+
+    * | variable | gegen | fegen |  egen | 
+    * | -------- | ----- | ----- | ----- | 
+    * |        x |  6.32 |  2.52 | 35.32 | 
+    * |     xstr |  8.13 | 35.39 | 41.16 | 
+    * |     xdbl |  8.09 | 21.36 | 38.33 | 
+
+    * | variable | gegen |  egen | 
+    * | -------- | ----- | ----- | 
+    * |        x |  4.58 | 47.61 | 
+    * |     xstr |  6.86 | 57.39 | 
+    * |     xdbl |  6.37 | 49.56 | 
+
+    * Stata/IC
+    * --------
+
     * | variable | gegen | fegen |  egen | 
     * | -------- | ----- | ----- | ----- | 
     * |        x |  6.32 |  2.52 | 35.32 | 
@@ -779,7 +805,7 @@ program bench_sim
     bys group: gen groupsub      = ceil(`njsub' *  _n / _N)
     bys group: gen groupsubfloat = ceil(`njsub' *  _n / _N) + 0.5
     tostring group, gen(groupstr)
-    replace groupstr = "i am a modesly long string" + groupstr
+    replace groupstr = "i am a modestly long string" + groupstr
 
     forvalues i = 1 / `nvars' {
         gen x`i' = rnormal()
@@ -817,7 +843,7 @@ end
 
 capture program drop bench_ftools
 program bench_ftools
-    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7)]
+    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) multi]
     if ("`stats'" == "") local stats sum
 
     local collapse ""
@@ -842,7 +868,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -872,7 +898,7 @@ program bench_ftools
 
     local i = 1
     di "Results varying N for J = 100; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
@@ -891,8 +917,8 @@ end
 
 capture program drop bench_sample_size
 program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7)]
-    * NOTE: fcollapse can't do sd, apparently
+    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) multi]
+    * NOTE: sometimes, fcollapse can't do sd
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
 
@@ -918,7 +944,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -948,7 +974,7 @@ program bench_sample_size
 
     local i = 1
     di "Results varying N for J = `nj'; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
@@ -963,7 +989,7 @@ end
 
 capture program drop bench_group_size
 program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6)]
+    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) multi]
     * NOTE: fcollapse can't do sd, apparently
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -991,7 +1017,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') `multi'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1021,7 +1047,7 @@ program bench_group_size
 
     local i = 1
     di "Results varying J for N = `nstr'; by(`by')"
-    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |"
+    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
     di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
     foreach nn in `N' {
         local ii  = `i' + 1
@@ -1034,7 +1060,7 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
+* !cd ..; ./build.py --replace
 * do gcollapse.ado
 * do gegen.ado
 * do gtools_tests.do
@@ -1070,4 +1096,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, cap noi bench
+main, cap noi checks

@@ -1,6 +1,6 @@
 SPI = 2.0
 SPT = 0.2
-CFLAGS = -fPIC -DSYSTEM=OPUNIX -O3
+CFLAGS = -fPIC -DSYSTEM=OPUNIX -O2
 # -nostartfiles -lc --entry main
 SPOOKY = -L./lib/spookyhash/build/bin/Release -l:libspookyhash.a
 AUX = build/stplugin.o
@@ -10,9 +10,10 @@ OUTM = build/gtools_multi.plugin build/gtools_multi.o
 all: clean links gtools
 
 links:
-	ln -srf lib/spt-$(SPT) src/plugin/spt
-	ln -srf lib/spi-$(SPI) src/plugin/spi
-	ln -srf lib/spookyhash src/plugin/spookyhash
+	ln -sf ../../lib 	  src/plugin/lib
+	ln -sf lib/spt-$(SPT) src/plugin/spt
+	ln -sf lib/spi-$(SPI) src/plugin/spi
+	ln -sf lib/spookyhash src/plugin/spookyhash
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build

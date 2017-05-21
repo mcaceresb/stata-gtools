@@ -22,7 +22,7 @@ set seed 42
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily checks BENCHmark]
+    syntax, [CAPture NOIsily checks test BENCHmark]
 
     * Set up
     * ------
@@ -38,8 +38,8 @@ program main
         * do test_gcollapse.do
         * do test_gegen.do
         * do bench_gcollapse.do
-        if ( ("`checks'" == "") & ("`benchmark'" == "") ) {
-            di as err "Nothing to do. Specify -checks-, -bench-, or both"
+        if ( ("`checks'" == "") & ("`benchmark'" == "") & ("`test'" == "") ) {
+            di as err "Nothing to do. Specify -checks-, -bench-, -test-, or all"
             exit 198
         }
 
@@ -58,6 +58,14 @@ program main
 
             checks_consistency_gcollapse
             checks_consistency_gcollapse, multi
+        }
+
+        if ( "`test'" != "" ) {
+            di "Short (quick) versions of the benchmarks"
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(5) kvars(15)
+            bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(5) kvars(3) stats(mean median)
+            bench_group_size x1 x2,  by(groupstr) obsexp(4) kmax(4) pct(median iqr p23 p77)
+            bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(5) pct(median iqr p23 p77)
         }
 
         if ( "`benchmark'" != "" ) {

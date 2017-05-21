@@ -80,10 +80,10 @@ Software and hardware specifications:
 
 ### Why not use Stata/MP?
 
-I only have access to Stata/MP 14.2, and it would appear
-`fcollapse` cannot handle a large number of string levels in
-that version of Stata (I've filed a bug report about it; see
-[here](https://github.com/sergiocorreia/ftools/issues)).
+I only have access to Stata/MP 14.2, and it would appear `fcollapse`
+cannot handle a large number of string levels in that version of Stata
+(though it may be my server's specific Stata configuration; I'm not
+familiar enough with `fcollapse` to debug).
 
 ### Compared to `fcollapse`
 

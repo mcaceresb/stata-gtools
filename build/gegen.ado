@@ -244,7 +244,7 @@ program define gegen, byable(onecall)
                 pctile
 
     * Parse type of each by variable
-    ParseByTypes `by'
+    parse_by_types `by'
     scalar __gtools_merge = 1
 
     * Add dummy variable; will rename to target variable
@@ -334,24 +334,49 @@ end
 * Set up plugin call
 * ------------------
 
-capture program drop ParseByTypes
-program ParseByTypes
+capture program drop parse_by_types
+program parse_by_types
     syntax varlist
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
+    cap matrix drop c_gtools_bymiss
+    cap matrix drop c_gtools_bymin
+    cap matrix drop c_gtools_bymax
+
+    * Check whether we only have integers
+    local varnum ""
+    local knum  = 0
+    local khash = 0
+    foreach byvar of varlist `varlist' {
+        if inlist("`:type `byvar''", "byte", "int", "long") {
+            local ++knum
+            local varnum `varnum' `byvar'
+        }
+        else local ++khash
+    }
+
+    * If so, set up min and max in C
+    if ( (`knum' > 0) & (`khash' == 0) ) {
+        matrix c_gtools_bymiss = J(1, `knum', 0)
+        matrix c_gtools_bymin  = J(1, `knum', 0)
+        matrix c_gtools_bymax  = J(1, `knum', 0)
+        cap plugin call gtools_plugin `varnum', setup
+        if ( _rc ) exit _rc
+        matrix __gtools_bymin = c_gtools_bymin
+        matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
+    }
 
     * See help data_types
     foreach byvar of varlist `varlist' {
         local bytype: type `byvar'
         if inlist("`bytype'", "byte", "int", "long") {
-            qui count if mi(`byvar')
-            local addmax = (`r(N)' > 0)
-            qui sum `byvar'
-
+            * qui count if mi(`byvar')
+            * local addmax = (`r(N)' > 0)
+            * qui sum `byvar'
+            * matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
+            * matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
             matrix __gtools_byk   = nullmat(__gtools_byk), -1
-            matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)

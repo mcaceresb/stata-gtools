@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:52 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.2
+ * Version: 0.3.3
  *********************************************************************/
 
 #include <omp.h>
@@ -91,16 +91,84 @@ int sf_collapse (struct StataInfo *st_info)
     // Read in variables from Stata
     // ----------------------------
 
-    /* TODO: It is faster to read in variables from Stata sequentially.
-     * Figure out if this is feasible and use index on all_buffer for
-     * a possible speed gain. // 2017-05-18 22:01 EDT
+    int rcp = 0;
+    int nloops, rct;
+
+    /*********************************************************************
+     *                 Method 1: Continuously from Stata                 *
+     *********************************************************************/
+
+    /*
+     * The following maps the C group index to Stata so we can read
+     * observations from Stata in order; this seems slower than the
+     * multi-threaded out of order version some of the time, and faster
+     * other times... I pick it to be the default for now.
+     *
+    size_t *index_st = calloc(st_info->N, sizeof *index_st);
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        offsets_buffer[j] = start * st_info->kvars_source;
+        for (i = start; i < end; i++)
+            index_st[st_info->index[i]] = j;
+    }
+
+    rct = offset_buffer = offset_source = 0;
+    for (i = 0; i < st_info->N; i++) {
+        j     = index_st[i];
+        start = st_info->info[j];
+        end   = st_info->info[j + 1];
+        nj    = end - start;
+        offset_buffer = start * st_info->kvars_source;
+        offset_source = j * st_info->kvars_source;
+        for (k = 0; k < st_info->kvars_source; k++) {
+            // Read Stata in order
+            if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
+                rct = rc;
+                continue;
+            }
+            if ( SF_is_missing(z) ) {
+                if (i == start)   all_firstmiss[offset_source + k] = 1;
+                if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
+            }
+            else {
+                // Read into C in order as well, via index_st, so
+                // non-missing entries of given variable for each group
+                // occupy a contiguous segment in memory.
+                all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+            }
+        }
+    }
+    free (index_st);
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables");
+    if ( rct ) return (rct);
+     *
      */
 
+    /*********************************************************************
+     *                      Method 2: Out of order                       *
+     *********************************************************************/
+
+    /* For debugging
+     *
+    for (j = 0; j < st_info->J * st_info->kvars_source; j++)
+        all_nonmiss[j] = 0;
+     *
+     */
+
+    /*
+     * The following reads the variables out of order. It consumes ever
+     * so slighly less memory and was easier to code. However, reading
+     * variables in order is somewhat faster.
+     *
     offset_buffer = offset_source = 0;
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[j];
         end    = st_info->info[j + 1];
         nj     = end - start;
+        offset_buffer = start * st_info->kvars_source;
+        offset_source = j * st_info->kvars_source;
+
         // Loop through group in sequence
         for (i = start; i < end; i++) {
             sel = st_info->index[i] + st_info->in1;
@@ -120,19 +188,211 @@ int sf_collapse (struct StataInfo *st_info)
             }
         }
         offsets_buffer[j] = offset_buffer;
-        offset_buffer    += nj * st_info->kvars_source;
-        offset_source    += st_info->kvars_source;
     }
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read in source variables");
+     *
+     */
+
+    /*********************************************************************
+     *              Method 3: In parallel and out of order               *
+     *********************************************************************/
+
+    /* For debugging
+     *
+    for (j = 0; j < st_info->J * st_info->kvars_source; j++)
+        all_nonmiss[j] = 0;
+     *
+     */
+
+    /*
+     * The following reads the data in parallel by group. Sometimes it
+     * is faster than method 1, but sometimes it is slower... Hard to
+     * say when. For now method 1 is default
+     */
+    #pragma omp parallel        \
+            private (           \
+                k,              \
+                i,              \
+                z,              \
+                sel,            \
+                nloops,         \
+                start,          \
+                end,            \
+                nj,             \
+                offset_source,  \
+                offset_buffer,  \
+                rc,             \
+                rct             \
+            )                   \
+            shared (            \
+                st_info,        \
+                offsets_buffer, \
+                all_nonmiss,    \
+                all_firstmiss,  \
+                all_lastmiss,   \
+                all_buffer,     \
+                rcp             \
+            )
+    {
+        // Initialize private variables
+        z      = 0;
+        rc     = 0;
+        rct    = 0;
+        sel    = 0;
+        nloops = 0;
+        start  = 0;
+        end    = 0;
+        nj     = 0;
+        offset_source = 0;
+        offset_buffer = 0;
+
+        #pragma omp for
+        for (j = 0; j < st_info->J; j++) {
+            ++nloops;
+            start  = st_info->info[j];
+            end    = st_info->info[j + 1];
+            nj     = end - start;
+            offset_buffer = start * st_info->kvars_source;
+            offset_source = j * st_info->kvars_source;
+
+            // Loop through group in sequence
+            for (i = start; i < end; i++) {
+                sel = st_info->index[i] + st_info->in1;
+                for (k = 0; k < st_info->kvars_source; k++) {
+                    // Read Stata out of order
+                    if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
+                        rct = rc;
+                        continue;
+                    }
+                    if ( SF_is_missing(z) ) {
+                        if (i == start)   all_firstmiss[offset_source + k] = 1;
+                        if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
+                    }
+                    else {
+                        // Read into C in order, so non-missing entries of
+                        // given variable for each group occupy a contiguous
+                        // segment in memory.
+                        all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+                    }
+                }
+            }
+            offsets_buffer[j] = offset_buffer;
+        }
+
+        #pragma omp critical
+        {
+            if ( rct ) rcp = rct;
+            if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d groups.\n", omp_get_thread_num(), nloops);
+        }
+    }
+    if ( rcp ) return (rcp);
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables");
+    /*
+     */
+
+    /*********************************************************************
+     *            Method 4: Read into temporary buffer first             *
+     *********************************************************************/
+
+    /* For debugging
+     *
+    for (j = 0; j < st_info->J * st_info->kvars_source; j++)
+        all_nonmiss[j] = 0;
+     *
+     */
+
+    /*
+     * The following reads the data in parallel and in order
+     * into a temporary buffer and then orders that in C
+     *
+    double *buffer_st = calloc(st_info->kvars_source * st_info->N, sizeof *buffer_st);
+    size_t *index_st  = calloc(st_info->N, sizeof *index_st);
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        offsets_buffer[j] = start * st_info->kvars_source;
+        for (i = start; i < end; i++)
+            index_st[st_info->index[i]] = j;
+    }
+
+    #pragma omp parallel        \
+            private (           \
+                k,              \
+                z,              \
+                nloops,         \
+                rc,             \
+                rct             \
+            )                   \
+            shared (            \
+                st_info,        \
+                buffer_st,      \
+                rcp             \
+            )
+    {
+        // Initialize private variables
+        z      = 0;
+        rc     = 0;
+        rct    = 0;
+        nloops = 0;
+
+        #pragma omp for
+        for (i = 0; i < st_info->N; i++) {
+            ++nloops;
+            for (k = 0; k < st_info->kvars_source; k++) {
+                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
+                    rct = rc;
+                    continue;
+                }
+                buffer_st [i * st_info->kvars_source + k] = z;
+            }
+        }
+
+        #pragma omp critical
+        {
+            if ( rct ) rcp = rct;
+            if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d observations.\n",
+                                              omp_get_thread_num(), nloops);
+        }
+    }
+    if ( rcp ) return (rcp);
+
+    offset_buffer = offset_source = 0;
+    for (i = 0; i < st_info->N; i++) {
+        j     = index_st[i];
+        start = st_info->info[j];
+        end   = st_info->info[j + 1];
+        nj    = end - start;
+        offset_buffer = start * st_info->kvars_source;
+        offset_source = j * st_info->kvars_source;
+        for (k = 0; k < st_info->kvars_source; k++) {
+            // Read Stata's buffer in order
+            z = buffer_st[i * st_info->kvars_source + k];
+            if ( SF_is_missing(z) ) {
+                if (i == start)   all_firstmiss[offset_source + k] = 1;
+                if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
+            }
+            else {
+                // Read into C in order as well, via index_st, so
+                // non-missing entries of given variable for each group
+                // occupy a contiguous segment in memory.
+                all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+            }
+        }
+    }
+    free (index_st);
+    free (buffer_st);
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables");
+     *
+     */
+
+    // Collapse variables by group
+    // ---------------------------
 
     for (j = 0; j < st_info->J; j++)
         for (k = 0; k < st_info->kvars_source; k++)
             nmfreq[k] += all_nonmiss[j * st_info->kvars_source + k];
 
-    // Collapse variables by group
-    // ---------------------------
 
-    int nloops;
     #pragma omp parallel        \
             private (           \
                 k,              \

@@ -79,9 +79,11 @@ All benchmarks were done on a server with the following specifications:
     Memory:    220GiB
     Swap:      298GiB
 
-Alternatively, I made Stata/IC benchmarks available (since I only have
-IC on my personal computer). See `./src/test/bench_ic.log`; the speed
-gains in IC are, naturally, markedly higher than those below.
+using the multi-threaded version of `gcollapse` (which I though was
+fitting for Stata/MP). Alternatively, I made Stata/IC benchmarks
+available (since I only have IC on my personal computer) using the
+single-threaded version of `gcollapse`. See `./src/test/bench_ic.log`;
+the speed gains in IC are markedly higher than those below.
 
 ### Benchmarks in the style of `ftools`
 
@@ -90,10 +92,11 @@ We vary N for J = 100 and collapse 15 variables:
     vars  = y1-y15 ~ 123.456 + U(0, 1)
     stats = sum
 
-    |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
-    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      2.45 |      7.02 |      3.31 |        1.35 |        2.86 |
-    | 20,000,000 |     20.23 |     89.45 |     42.75 |        2.11 |        4.42 |
+    |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+    | ----------- | --------- | --------- | --------- | ----------- | ----------- |
+    |   2,000,000 |      1.18 |      6.18 |      3.49 |        2.96 |        5.25 |
+    |  20,000,000 |     11.67 |     66.25 |     41.71 |        3.57 |        5.68 |
+    | 200,000,000 |    135.20 |    774.82 |    499.10 |        3.69 |        5.73 |
 ```
 
 In the tables, `g`, `f`, and `c` are code for `gcollapse`, `fcollapse`,
@@ -103,13 +106,14 @@ complex summary statistics:
     vars  = y1-y3 ~ 123.456 + U(0, 1)
     stats = mean median
 
-    |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/f) |
-    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.95 |      8.82 |      3.69 |        3.88 |        9.28 |
-    | 20,000,000 |     12.35 |    117.78 |     43.34 |        3.51 |        9.54 |
+    |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+    | ----------- | --------- | --------- | --------- | ----------- | ----------- |
+    |   2,000,000 |      0.65 |      8.35 |      3.36 |        5.17 |       12.85 |
+    |  20,000,000 |      4.72 |     99.25 |     39.30 |        8.33 |       21.03 |
+    | 200,000,000 |     57.87 |   1703.96 |    626.00 |       10.82 |       29.44 |
 ```
 
-We see `gcollapse` is 2-3.5 times faster than `fcollapse` and 4-10 times
+We see `gcollapse` is 3-10 times faster than `fcollapse` and 5-30 times
 faster than `collapse`, with larger speed gains for complex statistics.
 
 ### Increasing the sample size
@@ -152,60 +156,6 @@ Interestingly, the performance of collapse is consistent at about
 `gcollapse`. `fcollapse` did better with a modest number of groups,
 where `gcollapse` was only 1.5-3.5x faster, similar to prior benchmarks.
 However, with 10 groups and 1M groups, `gcollapse` was ~7x faster.
-
-### Stata vs C
-
-We can benchmark the Stata overhead for the two scenarios above. (See
-`./src/test/bench_gcollapse.do` for the data simulation program)
-```stata
-    J = 10
-    N = 20,000,000
-    vars  = x1 x2 ~ N(0, 1)
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-
-    . gcollapse [...], by(group) benchmark
-    Program set up executed in 37.54 seconds
-            Plugin step 1: stata parsing done; 0.000 seconds.
-            Plugin step 2: Hashed by variables; 1.960 seconds.
-            Plugin step 3: Sorted on integer-only hash index; 2.890 seconds.
-            Plugin step 4: Set up variables for main group loop; 0.410 seconds.
-            Plugin step 5.1: Read in source variables; 4.220 seconds.
-            Plugin step 5.2: Collapsed source variables; 2.460 seconds.
-            Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-    The plugin executed in 12.04 seconds
-    Program exit executed in 2.72 seconds
-    The program executed in 52.3 seconds
-
-    J = 1,000,000
-    N = 5,000,000
-    vars  = x1 x2 ~ N(0, 1)
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-
-    . gcollapse [...], by(group) benchmark
-    Program set up executed in 6.144 seconds
-            Plugin step 1: stata parsing done; 0.000 seconds.
-            Plugin step 2: Hashed by variables; 0.470 seconds.
-            Plugin step 3: Sorted on integer-only hash index; 1.270 seconds.
-            Plugin step 4: Set up variables for main group loop; 0.090 seconds.
-            Plugin step 5.1: Read in source variables; 1.120 seconds.
-            Plugin step 5.2: Collapsed source variables; 0.900 seconds.
-            Plugin step 6: Copied collapsed variables back to stata; 0.990 seconds.
-    The plugin executed in 4.874 seconds
-    Program exit executed in 2.036 seconds
-    The program executed in 13.05 seconds
-```
-
-The crux of the runtime—indeed, 60%-80% of the runtime—is setting
-up the data in Stata for C (in particular this is adding empty target
-variables and dropping superfluous variables) and dropping non-collapsed
-observations after the plugin is done (and with J = 1,000,000, sorting
-the collapse also takes some time). It is not possible to add and drop
-variables or data from C, so we must do that in Stata before running the
-plugin (this is also the problem with memory management).
-
-This also reveals that further speed improvements to the plugin will
-come from improving the Stata portion of the code, rather than the C
-portion of the code.
 
 Supported Functions
 -------------------
@@ -377,8 +327,10 @@ and outputs data of fixed size.
 In particular we use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
 devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
 at 20 billion or so, meaning a 128-bit hash collision is _de facto_
-impossible. But if you worry about such things, you can check groups are
-consistent with the `checkhash` option.
+impossible. (If you worry about such things, you can check groups are
+consistent with the `checkhash` option; fair warning: this feature is
+currently very experimental and in testing I have ocassionally found
+it to produce false positives---i.e. finding a collision when there is none.)
 
 TODO
 ----

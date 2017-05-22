@@ -269,18 +269,25 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py --replace
+* !cd ..; ./build.py
 * do gcollapse.ado
 * do gegen.ado
 * do gtools_tests.do
+* preserve
+* gcollapse `collapse', by(`by') `multi' v b
+* restore
+
+* use ~/Downloads/problem.dta, clear
+* di "gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash"
+* gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash
 
 * Benchmarks in the README
 * ------------------------
 
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
 * bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
+* bench_sample_size x1 x2, by(groupstr) kmin(4)  kmax(7) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6) 
 
 * Misc
 * ----

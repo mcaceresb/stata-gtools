@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:08:15 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.2
+ * Version: 0.3.3
  *********************************************************************/
 
 /**
@@ -32,9 +32,11 @@
 #if GMULTI
 #include "gcollapse_multi.c"
 #include "gegen_multi.c"
+#include "gtools_misc_multi.c"
 #else
 #include "gcollapse.c"
 #include "gegen.c"
+#include "gtools_misc.c"
 #endif
 
 /* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
@@ -85,6 +87,10 @@ STDLL stata_call(int argc, char *argv[])
         else {
             if ( (rc = sf_egen (&st_info)) ) return (rc);
         }
+    }
+    else if ( strcmp(todo, "setup") == 0 ) {
+        if ( (rc = sf_numsetup()) ) return (rc);
+        return (0);
     }
 
     sf_free (&st_info);
@@ -213,10 +219,10 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     // function f such that f: B_1 x ... x B_K -> N, where N are the
     // natural (whole) numbers. For integers, we don't need to hash
     // the data:
-    // 
+    //
     //     1. The first variable: z[i, 1] = f(1)(x[i, 1]) = x[i, 1] - min(x[, 1]) + 1
     //     2. The kth variable: z[i, k] = f(k)(x[i, k]) = i * range(z[, k - 1]) + (x[i, k - 1] - min(x[, 2]))
-    // 
+    //
     // If we have too many by variables, it is possible our integers
     // will overflow. We check whether this may happen below.
 

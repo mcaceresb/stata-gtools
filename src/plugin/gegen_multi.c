@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:40 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.2
+ * Version: 0.3.3
  *********************************************************************/
 
 #include <omp.h>

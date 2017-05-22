@@ -18,9 +18,9 @@ program gcollapse
         double                 /// Do all operations in double precision
         merge                  /// Merge statistics back to original data, replacing where applicable
         multi                  /// Multi-threaded version of gcollapse
-        checkhash              /// Check for hash collisions
+        checkhash              /// Check for hash collisions (experimental)
     ]
-    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix." 
+    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
 
     * Time the entire function execution
     {
@@ -46,6 +46,7 @@ program gcollapse
         scalar __gtools_checkhash = 0
     }
     else {
+        di as txt "(WARNING: Code to check for hash collisions is in beta.)"
         local checkhash = 1
         scalar __gtools_checkhash = 1
     }
@@ -96,7 +97,7 @@ program gcollapse
             local indexed = 0
         }
         else if ( `: list by == sortedby' ) {
-            if (`verbose') di as text "data already sorted; indexing in stata"
+            if ( `verbose' ) di as text "data already sorted; indexing in stata"
         }
         else if ( `:list by === sortedby' ) {
             local byorig `by'
@@ -127,7 +128,7 @@ program gcollapse
     * Parse anything
     * --------------
 
-    if ("`anything'" == "") {
+    if ( "`anything'" == "" ) {
         di as err "invalid syntax"
         exit 198
     }
@@ -143,19 +144,7 @@ program gcollapse
     local gtools_uniq_stats `__gtools_uniq_stats'
 
     * Available Stats
-    local stats sum     ///
-                mean    ///
-                sd      ///
-                max     ///
-                min     ///
-                count   ///
-                median  ///
-                iqr     ///
-                percent ///
-                first   ///
-                last    ///
-                firstnm ///
-                lastnm
+    local stats sum mean sd max min count median iqr percent first last firstnm lastnm
 
     * Parse quantiles
     local quantiles : list gtools_uniq_stats - stats
@@ -178,7 +167,7 @@ program gcollapse
     * -----------
 
     * Subset if requested
-    qui if  ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
+    qui if ( (("`if'`in'" != "") | ("`cw'" != "")) & ("`touse'" == "") ) {
         marksample touse, strok novarlist
         if ("`cw'" != "") {
             markout `touse' `by' `gtools_uniq_vars', strok
@@ -187,7 +176,21 @@ program gcollapse
     }
 
     * Parse type of each by variable
-    ParseByTypes `by'
+    cap parse_by_types `by'
+    if ( _rc ) exit _rc
+    {
+        timer off 97
+        qui timer list
+        if ( `benchmark' ) di "Parsed by variables; `:di trim("`:di %21.4gc r(t97)'")' seconds"
+        timer off 97
+        timer clear 97
+    }
+    * Benchmark keep/drop/recast
+    {
+        cap timer off 97
+        cap timer clear 97
+        timer on 97
+    }
 
     if ( "`merge'" == "" ) {
         scalar __gtools_merge = 0
@@ -222,6 +225,7 @@ program gcollapse
         if ( `indexed' ) local keepvars `by' `bysmart' `gtools_uniq_vars'
         else local keepvars `by' `gtools_uniq_vars'
         mata: st_keepvar((`:di subinstr(`""`keepvars'""', " ", `"", ""', .)'))
+        if ( `verbose' ) di as text "In memory: `keepvars'"
     }
     else scalar __gtools_merge = 1
 
@@ -229,6 +233,7 @@ program gcollapse
     * from C, and we cannot halt the C execution, create the final data
     * in Stata, and then go back to C.
     local dropme ""
+    local added ""
     qui foreach var of local gtools_targets {
         gettoken sourcevar __gtools_vars: __gtools_vars
         gettoken collstat  __gtools_stats: __gtools_stats
@@ -260,7 +265,10 @@ program gcollapse
         * instance, we use it to store the first summary statistic
         * requested for that variable and recast as applicable.
         cap confirm variable `var'
-        if ( _rc ) mata: st_addvar("`targettype'", "`var'", 1)
+        if ( _rc ) {
+            mata: st_addvar("`targettype'", "`var'", 1)
+            local added `added' `var'
+        }
         else {
             * We only recast integer types. Floats and doubles are
             * preserved unless requested.
@@ -271,7 +279,7 @@ program gcollapse
             if ( `recast' ) {
                 tempname dropvar
                 rename `var' `dropvar'
-                local drop `drop' `dropvar'
+                local dropme `dropme' `dropvar'
                 mata: st_addvar("`targettype'", "`var'", 1)
                 replace `var' = `dropvar'
                 * gen `targettype' `var' = `dropvar'
@@ -281,7 +289,9 @@ program gcollapse
     }
 
     * if ("`dropme'" != "") drop `dropme'
-    if ("`dropme'" != "") mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+    if ( (`verbose') & ("`dropme'" != "") ) di as text "Recast: `dropme'"
+    if ( (`verbose') & ("`added'"  != "") ) di as text "Added: `added'"
+    if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
 
     * This is not, strictly speaking, necessary, but I have yet to
     * figure out how to handle strings in C efficiently; will improve on
@@ -334,7 +344,7 @@ program gcollapse
     {
         timer off 97
         qui timer list
-        if ( `benchmark' ) di "Program set up executed in `:di trim("`:di %21.4gc r(t97)'")' seconds"
+        if ( `benchmark' ) di "Keep/drop/recast executed in `:di trim("`:di %21.4gc r(t97)'")' seconds"
         timer off 97
         timer clear 97
     }
@@ -408,30 +418,87 @@ program gcollapse
         timer off 98
         timer clear 98
     }
+
+    * Clean up after yourself
+    * -----------------------
+
+    cap scalar drop __gtools_indexed
+    cap scalar drop __gtools_nstr
+    cap scalar drop __gtools_J
+    cap scalar drop __gtools_k_uniq_stats
+    cap scalar drop __gtools_k_uniq_vars
+    cap scalar drop __gtools_k_stats
+    cap scalar drop __gtools_k_vars
+    cap scalar drop __gtools_k_targets
+    cap scalar drop __gtools_l_uniq_stats
+    cap scalar drop __gtools_l_uniq_vars
+    cap scalar drop __gtools_l_stats
+    cap scalar drop __gtools_l_vars
+    cap scalar drop __gtools_l_targets
+    cap scalar drop __gtools_merge
+    cap scalar drop __gtools_benchmark
+    cap scalar drop __gtools_verbose
+    cap scalar drop __gtools_checkhash
+
+    cap matrix drop __gtools_outpos
+    cap matrix drop __gtools_strpos
+    cap matrix drop __gtools_numpos
+    cap matrix drop __gtools_byk
+    cap matrix drop __gtools_bymin
+    cap matrix drop __gtools_bymax
+    cap matrix drop c_gtools_bymiss
+    cap matrix drop c_gtools_bymin
+    cap matrix drop c_gtools_bymax
+
     exit 0
 end
 
 * Set up plugin call
 * ------------------
 
-capture program drop ParseByTypes
-program ParseByTypes
+capture program drop parse_by_types
+program parse_by_types
     syntax varlist
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
+    cap matrix drop c_gtools_bymiss
+    cap matrix drop c_gtools_bymin
+    cap matrix drop c_gtools_bymax
+
+    * Check whether we only have integers
+    local varnum ""
+    local knum  = 0
+    local khash = 0
+    foreach byvar of varlist `varlist' {
+        if inlist("`:type `byvar''", "byte", "int", "long") {
+            local ++knum
+            local varnum `varnum' `byvar'
+        }
+        else local ++khash
+    }
+
+    * If so, set up min and max in C
+    if ( (`knum' > 0) & (`khash' == 0) ) {
+        matrix c_gtools_bymiss = J(1, `knum', 0)
+        matrix c_gtools_bymin  = J(1, `knum', 0)
+        matrix c_gtools_bymax  = J(1, `knum', 0)
+        cap plugin call gtools_plugin `varnum', setup
+        if ( _rc ) exit _rc
+        matrix __gtools_bymin = c_gtools_bymin
+        matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
+    }
 
     * See help data_types
     foreach byvar of varlist `varlist' {
         local bytype: type `byvar'
         if inlist("`bytype'", "byte", "int", "long") {
-            qui count if mi(`byvar')
-            local addmax = (`r(N)' > 0)
-            qui sum `byvar'
-
+            * qui count if mi(`byvar')
+            * local addmax = (`r(N)' > 0)
+            * qui sum `byvar'
+            * matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
+            * matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
             matrix __gtools_byk   = nullmat(__gtools_byk), -1
-            matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)

@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-0.3.3 (2017-05-21)
+
+### Features
+
+* Significantly sped up integer-only hash by computing the ranges in C,
+  not in Stata.
+* Data is now read sequentially from Stata. More extensive testing
+  revealed this is usually faster.
+* In the multi-threaded version, data is read in parallel. More extensive
+  testing revealed this is usually faster.
+
+### Planned
+
+* Decide on a method to read in variables from stata; implement across
+  all single and multi-threaded versions.
+
 ## gtools-0.3.2 (2017-05-20)
 
 ### Features

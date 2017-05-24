@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.3 22May2017}{...}
+{* *! version 0.4.0 23May2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -80,15 +80,11 @@ Saves speed but leaves resulting collapse unsorted.
 {p_end}
 {synopt :{opt merge}}merge collapsed results back to oroginal data.
 {p_end}
-{synopt :{opt multi}}invoke multi-threaded version of gcollapse plugin.
-{p_end}
 {synopt :{opt double}}store data in double precision.
 {p_end}
 {synopt :{opt verbose}}verbose printing (for debugging).
 {p_end}
 {synopt :{opt benchmark}}print performance time info for each step.
-{p_end}
-{synopt :{opt checkhash}}check for hash collisions.
 {p_end}
 
 {synoptline}
@@ -135,14 +131,6 @@ in C much faster than via hashing.
 Note that if you want to keep the source variable(s) then you {it:need}
 to assign a new name to it for each summary statistic. Otherwise it will
 be overwritten.
-
-{phang}
-{opt multi} invokes the multi-threaded version of the gcollapse plugin.
-Most of the time this will not yield significant improvements because
-typically the bulk of the execution time is taken up by overhead setting
-up the data in Stata to be fit for the plugin call. One case where
-multi-threding is encouraged is when collapsing quantiles to a large
-number of levels (hundreds of thousands or millions).
 
 {phang}
 {opt double} stores data in double precision.

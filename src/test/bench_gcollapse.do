@@ -52,7 +52,7 @@ end
 
 capture program drop bench_ftools
 program bench_ftools
-    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) multi]
+    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) *]
     if ("`stats'" == "") local stats sum
 
     local collapse ""
@@ -62,6 +62,9 @@ program bench_ftools
             local collapse `collapse' `stat'_`var' = `var'
         }
     }
+
+    * First set of benchmarks: default vs collapse, fcollapse
+    * -------------------------------------------------------
 
     local i = 0
     local N ""
@@ -77,7 +80,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') `multi'
+                qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -126,7 +129,7 @@ end
 
 capture program drop bench_sample_size
 program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) multi]
+    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) *]
     * NOTE: sometimes, fcollapse can't do sd
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -138,6 +141,9 @@ program bench_sample_size
             local collapse `collapse' `stat'_`var' = `var'
         }
     }
+
+    * First set of benchmarks: default vs collapse, fcollapse
+    * -------------------------------------------------------
 
     local i = 0
     local N ""
@@ -153,7 +159,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') `multi'
+                qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -198,7 +204,7 @@ end
 
 capture program drop bench_group_size
 program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) multi]
+    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
     * NOTE: fcollapse can't do sd, apparently
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -210,6 +216,9 @@ program bench_group_size
             local collapse `collapse' `stat'_`var' = `var'
         }
     }
+
+    * First set of benchmarks: default vs collapse, fcollapse
+    * -------------------------------------------------------
 
     local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
     local i = 0
@@ -226,7 +235,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') `multi'
+                qui gcollapse `collapse', by(`by')
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -270,11 +279,11 @@ program bench_group_size
 end
 
 * !cd ..; ./build.py
-* do gcollapse.ado
 * do gegen.ado
 * do gtools_tests.do
+* do gcollapse.ado
 * preserve
-* gcollapse `collapse', by(`by') `multi' v b
+* gcollapse `collapse', by(`by') v b
 * restore
 
 * use ~/Downloads/problem.dta, clear
@@ -285,26 +294,16 @@ end
 * ------------------------
 
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-* bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_sample_size x1 x2, by(groupstr) kmin(4)  kmax(7) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6) 
+* bench_ftools y1 y2 y3,   by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(4) kmax(7) kvars(10) stats(mean median min max)
+* bench_sample_size x1 x2, by(groupstr) kmin(4) kmax(7) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6) 
 
 * Misc
 * ----
 
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(5) kvars(15)
-* bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(5) kvars(3) stats(mean median)
-* bench_group_size x1 x2,  by(groupstr) obsexp(4) kmax(4) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(5) pct(median iqr p23 p77)
-
-* bench_ftools y1 y2 y3 y4 y5, by(x3) kmin(2) kmax(5) kvars(5)
-* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4)
-* bench_group_size  x1 x2,  by(group) obsexp(5) kmax(4) pct(median iqr p23 p77)
-* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5)
-* bench_sample_size x1 x2,  by(group) kmin(2)   kmax(5) pct(median iqr p23 p77)
-
-* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6)
-* bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
-* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7)
-* bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
-* bench_ftools y1 y2 y3,   by(x4 x6)    kmin(4)   kmax(7) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(8) kvars(15)
+* bench_ftools y1 y2 y3,   by(x3) kmin(5) kmax(8) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
+* bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)

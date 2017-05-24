@@ -2,14 +2,14 @@
 
 /**
  * @brief Radix sort on unsigned 64-bit integers with index
- * 
+ *
  * Perform a radix sort on an array of 64-bit integers. The radix
  * sort performs 64 / d passes of the counting sort, where the set of
  * integers is sorted d-bits at a time. In order to achiave this, we
  * sort x[i] mod 2^(d * (j - 1)) for j = 1 to 64 / d. Smaller values of
  * d will result in a slower sort (more pases of the counting sort are
  * required) but will use less memory.
- * 
+ *
  * @param x vector of unsigned 64-bit integers to sort
  * @param index vector of same length where to store the sort index
  * @param N length of array
@@ -64,10 +64,10 @@ void mf_radix_sort_index (
 
 /**
  * @brief One pass of radix sort: Counting sort with index
- * 
+ *
  * Perform one pass of the counting sort for the radix sort using
  * the modulus operator to sort log2(shift) bits at a time.
- * 
+ *
  * @param x vector of unsigned 64-bit integers to sort
  * @param index vector of same length where to store the sort index
  * @param N length of array
@@ -82,7 +82,7 @@ void mf_radix_sort_index_pass (
     const uint64_t exp,
     const size_t shift)
 {
-    // Allocate space for x, index copies and x mod 
+    // Allocate space for x, index copies and x mod
     uint64_t *xmod = calloc(N, sizeof *xmod);
     uint64_t *outx = calloc(N, sizeof *outx);
     size_t   *outi = calloc(N, sizeof *outi);
@@ -116,10 +116,10 @@ void mf_radix_sort_index_pass (
 
 /**
  * @brief Counting sort with index
- * 
+ *
  * Perform counting sort, additionally storing data shuffle
  * in index variable.
- * 
+ *
  * @param x vector of unsigned 64-bit integers to sort
  * @param index vector of same length where to store the sort index
  * @param N length of array
@@ -135,7 +135,7 @@ void mf_counting_sort_index(
     int i, s;
     size_t range = max - min + 1;
 
-    // Allocate space for x, index copies and x mod 
+    // Allocate space for x, index copies and x mod
     uint64_t *xcopy = calloc(N, sizeof *xcopy);
     size_t   *icopy = calloc(N, sizeof *icopy);
     int      *count = calloc(range + 1, sizeof *count);
@@ -170,10 +170,10 @@ void mf_counting_sort_index(
 
 /**
  * @brief Set up variables for panel using 128-bit hashes
- * 
+ *
  * Using sorted 128-bit hashes, generate info array with start and
  * ending positions of each group in the sorted hash.
- * 
+ *
  * @param h1 Array of 64-bit integers containing first half of 128-bit hashes
  * @param h2 Array of 64-bit integers containing second half of 128-bit hashes
  * @param index Index of sort (will modify if second half of hash is required)
@@ -212,11 +212,11 @@ size_t * mf_panelsetup128 (
             // should be very rare to have to use both keys. (Stata caps
             // observations at 20 billion anyway, and there's one hash
             // per *group*, not row).
-            // 
+            //
             // Still, if the 64-bit hashes are not enough, use the full
             // 128-bit hashes, wehere we don't expect a collision until
             // we have 16 quintillion groups in our data.
-            // 
+            //
             // See burtleburtle.net/bob/hash/spooky.html for details.
 
             if ( !mf_check_allequal(h2, info_largest[l - 1], i) ) {
@@ -264,10 +264,10 @@ size_t * mf_panelsetup128 (
 
 /**
  * @brief Short utility to check if segment of array is equal
- * 
+ *
  * Check if elements from start to end of array @hash are equal
  * from @start to @end.
- * 
+ *
  * @param hash Array of 64-bit integers to check are equal
  * @param start Start position of check
  * @param end End position of check
@@ -283,12 +283,12 @@ int mf_check_allequal (uint64_t hash[], size_t start, size_t end)
 
 /**
  * @brief Set up variables for panel using 64-bit hashes
- * 
+ *
  * Using sorted 64-bit hashes, generate info array with start and ending
  * positions of each group in the sorted hash. Gtools uses this only if
  * the inputs were all integers and was able to biject them into the
  * whole numbers.
- * 
+ *
  * @param h1 Array of 64-bit integers containing the result of the bijection.
  * @param N Length of h1, h2 arrays
  * @param J where to store the number of groups
@@ -320,3 +320,74 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
 
     return (info);
 }
+
+/*********************************************************************
+ *                              Planned                              *
+ *********************************************************************/
+
+/**
+ * @brief Sort results from Collapse for Stata
+ *
+ * Sort the by variables so we write to Stata in order and don't have to
+ * use sort.
+ *
+ * @param kvars Number of by variables
+ * @param lengths Array with lengths of by variables, if string, of -1 if numeric
+ * @return index for reading the data back into Stata
+ */
+
+/*
+ * int * sf_sort_byvars (size_t kvars, size_t lengths[])
+ * {
+ *     // Read first by var data into struct
+ *     // Indexed = ... // first variable
+ *     qsort(Indexed, N, sizeof(Indexed), mf_compare_indexed)
+ *     // IndexInfo = PanelSetup(Indexed, N, &J)
+ *     for(k = 1; k < kvars; k++) {
+ *         if ( J == N ) break; // Sort by (k - 1)th variable produced a unique sort
+ *         // IndexedNew = ... // kth variable
+ *         // IndexedNewCopy = IndexedNew
+ *         for(i = 0; i < N; i++) {
+ *             IndexedNew[i] = IndexedNewCopy[Indexed[i]->index]
+ *             // This should also copy the index values in the new order
+ *             // i.e. do not recreate the index at each step
+ *         }
+ *         for (j = 0; j < J; j++){
+ *             start = IndexInfo[j]
+ *             end   = IndexInfo[j + 1]
+ *             for(i = start; i < end; i++) {
+ *                 qsort(IndexedNew + start, end - start, sizeof(IndexedNew), mf_compare_indexed)
+ *             }
+ *         }
+ *         Indexed = IndexedNew
+ *         // IndexInfo = PanelSetup(Indexed, N, &J)
+ *     }
+ *     // return(index); // the ith observation is given by index[i]
+ * }
+ */
+
+/*
+ * int mf_compare_indexed_double (const void *a, const void *b) {
+ *   IndexedDouble *A, *B;
+ *   A = (IndexedDouble*)a;
+ *   B = (IndexedDouble*)b;
+ *   return (A->value - B->value);
+ * }
+ *
+ * int mf_compare_indexed_string (const void *a, const void *b) {
+ *   IndexedString *A, *B;
+ *   A = (IndexedString*)a;
+ *   B = (IndexedString*)b;
+ *   return (strcmp(A->value, B->value));
+ * }
+ *
+ * struct IndexedString {
+ *   char *value;
+ *   size_t index;
+ * }
+ *
+ * struct IndexedDouble {
+ *   double value;
+ *   size_t index;
+ * }
+ */

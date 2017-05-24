@@ -5,7 +5,7 @@
  * Updated: Sat May 20 14:06:47 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.3
+ * Version: 0.4.0
  *********************************************************************/
 
 #include "gcollapse.h"
@@ -18,6 +18,11 @@
  */
 int sf_collapse (struct StataInfo *st_info)
 {
+    if ( (st_info->read_method != 1) & (st_info->read_method != 2) ) {
+        sf_errprintf ("data copying method #%d unknown; available: 1 (sequential), 2 (grouped)\n");
+        return (198);
+    }
+
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
@@ -92,61 +97,59 @@ int sf_collapse (struct StataInfo *st_info)
 
     int rct = 0;
 
-    /*********************************************************************
-     *                 Method 1: Continuously from Stata                 *
-     *********************************************************************/
+    // Method 1: Continuously from Stata
+    // ---------------------------------
 
     /*
      * The following maps the C group index to Stata so we can read
-     * observations from Stata in order; this is only sometimes faster
+     * observations from Stata in order; this is only sometimes faster,
      */
     size_t *index_st = calloc(st_info->N, sizeof *index_st);
-    for (j = 0; j < st_info->J; j++) {
-        start  = st_info->info[j];
-        end    = st_info->info[j + 1];
-        offsets_buffer[j] = start * st_info->kvars_source;
-        for (i = start; i < end; i++)
-            index_st[st_info->index[i]] = j;
-    }
+    if ( st_info->read_method == 1 ) {
+        for (j = 0; j < st_info->J; j++) {
+            start  = st_info->info[j];
+            end    = st_info->info[j + 1];
+            offsets_buffer[j] = start * st_info->kvars_source;
+            for (i = start; i < end; i++)
+                index_st[st_info->index[i]] = j;
+        }
 
-    offset_buffer = offset_source = 0;
-    for (i = 0; i < st_info->N; i++) {
-        j     = index_st[i];
-        start = st_info->info[j];
-        end   = st_info->info[j + 1];
-        nj    = end - start;
-        offset_buffer = start * st_info->kvars_source;
-        offset_source = j * st_info->kvars_source;
-        for (k = 0; k < st_info->kvars_source; k++) {
-            // Read Stata in order
-            if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
-                rct = rc;
-                continue;
-            }
-            if ( SF_is_missing(z) ) {
-                if (i == start)   all_firstmiss[offset_source + k] = 1;
-                if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
-            }
-            else {
-                // Read into C in order as well, via index_st, so
-                // non-missing entries of given variable for each group
-                // occupy a contiguous segment in memory.
-                all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+        rct = offset_buffer = offset_source = 0;
+        for (i = 0; i < st_info->N; i++) {
+            j     = index_st[i];
+            start = st_info->info[j];
+            end   = st_info->info[j + 1];
+            nj    = end - start;
+            offset_buffer = start * st_info->kvars_source;
+            offset_source = j * st_info->kvars_source;
+            for (k = 0; k < st_info->kvars_source; k++) {
+                // Read Stata in order
+                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
+                    rct = rc;
+                    continue;
+                }
+                if ( SF_is_missing(z) ) {
+                    if ( i == st_info->index[start] )   all_firstmiss[offset_source + k] = 1;
+                    if ( i == st_info->index[end - 1] ) all_lastmiss[offset_source + k]  = 1;
+                }
+                else {
+                    // Read into C in order as well, via index_st, so
+                    // non-missing entries of given variable for each group
+                    // occupy a contiguous segment in memory.
+                    all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+                }
             }
         }
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+        if ( rct ) return (rct);
     }
     free (index_st);
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables");
-    if ( rct ) return (rct);
-    /*
-     */
 
-    /*********************************************************************
-     *                      Method 2: Out of order                       *
-     *********************************************************************/
+    // Method 2: Out of order
+    // ----------------------
 
     /* For debugging
-     * 
+     *
     for (j = 0; j < st_info->J * st_info->kvars_source; j++)
         all_nonmiss[j] = 0;
      *
@@ -155,39 +158,43 @@ int sf_collapse (struct StataInfo *st_info)
     /*
      * The following reads the variables out of order. It consumes ever
      * so slighly less memory and was easier to code. I am not 100% when
-     * this is faster than method 1...
-     *
-    offset_buffer = offset_source = 0;
-    for (j = 0; j < st_info->J; j++) {
-        start  = st_info->info[j];
-        end    = st_info->info[j + 1];
-        nj     = end - start;
-        offset_buffer = start * st_info->kvars_source;
-        offset_source = j * st_info->kvars_source;
+     * this is faster than method 1.
+     */
+    if ( st_info->read_method == 2 ) {
+        offset_buffer = offset_source = 0;
+        for (j = 0; j < st_info->J; j++) {
+            start  = st_info->info[j];
+            end    = st_info->info[j + 1];
+            nj     = end - start;
+            offset_buffer = start * st_info->kvars_source;
+            offset_source = j * st_info->kvars_source;
 
-        // Loop through group in sequence
-        for (i = start; i < end; i++) {
-            sel = st_info->index[i] + st_info->in1;
-            for (k = 0; k < st_info->kvars_source; k++) {
-                // Read Stata out of order
-                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) return(rc);
-                if ( SF_is_missing(z) ) {
-                    if (i == start)   all_firstmiss[offset_source + k] = 1;
-                    if (i == end - 1) all_lastmiss[offset_source + k]  = 1;
-                }
-                else {
-                    // Read into C in order, so non-missing entries of
-                    // given variable for each group occupy a contiguous
-                    // segment in memory.
-                    all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+            // Loop through group in sequence
+            for (i = start; i < end; i++) {
+                sel = st_info->index[i] + st_info->in1;
+                for (k = 0; k < st_info->kvars_source; k++) {
+                    // Read Stata out of order
+                    if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
+                        rct = rc;
+                        continue;
+                    }
+                    if ( SF_is_missing(z) ) {
+                        if ( i == start )     all_firstmiss[offset_source + k] = 1;
+                        if ( i == (end - 1) ) all_lastmiss[offset_source + k]  = 1;
+                    }
+                    else {
+                        // Read into C in order, so non-missing entries of
+                        // given variable for each group occupy a contiguous
+                        // segment in memory.
+                        all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
+                    }
                 }
             }
+            offsets_buffer[j] = offset_buffer;
         }
-        offsets_buffer[j] = offset_buffer;
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables by group");
+        if ( rct ) return (rct);
     }
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read in source variables");
-     *
-     */
 
     // Collapse variables by group
     // ---------------------------
@@ -236,17 +243,28 @@ int sf_collapse (struct StataInfo *st_info)
                 // divide by this when writing to Stata.
                 output[offset_output + k] = 100 * end;
             }
+            else if ( end == 0 ) { // no obs
+                // If everything is missing, write a missing value,
+                // Except for sums, which go to 0 for some reason (this
+                // is the behavior of collapse).
+                if ( statcode[k] == -1 ) {
+                    output[offset_output + k] = 0;
+                }
+                else {
+                    outmiss[offset_output + k] = 1;
+                }
+            }
             else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
                 // If first observation is missing, will write missing value
-                outmiss[offset_output + k] = 1;
-            }
-            else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
-                // If last observation is missing, will write missing value
                 outmiss[offset_output + k] = 1;
             }
             else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
                 // First obs/first non-missing is the first entry in the inputs buffer
                 output[offset_output + k] = firstobs[st_info->pos_targets[k]];
+            }
+            else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
+                // If last observation is missing, will write missing value
+                outmiss[offset_output + k] = 1;
             }
             else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
                 // Last obs/last non-missing is the last entry in the inputs buffer
@@ -254,10 +272,6 @@ int sf_collapse (struct StataInfo *st_info)
             }
             else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
                 // Standard deviation requires at least 2 observations
-                outmiss[offset_output + k] = 1;
-            }
-            else if ( end == 0 ) { // no obs
-                // If everything is missing, write a missing value
                 outmiss[offset_output + k] = 1;
             }
             else { // etc

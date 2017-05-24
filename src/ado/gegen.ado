@@ -1,4 +1,4 @@
-*! version 0.3.3 22May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 23May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -12,6 +12,7 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
+    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
 
     * Time the entire function execution
     {
@@ -60,21 +61,116 @@ program define gegen, byable(onecall)
     * Parse egen by, if, in, and options
     * ----------------------------------
 
-    syntax          /// main call; must parse manually
-        [if] [in] , /// subset
-    [               ///
-        by(varlist) /// collapse by variabes
-                    ///
-        p(real 50)  /// percentiles (only used with pctile)
-                    ///
-        missing     /// for group(); treats
-                    ///
-        Verbose     /// debugging
-        Benchmark   /// print benchmark info
-        checkhash   /// Check for hash collisions
-        smart       /// check if data is sorted to speed up hashing
-        multi    *  /// Multi-threaded version
+    syntax                    /// main call; must parse manually
+        [if] [in] ,           /// subset
+    [                         ///
+        by(varlist)           /// collapse by variabes
+                              ///
+        p(real 50)            /// percentiles (only used with pctile)
+                              ///
+        missing               /// for group(); treats
+                              ///
+        Verbose               /// debugging
+        Benchmark             /// print benchmark info
+        smart                 /// check if data is sorted to speed up hashing
+                              ///
+        mf_force_single       /// (experimental) Force non-multi-threaded version
+        mf_force_multi        /// (experimental) Force muti-threading
+        mf_checkhash          /// (experimental) Check for hash collisions
+        mf_read_method(int 0) /// (experimental) Choose a method for reading data from Stata
+        *                     ///
     ]
+
+    * Verbose and benchmark printing
+    * ------------------------------
+
+    if ("`verbose'" == "") {
+        local verbose = 0
+        scalar __gtools_verbose = 0
+    }
+    else {
+        local verbose = 1
+        scalar __gtools_verbose = 1
+    }
+
+    if ("`benchmark'" == "") {
+        local benchmark = 0
+        scalar __gtools_benchmark = 0
+    }
+    else {
+        local benchmark = 1
+        scalar __gtools_benchmark = 1
+    }
+    if ( `verbose'  | `benchmark' ) local noi noisily
+
+    * Choose plugin version
+    * ---------------------
+
+    cap `noi' plugin call gtoolsmulti_plugin, check
+    if ( _rc ) {
+        if ( `verbose'  ) di "(note: failed to load multi-threaded version; using fallback)"
+        local plugin_call plugin call gtools_plugin
+        local multi ""
+    }
+    else {
+        local plugin_call plugin call gtoolsmulti_plugin
+        local multi multi
+    }
+
+    * Check if specified single or multi-threading
+    * --------------------------------------------
+
+    if ( "`mf_force_multi'" != "" ) {
+        di as txt "(warning: forcing multi-threaded version)"
+        local multi multi
+        local mf_read_method     = 3
+        local mf_collapse_method = 2
+        local plugin_call plugin call gtoolsmulti_plugin
+    }
+
+    if ( "`mf_force_single'" != "" ) {
+        di as txt "(warning: forcing non-multi-threaded version)"
+        local multi ""
+        * local mf_read_method = 1
+        local mf_collapse_method = 1
+        local plugin_call plugin call gtools_plugin
+    }
+
+    * Parse reading method (beta)
+    * ---------------------------
+
+    if !inlist(`mf_read_method', 0, 1, 2, 3) {
+        di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 2 (grouped), 3 (parallel)"
+        exit 198
+    }
+    else if ( `mf_read_method' != 0 ) {
+        di as text "(warning: custom reading methods in beta)"
+        if ( ("`multi'" == "") & !inlist(`mf_read_method', 1, 2) ) {
+            di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 2 (grouped)"
+            exit 198
+        }
+        if ( ("`multi'" != "") & !inlist(`mf_read_method', 1, 3) ) {
+            di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 3 (parallel)"
+            exit 198
+        }
+    }
+    scalar __gtools_read_method = `mf_read_method'
+    scalar __gtools_collapse_method = 2
+
+    * Check hash collisions in C
+    * --------------------------
+
+    if ("`mf_checkhash'" == "") {
+        local checkhash = 0
+        scalar __gtools_checkhash = 0
+    }
+    else {
+        local checkhash = 1
+        scalar __gtools_checkhash = 1
+    }
+
+    * Parse by call
+    * -------------
 
     if ( _by() ) {
         * local byopt "by(`_byvars')"
@@ -105,6 +201,8 @@ program define gegen, byable(onecall)
     }
 
     * Parse quantiles
+    * ---------------
+
     if ( "`fcn'" == "pctile" ) {
         local quantbad = !( (`p' < 100) & (`p' > 0) )
         if ( `quantbad' ) {
@@ -113,6 +211,9 @@ program define gegen, byable(onecall)
         }
         local fcn p`p'
     }
+
+    * Parse variable(s)
+    * -----------------
 
     tempvar dummy
     qui ds `args'
@@ -133,39 +234,6 @@ program define gegen, byable(onecall)
         else local sub `if' `in'
     }
     else local sub `if' `in'
-
-    * Check hash collisions in C
-    * --------------------------
-
-    if ("`checkhash'" == "") {
-        local checkhash = 0
-        scalar __gtools_checkhash = 0
-    }
-    else {
-        local checkhash = 1
-        scalar __gtools_checkhash = 1
-    }
-
-    * Verbose and benchmark printing
-    * ------------------------------
-
-    if ("`verbose'" == "") {
-        local verbose = 0
-        scalar __gtools_verbose = 0
-    }
-    else {
-        local verbose = 1
-        scalar __gtools_verbose = 1
-    }
-
-    if ("`benchmark'" == "") {
-        local benchmark = 0
-        scalar __gtools_benchmark = 0
-    }
-    else {
-        local benchmark = 1
-        scalar __gtools_benchmark = 1
-    }
 
     * If data already sorted, create index
     * ------------------------------------
@@ -244,7 +312,7 @@ program define gegen, byable(onecall)
                 pctile
 
     * Parse type of each by variable
-    cap parse_by_types `by'
+    cap parse_by_types `by', `multi'
     if ( _rc ) exit _rc
     scalar __gtools_merge = 1
 
@@ -283,10 +351,9 @@ program define gegen, byable(onecall)
         timer on 99
     }
 
-    if ( `verbose'  | `benchmark' ) local noi noisily
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-    cap `noi' plugin call gtools`multi'_plugin `plugvars' `sub', egen `fcn' `options'
+    cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
     if ( _rc != 0 ) exit _rc
 
     * If benchmark, output pugin time
@@ -330,6 +397,28 @@ program define gegen, byable(onecall)
         timer off 98
         timer clear 98
     }
+
+    * Clean up after yourself
+    * -----------------------
+
+    cap scalar drop __gtools_indexed
+    cap scalar drop __gtools_l_stats
+    cap scalar drop __gtools_benchmark
+    cap scalar drop __gtools_verbose
+    cap scalar drop __gtools_checkhash
+    cap scalar drop __gtools_read_method
+    cap scalar drop __gtools_collapse_method
+
+    cap matrix drop __gtools_strpos
+    cap matrix drop __gtools_numpos
+    cap matrix drop __gtools_byk
+    cap matrix drop __gtools_bymin
+    cap matrix drop __gtools_bymax
+    cap matrix drop c_gtools_bymiss
+    cap matrix drop c_gtools_bymin
+    cap matrix drop c_gtools_bymax
+
+    exit 0
 end
 
 * Set up plugin call
@@ -337,7 +426,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist
+    syntax varlist, [multi]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
@@ -362,7 +451,7 @@ program parse_by_types
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
-        cap plugin call gtools_plugin `varnum', setup
+        cap plugin call gtools`multi'_plugin `varnum', setup
         if ( _rc ) exit _rc
         matrix __gtools_bymin = c_gtools_bymin
         matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
@@ -411,4 +500,4 @@ cap program drop gtools_plugin
 if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
 
 cap program drop gtoolsmulti_plugin
-if ("`c(os)'" == "Unix") program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+if ("`c(os)'" == "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")

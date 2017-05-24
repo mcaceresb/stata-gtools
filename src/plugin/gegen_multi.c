@@ -2,10 +2,10 @@
  * Program: gegen_multi.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat May 20 14:06:40 EDT 2017
+ * Updated: Wed May 24 02:33:59 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.2
+ * Version: 0.4.0
  *********************************************************************/
 
 #include <omp.h>
@@ -19,13 +19,23 @@
  */
 int sf_egen (struct StataInfo *st_info)
 {
+    if ( st_info->read_method_multi == 0 ) {
+        st_info->read_method_multi = 3;
+        // st_info->read_method_multi = st_info->J > (st_info->N * MULTI_SWITCH_THRESH_READ)? 1: 3;
+    }
+    if ( (st_info->read_method_multi != 1) & (st_info->read_method_multi != 3) ) {
+        sf_errprintf ("data copying method #%d unknown; available: 1 (sequential), 3 (parallel)\n");
+        return (198);
+    }
+
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
     // char s[st_info->strmax];
     clock_t timer = clock();
+    double timerp;
 
-    size_t nj, start, end, sel, out, offset_buffer;
+    size_t start, end, sel, out, offset_buffer;
     size_t nmfreq  = 0;
     double statdbl = mf_code_fun (st_info->statstr);
 
@@ -50,49 +60,188 @@ int sf_egen (struct StataInfo *st_info)
     // Read in variables from Stata
     // ----------------------------
 
-    /* TODO: It is faster to read in variables from Stata sequentially.
-     * Figure out if this is feasible and use index on all_buffer for
-     * a possible speed gain. // 2017-05-18 22:01 EDT
-     */
+    int rcp = 0;
+    int nloops, rct;
+    size_t *pos_firstmiss = calloc(st_info->J, sizeof *pos_firstmiss);
+    size_t *pos_lastmiss  = calloc(st_info->J, sizeof *pos_lastmiss);
 
-    offset_buffer = 0;
-    for (j = 0; j < st_info->J; j++) {
-        start  = st_info->info[j];
-        end    = st_info->info[j + 1];
-        nj     = end - start;
-        // Loop through group in sequence
-        for (i = start; i < end; i++) {
-            sel = st_info->index[i] + st_info->in1;
+    // Method 1: Continuously from Stata
+    // ---------------------------------
+
+    size_t *index_st       = calloc(st_info->N, sizeof *index_st);
+    if ( st_info->read_method_multi == 1 ) {
+        for (j = 0; j < st_info->J; j++) {
+            start  = st_info->info[j];
+            end    = st_info->info[j + 1];
+            offsets_buffer[j] = start * st_info->kvars_source;
+            for (i = start; i < end; i++)
+                index_st[st_info->index[i]] = j;
+
+            do {
+                sel = st_info->in1 + st_info->index[start];
+                ++start;
+            } while ( !SF_ifobs(sel) & (start < end) );
+            pos_firstmiss[j] = sel;
+            --start;
+
+            do {
+                sel = st_info->in1 + st_info->index[end - 1];
+                --end;
+            } while ( !SF_ifobs(sel) & (start < end) );
+            pos_lastmiss[j] = sel;
+        }
+
+        rct = offset_buffer = 0;
+        for (i = 0; i < st_info->N; i++) {
+            sel   = i + st_info->in1;
+            j     = index_st[i];
+            start = st_info->info[j];
+            end   = st_info->info[j + 1];
+            offset_buffer = start * st_info->kvars_source;
+
+            // Loop through variables in sequence
             for (k = 0; k < st_info->kvars_source; k++) {
-                // Read Stata out of order
-                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) return(rc);
-                if ( SF_is_missing(z) | !SF_ifobs(st_info->in1 + st_info->index[i]) ) {
-                    if (i == start)   all_firstmiss[j] = 1;
-                    if (i == end - 1) all_lastmiss[j]  = 1;
+                // Read Stata in order
+                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
+                    rct = rc;
+                    continue;
                 }
-                else {
-                    // Read into C in order, so non-missing entries of
-                    // given variable for each group occupy a contiguous
-                    // segment in memory.
-                    all_buffer [offset_buffer + all_nonmiss[j]++] = z;
+                if ( SF_ifobs(sel) ) {
+                    if ( SF_is_missing(z) ) {
+                        if ( sel == pos_firstmiss[j] ) all_firstmiss[j] = 1;
+                        if ( sel == pos_lastmiss[j] )  all_lastmiss[j]  = 1;
+                    }
+                    else {
+                        // Read into C in order as well, via index_st, so
+                        // non-missing entries of given variable for each group
+                        // occupy a contiguous segment in memory.
+                        all_buffer [offset_buffer + all_nonmiss[j]++] = z;
+                    }
                 }
             }
         }
-        offsets_buffer[j] = offset_buffer;
-        offset_buffer    += nj * st_info->kvars_source;
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+        if ( rct ) return (rct);
     }
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read in source variables");
+    free (index_st);
+
+    // Method 3: In parallel and out of order
+    // --------------------------------------
+
+    if ( st_info->read_method_multi == 3 ) {
+        #pragma omp parallel        \
+                private (           \
+                    k,              \
+                    i,              \
+                    z,              \
+                    sel,            \
+                    nloops,         \
+                    start,          \
+                    end,            \
+                    offset_buffer,  \
+                    rc,             \
+                    rct,            \
+                    timerp          \
+                )                   \
+                shared (            \
+                    st_info,        \
+                    offsets_buffer, \
+                    all_nonmiss,    \
+                    all_firstmiss,  \
+                    all_lastmiss,   \
+                    pos_firstmiss,  \
+                    pos_lastmiss,   \
+                    all_buffer,     \
+                    rcp,            \
+                    timer           \
+                )
+        {
+            // Initialize private variables
+            z      = 0;
+            rc     = 0;
+            rct    = 0;
+            sel    = 0;
+            nloops = 0;
+            start  = 0;
+            end    = 0;
+            offset_buffer = 0;
+            timerp = omp_get_wtime();
+
+            #pragma omp for
+            for (j = 0; j < st_info->J; j++) {
+                ++nloops;
+                start  = st_info->info[j];
+                end    = st_info->info[j + 1];
+                do {
+                    sel = st_info->in1 + st_info->index[start];
+                    ++start;
+                } while ( !SF_ifobs(sel) & (start < end) );
+                pos_firstmiss[j] = sel;
+                --start;
+
+                do {
+                    sel = st_info->in1 + st_info->index[end - 1];
+                    --end;
+                } while ( !SF_ifobs(sel) & (start < end) );
+                pos_lastmiss[j] = sel;
+
+                start = st_info->info[j];
+                end   = st_info->info[j + 1];
+                offset_buffer = start * st_info->kvars_source;
+
+                // Loop through group in sequence
+                for (i = start; i < end; i++) {
+                    sel = st_info->index[i] + st_info->in1;
+                    for (k = 0; k < st_info->kvars_source; k++) {
+                        // Read Stata out of order
+                        if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
+                            rct = rc;
+                            continue;
+                        }
+                        if ( SF_ifobs(sel) ) {
+                            if ( SF_is_missing(z) ) {
+                                if ( sel == pos_firstmiss[j] ) all_firstmiss[j] = 1;
+                                if ( sel == pos_lastmiss[j] )  all_lastmiss[j]  = 1;
+                            }
+                            else {
+                                // Read into C in order, so non-missing entries of
+                                // given variable for each group occupy a contiguous
+                                // segment in memory.
+                                all_buffer [offset_buffer + all_nonmiss[j]++] = z;
+                            }
+                        }
+                    }
+                }
+                offsets_buffer[j] = offset_buffer;
+            }
+            timerp = omp_get_wtime() - timerp;
+
+            #pragma omp critical
+            {
+                timer = clock() - (timerp * CLOCKS_PER_SEC);
+                if ( rct ) rcp = rct;
+                if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d groups.\n", omp_get_thread_num(), nloops);
+            }
+        }
+        if ( rcp ) return (rcp);
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables in parallel");
+    }
+
+    free (pos_firstmiss);
+    free (pos_lastmiss);
+
+    // Compute the summary statistic
+    // -----------------------------
 
     for (j = 0; j < st_info->J; j++)
         nmfreq += all_nonmiss[j];
 
-    int nloops;
     #pragma omp parallel        \
             private (           \
                 nloops,         \
                 start,          \
                 end,            \
-                nj              \
+                timerp          \
             )                   \
             shared (            \
                 st_info,        \
@@ -103,18 +252,18 @@ int sf_egen (struct StataInfo *st_info)
                 all_lastmiss,   \
                 all_buffer,     \
                 output,         \
-                outmiss         \
+                outmiss,        \
+                timer          \
             )
     {
         // Initialize private variables
         nloops = 0;
         start  = 0;
         end    = 0;
-        nj     = 0;
+        timerp = omp_get_wtime();
 
         #pragma omp for
         for (j = 0; j < st_info->J; j++) {
-            nj    = st_info->info[j + 1] - st_info->info[j];
             start = offsets_buffer[j];
             end   = all_nonmiss[j];
             {
@@ -135,17 +284,29 @@ int sf_egen (struct StataInfo *st_info)
                     // divide by this when writing to Stata.
                     output[j] = 100 * end;
                 }
+                else if ( end == 0 ) {
+                    // If everything is missing, write a missing value
+                    // If everything is missing, write a missing value,
+                    // Except for sums, which go to 0 for some reason (this
+                    // is the behavior of collapse).
+                    if ( statdbl == -1 ) {
+                        output[j] = 0;
+                    }
+                    else {
+                        outmiss[j] = 1;
+                    }
+                }
                 else if ( all_firstmiss[j] & (statdbl == -10) ) { // first
                     // If first observation is missing, will write missing value
-                    outmiss[j] = 1;
-                }
-                else if ( all_lastmiss[j] & (statdbl == -12) ) { // last
-                    // If last observation is missing, will write missing value
                     outmiss[j] = 1;
                 }
                 else if ( (statdbl == -10) | (statdbl == -11) ) { // first|firstnm
                     // First obs/first non-missing is the first entry in the inputs buffer
                     output[j] = all_buffer[start];
+                }
+                else if ( all_lastmiss[j] & (statdbl == -12) ) { // last
+                    // If last observation is missing, will write missing value
+                    outmiss[j] = 1;
                 }
                 else if ( (statdbl == -12) | (statdbl == -13) ) { // last|lastnm
                     // Last obs/last non-missing is the last entry in the inputs buffer
@@ -155,19 +316,17 @@ int sf_egen (struct StataInfo *st_info)
                     // Standard deviation requires at least 2 observations
                     outmiss[j] = 1;
                 }
-                else if ( end == 0 ) {
-                    // If everything is missing, write a missing value
-                    outmiss[j] = 1;
-                }
                 else {
                     // Otherwise compute the requested summary stat
                     output[j] = mf_switch_fun_code (statdbl, all_buffer, start, start + end);
                 }
             }
         }
+        timerp = omp_get_wtime() - timerp;
 
         #pragma omp critical
         {
+            timer = clock() - (timerp * CLOCKS_PER_SEC);
             if ( st_info->verbose ) sf_printf("\t\tThread %d processed %d groups.\n", omp_get_thread_num(), nloops);
         }
     }

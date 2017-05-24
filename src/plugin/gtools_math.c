@@ -88,7 +88,7 @@ double mf_array_dmax_range (const double v[], const size_t start, const size_t e
 /**
  * @brief Quantile of enries in range of array
  *
- * This computes the (100 * quantile)th quantile using qsort. When
+ * This computes the (quantile)th quantile using qsort. When
  * computing multiple quantiles, the data will already be sorted for the
  * next iteration, so it's faster than sorting every time, but it it
  * still a VERY inefficient implementation.
@@ -101,7 +101,7 @@ double mf_array_dmax_range (const double v[], const size_t start, const size_t e
 double mf_array_dquantile_range (double v[], const size_t start, const size_t end, const double quantile)
 {
     size_t N   = end - start;
-    size_t qth = floor(N * quantile);
+    size_t qth = floor(quantile * N / 100);
 
     // Special cases
     // -------------
@@ -112,10 +112,10 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
     }
     else if ( N == 2 ) {
         // If 2 entries, only 3 options
-        if ( quantile > 0.5 ) {
+        if ( quantile > 50 ) {
             return (MAX(v[start], v[end - 1]));
         }
-        else if ( quantile < 0.5 ) {
+        else if ( quantile < 50 ) {
             return (MIN(v[start], v[end - 1]));
         }
         else {
@@ -133,7 +133,7 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
     size_t left = start, right = end;
     int dmax = ( qth == (N - 1) );
     double q = dmax? mf_array_dmax_range(v, left, right): mf_qselect_range (v, left, right, qth);
-    if ( (double) qth == (quantile * N) ) {
+    if ( (double) qth == (quantile * N / 100) ) {
         q += mf_qselect_range (v, left, right, qth - 1);
         q /= 2;
     }
@@ -150,7 +150,7 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
  */
 double mf_array_dmedian_range (double v[], const size_t start, const size_t end)
 {
-    return (mf_array_dquantile_range(v, start, end, 0.5));
+    return (mf_array_dquantile_range(v, start, end, 50));
 }
 
 /**
@@ -163,7 +163,7 @@ double mf_array_dmedian_range (double v[], const size_t start, const size_t end)
  */
 double mf_array_diqr_range (double v[], const size_t start, const size_t end)
 {
-    return (mf_array_dquantile_range(v, start, end, 0.75) - mf_array_dquantile_range(v, start, end, 0.25));
+    return (mf_array_dquantile_range(v, start, end, 75) - mf_array_dquantile_range(v, start, end, 25));
 }
 
 /**
@@ -184,7 +184,7 @@ double mf_switch_fun (char * fname, double v[], const size_t start, const size_t
     if ( strcmp (fname, "min")    == 0 ) return (mf_array_dmin_range    (v, start, end));
     if ( strcmp (fname, "median") == 0 ) return (mf_array_dmedian_range (v, start, end));
     if ( strcmp (fname, "iqr")    == 0 ) return (mf_array_diqr_range    (v, start, end));
-    double q = mf_parse_percentile(fname) / 100;
+    double q = mf_parse_percentile(fname);
     return (q > 0? mf_array_dquantile_range(v, start, end, q): 0);
 }
 
@@ -205,13 +205,13 @@ double mf_code_fun (char * fname)
     if ( strcmp (fname, "min")     == 0 ) return (-5);  // min
     if ( strcmp (fname, "count")   == 0 ) return (-6);  // count
     if ( strcmp (fname, "percent") == 0 ) return (-7);  // percent
-    if ( strcmp (fname, "median")  == 0 ) return (0.5); // median
+    if ( strcmp (fname, "median")  == 0 ) return (50); // median
     if ( strcmp (fname, "iqr")     == 0 ) return (-9);  // iqr
     if ( strcmp (fname, "first")   == 0 ) return (-10); // first
     if ( strcmp (fname, "firstnm") == 0 ) return (-11); // firstnm
     if ( strcmp (fname, "last")    == 0 ) return (-12); // last
     if ( strcmp (fname, "lastnm")  == 0 ) return (-13); // lastnm
-    double q = mf_parse_percentile(fname) / 100;
+    double q = mf_parse_percentile(fname);
     return (q > 0? q: 0);
 }
 
@@ -234,7 +234,7 @@ double mf_switch_fun_code (double fcode, double v[], const size_t start, const s
     if ( fcode == -4 )  return (mf_array_dmax_range  (v, start, end)); // max
     if ( fcode == -5 )  return (mf_array_dmin_range  (v, start, end)); // min
     if ( fcode == -9 )  return (mf_array_diqr_range  (v, start, end)); // iqr
-    return (mf_array_dquantile_range(v, start, end, fcode));
+    return (mf_array_dquantile_range(v, start, end, fcode));           // percentiles
 }
 
 /**

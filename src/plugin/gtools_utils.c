@@ -189,3 +189,16 @@ void sf_running_timer (clock_t *timer, const char *msg)
     sf_printf ("; %.3f seconds.\n", diff);
     *timer = clock();
 }
+
+/**
+ * @brief Sum for an integer array
+ * 
+ * @return Sum of integers array
+ */
+int mf_sum_signed(int x[], size_t N)
+{
+    int sum = x[0];
+    for (size_t i = 1; i < N; i++)
+        sum += x[i];
+    return (sum);
+}

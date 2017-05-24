@@ -315,6 +315,11 @@ int sf_get_varlist_bijection (
     return (0);
 }
 
+/* TODO: This is buggy; perhaps you need to allocate memory to s
+ * as well, and zero it out at each loop, like with st_strbase and
+ * st_strcomp? // 2017-05-24 02:37 EDT
+ */
+
 /**
  * @brief Check whether there were hash collisions
  *
@@ -465,9 +470,9 @@ int sf_check_hash_index (struct StataInfo *st_info)
 
     // If there were any collisions, ask user to file bug report
     if ( collisions_count > 0 ) {
-        sf_errprintf ("There were %'lu 128-bit hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+        sf_errprintf ("There may be %'lu 128-bit hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
                       collisions_count, st_info->kvars_by, st_info->N, st_info->J);
-        sf_errprintf ("This is a serious bug; please file a report at github.com/mcaceresb/stata-gtools\n");
+        sf_errprintf ("This feature is in beta; please file a bug report at github.com/mcaceresb/stata-gtools\n");
         return (42000);
     }
     else {

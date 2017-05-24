@@ -10,6 +10,7 @@ void sf_running_timer (clock_t *timer, const char *msg);
 int sf_get_vector_length(char * st_matrix);
 int sf_get_vector(char * st_matrix, double v[]);
 
+int mf_sum_signed(int x[], size_t N);
 int mf_min_signed(int x[], size_t N);
 int mf_max_signed(int x[], size_t N);
 

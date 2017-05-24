@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat May 20 14:08:15 EDT 2017
+ * Updated: Wed May 24 02:34:04 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.3.2
+ * Version: 0.4.0
  *********************************************************************/
 
 /**
@@ -32,9 +32,11 @@
 #if GMULTI
 #include "gcollapse_multi.c"
 #include "gegen_multi.c"
+#include "gtools_misc_multi.c"
 #else
 #include "gcollapse.c"
 #include "gegen.c"
+#include "gtools_misc.c"
 #endif
 
 /* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
@@ -54,6 +56,12 @@ STDLL stata_call(int argc, char *argv[])
     char todo[8], tostat[8];
     strcpy (todo, argv[0]);
 
+    // Note: These are set in sf_parse_info from Stata
+    // st_info.read_method       = 1; // Sequentially
+    // st_info.read_method_multi = 1; // Sequentially
+    // st_info.read_method       = 2; // Out of order
+    // st_info.read_method_multi = 3; // Out of order in parallel
+
     if ( strcmp(todo, "collapse") == 0 ) {
         if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
         if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
@@ -63,6 +71,9 @@ STDLL stata_call(int argc, char *argv[])
 
         if ( (rc = sf_collapse    (&st_info))    ) return (rc);
         if ( (rc = SF_scal_save   ("__gtools_J", st_info.J)) ) return (rc);
+
+        sf_free (&st_info);
+        return (0);
     }
     else if ( strcmp(todo, "egen") == 0 ) {
         if (argc < 2) {
@@ -85,9 +96,20 @@ STDLL stata_call(int argc, char *argv[])
         else {
             if ( (rc = sf_egen (&st_info)) ) return (rc);
         }
+
+        sf_free (&st_info);
+        return (0);
+    }
+    else if ( strcmp(todo, "setup") == 0 ) {
+        if ( (rc = sf_numsetup()) ) return (rc);
+        return (0);
+    }
+    else if ( strcmp(todo, "check") == 0 ) {
+        sf_printf ("(plugin -gtools- was loaded correctly)\n");
+        return (0);
     }
 
-    sf_free (&st_info);
+    sf_printf ("Nothing to do; pugin should be called from -gcollapse- or -gegen-\n");
     return(0);
 }
 
@@ -126,6 +148,34 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     }
     else {
         checkhash = (int) checkhash_double;
+    }
+
+    // read_method
+    int read_method, read_method_multi;
+    ST_double read_method_double ;
+    if ( (rc = SF_scal_use("__gtools_read_method", &read_method_double)) ) {
+        return(rc) ;
+    }
+    else {
+        read_method = (int) read_method_double;
+    }
+
+    if ( read_method == 0 ) {
+        read_method = 1;
+        read_method_multi = 0;
+    }
+    else {
+        read_method_multi = read_method;
+    }
+
+    // Collapse method
+    int collapse_method;
+    ST_double coll_method_double ;
+    if ( (rc = SF_scal_use("__gtools_collapse_method", &coll_method_double)) ) {
+        return(rc) ;
+    }
+    else {
+        collapse_method = (int) coll_method_double;
     }
 
     // Verbose printing
@@ -213,10 +263,10 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     // function f such that f: B_1 x ... x B_K -> N, where N are the
     // natural (whole) numbers. For integers, we don't need to hash
     // the data:
-    // 
+    //
     //     1. The first variable: z[i, 1] = f(1)(x[i, 1]) = x[i, 1] - min(x[, 1]) + 1
     //     2. The kth variable: z[i, k] = f(k)(x[i, k]) = i * range(z[, k - 1]) + (x[i, k - 1] - min(x[, 2]))
-    // 
+    //
     // If we have too many by variables, it is possible our integers
     // will overflow. We check whether this may happen below.
 
@@ -404,6 +454,9 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->byvars_minlen       = byvars_minlen;
     st_info->byvars_maxlen       = byvars_maxlen;
     st_info->strmax              = strmax;
+    st_info->read_method         = read_method;
+    st_info->read_method_multi   = read_method_multi;
+    st_info->collapse_method     = collapse_method;
 
     if ( benchmark ) sf_running_timer (&timer, "\tPlugin step 1: stata parsing done");
     return (0);

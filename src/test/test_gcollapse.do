@@ -13,6 +13,7 @@ program sim, rclass
         if ("`sortg'" == "")  sort rsort
         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
+        if ("`outmiss'" != "") replace rnorm = . if runiform() < 0.1
         if ("`float'" != "")  replace group = group / `nj'
         if ("`string'" != "") {
             tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
@@ -32,8 +33,8 @@ end
 
 capture program drop checks_consistency_gcollapse
 program checks_consistency_gcollapse
-    syntax, [tol(real 1e-6) multi NOIsily]
-    di _n(1) "{hline 80}" _n(1) "checks_consistency_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_consistency_gcollapse `options'" _n(1) "{hline 80}" _n(1)
 
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
     local collapse_str ""
@@ -52,7 +53,7 @@ program checks_consistency_gcollapse
         if (`i' == 9) local by grouplong
     preserve
         mytimer 9 info
-        gcollapse `collapse_str', by(`by') verbose benchmark `multi'
+        gcollapse `collapse_str', by(`by') verbose benchmark `options'
         mytimer 9 info "gcollapse to groups"
         tempfile f`i'
         save `f`i''
@@ -84,7 +85,7 @@ program checks_consistency_gcollapse
         if (`i' == 21) local by grouplong
     preserve
         mytimer 9 info
-        gcollapse `collapse_str', by(`by') verbose benchmark `multi'
+        gcollapse `collapse_str', by(`by') verbose benchmark `options'
         mytimer 9 info "gcollapse 2 groups"
         tempfile f`i'
         save `f`i''
@@ -182,44 +183,44 @@ program checks_consistency_gcollapse
     * }
 
     di ""
-    di as txt "Passed! checks_consistency_gcollapse `multi'"
+    di as txt "Passed! checks_consistency_gcollapse `options'"
 end
 
 capture program drop checks_byvars_gcollapse
 program checks_byvars_gcollapse
-    syntax, [multi]
-    di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
+    syntax, [*]
+    di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `options'" _n(1) "{hline 80}" _n(1)
 
     sim, n(1000) nj(250) string
     set rmsg on
     preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `options'
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `multi'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `options'
     restore
     set rmsg off
 
 
     di ""
-    di as txt "Passed! checks_byvars_gcollapse `multi'"
+    di as txt "Passed! checks_byvars_gcollapse `options'"
 end
 
 capture program drop checks_options_gcollapse
 program checks_options_gcollapse
-    syntax, [multi]
-    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse `multi'" _n(1) "{hline 80}" _n(1)
+    syntax, [*]
+    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse `options'" _n(1) "{hline 80}" _n(1)
 
     local stats mean count median iqr
     local collapse_str ""
@@ -229,60 +230,60 @@ program checks_options_gcollapse
 
     sim, n(200) nj(10) string outmiss
     preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
+        gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose unsorted `multi'
+        gcollapse `collapse_str', by(groupstr) verbose unsorted `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark cw `multi'
+        gcollapse `collapse_str', by(groupstr) verbose benchmark cw `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) double `multi'
+        gcollapse `collapse_str', by(groupstr) double `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) merge `multi'
+        gcollapse `collapse_str', by(groupstr) merge `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore
 
     sort groupstr groupsub
     preserve
-        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `multi'
+        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `multi'
+        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `multi'
+        gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark `multi'
+        gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark smart `multi'
+        gcollapse `collapse_str', by(groupstr) verbose benchmark smart `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupsub) verbose benchmark smart `multi'
+        gcollapse `collapse_str', by(groupsub) verbose benchmark smart `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupsub) verbose benchmark `multi'
+        gcollapse `collapse_str', by(groupsub) verbose benchmark `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore
 
     di ""
-    di as txt "Passed! checks_options_gcollapse `multi'"
+    di as txt "Passed! checks_options_gcollapse `options'"
 end
 
 * TODO: Edge cases (nothing in anything, no -by-, should mimic collapse // 2017-05-16 08:03 EDT

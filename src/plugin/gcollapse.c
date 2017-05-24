@@ -2,7 +2,7 @@
  * Program: gcollapse.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat May 20 14:06:47 EDT 2017
+ * Updated: Wed May 24 02:33:44 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.4.0

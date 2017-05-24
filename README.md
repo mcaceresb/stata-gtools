@@ -8,7 +8,7 @@ Faster Stata for Group Operations
 This is currently a beta release. This package uses a C-plugin
 to provide a faster implementation for Stata's `collapse` called
 `gcollapse` that is also faster than Sergio Correia's `fcollapse` from
-`ftools`. Futher, group variables can be a mix of string and numeric,
+`ftools`. Further, group variables can be a mix of string and numeric,
 like `collapse`. It also provides some support for by-able `egen`
 functions via `gegen`.
 
@@ -67,10 +67,10 @@ All benchmarks were done on a server with the following specifications:
 
     Program:   Stata/MP 14.2 (8 cores)
     OS:        x86_64 GNU/Linux
-    Processor: Intel(R) Xeon(R) CPU E5-2643 0 @ 3.30GHz
-    Cores:     2 quad-core sockets (8 cores).
-    Memory:    378GiB
-    Swap:      372GiB
+    Processor: Intel(R) Xeon(R) CPU E5-4617 0 @ 2.90GHz
+    Cores:     4 hexa-core sockets (24 cores).
+    Memory:    220GiB
+    Swap:      298GiB
 
 Alternatively, I made Stata/IC benchmarks available (since I only have
 IC on my personal computer) in `./src/test/bench_ic_fcoll.log`; the
@@ -162,7 +162,7 @@ particularly well as N grows. `gcollapse` was more than 50 times faster.
 
 ### Increasing the number of levels
 
-Data was sorted on a random variable before collapsing. We vary J for N = 5,000,000:
+Data was sorted on a random variable before collapsing. We vary J for N = 50,000,000:
 ```
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
@@ -180,10 +180,10 @@ Data was sorted on a random variable before collapsing. We vary J for N = 5,000,
 
 We have not benchmarked `collapsed` against version `0.4.0` because when
 we benchmarked it against version `0.3.0` it took almost an hour for
-each run of this benchmark and we have not found the time. `fcollapse`
-did better for a modest numbers of groups, but it performed poorly for
-very few groups and for a large number of groups. Overall `gcollapse`
-was 3-13 times faster.
+each run of this benchmark, and we have not found the time to repeat
+that run. `fcollapse` did better for a modest numbers of groups, but it
+performed poorly for very few groups and for a large number of groups.
+Overall `gcollapse` was 3-13 times faster.
 
 ### Comparing `gcollapse` and `fcollapse` at their worst
 
@@ -238,11 +238,10 @@ We can clearly see the bottleneck is the Stata overhead: Indeed, nearly
 40% of the execution time is spent adding the target variables, and
 another 20% in sorting the data at the end. We are working on a solution
 that sorts the data in C, and that is smart about writing the collapse
-to disk for it to be read by Stata later.
-
-In this case the data would not be written to disk, as the I/O involved
-in writing 40M observations should not be faster than creating the
-variables in memory.
+to disk for it to be read by Stata later. (Though in this case the
+data would not be written to disk, as the I/O involved in writing
+40M observations should not be faster than creating the variables in
+memory.)
 
 Building
 --------
@@ -379,17 +378,22 @@ targets for a single variable may exceed the memory capacity of most
 personal computers.
 
 The function tries to be smart about this: Variables are only created
-from the _**second**_ target onward. If you have one target per
-variable, memory consumption should not exceed that of `collapse` or
-`fcollapse`.
+if the source variable cannot be replaced with the target. If you have
+one target per variable and your variables are float or double, then
+regardless of the stat memory consumption should not exceed that of
+`collapse` or `fcollapse`.
 
 ### Hashing
 
 The idea behind using a hash is simple: Sorting a single integer
 grouping variable is much faster than sorting on multiple variables
-with arbitrary data (in particular, we can use a counting sort, which
-asymptotically performs in `O(n)` time compared to `O(n log n)` for the
-fastest general-purpose sorting algorithms).
+with arbitrary data. In particular, we can use a counting sort, which
+asymptotically performs in `O(n)` time compared to `O(n log n)` for
+the fastest general-purpose sorting algorithms. (Note with a 128-bit
+algorithm using a counting sort is prohibitively expensive; we do 4
+16-bit passes using a counting sort and check check the groups are
+unique after sorting on the first 64 bits. If not we do 4 more passes to
+sort on the full 128 bits.)
 
 Given `K` by variables, `by_1` to `by_K`, where `by_k` belongs the set
 `B_k`, the general problem we face is devising a function `f` such that

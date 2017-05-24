@@ -315,6 +315,11 @@ int sf_get_varlist_bijection (
     return (0);
 }
 
+/* TODO: This is buggy; perhaps you need to allocate memory to s
+ * as well, and zero it out at each loop, like with st_strbase and
+ * st_strcomp? // 2017-05-24 02:37 EDT
+ */
+
 /**
  * @brief Check whether there were hash collisions
  *

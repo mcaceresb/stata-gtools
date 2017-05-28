@@ -45,6 +45,11 @@ Change Log
 
 ### Planned
 
+* If you optimize the adding variables thing, then you can fix checkhash
+  and have that be the default behavior. Print a message with option
+  `verbose` that says "(found no hash collisions in N = %'lu, J = $'lu)".
+  Further, if you sort the data in C, then assert the sort is unique and
+  print "(hashed correctly grouped observations: resulting sort is unique)"
 * Allow merge with an if statement (low priority; feature).
 * Sort variables in C, not in Stata (high priority; performance)
 * Be smart about memory management (high  priority; performance).
@@ -54,7 +59,7 @@ Change Log
 For k1 sources and k2 targets, when k2 - k1 > 0 and `_N` is above some
 threshold, say 10M, then kick off this hassle to figure out if adding
 variables is worth it. We start by adding an "index" option to the
-plugin which generates two variables, `index' and `info', and saves to
+plugin which generates two variables, `index` and `info`, and saves to
 `__gtools_J` the number of groups (it should also save the benchmark
 below, and if possible the space in the /tmp folder that it found so it
 can figure out whether the disk may get full by us doing this; it will
@@ -95,9 +100,9 @@ a large number, e.g. 10 or 100, to be safe. Then we can do:
       set obs `:di scalar(__gtools_J)'
       cap `noi' `plugin_call' `by' `gtools_targets', read `__gtools_collapsed_file'
 
-The collaps disk code would use the info and index variables created
-earlier, rather than re-hashing and re-sorting the data, to collapse
-the sources to the targets and write to `__gtools_collapsed_file`.
+The collapse to disk code would use the info and index variables created
+earlier, rather than re-hashing and re-sorting the data, to collapse the
+sources to the targets and write to `__gtools_collapsed_file`.
 
 ---
 

@@ -19,15 +19,15 @@ be worth it. I plan a massive improvement to this for version 0.5.0.
 At the moment, only Unix versions of the plugins are available. Windows
 and OSX versions are planned for a future release.
 
-- [Installation](#installation)
+- [Installation and Use](#installation-and-use)
 - [Benchmark](#benchmark)
 - [Building](#building)
 - [FAQs](#faqs)
 - [Miscellaneous Notes](#miscellaneous-notes)
 - [License](#license)
 
-Installation
-------------
+Installation and Use
+--------------------
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 Further, since my own machine and the servers I have access to run
@@ -35,16 +35,14 @@ Linux, I have only developed this for Stata for Unix so far. Future
 releases will be cross-platform.
 ```stata
 net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/build/)
+* adoupdate, update
+* ado uninstall gtools
 ```
 
-To update, run
+The syntax is identical to `collapse`
 ```stata
-adoupdate, update
-```
-
-To uninstall, run
-```stata
-ado uninstall gtools
+gcollapse (stat) target = source [(stat) target = source ...], by(varlist)
+gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar)
 ```
 
 Benchmark

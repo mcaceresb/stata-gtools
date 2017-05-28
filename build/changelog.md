@@ -5,15 +5,14 @@ Change Log
 
 ### Features
 
-* Significantly faster: The function tries to choose the multi-threaded
+* Somewhat faster: The function tries to choose the multi-threaded
   version of the plugin when available, and non-multi otherwise. It is
-  also smarted about recasting variables.
+  also smarter about recasting variables.
 * Various undocumented options to test and benchmark different
   algorithms for reading and collapsing the data.
 
 ### Bug fixes
 
-* `benchmark` now correctly times parallel execution.
 * `gegen` now computes the first and last non-missing observations
   correctly when there is an if statement involved in the call.
 * `gcollapse|gegen` now correctly finds first and last when there are
@@ -22,11 +21,13 @@ Change Log
    missing values when all observations are missing.
 * `gcollapse|gegen` now output the sum as 0 of all missing values
   to mimic `collapse`.
+* `benchmark` now correctly times parallel execution.
 
 ### Known problems
 
 * `gcollapse` does not work correctly with `merge` when the user asks
-  for an if statement.
+  for an if statement, so when it is tried the function exits with
+  error.
 * Checkhash may give false positives when checking strings. It will
   occasionally read more data than necessary to make the comparison,
   resulting in a false positive. Working on a fix, but for now I moved
@@ -35,11 +36,6 @@ Change Log
 ### Misc
 
 * Updated benchmarks
-* In the multi-threaded version, testing revealed that reading the
-  data in parallel and collapsing in parallel is faster under most
-  circumstances but possibly slower under some narrow use cases
-  (notably, the use case I wrote this plugin for). I have added a
-  warning that multi-threading is still experimental.
 * Cleaned up method for reading data in from Stata. Kept the sequential
   and the out-of-order methods (parallel out of order for the
   multi-threaded version).
@@ -49,16 +45,21 @@ Change Log
 
 ### Planned
 
-* Sort variables in C, not in Stata (high priority; performance)
+* If you optimize the adding variables thing, then you can fix checkhash
+  and have that be the default behavior. Print a message with option
+  `verbose` that says "(found no hash collisions in N = %'lu, J = $'lu)".
+  Further, if you sort the data in C, then assert the sort is unique and
+  print "(hashed correctly grouped observations: resulting sort is unique)"
 * Allow merge with an if statement (low priority; feature).
-* Be smart about memory management (the code below should be
-  allowed to be negated via option -greedy- or only be called
-  with option -smart-; it would, of course, be ignored with -merge-):
+* Sort variables in C, not in Stata (high priority; performance)
+* Be smart about memory management (high  priority; performance).
+  This should be allowed to be negated via option -greedy- or similar,
+  and would, of course, be ignored with -merge-):
 
 For k1 sources and k2 targets, when k2 - k1 > 0 and `_N` is above some
 threshold, say 10M, then kick off this hassle to figure out if adding
 variables is worth it. We start by adding an "index" option to the
-plugin which generates two variables, `index' and `info', and saves to
+plugin which generates two variables, `index` and `info`, and saves to
 `__gtools_J` the number of groups (it should also save the benchmark
 below, and if possible the space in the /tmp folder that it found so it
 can figure out whether the disk may get full by us doing this; it will
@@ -88,20 +89,20 @@ And in C it is
 
 If `time_c` * threshold < `time_stata` then we should write
 to disk from C and then read the data. I think threshold should be
-a large number, e.g. 10 or 100. Then we can do:
+a large number, e.g. 10 or 100, to be safe. Then we can do:
 
       tempfile __gtools_collapsed_file
       cap `noi' `plugin_call' `plugvars', collapse write `__gtools_collapsed_file'
 
-      clear
+      keep in 1 / `:di scalar(__gtools_J)'
       mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
       order `by' `gtools_targets'
       set obs `:di scalar(__gtools_J)'
       cap `noi' `plugin_call' `by' `gtools_targets', read `__gtools_collapsed_file'
 
-The collaps disk code would use the info and index variables created
-earlier, rather than re-hashing and re-sorting the data, to collapse
-the sources to the targets and write to `__gtools_collapsed_file`.
+The collapse to disk code would use the info and index variables created
+earlier, rather than re-hashing and re-sorting the data, to collapse the
+sources to the targets and write to `__gtools_collapsed_file`.
 
 ---
 

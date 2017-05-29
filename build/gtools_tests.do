@@ -71,24 +71,24 @@ program main
             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
 
             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
-            bench_switch_fcoll y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)            style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_fcoll x1 x2, x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                  style(gtools)
-            bench_switch_fcoll x1 x2, x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)        style(gtools)
+            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
+            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
+            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
 
             bench_switch_gcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
-            bench_switch_gcoll y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)            style(ftools)
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_gcoll x1 x2, x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                  style(gtools)
-            bench_switch_gcoll x1 x2, x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)        style(gtools)
+            bench_switch_gcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
+            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
+            bench_switch_gcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
+            bench_switch_gcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
         }
 
         if ( `:list posof "benchmark" in options' ) {
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,          by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
+            bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
+            bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
+            bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {

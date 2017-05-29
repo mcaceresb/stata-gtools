@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-0.5.0 (2017-05-28)
+
+### Misc
+* Moved away from using regexes in C code. Now just pass the quantile as a
+  string directly from Stata and use `atof`
+
 ## gtools-0.4.0 (2017-05-23)
 
 ### Features

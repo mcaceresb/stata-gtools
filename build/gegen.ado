@@ -12,7 +12,7 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
+    if !inlist("`c(os)'", "Unix", "Windows") di as err "Not available for `c(os)`, only Unix|Windows."
 
     * Time the entire function execution
     {
@@ -209,7 +209,8 @@ program define gegen, byable(onecall)
             di as error "Invalid quantile: `p'; p() should be in (0, 100)"
             error 110
         }
-        local fcn p`p'
+        * local fcn p`p'
+        local fcn `p'
     }
 
     * Parse variable(s)
@@ -497,7 +498,7 @@ end
 * ------------
 
 cap program drop gtools_plugin
-if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
+if inlist("`c(os)'", "Unix", "Windows") program gtools_plugin, plugin using("gtools.plugin")
 
 cap program drop gtoolsmulti_plugin
-if ("`c(os)'" == "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+if inlist("`c(os)'", "Unix", "Windows") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")

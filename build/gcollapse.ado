@@ -24,7 +24,7 @@ program gcollapse
         mf_read_method(int 0)     /// (experimental) Choose a method for reading data from Stata
         mf_collapse_method(int 0) /// (experimental) Choose a method for collapsing the data
     ]
-    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
+    if !inlist("`c(os)'", "Unix", "Windows") di as err "Not available for `c(os)`, only Unix|Windows."
 
     ***********************************************************************
     *                       Parsing syntax options                        *
@@ -249,14 +249,31 @@ program gcollapse
     local stats sum mean sd max min count median iqr percent first last firstnm lastnm
 
     * Parse quantiles
+    local anyquant = 0
     local quantiles : list gtools_uniq_stats - stats
     foreach quantile of local quantiles {
-        local quantbad = !regexm("`quantile'", "^p[0-9][0-9]?(\.[0-9]+)?$")
-        if (`quantbad' | ("`quantile'" == "p0")) {
+        local quantbad = !regexm("`quantile'", "^p([0-9][0-9]?(\.[0-9]+)?)$")
+        if ( `quantbad' ) {
             di as error "Invalid stat: (`quantile')"
             error 110
         }
+        if ("`quantile'" == "p0") {
+            di as error "Invalid stat: (`quantile'; maybe you meant 'min'?)"
+            error 110
+        }
+        if ("`quantile'" == "p100") {
+            di as error "Invalid stat: (`quantile'; maybe you meant 'max'?)"
+            error 110
+        }
+        local gtools_stats        = subinstr(" `gtools_stats' ",         "`quantile'", regexs(1), .)
+        local gtools_uniq_stats   = subinstr(" `gtools_uniq_stats' ",    "`quantile'", regexs(1), .)
+        local __gtools_stats      = subinstr(" `__gtools_stats' ",       "`quantile'", regexs(1), .)
+        local __gtools_uniq_stats = subinstr(" `__gtools_uniq_stats' ",  "`quantile'", regexs(1), .)
     }
+    local gtools_stats        = trim("`gtools_stats'")
+    local gtools_uniq_stats   = trim("`gtools_uniq_stats'")
+    local __gtools_stats      = trim("`__gtools_stats'")
+    local __gtools_uniq_stats = trim("`__gtools_uniq_stats'")
 
     * Can't collapse grouping variables
     local intersection: list gtools_targets & by
@@ -762,10 +779,10 @@ program parse_ok_astarget, rclass
 end
 
 cap program drop gtools_plugin
-if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
+if inlist("`c(os)'", "Unix", "Windows") program gtools_plugin, plugin using("gtools.plugin")
 
 cap program drop gtoolsmulti_plugin
-if ("`c(os)'" == "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+if inlist("`c(os)'", "Unix", "Windows") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
 
 * Parsing is adapted from Sergio Correia's fcollapse.ado
 * ------------------------------------------------------

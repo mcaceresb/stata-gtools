@@ -250,13 +250,14 @@ you will need
 - v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
 
 From the root folder of this repo, first compile `spookyhash`:
-```
-cd lib/spookyhash/build
+```bash
+cd lib/spooky/build
+premake5 make
 make
 cd -
 ```
 
-If that compiles correctly, you can run
+If that compiles correctly, then from the root directory you can run
 ```
 ./build.py
 ```

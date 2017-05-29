@@ -4,7 +4,6 @@
 // Libraries
 #include <math.h>
 #include <time.h>
-#include <regex.h>
 #include <stdio.h>
 #include <locale.h>
 #include <limits.h>

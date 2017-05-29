@@ -7,6 +7,13 @@ Change Log
 * Moved away from using regexes in C code. Now just pass the quantile as a
   string directly from Stata and use `atof`
 
+## gtools-0.4.0 (2017-05-29)
+
+### Bug fixes
+
+* `gegen` now generates the expression passed to its functions if the
+  argument is not a varlist.
+
 ## gtools-0.4.0 (2017-05-23)
 
 ### Features

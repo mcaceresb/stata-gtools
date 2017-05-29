@@ -1,4 +1,4 @@
-*! version 0.4.0 23May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.1 29May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -217,8 +217,19 @@ program define gegen, byable(onecall)
     * -----------------
 
     tempvar dummy
-    qui ds `args'
-    local gtools_vars    `r(varlist)'
+    cap qui ds `args'
+    if ( _rc == 0 ) {
+        local gtools_vars `r(varlist)'
+    }
+    else {
+        tempvar exp
+        cap gen `type' `exp' = `args'
+        if ( _rc ) {
+            di as error "Invalid call; please specify {opth `fcn'(varlist)} or {opth `fcn'(exp)}."
+            exit 198
+        }
+        local gtools_vars `exp'
+    }
     local gtools_targets `dummy'
     local gtools_stats   `fcn'
 

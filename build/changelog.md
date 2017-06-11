@@ -3,11 +3,18 @@ Change Log
 
 ## gtools-0.5.0 (2017-05-28)
 
+### Bug fixes
+
+* Option `mf_checkhash` seems to work properly now. This was fixed by
+  zero-ing the string that was used as the temporary buffer for reading
+  in Stata variables.
+
 ### Misc
+
 * Moved away from using regexes in C code. Now just pass the quantile as a
   string directly from Stata and use `atof`
 
-## gtools-0.4.0 (2017-05-29)
+## gtools-0.4.1 (2017-05-29)
 
 ### Bug fixes
 
@@ -100,7 +107,7 @@ And in C it is
 
     time_c = k2 * __gtools_J * 8 / rate_c
 
-If `time_c` * threshold < `time_stata` then we should write
+If `time_c * threshold < time_stata` then we should write
 to disk from C and then read the data. I think threshold should be
 a large number, e.g. 10 or 100, to be safe. Then we can do:
 

@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed May 24 02:34:04 EDT 2017
+ * Updated: Sat Jun 10 20:09:36 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.4.0
+ * Version: 0.5.0
  *********************************************************************/
 
 /**

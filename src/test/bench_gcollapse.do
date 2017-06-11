@@ -278,17 +278,17 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
-* do gegen.ado
+* cd /home/mauricio/code/stata-gtools/build/
 * do gtools_tests.do
-* do gcollapse.ado
+* qui do gegen.ado
+* sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
+* local collapse (sum) rnorm (mean) mean = rnorm
+* !cd ..; ./build.py
+* qui do gcollapse.ado
 * preserve
-* gcollapse `collapse', by(`by') v b
+*     gcollapse `collapse', by(groupstr) v b debug_force_single
+*     l
 * restore
-
-* use ~/Downloads/problem.dta, clear
-* di "gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash"
-* gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash
 
 * Benchmarks in the README
 * ------------------------

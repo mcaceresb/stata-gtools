@@ -89,7 +89,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-1 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(1) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(1) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -99,7 +99,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-2 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(2) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(2) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

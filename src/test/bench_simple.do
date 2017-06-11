@@ -22,9 +22,9 @@ foreach stat of local stats {
 * preserve
 *     gcollapse `collapse', by(`by') v b
 * restore, preserve
-*     gcollapse `collapse', by(`by') v b mf_read_method(1) mf_collapse_method(1)
+*     gcollapse `collapse', by(`by') v b debug_read_method(1) debug_collapse_method(1)
 * restore, preserve
-*     gcollapse `collapse', by(`by') mf_force_single mf_read_method(1) v b
+*     gcollapse `collapse', by(`by') debug_force_single debug_read_method(1) v b
 * restore, preserve
-*     gcollapse `collapse', by(`by') mf_force_single mf_read_method(2) v b
+*     gcollapse `collapse', by(`by') debug_force_single debug_read_method(2) v b
 * restore

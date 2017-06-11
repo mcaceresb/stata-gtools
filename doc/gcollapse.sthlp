@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.1 29May2017}{...}
+{* *! version 0.5.0 10Jun2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}

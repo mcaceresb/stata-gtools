@@ -42,24 +42,24 @@ program main
         * do bench_gcollapse_fcoll.do
         * do bench_gcollapse_gcoll.do
         if ( `:list posof "checks" in options' ) {
-            checks_byvars_gcollapse,      mf_force_multi
-            checks_options_gcollapse,     mf_force_multi
+            checks_byvars_gcollapse,      debug_force_multi
+            checks_options_gcollapse,     debug_force_multi
 
-            checks_byvars_gcollapse,      mf_force_single
-            checks_options_gcollapse,     mf_force_single
+            checks_byvars_gcollapse,      debug_force_single
+            checks_options_gcollapse,     debug_force_single
 
-            checks_options_gegen,         mf_force_multi
-            checks_options_gegen,         mf_force_single
-            checks_options_gegen,         mf_force_multi  mf_read_method(2)
-            checks_options_gegen,         mf_force_single mf_read_method(2)
+            checks_options_gegen,         debug_force_multi
+            checks_options_gegen,         debug_force_single
+            checks_options_gegen,         debug_force_multi  debug_read_method(2)
+            checks_options_gegen,         debug_force_single debug_read_method(2)
 
-            checks_consistency_gcollapse, mf_force_multi
-            checks_consistency_gcollapse, mf_force_single
-            checks_consistency_gcollapse, mf_force_multi  mf_read_method(2)
-            checks_consistency_gcollapse, mf_force_single mf_read_method(2)
+            checks_consistency_gcollapse, debug_force_multi
+            checks_consistency_gcollapse, debug_force_single
+            checks_consistency_gcollapse, debug_force_multi  debug_read_method(2)
+            checks_consistency_gcollapse, debug_force_single debug_read_method(2)
 
-            checks_consistency_gegen,     mf_force_multi
-            checks_consistency_gegen,     mf_force_single
+            checks_consistency_gegen,     debug_force_multi
+            checks_consistency_gegen,     debug_force_single
         }
 
         if ( `:list posof "test" in options' ) {
@@ -1141,17 +1141,17 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
-* do gegen.ado
+* cd /home/mauricio/code/stata-gtools/build/
 * do gtools_tests.do
-* do gcollapse.ado
+* qui do gegen.ado
+* sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
+* local collapse (sum) rnorm (mean) mean = rnorm
+* !cd ..; ./build.py
+* qui do gcollapse.ado
 * preserve
-* gcollapse `collapse', by(`by') v b
+*     gcollapse `collapse', by(groupstr) v b debug_force_single
+*     l
 * restore
-
-* use ~/Downloads/problem.dta, clear
-* di "gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash"
-* gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash
 
 * Benchmarks in the README
 * ------------------------
@@ -1372,7 +1372,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-1 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(1) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(1) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1382,7 +1382,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-2 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(2) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(2) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

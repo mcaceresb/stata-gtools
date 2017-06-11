@@ -41,7 +41,8 @@ int sf_collapse (struct StataInfo *st_info)
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
-    char s[st_info->strmax];
+    char *s; s = malloc(st_info->strmax * sizeof(char));
+
     clock_t timer = clock();
     double timerp;
 
@@ -49,7 +50,8 @@ int sf_collapse (struct StataInfo *st_info)
     size_t offset_output,
            offset_bynum,
            offset_source,
-           offset_buffer;
+           offset_buffer,
+           offset_bystr;
 
     size_t nmfreq[st_info->kvars_source],
            nonmiss[st_info->kvars_source],
@@ -67,6 +69,24 @@ int sf_collapse (struct StataInfo *st_info)
 
     // Initialize variables for use in read, collapse, and write loops
     // ---------------------------------------------------------------
+
+    char **bystr = calloc(st_info->kvars_by_str * st_info->J, sizeof(*bystr));
+    if ( st_info->kvars_by_str > 0 ) {
+        for (j = 0; j < st_info->J; j++) {
+            for (k = 0; k < st_info->kvars_by_str; k++) {
+                offset_bystr = st_info->byvars_lens[st_info->pos_str_byvars[k] - 1];
+                if ( offset_bystr > 0 ) {
+                    sel = j * st_info->kvars_by_str + k;
+                    bystr[sel] = malloc(offset_bystr * sizeof(char));
+                    memset (bystr[sel], '\0', offset_bystr);
+                }
+                else {
+                    sf_errprintf ("Unable to parse string lengths from Stata.\n");
+                    return (198);
+                }
+            }
+        }
+    }
 
     double *bynum   = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bynum);
     short  *bymiss  = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bymiss);
@@ -540,7 +560,9 @@ int sf_collapse (struct StataInfo *st_info)
             start = st_info->info[j];
             // For string variables, read into first J entries of temporary string variables
             for (k = 0; k < st_info->kvars_by_str; k++) {
+                memset (s, '\0', st_info->strmax);
                 if ( (rc = SF_sdata(st_info->pos_str_byvars[k], st_info->index[start] + st_info->in1, s)) ) return(rc);
+                memcpy (bystr[j * st_info->kvars_by_str + k], s, strlen(s));
                 if ( (rc = SF_sstore(k + st_info->start_str_byvars, j + 1, s)) ) return(rc);
             }
             // For numeric variables, read into numeric array
@@ -567,8 +589,10 @@ int sf_collapse (struct StataInfo *st_info)
             }
             // Copy back string variables to replace them in the data
             for (k = 0; k < st_info->kvars_by_str; k++) {
-                if ( (rc = SF_sdata(k + st_info->start_str_byvars, j + 1, s)) ) return(rc);
-                if ( (rc = SF_sstore(st_info->pos_str_byvars[k], j + 1, s)) ) return(rc);
+                // if ( (rc = SF_sdata(k + st_info->start_str_byvars, j + 1, s)) ) return(rc);
+                // if ( (rc = SF_sstore(st_info->pos_str_byvars[k], j + 1, s)) ) return(rc);
+                sel = j * st_info->kvars_by_str + k;
+                if ( (rc = SF_sstore(st_info->pos_str_byvars[k], j + 1, bystr[sel])) ) return(rc);
             }
             // Copy numeric by variables from temporary array
             for (k = 0; k < st_info->kvars_by_num; k++) {
@@ -588,6 +612,15 @@ int sf_collapse (struct StataInfo *st_info)
     free (bynum);
     free (bymiss);
     free (outmiss);
+
+    if ( st_info->kvars_by_str > 0 ) {
+        for (j = 0; j < st_info->J; j++) {
+            for (k = 0; k < st_info->kvars_by_str; k++) {
+                free (bystr[j * st_info->kvars_by_str + k]);
+            }
+        }
+    }
+    free (bystr);
 
     return(0);
 }

@@ -361,9 +361,13 @@ int sf_check_hash_index (struct StataInfo *st_info)
     // being read to numbers in st_numbase and st_nummiss
     ST_retcode rc ;
     ST_double  z ;
-    char s[kmax > 0? kmax + 1: 1];
+
+    // char s[kmax > 0? kmax + 1: 1];
+    int klen = kmax > 0? kmax + 1: 1;
+    char *s; s = malloc(klen * sizeof(char));
     char *st_strbase; st_strbase = malloc(l_str * sizeof(char));
     char *st_strcomp; st_strcomp = malloc(l_str * sizeof(char));
+
     double st_numbase[k_num > 0? k_num: 1];
     short st_nummiss[k_num > 0? k_num: 1];
     size_t collisions_count = 0;
@@ -371,12 +375,12 @@ int sf_check_hash_index (struct StataInfo *st_info)
 
     // Loop through each group's observations
     for (j = 0; j < st_info->J; j++) {
+        memset (st_strbase, '\0', l_str);
         start  = i = st_info->info[j];
         end    = st_info->info[j + 1];
         sel    = st_info->index[i] + st_info->in1;
         numpos = 0;
         strpos = 0;
-        memset(st_strbase, '\0', l_str);
         for (k = 0; k < k_num; k++)
             st_nummiss[numpos] = 0;
 
@@ -384,8 +388,9 @@ int sf_check_hash_index (struct StataInfo *st_info)
         // appears in Stata
         for (k = 0; k < K; k++) {
             if (st_info->byvars_lens[k] > 0) {
+                memset (s, '\0', klen);
                 if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
-                memcpy ( st_strbase + strpos, &s, strlen(s) );
+                memcpy (st_strbase + strpos, &s, strlen(s));
                 strpos += strlen(s);
             }
             else {
@@ -417,7 +422,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
 
         // Check 2nd entry of group onward
         for (i = start + 1; i < end; i++) {
-            memset(st_strcomp, '\0', l_str);
+            memset (st_strcomp, '\0', l_str);
             collisions_row = 0;
             numpos = 0;
             strpos = 0;
@@ -425,6 +430,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
             for (k = 0; k < K; k++) {
                 if (st_info->byvars_lens[k] > 0) {
                     // Concatenate string and compare result
+                    memset (s, '\0', klen);
                     if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
                     memcpy ( st_strcomp + strpos, &s, strlen(s) );
                     strpos += strlen(s);
@@ -480,6 +486,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
                    st_info->kvars_by, st_info->N, st_info->J);
     }
 
+    free(s);
     free(st_strbase);
     free(st_strcomp);
 

@@ -1,4 +1,4 @@
-*! version 0.5.0 10Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.1 14Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -365,8 +365,11 @@ program define gegen, byable(onecall)
 
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-    cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
-    if ( _rc != 0 ) exit _rc
+    if ( `=_N > 0' ) {
+        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
+        if ( _rc == 42001 ) di as txt "(no observations)"
+        else if ( _rc != 0 ) exit _rc
+    }
 
     * If benchmark, output pugin time
     {
@@ -463,8 +466,10 @@ program parse_by_types
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
-        cap plugin call gtools`multi'_plugin `varnum', setup
-        if ( _rc ) exit _rc
+        if ( `=_N > 0' ) {
+            cap plugin call gtools`multi'_plugin `varnum', setup
+            if ( _rc ) exit _rc
+        }
         matrix __gtools_bymin = c_gtools_bymin
         matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
     }

@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed Jun 14 12:38:44 EDT 2017
+ * Updated: Wed Jun 14 19:14:38 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.5.0
+ * Version: 0.5.1
  *********************************************************************/
 
 /**
@@ -336,6 +336,9 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     ST_retcode rc ;
     int i, k;
     clock_t timer = clock();
+
+    // Check there are observations in the subset provided
+    if ( !sf_anyobs_sel() ) return (42001);
 
     // Get start and end position; number of variables
     size_t in1 = SF_in1();

@@ -1,6 +1,27 @@
 Change Log
 ==========
 
+## gtools-0.5.1 (2017-06-14)
+
+### Bug fixes
+
+* In prior versions, if `gcollapse` was called with no observations or
+  when the result of `if in` gave no observations, the function throwed
+  an error. Now the program exits and prints "no observations" to the
+  console (`gcollapse` returns an empty data set; `gegen` returns a
+  variable with all missing values).
+* In prior versions, in some cases, when multiple statistics are
+  generated from a single source and the summary statistics are
+  collapsed to disk, the first statistic may be swapped for another.
+  This happened because the function tries to use source variables and
+  targets, and it also tries to be smart about which target statistic
+  to use the source variable for. So if you request mean and min for
+  a byte, the function will want outputs to be at least float and
+  byte, and will use the source variable for the min and generate
+  an additional variable for the mean. This had been implemented
+  incorrectly when collapsing to disk.
+* Added additional unit tests for collapsing to disk.
+
 ## gtools-0.5.0 (2017-06-14)
 
 ### Features

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue May 23 11:23:52 EDT 2017
+* Updated: Wed Jun 14 19:14:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.4.0
+* Version: 0.5.1
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -16,7 +16,8 @@ clear all
 set more off
 set varabbrev off
 capture log close _all
-set seed 42
+* set seed 42
+set seed 1729
 set linesize 128
 
 * Main program wrapper
@@ -57,9 +58,14 @@ program main
             checks_consistency_gcollapse, debug_force_single
             checks_consistency_gcollapse, debug_force_multi  debug_read_method(2)
             checks_consistency_gcollapse, debug_force_single debug_read_method(2)
+            checks_consistency_gcollapse, debug_checkhash
+            checks_consistency_gcollapse, forceio debug_io_read_method(0)
+            checks_consistency_gcollapse, forceio debug_io_read_method(1)
+            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(0)
+            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(1000000)
 
-            checks_consistency_gegen,     debug_force_multi
-            checks_consistency_gegen,     debug_force_single
+            checks_consistency_gegen,     debug_force_multi  b
+            checks_consistency_gegen,     debug_force_single b
         }
 
         if ( `:list posof "test" in options' ) {

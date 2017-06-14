@@ -75,5 +75,6 @@ int  sf_parse_info  (struct StataInfo *st_info, int level);
 int  sf_hash_byvars (struct StataInfo *st_info);
 void sf_free        (struct StataInfo *st_info);
 int  sf_numsetup    ();
+int  sf_anyobs_sel  ();
 
 #endif

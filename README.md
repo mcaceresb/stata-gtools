@@ -1,7 +1,7 @@
 Faster Stata for Group Operations
 ---------------------------------
 
-`version 0.5.0 14Jun2017`
+`version 0.5.1 14Jun2017`
 
 ---
 

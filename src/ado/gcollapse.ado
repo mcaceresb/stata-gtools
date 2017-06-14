@@ -1,4 +1,4 @@
-*! version 0.5.0 14Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.1 14Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -169,6 +169,15 @@ program gcollapse
     scalar __gtools_k_uniq_vars  = `:list sizeof gtools_uniq_vars'
     scalar __gtools_k_uniq_stats = `:list sizeof gtools_uniq_stats'
 
+    local gtools_orig_stats      `gtools_stats'
+    local gtools_orig_uniq_stats `gtools_uniq_stats'
+
+    mata: gtools_vars     = (`:di subinstr(`""`gtools_vars'""',    " ", `"", ""', .)')
+    mata: gtools_targets  = (`:di subinstr(`""`gtools_targets'""', " ", `"", ""', .)')
+    mata: gtools_stats    = (`:di subinstr(`""`gtools_stats'""',   " ", `"", ""', .)')
+    mata: gtools_pos      = gtools_vars :== gtools_targets
+    mata: gtools_io_order = selectindex(gtools_pos), selectindex(!gtools_pos)
+
     * Position of input to each target variable (note C has 0-based indexing)
     cap matrix drop __gtools_outpos
     foreach var of local gtools_vars {
@@ -216,8 +225,10 @@ program gcollapse
             local gtools_recastsrc  `gtools_recastsrc'  `dropvar'
         }
         qui mata: st_addvar(__gtools_recasttypes, __gtools_recastvars, 1)
-        cap `noi' `plugin_call' `gtools_recastvars' `gtools_recastsrc', recast
-        if ( _rc != 0 ) exit _rc
+        if ( `=_N > 0' ) {
+            cap `noi' `plugin_call' `gtools_recastvars' `gtools_recastsrc', recast
+            if ( _rc != 0 ) exit _rc
+        }
         gtools_timer info 97 `"Recast source variables to save memory"', prints(`benchmark')
     }
 
@@ -229,11 +240,21 @@ program gcollapse
 
     local used_io    = 0
     local tried_io   = 0
-    local check_data = (`=_N' > `debug_io_check') & (`=scalar(__gtools_k_extra)' > 3)
+    local check_data = (`=_N' > `debug_io_check') & (`=scalar(__gtools_k_extra)' > 3) & (`=_N > 0')
     local check_io   = ("`merge'" == "") & ("`forcemem'" == "") & ("`forceio'" == "")
 
     * Only check if data is large and there are more than 3 extra variables
     if ( `check_data' & `check_io' ) {
+
+        * Re-order statistics (we try to use sources as targets; if the
+        * source was used as a target for any statistic other than the
+        * first, then we need to re-order the summary stats).
+        local gtools_stats ""
+        forvalues k = 1 / `=scalar(__gtools_k_targets)' {
+            mata: st_local("stat", gtools_stats[gtools_io_order[`k']])
+            local gtools_stats `gtools_stats' `stat'
+        }
+        local gtools_uniq_stats: list uniq gtools_stats
 
         * We replace source variables in memory, since they already exist in memory
         local plugvars `by' `gtools_uniq_vars' `gtools_uniq_vars' index info `bysmart'
@@ -290,6 +311,11 @@ program gcollapse
 
     * If we tried to use IO, pick up from where we left off
     if ( `tried_io' ) {
+
+        * If we tried IO, shiffle the summary stats back
+        local gtools_stats      `gtools_orig_stats'
+        local gtools_uniq_stats `gtools_orig_uniq_stats'
+
         local plugvars `by' `gtools_uniq_vars' `gtools_targets' index info
         scalar __gtools_indexed = `:list sizeof plugvars' - 1
 
@@ -311,8 +337,18 @@ program gcollapse
     else if ( !`used_io' ) {
 
         * If we did not try to use IO and we have not collapsed to disk, then:
-        if ( ("`forceio'" == "forceio") & ("`merge'" == "") & (`=scalar(__gtools_k_extra)' > 0) ) {
+        if ( ("`forceio'" == "forceio") & ("`merge'" == "") & (`=scalar(__gtools_k_extra)' > 0) & (`=_N > 0') ) {
             * Use IO anyway if the user requested it.
+
+            * Re-order statistics (we try to use sources as targets; if the
+            * source was used as a target for any statistic other than the
+            * first, then we need to re-order the summary stats).
+            local gtools_stats ""
+            forvalues k = 1 / `=scalar(__gtools_k_targets)' {
+                mata: st_local("stat", gtools_stats[gtools_io_order[`k']])
+                local gtools_stats `gtools_stats' `stat'
+            }
+            local gtools_uniq_stats: list uniq gtools_stats
 
             local plugvars `by' `gtools_uniq_vars' `gtools_uniq_vars' `bysmart'
             scalar __gtools_J = `=_N'
@@ -352,8 +388,10 @@ program gcollapse
             gtools_timer info 97 `"`msg'"', prints(`benchmark')
 
             * Run the full plugin:
-            cap `noi' `plugin_call' `plugvars', collapse
-            if ( _rc != 0 ) exit _rc
+            if ( `=_N > 0' ) {
+                cap `noi' `plugin_call' `plugvars', collapse
+                if ( _rc != 0 ) exit _rc
+            }
 
             * End timer for plugin time; benchmark just the program exit
             local msg "The plugin executed"
@@ -368,9 +406,17 @@ program gcollapse
     * Keep only one obs per group; keep only relevant vars
     if ( "`merge'" == "" ) {
         qui {
-            keep in 1 / `:di scalar(__gtools_J)'
+            if ( `=scalar(__gtools_J) > 0' ) keep in 1 / `:di scalar(__gtools_J)'
+            else if ( `=scalar(__gtools_J) == 0' ) drop if 1
+            else if ( `=scalar(__gtools_J) < 0' ) {
+                local website_url  https://github.com/mcaceresb/stata-gtools/issues
+                local website_disp github.com/mcaceresb/stata-gtools
+                di as err "The plugin returned a negative number of groups."
+                di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
+            }
             ds *
         }
+        if ( `=_N' == 0 ) di as txt "(no observations)"
 
         * make sure no extra variables are present
         local memvars  `r(varlist)'
@@ -379,7 +425,7 @@ program gcollapse
         if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
 
         * If we collapsed to disk, read back the data
-        if ( (`=scalar(__gtools_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
+        if ( (`=_N > 0') & (`=scalar(__gtools_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
             qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
             gtools_timer info 97 `"Added extra targets after collapse"', prints(`benchmark')
 
@@ -456,6 +502,12 @@ program gcollapse
     cap mata: mata drop __gtools_iovars
     cap mata: mata drop __gtools_data
 
+    cap mata: mata drop gtools_vars
+    cap mata: mata drop gtools_targets
+    cap mata: mata drop gtools_stats
+    cap mata: mata drop gtools_pos
+    cap mata: mata drop gtools_io_order
+
     cap scalar drop __gtools_indexed
     cap scalar drop __gtools_J
     cap scalar drop __gtools_k_uniq_stats
@@ -474,8 +526,12 @@ program gcollapse
     cap scalar drop __gtools_checkhash
     cap scalar drop __gtools_read_method
     cap scalar drop __gtools_collapse_method
-    cap scalar drop __gtools_k_extra 
-    cap scalar drop __gtools_k_recast 
+    cap scalar drop __gtools_k_extra
+    cap scalar drop __gtools_k_recast
+    cap scalar drop __gtools_used_io
+    cap scalar drop __gtools_io_thresh
+    cap scalar drop __gtools_mib_base
+    cap scalar drop __gtools_bench_st
 
     cap matrix drop __gtools_outpos
     cap matrix drop __gtools_strpos
@@ -678,7 +734,12 @@ program parse_vars, rclass
             * If the data is sorted by the by variables but in a different order.
             * The order does not matter for the final groupings (we will sort the
             * collapsed data in the correct order, however).
-            if ( `verbose' ) di as text "data sorted using by variables; indexing in stata"
+            * if ( `verbose' ) di as text "data sorted using by variables; indexing in stata"
+
+            * TODO: The theory behind this is sound but it requires some
+            * debugging for it to work correctly (since you can't do by `by'
+            * because it's not sorted. Debug and implement. // 2017-06-14 15:15 EDT
+            local indexed = 0
         }
         else {
             * If the data is sorted by more variables than the by variables
@@ -825,8 +886,10 @@ program parse_by_types
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
-        cap plugin call gtools`multi'_plugin `varnum', setup
-        if ( _rc ) exit _rc
+        if ( `=_N > 0' ) {
+            cap plugin call gtools`multi'_plugin `varnum', setup
+            if ( _rc ) exit _rc
+        }
         matrix __gtools_bymin = c_gtools_bymin
         matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
     }

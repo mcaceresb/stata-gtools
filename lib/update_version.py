@@ -122,7 +122,10 @@ for fname in todo:
                 new = "{0}.{1}.{2}".format(new_major, new_minor, new_patch)
                 oline = sub('(\d+\.?)+', new, line, 1)
                 if search("\d+" + remonths + "\d\d+", line):
-                    today = datetime.strftime(datetime.now(), "%d%B%Y")
+                    today_day   = datetime.strftime(datetime.now(), "%d")
+                    today_month = datetime.strftime(datetime.now(), "%B")
+                    today_year  = datetime.strftime(datetime.now(), "%Y")
+                    today = today_day + today_month[:3] + today_year
                     oline = sub("\d+" + remonths + "\d\d+", today, oline)
 
                 print("\t\t" + line)

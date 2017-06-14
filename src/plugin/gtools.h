@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/statvfs.h>
 
 // Number of bits to sort each pass of the radix sort
 #define RADIX_SHIFT 16
@@ -44,7 +45,6 @@ struct StataInfo {
     size_t N;
     size_t start_collapse_vars;
     size_t start_target_vars;
-    size_t start_str_byvars;
     int *pos_targets;
     int *pos_num_byvars;
     int *pos_str_byvars;

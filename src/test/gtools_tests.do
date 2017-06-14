@@ -42,24 +42,24 @@ program main
         * do bench_gcollapse_fcoll.do
         * do bench_gcollapse_gcoll.do
         if ( `:list posof "checks" in options' ) {
-            checks_byvars_gcollapse,      mf_force_multi
-            checks_options_gcollapse,     mf_force_multi
+            checks_byvars_gcollapse,      debug_force_multi
+            checks_options_gcollapse,     debug_force_multi
 
-            checks_byvars_gcollapse,      mf_force_single
-            checks_options_gcollapse,     mf_force_single
+            checks_byvars_gcollapse,      debug_force_single
+            checks_options_gcollapse,     debug_force_single
 
-            checks_options_gegen,         mf_force_multi
-            checks_options_gegen,         mf_force_single
-            checks_options_gegen,         mf_force_multi  mf_read_method(2)
-            checks_options_gegen,         mf_force_single mf_read_method(2)
+            checks_options_gegen,         debug_force_multi
+            checks_options_gegen,         debug_force_single
+            checks_options_gegen,         debug_force_multi  debug_read_method(2)
+            checks_options_gegen,         debug_force_single debug_read_method(2)
 
-            checks_consistency_gcollapse, mf_force_multi
-            checks_consistency_gcollapse, mf_force_single
-            checks_consistency_gcollapse, mf_force_multi  mf_read_method(2)
-            checks_consistency_gcollapse, mf_force_single mf_read_method(2)
+            checks_consistency_gcollapse, debug_force_multi
+            checks_consistency_gcollapse, debug_force_single
+            checks_consistency_gcollapse, debug_force_multi  debug_read_method(2)
+            checks_consistency_gcollapse, debug_force_single debug_read_method(2)
 
-            checks_consistency_gegen,     mf_force_multi
-            checks_consistency_gegen,     mf_force_single
+            checks_consistency_gegen,     debug_force_multi
+            checks_consistency_gegen,     debug_force_single
         }
 
         if ( `:list posof "test" in options' ) {

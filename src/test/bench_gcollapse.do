@@ -278,17 +278,39 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
-* do gegen.ado
+* cd /home/mauricio/code/stata-gtools/build/
 * do gtools_tests.do
-* do gcollapse.ado
+* qui do gegen.ado
+* sim, n(5000000) nj(8) njsub(4) string groupmiss outmiss
+*     local collapse (sum) rnorm (mean) mean = rnorm (sd) sd = rnorm (median) med = rnorm (count) count = rnorm (min) min = rnorm
+*     local by groupstr groupsub
+* bench_sim_ftools 5000000 6
+*     local collapse (sum) y1-y6
+*     foreach stat in mean median min max {
+*         local collapse `collapse' (`stat')
+*         foreach var of varlist y1-y6 {
+*             local collapse `collapse' `stat'_`var' = `var'
+*         }
+*     }
+*     local by x2 x3
+* !cd ..; ./build.py
+* qui do gcollapse.ado
 * preserve
-* gcollapse `collapse', by(`by') v b
+*     gcollapse `collapse', by(`by') v b
+*     * l in 1/10
 * restore
-
-* use ~/Downloads/problem.dta, clear
-* di "gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash"
-* gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash
+* preserve
+*     gcollapse `collapse', by(`by') v b merge
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forceio
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forcemem
+*     * l in 1/10
+* restore
 
 * Benchmarks in the README
 * ------------------------

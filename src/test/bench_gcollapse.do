@@ -281,13 +281,35 @@ end
 * cd /home/mauricio/code/stata-gtools/build/
 * do gtools_tests.do
 * qui do gegen.ado
-* sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
-* local collapse (sum) rnorm (mean) mean = rnorm
+* sim, n(5000000) nj(8) njsub(4) string groupmiss outmiss
+*     local collapse (sum) rnorm (mean) mean = rnorm (sd) sd = rnorm (median) med = rnorm (count) count = rnorm (min) min = rnorm
+*     local by groupstr groupsub
+* bench_sim_ftools 5000000 6
+*     local collapse (sum) y1-y6
+*     foreach stat in mean median min max {
+*         local collapse `collapse' (`stat')
+*         foreach var of varlist y1-y6 {
+*             local collapse `collapse' `stat'_`var' = `var'
+*         }
+*     }
+*     local by x2 x3
 * !cd ..; ./build.py
 * qui do gcollapse.ado
 * preserve
-*     gcollapse `collapse', by(groupstr) v b debug_force_single
-*     l
+*     gcollapse `collapse', by(`by') v b
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b merge
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forceio
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forcemem
+*     * l in 1/10
 * restore
 
 * Benchmarks in the README

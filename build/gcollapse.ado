@@ -1,4 +1,4 @@
-*! version 0.5.0 10Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.0 14Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -12,11 +12,15 @@ program gcollapse
         fast                          /// do not preserve/restore
         Verbose                       /// debugging
         Benchmark                     /// print benchmark info
+                                      ///
         smart                         /// check if data is sorted to speed up hashing
-        unsorted                      /// do not sort final output (current implementation of final
-                                      /// sort is super slow bc it uses Stata)
-        double                        /// Do all operations in double precision
-        merge                         /// Merge statistics back to original data, replacing where applicable
+        merge                         /// merge statistics back to original data, replacing where applicable
+                                      ///
+        unsorted                      /// do not sort final output
+        double                        /// do all operations in double precision
+        forceio                       /// use disk temp drive for writing/reading collapsed data
+        forcemem                      /// use memory for writing/reading collapsed data
+                                      /// greedy /// (Planned) skip the memory-saviung recasts and drops
                                       ///
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
@@ -24,7 +28,8 @@ program gcollapse
         debug_read_method(int 0)      /// (experimental) Choose a method for reading data from Stata
         debug_collapse_method(int 0)  /// (experimental) Choose a method for collapsing the data
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
-        debug_io_threshold(int 100)   /// (experimental) Threshold to switch to I/O instead of RAM
+        debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
+        debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
     if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
 
@@ -34,6 +39,16 @@ program gcollapse
 
     if ( ("`merge'" != "") & ("`if'" != "") ) {
         di as err "combining -merge- with -if- is currently buggy; a fix is planned v0.5.1"
+        exit 198
+    }
+
+    if ( ("`forceio'" != "") & ("`merge'" != "") ) {
+        di as err "-merge- with -forceio- is inefficient and hence not allowed."
+        exit 198
+    }
+
+    if ( ("`forceio'" != "") & ("`forcemem'" != "") ) {
+        di as err "only specify one of -forceio- and -forcemem-; cannot do both at the same time."
         exit 198
     }
 
@@ -52,6 +67,7 @@ program gcollapse
     local benchmark   = `r(benchmark)'
     local checkhash   = `r(checkhash)'
 
+    * While C can read macros, it's generally easier to read scalars
     scalar __gtools_verbose   = `verbose'
     scalar __gtools_benchmark = `benchmark'
     scalar __gtools_checkhash = `checkhash'
@@ -90,7 +106,13 @@ program gcollapse
         local by `r(varlist)'
     }
 
-    * Parse the things
+    * Parse
+    * - smart option: if data is sorted, index in Stata
+    * - by variables: figure out variable types (will choose different
+    *                 algorithms if all are numeric vs a mix)
+    * - subset: If applicable, drop missings (cw) or keep if in.
+    * - check plugin: Use multi-threaded if correctly loaded; fall back
+    *                 on single-threaded otherwise.
     parse_vars `anything' `if' `in', by(`by') `cw' smart(`smart') v(`verbose') `multi'
     local indexed = `r(indexed)'
     if ( `indexed' ) {
@@ -98,6 +120,9 @@ program gcollapse
         by `by': gen long `bysmart' = (_n == 1)
     }
 
+    * Parse variables to keep (by variables, sources) and drop (all
+    * else). Also parse which source variables to recast (see below; we
+    * try to use source variables as their first target to save memory)
     parse_keep_drop, by(`by') `merge' `double'     ///
         bysmart(`bysmart')                         ///
         indexed(`indexed')                         ///
@@ -114,20 +139,12 @@ program gcollapse
     local added    = "`r(added)'"
     local memvars  = "`r(memvars)'"
 
-    * This is not, strictly speaking, necessary, but I have yet to
-    * figure out how to handle strings in C efficiently; will improve on
-    * a future release.
-    local bystr_orig  ""
-    local bystr       ""
+    * Get a list with all string by variables
+    local bystr ""
     qui foreach byvar of varlist `by' {
         local bytype: type `byvar'
         if regexm("`bytype'", "str([1-9][0-9]*|L)") {
-            tempvar `byvar'
-            * mata: st_addvar("`bytype'", "``byvar''", 1)
-            mata: __gtools_addvars  = __gtools_addvars,  "``byvar''"
-            mata: __gtools_addtypes = __gtools_addtypes, "`bytype'"
-            local bystr `bystr' ``byvar''
-            local bystr_orig `bystr_orig' `byvar'
+            local bystr `bystr' `byvar'
         }
     }
 
@@ -161,13 +178,13 @@ program gcollapse
     * Position of string variables (the position in the variable list
     * passed to C has 1-based indexing, however)
     cap matrix drop __gtools_strpos
-    foreach var of local bystr_orig {
+    foreach var of local bystr {
         matrix __gtools_strpos = nullmat(__gtools_strpos), `:list posof `"`var'"' in by'
     }
 
     * Position of numeric variables (ibid.)
     cap matrix drop __gtools_numpos
-    local bynum `:list by - bystr_orig'
+    local bynum `:list by - bystr'
     foreach var of local bynum {
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in by'
     }
@@ -183,99 +200,204 @@ program gcollapse
     *                     Set up data for the plugin                      *
     ***********************************************************************
 
+    * Recast variables to save mem
+    * ----------------------------
+
+    mata: st_numscalar("__gtools_k_recast", cols(__gtools_recastvars))
+    if ( `=scalar(__gtools_k_recast)' > 0 ) {
+        local gtools_recastvars ""
+        local gtools_recastsrc  ""
+        forvalues k = 1 / `=scalar(__gtools_k_recast)' {
+            mata: st_local("var", __gtools_recastvars[`k'])
+            tempvar dropvar
+            rename `var' `dropvar'
+            local dropme `dropme' `dropvar'
+            local gtools_recastvars `gtools_recastvars' `var'
+            local gtools_recastsrc  `gtools_recastsrc'  `dropvar'
+        }
+        qui mata: st_addvar(__gtools_recasttypes, __gtools_recastvars, 1)
+        cap `noi' `plugin_call' `gtools_recastvars' `gtools_recastsrc', recast
+        if ( _rc != 0 ) exit _rc
+        gtools_timer info 97 `"Recast source variables to save memory"', prints(`benchmark')
+    }
+
     * Use I/O instead of memory for results (faster for J small)
     * ----------------------------------------------------------
 
-*     if 0 & ( `=_N' > `debug_io_check' ) {
-*         mata: st_addvar(("double", "double"), ("index", "info"), 1)
-*         local MiB = trim("`:di %15.2gc `=_N * 8 * 2' / 1024 / 1024'")
-*         gtools_timer info 97 `"Added 2 8-byte variables (approx `MiB'MiB)"', prints(`benchmark')
-*         local rate_stata = `=8 * 2 * _N / `r(t97)''
-*
-*         `plugin_call' `by' index info, index
-*         local rate_c = 1024 * 1024 / `=scalar(__gtools_bench_c)'
-*
-*         mata: st_numscalar("kadd", cols(__gtools_addvars))
-*         local time_c     = `=scalar(kadd) * scalar(__gtools_J) * 8 / ( `rate_c' + `rate_stata')'
-*         local time_stata = `=scalar(kadd) * _N * 8 / rate_stata'
-*
-*         if ( `time_c' * threshold < `time_stata' )
-*         tempfile __gtools_collapsed_file
-*         cap `noi' `plugin_call' `plugvars', collapse write `__gtools_collapsed_file'
-*
-*         keep in 1 / `:di scalar(__gtools_J)'
-*         mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
-*         order `by' `gtools_targets'
-*         set obs `:di scalar(__gtools_J)'
-*         cap `noi' `plugin_call' `by' `gtools_targets', read `__gtools_collapsed_file'
-*
-*         local time_c     = `=scalar(kadd) * scalar(__gtools_J) * 8 / ( `rate_c' + `rate_stata')'
-*         local time_stata = `=scalar(kadd) * _N * 8 / rate_stata'
-*     }
+    tempfile __gtools_file
+    scalar __gtools_k_extra = __gtools_k_targets - __gtools_k_uniq_vars
 
-    * Drop superfluous variables; generate target variables
-    * -----------------------------------------------------
+    local used_io    = 0
+    local tried_io   = 0
+    local check_data = (`=_N' > `debug_io_check') & (`=scalar(__gtools_k_extra)' > 3)
+    local check_io   = ("`merge'" == "") & ("`forcemem'" == "") & ("`forceio'" == "")
 
-    {
-        if ( "`merge'"  == "" ) local dropme `dropme' `:list memvars - keepvars'
-        if ( ("`added'" != "") | ("`bystr'"  != "") ) {
-            mata: st_numscalar("krecast", cols(__gtools_recastvars))
-            mata: __gtools_recastsrc  = J(1, 0, "")
-            forvalues k = 1 / `=scalar(krecast)' {
-                mata: st_local("var", __gtools_recastvars[`k'])
-                tempvar dropvar
-                rename `var' `dropvar'
-                local dropme `dropme' `dropvar'
-                mata: __gtools_recastsrc = __gtools_recastsrc, "`dropvar'"
-            }
-            qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
-            qui forvalues k = 1 / `=scalar(krecast)' {
-                mata: st_local("var",     __gtools_recastvars[`k'])
-                mata: st_local("dropvar", __gtools_recastsrc[`k'])
-                replace `var' = `dropvar'
-            }
-        }
+    * Only check if data is large and there are more than 3 extra variables
+    if ( `check_data' & `check_io' ) {
+
+        * We replace source variables in memory, since they already exist in memory
+        local plugvars `by' `gtools_uniq_vars' `gtools_uniq_vars' index info `bysmart'
+
+        * It will be faster to add targets with fewer variables in
+        * memory. Dropping superfluous variables also saves memory.
+        local dropme `dropme' `:list memvars - keepvars'
+        local dropme `:list dropme  - plugvars'
         if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
-        ds *
+        gtools_timer info 97 `"Dropped superfluous variables"', prints(`benchmark')
+
+        * Initialize __gtools_J; pass whether the data was indexed in stata
+        scalar __gtools_J = `=_N'
+        scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
+
+        * Benchmark adding 2 variables to gauge how long it might take
+        * to add __gtools_k_extra variables.
+        qui {
+            mata: st_addvar(("double"), ("index"), 1)
+            mata: st_addvar(("double"), ("info"), 1)
+            local MiB    = `=_N * 8 * 2' / 1024 / 1024
+            local MiBstr = trim("`:di %15.2gc `MiB''")
+            local Nstr   = trim("`:di %15.0gc `=_N''")
+        }
+        gtools_timer info 97 `"Added index and info (`Nstr' obs; approx `MiBstr'MiB)"', prints(`benchmark')
+        scalar __gtools_bench_st  = `r(t97)' / `MiB'
+        scalar __gtools_mib_base  = scalar(__gtools_k_extra) * 8 / 1024 / 1024
+        scalar __gtools_io_thresh = `debug_io_threshold'
+
+        * Collapse the data. If it will be faster to collapse to disk,
+        * this stores the results in ibinary format to `__gtools_file'.
+        * If it will be slower, then it stores the index and info
+        * variabes in memory (it will be faster to pick up the execution
+        * from there then re-hash and re-sort).
+        cap `noi' `plugin_call' `plugvars', collapse index `"`__gtools_file'"'
+        if ( _rc != 0 ) exit _rc
+
+        * If we collapsed to disk, no need to collapse to memory
+        local used_io = `=scalar(__gtools_used_io)'
+
+        * If we did not collapse to disk, note that we tried it so we
+        * pick up from having already hashed and sorted the data.
+        local tried_io = 1 & !`used_io'
+
+        if ( `used_io' ) {
+            if ( `benchmark' ) gtools_timer info 97 `"Wrote collapsed data to disk"', prints(1)
+            else if ( `verbose' ) di "Will read collapsed data back into memory from disk."
+        }
+        else {
+            if ( `benchmark' ) gtools_timer info 97 `"Indexed by variables"', prints(1)
+            else if ( `verbose' ) di "Will generate targets in memory before collapse."
+        }
     }
-    if ( `verbose' ) di as text "In memory: `r(varlist)'"
 
-    * Timers!
-    * -------
+    * If we tried to use IO, pick up from where we left off
+    if ( `tried_io' ) {
+        local plugvars `by' `gtools_uniq_vars' `gtools_targets' index info
+        scalar __gtools_indexed = `:list sizeof plugvars' - 1
 
-    * End timer for keep/drop; benchmark plugin
-    local msg "Parsed by variables, sources, and targets"
-    gtools_timer info 97 `"`msg'"', prints(`benchmark')
+        * Add the targets to memory
+        qui {
+            if ( "`added'"  != "" ) mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+            ds *
+        }
+        if ( `verbose' ) di as text "In memory: `r(varlist)'"
+        local msg "Generated additional targets"
+        gtools_timer info 97 `"`msg'"', prints(`benchmark')
+
+        * Collapse to memory using hashed data index and info
+        cap `noi' `plugin_call' `plugvars', collapse ixfinish `"`__gtools_file'"'
+        if ( _rc != 0 ) exit _rc
+
+        gtools_timer info 97 `"Collapsed indexed data to memory"', prints(`benchmark')
+    }
+    else if ( !`used_io' ) {
+
+        * If we did not try to use IO and we have not collapsed to disk, then:
+        if ( ("`forceio'" == "forceio") & ("`merge'" == "") & (`=scalar(__gtools_k_extra)' > 0) ) {
+            * Use IO anyway if the user requested it.
+
+            local plugvars `by' `gtools_uniq_vars' `gtools_uniq_vars' `bysmart'
+            scalar __gtools_J = `=_N'
+            scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
+
+            if ( "`merge'"  == "" ) local dropme `dropme' `:list memvars - keepvars'
+            local dropme `:list dropme - plugvars'
+            if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+
+            qui ds *
+            if ( `verbose' ) di as text "In memory: `r(varlist)'"
+            cap `noi' `plugin_call' `plugvars', collapse ixwrite `"`__gtools_file'"'
+            gtools_timer info 97 `"Collapsed data to disk (forced by user)"', prints(`benchmark')
+        }
+        else {
+            * Do the regular gcollapse (drop extra vars; add targets in
+            * memory, then full collapse run)
+
+            local plugvars `by' `gtools_uniq_vars' `gtools_targets' `bysmart'
+            scalar __gtools_J = `=_N'
+            scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
+
+            if ( "`merge'"  == "" ) local dropme `dropme' `:list memvars - keepvars'
+            local dropme `:list dropme - plugvars'
+            if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+
+            if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_k_extra)' == 0) ) {
+                if ( `verbose' ) di as text "(ignored option -forceio- because sources are being used as targets)"
+            }
+
+            qui {
+                if ( "`added'"  != "" ) mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+                ds *
+            }
+            if ( `verbose' ) di as text "In memory: `r(varlist)'"
+            local msg "Generated additional targets"
+            gtools_timer info 97 `"`msg'"', prints(`benchmark')
+
+            * Run the full plugin:
+            cap `noi' `plugin_call' `plugvars', collapse
+            if ( _rc != 0 ) exit _rc
+
+            * End timer for plugin time; benchmark just the program exit
+            local msg "The plugin executed"
+            gtools_timer info 97 `"`msg'"', prints(`benchmark')
+        }
+    }
 
     ***********************************************************************
-    *          Run the plugin; sort the data after if applicable          *
+    *                   Keep only relevant observations                   *
     ***********************************************************************
-
-    * Run the plugin:
-    *    - The variables are passed after being parsed above; order is VERY important
-    *    - J will contain how many obs to keep
-    *    - nstr contains # of string grouping vars
-    *    - indexed notes whether the data is already sorted
-    local plugvars `by' `gtools_uniq_vars' `gtools_targets' `bystr' `bysmart'
-    scalar __gtools_J    = `=_N'
-    scalar __gtools_nstr = `:list sizeof bystr'
-    scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-
-    cap `noi' `plugin_call' `plugvars', collapse
-    if ( _rc != 0 ) exit _rc
-
-    * End timer for plugin time; benchmark just the program exit
-    local msg "The plugin executed"
-    gtools_timer info 97 `"`msg'"', prints(`benchmark')
 
     * Keep only one obs per group; keep only relevant vars
-    qui if ( "`merge'" == "" ) {
-        keep in 1 / `:di scalar(__gtools_J)'
-        qui ds *
+    if ( "`merge'" == "" ) {
+        qui {
+            keep in 1 / `:di scalar(__gtools_J)'
+            ds *
+        }
+
+        * make sure no extra variables are present
         local memvars  `r(varlist)'
         local keepvars `by' `gtools_targets'
         local dropme   `:list memvars - keepvars'
         if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+
+        * If we collapsed to disk, read back the data
+        if ( (`=scalar(__gtools_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
+            qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+            gtools_timer info 97 `"Added extra targets after collapse"', prints(`benchmark')
+
+            * For debugging, we can choose to read it back using mata or C
+            local __gtools_iovars: list gtools_targets - gtools_uniq_vars
+            mata: __gtools_iovars = (`:di subinstr(`""`__gtools_iovars'""', " ", `"", ""', .)')
+            if ( `debug_io_read_method' == 0 ) {
+                cap `noi' `plugin_call' `__gtools_iovars', collapse read `"`__gtools_file'"'
+                if ( _rc != 0 ) exit _rc
+            }
+            else {
+                local nrow = `:di scalar(__gtools_J)'
+                local ncol = `:di scalar(__gtools_k_extra)'
+                mata: __gtools_data = gtools_get_collapsed (`"`__gtools_file'"', `nrow', `ncol')
+                mata: st_store(., __gtools_iovars, __gtools_data)
+            }
+            gtools_timer info 97 `"Read extra targets from disk"', prints(`benchmark')
+        }
 
         * Order variables if they are not in user-requested order
         local order = 0
@@ -297,12 +419,20 @@ program gcollapse
         if ( "`unsorted'" == "" ) sort `by'
     }
     else {
+        * If merge was requested, only drop temporary variables (all
+        * data should stay in memory for merge, since we are mimicing a
+        * merge; note, however, that this assumes -update replace-, so
+        * collapsing without explicitly naming the target will replace
+        * the source).
         local dropvars ""
-        if ( "`bystr'" != "" ) local dropvars `dropvars' `bystr'
-        if ( `indexed' )       local dropvars `dropvars' `bysmart'
+        if ( `indexed' ) local dropvars `dropvars' `bysmart'
         local dropvars = trim("`dropvars'")
         if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
     }
+
+    ***********************************************************************
+    *                            Program Exit                             *
+    ***********************************************************************
 
     if ( "`fast'" == "" ) restore, not
 
@@ -321,10 +451,12 @@ program gcollapse
     cap mata: mata drop __gtools_addvars
     cap mata: mata drop __gtools_addtypes
     cap mata: mata drop __gtools_recastvars
+    cap mata: mata drop __gtools_recasttypes
     cap mata: mata drop __gtools_recastsrc
+    cap mata: mata drop __gtools_iovars
+    cap mata: mata drop __gtools_data
 
     cap scalar drop __gtools_indexed
-    cap scalar drop __gtools_nstr
     cap scalar drop __gtools_J
     cap scalar drop __gtools_k_uniq_stats
     cap scalar drop __gtools_k_uniq_vars
@@ -342,6 +474,8 @@ program gcollapse
     cap scalar drop __gtools_checkhash
     cap scalar drop __gtools_read_method
     cap scalar drop __gtools_collapse_method
+    cap scalar drop __gtools_k_extra 
+    cap scalar drop __gtools_k_recast 
 
     cap matrix drop __gtools_outpos
     cap matrix drop __gtools_strpos
@@ -376,7 +510,7 @@ program gtools_timer, rclass
         timer off `timer'
         qui timer list
         if ( `prints' ) di `"`msg'`:di trim("`:di %21.4gc r(t`timer')'")' seconds"'
-        return local t`timer'      = `r(t`timer')'
+        return scalar t`timer' = `r(t`timer')'
         return local pretty`timer' = trim("`:di %21.4gc r(t`timer')'")
         timer off `timer'
         timer clear `timer'
@@ -533,12 +667,22 @@ program parse_vars, rclass
         local sortedby: sortedby
         local indexed = ( `=_N' < 2^31 )
         if ( "`sortedby'" == "" ) {
+            * If the data is not sorted, you will have to sort it
             local indexed = 0
         }
         else if ( `: list by == sortedby' ) {
+            * If the data is sorted by the by variables, you're in luck
             if ( `verbose' ) di as text "data already sorted; indexing in stata"
         }
+        else if ( `: list by === sortedby' ) {
+            * If the data is sorted by the by variables but in a different order.
+            * The order does not matter for the final groupings (we will sort the
+            * collapsed data in the correct order, however).
+            if ( `verbose' ) di as text "data sorted using by variables; indexing in stata"
+        }
         else {
+            * If the data is sorted by more variables than the by variables
+            * check the first K variables (for K by vars) are the same.
             forvalues k = 1 / `:list sizeof by' {
                 if ( "`:word `k' of `by''" != "`:word `k' of `sortedby''" ) local indexed = 0
                 * di "`:word `k' of `by'' vs `:word `k' of `sortedby''"
@@ -548,6 +692,7 @@ program parse_vars, rclass
             }
         }
 
+        * If indexed, subset now so when we create the indicator it is correct
         qui if ( `indexed' ) {
             if  ( ("`if'`in'" != "") | ("`cw'" != "") ) {
                 marksample touse, strok novarlist
@@ -807,9 +952,10 @@ program parse_keep_drop, rclass
     local dropme ""
     local added  ""
 
-    mata: __gtools_addvars    = J(1, 0, "")
-    mata: __gtools_addtypes   = J(1, 0, "")
-    mata: __gtools_recastvars = J(1, 0, "")
+    mata: __gtools_addvars     = J(1, 0, "")
+    mata: __gtools_addtypes    = J(1, 0, "")
+    mata: __gtools_recastvars  = J(1, 0, "")
+    mata: __gtools_recasttypes = J(1, 0, "")
 
     c_local __gtools_vars      `__gtools_vars'
     c_local __gtools_uniq_vars `__gtools_keepvars'
@@ -871,10 +1017,8 @@ program parse_keep_drop, rclass
             local recast = !( `already_same_type' | `already_double' | `already_higher' )
 
             if ( `recast' ) {
-                if ( `verbose' ) di as text "    `var' will be recast as `targettype'"
-                mata: __gtools_addvars    = __gtools_addvars,    "`var'"
-                mata: __gtools_addtypes   = __gtools_addtypes,   "`targettype'"
-                mata: __gtools_recastvars = __gtools_recastvars, "`var'"
+                mata: __gtools_recastvars  = __gtools_recastvars,  "`var'"
+                mata: __gtools_recasttypes = __gtools_recasttypes, "`targettype'"
             }
         }
     }
@@ -931,6 +1075,25 @@ program parse_ok_astarget, rclass
         }
     }
     return local ok_astarget = `ok_astarget'
+end
+
+***********************************************************************
+*                            mata helpers                             *
+***********************************************************************
+
+cap mata: mata drop gtools_get_collapsed()
+mata
+real matrix function gtools_get_collapsed (string scalar fname, real scalar nrow, real scalar ncol)
+{
+    real scalar fh
+    real matrix X
+    colvector C
+    fh = fopen(fname, "r")
+    C = bufio()
+    X = fbufget(C, fh, "%8z", nrow, ncol)
+    fclose(fh)
+    return (X)
+}
 end
 
 ***********************************************************************

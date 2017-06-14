@@ -1,26 +1,26 @@
 Faster Stata for Group Operations
 ---------------------------------
 
-`version 0.4.0 23May2017`
+`version 0.5.0 14Jun2017`
 
 ---
 
 This is currently a beta release. This package uses a C-plugin
 to provide a faster implementation for Stata's `collapse` called
 `gcollapse` that is also faster than Sergio Correia's `fcollapse` from
-`ftools`. Further, group variables can be a mix of string and numeric,
-like `collapse`. It also provides some support for by-able `egen`
-functions via `gegen`.
+`ftools` (further, group variables can be a mix of string and numeric,
+like `collapse`). It also provides some (limited) support for by-able
+`egen` functions via `gegen`.
 
-Currently, memory management is **VERY** bad. If you are generating many
-simple summary statistics from a single variable, the overhead may not
-be worth it. I plan a massive improvement to this for version 0.5.0.
-
-At the moment, only Unix versions of the plugins are available. Windows
-and OSX versions are planned for a future release.
+In our benchmarks, `gcollapse` was 5 to 120 times faster than `collapse`
+and 3 to 20 times faster than `fcollapse` (the speed gain is smaller for
+simpler statistics, such as sums, and larger for complex statistics,
+such as percentiles). At the moment, only Unix versions of the plugins
+are available. Windows and OSX versions are planned for a future
+release.
 
 - [Installation and Use](#installation-and-use)
-- [Benchmark](#benchmark)
+- [Benchmarks](#benchmarks)
 - [Building](#building)
 - [FAQs](#faqs)
 - [Miscellaneous Notes](#miscellaneous-notes)
@@ -39,207 +39,151 @@ net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtool
 * ado uninstall gtools
 ```
 
-The syntax is identical to `collapse`
+The syntax is identical to `collapse`, except the current release does
+not support weights
 ```stata
 gcollapse (stat) target = source [(stat) target = source ...], by(varlist)
 gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar)
 ```
 
-Benchmark
----------
+Support for weights is planned for a future release.
 
-See `src/test/bench_gcollapse.do` for the benchmark code. We have 3 benchmarks:
+Benchmarks
+----------
+
+See `src/test/bench_gcollapse.do` for the benchmark code. I run 3 sets of benchmarks:
 - `ftools`-style benchmarks: Collapse a large number of observations
-  to 100 groups. We sum 15 variables, take the mean and median of 3
+  to 100 groups. This sums 15 variables, take the mean and median of 3
   variables, and take the mean, sum, count, min, and max of 6 variables.
 
-- Increasing group size: We fix the sample size at 50M and increase
-  the group size from 10 to 10M in geometric succession. We compute
+- Increasing group size: This fixes the sample size at 50M and increase
+  the group size from 10 to 10M in geometric succession and computes
   all available stats (and 2 sample percentiles) for 2 variables.
 
-- Increasing sample size: We fix the group size at 10 and increase the
-  sample size from 20,000 to 200M in geometric succession. We compute all
+- Increasing sample size: This fixes the group size at 10 and increase the
+  sample size from 20,000 to 200M in geometric succession and computes all
   available stats (and 2 sample percentiles) for 2 variables.
 
 All benchmarks were done on a server with the following specifications:
 
     Program:   Stata/MP 14.2 (8 cores)
     OS:        x86_64 GNU/Linux
-    Processor: Intel(R) Xeon(R) CPU E5-4617 0 @ 2.90GHz
-    Cores:     4 hexa-core sockets (24 cores).
-    Memory:    220GiB
-    Swap:      298GiB
+    Processor: Intel(R) Xeon(R) CPU E5-2643 0 @ 3.30GHz
+    Cores:     2 quad-core sockets (8 cores).
+    Memory:    378GiB
+    Swap:      372GiB
 
 Alternatively, I made Stata/IC benchmarks available (since I only have
 IC on my personal computer) in `./src/test/bench_ic_fcoll.log`; the
 speed gains in IC are markedly higher than those below. Note I have not
 yet benchmarked this version of `gcollapse` against `collapse` for 200M
 observations. This is because `collapse` takes several hours in that
-case, and I have not yet had time to run them. (Benchmarks for the old
-version are still available in `./src/test/bench_mp-0.3.log`.)
+case, and I have not found occasion to run them.
 
 All commands were run with the `fast` option.
 
 ### Benchmarks in the style of `ftools`
 
-We vary N for J = 100 and collapse 15 variables:
+Vary N for J = 100 and collapse 15 variables:
 ```
     vars  = y1-y15 ~ 123.456 + U(0, 1)
     stats = sum
 
     |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ----------- | --------- | --------- | --------- | ----------- | ----------- |
-    |   2,000,000 |      0.81 |      6.26 |      3.48 |        4.32 |        7.77 |
-    |  20,000,000 |      8.66 |     76.73 |     34.64 |        4.00 |        8.86 |
-    | 200,000,000 |     83.11 | [not run] |    368.81 |        4.44 |   [not run] |
+    |   2,000,000 |      1.41 |      6.76 |      4.51 |        3.19 |        4.79 |
+    |  20,000,000 |     13.04 |     75.53 |     51.68 |        3.96 |        5.79 |
+    | 200,000,000 |    112.19 | [not run] |    434.09 |        3.87 |   [not run] |
 ```
 
 In the tables, `g`, `f`, and `c` are code for `gcollapse`, `fcollapse`,
-and `collapse`, respectively. We repeat the exercise but with more
-complex summary statistics:
+and `collapse`, respectively.
 ```
     vars  = y1-y3 ~ 123.456 + U(0, 1)
     stats = mean median
 
     |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ----------- | --------- | --------- | --------- | ----------- | ----------- |
-    |   2,000,000 |      0.69 |      8.33 |      3.54 |        5.15 |       12.11 |
-    |  20,000,000 |      4.93 |    109.10 |     43.09 |        8.73 |       22.12 |
-    | 200,000,000 |     52.96 | [not run] |    613.47 |       11.58 |   [not run] |
+    |   2,000,000 |      0.87 |      9.23 |      3.98 |        4.57 |       10.59 |
+    |  20,000,000 |      7.36 |    114.90 |     45.60 |        6.20 |       15.61 |
+    | 200,000,000 |     62.37 | [not run] |    641.97 |       10.29 |   [not run] |
 ```
 
-We see `gcollapse` is 4-11 times faster than `fcollapse` and 8-22 times
-faster than `collapse`, with larger speed gains for complex statistics
-and a large number of observations. We devised one more benchmark:
-Multiple simple statistics for many variables.
+The two benchmarks above are run in the `ftools` package. We see
+`gcollapse` is 3-10 times faster than `fcollapse` and 5-16 times faster
+than `collapse`, with larger speed gains for complex statistics and a
+large number of observations. I also devised one more benchmark in this
+style: Multiple simple statistics for many variables.
 ```
     vars  = y1-y6 ~ 123.456 + U(0, 1)
     stats = sum mean count min max
 
     |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ----------- | --------- | --------- | --------- | ----------- | ----------- |
-    |   2,000,000 |      3.90 |     36.44 |      3.37 |        0.86 |        9.35 |
-    |  20,000,000 |     37.88 |    459.67 |     34.20 |        0.90 |       12.13 |
-    | 200,000,000 |    389.19 | [not run] |    338.76 |        0.87 |   [not run] |
+    |   2,000,000 |      0.96 |     32.31 |      3.97 |        4.14 |       33.70 |
+    |  20,000,000 |      7.52 |    451.24 |     48.06 |        6.39 |       60.02 |
+    | 200,000,000 |     58.04 | [not run] |    384.78 |        6.63 |   [not run] |
 ```
 
-`gcollapse` performs really poorly in this scenario. We detail the
-reason why further down in this section, but the short story is that
-C cannot create variables in Stata. My initial solution for this was
-to create the target variables first, populate them with the collapsed
-data, and then keep the first J observations after the collapse.
-
-This is glaringly inefficient in situations like these: 30 targets for 6
-variables means creating at least 24 variables, each occupying 8 bytes *
-200M observations, or 1.5GiB. In other words, Stata allocates 32GiB of
-memory _before_ calling the C plugin. This makes no sense in this case,
-because the collapsed data would only occupy 23KiB.
-
-For the 0.5.0 release, I plan to have `gcollapse` be smart about writing
-the collapsed data to disk and reading that back into Stata if the
-trade-off indicates it will be efficient to do so.
+`gcollapse` was 4-6 times faster than `fcollapse` and 30-60 times faster than `collapse`.
 
 ### Increasing the sample size
 
-Data was sorted on a random variable before collapsing. We vary N for J = 10:
+I thought it fitting to also compare a benchmark that produced one of
+each available statistic. Here I vary N for J = 10 (data was sorted on a
+random variable before collapsing):
 ```
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
 
     |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ----------- | --------- | --------- | --------- | ----------- | ----------- |
-    |     200,000 |      0.14 |      7.62 |      0.81 |        5.95 |       56.04 |
-    |   2,000,000 |      2.21 |    110.26 |      9.65 |        4.37 |       49.98 |
-    |  20,000,000 |     26.48 |   1520.18 |    142.84 |        5.39 |       57.41 |
-    | 200,000,000 |    263.46 | [not run] |   2670.32 |       10.14 |   [not run] |
+    |   2,000,000 |      1.25 |    119.41 |      9.68 |        7.73 |       95.37 |
+    |  20,000,000 |     13.28 |   1649.93 |    159.80 |       12.03 |      124.23 |
+    | 200,000,000 |    104.04 | [not run] |   2195.65 |       21.10 |   [not run] |
 ```
 
-We can see that `collapse` does not handle multiple complex statistics
-particularly well as N grows. `gcollapse` was more than 50 times faster.
-`fcollapse` performed better, but`gcollapse` was still 4-10 times faster
+`gcollapse` handles multiple complex statistics specially well relative to
+`collapse` (95 to 125 times faster) and `fcollapse` (7 to 21 times faster).
 
 ### Increasing the number of levels
 
-Data was sorted on a random variable before collapsing. We vary J for N = 50,000,000:
+All the benchmarks above have collapsed to a small number of groups;
+hence I also benchmark the effect of increasing the group size. Here I
+vary J for N = 50,000,000 (data was sorted on a random variable before
+collapsing):
 ```
     vars  = x1 x2 ~ N(0, 1)
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
 
     |          J | gcollapse | fcollapse | ratio (f/g) |
     | ---------- | --------- | --------- | ----------- |
-    |         10 |     62.29 |    508.00 |        8.16 |
-    |        100 |     65.88 |    284.83 |        4.32 |
-    |      1,000 |     58.34 |    253.01 |        4.34 |
-    |     10,000 |     60.31 |    231.36 |        3.84 |
-    |    100,000 |     69.40 |    221.33 |        3.19 |
-    |  1,000,000 |     67.21 |    299.31 |        4.45 |
-    | 10,000,000 |     82.47 |   1075.93 |       13.05 |
+    |         10 |     24.94 |    418.04 |       16.76 |
+    |        100 |     25.71 |    258.24 |       10.04 |
+    |      1,000 |     26.51 |    237.11 |        8.94 |
+    |     10,000 |     28.06 |    234.16 |        8.34 |
+    |    100,000 |     30.15 |    211.93 |        7.03 |
+    |  1,000,000 |     37.51 |    274.60 |        7.32 |
+    | 10,000,000 |     91.16 |    986.76 |       10.82 |
 ```
 
-We have not benchmarked `collapsed` against version `0.4.0` because when
-we benchmarked it against version `0.3.0` it took almost an hour for
-each run of this benchmark, and we have not found the time to repeat
-that run. `fcollapse` did better for a modest numbers of groups, but it
-performed poorly for very few groups and for a large number of groups.
-Overall `gcollapse` was 3-13 times faster.
-
-### Comparing `gcollapse` and `fcollapse` at their worst
-
-`gcollapse` performed worst when computing many simple statistics for
-200M observations. `fcollapse` performed worst when computing many
-complex statistics for 10M groups. We benchmark a run for N = 200M and
-J = 40M for many simpe statistics:
+`fcollapse` did better for a modest numbers of groups, but it performed
+poorly for very few groups and for a large number of groups. Overall
+`gcollapse` was 7-16 times faster. I have not benchmarked `collapsed`
+against version `0.5.0` in this case because each run will take over
+an hour and have not found the time. I ran a "smaller" version of this
+benchmark: Vary J for N = 5,000,000
 ```
-    vars  = x1 x2 x3 x4 x5 x6
-    stats = sum mean count min max
-    N = 200,000,000
-    J =  40,000,000
+    vars  = x1 x2 ~ N(0, 1)
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
 
-    | gcollapse | fcollapse | ratio (f/g) |
-    | --------- | --------- | ----------- |
-    |    281.30 |   2015.36 |        7.16 |
+    |          J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
+    |      1,000 |      2.80 |    331.23 |     22.13 |        7.91 |      118.38 |
+    |     10,000 |      3.28 |    324.73 |     20.20 |        6.16 |       99.03 |
+    |    100,000 |      3.65 |    323.46 |     26.14 |        7.17 |       88.67 |
+    |  1,000,000 |      8.91 |    347.01 |     95.51 |       10.71 |       38.92 |
 ```
-
-### The Stata overhead
-
-In the last benchmark above, we ran
-```
-. local stats mean count min max sum
-. local vars x1 x2 x3 x4 x5 x6
-
-. local collapse ""
-. foreach stat of local stats {
-.     local collapse `collapse' (`stat')
-.     foreach var of local vars {
-.         local collapse `collapse' `stat'_`var' = `var'
-.     }
-. }
-
-. bench_sim, n(200000000) nj(40000000) nvars(6)
-. gcollapse `collapse', by(group) benchmark fast
-
-Parsed by variables, sources, and targets; .014 seconds
-Generated targets; 104.1 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-        Plugin step 2: Hashed by variables; 15.290 seconds.
-        Plugin step 3: Sorted on integer-only hash index; 63.110 seconds.
-        Plugin step 4: Set up variables for main group loop; 5.950 seconds.
-        Plugin step 5.1: Read source variables in parallel; 11.654 seconds.
-        Plugin step 5.2: Collapsed variables in parallel; 1.712 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 17.940 seconds.
-The plugin executed in 119.2 seconds
-Program exit executed in 58 seconds
-The program executed in 281.3 seconds
-```
-
-We can clearly see the bottleneck is the Stata overhead: Indeed, nearly
-40% of the execution time is spent adding the target variables, and
-another 20% in sorting the data at the end. We are working on a solution
-that sorts the data in C, and that is smart about writing the collapse
-to disk for it to be read by Stata later. (Though in this case the
-data would not be written to disk, as the I/O involved in writing
-40M observations should not be faster than creating the variables in
-memory.)
 
 Building
 --------
@@ -263,7 +207,7 @@ If that compiles correctly, then from the root directory you can run
 ```
 
 to compile the plugin and copy the files to `./build`. This tries to run
-`make` as one of the steps, so if you are not on Linux you will have to
+`make` as one of the steps, so if you are not on Linux you may have to
 modify `./Makefile`.
 
 FAQs
@@ -281,7 +225,7 @@ Stata's native commands:
    at a time; I choose X to be 16). Sorting on a single integer is much
    faster than sorting on a collection of variables with arbitrary data.
    With a 128-bit hash you shouldn't have to worry about collisions
-   (unless you're working with groups in the quintillions, that's
+   (unless you're working with groups in the quintillions—that's
    10^18). Hashing here is also faster than hashing in Sergio Correia's
    `ftools`, which uses a 32-bit hash and will run into collisions just
    with levels in the thousands, so he has to resolve collisions.
@@ -309,6 +253,12 @@ C is platform dependent and I don't have access to Stata on Windows or
 OSX. Sorry! I use Linux on my personal computer and on all the servers
 where I do my work. If anyone is willing to try compiling the plugins
 out on Windows and OSX, I'd be happy to take pull requests!
+
+### Why can't the function do weights?
+
+I have never used weights in Stata, so I will have to read up on how
+weights are implemented before adding that option to `gcollapse`.
+Support for weight is coming, though!
 
 ### What functions are available?
 
@@ -357,58 +307,79 @@ gegen tag = tag(varlist)
 ```
 
 Both are much faster than `egen` because they do not sort the data, and
-rather rely on hashes to tag the data and generate an id as new groups
+instead rely on hashes to tag the data and generate an id as new groups
 appear. This means `group` will ID the first group that appears as 1 and
 the last as J; `egen` will sort the data first.
 
 ### Memory management
 
-C cannot create or drop variables. This means that we need to create the
-target variables in Stata. If creating K targets for a variable, we need
-to create K - 1 variables _**before**_ collapsing the data. If you are,
-for example, collapsing 1M observations into 10 observations, then even
-though a variable in the collapsed data would only take up 80 bytes, they
-have to be allocated ~8MiB (8 * 1e6 / 1024 / 1024).
+C cannot create or drop variables. This creates a problem when N is
+large and the number of groups J is small. For examplle, N = 100M
+means about 800MiB per variable and J = 1,000 means barely 8KiB per
+variable. Adding variables after the collapse is trivial and before
+the collapse it may take several seconds.
 
-On most systems, this will not be an issue with observations in the low
-millions. However, if you have, for example, 100M observations, a singe
-variable will take up ~0.8GiB in memory. In that scenario, even a dozen
-targets for a single variable may exceed the memory capacity of most
-personal computers.
+The function tries to be smart about this: Variables are only created if
+the source variable cannot be replaced with the target. This conserves
+memory and speeds up execution time. (However, the function currently
+recasts unsuitably typed source variables, which saves memory but slows
+down execution time.)
 
-The function tries to be smart about this: Variables are only created
-if the source variable cannot be replaced with the target. If you have
-one target per variable and your variables are float or double, then
-regardless of the stat memory consumption should not exceed that of
-`collapse` or `fcollapse`.
+If there are more targets than sources, however, there are two options:
+1. Create the extra target variables in Stata before collapsing.
+2. Write the extra targets, collapsed, to disk and read them back later.
+
+Ideally I could create the variables in Stata after collapsing and read
+them back from memory, but that is not possible. Hence we must choose
+one of the two options above, and it is not always obvious which will be
+faster.
+
+Clearly for very large N and very small J, option 2 is faster. However,
+as J grows relative to N the trade-off is not obvious. First, variables
+still have to be created in Stata. So disk operations have to be faster
+than (N - J) / N of the time it takes for Stata to the variables. In our
+example, disk operations on 8KiB per variable should be instantaneous
+and will almost surely be faster than operations on 720MiB per variable
+in memory.
+
+But what if J is 10M? Is operating on ~80MiB on disk faster than ~720MiB
+on memory? The answer may well be no. What if J = 50M? Then the answer
+is almost surely no. For this reason, the code tries to benchmark how
+long it will take to collapse to disk and read back the data from disk
+versus creating the variables in memory and simply collapsing to memory.
+
+This has a small overhead, so `gcollapse` will only try the swtich when
+there are at least 4 additional targets to create. In testing, the
+overhead has been ~10% of the total runtime. If the user expects J to be
+large, they can turn off this check via `forcemem`. If the user expects
+J to be small, they can force collapsing to disk via `forceio`.
 
 ### Hashing
 
-The idea behind using a hash is simple: Sorting a single integer
-grouping variable is much faster than sorting on multiple variables
-with arbitrary data. In particular, we can use a counting sort, which
-asymptotically performs in `O(n)` time compared to `O(n log n)` for
-the fastest general-purpose sorting algorithms. (Note with a 128-bit
-algorithm using a counting sort is prohibitively expensive; we do 4
-16-bit passes using a counting sort and check check the groups are
-unique after sorting on the first 64 bits. If not we do 4 more passes to
-sort on the full 128 bits.)
+The point of using a hash is straightforward: Sorting a single integer
+variable is much faster than sorting multiple variables with arbitrary
+data. In particular I use a counting sort, which asymptotically performs
+in `O(n)` time compared to `O(n log n)` for the fastest general-purpose
+sorting algorithms. (Note with a 128-bit algorithm using a counting
+sort is prohibitively expensive; `gcollapse` actually does 4 passes of
+a counting sort, each sorting 16 bits at a time; if the groups are not
+unique after sorting on the first 64 bits we sort on the full 128 bits.)
 
 Given `K` by variables, `by_1` to `by_K`, where `by_k` belongs the set
-`B_k`, the general problem we face is devising a function `f` such that
-`f: B_1 x ... x B_K -> N`, where `N` are the natural (whole) numbers.
-Given `B_k` can be integers, floats, and strings, the natural way of
-doing this is to use a hash: A function that takes an arbitrary sequence
-of data and outputs data of fixed size.
+`B_k`, the general problem is to devise a function `f` such that `f:
+B_1 x ... x B_K -> N`, where `N` are the natural (whole) numbers. Given
+`B_k` can be integers, floats, and strings, the natural way of doing
+this is to use a hash: A function that takes an arbitrary sequence of
+data and outputs data of fixed size.
 
-In particular we use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
+In particular I use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
 devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
 at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
 
 ### TODO
 
+- [ ] Add support for weights.
 - [ ] Compile for Windows and OSX.
-- [ ] Improve memory management.
 - [ ] Implement all by-able `egen` functions.
 
 License

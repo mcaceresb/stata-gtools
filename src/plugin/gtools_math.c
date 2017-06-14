@@ -184,7 +184,7 @@ double mf_switch_fun (char * fname, double v[], const size_t start, const size_t
     if ( strcmp (fname, "min")    == 0 ) return (mf_array_dmin_range    (v, start, end));
     if ( strcmp (fname, "median") == 0 ) return (mf_array_dmedian_range (v, start, end));
     if ( strcmp (fname, "iqr")    == 0 ) return (mf_array_diqr_range    (v, start, end));
-    double q = mf_parse_percentile(fname);
+    double q = (double) atof(fname);
     return (q > 0? mf_array_dquantile_range(v, start, end, q): 0);
 }
 
@@ -211,7 +211,7 @@ double mf_code_fun (char * fname)
     if ( strcmp (fname, "firstnm") == 0 ) return (-11); // firstnm
     if ( strcmp (fname, "last")    == 0 ) return (-12); // last
     if ( strcmp (fname, "lastnm")  == 0 ) return (-13); // lastnm
-    double q = mf_parse_percentile(fname);
+    double q = (double) atof(fname);                    // quantile
     return (q > 0? q: 0);
 }
 
@@ -235,42 +235,6 @@ double mf_switch_fun_code (double fcode, double v[], const size_t start, const s
     if ( fcode == -5 )  return (mf_array_dmin_range  (v, start, end)); // min
     if ( fcode == -9 )  return (mf_array_diqr_range  (v, start, end)); // iqr
     return (mf_array_dquantile_range(v, start, end, fcode));           // percentiles
-}
-
-/**
- * @brief Parse string into quantile
- *
- * THIS IS NOT GENERAL PURPOSE. It assumes Stata already checked that the
- * only acceptable things to parse are of the form p\d\d?(\.\d+)?.
- *
- * @param matchstr String to match to a quantil
- * @return Numeric part of matchstr
- */
-double mf_parse_percentile (char *matchstr) {
-    int regrc;
-    regex_t regexp;
-    regmatch_t matches[MAX_MATCHES];
-
-    regrc = regcomp(&regexp, "[0-9][0-9]?(\\.[0-9]+)?", REG_EXTENDED);
-    if (regrc != 0) {
-        regfree (&regexp);
-        return (0);
-    }
-
-    if (regexec(&regexp, matchstr, MAX_MATCHES, matches, 0) == 0) {
-        char qstr[matches[0].rm_eo + 1];
-        // strcpy ( qstr, &matchstr[1] );
-        // memmove ( qstr, &matchstr[1], matches[0].rm_eo );
-        memcpy ( qstr, &matchstr[1], matches[0].rm_eo );
-        qstr[matches[0].rm_eo] = '\0';
-        regfree (&regexp);
-        // sf_printf("%s\t", qstr);
-        return ((double) atof(qstr));
-    }
-    else {
-        regfree (&regexp);
-        return (0);
-    }
 }
 
 /**

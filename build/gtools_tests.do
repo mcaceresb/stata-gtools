@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue May 23 11:23:52 EDT 2017
+* Updated: Wed Jun 14 19:14:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.4.0
+* Version: 0.5.1
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -16,7 +16,8 @@ clear all
 set more off
 set varabbrev off
 capture log close _all
-set seed 42
+* set seed 42
+set seed 1729
 set linesize 128
 
 * Main program wrapper
@@ -42,24 +43,29 @@ program main
         * do bench_gcollapse_fcoll.do
         * do bench_gcollapse_gcoll.do
         if ( `:list posof "checks" in options' ) {
-            checks_byvars_gcollapse,      mf_force_multi
-            checks_options_gcollapse,     mf_force_multi
+            checks_byvars_gcollapse,      debug_force_multi
+            checks_options_gcollapse,     debug_force_multi
 
-            checks_byvars_gcollapse,      mf_force_single
-            checks_options_gcollapse,     mf_force_single
+            checks_byvars_gcollapse,      debug_force_single
+            checks_options_gcollapse,     debug_force_single
 
-            checks_options_gegen,         mf_force_multi
-            checks_options_gegen,         mf_force_single
-            checks_options_gegen,         mf_force_multi  mf_read_method(2)
-            checks_options_gegen,         mf_force_single mf_read_method(2)
+            checks_options_gegen,         debug_force_multi
+            checks_options_gegen,         debug_force_single
+            checks_options_gegen,         debug_force_multi  debug_read_method(2)
+            checks_options_gegen,         debug_force_single debug_read_method(2)
 
-            checks_consistency_gcollapse, mf_force_multi
-            checks_consistency_gcollapse, mf_force_single
-            checks_consistency_gcollapse, mf_force_multi  mf_read_method(2)
-            checks_consistency_gcollapse, mf_force_single mf_read_method(2)
+            checks_consistency_gcollapse, debug_force_multi
+            checks_consistency_gcollapse, debug_force_single
+            checks_consistency_gcollapse, debug_force_multi  debug_read_method(2)
+            checks_consistency_gcollapse, debug_force_single debug_read_method(2)
+            checks_consistency_gcollapse, debug_checkhash
+            checks_consistency_gcollapse, forceio debug_io_read_method(0)
+            checks_consistency_gcollapse, forceio debug_io_read_method(1)
+            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(0)
+            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(1000000)
 
-            checks_consistency_gegen,     mf_force_multi
-            checks_consistency_gegen,     mf_force_single
+            checks_consistency_gegen,     debug_force_multi  b
+            checks_consistency_gegen,     debug_force_single b
         }
 
         if ( `:list posof "test" in options' ) {
@@ -70,25 +76,25 @@ program main
             bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
 
-            bench_switch_fcoll y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)            style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_fcoll x1 x2, x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                  style(gtools)
-            bench_switch_fcoll x1 x2, x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)        style(gtools)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
+            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
+            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
+            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
 
-            bench_switch_gcoll y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)            style(ftools)
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) style(ftools)
-            bench_switch_gcoll x1 x2, x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                  style(gtools)
-            bench_switch_gcoll x1 x2, x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)        style(gtools)
+            bench_switch_gcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
+            bench_switch_gcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
+            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
+            bench_switch_gcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
+            bench_switch_gcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
         }
 
         if ( `:list posof "benchmark" in options' ) {
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,          by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
+            bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
+            bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
+            bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {
@@ -432,6 +438,14 @@ program checks_options_gcollapse
     sim, n(200) nj(10) string outmiss
     preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) verbose forceio `options'
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore, preserve
+        gcollapse `collapse_str', by(groupstr) verbose forcemem `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
@@ -1141,17 +1155,39 @@ program bench_group_size
     timer clear
 end
 
-* !cd ..; ./build.py
-* do gegen.ado
+* cd /home/mauricio/code/stata-gtools/build/
 * do gtools_tests.do
-* do gcollapse.ado
+* qui do gegen.ado
+* sim, n(5000000) nj(8) njsub(4) string groupmiss outmiss
+*     local collapse (sum) rnorm (mean) mean = rnorm (sd) sd = rnorm (median) med = rnorm (count) count = rnorm (min) min = rnorm
+*     local by groupstr groupsub
+* bench_sim_ftools 5000000 6
+*     local collapse (sum) y1-y6
+*     foreach stat in mean median min max {
+*         local collapse `collapse' (`stat')
+*         foreach var of varlist y1-y6 {
+*             local collapse `collapse' `stat'_`var' = `var'
+*         }
+*     }
+*     local by x2 x3
+* !cd ..; ./build.py
+* qui do gcollapse.ado
 * preserve
-* gcollapse `collapse', by(`by') v b
+*     gcollapse `collapse', by(`by') v b
+*     * l in 1/10
 * restore
-
-* use ~/Downloads/problem.dta, clear
-* di "gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash"
-* gcollapse `collapse_str', by(`by') verbose benchmark `multi'  checkhash
+* preserve
+*     gcollapse `collapse', by(`by') v b merge
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forceio
+*     * l in 1/10
+* restore
+* preserve
+*     gcollapse `collapse', by(`by') v b forcemem
+*     * l in 1/10
+* restore
 
 * Benchmarks in the README
 * ------------------------
@@ -1372,7 +1408,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-1 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(1) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(1) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1382,7 +1418,7 @@ program bench_switch_gcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-single-2 ")
-                qui gcollapse `collapse', by(`by') mf_force_single mf_read_method(2) fast
+                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(2) fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1408,4 +1444,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, cap noi checks
+main, cap noi checks test

@@ -4,7 +4,6 @@
 // Libraries
 #include <math.h>
 #include <time.h>
-#include <regex.h>
 #include <stdio.h>
 #include <locale.h>
 #include <limits.h>
@@ -14,6 +13,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/types.h>
+#include <sys/statvfs.h>
 
 // Number of bits to sort each pass of the radix sort
 #define RADIX_SHIFT 16
@@ -45,7 +45,6 @@ struct StataInfo {
     size_t N;
     size_t start_collapse_vars;
     size_t start_target_vars;
-    size_t start_str_byvars;
     int *pos_targets;
     int *pos_num_byvars;
     int *pos_str_byvars;
@@ -76,5 +75,6 @@ int  sf_parse_info  (struct StataInfo *st_info, int level);
 int  sf_hash_byvars (struct StataInfo *st_info);
 void sf_free        (struct StataInfo *st_info);
 int  sf_numsetup    ();
+int  sf_anyobs_sel  ();
 
 #endif

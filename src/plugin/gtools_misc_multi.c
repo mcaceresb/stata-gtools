@@ -107,3 +107,15 @@ int sf_numsetup()
 
     return(0);
 }
+
+/**
+ * @brief Check if in returns at least some observations
+ *
+ * @return 1 if at least 1 obs; 0 otherwise
+ */
+int sf_anyobs_sel()
+{
+    for (int i = SF_in1(); i <= SF_in2(); i++)
+        if ( SF_ifobs(i) ) return(1);
+    return (0);
+}

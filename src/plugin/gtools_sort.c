@@ -343,6 +343,42 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
  *     // Indexed = ... // first variable
  *     qsort(Indexed, N, sizeof(Indexed), mf_compare_indexed)
  *     // IndexInfo = PanelSetup(Indexed, N, &J)
+ *     // <- This FAILS, e.g.
+ *     //
+ *     // a b a
+ *     // a c a
+ *     // a c b
+ *     //
+ *     // Is a unique sort, but if we do PanelSetup just on the
+ *     // third variabe we would not detect it is unique. Maybe
+ *     // You can 'merge' different info variables? Maybe you can
+ *     // do recursion? Man, that would be hella expensive, no? How
+ *     // about some type of merge?
+ *     //
+ *     // info-merged <- calloc(N, ...)
+ *     // J      <- levels in info-current
+ *     // J-new  <- levels in info-new
+ *     // J-next    <- 0 <- levels in info-next
+ *     // j-current <- 0
+ *     // j-new     <- 0
+ *     // do {
+ *     //     if ( info[j-current] == info-new[j-new] ) {
+ *     //         info-merged[J-next] = info[j-current]
+ *     //         ++j-current;
+ *     //         ++j-new;
+ *     //     }
+ *     //     else if ( info[j-current] < info-new[j-new] ) {
+ *     //         info-merged[J-next] = info[j-current]
+ *     //         ++j-current;
+ *     //     }
+ *     //     else if ( info[j-current] > info-new[j-new] ) {
+ *     //         info-merged[J-next0] = info[j-new]
+ *     //         ++j-new;
+ *     //     }
+ *     //     ++J-next;
+ *     // } while ( (j-current < J) & (j-new < J-new) )
+ *     //
+ *     //
  *     for(k = 1; k < kvars; k++) {
  *         if ( J == N ) break; // Sort by (k - 1)th variable produced a unique sort
  *         // IndexedNew = ... // kth variable

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0 23May2017}{...}
+{* *! version 0.5.1 14Jun2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -73,18 +73,22 @@ make dataset of summary statistics using C.{p_end}
 saves speed but leaves the data in an unusable state shall the
 user press {hi:Break}
 {p_end}
-{synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
-{p_end}
-{synopt :{opt unsorted}}do not sort the final data.
-Saves speed but leaves resulting collapse unsorted.
-{p_end}
-{synopt :{opt merge}}merge collapsed results back to oroginal data.
-{p_end}
-{synopt :{opt double}}store data in double precision.
-{p_end}
 {synopt :{opt verbose}}verbose printing (for debugging).
 {p_end}
 {synopt :{opt benchmark}}print performance time info for each step.
+{p_end}
+{synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
+{p_end}
+{synopt :{opt merge}}merge collapsed results back to oroginal data.
+{p_end}
+{synopt :{opt forceio}}force using disk instead of memory for the collapsed results.
+{p_end}
+{synopt :{opt forcemem}}force using memory instead of disk for the collapsed results.
+{p_end}
+{synopt :{opt double}}store data in double precision.
+{p_end}
+{synopt :{opt unsorted}}do not sort the final data.
+Saves speed but leaves resulting collapse unsorted.
 {p_end}
 
 {synoptline}
@@ -127,23 +131,39 @@ then we can greate a tag for each group and use that to construct an index
 in C much faster than via hashing.
 
 {phang}
+{opt verbose} prints some useful debugging info to the console.
+
+{phang}
+{opt benchmark} prints how long in seconds various parts of the program
+take to execute.
+
+{phang}
 {opt merge} merges the collapsed data back to the original data set.
 Note that if you want to keep the source variable(s) then you {it:need}
 to assign a new name to it for each summary statistic. Otherwise it will
 be overwritten.
 
 {phang}
+{opt forceio} By default, when there are more than 3 additional targets
+(i.e. the number of targets is greater than the number of source
+variables plus 3) the function tries to be smart about whether adding
+empty variables in Stata before the collapse is faster or slower than
+collapsing the data to disk and reading them back after keeping only the
+first J observations (assuming J is the number of groups). For J small
+relative to N, collapsing to disk will be faster. This check involves
+some overhead, however, so if J is known to be small {opt forceio} will
+be faster.
+
+{phang}
+{opt forcemem} The opposite of {opt forceio}. The check for whether to use
+memory or disk check involvesforceio some overhead, so if J is known to
+be large {opt forcemem} will be faster.
+
+{phang}
 {opt double} stores data in double precision.
 
 {phang}
 {opt unsorted} does not sort the resulting data.
-
-{phang}
-{opt verbose} prints some useful debugging info to the console.
-
-{phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute.
 
 {marker example}{...}
 {title:Examples}

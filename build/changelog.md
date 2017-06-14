@@ -1,19 +1,122 @@
 Change Log
 ==========
 
+## gtools-0.5.1 (2017-06-14)
+
+### Bug fixes
+
+* In prior versions, if `gcollapse` was called with no observations or
+  when the result of `if in` gave no observations, the function throwed
+  an error. Now the program exits and prints "no observations" to the
+  console (`gcollapse` returns an empty data set; `gegen` returns a
+  variable with all missing values).
+* In prior versions, in some cases, when multiple statistics are
+  generated from a single source and the summary statistics are
+  collapsed to disk, the first statistic may be swapped for another.
+  This happened because the function tries to use source variables and
+  targets, and it also tries to be smart about which target statistic
+  to use the source variable for. So if you request mean and min for
+  a byte, the function will want outputs to be at least float and
+  byte, and will use the source variable for the min and generate
+  an additional variable for the mean. This had been implemented
+  incorrectly when collapsing to disk.
+* Added additional unit tests for collapsing to disk.
+
+## gtools-0.5.0 (2017-06-14)
+
+### Features
+
+* The function tries to be smarter Be smart about memory management.
+  When `merge` is not specified, N is larger than 1M, and there are
+  more than 3 additional targets to create in memory, the function
+  tries to figure out whether collapsing the data and writing the
+  collapsed data for the extra targets to disk is faster than creating
+  the targets in memory and collapsing to memory.
+
+  While collapsing to memory is faster than collapsing to disk,
+  generating variables in memory with N observations, before collapsing,
+  is slower than for J observations, after collapsing. For J small enough
+  (e.g. 10 groups vs 1M observations) it is more efficient to collapse
+  to disk and read the data back in after. The rules
+    * `merge` merges back to the original data, so we do not collapse to disk.
+    * `forceio` forces the function to collapse to disk.
+    * `forcemem` forces the function to collapse to memory.
+    * Otherwise, if N > 1M and the number of variables to add is K > 3,
+      the function benchmarks how long it would take C to write and
+      read `K * 8 * J / 1024^2` MiB and then creating K variables
+      in memory for J observations vs creating K variables for N
+      observations.
+    * Creating observations is memory is given the "benefit of the doubt"
+      by a factor of 10. So we have to estimate writing to disk
+      and creating variables after the collapse will be at least
+      10 times faster for the swtich to take place.
+* String by variables are now read into C and written back into Stata
+  directly. Prior versions generated temporary variables to read string
+  by variables into the temporary variables and then copied them back.
+  This was inefficient.
+* Moved away from using regexes in C code. Now the function just passes
+  the quantile as a string directly from Stata and uses `atof`. This is
+  marginally faster and eliminates a dependency.
+
+### Backwards-incompatible
+
+* All undocumented `mf_` options have been changed to `debug_`
+
+### Bug fixes
+
+* Option `debug_checkhash` seems to work properly now. This was fixed by
+  zero-ing the string that was used as the temporary buffer for reading
+  in Stata variables.
+
+### Known problems
+
+* The marginal time to add a variable to memory is non-linear. If there
+  are 100 variables in memory, adding the 101th varaible will take
+  longer than if there are 0 variables in memory and we are adding the
+  first one.
+* This is problematic because we try to estimate the time by
+  benchmarking adding two variables. The non-linear relation is not
+  obvious as it would depend on the user's system's RAM and CPU.
+  Hence we simply scale the benchmark by K / 2.
+* Stata's timer feature is only accurate up to miliseconds. Since adding
+  the two variables for benchmarking is faster than adding marginal
+  variables thereafter, occasionally Stata incorrectly estimates the
+  time to add a variable to be 0 seconds. Empirically it does not bear
+  out that adding variables after the benchmark variables takes more
+  than 0 seconds. Hence we assume that Stata would actually take 0.001
+  seconds to add 2 variables to memory.
+
+### Planned
+
+* Allow `greedy` option to skip drops and recasting? (Depending on
+  the implementation this may be slower because adding variables takes
+  longer with more variables in memory.)
+* Sort variables in C, not in Stata (high priority; performance)
+* Allow merge with an if statement (low priority; feature).
+* If you sort the data in C, then assert the sort is unique and
+  print "(hashed correctly grouped observations: resulting sort is unique)"
+
+---
+
+## gtools-0.4.1 (2017-05-29)
+
+### Bug fixes
+
+* `gegen` now generates the expression passed to its functions if the
+  argument is not a varlist.
+
 ## gtools-0.4.0 (2017-05-23)
 
 ### Features
 
-* Significantly faster: The function tries to choose the multi-threaded
+* Somewhat faster: The function tries to choose the multi-threaded
   version of the plugin when available, and non-multi otherwise. It is
-  also smarted about recasting variables.
+  also smarter about recasting variables.
 * Various undocumented options to test and benchmark different
   algorithms for reading and collapsing the data.
 
 ### Bug fixes
 
-* `benchmark` now correctly times parallel execution.
 * `gegen` now computes the first and last non-missing observations
   correctly when there is an if statement involved in the call.
 * `gcollapse|gegen` now correctly finds first and last when there are
@@ -22,11 +125,13 @@ Change Log
    missing values when all observations are missing.
 * `gcollapse|gegen` now output the sum as 0 of all missing values
   to mimic `collapse`.
+* `benchmark` now correctly times parallel execution.
 
 ### Known problems
 
 * `gcollapse` does not work correctly with `merge` when the user asks
-  for an if statement.
+  for an if statement, so when it is tried the function exits with
+  error.
 * Checkhash may give false positives when checking strings. It will
   occasionally read more data than necessary to make the comparison,
   resulting in a false positive. Working on a fix, but for now I moved
@@ -35,11 +140,6 @@ Change Log
 ### Misc
 
 * Updated benchmarks
-* In the multi-threaded version, testing revealed that reading the
-  data in parallel and collapsing in parallel is faster under most
-  circumstances but possibly slower under some narrow use cases
-  (notably, the use case I wrote this plugin for). I have added a
-  warning that multi-threading is still experimental.
 * Cleaned up method for reading data in from Stata. Kept the sequential
   and the out-of-order methods (parallel out of order for the
   multi-threaded version).
@@ -49,59 +149,11 @@ Change Log
 
 ### Planned
 
-* Sort variables in C, not in Stata (high priority; performance)
 * Allow merge with an if statement (low priority; feature).
-* Be smart about memory management (the code below should be
-  allowed to be negated via option -greedy- or only be called
-  with option -smart-; it would, of course, be ignored with -merge-):
-
-For k1 sources and k2 targets, when k2 - k1 > 0 and `_N` is above some
-threshold, say 10M, then kick off this hassle to figure out if adding
-variables is worth it. We start by adding an "index" option to the
-plugin which generates two variables, `index' and `info', and saves to
-`__gtools_J` the number of groups (it should also save the benchmark
-below, and if possible the space in the /tmp folder that it found so it
-can figure out whether the disk may get full by us doing this; it will
-take J * k2 * sizeof(double) bytes, so worry about the amount of space
-in /tmp). Use this to benchmark how much time it takes for Stata to add
-two numeric variables (which will be long or double). If it added them
-in `bench_stata` seconds, then define
-
-    rate_stata = 8 * 2 * _N / bench_stata
-
-Then we benchmark how much time it takes for C to read/write data from
-disk. We write some number, say 1MiB, of random data to disk. We then
-read it back. Call the time it took `bench_c`. Then define
-
-    rate_c = 1024 * 1024 / bench_c
-
-(Note: define `bench_c` as, e.g., MAX(1, bench)?) We now have the
-approximate rate in seconds at which Stata can create data in memory and
-at which C can write and read back data from disk. The times it would
-take to add variables in Stata is
-
-    time_stata = (k2 - k1) * _N * 8 / rate_stata
-
-And in C it is
-
-    time_c = k2 * __gtools_J * 8 / rate_c
-
-If `time_c` * threshold < `time_stata` then we should write
-to disk from C and then read the data. I think threshold should be
-a large number, e.g. 10 or 100. Then we can do:
-
-      tempfile __gtools_collapsed_file
-      cap `noi' `plugin_call' `plugvars', collapse write `__gtools_collapsed_file'
-
-      clear
-      mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
-      order `by' `gtools_targets'
-      set obs `:di scalar(__gtools_J)'
-      cap `noi' `plugin_call' `by' `gtools_targets', read `__gtools_collapsed_file'
-
-The collaps disk code would use the info and index variables created
-earlier, rather than re-hashing and re-sorting the data, to collapse
-the sources to the targets and write to `__gtools_collapsed_file`.
+* Sort variables in C, not in Stata (high priority; performance)
+* If you sort the data in C, then assert the sort is unique and
+  print "(hashed correctly grouped observations: resulting sort is unique)"
+* Be smart about memory management when J is small relative to N.
 
 ---
 

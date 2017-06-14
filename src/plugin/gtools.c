@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed May 24 02:34:04 EDT 2017
+ * Updated: Wed Jun 14 19:14:38 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.4.0
+ * Version: 0.5.1
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 16 May 2017
+ * @date 14 Jun 2017
  * @brief Stata plugin for a faster -collapse- and -egen- implementation
  *
  * This file should only ever be called from gcollapse.ado or gegen.ado
@@ -42,7 +42,6 @@
 /* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
  * objects in memory and print an error message based on 'level' // 2017-05-20 14:09 EDT
  */
-
 STDLL stata_call(int argc, char *argv[])
 {
     if (argc < 1) {
@@ -50,6 +49,7 @@ STDLL stata_call(int argc, char *argv[])
         return (198);
     }
 
+    ST_double  z;
     ST_retcode rc ;
     setlocale (LC_ALL, "");
     struct StataInfo st_info;
@@ -62,20 +62,184 @@ STDLL stata_call(int argc, char *argv[])
     // st_info.read_method       = 2; // Out of order
     // st_info.read_method_multi = 3; // Out of order in parallel
 
-    if ( strcmp(todo, "collapse") == 0 ) {
-        if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-        if ( st_info.checkhash ) {
-            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-        }
-
-        if ( (rc = sf_collapse    (&st_info))    ) return (rc);
-        if ( (rc = SF_scal_save   ("__gtools_J", st_info.J)) ) return (rc);
-
-        sf_free (&st_info);
+    if ( strcmp(todo, "check") == 0 ) {
+        // Exit; if you're here the plugin was loaded fine
+        sf_printf ("(plugin -gtools- was loaded correctly)\n");
         return (0);
     }
+    else if ( strcmp(todo, "collapse") == 0 ) {
+        if (argc < 2) {
+            // Collapse to memory (assumes targets already exist in Stata
+            if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
+            if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+            if ( st_info.checkhash ) {
+                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+            }
+
+            if ( (rc = sf_collapse  (&st_info, 0, "")) ) return (rc);
+            if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+
+            sf_free (&st_info);
+            return (0);
+        }
+        else if (argc < 3) {
+            sf_errprintf ("collapse sub-commands must also specify a file.\n");
+            return (198);
+        }
+        else {
+            // Otherwise, assume you want a sub-command All            .
+            // sub-commands do operations on a file                    .
+            char fname[strlen(argv[2])];
+            strcpy (fname,  argv[2]);
+            strcpy (tostat, argv[1]);
+            if ( strcmp(tostat, "ixwrite") == 0 ) {
+                // Collapse to disk right away (for -forceio-)
+                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+                if ( st_info.checkhash ) {
+                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                }
+
+                if ( (rc = sf_collapse  (&st_info, 1, fname)) ) return (rc);
+                if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+
+                sf_free (&st_info);
+                return (0);
+            }
+            else if ( strcmp(tostat, "index") == 0 ) {
+                // Collapse to disk if it is estimated to be faster;
+                // abort collapse and write index and info to Stata
+                // (will collapse later to memory).
+
+                double rate_st, mib_base, threshold, k_extra;
+                double rate_c   = mf_benchmark(fname);
+                double mib_free = mf_query_free_space(fname);
+
+                if ( (rc = SF_scal_use  ("__gtools_bench_st",  &rate_st))   ) return(rc);
+                if ( (rc = SF_scal_use  ("__gtools_mib_base",  &mib_base))  ) return(rc);
+                if ( (rc = SF_scal_use  ("__gtools_io_thresh", &threshold)) ) return(rc);
+                if ( (rc = SF_scal_use  ("__gtools_k_extra",   &k_extra))   ) return(rc);
+
+                // Hash by variables and sort
+                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+                if ( st_info.checkhash ) {
+                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                }
+
+                // Estimate if it will be faster to collapse to disk
+                // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
+                double mib_stata, mib_c, mib_cstata;
+                mib_stata  = st_info.N * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
+                // mib_c      = st_info.J * mib_base * ( (rate_st > 0.001)? rate_c:  0.001 );
+                // mib_cstata = st_info.J * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
+                mib_c      = st_info.J * mib_base * rate_c;
+                mib_cstata = st_info.J * mib_base * rate_st;
+                if ( (rate_st < 0.001) & st_info.verbose ) {
+                    // sf_printf("(Stata benchmark inaccurate below 0.001s; assuming C, Stata times = 0.001)\n");
+                    sf_printf("(Stata benchmark inaccurate below 0.001s; assuming benchmark time was 0.001s)\n");
+                }
+
+                // Print some info on the switching criteria to the console
+                char *buffer = malloc (32 * sizeof(char));
+                int used_io  = ( (mib_c < mib_free) & ((mib_c + mib_cstata) < (mib_stata / threshold)) );
+                if ( st_info.verbose ) {
+                    memset (buffer, '\0', 32);
+                    sprintf (buffer, (st_info.J * mib_base > 1)? "%.1f": "%.2g", st_info.J * mib_base);
+                    sf_printf("Will write %lu extra targets to disk (full data = %'.1f MiB; collapsed data = %s MiB).\n",
+                              (size_t) k_extra, st_info.N * mib_base, buffer);
+
+                    memset (buffer, '\0', 32);
+                    sprintf (buffer, (mib_stata > 1)? "%.1f": "%.2g", mib_stata);
+                    sf_printf("\tAdding targets before collapse estimated to take %s seconds.\n", buffer);
+
+                    memset (buffer, '\0', 32);
+                    sprintf (buffer, (mib_cstata > 1)? "%.1f": "%.2g", mib_cstata);
+                    sf_printf("\tAdding targets after collapse estimated to take %s seconds.\n", buffer);
+
+                    memset (buffer, '\0', 32);
+                    sprintf (buffer, (mib_c > 1)? "%.1f": "%.2g", mib_c);
+                    sf_printf("\tWriting/reading targets to/from disk estimated to take %s seconds.\n", buffer);
+                }
+
+                if ( used_io ) {
+                    // Collapse to disk if it will be faster
+                    if ( (rc = sf_collapse (&st_info, 1, fname)) ) return (rc);
+                }
+                else {
+                    // Otherwise, save index and info to memory (it will
+                    // be faster to pick up from here)
+                    size_t ipos = st_info.kvars_by + 2 * st_info.kvars_source + 1;
+                    for (int i = 0; i < st_info.N; i++)
+                        if ( (rc = SF_vstore(ipos, i + st_info.in1, st_info.index[i])) ) return (rc);
+
+                    ++ipos;
+                    for (int j = 0; j <= st_info.J; j++)
+                        if ( (rc = SF_vstore(ipos, j + st_info.in1, st_info.info[j])) ) return (rc);
+                }
+
+                if ( (rc = SF_scal_save ("__gtools_used_io", used_io)) ) return (rc);
+                if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+
+                sf_free (&st_info);
+                free (buffer);
+                return (0);
+            }
+            else if ( strcmp(tostat, "ixfinish") == 0 ) {
+
+                // Pick up from having index and info in memory and collapse
+                // to memory, having created the targets in Stata.
+                if ( (rc = sf_parse_info (&st_info, 0)) ) return (rc);
+
+                ST_double J_double ;
+                if ( (rc = SF_scal_use("__gtools_J", &J_double)) ) return(rc);
+                st_info.J = (size_t) J_double;
+
+                st_info.index = calloc(st_info.N, sizeof(st_info.index));
+                st_info.info  = calloc(st_info.J + 1, sizeof(st_info.info));
+                for (int i = 0; i < st_info.N; i++) {
+                    if ( (rc = SF_vdata(st_info.indexed, i + st_info.in1, &z)) ) return (rc);
+                    st_info.index[i] = (size_t) z;
+                }
+                for (int j = 0; j <= st_info.J; j++) {
+                    if ( (rc = SF_vdata(st_info.indexed + 1, j + st_info.in1, &z)) ) return (rc);
+                    st_info.info[j] = (size_t) z;
+                }
+
+                if ( (rc = sf_collapse (&st_info, 0, "")) ) return (rc);
+
+                sf_free (&st_info);
+                return (0);
+            }
+            else if ( strcmp(tostat, "read") == 0 ) {
+                // Read collapsed data back into Stata
+                ST_double J_double, K_double ;
+                if ( (rc = SF_scal_use("__gtools_J", &J_double)) ) return(rc);
+                size_t J = (size_t) J_double;
+
+                if ( (rc = SF_scal_use("__gtools_k_extra", &K_double)) ) return(rc);
+                size_t K = (size_t) K_double;
+
+                double *output = calloc(J * K, sizeof *output);
+                mf_read_collapsed (fname, output, K, J);
+
+                for (int j = 0; j < J; j++) {
+                    for (int k = 0; k < K; k++) {
+                        if ( (rc = SF_vstore(k + 1, j + 1, output[j * K + k])) ) return (rc);
+                    }
+                }
+
+                free (output);
+                return (0);
+            }
+            else {
+                sf_errprintf ("Invalid -collapse- sub-command '%s'.", tostat);
+                return (198);
+            }
+        }
+    }
     else if ( strcmp(todo, "egen") == 0 ) {
+        // egen call; second argument is function to use
         if (argc < 2) {
             sf_errprintf ("No stats requested. See: -help egen-\n");
             return (198);
@@ -101,12 +265,60 @@ STDLL stata_call(int argc, char *argv[])
         return (0);
     }
     else if ( strcmp(todo, "setup") == 0 ) {
+        // Computes min, max, and rage for all numeric by variables
         if ( (rc = sf_numsetup()) ) return (rc);
         return (0);
     }
-    else if ( strcmp(todo, "check") == 0 ) {
-        sf_printf ("(plugin -gtools- was loaded correctly)\n");
+    else if ( strcmp(todo, "recast") == 0 ) {
+
+        // The program tries to use source variables as targets to save
+        // memory. When the source variable cannot be used because it's
+        // type would not allow it (e.g. mean for a byte variable) we
+        // generate temporary variables of the correct target type and
+        // fill-in the source variable values. For multiple recast
+        // variables, doing it in bulk here is faster than multiple
+        // replace statements in Stata.
+        ST_double K_double, z ;
+
+        if ( (rc = SF_scal_use("__gtools_k_recast", &K_double)) ) return(rc);
+        size_t K = (size_t) K_double;
+
+        for (int i = SF_in1(); i <= SF_in2(); i++) {
+            for (int k = 1; k <= K; k++) {
+                if ( (rc = SF_vdata(k + K, i, &z)) ) return (rc);
+                if ( (rc = SF_vstore(k, i, z)) ) return (rc);
+            }
+        }
+
         return (0);
+    }
+    else if ( strcmp(todo, "bench") == 0 ) {
+        // Benchmark writing and reading 1MiB to disk
+        if (argc < 2) {
+            sf_errprintf ("benchmark requires a file.\n");
+            return (198);
+        }
+        else {
+            char fname[strlen(argv[1])];
+            strcpy (fname, argv[1]);
+            double rate_c = mf_benchmark(fname);
+            if ( (rc = SF_scal_save ("__gtools_bench_c", rate_c)) ) return (rc);
+            return (0);
+        }
+    }
+    else if ( strcmp(todo, "query") == 0 ) {
+        // Query the amount of free space in the path to fname
+        if (argc < 2) {
+            sf_errprintf ("query requires a file.\n");
+            return (198);
+        }
+        else {
+            char fname[strlen(argv[1])];
+            strcpy (fname, argv[1]);
+            double mib_free = mf_query_free_space(fname);
+            if ( (rc = SF_scal_save ("__gtools_free_tmp", mib_free)) ) return (rc);
+            return (0);
+        }
     }
 
     sf_printf ("Nothing to do; pugin should be called from -gcollapse- or -gegen-\n");
@@ -124,6 +336,9 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     ST_retcode rc ;
     int i, k;
     clock_t timer = clock();
+
+    // Check there are observations in the subset provided
+    if ( !sf_anyobs_sel() ) return (42001);
 
     // Get start and end position; number of variables
     size_t in1 = SF_in1();
@@ -399,9 +614,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     size_t strmax = byvars_maxlen > 0? byvars_maxlen + 1: 1;
-
     size_t start_target_vars = start_collapse_vars + kvars_source;
-    size_t start_str_byvars  = start_target_vars + kvars_targets;
 
     st_info->pos_targets    = calloc(kvars_targets, sizeof st_info->pos_targets);
     st_info->pos_num_byvars = calloc(kvars_by_num,  sizeof st_info->pos_num_byvars);
@@ -444,7 +657,6 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->kvars_by_str        = kvars_by_str;
     st_info->start_collapse_vars = start_collapse_vars;
     st_info->start_target_vars   = start_target_vars;
-    st_info->start_str_byvars    = start_str_byvars;
     st_info->checkhash           = checkhash;
     st_info->verbose             = verbose;
     st_info->benchmark           = benchmark;

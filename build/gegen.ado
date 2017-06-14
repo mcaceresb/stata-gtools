@@ -1,4 +1,4 @@
-*! version 0.4.0 23May2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.1 14Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -12,7 +12,7 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    if ("`c(os)'" != "Unix") di as err "Not available for `c(os)`, only Unix."
+    if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
 
     * Time the entire function execution
     {
@@ -61,24 +61,24 @@ program define gegen, byable(onecall)
     * Parse egen by, if, in, and options
     * ----------------------------------
 
-    syntax                    /// main call; must parse manually
-        [if] [in] ,           /// subset
-    [                         ///
-        by(varlist)           /// collapse by variabes
-                              ///
-        p(real 50)            /// percentiles (only used with pctile)
-                              ///
-        missing               /// for group(); treats
-                              ///
-        Verbose               /// debugging
-        Benchmark             /// print benchmark info
-        smart                 /// check if data is sorted to speed up hashing
-                              ///
-        mf_force_single       /// (experimental) Force non-multi-threaded version
-        mf_force_multi        /// (experimental) Force muti-threading
-        mf_checkhash          /// (experimental) Check for hash collisions
-        mf_read_method(int 0) /// (experimental) Choose a method for reading data from Stata
-        *                     ///
+    syntax                       /// main call; must parse manually
+        [if] [in] ,              /// subset
+    [                            ///
+        by(varlist)              /// collapse by variabes
+                                 ///
+        p(real 50)               /// percentiles (only used with pctile)
+                                 ///
+        missing                  /// for group(); treats
+                                 ///
+        Verbose                  /// debugging
+        Benchmark                /// print benchmark info
+        smart                    /// check if data is sorted to speed up hashing
+                                 ///
+        debug_force_single       /// (experimental) Force non-multi-threaded version
+        debug_force_multi        /// (experimental) Force muti-threading
+        debug_checkhash          /// (experimental) Check for hash collisions
+        debug_read_method(int 0) /// (experimental) Choose a method for reading data from Stata
+        *                        ///
     ]
 
     * Verbose and benchmark printing
@@ -120,47 +120,47 @@ program define gegen, byable(onecall)
     * Check if specified single or multi-threading
     * --------------------------------------------
 
-    if ( "`mf_force_multi'" != "" ) {
+    if ( "`debug_force_multi'" != "" ) {
         di as txt "(warning: forcing multi-threaded version)"
         local multi multi
-        local mf_read_method     = 3
-        local mf_collapse_method = 2
+        local debug_read_method     = 3
+        local debug_collapse_method = 2
         local plugin_call plugin call gtoolsmulti_plugin
     }
 
-    if ( "`mf_force_single'" != "" ) {
+    if ( "`debug_force_single'" != "" ) {
         di as txt "(warning: forcing non-multi-threaded version)"
         local multi ""
-        * local mf_read_method = 1
-        local mf_collapse_method = 1
+        * local debug_read_method = 1
+        local debug_collapse_method = 1
         local plugin_call plugin call gtools_plugin
     }
 
     * Parse reading method (beta)
     * ---------------------------
 
-    if !inlist(`mf_read_method', 0, 1, 2, 3) {
-        di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 2 (grouped), 3 (parallel)"
+    if !inlist(`debug_read_method', 0, 1, 2, 3) {
+        di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped), 3 (parallel)"
         exit 198
     }
-    else if ( `mf_read_method' != 0 ) {
+    else if ( `debug_read_method' != 0 ) {
         di as text "(warning: custom reading methods in beta)"
-        if ( ("`multi'" == "") & !inlist(`mf_read_method', 1, 2) ) {
-            di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 2 (grouped)"
+        if ( ("`multi'" == "") & !inlist(`debug_read_method', 1, 2) ) {
+            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped)"
             exit 198
         }
-        if ( ("`multi'" != "") & !inlist(`mf_read_method', 1, 3) ) {
-            di as err "data copying method #`mf_read_method' unknown; available: 1 (sequential), 3 (parallel)"
+        if ( ("`multi'" != "") & !inlist(`debug_read_method', 1, 3) ) {
+            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 3 (parallel)"
             exit 198
         }
     }
-    scalar __gtools_read_method = `mf_read_method'
+    scalar __gtools_read_method = `debug_read_method'
     scalar __gtools_collapse_method = 2
 
     * Check hash collisions in C
     * --------------------------
 
-    if ("`mf_checkhash'" == "") {
+    if ("`debug_checkhash'" == "") {
         local checkhash = 0
         scalar __gtools_checkhash = 0
     }
@@ -209,15 +209,27 @@ program define gegen, byable(onecall)
             di as error "Invalid quantile: `p'; p() should be in (0, 100)"
             error 110
         }
-        local fcn p`p'
+        * local fcn p`p'
+        local fcn `p'
     }
 
     * Parse variable(s)
     * -----------------
 
     tempvar dummy
-    qui ds `args'
-    local gtools_vars    `r(varlist)'
+    cap qui ds `args'
+    if ( _rc == 0 ) {
+        local gtools_vars `r(varlist)'
+    }
+    else {
+        tempvar exp
+        cap gen `type' `exp' = `args'
+        if ( _rc ) {
+            di as error "Invalid call; please specify {opth `fcn'(varlist)} or {opth `fcn'(exp)}."
+            exit 198
+        }
+        local gtools_vars `exp'
+    }
     local gtools_targets `dummy'
     local gtools_stats   `fcn'
 
@@ -353,8 +365,11 @@ program define gegen, byable(onecall)
 
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
-    cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
-    if ( _rc != 0 ) exit _rc
+    if ( `=_N > 0' ) {
+        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
+        if ( _rc == 42001 ) di as txt "(no observations)"
+        else if ( _rc != 0 ) exit _rc
+    }
 
     * If benchmark, output pugin time
     {
@@ -451,8 +466,10 @@ program parse_by_types
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
-        cap plugin call gtools`multi'_plugin `varnum', setup
-        if ( _rc ) exit _rc
+        if ( `=_N > 0' ) {
+            cap plugin call gtools`multi'_plugin `varnum', setup
+            if ( _rc ) exit _rc
+        }
         matrix __gtools_bymin = c_gtools_bymin
         matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss
     }
@@ -497,7 +514,7 @@ end
 * ------------
 
 cap program drop gtools_plugin
-if ("`c(os)'" == "Unix") program gtools_plugin, plugin using("gtools.plugin")
+if inlist("`c(os)'", "Unix") program gtools_plugin, plugin using("gtools.plugin")
 
 cap program drop gtoolsmulti_plugin
-if ("`c(os)'" == "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+if inlist("`c(os)'", "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")

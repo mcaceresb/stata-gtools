@@ -82,6 +82,7 @@ if args['clean']:
     exit(0)
 
 makedirs_safe(path.join("build", "gtools"))
+makedirs_safe("releases")
 
 # Stata executable
 # ----------------
@@ -111,19 +112,13 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 # Compile plugin files
 # --------------------
 
-if platform == "linux" or platform == "linux2":
+if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Trying to compile plugins for -gtools-")
     rc = system("make")
     print("Success!" if rc == 0 else "Failed.")
-elif platform == "darwin":
-    print("-gtools- has NOT been tested on OSX.")
-    rc = 0
-elif platform == "win32":
-    print("-gtools- has NOT been tested on Windows.")
-    rc = 0
 else:
-    print("Don't know platform '{0}'".format(platform))
-    rc = 0
+    print("Don't know platform '{0}'; compile manually.".format(platform))
+    exit(198)
 
 print("")
 

@@ -17,19 +17,24 @@ massive speed improvement.
 Faster Stata for Group Operations
 ---------------------------------
 
-This is currently a beta release. This package uses a C-plugin
-to provide a faster implementation for Stata's `collapse` called
-`gcollapse` that is also faster than Sergio Correia's `fcollapse` from
-`ftools` (further, group variables can be a mix of string and numeric,
-like `collapse`). It also provides some (limited) support for by-able
-`egen` functions via `gegen`.
+This is currently a beta release. This package's aim is to provide a
+fast implementation of group commands in Stata using C-plugins. At
+the moment, the package's main feature is a faster implementation
+of `collapse`, called `gcollapse`, that is also faster than Sergio
+Correia's `fcollapse` from `ftools` (further, group variables can be
+a mix of string and numeric, like `collapse`). It also provides some
+(limited) support for by-able `egen` functions via `gegen`.
 
 In our benchmarks, `gcollapse` was 5 to 120 times faster than `collapse`
 and 3 to 20 times faster than `fcollapse` (the speed gain is smaller for
 simpler statistics, such as sums, and larger for complex statistics,
-such as percentiles). At the moment, only Unix versions of the plugins
-are available. Windows and OSX versions are planned for a future
-release.
+such as percentiles). The key insight is two-fold: First, hashing the
+data and sorting the hash is a lot faster than sorting the data before
+processing it by group. Second, compiled C code is much faster than
+Stata commands.
+
+The current beta release only provides Unix versions of the C plugin.
+Windows and OSX versions are planned for a future release.
 
 Installation
 ------------
@@ -85,10 +90,7 @@ yet benchmarked this version of `gcollapse` against `collapse` for 200M
 observations. This is because `collapse` takes several hours in that
 case, and I have not found occasion to run them.
 
-All commands were run with the `fast` option. The benchmark for 200M
-observations for `collapse` is not yet available because `collapse`
-often takes several hours in that case and we have not found occassion
-to run them.
+All commands were run with the `fast` option.
 
 ### Benchmarks in the style of `ftools`
 
@@ -196,35 +198,56 @@ benchmark: Vary J for N = 5,000,000
 Building
 --------
 
+### Requirements
+
 If you want to compile the plugin yourself, atop the C standard library
 you will need
 - The GNU Compiler Collection (`gcc`)
 - [`premake5`](https://premake.github.io)
-- [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
+- [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
 - v2.0 or above of the [Stata Plugin Interface](https://stata.com/plugins/version2) (SPI).
 
-From the root folder of this repo, first compile `spookyhash`:
+I keep a copy of Stata's Plugin Interface in this repository, and I
+have added `centaurean`'s implementation of SpookyHash as a submodule.
+However, you will have to make sure you have `gcc` and `premake5`
+installed and in your system's `PATH`.
+
+### Compilation
+
 ```bash
-cd lib/spooky/build
-premake5 make
-make
-cd -
+git clone https://github.com/mcaceresb/stata-gtools
+cd stata-gtools
+git submodule update --recursive
+make spooky
+./build.py --test
 ```
 
-If that compiles correctly, then from the root directory you can run
+`./build.py` runs `make` to compile the plugins and places all
+the requisite `.ado` files, `.sthlp` files, and test scripts in
+`./build`. A log with the output of the test script will be printed
+to `./build/gtools_tests.log`; if successful, the exit message should
+be "tests finished running" followed by the start and end time.
+
+### Troubleshooting
+
+If you are not on Linux, you will have to comment out lines 34, 1167,
+and 1170 in `./src/ado/gcollapse.ado` and lines 15, 517, and 520 in
+`./src/ado/gegen.ado`. These lines prevent the function from running
+outside Stata for Unix.
+
+On OSX this will likely be enough. On Windows, however, it is possible
+you will have to modify the Makefile (while this should compile from
+Cygwin, it is possible the plugins will not load into Stata correctly)
+or throw the Makefile away altogether and try to compile the plugin
+using Visual Studio.
+
+If the build fails, test that SpookyHash was compiled correctly:
 ```
-./build.py
+make spookytest
 ```
 
-to compile the plugin and copy the files to `./build`. This tries to run
-`make` as one of the steps, so if you are not on Linux you may have to
-modify `./Makefile`. If it builds correctly, it should be able to run
-```
-cd build
-stata -b do gtools_tests.do
-```
-
-If there is an issue, then the plugin was not compiled correctly.
+These take a long time to run, so it is faster to try to test the plugin
+first and only test SpookyHash if the plugin does not work.
 
 FAQs
 ----
@@ -333,18 +356,17 @@ which allows computing quantiles; e.g. 2.5 or 97.5).
 
 ### Generating group IDs is different than `egen`
 
-I do not intend to re-implement all of `egen`, just by-able functions.
-Atop the currently supported calls, two generic `egen` functions are
-provided that are much faster than their counterparts
+There are two generic `egen` functions provided that are much faster
+than their counterparts
 ```stata
 gegen id  = group(varlist)
 gegen tag = tag(varlist)
 ```
 
-Both are much faster than `egen` because they do not sort the data, and
-instead rely on hashes to tag the data and generate an id as new groups
-appear. This means `group` will ID the first group that appears as 1 and
-the last as J; `egen` will sort the data first.
+Part of the reason they much faster than `egen` is that they do not sort
+the data, and instead rely on hashes to tag the data and generate an id
+as new groups appear. This means `group` will ID the first group that
+appears as 1 and the last as J; `egen` will sort the data first.
 
 ### Memory management
 

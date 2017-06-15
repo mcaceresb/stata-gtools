@@ -30,7 +30,7 @@ Note:  Your site can add messages to the introduction by editing the file
 . * Created: Tue May 16 07:23:02 EDT 2017
 . * Updated: Wed Jun 14 19:14:56 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.5.1
+. * Version: 0.5.2
 . * Manual:  help gcollapse, help gegen
 . 
 . * Stata start-up options
@@ -1540,7 +1540,7 @@ Note:  Your site can add messages to the introduction by editing the file
 . * Run the things
 . 
 . main, cap noi checks test
-Start: 19:30:21 14 Jun 2017
+Start: 18:04:24 15 Jun 2017
 
 --------------------------------------------------------------------------------
 checks_byvars_gcollapse debug_force_multi
@@ -1563,14 +1563,14 @@ In memory: groupsub rnorm sum sd
 Using sole integer by variable as hash.
 counting sort on hash; min = 1, max = 2
 N = 1,000; 2 balanced groups of size 500
-                Thread 3 processed 0 groups.
                 Thread 2 processed 0 groups.
                 Thread 1 processed 1 groups.
+                Thread 3 processed 0 groups.
                 Thread 0 processed 1 groups.
                 Thread 2 processed 0 groups.
-                Thread 1 processed 1 groups.
-                Thread 0 processed 1 groups.
                 Thread 3 processed 0 groups.
+                Thread 0 processed 1 groups.
+                Thread 1 processed 1 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1579,14 +1579,14 @@ In memory: group rnorm sum sd
 Using sole integer by variable as hash.
 counting sort on hash; min = 1, max = 250
 N = 1,000; 250 balanced groups of size 4
-                Thread 3 processed 62 groups.
-                Thread 2 processed 62 groups.
-                Thread 1 processed 63 groups.
-                Thread 0 processed 63 groups.
                 Thread 0 processed 63 groups.
                 Thread 3 processed 62 groups.
                 Thread 2 processed 62 groups.
                 Thread 1 processed 63 groups.
+                Thread 2 processed 62 groups.
+                Thread 1 processed 63 groups.
+                Thread 0 processed 63 groups.
+                Thread 3 processed 62 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1599,10 +1599,10 @@ N = 1,000; 250 balanced groups of size 4
                 Thread 1 processed 63 groups.
                 Thread 0 processed 63 groups.
                 Thread 3 processed 62 groups.
-                Thread 2 processed 62 groups.
-                Thread 1 processed 63 groups.
                 Thread 0 processed 63 groups.
                 Thread 3 processed 62 groups.
+                Thread 2 processed 62 groups.
+                Thread 1 processed 63 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1611,14 +1611,14 @@ In memory: rnorm grouplong sum sd
 Using sole integer by variable as hash.
 counting sort on hash; min = 1, max = 250
 N = 1,000; 250 balanced groups of size 4
-                Thread 1 processed 63 groups.
-                Thread 3 processed 62 groups.
-                Thread 0 processed 63 groups.
                 Thread 2 processed 62 groups.
                 Thread 3 processed 62 groups.
                 Thread 0 processed 63 groups.
                 Thread 1 processed 63 groups.
+                Thread 0 processed 63 groups.
+                Thread 3 processed 62 groups.
                 Thread 2 processed 62 groups.
+                Thread 1 processed 63 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1628,12 +1628,12 @@ Using sole integer by variable as hash.
 counting sort on hash; min = 1, max = 2
 N = 1,000; 2 balanced groups of size 500
                 Thread 2 processed 0 groups.
-                Thread 0 processed 1 groups.
-                Thread 3 processed 0 groups.
                 Thread 1 processed 1 groups.
+                Thread 0 processed 1 groups.
                 Thread 3 processed 0 groups.
                 Thread 2 processed 0 groups.
                 Thread 1 processed 1 groups.
+                Thread 3 processed 0 groups.
                 Thread 0 processed 1 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
@@ -1644,13 +1644,13 @@ Hashing 2 integer by variables to whole-nubmer index.
 counting sort on hash; min = 1, max = 500
 N = 1,000; 500 balanced groups of size 2
                 Thread 1 processed 125 groups.
+                Thread 3 processed 125 groups.
                 Thread 0 processed 125 groups.
                 Thread 2 processed 125 groups.
-                Thread 3 processed 125 groups.
                 Thread 2 processed 125 groups.
+                Thread 0 processed 125 groups.
+                Thread 3 processed 125 groups.
                 Thread 1 processed 125 groups.
-                Thread 0 processed 125 groups.
-                Thread 3 processed 125 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1660,13 +1660,13 @@ Hashing 2 integer by variables to whole-nubmer index.
 counting sort on hash; min = 1, max = 500
 N = 1,000; 469 unbalanced groups of sizes 1 to 4
                 Thread 2 processed 117 groups.
-                Thread 1 processed 117 groups.
                 Thread 3 processed 117 groups.
+                Thread 1 processed 117 groups.
+                Thread 0 processed 118 groups.
+                Thread 3 processed 117 groups.
+                Thread 1 processed 117 groups.
                 Thread 0 processed 118 groups.
                 Thread 2 processed 117 groups.
-                Thread 3 processed 117 groups.
-                Thread 0 processed 118 groups.
-                Thread 1 processed 117 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1676,13 +1676,13 @@ Using 128-bit hash to index 2 by variables (string and numeric).
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 1,000; 500 balanced groups of size 2
                 Thread 2 processed 125 groups.
-                Thread 3 processed 125 groups.
                 Thread 1 processed 125 groups.
                 Thread 0 processed 125 groups.
-                Thread 0 processed 125 groups.
                 Thread 3 processed 125 groups.
-                Thread 1 processed 125 groups.
+                Thread 3 processed 125 groups.
                 Thread 2 processed 125 groups.
+                Thread 1 processed 125 groups.
+                Thread 0 processed 125 groups.
 
 Passed! checks_byvars_gcollapse debug_force_multi
 
@@ -1703,7 +1703,7 @@ Obs = 200; Groups = 10
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .029 seconds
+Parsed by variables, sources, and targets; .03 seconds
 In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
@@ -1718,15 +1718,15 @@ N = 200; 10 balanced groups of size 20
                 Thread 0 processed 3 groups.
                 Thread 3 processed 2 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 3 processed 2 groups.
-                Thread 0 processed 3 groups.
                 Thread 1 processed 3 groups.
+                Thread 3 processed 2 groups.
                 Thread 2 processed 2 groups.
+                Thread 0 processed 3 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; .001 seconds
 Program exit executed; .001 seconds
-The program executed; .032 seconds
+The program executed; .033 seconds
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
@@ -1735,29 +1735,13 @@ In memory: groupstr mean
 Using 128-bit hash to index string by variable.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 200; 10 balanced groups of size 20
-                Thread 2 processed 2 groups.
-                Thread 3 processed 2 groups.
-                Thread 0 processed 3 groups.
-                Thread 1 processed 3 groups.
-                Thread 3 processed 2 groups.
                 Thread 0 processed 3 groups.
                 Thread 2 processed 2 groups.
+                Thread 3 processed 2 groups.
                 Thread 1 processed 3 groups.
-(plugin -gtools- was loaded correctly)
-(warning: forcing multi-threaded version)
-(warning: custom reading methods in beta)
-(warning: custom collapsing methods in beta)
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Using 128-bit hash to index string by variable.
-radix sort on hash: loops = 4, bits = 16, shift = 65,536
-N = 200; 10 balanced groups of size 20
-                Thread 2 processed 2 groups.
                 Thread 1 processed 3 groups.
                 Thread 0 processed 3 groups.
                 Thread 3 processed 2 groups.
-                Thread 3 processed 2 groups.
-                Thread 0 processed 3 groups.
-                Thread 1 processed 3 groups.
                 Thread 2 processed 2 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
@@ -1767,19 +1751,35 @@ In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Using 128-bit hash to index string by variable.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 200; 10 balanced groups of size 20
+                Thread 3 processed 2 groups.
                 Thread 2 processed 2 groups.
                 Thread 1 processed 3 groups.
-                Thread 3 processed 2 groups.
                 Thread 0 processed 3 groups.
-                Thread 3 processed 2 groups.
-                Thread 0 processed 3 groups.
-                Thread 2 processed 2 groups.
                 Thread 1 processed 3 groups.
+                Thread 2 processed 2 groups.
+                Thread 3 processed 2 groups.
+                Thread 0 processed 3 groups.
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .006 seconds
+In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
+Using 128-bit hash to index string by variable.
+radix sort on hash: loops = 4, bits = 16, shift = 65,536
+N = 200; 10 balanced groups of size 20
+                Thread 0 processed 3 groups.
+                Thread 1 processed 3 groups.
+                Thread 2 processed 2 groups.
+                Thread 3 processed 2 groups.
+                Thread 1 processed 3 groups.
+                Thread 0 processed 3 groups.
+                Thread 3 processed 2 groups.
+                Thread 2 processed 2 groups.
+(plugin -gtools- was loaded correctly)
+(warning: forcing multi-threaded version)
+(warning: custom reading methods in beta)
+(warning: custom collapsing methods in beta)
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
@@ -1789,15 +1789,15 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 10 balanced groups of size 20
-                Thread 2 processed 2 groups.
-                Thread 3 processed 2 groups.
                 Thread 0 processed 3 groups.
                 Thread 1 processed 3 groups.
+                Thread 2 processed 2 groups.
+                Thread 3 processed 2 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 3 processed 2 groups.
+                Thread 1 processed 3 groups.
                 Thread 0 processed 3 groups.
                 Thread 2 processed 2 groups.
-                Thread 1 processed 3 groups.
+                Thread 3 processed 2 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; .001 seconds
@@ -1895,27 +1895,27 @@ The program executed; .009 seconds
 (warning: custom collapsing methods in beta)
 Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.000 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.006 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 20 balanced groups of size 10
-                Thread 2 processed 5 groups.
-                Thread 1 processed 5 groups.
                 Thread 3 processed 5 groups.
+                Thread 2 processed 5 groups.
                 Thread 0 processed 5 groups.
+                Thread 1 processed 5 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 0 processed 5 groups.
-                Thread 3 processed 5 groups.
-                Thread 2 processed 5 groups.
                 Thread 1 processed 5 groups.
+                Thread 0 processed 5 groups.
+                Thread 2 processed 5 groups.
+                Thread 3 processed 5 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
+Program exit executed; .002 seconds
 The program executed; .008 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
@@ -2011,20 +2011,20 @@ Using index provided by stata (data was already soreted).
         Plugin step 3: Set up index from Stata; 0.000 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 20 balanced groups of size 10
+                Thread 3 processed 5 groups.
                 Thread 2 processed 5 groups.
                 Thread 1 processed 5 groups.
                 Thread 0 processed 5 groups.
-                Thread 3 processed 5 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
+                Thread 3 processed 5 groups.
+                Thread 1 processed 5 groups.
                 Thread 0 processed 5 groups.
                 Thread 2 processed 5 groups.
-                Thread 1 processed 5 groups.
-                Thread 3 processed 5 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
 Program exit executed; .001 seconds
-The program executed; .007 seconds
+The program executed; .008 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
   1. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
@@ -2111,27 +2111,27 @@ The program executed; .007 seconds
 (warning: custom collapsing methods in beta)
 Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.000 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.002 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 20 balanced groups of size 10
                 Thread 2 processed 5 groups.
-                Thread 1 processed 5 groups.
+                Thread 3 processed 5 groups.
                 Thread 0 processed 5 groups.
-                Thread 3 processed 5 groups.
+                Thread 1 processed 5 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 3 processed 5 groups.
                 Thread 1 processed 5 groups.
                 Thread 2 processed 5 groups.
                 Thread 0 processed 5 groups.
+                Thread 3 processed 5 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .001 seconds
-Program exit executed; .001 seconds
+The plugin executed; 0 seconds
+Program exit executed; .002 seconds
 The program executed; .008 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
@@ -2222,7 +2222,7 @@ In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index string by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
+        Plugin step 2: Hashed by variables; 0.006 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
@@ -2233,13 +2233,13 @@ N = 200; 10 balanced groups of size 20
                 Thread 3 processed 2 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
                 Thread 1 processed 3 groups.
-                Thread 2 processed 2 groups.
-                Thread 0 processed 3 groups.
                 Thread 3 processed 2 groups.
+                Thread 0 processed 3 groups.
+                Thread 2 processed 2 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
+Program exit executed; .002 seconds
 The program executed; .008 seconds
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
@@ -2255,27 +2255,27 @@ Using index provided by stata (data was already soreted).
         Plugin step 3: Set up index from Stata; 0.000 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 10 balanced groups of size 20
-                Thread 2 processed 2 groups.
                 Thread 3 processed 2 groups.
                 Thread 1 processed 3 groups.
+                Thread 2 processed 2 groups.
                 Thread 0 processed 3 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 1 processed 3 groups.
-                Thread 2 processed 2 groups.
                 Thread 3 processed 2 groups.
+                Thread 1 processed 3 groups.
                 Thread 0 processed 3 groups.
+                Thread 2 processed 2 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
-The program executed; .007 seconds
+Program exit executed; .002 seconds
+The program executed; .008 seconds
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
 Parsed by variables, sources, and targets; .005 seconds
 In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
+Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using sole integer by variable as hash.
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2283,18 +2283,18 @@ counting sort on hash; min = 1, max = 2
         Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 2 balanced groups of size 100
-                Thread 2 processed 0 groups.
                 Thread 0 processed 1 groups.
-                Thread 3 processed 0 groups.
                 Thread 1 processed 1 groups.
+                Thread 2 processed 0 groups.
+                Thread 3 processed 0 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 2 processed 0 groups.
-                Thread 1 processed 1 groups.
                 Thread 3 processed 0 groups.
+                Thread 1 processed 1 groups.
                 Thread 0 processed 1 groups.
+                Thread 2 processed 0 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .001 seconds
+The plugin executed; 0 seconds
 Program exit executed; .001 seconds
 The program executed; .007 seconds
 
@@ -2308,7 +2308,7 @@ The program executed; .007 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .004 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
@@ -2318,14 +2318,14 @@ counting sort on hash; min = 1, max = 2
         Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 200; 2 balanced groups of size 100
-                Thread 2 processed 0 groups.
                 Thread 0 processed 1 groups.
+                Thread 2 processed 0 groups.
                 Thread 3 processed 0 groups.
                 Thread 1 processed 1 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 2 processed 0 groups.
-                Thread 1 processed 1 groups.
                 Thread 0 processed 1 groups.
+                Thread 1 processed 1 groups.
+                Thread 2 processed 0 groups.
                 Thread 3 processed 0 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
@@ -2439,7 +2439,7 @@ Obs = 200; Groups = 10
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .004 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
@@ -2483,9 +2483,9 @@ N = 200; 10 balanced groups of size 20
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .004 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index string by variable.
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2498,7 +2498,7 @@ N = 200; 10 balanced groups of size 20
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; .001 seconds
 Program exit executed; .001 seconds
-The program executed; .007 seconds
+The program executed; .008 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
@@ -2589,9 +2589,9 @@ The program executed; .007 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .007 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2604,7 +2604,7 @@ N = 200; 20 balanced groups of size 10
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; .001 seconds
 Program exit executed; .001 seconds
-The program executed; .01 seconds
+The program executed; .008 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
   1. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
@@ -2690,9 +2690,9 @@ The program executed; .01 seconds
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
 data already sorted; indexing in stata
-Parsed by variables, sources, and targets; .005 seconds
+Parsed by variables, sources, and targets; .004 seconds
 In memory: groupstr groupsub mean __000000 mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using index provided by stata (data was already soreted).
         Plugin step 2: Read in index helper; 0.000 seconds.
@@ -2703,7 +2703,7 @@ N = 200; 20 balanced groups of size 10
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
+Program exit executed; .002 seconds
 The program executed; .007 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
@@ -2791,7 +2791,7 @@ The program executed; .007 seconds
 (note: data collapsing method only available for option -multi-)
 Parsed by variables, sources, and targets; .005 seconds
 In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
+Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2804,7 +2804,7 @@ N = 200; 20 balanced groups of size 10
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; .001 seconds
 Program exit executed; .001 seconds
-The program executed; .007 seconds
+The program executed; .008 seconds
 
      +---------------------------------------------------------------------------------------------------------------------+
   1. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
@@ -2889,7 +2889,7 @@ The program executed; .007 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .005 seconds
+Parsed by variables, sources, and targets; .004 seconds
 In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
 Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
@@ -2923,15 +2923,15 @@ N = 200; 10 balanced groups of size 20
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
-The program executed; .006 seconds
+Program exit executed; .002 seconds
+The program executed; .007 seconds
 (plugin -gtools- was loaded correctly)
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .004 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using sole integer by variable as hash.
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2942,9 +2942,9 @@ N = 200; 2 balanced groups of size 100
         Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
+The plugin executed; .001 seconds
 Program exit executed; .001 seconds
-The program executed; .006 seconds
+The program executed; .007 seconds
 
      +-----------------------------------------------------------------------------------------------+
      | groupsub        mean       mean2   count   count2     median    median2        iqr       iqr2 |
@@ -2956,9 +2956,9 @@ The program executed; .006 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .004 seconds
+Parsed by variables, sources, and targets; .005 seconds
 In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; .001 seconds
+Generated additional targets; 0 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using sole integer by variable as hash.
         Plugin step 2: Hashed by variables; 0.000 seconds.
@@ -2970,8 +2970,8 @@ N = 200; 2 balanced groups of size 100
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
 The plugin executed; 0 seconds
-Program exit executed; .001 seconds
-The program executed; .006 seconds
+Program exit executed; .002 seconds
+The program executed; .007 seconds
 
      +-----------------------------------------------------------------------------------------------+
      | groupsub        mean       mean2   count   count2     median    median2        iqr       iqr2 |
@@ -3006,20 +3006,20 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.002 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
-                Thread 1 processed 50 groups.
-                Thread 2 processed 50 groups.
-                Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
+                Thread 2 processed 50 groups.
+                Thread 1 processed 50 groups.
+                Thread 0 processed 50 groups.
+        Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
+                Thread 3 processed 0 groups.
+                Thread 2 processed 0 groups.
                 Thread 0 processed 0 groups.
                 Thread 1 processed 0 groups.
-                Thread 2 processed 0 groups.
-                Thread 3 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .006 seconds
+The plugin executed in .007 seconds
 Program exit executed in .001 seconds
-The program executed in .008 seconds
+The program executed in .009 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: forcing multi-threaded version)
@@ -3034,26 +3034,26 @@ The program executed in .008 seconds
 Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.012 seconds.
+        Plugin step 2: Hashed by variables; 0.013 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.010 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.013 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
                 Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
                 Thread 3 processed 50 groups.
                 Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
+                Thread 2 processed 0 groups.
+                Thread 3 processed 0 groups.
                 Thread 1 processed 0 groups.
                 Thread 0 processed 0 groups.
-                Thread 3 processed 0 groups.
-                Thread 2 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .007 seconds
+The plugin executed in .008 seconds
 (2200 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .009 seconds
+The program executed in .01 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (2499 missing values generated)
@@ -3073,31 +3073,31 @@ The program executed in .009 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .009 seconds
+Parsed by variables, sources, and targets; .011 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.011 seconds.
+        Plugin step 2: Hashed by variables; 0.009 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.007 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.003 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
-                Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
                 Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
+                Thread 2 processed 50 groups.
                 Thread 3 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
-                Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
-                Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
-        Plugin step 5.2: Collapsed variables in parallel; 0.001 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.011 seconds.
-The plugin executed; .009 seconds
+                Thread 2 processed 50 groups.
+                Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
+        Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
+        Plugin step 6: Merged collapsed variables back to stata; 0.009 seconds.
+The plugin executed; .01 seconds
 Program exit executed; 0 seconds
-The program executed; .02 seconds
+The program executed; .022 seconds
     mean vs gcollapse was OK
     sum vs gcollapse was OK
     median vs gcollapse was OK
@@ -3134,8 +3134,8 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 541; 190 unbalanced groups of sizes 1 to 7
                 Thread 2 processed 47 groups.
                 Thread 3 processed 47 groups.
-                Thread 0 processed 48 groups.
                 Thread 1 processed 48 groups.
+                Thread 0 processed 48 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
                 Thread 2 processed 0 groups.
                 Thread 1 processed 0 groups.
@@ -3146,7 +3146,7 @@ N = 541; 190 unbalanced groups of sizes 1 to 7
 The plugin executed in .001 seconds
 (19465 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .003 seconds
+The program executed in .004 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (19459 missing values generated)
@@ -3167,24 +3167,24 @@ Program set up executed in .001 seconds
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.000 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.007 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 541; 190 unbalanced groups of sizes 1 to 7
-                Thread 1 processed 48 groups.
                 Thread 2 processed 47 groups.
-                Thread 3 processed 47 groups.
                 Thread 0 processed 48 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
+                Thread 1 processed 48 groups.
+                Thread 3 processed 47 groups.
+        Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
                 Thread 1 processed 0 groups.
                 Thread 2 processed 0 groups.
                 Thread 0 processed 0 groups.
                 Thread 3 processed 0 groups.
-        Plugin step 5.2: By vars summary stats; 0.005 seconds.
+        Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .007 seconds
+The plugin executed in .001 seconds
 (19488 missing values generated)
-Program exit executed in .002 seconds
-The program executed in .01 seconds
+Program exit executed in .001 seconds
+The program executed in .003 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (19492 missing values generated)
@@ -3210,7 +3210,7 @@ The program executed in .01 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .015 seconds
+Parsed by variables, sources, and targets; .009 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
@@ -3218,23 +3218,23 @@ Generated additional targets; .001 seconds
 Using 128-bit hash to index numeric by variable.
         Plugin step 2: Hashed by variables; 0.000 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.007 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 541; 190 unbalanced groups of sizes 1 to 7
+                Thread 3 processed 47 groups.
                 Thread 2 processed 47 groups.
                 Thread 0 processed 48 groups.
-                Thread 3 processed 47 groups.
                 Thread 1 processed 48 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 2 processed 47 groups.
+        Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
                 Thread 0 processed 48 groups.
-                Thread 3 processed 47 groups.
+                Thread 2 processed 47 groups.
                 Thread 1 processed 48 groups.
+                Thread 3 processed 47 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Merged collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .002 seconds
+The plugin executed; .001 seconds
 Program exit executed; 0 seconds
-The program executed; .018 seconds
+The program executed; .012 seconds
     mean vs gcollapse (in) was OK
     sum vs gcollapse (in) was OK
     median vs gcollapse (in) was OK
@@ -3266,8 +3266,8 @@ Program set up executed in .001 seconds
 (no observations)
 The plugin executed in 0 seconds
 (20000 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .001 seconds
+Program exit executed in .001 seconds
+The program executed in .002 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (no observations)
@@ -3291,8 +3291,8 @@ Program set up executed in .001 seconds
 (no observations)
 The plugin executed in 0 seconds
 (20000 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .001 seconds
+Program exit executed in .001 seconds
+The program executed in .002 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (no observations)
@@ -3326,13 +3326,13 @@ The program executed in .001 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .005 seconds
+Parsed by variables, sources, and targets; .006 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
 The plugin executed; 0 seconds
 Program exit executed; 0 seconds
-The program executed; .006 seconds
+The program executed; .007 seconds
 (null assertion)
     mean vs gcollapse (if in) was OK
 (null assertion)
@@ -3440,7 +3440,7 @@ N = 20,000; 200 unbalanced groups of sizes 99 to 101
         Plugin step 6: Merged collapsed variables back to stata; 0.002 seconds.
 The plugin executed; .009 seconds
 Program exit executed; 0 seconds
-The program executed; .018 seconds
+The program executed; .019 seconds
     mean vs gcollapse was OK
     sum vs gcollapse was OK
     median vs gcollapse was OK
@@ -3502,7 +3502,7 @@ N = 4,784; 200 unbalanced groups of sizes 12 to 35
         Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .003 seconds
+The plugin executed in .002 seconds
 (15767 missing values generated)
 Program exit executed in .001 seconds
 The program executed in .005 seconds
@@ -3537,10 +3537,10 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 4,784; 200 unbalanced groups of sizes 12 to 35
         Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.001 seconds.
-The plugin executed; .003 seconds
+        Plugin step 6: Merged collapsed variables back to stata; 0.000 seconds.
+The plugin executed; .002 seconds
 Program exit executed; 0 seconds
-The program executed; .014 seconds
+The program executed; .013 seconds
     mean vs gcollapse (in) was OK
     sum vs gcollapse (in) was OK
     median vs gcollapse (in) was OK
@@ -3594,18 +3594,18 @@ The program executed in .006 seconds
 Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.002 seconds.
+        Plugin step 2: Hashed by variables; 0.001 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 9,344; 200 unbalanced groups of sizes 34 to 58
         Plugin step 5.1: Read source variables sequentially; 0.001 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.001 seconds.
-The plugin executed in .005 seconds
+        Plugin step 6: Copied output back to stata; 0.000 seconds.
+The plugin executed in .004 seconds
 (15328 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .007 seconds
+The program executed in .006 seconds
 (warning: forcing non-multi-threaded version)
 (15327 missing values generated)
 (warning: forcing non-multi-threaded version)
@@ -3625,13 +3625,13 @@ The program executed in .007 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .007 seconds
+Parsed by variables, sources, and targets; .006 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.001 seconds.
+        Plugin step 2: Hashed by variables; 0.000 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
@@ -3639,9 +3639,9 @@ N = 5,195; 200 unbalanced groups of sizes 16 to 37
         Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Merged collapsed variables back to stata; 0.001 seconds.
-The plugin executed; .004 seconds
+The plugin executed; .003 seconds
 Program exit executed; 0 seconds
-The program executed; .012 seconds
+The program executed; .01 seconds
     mean vs gcollapse (if in) was OK
     sum vs gcollapse (if in) was OK
     median vs gcollapse (if in) was OK
@@ -3682,15 +3682,15 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.002 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
+                Thread 3 processed 50 groups.
+                Thread 1 processed 50 groups.
                 Thread 2 processed 50 groups.
                 Thread 0 processed 50 groups.
-                Thread 1 processed 50 groups.
-                Thread 3 processed 50 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
+        Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
                 Thread 2 processed 0 groups.
-                Thread 1 processed 0 groups.
                 Thread 3 processed 0 groups.
                 Thread 0 processed 0 groups.
+                Thread 1 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
 The plugin executed in .006 seconds
@@ -3710,15 +3710,15 @@ The program executed in .008 seconds
 Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.013 seconds.
+        Plugin step 2: Hashed by variables; 0.011 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.004 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.012 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
                 Thread 3 processed 50 groups.
+                Thread 2 processed 50 groups.
                 Thread 1 processed 50 groups.
                 Thread 0 processed 50 groups.
-                Thread 2 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
                 Thread 1 processed 0 groups.
                 Thread 2 processed 0 groups.
@@ -3729,7 +3729,7 @@ N = 20,000; 200 unbalanced groups of sizes 99 to 101
 The plugin executed in .007 seconds
 (1400 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .01 seconds
+The program executed in .009 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (2400 missing values generated)
@@ -3752,28 +3752,28 @@ The program executed in .01 seconds
 Parsed by variables, sources, and targets; .009 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
-Generated additional targets; .003 seconds
+Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.011 seconds.
+        Plugin step 2: Hashed by variables; 0.009 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.003 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.012 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 20,000; 200 unbalanced groups of sizes 99 to 101
+                Thread 3 processed 50 groups.
+                Thread 1 processed 50 groups.
+                Thread 0 processed 50 groups.
+                Thread 2 processed 50 groups.
+        Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
+                Thread 1 processed 50 groups.
                 Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
                 Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.007 seconds.
-                Thread 0 processed 50 groups.
-                Thread 3 processed 50 groups.
-                Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
-        Plugin step 5.2: Collapsed variables in parallel; 0.021 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.009 seconds.
-The plugin executed; .04 seconds
-Program exit executed; 0 seconds
-The program executed; .053 seconds
+        Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
+        Plugin step 6: Merged collapsed variables back to stata; 0.008 seconds.
+The plugin executed; .009 seconds
+Program exit executed; .001 seconds
+The program executed; .02 seconds
     mean vs gcollapse was OK
     sum vs gcollapse was OK
     median vs gcollapse was OK
@@ -3800,7 +3800,7 @@ Obs = 20,000; Groups = 100
 (plugin -gtools- was loaded correctly)
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
-Program set up executed in .001 seconds
+Program set up executed in .002 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.001 seconds.
@@ -3808,21 +3808,21 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 7,129; 200 unbalanced groups of sizes 23 to 50
-                Thread 1 processed 50 groups.
-                Thread 2 processed 50 groups.
                 Thread 3 processed 50 groups.
+                Thread 1 processed 50 groups.
                 Thread 0 processed 50 groups.
+                Thread 2 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
+                Thread 3 processed 0 groups.
+                Thread 0 processed 0 groups.
                 Thread 1 processed 0 groups.
                 Thread 2 processed 0 groups.
-                Thread 0 processed 0 groups.
-                Thread 3 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
 The plugin executed in .003 seconds
 (12871 missing values generated)
-Program exit executed in .001 seconds
-The program executed in .005 seconds
+Program exit executed in .002 seconds
+The program executed in .007 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (12871 missing values generated)
@@ -3841,26 +3841,26 @@ The program executed in .005 seconds
 Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.009 seconds.
+        Plugin step 2: Hashed by variables; 0.007 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.001 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.005 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 7,129; 200 unbalanced groups of sizes 23 to 50
+                Thread 1 processed 50 groups.
                 Thread 3 processed 50 groups.
                 Thread 0 processed 50 groups.
                 Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
-        Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
+        Plugin step 5.1: Read source variables in parallel; 0.008 seconds.
                 Thread 2 processed 0 groups.
+                Thread 3 processed 0 groups.
                 Thread 1 processed 0 groups.
                 Thread 0 processed 0 groups.
-                Thread 3 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .003 seconds
+The plugin executed in .012 seconds
 (13629 missing values generated)
-Program exit executed in .001 seconds
-The program executed in .005 seconds
+Program exit executed in .002 seconds
+The program executed in .015 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (13384 missing values generated)
@@ -3892,20 +3892,20 @@ In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum 
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.001 seconds.
+        Plugin step 2: Hashed by variables; 0.003 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.011 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.007 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 7,129; 200 unbalanced groups of sizes 23 to 50
-                Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
                 Thread 2 processed 50 groups.
                 Thread 1 processed 50 groups.
+                Thread 0 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
+                Thread 3 processed 50 groups.
                 Thread 2 processed 50 groups.
                 Thread 1 processed 50 groups.
                 Thread 0 processed 50 groups.
-                Thread 3 processed 50 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Merged collapsed variables back to stata; 0.001 seconds.
 The plugin executed; .004 seconds
@@ -3945,17 +3945,17 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.002 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 11,913; 200 unbalanced groups of sizes 47 to 71
-                Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
-                Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
+                Thread 2 processed 50 groups.
+                Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
                 Thread 3 processed 0 groups.
                 Thread 2 processed 0 groups.
                 Thread 1 processed 0 groups.
                 Thread 0 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.001 seconds.
+        Plugin step 6: Copied output back to stata; 0.003 seconds.
 The plugin executed in .005 seconds
 (11508 missing values generated)
 Program exit executed in .001 seconds
@@ -3978,26 +3978,26 @@ The program executed in .007 seconds
 Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.003 seconds.
+        Plugin step 2: Hashed by variables; 0.006 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
-        Plugin step 3: Sorted on integer-only hash index; 0.008 seconds.
+        Plugin step 3: Sorted on integer-only hash index; 0.006 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 11,913; 200 unbalanced groups of sizes 47 to 71
-                Thread 1 processed 50 groups.
-                Thread 3 processed 50 groups.
-                Thread 2 processed 50 groups.
                 Thread 0 processed 50 groups.
+                Thread 3 processed 50 groups.
+                Thread 1 processed 50 groups.
+                Thread 2 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.001 seconds.
-                Thread 0 processed 0 groups.
-                Thread 1 processed 0 groups.
                 Thread 3 processed 0 groups.
+                Thread 1 processed 0 groups.
+                Thread 0 processed 0 groups.
                 Thread 2 processed 0 groups.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.001 seconds.
-The plugin executed in .006 seconds
+The plugin executed in .005 seconds
 (12235 missing values generated)
-Program exit executed in .002 seconds
-The program executed in .009 seconds
+Program exit executed in .001 seconds
+The program executed in .008 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (12291 missing values generated)
@@ -4024,31 +4024,31 @@ The program executed in .009 seconds
 (warning: forcing multi-threaded version)
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
-Parsed by variables, sources, and targets; .009 seconds
+Parsed by variables, sources, and targets; .007 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.001 seconds.
+        Plugin step 2: Hashed by variables; 0.002 seconds.
 radix sort on hash: loops = 4, bits = 16, shift = 65,536
         Plugin step 3: Sorted on integer-only hash index; 0.003 seconds.
         Plugin step 4: Set up variables for main group loop; 0.000 seconds.
 N = 8,492; 200 unbalanced groups of sizes 30 to 56
-                Thread 1 processed 50 groups.
-                Thread 0 processed 50 groups.
                 Thread 3 processed 50 groups.
+                Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
                 Thread 2 processed 50 groups.
         Plugin step 5.1: Read source variables in parallel; 0.000 seconds.
-                Thread 2 processed 50 groups.
-                Thread 1 processed 50 groups.
                 Thread 3 processed 50 groups.
+                Thread 2 processed 50 groups.
                 Thread 0 processed 50 groups.
+                Thread 1 processed 50 groups.
         Plugin step 5.2: Collapsed variables in parallel; 0.000 seconds.
         Plugin step 6: Merged collapsed variables back to stata; 0.001 seconds.
 The plugin executed; .004 seconds
 Program exit executed; 0 seconds
-The program executed; .014 seconds
+The program executed; .013 seconds
     mean vs gcollapse (if in) was OK
     sum vs gcollapse (if in) was OK
     median vs gcollapse (if in) was OK
@@ -4081,7 +4081,7 @@ Obs = 20,000; Groups = 100
 (plugin -gtools- was loaded correctly)
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
-Program set up executed in .001 seconds
+Program set up executed in .002 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.003 seconds.
@@ -4092,7 +4092,7 @@ N = 20,000; 200 unbalanced groups of sizes 99 to 101
         Plugin step 5.1: Read source variables by group; 0.001 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .007 seconds
+The plugin executed in .006 seconds
 Program exit executed in .001 seconds
 The program executed in .009 seconds
 (warning: forcing non-multi-threaded version)
@@ -4117,9 +4117,9 @@ N = 20,000; 200 unbalanced groups of sizes 99 to 101
         Plugin step 5.1: Read source variables by group; 0.001 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .007 seconds
+The plugin executed in .008 seconds
 (2100 missing values generated)
-Program exit executed in .002 seconds
+Program exit executed in .001 seconds
 The program executed in .01 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
@@ -4141,7 +4141,7 @@ The program executed in .01 seconds
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .008 seconds
+Parsed by variables, sources, and targets; .009 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
@@ -4157,7 +4157,7 @@ N = 20,000; 200 unbalanced groups of sizes 99 to 101
         Plugin step 6: Merged collapsed variables back to stata; 0.002 seconds.
 The plugin executed; .01 seconds
 Program exit executed; 0 seconds
-The program executed; .019 seconds
+The program executed; .02 seconds
     mean vs gcollapse was OK
     sum vs gcollapse was OK
     median vs gcollapse was OK
@@ -4214,7 +4214,7 @@ The program executed in .005 seconds
 (plugin -gtools- was loaded correctly)
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
-Program set up executed in .002 seconds
+Program set up executed in .001 seconds
         Plugin step 1: stata parsing done; 0.000 seconds.
 Using 128-bit hash to index 2 by variables (string and numeric).
         Plugin step 2: Hashed by variables; 0.001 seconds.
@@ -4225,10 +4225,10 @@ N = 7,266; 200 unbalanced groups of sizes 24 to 46
         Plugin step 5.1: Read source variables by group; 0.000 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
         Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .002 seconds
+The plugin executed in .003 seconds
 (13630 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .006 seconds
+The program executed in .005 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
 (13469 missing values generated)
@@ -4255,7 +4255,7 @@ The program executed in .006 seconds
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .01 seconds
+Parsed by variables, sources, and targets; .009 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
@@ -4271,7 +4271,7 @@ N = 7,266; 200 unbalanced groups of sizes 24 to 46
         Plugin step 6: Merged collapsed variables back to stata; 0.001 seconds.
 The plugin executed; .004 seconds
 Program exit executed; 0 seconds
-The program executed; .016 seconds
+The program executed; .014 seconds
     mean vs gcollapse (in) was OK
     sum vs gcollapse (in) was OK
     median vs gcollapse (in) was OK
@@ -4308,11 +4308,11 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 10,008; 200 unbalanced groups of sizes 35 to 63
         Plugin step 5.1: Read source variables by group; 0.001 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .005 seconds
+        Plugin step 6: Copied output back to stata; 0.001 seconds.
+The plugin executed in .004 seconds
 (15277 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .007 seconds
+The program executed in .006 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
 (15277 missing values generated)
@@ -4338,11 +4338,11 @@ radix sort on hash: loops = 4, bits = 16, shift = 65,536
 N = 10,008; 200 unbalanced groups of sizes 35 to 63
         Plugin step 5.1: Read source variables by group; 0.001 seconds.
         Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .004 seconds
+        Plugin step 6: Copied output back to stata; 0.001 seconds.
+The plugin executed in .005 seconds
 (15685 missing values generated)
 Program exit executed in .001 seconds
-The program executed in .006 seconds
+The program executed in .007 seconds
 (warning: forcing non-multi-threaded version)
 (warning: custom reading methods in beta)
 (15963 missing values generated)
@@ -4370,7 +4370,7 @@ The program executed in .006 seconds
 (warning: custom reading methods in beta)
 (warning: custom collapsing methods in beta)
 (note: data collapsing method only available for option -multi-)
-Parsed by variables, sources, and targets; .007 seconds
+Parsed by variables, sources, and targets; .006 seconds
 In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
 > q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
 Generated additional targets; .001 seconds
@@ -4384,9 +4384,9 @@ N = 4,723; 200 unbalanced groups of sizes 12 to 33
         Plugin step 5.1: Read source variables by group; 0.000 seconds.
         Plugin step 5.2: Collapsed source variables; 0.000 seconds.
         Plugin step 6: Merged collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .002 seconds
-Program exit executed; .001 seconds
-The program executed; .011 seconds
+The plugin executed; .003 seconds
+Program exit executed; 0 seconds
+The program executed; .01 seconds
     mean vs gcollapse (if in) was OK
     sum vs gcollapse (if in) was OK
     median vs gcollapse (if in) was OK
@@ -4855,53 +4855,53 @@ Short (quick) versions of the benchmarks
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse  (.012)  collapse  (.014)  fcollapse  (.022)
-                   20,000 gcollapse  (.018)  collapse  (.061)  fcollapse  (.026)
+                    2,000 gcollapse  (.013)  collapse  (.015)  fcollapse  (.025)
+                   20,000 gcollapse  (.018)  collapse  (.061)  fcollapse  (.024)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.01 |      0.01 |      0.02 |        1.83 |        1.17 |
-|         20,000 |      0.02 |      0.06 |      0.03 |        1.44 |        3.39 |
+|          2,000 |      0.01 |      0.01 |      0.03 |        1.92 |        1.15 |
+|         20,000 |      0.02 |      0.06 |      0.02 |        1.33 |        3.39 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse  (.007)  collapse  (.013)  fcollapse  (.006)
-                   20,000 gcollapse  (.011)  collapse  (.096)  fcollapse  (.025)
+                    2,000 gcollapse  (.007)  collapse  (.014)  fcollapse  (.007)
+                   20,000 gcollapse  (.01)  collapse  (.089)  fcollapse  (.025)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.01 |      0.01 |      0.01 |        0.86 |        1.86 |
-|         20,000 |      0.01 |      0.10 |      0.03 |        2.27 |        8.73 |
+|          2,000 |      0.01 |      0.01 |      0.01 |        1.00 |        2.00 |
+|         20,000 |      0.01 |      0.09 |      0.03 |        2.50 |        8.90 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse  (.02)  collapse  (.035)  fcollapse  (.013)
-                   20,000 gcollapse  (.025)  collapse  (.331)  fcollapse  (.034)
+                    2,000 gcollapse  (.02)  collapse  (.038)  fcollapse  (.013)
+                   20,000 gcollapse  (.025)  collapse  (.333)  fcollapse  (.033)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.04 |      0.01 |        0.65 |        1.75 |
-|         20,000 |      0.03 |      0.33 |      0.03 |        1.36 |       13.24 |
+|          2,000 |      0.02 |      0.04 |      0.01 |        0.65 |        1.90 |
+|         20,000 |      0.03 |      0.33 |      0.03 |        1.32 |       13.32 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse  (.021)  collapse  (.075)  fcollapse  (.015)
-                   20,000 gcollapse  (.026)  collapse  (1.123)  fcollapse  (.071)
+                    2,000 gcollapse  (.021)  collapse  (.076)  fcollapse  (.021)
+                   20,000 gcollapse  (.029)  collapse  (1.148)  fcollapse  (.071)
 Results varying N for J = 10; by(group)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.07 |      0.01 |        0.71 |        3.57 |
-|         20,000 |      0.03 |      1.12 |      0.07 |        2.73 |       43.19 |
+|          2,000 |      0.02 |      0.08 |      0.02 |        1.00 |        3.62 |
+|         20,000 |      0.03 |      1.15 |      0.07 |        2.45 |       39.59 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse  (.021)  collapse  (.188)  fcollapse  (.024)
-                    1,000 gcollapse  (.021)  collapse  (.268)  fcollapse  (.055)
+                      100 gcollapse  (.021)  collapse  (.194)  fcollapse  (.024)
+                    1,000 gcollapse  (.021)  collapse  (.286)  fcollapse  (.054)
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|            100 |      0.02 |      0.19 |      0.02 |        1.14 |        8.95 |
-|          1,000 |      0.02 |      0.27 |      0.06 |        2.62 |       12.76 |
+|            100 |      0.02 |      0.19 |      0.02 |        1.14 |        9.24 |
+|          1,000 |      0.02 |      0.29 |      0.05 |        2.57 |       13.62 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
@@ -4916,100 +4916,100 @@ Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
                     2,000 gcollapse-default  (.007)  fcollapse  (.007) 
-                   20,000 gcollapse-default  (.01)  fcollapse  (.028) 
+                   20,000 gcollapse-default  (.009)  fcollapse  (.028) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
 |          2,000 |      0.01 |      0.01 |        1.00 |
-|         20,000 |      0.01 |      0.03 |        2.80 |
+|         20,000 |      0.01 |      0.03 |        3.11 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse-default  (.02)  fcollapse  (.015) 
-                   20,000 gcollapse-default  (.026)  fcollapse  (.032) 
+                    2,000 gcollapse-default  (.019)  fcollapse  (.015) 
+                   20,000 gcollapse-default  (.024)  fcollapse  (.032) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.02 |      0.01 |        0.75 |
-|         20,000 |      0.03 |      0.03 |        1.23 |
+|          2,000 |      0.02 |      0.01 |        0.79 |
+|         20,000 |      0.02 |      0.03 |        1.33 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse-default  (.02)  fcollapse  (.016) 
-                   20,000 gcollapse-default  (.025)  fcollapse  (.066) 
+                    2,000 gcollapse-default  (.02)  fcollapse  (.017) 
+                   20,000 gcollapse-default  (.025)  fcollapse  (.065) 
 Results varying N for J = 10; by(group)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.02 |      0.02 |        0.80 |
-|         20,000 |      0.03 |      0.07 |        2.64 |
+|          2,000 |      0.02 |      0.02 |        0.85 |
+|         20,000 |      0.03 |      0.07 |        2.60 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse-default  (.02)  fcollapse  (.026) 
-                    1,000 gcollapse-default  (.021)  fcollapse  (.056) 
+                      100 gcollapse-default  (.022)  fcollapse  (.036) 
+                    1,000 gcollapse-default  (.026)  fcollapse  (.064) 
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|            100 |      0.02 |      0.03 |        1.30 |
-|          1,000 |      0.02 |      0.06 |        2.67 |
+|            100 |      0.02 |      0.04 |        1.64 |
+|          1,000 |      0.03 |      0.06 |        2.46 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse-default  (.012)  gcollapse-single-1  (.014)  gcollapse-single-2  (.012)
-                   20,000 gcollapse-default  (.018)  gcollapse-single-1  (.022)  gcollapse-single-2  (.021)
+                    2,000 gcollapse-default  (.013)  gcollapse-single-1  (.014)  gcollapse-single-2  (.012)
+                   20,000 gcollapse-default  (.018)  gcollapse-single-1  (.023)  gcollapse-single-2  (.021)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.01 |      0.01 |      0.01 |        1.00 |        1.17 |
-|         20,000 |      0.02 |      0.02 |      0.02 |        1.17 |        1.22 |
+|          2,000 |      0.01 |      0.01 |      0.01 |        0.92 |        1.08 |
+|         20,000 |      0.02 |      0.02 |      0.02 |        1.17 |        1.28 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse-default  (.007)  gcollapse-single-1  (.008)  gcollapse-single-2  (.007)
-                   20,000 gcollapse-default  (.01)  gcollapse-single-1  (.013)  gcollapse-single-2  (.012)
+                    2,000 gcollapse-default  (.007)  gcollapse-single-1  (.009)  gcollapse-single-2  (.007)
+                   20,000 gcollapse-default  (.01)  gcollapse-single-1  (.013)  gcollapse-single-2  (.014)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.01 |      0.01 |      0.01 |        1.00 |        1.14 |
-|         20,000 |      0.01 |      0.01 |      0.01 |        1.20 |        1.30 |
+|          2,000 |      0.01 |      0.01 |      0.01 |        1.00 |        1.29 |
+|         20,000 |      0.01 |      0.01 |      0.01 |        1.40 |        1.30 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse-default  (.02)  gcollapse-single-1  (.021)  gcollapse-single-2  (.018)
+                    2,000 gcollapse-default  (.021)  gcollapse-single-1  (.021)  gcollapse-single-2  (.02)
                    20,000 gcollapse-default  (.024)  gcollapse-single-1  (.027)  gcollapse-single-2  (.027)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.02 |      0.02 |        0.90 |        1.05 |
+|          2,000 |      0.02 |      0.02 |      0.02 |        0.95 |        1.00 |
 |         20,000 |      0.02 |      0.03 |      0.03 |        1.12 |        1.12 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse-default  (.021)  gcollapse-single-1  (.021)  gcollapse-single-2  (.02)
-                   20,000 gcollapse-default  (.03)  gcollapse-single-1  (.031)  gcollapse-single-2  (.028)
+                    2,000 gcollapse-default  (.021)  gcollapse-single-1  (.023)  gcollapse-single-2  (.02)
+                   20,000 gcollapse-default  (.029)  gcollapse-single-1  (.031)  gcollapse-single-2  (.03)
 Results varying N for J = 10; by(group)
 |              N | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.02 |      0.02 |        0.95 |        1.00 |
-|         20,000 |      0.03 |      0.03 |      0.03 |        0.93 |        1.03 |
+|          2,000 |      0.02 |      0.02 |      0.02 |        0.95 |        1.10 |
+|         20,000 |      0.03 |      0.03 |      0.03 |        1.03 |        1.07 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean sd max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse-default  (.021)  gcollapse-single-1  (.022)  gcollapse-single-2  (.021)
-                    1,000 gcollapse-default  (.023)  gcollapse-single-1  (.023)  gcollapse-single-2  (.022)
+                      100 gcollapse-default  (.03)  gcollapse-single-1  (.026)  gcollapse-single-2  (.026)
+                    1,000 gcollapse-default  (.023)  gcollapse-single-1  (.028)  gcollapse-single-2  (.026)
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|            100 |      0.02 |      0.02 |      0.02 |        1.00 |        1.05 |
-|          1,000 |      0.02 |      0.02 |      0.02 |        0.96 |        1.00 |
+|            100 |      0.03 |      0.03 |      0.03 |        0.87 |        0.87 |
+|          1,000 |      0.02 |      0.03 |      0.03 |        1.13 |        1.22 |
 
-End: 19:37:01 14 Jun 2017
+End: 18:10:51 15 Jun 2017
 tests ran
 
 tests finished running
 
-Start: 19:30:21 14 Jun 2017
-End: 19:37:01 14 Jun 2017
+Start: 18:04:24 15 Jun 2017
+End: 18:10:51 15 Jun 2017
 
 . 
 end of do-file

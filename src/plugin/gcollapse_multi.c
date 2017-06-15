@@ -2,10 +2,10 @@
  * Program: gcollapse_multi.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed Jun 14 12:38:25 EDT 2017
+ * Updated: Thu Jun 15 15:54:46 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.4.0
+ * Version: 0.5.2
  *********************************************************************/
 
 #include <omp.h>

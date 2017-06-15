@@ -2,6 +2,7 @@ ifeq ($(OS),Windows_NT)
 	SPOOKYLIB = -l:spookyhash.lib
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
+	PREMAKE = premake5
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -12,17 +13,26 @@ else
 	endif
 	SPOOKYLIB = -l:libspookyhash.a
 	GCC = gcc
+	PREMAKE = premake5
 endif
 
 SPI = 2.0
 SPT = 0.2
 CFLAGS = -Wall -O2 $(OSFLAGS)
-SPOOKY = -L./lib/spookyhash/build/bin/Release $(SPOOKYLIB)
+SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
 OUT = build/gtools.plugin  build/gtools.o
 OUTM = build/gtools_multi.plugin build/gtools_multi.o
 
 all: clean links gtools
+
+spooky:
+	cd lib/spookyhash/build && premake5 gmake
+	cd lib/spookyhash/build && make clean
+	cd lib/spookyhash/build && make
+
+spookytest:
+	cd lib/spookyhash/build && ./bin/Release/spookyhash-test
 
 links:
 	rm -f  src/plugin/lib
@@ -45,3 +55,4 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 .PHONY: clean
 clean:
 	rm -f $(OUT) $(OUTM) $(AUX)
+

@@ -16,9 +16,10 @@
  * @return Standard deviation of the elements of @v from @start to @end
  */
 double mf_array_dsd_range (const double v[], const size_t start, const size_t end) {
+    size_t i;
     double vvar  = 0;
     double vmean = mf_array_dmean_range(v, start, end);
-    for (size_t i = start; i < end; i++)
+    for (i = start; i < end; i++)
         vvar += SQUARE(v[i] - vmean);
     return (sqrt(vvar / (end - start - 1)));
 }
@@ -45,8 +46,9 @@ double mf_array_dmean_range (const double v[], const size_t start, const size_t 
  */
 double mf_array_dsum_range (const double v[], const size_t start, const size_t end)
 {
+    size_t i;
     double vsum = 0;
-    for (size_t i = start; i < end; i++)
+    for (i = start; i < end; i++)
         vsum += v[i];
     return (vsum);
 }
@@ -61,8 +63,9 @@ double mf_array_dsum_range (const double v[], const size_t start, const size_t e
  */
 double mf_array_dmin_range (const double v[], const size_t start, const size_t end)
 {
+    size_t i;
     double min = v[start];
-    for (size_t i = start + 1; i < end; ++i) {
+    for (i = start + 1; i < end; ++i) {
         if (min > v[i]) min = v[i];
     }
     return (min);
@@ -78,8 +81,9 @@ double mf_array_dmin_range (const double v[], const size_t start, const size_t e
  */
 double mf_array_dmax_range (const double v[], const size_t start, const size_t end)
 {
+    size_t i;
     double max = v[start];
-    for (size_t i = start + 1; i < end; ++i) {
+    for (i = start + 1; i < end; ++i) {
         if (max < v[i]) max = v[i];
     }
     return (max);
@@ -258,7 +262,8 @@ int mf_qsort_compare (const void * a, const void * b)
  * @return Whether the elements of @v are sorted from @start to @end
  */
 int mf_array_dsorted_range (const double v[], const size_t start, const size_t end) {
-    for (size_t i = start + 1; i < end; i++) {
+    size_t i;
+    for (i = start + 1; i < end; i++) {
         if (v[i - 1] > v[i]) return (0);
     }
     return (1);

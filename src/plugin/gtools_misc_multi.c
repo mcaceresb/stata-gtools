@@ -115,7 +115,8 @@ int sf_numsetup()
  */
 int sf_anyobs_sel()
 {
-    for (int i = SF_in1(); i <= SF_in2(); i++)
+    int i;
+    for (i = SF_in1(); i <= SF_in2(); i++)
         if ( SF_ifobs(i) ) return(1);
     return (0);
 }

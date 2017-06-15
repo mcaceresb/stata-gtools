@@ -49,7 +49,8 @@ main = [path.join("src", "gtools.pkg"),
         path.join("src", "ado", "gcollapse.ado"),
         path.join("doc", "gcollapse.sthlp"),
         path.join("src", "ado", "gegen.ado"),
-        path.join("doc", "gegen.sthlp")]
+        path.join("doc", "gegen.sthlp"),
+        path.join("README.md")]
 test = [path.join("src", "test", "gtools_tests.do")]
 plug = [path.join("src", "plugin", "gcollapse.c"),
         path.join("src", "plugin", "gcollapse_multi.c"),
@@ -114,25 +115,28 @@ for fname in todo:
 
                 continue
 
-            if search('(^v|\*.+[Vv]ersion).+(\d+\.?){3,3}', line):
-                res = findall('(\d+)(\.| |$)', line)
-                new_major = int(res[0][0]) + major
-                new_minor = 0 if major else int(res[1][0]) + minor
-                new_patch = 0 if major or minor else int(res[2][0]) + patch
-                new = "{0}.{1}.{2}".format(new_major, new_minor, new_patch)
-                oline = sub('(\d+\.?)+', new, line, 1)
-                if search("\d+" + remonths + "\d\d+", line):
-                    today_day   = datetime.strftime(datetime.now(), "%d")
-                    today_month = datetime.strftime(datetime.now(), "%B")
-                    today_year  = datetime.strftime(datetime.now(), "%Y")
-                    today = today_day + today_month[:3] + today_year
-                    oline = sub("\d+" + remonths + "\d\d+", today, oline)
+            if search('(^v|[Vv]ersion).+(\d+\.?){3,3}', line):
+                try:
+                    res = findall('(\d+)(\.| |$)', line)
+                    new_major = int(res[0][0]) + major
+                    new_minor = 0 if major else int(res[1][0]) + minor
+                    new_patch = 0 if major or minor else int(res[2][0]) + patch
+                    new = "{0}.{1}.{2}".format(new_major, new_minor, new_patch)
+                    oline = sub('(\d+\.?)+', new, line, 1)
+                    if search("\d+" + remonths + "\d\d+", line):
+                        today_day   = datetime.strftime(datetime.now(), "%d")
+                        today_month = datetime.strftime(datetime.now(), "%B")
+                        today_year  = datetime.strftime(datetime.now(), "%Y")
+                        today = today_day + today_month[:3] + today_year
+                        oline = sub("\d+" + remonths + "\d\d+", today, oline)
 
-                print("\t\t" + line)
-                print("\t\t" + oline)
-                if args['dry_run']:
+                    print("\t\t" + line)
+                    print("\t\t" + oline)
+                    if args['dry_run']:
+                        fhandle.write(line)
+                    else:
+                        fhandle.write(oline)
+                except:
                     fhandle.write(line)
-                else:
-                    fhandle.write(oline)
             else:
                 fhandle.write(line)

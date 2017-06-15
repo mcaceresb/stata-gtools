@@ -35,6 +35,11 @@ parser.add_argument('--replace',
                     action   = 'store_true',
                     help     = "Replace build",
                     required = False)
+parser.add_argument('--test',
+                    dest     = 'test',
+                    action   = 'store_true',
+                    help     = "Run tests",
+                    required = False)
 args = vars(parser.parse_args())
 
 def makedirs_safe(directory):
@@ -226,3 +231,12 @@ if args["replace"]:
         remove(tmpupdate)
         print(linesep + "Replaced gtools in ~/ado/plus")
         chdir(maindir)
+
+# Run tests
+# ---------
+
+if args['test']:
+    print("Running tests (see build/gtools_tests.log for output)")
+    chdir("build")
+    system(statado + " gtools_tests.do")
+    chdir(maindir)

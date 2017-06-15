@@ -1,9 +1,16 @@
 language: c
+env:
+  global:
+    - OMP_NUM_THREADS=4
+compiler: gcc
 
 script:
-  - cd build
+  - cd lib/spookyhash/build
   - wget https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-linux.tar.gz
   - tar zxvf premake-5.0.0.alpha4-linux.tar.gz
   - ./premake5 gmake
   - make clean
-  - make
+  - ALL_CFLAGS+=-fPIC make
+  # - ./spookyhash-test
+  - cd -
+  - make clean && make

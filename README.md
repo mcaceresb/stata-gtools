@@ -1,33 +1,43 @@
+<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
+
+[Overview](#faster-stata-for-group-operations)
+| [Installation](#installation)
+| [Benchmarks](#benchmarks)
+| [Building](#building)
+| [FAQs](#faqs)
+| [License](#license)
+
+`version 0.5.2 15Jun2017`
+[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools)
+
+_Gtools_ is a Stata package that provides a fast implementation of
+common group commands like collapse and egen using C-plugins for a
+massive speed improvement.
+
 Faster Stata for Group Operations
 ---------------------------------
 
-`version 0.5.1 14Jun2017`
-
----
-
-This is currently a beta release. This package uses a C-plugin
-to provide a faster implementation for Stata's `collapse` called
-`gcollapse` that is also faster than Sergio Correia's `fcollapse` from
-`ftools` (further, group variables can be a mix of string and numeric,
-like `collapse`). It also provides some (limited) support for by-able
-`egen` functions via `gegen`.
+This is currently a beta release. This package's aim is to provide a
+fast implementation of group commands in Stata using C-plugins. At
+the moment, the package's main feature is a faster implementation
+of `collapse`, called `gcollapse`, that is also faster than Sergio
+Correia's `fcollapse` from `ftools` (further, group variables can be
+a mix of string and numeric, like `collapse`). It also provides some
+(limited) support for by-able `egen` functions via `gegen`.
 
 In our benchmarks, `gcollapse` was 5 to 120 times faster than `collapse`
 and 3 to 20 times faster than `fcollapse` (the speed gain is smaller for
 simpler statistics, such as sums, and larger for complex statistics,
-such as percentiles). At the moment, only Unix versions of the plugins
-are available. Windows and OSX versions are planned for a future
-release.
+such as percentiles). The key insight is two-fold: First, hashing the
+data and sorting the hash is a lot faster than sorting the data before
+processing it by group. Second, compiled C code is much faster than
+Stata commands.
 
-- [Installation and Use](#installation-and-use)
-- [Benchmarks](#benchmarks)
-- [Building](#building)
-- [FAQs](#faqs)
-- [Miscellaneous Notes](#miscellaneous-notes)
-- [License](#license)
+The current beta release only provides Unix versions of the C plugin.
+Windows and OSX versions are planned for a future release.
 
-Installation and Use
---------------------
+Installation
+------------
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 Further, since my own machine and the servers I have access to run
@@ -80,10 +90,7 @@ yet benchmarked this version of `gcollapse` against `collapse` for 200M
 observations. This is because `collapse` takes several hours in that
 case, and I have not found occasion to run them.
 
-All commands were run with the `fast` option. The benchmark for 200M
-observations for `collapse` is not yet available because `collapse`
-often takes several hours in that case and we have not found occassion
-to run them.
+All commands were run with the `fast` option.
 
 ### Benchmarks in the style of `ftools`
 
@@ -191,33 +198,56 @@ benchmark: Vary J for N = 5,000,000
 Building
 --------
 
+### Requirements
+
 If you want to compile the plugin yourself, atop the C standard library
 you will need
-- [`centaurean`'s implementation of spookyhash](https://github.com/centaurean/spookyhash)
-- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2/) (SPI).
+- The GNU Compiler Collection (`gcc`)
+- [`premake5`](https://premake.github.io)
+- [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
+- v2.0 or above of the [Stata Plugin Interface](https://stata.com/plugins/version2) (SPI).
 
-From the root folder of this repo, first compile `spookyhash`:
+I keep a copy of Stata's Plugin Interface in this repository, and I
+have added `centaurean`'s implementation of SpookyHash as a submodule.
+However, you will have to make sure you have `gcc` and `premake5`
+installed and in your system's `PATH`.
+
+### Compilation
+
 ```bash
-cd lib/spooky/build
-premake5 make
-make
-cd -
+git clone https://github.com/mcaceresb/stata-gtools
+cd stata-gtools
+git submodule update --recursive
+make spooky
+./build.py --test
 ```
 
-If that compiles correctly, then from the root directory you can run
+`./build.py` runs `make` to compile the plugins and places all
+the requisite `.ado` files, `.sthlp` files, and test scripts in
+`./build`. A log with the output of the test script will be printed
+to `./build/gtools_tests.log`; if successful, the exit message should
+be "tests finished running" followed by the start and end time.
+
+### Troubleshooting
+
+If you are not on Linux, you will have to comment out lines 34, 1167,
+and 1170 in `./src/ado/gcollapse.ado` and lines 15, 517, and 520 in
+`./src/ado/gegen.ado`. These lines prevent the function from running
+outside Stata for Unix.
+
+On OSX this will likely be enough. On Windows, however, it is possible
+you will have to modify the Makefile (while this should compile from
+Cygwin, it is possible the plugins will not load into Stata correctly)
+or throw the Makefile away altogether and try to compile the plugin
+using Visual Studio.
+
+If the build fails, test that SpookyHash was compiled correctly:
 ```
-./build.py
+make spookytest
 ```
 
-to compile the plugin and copy the files to `./build`. This tries to run
-`make` as one of the steps, so if you are not on Linux you may have to
-modify `./Makefile`. If it builds correctly, it should be able to run
-```
-cd build
-stata -b do gtools_tests.do
-```
-
-If there is an issue, then the plugin was not compiled correctly.
+These take a long time to run, so it is faster to try to test the plugin
+first and only test SpookyHash if the plugin does not work.
 
 FAQs
 ----
@@ -243,6 +273,28 @@ Stata's native commands:
    particularly efficient (this is, for example, the explanation given
    for why `ftools` is faster than Stata even though Mata should not be
    faster than compiled C code).
+
+### How does hashing work?
+
+The point of using a hash is straightforward: Sorting a single integer
+variable is much faster than sorting multiple variables with arbitrary
+data. In particular I use a counting sort, which asymptotically performs
+in `O(n)` time compared to `O(n log n)` for the fastest general-purpose
+sorting algorithms. (Note with a 128-bit algorithm using a counting
+sort is prohibitively expensive; `gcollapse` actually does 4 passes of
+a counting sort, each sorting 16 bits at a time; if the groups are not
+unique after sorting on the first 64 bits we sort on the full 128 bits.)
+
+Given `K` by variables, `by_1` to `by_K`, where `by_k` belongs the set
+`B_k`, the general problem is to devise a function `f` such that `f:
+B_1 x ... x B_K -> N`, where `N` are the natural (whole) numbers. Given
+`B_k` can be integers, floats, and strings, the natural way of doing
+this is to use a hash: A function that takes an arbitrary sequence of
+data and outputs data of fixed size.
+
+In particular I use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
+devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
+at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
 
 ### Why use platform-dependent plugins?
 
@@ -302,23 +354,19 @@ gegen target = pctile(var), by(varlist) p(#)
 Where # is a "percentile" (though it can have arbitrary decimal places,
 which allows computing quantiles; e.g. 2.5 or 97.5).
 
-Miscellaneous Notes
--------------------
+### Generating group IDs is different than `egen`
 
-### Generating group IDs in `gegen`
-
-I do not intend to re-implement all of `egen`, just by-able functions.
-Atop the currently supported calls, two generic `egen` functions are
-provided that are much faster than their counterparts
+There are two generic `egen` functions provided that are much faster
+than their counterparts
 ```stata
 gegen id  = group(varlist)
 gegen tag = tag(varlist)
 ```
 
-Both are much faster than `egen` because they do not sort the data, and
-instead rely on hashes to tag the data and generate an id as new groups
-appear. This means `group` will ID the first group that appears as 1 and
-the last as J; `egen` will sort the data first.
+Part of the reason they much faster than `egen` is that they do not sort
+the data, and instead rely on hashes to tag the data and generate an id
+as new groups appear. This means `group` will ID the first group that
+appears as 1 and the last as J; `egen` will sort the data first.
 
 ### Memory management
 
@@ -362,28 +410,6 @@ there are at least 4 additional targets to create. In testing, the
 overhead has been ~10% of the total runtime. If the user expects J to be
 large, they can turn off this check via `forcemem`. If the user expects
 J to be small, they can force collapsing to disk via `forceio`.
-
-### Hashing
-
-The point of using a hash is straightforward: Sorting a single integer
-variable is much faster than sorting multiple variables with arbitrary
-data. In particular I use a counting sort, which asymptotically performs
-in `O(n)` time compared to `O(n log n)` for the fastest general-purpose
-sorting algorithms. (Note with a 128-bit algorithm using a counting
-sort is prohibitively expensive; `gcollapse` actually does 4 passes of
-a counting sort, each sorting 16 bits at a time; if the groups are not
-unique after sorting on the first 64 bits we sort on the full 128 bits.)
-
-Given `K` by variables, `by_1` to `by_K`, where `by_k` belongs the set
-`B_k`, the general problem is to devise a function `f` such that `f:
-B_1 x ... x B_K -> N`, where `N` are the natural (whole) numbers. Given
-`B_k` can be integers, floats, and strings, the natural way of doing
-this is to use a hash: A function that takes an arbitrary sequence of
-data and outputs data of fixed size.
-
-In particular I use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
-devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
-at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
 
 ### TODO
 

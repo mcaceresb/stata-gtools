@@ -1,0 +1,3 @@
+[submodule "lib/spookyhash"]
+	path = lib/spookyhash
+	url = https://github.com/centaurean/spookyhash

@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-0.5.2 (2017-06-15)
+
+### Misc
+
+* Added Travis CI integration.
+* Improved README (logo, cleaner flow, better compilation instructions).
+
+### Bug fixes
+
+- Properly added spookyhash as submodule.
+- Compiles with Travis CI
+
 ## gtools-0.5.1 (2017-06-14)
 
 ### Bug fixes

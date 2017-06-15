@@ -1,3 +1,0 @@
-[submodule "test/libs/cputime"]
-	path = test/libs/cputime
-	url = https://github.com/centaurean/cputime.git

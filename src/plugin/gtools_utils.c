@@ -9,8 +9,8 @@
  */
 int mf_min_signed(int x[], size_t N)
 {
-    int min = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    int min = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (min > x[i]) min = x[i];
     }
     return (min);
@@ -25,8 +25,8 @@ int mf_min_signed(int x[], size_t N)
  */
 int mf_max_signed(int x[], size_t N)
 {
-    int max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    int max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (max < x[i]) max = x[i];
     }
     return (max);
@@ -41,8 +41,8 @@ int mf_max_signed(int x[], size_t N)
  */
 uint64_t mf_min(uint64_t x[], size_t N)
 {
-    uint64_t min = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    uint64_t min = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (min > x[i]) min = x[i];
     }
     return (min);
@@ -57,8 +57,8 @@ uint64_t mf_min(uint64_t x[], size_t N)
  */
 uint64_t mf_max(uint64_t x[], size_t N)
 {
-    uint64_t max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    uint64_t max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (max < x[i]) max = x[i];
     }
     return (max);
@@ -75,8 +75,8 @@ uint64_t mf_max(uint64_t x[], size_t N)
  */
 void mf_minmax(uint64_t x[], size_t N, uint64_t * min, uint64_t * max)
 {
-    *min = *max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    *min = *max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (*min > x[i]) *min = x[i];
         if (*max < x[i]) *max = x[i];
     }
@@ -99,7 +99,7 @@ int mf_strcmp_wrapper (char * fname, char *compare) {
 
 /**
  * @brief Implement memcpy as a dummy function for memset
- * 
+ *
  * Stata requires plugins to be compied as shared executables. Since
  * this is being compiled on a relatively new linux system (by 2017
  * standards), some of the dependencies set in this way cannot be
@@ -151,6 +151,8 @@ int sf_get_vector(char * st_matrix, double v[])
 {
     ST_retcode rc ;
     ST_double  z ;
+
+    int i;
     int ncol = SF_col(st_matrix);
     int nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
@@ -158,13 +160,13 @@ int sf_get_vector(char * st_matrix, double v[])
         return(198);
     }
     if ( ncol > 1 ) {
-        for (int i = 0; i < ncol; i++) {
+        for (i = 0; i < ncol; i++) {
             if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return(rc);
             v[i] = z;
         }
     }
     else {
-        for (int i = 0; i < nrow; i++) {
+        for (i = 0; i < nrow; i++) {
             if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return(rc);
             v[i] = z;
         }
@@ -174,7 +176,7 @@ int sf_get_vector(char * st_matrix, double v[])
 
 /**
  * @brief Update a running timer and print a message to satata console
- * 
+ *
  * Prints a messasge to Stata that the running timer @timer was last set
  * @diff seconds ago. It then updates the timer to the current time.
  *
@@ -192,20 +194,20 @@ void sf_running_timer (clock_t *timer, const char *msg)
 
 /**
  * @brief Sum for an integer array
- * 
+ *
  * @return Sum of integers array
  */
 int mf_sum_signed(int x[], size_t N)
 {
-    int sum = x[0];
-    for (size_t i = 1; i < N; i++)
+    int sum = x[0]; size_t i;
+    for (i = 1; i < N; i++)
         sum += x[i];
     return (sum);
 }
 
 /**
  * @brief Benchmark I/O
- * 
+ *
  * @return Time to read/write 1MiB to disk
  */
 double mf_benchmark (char *fname)
@@ -244,15 +246,15 @@ double mf_benchmark (char *fname)
 
 /**
  * @brief Write collapsed summary stats to binary file
- * 
+ *
  * Saves the collapsed data to file. The collapsed data is
  * in a manualy indexed vector using row-major order. So for
  * a J by k set of collapsed summary stats, we have
- * 
+ *
  *     [(0, 0) (0, 1) ... (0, k) (1, 0) ... (J, 0) ... (J, k)]
- * 
+ *
  * And we save 0 to @J from @kstart to @kend in each row.
- * 
+ *
  * @param collapsed_file File where to save collapsed stats
  * @param collapsed_data Vector of doubles with collapsed stats
  * @param kstart First position of data in each row.
@@ -267,9 +269,10 @@ void mf_write_collapsed(
     size_t kend,
     size_t J)
 {
+    int j;
     size_t knum = kend - kstart;
     FILE *collapsed_handle = fopen(collapsed_file, "wb");
-    for (int j = 0; j < J; j++) {
+    for (j = 0; j < J; j++) {
         fwrite (collapsed_data + j * kend + kstart, sizeof(collapsed_data), knum, collapsed_handle);
     }
     fclose(collapsed_handle);
@@ -277,15 +280,15 @@ void mf_write_collapsed(
 
 /**
  * @brief Read collapsed summary stats from binary file
- * 
+ *
  * Reads collapsed data from file. The collapsed data is
  * in a manualy indexed vector using row-major order. So for
  * a J by k set of collapsed summary stats, we have
- * 
+ *
  *     [(0, 0) (0, 1) ... (0, k) (1, 0) ... (J, 0) ... (J, k)]
- * 
+ *
  * And we read @knum entries for @J rows.
- * 
+ *
  * @param collapsed_file File where to save collapsed stats
  * @param collapsed_data Vector of doubles with collapsed stats
  * @param knum Number of entries in each row.
@@ -299,16 +302,17 @@ void mf_read_collapsed(
     size_t J)
 {
     FILE *collapsed_handle = fopen(collapsed_file, "rb");
-    fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
+    size_t ret = fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
+    if ( ret == 0 ) printf("read %'zu bytee\n", ret * sizeof(*collapsed_data));
     fclose(collapsed_handle);
 }
 
 /**
  * @brief Read collapsed summary stats from binary file
- * 
+ *
  * See https://stackoverflow.com/questions/1575278
  * function-to-split-a-filepath-into-path-and-file
- * 
+ *
  * @param p malloc p to file path.
  * @param f malloc f to file name.
  * @param pf pf is pointer to path + file.
@@ -324,19 +328,20 @@ void mf_split_path_file(char** p, char** f, char *pf) {
 
 /**
  * @brief Query free space on root path of fname (MiB)
- * 
+ *
  * @param fname (relative) path to file
  * @return Returns free space in path to @fname in MiB
  */
 double mf_query_free_space (char *fname)
 {
     struct statvfs finfo;
-    char rpath [PATH_MAX+1];
     char *filepath = malloc(strlen(fname) * sizeof(char));
     char *filename = malloc(strlen(fname) * sizeof(char));
 
-    realpath (fname, rpath);
-    mf_split_path_file (&filepath, &filename, rpath);
+    // char rpath [PATH_MAX+1];
+    // char *rc = realpath (fname, rpath);
+    // mf_split_path_file (&filepath, &filename, rpath);
+    mf_split_path_file (&filepath, &filename, fname);
     statvfs (filepath, &finfo);
     double mib_free = ((double) finfo.f_bsize * finfo.f_bfree) / 1024 / 1024;
 

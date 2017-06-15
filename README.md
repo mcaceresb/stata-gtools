@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" style="width: 550px;"/>
+<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" style="width: 400px;"/>
 
 [Overview](#faster-stata-for-group-operations)
 | [Installation](#installation)

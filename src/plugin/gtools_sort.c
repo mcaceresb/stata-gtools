@@ -25,6 +25,7 @@ void mf_radix_sort_index (
     const size_t raw,
     const int verbose)
 {
+    int i;
     size_t nloops  = 0;
     uint64_t exp   = 1;
     uint64_t max   = mf_max(x, N);
@@ -42,7 +43,7 @@ void mf_radix_sort_index (
         shift = pow(2, dshift);
     }
 
-    for (int i = 0; i < N; i++)
+    for (i = 0; i < N; i++)
         index[i] = i;
 
     if ( range < ctol ) {
@@ -192,6 +193,7 @@ size_t * mf_panelsetup128 (
     *J = 1;
     size_t collision64 = 0;
     size_t i = 0;
+    size_t j = 0;
     size_t l = 0;
     size_t start_l;
     size_t range_l;
@@ -228,16 +230,16 @@ size_t * mf_panelsetup128 (
                 size_t   *ix_c = calloc(range_l, sizeof *ix_c);
                 uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
 
-                for (size_t j = start_l; j < i; j++)
+                for (j = start_l; j < i; j++)
                     h2_l[j - start_l] = h2[j];
 
                 mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0, 0);
                 free (h2_l);
-                for (size_t j = 0; j < range_l; j++)
+                for (j = 0; j < range_l; j++)
                     ix_c[j] = index[ix_l[j] + start_l];
 
                 free (ix_l);
-                for (size_t j = start_l; j < i; j++)
+                for (j = start_l; j < i; j++)
                     index[j] = ix_c[j - start_l];
 
                 free (ix_c);

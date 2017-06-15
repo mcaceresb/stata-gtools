@@ -33,6 +33,8 @@ int sf_get_variable_hash (
 
     ST_retcode rc ;
     ST_double  z ;
+
+    int i;
     size_t N = in2 - in1 + 1;
     char s[strmax + 1];
     spookyhash_context sc;
@@ -43,7 +45,7 @@ int sf_get_variable_hash (
     // so we do not have multiple ifs within the long for loop.
 
     if ( strmax > 0 ) {
-        for (int i = 0; i < N; i++) {
+        for (i = 0; i < N; i++) {
             if ( (rc = SF_sdata(k, i + in1, s)) ) return(rc);
             spookyhash_context_init(&sc, 1, 2);
             spookyhash_update(&sc, &s, strlen(s));
@@ -52,7 +54,7 @@ int sf_get_variable_hash (
         }
     }
     else {
-        for (int i = 0; i < N; i++) {
+        for (i = 0; i < N; i++) {
             if ( (rc = SF_vdata(k, i + in1, &z)) ) return(rc);
             spookyhash_context_init(&sc, 1, 2);
             spookyhash_update(&sc, &z, 8);
@@ -203,6 +205,8 @@ int sf_get_variable_ashash (
 
     ST_retcode rc ;
     ST_double  z ;
+
+    int i;
     size_t N = in2 - in1 + 1;
 
     // Get data on every row from in1 to in2 regardless of `if'; in case
@@ -210,7 +214,7 @@ int sf_get_variable_ashash (
     // work, so subset before starting the plugin. The if condition is
     // so we do not have multiple ifs within the long for loop.
 
-    for (int i = 0; i < N; i++) {
+    for (i = 0; i < N; i++) {
         if ( (rc = SF_vdata(k, i + in1, &z)) ) return(rc);
         h1[i] = z - min + 1;
         // sf_printf ("Obs %9d = %.1f, %21lu\n", i, z, h1[i]);

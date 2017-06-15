@@ -52,6 +52,8 @@ STDLL stata_call(int argc, char *argv[])
     ST_double  z;
     ST_retcode rc ;
     setlocale (LC_ALL, "");
+
+    int i, j, k;
     struct StataInfo st_info;
     char todo[8], tostat[8];
     strcpy (todo, argv[0]);
@@ -170,11 +172,11 @@ STDLL stata_call(int argc, char *argv[])
                     // Otherwise, save index and info to memory (it will
                     // be faster to pick up from here)
                     size_t ipos = st_info.kvars_by + 2 * st_info.kvars_source + 1;
-                    for (int i = 0; i < st_info.N; i++)
+                    for (i = 0; i < st_info.N; i++)
                         if ( (rc = SF_vstore(ipos, i + st_info.in1, st_info.index[i])) ) return (rc);
 
                     ++ipos;
-                    for (int j = 0; j <= st_info.J; j++)
+                    for (j = 0; j <= st_info.J; j++)
                         if ( (rc = SF_vstore(ipos, j + st_info.in1, st_info.info[j])) ) return (rc);
                 }
 
@@ -197,11 +199,11 @@ STDLL stata_call(int argc, char *argv[])
 
                 st_info.index = calloc(st_info.N, sizeof(st_info.index));
                 st_info.info  = calloc(st_info.J + 1, sizeof(st_info.info));
-                for (int i = 0; i < st_info.N; i++) {
+                for (i = 0; i < st_info.N; i++) {
                     if ( (rc = SF_vdata(st_info.indexed, i + st_info.in1, &z)) ) return (rc);
                     st_info.index[i] = (size_t) z;
                 }
-                for (int j = 0; j <= st_info.J; j++) {
+                for (j = 0; j <= st_info.J; j++) {
                     if ( (rc = SF_vdata(st_info.indexed + 1, j + st_info.in1, &z)) ) return (rc);
                     st_info.info[j] = (size_t) z;
                 }
@@ -223,8 +225,8 @@ STDLL stata_call(int argc, char *argv[])
                 double *output = calloc(J * K, sizeof *output);
                 mf_read_collapsed (fname, output, K, J);
 
-                for (int j = 0; j < J; j++) {
-                    for (int k = 0; k < K; k++) {
+                for (j = 0; j < J; j++) {
+                    for (k = 0; k < K; k++) {
                         if ( (rc = SF_vstore(k + 1, j + 1, output[j * K + k])) ) return (rc);
                     }
                 }
@@ -283,8 +285,8 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = SF_scal_use("__gtools_k_recast", &K_double)) ) return(rc);
         size_t K = (size_t) K_double;
 
-        for (int i = SF_in1(); i <= SF_in2(); i++) {
-            for (int k = 1; k <= K; k++) {
+        for (i = SF_in1(); i <= SF_in2(); i++) {
+            for (k = 1; k <= K; k++) {
                 if ( (rc = SF_vdata(k + K, i, &z)) ) return (rc);
                 if ( (rc = SF_vstore(k, i, z)) ) return (rc);
             }

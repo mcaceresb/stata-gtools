@@ -9,8 +9,8 @@
  */
 int mf_min_signed(int x[], size_t N)
 {
-    int min = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    int min = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (min > x[i]) min = x[i];
     }
     return (min);
@@ -25,8 +25,8 @@ int mf_min_signed(int x[], size_t N)
  */
 int mf_max_signed(int x[], size_t N)
 {
-    int max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    int max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (max < x[i]) max = x[i];
     }
     return (max);
@@ -41,8 +41,8 @@ int mf_max_signed(int x[], size_t N)
  */
 uint64_t mf_min(uint64_t x[], size_t N)
 {
-    uint64_t min = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    uint64_t min = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (min > x[i]) min = x[i];
     }
     return (min);
@@ -57,8 +57,8 @@ uint64_t mf_min(uint64_t x[], size_t N)
  */
 uint64_t mf_max(uint64_t x[], size_t N)
 {
-    uint64_t max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    uint64_t max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (max < x[i]) max = x[i];
     }
     return (max);
@@ -75,8 +75,8 @@ uint64_t mf_max(uint64_t x[], size_t N)
  */
 void mf_minmax(uint64_t x[], size_t N, uint64_t * min, uint64_t * max)
 {
-    *min = *max = x[0];
-    for (size_t i = 1; i < N; ++i) {
+    *min = *max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
         if (*min > x[i]) *min = x[i];
         if (*max < x[i]) *max = x[i];
     }
@@ -151,6 +151,8 @@ int sf_get_vector(char * st_matrix, double v[])
 {
     ST_retcode rc ;
     ST_double  z ;
+
+    int i;
     int ncol = SF_col(st_matrix);
     int nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
@@ -158,13 +160,13 @@ int sf_get_vector(char * st_matrix, double v[])
         return(198);
     }
     if ( ncol > 1 ) {
-        for (int i = 0; i < ncol; i++) {
+        for (i = 0; i < ncol; i++) {
             if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return(rc);
             v[i] = z;
         }
     }
     else {
-        for (int i = 0; i < nrow; i++) {
+        for (i = 0; i < nrow; i++) {
             if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return(rc);
             v[i] = z;
         }
@@ -197,8 +199,8 @@ void sf_running_timer (clock_t *timer, const char *msg)
  */
 int mf_sum_signed(int x[], size_t N)
 {
-    int sum = x[0];
-    for (size_t i = 1; i < N; i++)
+    int sum = x[0]; size_t i;
+    for (i = 1; i < N; i++)
         sum += x[i];
     return (sum);
 }
@@ -267,9 +269,10 @@ void mf_write_collapsed(
     size_t kend,
     size_t J)
 {
+    int j;
     size_t knum = kend - kstart;
     FILE *collapsed_handle = fopen(collapsed_file, "wb");
-    for (int j = 0; j < J; j++) {
+    for (j = 0; j < J; j++) {
         fwrite (collapsed_data + j * kend + kstart, sizeof(collapsed_data), knum, collapsed_handle);
     }
     fclose(collapsed_handle);

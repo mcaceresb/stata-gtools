@@ -29,10 +29,10 @@ links:
 	rm -f  src/plugin/spt
 	rm -f  src/plugin/spi
 	rm -f  src/plugin/spookyhash
-	ln -sf ../../lib 	  src/plugin/lib
-	ln -sf lib/spt-$(SPT) src/plugin/spt
-	ln -sf lib/spi-$(SPI) src/plugin/spi
-	ln -sf lib/spookyhash src/plugin/spookyhash
+	cd src/plugin && ln -sf ../../lib 	 lib
+	cd src/plugin && ln -sf lib/spt-$(SPT) spt
+	cd src/plugin && ln -sf lib/spi-$(SPI) spi
+	cd src/plugin && ln -sf lib/spookyhash spookyhash
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build

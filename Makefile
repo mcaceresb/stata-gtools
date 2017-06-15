@@ -30,7 +30,7 @@ spooky:
 	cd lib/spookyhash/build && premake5 gmake
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
-	
+
 spookytest:
 	cd lib/spookyhash/build && ./bin/Release/spookyhash-test
 

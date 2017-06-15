@@ -19,7 +19,7 @@ endif
 SPI = 2.0
 SPT = 0.2
 CFLAGS = -Wall -O2 $(OSFLAGS)
-SPOOKY = -L./lib/spookyhash/build/bin/Release $(SPOOKYLIB)
+SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
 OUT = build/gtools.plugin  build/gtools.o
 OUTM = build/gtools_multi.plugin build/gtools_multi.o
@@ -46,12 +46,6 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
-	ls -la ./lib/
-	ls -la ./lib/spookyhash/
-	ls -la ./lib/spookyhash/build/
-	ls -la ./lib/spookyhash/build/bin/
-	ls -la ./lib/spookyhash/build/bin/Release/
-	ls -la ./lib/spookyhash/build/bin/Release/libspookyhash.a
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c -fopenmp -DGMULTI=1

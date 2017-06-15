@@ -1,0 +1,5 @@
+language: c
+env:
+  global:
+    - OMP_NUM_THREADS=4
+script: make clean && make

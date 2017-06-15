@@ -8,7 +8,7 @@
 | [License](#license)
 
 `version 0.5.2 15Jun2017`
-[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools)
+[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools)
 
 _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C-plugins for a

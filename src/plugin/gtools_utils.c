@@ -302,7 +302,8 @@ void mf_read_collapsed(
     size_t J)
 {
     FILE *collapsed_handle = fopen(collapsed_file, "rb");
-    fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
+    size_t ret = fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
+    printf("read %'zu bytes\n", ret * sizeof(*collapsed_data));
     fclose(collapsed_handle);
 }
 
@@ -334,12 +335,13 @@ void mf_split_path_file(char** p, char** f, char *pf) {
 double mf_query_free_space (char *fname)
 {
     struct statvfs finfo;
-    char rpath [PATH_MAX+1];
     char *filepath = malloc(strlen(fname) * sizeof(char));
     char *filename = malloc(strlen(fname) * sizeof(char));
 
-    realpath (fname, rpath);
-    mf_split_path_file (&filepath, &filename, rpath);
+    // char rpath [PATH_MAX+1];
+    // char *rc = realpath (fname, rpath);
+    // mf_split_path_file (&filepath, &filename, rpath);
+    mf_split_path_file (&filepath, &filename, fname);
     statvfs (filepath, &finfo);
     double mib_free = ((double) finfo.f_bsize * finfo.f_bfree) / 1024 / 1024;
 

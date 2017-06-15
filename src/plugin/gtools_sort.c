@@ -277,8 +277,8 @@ size_t * mf_panelsetup128 (
  */
 int mf_check_allequal (uint64_t hash[], size_t start, size_t end)
 {
-    uint64_t first = hash[start];
-    for (size_t i = start + 1; i < end; i++)
+    uint64_t first = hash[start]; size_t i;
+    for (i = start + 1; i < end; i++)
         if ( hash[i] != first ) return (0);
     return (1);
 }

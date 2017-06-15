@@ -36,10 +36,10 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
-	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
-	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	ls -lah ./src/plugin/
 	ls -lah ./src/plugin/spt/
+	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
+	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c -fopenmp -DGMULTI=1
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) -fopenmp

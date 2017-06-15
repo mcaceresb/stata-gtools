@@ -1,15 +1,18 @@
-[![Gtools](https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/text/gtools-icon-text-500x.png)](Gtools)
+<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" style="width: 550px;"/>
 
----
-
-`version 0.5.2 15Jun2017`
-[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools)
-| [Overview](#faster-stata-for-group-operations)
+[Overview](#faster-stata-for-group-operations)
 | [Installation](#installation)
 | [Benchmarks](#benchmarks)
 | [Building](#building)
 | [FAQs](#faqs)
 | [License](#license)
+
+`version 0.5.2 15Jun2017`
+[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools)
+
+_Gtools_ is a Stata package that provides a fast implementation of
+common group commands like collapse and egen using C-plugins for a
+massive speed improvement.
 
 Faster Stata for Group Operations
 ---------------------------------

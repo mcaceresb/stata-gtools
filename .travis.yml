@@ -11,6 +11,6 @@ script:
   - ./premake5 gmake
   - make clean
   - ALL_CFLAGS+=-fPIC make
-  - ./bin/Release/spookyhash-test
+  - ./spookyhash-test
   - cd -
   - make clean && make

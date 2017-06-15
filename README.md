@@ -60,9 +60,9 @@ See `src/test/bench_gcollapse.do` for the benchmark code. I run 3 sets of benchm
   the group size from 10 to 10M in geometric succession and computes
   all available stats (and 2 sample percentiles) for 2 variables.
 
-- Increasing sample size: This fixes the group size at 10 and increase the
-  sample size from 20,000 to 200M in geometric succession and computes all
-  available stats (and 2 sample percentiles) for 2 variables.
+- Increasing sample size: This fixes the group size at 10 and increase
+  the sample size from 2M to 200M in geometric succession and computes
+  all available stats (and 2 sample percentiles) for 2 variables.
 
 All benchmarks were done on a server with the following specifications:
 
@@ -80,7 +80,10 @@ yet benchmarked this version of `gcollapse` against `collapse` for 200M
 observations. This is because `collapse` takes several hours in that
 case, and I have not found occasion to run them.
 
-All commands were run with the `fast` option.
+All commands were run with the `fast` option. The benchmark for 200M
+observations for `collapse` is not yet available because `collapse`
+often takes several hours in that case and we have not found occassion
+to run them.
 
 ### Benchmarks in the style of `ftools`
 
@@ -170,7 +173,7 @@ collapsing):
 `fcollapse` did better for a modest numbers of groups, but it performed
 poorly for very few groups and for a large number of groups. Overall
 `gcollapse` was 7-16 times faster. I have not benchmarked `collapsed`
-against version `0.5.0` in this case because each run will take over
+against version `0.5.1` in this case because each run will take over
 an hour and have not found the time. I ran a "smaller" version of this
 benchmark: Vary J for N = 5,000,000
 ```
@@ -208,7 +211,13 @@ If that compiles correctly, then from the root directory you can run
 
 to compile the plugin and copy the files to `./build`. This tries to run
 `make` as one of the steps, so if you are not on Linux you may have to
-modify `./Makefile`.
+modify `./Makefile`. If it builds correctly, it should be able to run
+```
+cd build
+stata -b do gtools_tests.do
+```
+
+If there is an issue, then the plugin was not compiled correctly.
 
 FAQs
 ----
@@ -284,7 +293,7 @@ Most of the `collapse' functions are supported:
     | lastnm      |     X     |   X   |
     | percentiles |     X     |   X   |
 
-The percentile syntas mimics that of `collapse` and `egen`:
+The percentile syntax mimics that of `collapse` and `egen`:
 ```stata
 gcollapse (p#) target = var [target = var ...] , by(varlist)
 gegen target = pctile(var), by(varlist) p(#)

@@ -16,9 +16,9 @@ Swap:      372GiB
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Tue May 23 11:23:52 EDT 2017
+. * Updated: Wed Jun 14 19:14:56 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.4.0
+. * Version: 0.5.1
 . * Manual:  help gcollapse, help gegen
 .
 . * Stata start-up options

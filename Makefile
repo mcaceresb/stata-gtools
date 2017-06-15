@@ -36,11 +36,11 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
-	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
-	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
-	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c -fopenmp -DGMULTI=1
-	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
-	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) -fopenmp
+	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/stplugin.o     spi/stplugin.c
+	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/gtools.o       gtools.c
+	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/gtools_multi.o gtools.c -fopenmp -DGMULTI=1
+	$(GCC) $(CFLAGS) -o $(OUT)  $(AUX) $(SPOOKY)
+	$(GCC) $(CFLAGS) -o $(OUTM) $(AUX) $(SPOOKY) -fopenmp
 
 .PHONY: clean
 clean:

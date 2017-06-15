@@ -29,18 +29,20 @@ links:
 	rm -f  src/plugin/spt
 	rm -f  src/plugin/spi
 	rm -f  src/plugin/spookyhash
-	cd src/plugin && ln -sf ../../lib 	 lib
-	cd src/plugin && ln -sf lib/spt-$(SPT) spt
-	cd src/plugin && ln -sf lib/spi-$(SPI) spi
-	cd src/plugin && ln -sf lib/spookyhash spookyhash
+	ln -sf ../../lib 	  src/plugin/lib
+	ln -sf lib/spt-$(SPT) src/plugin/spt
+	ln -sf lib/spi-$(SPI) src/plugin/spi
+	ln -sf lib/spookyhash src/plugin/spookyhash
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
-	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/stplugin.o     spi/stplugin.c
-	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/gtools.o       gtools.c
-	cd src/plugin && $(GCC) $(CFLAGS) -c -o ../../build/gtools_multi.o gtools.c -fopenmp -DGMULTI=1
-	$(GCC) $(CFLAGS) -o $(OUT)  $(AUX) $(SPOOKY)
-	$(GCC) $(CFLAGS) -o $(OUTM) $(AUX) $(SPOOKY) -fopenmp
+	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
+	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
+	ls -lah ./src/plugin/
+	ls -lah ./src/plugin/spt/
+	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c -fopenmp -DGMULTI=1
+	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
+	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) -fopenmp
 
 .PHONY: clean
 clean:

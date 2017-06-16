@@ -98,101 +98,6 @@ int mf_strcmp_wrapper (char * fname, char *compare) {
 }
 
 /**
- * @brief Implement memcpy as a dummy function for memset
- *
- * Stata requires plugins to be compied as shared executables. Since
- * this is being compiled on a relatively new linux system (by 2017
- * standards), some of the dependencies set in this way cannot be
- * fulfilled by older Linux systems. In particular, using memcpy as
- * provided by my system creates a dependency to Glib 2.14, which cannot
- * be fulfilled on some older systems (notably the servers where I
- * intend to use the plugin; hence I implement memcpy and get rid of
- * that particular dependency).
- *
- * @param dest pointer to place in memory to copy @src
- * @param src pointer to place in memory that is source of data
- * @param n how many bytes to copy
- * @return move @src to @dest
- */
-void * memcpy (void *dest, const void *src, size_t n)
-{
-    return memmove(dest, src, n);
-}
-
-/*********************************************************************
- *                          Stata utilities                          *
- *********************************************************************/
-
-/**
- * @brief Get length of Stata vector
- *
- * @param st_matrix name of Stata vector (1xN or Nx1)
- * @return Return number of rows or cols.
- */
-int sf_get_vector_length(char * st_matrix)
-{
-    int ncol = SF_col(st_matrix);
-    int nrow = SF_row(st_matrix);
-    if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to get the length a %d by %d matrix\n", nrow, ncol);
-        return(-1);
-    }
-    return ( ncol > nrow? ncol: nrow );
-}
-
-/**
- * @brief Parse stata vector into C array
- *
- * @param st_matrix name of stata matrix to get
- * @param v array where to store the vector
- * @return Store min and max of @x
- */
-int sf_get_vector(char * st_matrix, double v[])
-{
-    ST_retcode rc ;
-    ST_double  z ;
-
-    int i;
-    int ncol = SF_col(st_matrix);
-    int nrow = SF_row(st_matrix);
-    if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a %d by %d matrix into an array\n", nrow, ncol);
-        return(198);
-    }
-    if ( ncol > 1 ) {
-        for (i = 0; i < ncol; i++) {
-            if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return(rc);
-            v[i] = z;
-        }
-    }
-    else {
-        for (i = 0; i < nrow; i++) {
-            if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return(rc);
-            v[i] = z;
-        }
-    }
-    return(0);
-}
-
-/**
- * @brief Update a running timer and print a message to satata console
- *
- * Prints a messasge to Stata that the running timer @timer was last set
- * @diff seconds ago. It then updates the timer to the current time.
- *
- * @param timer clock object containing time since last udpate
- * @param msg message to print before # of seconds
- * @return Print time since last update to Stata console
- */
-void sf_running_timer (clock_t *timer, const char *msg)
-{
-    double diff  = (double) (clock() - *timer) / CLOCKS_PER_SEC;
-    sf_printf (msg);
-    sf_printf ("; %.3f seconds.\n", diff);
-    *timer = clock();
-}
-
-/**
  * @brief Sum for an integer array
  *
  * @return Sum of integers array
@@ -303,7 +208,7 @@ void mf_read_collapsed(
 {
     FILE *collapsed_handle = fopen(collapsed_file, "rb");
     size_t ret = fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
-    if ( ret == 0 ) printf("read %'zu bytee\n", ret * sizeof(*collapsed_data));
+    if ( ret == 0 ) printf(" "); // So it doesn't nag about ret unused...
     fclose(collapsed_handle);
 }
 
@@ -349,4 +254,99 @@ double mf_query_free_space (char *fname)
     free (filename);
 
     return (mib_free);
+}
+
+/**
+ * @brief Implement memcpy as a dummy function for memset
+ *
+ * Stata requires plugins to be compied as shared executables. Since
+ * this is being compiled on a relatively new linux system (by 2017
+ * standards), some of the dependencies set in this way cannot be
+ * fulfilled by older Linux systems. In particular, using memcpy as
+ * provided by my system creates a dependency to Glib 2.14, which cannot
+ * be fulfilled on some older systems (notably the servers where I
+ * intend to use the plugin; hence I implement memcpy and get rid of
+ * that particular dependency).
+ *
+ * @param dest pointer to place in memory to copy @src
+ * @param src pointer to place in memory that is source of data
+ * @param n how many bytes to copy
+ * @return move @src to @dest
+ */
+void * memcpy (void *dest, const void *src, size_t n)
+{
+    return memmove(dest, src, n);
+}
+
+/*********************************************************************
+ *                          Stata utilities                          *
+ *********************************************************************/
+
+/**
+ * @brief Get length of Stata vector
+ *
+ * @param st_matrix name of Stata vector (1xN or Nx1)
+ * @return Return number of rows or cols.
+ */
+int sf_get_vector_length(char * st_matrix)
+{
+    int ncol = SF_col(st_matrix);
+    int nrow = SF_row(st_matrix);
+    if ( (ncol > 1) & (nrow > 1) ) {
+        sf_errprintf("tried to get the length a %d by %d matrix\n", nrow, ncol);
+        return(-1);
+    }
+    return ( ncol > nrow? ncol: nrow );
+}
+
+/**
+ * @brief Parse stata vector into C array
+ *
+ * @param st_matrix name of stata matrix to get
+ * @param v array where to store the vector
+ * @return Store min and max of @x
+ */
+int sf_get_vector(char * st_matrix, double v[])
+{
+    ST_retcode rc ;
+    ST_double  z ;
+
+    int i;
+    int ncol = SF_col(st_matrix);
+    int nrow = SF_row(st_matrix);
+    if ( (ncol > 1) & (nrow > 1) ) {
+        sf_errprintf("tried to read a %d by %d matrix into an array\n", nrow, ncol);
+        return(198);
+    }
+    if ( ncol > 1 ) {
+        for (i = 0; i < ncol; i++) {
+            if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return(rc);
+            v[i] = z;
+        }
+    }
+    else {
+        for (i = 0; i < nrow; i++) {
+            if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return(rc);
+            v[i] = z;
+        }
+    }
+    return(0);
+}
+
+/**
+ * @brief Update a running timer and print a message to satata console
+ *
+ * Prints a messasge to Stata that the running timer @timer was last set
+ * @diff seconds ago. It then updates the timer to the current time.
+ *
+ * @param timer clock object containing time since last udpate
+ * @param msg message to print before # of seconds
+ * @return Print time since last update to Stata console
+ */
+void sf_running_timer (clock_t *timer, const char *msg)
+{
+    double diff  = (double) (clock() - *timer) / CLOCKS_PER_SEC;
+    sf_printf (msg);
+    sf_printf ("; %.3f seconds.\n", diff);
+    *timer = clock();
 }

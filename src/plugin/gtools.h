@@ -13,25 +13,32 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/types.h>
+
+// statvfs is POSIX only; repalce with dummies on windows
+#if defined(_WIN64) || defined(_WIN32)
+#define QUERY_FREE_SPACE 0
+struct statvfs {
+    int f_bsize;
+    int f_bfree;
+};
+void statvfs (char *path, struct statvfs *info);
+void statvfs (char *path, struct statvfs *info)
+{
+    info->f_bsize = 0;
+    info->f_bfree = 0;
+}
+char * strndup (const char *s, size_t n);
+char * strndup (const char *s, size_t n)
+{
+  return (char *) strdup (s);
+}
+#else
+#define QUERY_FREE_SPACE 1
 #include <sys/statvfs.h>
+#endif
 
 // Number of bits to sort each pass of the radix sort
 #define RADIX_SHIFT 16
-
-// Switch to reading data sequentially when the number of groups exceeds
-// some portion of the number of observations, > N * [threshold]
-//
-// Switch to collapsing the data sequentially (i.e. not in parallel)
-// when the number of groups is small, < [threshold].
-// 
-// Parallelism is tricky. On my system, running everything in parallel
-// is usually faster. However, on the servers where I intend to use
-// the plugin parallel execution is sometimes faster and sometimes
-// slower. I'm in the process of figuring out whether being 'smart'
-// about choosing parallelism is worth the hassle.
-
-#define MULTI_SWITCH_THRESH_READ 0.1
-#define MULTI_SWITCH_THRESH_COLLAPSE 1000
 
 // Container structure for Stata-provided info
 struct StataInfo {
@@ -65,9 +72,6 @@ struct StataInfo {
     int byvars_minlen;
     int byvars_maxlen;
     int strmax;
-    int read_method;
-    int read_method_multi;
-    int collapse_method;
     char *statstr;
 };
 

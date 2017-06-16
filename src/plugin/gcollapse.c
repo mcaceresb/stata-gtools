@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:54:37 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.5.2
+ * Version: 0.6.0
  *********************************************************************/
 
 #include "gcollapse.h"
@@ -18,11 +18,6 @@
  */
 int sf_collapse (struct StataInfo *st_info, int action, char *fname)
 {
-    if ( (st_info->read_method != 1) & (st_info->read_method != 2) ) {
-        sf_errprintf ("data copying method #%d unknown; available: 1 (sequential), 2 (grouped)\n");
-        return (198);
-    }
-
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
@@ -74,7 +69,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     double *bynum   = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bynum);
     short  *bymiss  = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bymiss);
     double *output  = calloc(st_info->kvars_targets * st_info->J, sizeof *output);
-    // short  *outmiss = calloc(st_info->kvars_targets * st_info->J, sizeof *outmiss);
 
     double *all_buffer     = calloc(st_info->kvars_source * st_info->N, sizeof *all_buffer);
     short  *all_firstmiss  = calloc(st_info->kvars_source * st_info->J, sizeof *all_firstmiss);
@@ -102,9 +96,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     for (i = 0; i < st_info->kvars_by_num * st_info->J; i++)
         bymiss[i] = 0;
 
-    // for (i = 0; i < st_info->kvars_targets * st_info->J; i++)
-    //     outmiss[i] = 0;
-
     for (k = 0; k < st_info->kvars_source; k++)
         nmfreq[k] = nonmiss[k] = firstmiss[k] = lastmiss[k] = 0;
 
@@ -124,44 +115,42 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
      * observations from Stata in order; this is only sometimes faster,
      */
     size_t *index_st = calloc(st_info->N, sizeof *index_st);
-    if ( st_info->read_method == 1 ) {
-        for (j = 0; j < st_info->J; j++) {
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
-            offsets_buffer[j] = start * st_info->kvars_source;
-            for (i = start; i < end; i++)
-                index_st[st_info->index[i]] = j;
-        }
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        offsets_buffer[j] = start * st_info->kvars_source;
+        for (i = start; i < end; i++)
+            index_st[st_info->index[i]] = j;
+    }
 
-        rct = offset_buffer = offset_source = 0;
-        for (i = 0; i < st_info->N; i++) {
-            j     = index_st[i];
-            start = st_info->info[j];
-            end   = st_info->info[j + 1];
-            nj    = end - start;
-            offset_buffer = start * st_info->kvars_source;
-            offset_source = j * st_info->kvars_source;
-            for (k = 0; k < st_info->kvars_source; k++) {
-                // Read Stata in order
-                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
-                    rct = rc;
-                    continue;
-                }
-                if ( SF_is_missing(z) ) {
-                    if ( i == st_info->index[start] )   all_firstmiss[offset_source + k] = 1;
-                    if ( i == st_info->index[end - 1] ) all_lastmiss[offset_source + k]  = 1;
-                }
-                else {
-                    // Read into C in order as well, via index_st, so
-                    // non-missing entries of given variable for each group
-                    // occupy a contiguous segment in memory.
-                    all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
-                }
+    rct = offset_buffer = offset_source = 0;
+    for (i = 0; i < st_info->N; i++) {
+        j     = index_st[i];
+        start = st_info->info[j];
+        end   = st_info->info[j + 1];
+        nj    = end - start;
+        offset_buffer = start * st_info->kvars_source;
+        offset_source = j * st_info->kvars_source;
+        for (k = 0; k < st_info->kvars_source; k++) {
+            // Read Stata in order
+            if ( (rc = SF_vdata(k + st_info->start_collapse_vars, i + st_info->in1, &z)) ) {
+                rct = rc;
+                continue;
+            }
+            if ( SF_is_missing(z) ) {
+                if ( i == st_info->index[start] )   all_firstmiss[offset_source + k] = 1;
+                if ( i == st_info->index[end - 1] ) all_lastmiss[offset_source + k]  = 1;
+            }
+            else {
+                // Read into C in order as well, via index_st, so
+                // non-missing entries of given variable for each group
+                // occupy a contiguous segment in memory.
+                all_buffer [offset_buffer + nj * k + all_nonmiss[offset_source + k]++] = z;
             }
         }
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
-        if ( rct ) return (rct);
     }
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+    if ( rct ) return (rct);
     free (index_st);
 
     // Method 2: Out of order
@@ -178,7 +167,7 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
      * The following reads the variables out of order. It consumes ever
      * so slighly less memory and was easier to code. I am not 100% when
      * this is faster than method 1.
-     */
+     * 
     if ( st_info->read_method == 2 ) {
         offset_buffer = offset_source = 0;
         for (j = 0; j < st_info->J; j++) {
@@ -214,6 +203,8 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables by group");
         if ( rct ) return (rct);
     }
+     *
+     */
 
     // Collapse variables by group
     // ---------------------------
@@ -247,9 +238,7 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
 
             // If there is at least one non-missing observation, we
             // store the result in output. If all observations are
-            // missing then we note it in outmiss. We will later write
-            // to Stata the contents of output if outmiss is 0 or a
-            // missing value if outmiss is 1.
+            // missing then we store Stata's special SV_missval
             if ( statcode[k] == -6 ) { // count
                 // If count, you just need to know how many non-missing obs there are
                 output[offset_output + k] = end;
@@ -270,13 +259,11 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
                     output[offset_output + k] = 0;
                 }
                 else {
-                    // outmiss[offset_output + k] = 1;
                     output[offset_output + k] = SV_missval;
                 }
             }
             else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
                 // If first observation is missing, will write missing value
-                // outmiss[offset_output + k] = 1;
                 output[offset_output + k] = SV_missval;
             }
             else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
@@ -285,7 +272,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
             }
             else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
                 // If last observation is missing, will write missing value
-                // outmiss[offset_output + k] = 1;
                 output[offset_output + k] = SV_missval;
             }
             else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
@@ -294,7 +280,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
             }
             else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
                 // Standard deviation requires at least 2 observations
-                // outmiss[offset_output + k] = 1;
                 output[offset_output + k] = SV_missval;
             }
             else { // etc
@@ -327,7 +312,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
             for (k = 0; k < st_info->kvars_targets; k++) {
                 sel = offset_output + k;
                 if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
-                // output_buffer[k] = outmiss[sel]? SV_missval: output[sel];
                 output_buffer[k] = output[sel];
             }
 
@@ -339,7 +323,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
                     out = st_info->index[i] + st_info->in1;
                     // sel = offset_output + k;
                     // if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
-                    // if ( (rc = SF_vstore(k + st_info->start_target_vars, out, outmiss[sel]? SV_missval: output[sel])) ) return (rc);
                     if ( (rc = SF_vstore(k + st_info->start_target_vars, out, output_buffer[k])) ) return (rc);
                 }
             }
@@ -388,7 +371,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
                             output[sel] /= nmfreq[st_info->pos_targets[k]];
                         }
                     }
-                    // if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, outmiss[sel]? SV_missval: output[sel])) ) return (rc);
                     if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, output[sel])) ) return (rc);
                 }
 
@@ -420,7 +402,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
                             output[sel] /= nmfreq[st_info->pos_targets[k]];
                         }
                     }
-                    // if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, outmiss[sel]? SV_missval: output[sel])) ) return (rc);
                     if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, output[sel])) ) return (rc);
                 }
 
@@ -479,7 +460,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     free (output);
     free (bynum);
     free (bymiss);
-    // free (outmiss);
 
     if ( st_info->kvars_by_str > 0 ) {
         for (j = 0; j < st_info->J; j++) {

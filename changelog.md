@@ -5,7 +5,7 @@ Change Log
 
 ### Features
 
-- Windows version!
+- Windows version passing all tests; benchmarked on virtualbox.
 
 ### Bug fixes
 
@@ -17,15 +17,17 @@ Change Log
 
 * The multi-threaded version does not load on Windows. Getting this to
   work on Windows was painful enough that I have 0 plans to debug it at
-  this time. The single-threaded version works fine, however.
+  this time. The single-threaded version works fine, however, and is
+  already plenty fast.
+
 * The marginal time to add a variable to memory is non-linear. If there
   are 100 variables in memory, adding the 101th varaible will take
   longer than if there are 0 variables in memory and we are adding the
-  first one.
-* This is problematic because we try to estimate the time by
-  benchmarking adding two variables. The non-linear relation is not
-  obvious as it would depend on the user's system's RAM and CPU.
-  Hence we simply scale the benchmark by K / 2.
+  first one. This is problematic because we try to estimate the time
+  by benchmarking adding two variables. The non-linear relation is not
+  obvious as it would depend on the user's system's RAM and CPU. Hence
+  we simply scale the benchmark by K / 2.
+
 * Stata's timer feature is only accurate up to miliseconds. Since adding
   the two variables for benchmarking is faster than adding marginal
   variables thereafter, occasionally Stata incorrectly estimates the
@@ -36,13 +38,13 @@ Change Log
 
 ### Planned
 
-* Allow `greedy` option to skip drops and recasting? (Depending on
-  the implementation this may be slower because adding variables takes
-  longer with more variables in memory.)
 * Sort variables in C, not in Stata (high priority; performance)
 * Allow merge with an if statement (low priority; feature).
 * If you sort the data in C, then assert the sort is unique and
   print "(hashed correctly grouped observations: resulting sort is unique)"
+* Allow `greedy` option to skip drops and recasting? (Depending on
+  the implementation this may be slower because adding variables takes
+  longer with more variables in memory.)
 
 ---
 

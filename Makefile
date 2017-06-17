@@ -88,7 +88,7 @@ links:
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
 	mkdir -p ./lib/spookyhash/build/bin/Release
-	mkdir -p ./lib/spookyhash/build
+	ls -lah ./lib/
 	ls -lah ./lib/spookyhash/
 	ls -lah ./lib/spookyhash/build/
 	ls -lah ./lib/spookyhash/build/bin/

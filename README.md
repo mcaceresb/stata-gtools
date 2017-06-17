@@ -241,7 +241,7 @@ program will work as expected. If successful, the exit message should be
 ### Troubleshooting
 
 If you are on OSX, you will have to compile the plugin yourself.
-It is likely that after installing the dependencies, all you need
+It is possible that after installing the dependencies, all you need
 to do is run `make`, but I cannot guarantee that will be the case
 since I have not tested it myself.
 

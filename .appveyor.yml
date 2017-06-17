@@ -1,5 +1,10 @@
 install:
-  - cd .\lib\spookyhash\build
+  - git submodule update --init --recursive
+  - dir
+  - dir lib
+  - dir lib\spookyhash
+  - dir lib\spookyhash\build
+  - chdir lib\spookyhash\build
   - ps: wget https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-windows.zip -OutFile premake5.zip
   - 7z x premake5.zip
   - del premake5.zip

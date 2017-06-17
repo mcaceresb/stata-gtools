@@ -1,17 +1,12 @@
-install:
-  - git submodule update --init --recursive
-  - dir
-  - dir lib
-  - dir lib\spookyhash
-  - dir lib\spookyhash\build
-  - chdir lib\spookyhash\build
-  - ps: wget https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-windows.zip -OutFile premake5.zip
-  - 7z x premake5.zip
-  - del premake5.zip
+version: "cygwin-{build}"
+
+environment:
+  matrix:
+    - ARCH: x86_64
+      CYGWIN: C:\Cygwin64
+      CHOST: x86_64-w64-mingw32
+      CC: x86_64-w64-mingw32-gcc
 
 build_script:
-  - premake5 vs2013
-  - msbuild SpookyHash.sln
-  - dir
-  - chdir ..\..\..\ 
-  - dir
+  # - "%CYGWIN%\\setup-%ARCH%.exe -g -q"
+  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make spooky; make'"

@@ -54,8 +54,8 @@ spooky:
 	     "\nSee 'Compiling on Windows' in README.md for details."
 else ifeq ($(EXECUTION),windows)
 spooky:
-	cp -f ./lib/windows/spookyhash.dll ./build/
-	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/
+	cp ./lib/windows/spookyhash.dll ./build/spookyhash.dll
+	cp ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
@@ -79,6 +79,7 @@ links:
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
 	ls -lah ./lib/
+	ls -lah ./build/
 	ls -lah ./lib/windows/
 	ls -lah ./lib/spookyhash/
 	ls -lah ./lib/spookyhash/build/

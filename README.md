@@ -212,10 +212,16 @@ installed and in your system's `PATH`. Last, on windows, you will
 additionally need
 - [Cygwin](https://cygwin.com) with gcc, make, libgomp, x86_64-w64-mingw32-gcc-5.4.0.exe
   (Cygwin is pretty massive by default; I would install only those packages).
+
+If you also want to compile SpookyHash on windows yourself, you will
+also need
 - [Microsoft Visual Studio](https://www.visualstudio.com) with the
   Visual Studio Developer Command Prompt (again, this is pretty massive
   so I would recommend you install the least you can to get the
   Developer Prompt).
+
+I keep a copy of `spookyhash.dll` in `./lib/windows` so there is no need
+to re-compile SpookyHash.
 
 ### Compilation
 

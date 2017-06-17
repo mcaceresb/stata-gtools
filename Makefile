@@ -44,7 +44,7 @@ all: clean links gtools
 
 ifeq ($(OS),Windows_NT)
 spooky:
-	copy /Y lib\windows\spookyhash.dll lib\build\
+	cp -f ./lib/windows/spookyhash.dll lib/build/
 	echo -e "\nRun the following from the Visual Studio Developer Command Prompt:" \
 	     "\n    copy /Y lib\\\\windows\\\\spookyhash-premake5.lua lib\\\\spookyhash\\\\build\\\\premake5.lua" \
 	     "\n    cd lib\\\\spookyhash\\\\build" \

@@ -14,13 +14,14 @@ else
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix.plugin  build/gtools.o
 		OUTM = build/gtools_unix_multi.plugin build/gtools_multi.o
+		SPOOKYLIB = -l:libspookyhash.a
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx.plugin  build/gtools.o
 		OUTM = build/gtools_macosx_multi.plugin build/gtools_multi.o
+		SPOOKYLIB = -l:libspookyhash.so
 	endif
-	SPOOKYLIB = -l:libspookyhash.a
 	GCC = gcc
 	PREMAKE = premake5
 	OPENMP = -fopenmp -DGMULTI=1
@@ -65,7 +66,14 @@ else ifeq ($(EXECUTION),windows)
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-else
+else else ifeq ($(UNAME_S),Darwin)
+spooky:
+	cd lib/spookyhash/build && $(PREMAKE) gmake
+	cd lib/spookyhash/build && make clean
+	cd lib/spookyhash/build && make
+	mkdir -p ./build
+	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/
+else ifeq ($(UNAME_S),Linux)
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
 	cd lib/spookyhash/build && make clean
@@ -88,11 +96,6 @@ links:
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
 	mkdir -p ./lib/spookyhash/build/bin/Release
-	ls -lah ./lib/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/build/
-	ls -lah ./lib/spookyhash/build/bin/
-	ls -lah ./lib/spookyhash/build/bin/Release/
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)

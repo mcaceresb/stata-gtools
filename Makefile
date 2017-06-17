@@ -40,7 +40,14 @@ CFLAGS = -Wall -O2 $(OSFLAGS)
 SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
 
-all: clean links gtools
+# OpenMP only tested on Linux
+ifeq ($(OS),Windows_NT)
+all: clean links gtools cleandll
+else ifeq ($(UNAME_S),Darwin)
+all: clean links gtools cleandll
+else ifeq ($(UNAME_S),Linux)
+all: clean links gtools gtools_multi cleandll
+endif
 
 ifeq ($(OS),Windows_NT)
 spooky:
@@ -80,9 +87,13 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
-	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
+
+gtools_multi: src/plugin/gtools.c src/plugin/spi/stplugin.c
+	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
+
+cleandll:
 	rm -f ./build/spookyhash.dll
 	rm -f ./lib/spookyhash/build/spookyhash.dll
 

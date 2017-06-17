@@ -20,7 +20,6 @@ d
 d Distribution-Date: 20170616
 d
 d Planned: gtools_macosx.plugin
-d Planned: gtools_macosx_multi.plugin
 d
 f gcollapse.ado
 f gcollapse.sthlp
@@ -30,4 +29,3 @@ f gtools_unix.plugin
 f gtools_unix_multi.plugin
 f spookyhash.dll
 f gtools_windows.plugin
-f gtools_windows_multi.plugin

@@ -188,7 +188,7 @@ plugins = ["gtools_unix.plugin",
            "gtools_unix_multi.plugin",
            "spookyhash.dll",
            "gtools_windows.plugin",
-           "gtools_windows_multi.plugin"]
+           "gtools_macosx.plugin"]
 plugbak = plugins.copy()
 for plug in plugbak:
     if not path.isfile(path.join("build", plug)):

@@ -80,7 +80,7 @@ void mf_radix_sort_index_pass (
     uint64_t x[],
     size_t index[],
     const size_t N,
-    const uint64_t exp,
+    const size_t exp,
     const size_t shift)
 {
     // Allocate space for x, index copies and x mod

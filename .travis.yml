@@ -14,11 +14,10 @@ os:
 
 script:
   - cd lib/spookyhash/build
-  - wget https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-linux.tar.gz
-  - tar zxvf premake-5.0.0.alpha4-linux.tar.gz
+  - ../../travis_build_premake.sh
   - ./premake5 gmake
   - make clean
   - ALL_CFLAGS+=-fPIC make
   - cd -
   - make clean && make
-  - ./lib/travis_build.sh
+  - ./lib/travis_build_push.sh

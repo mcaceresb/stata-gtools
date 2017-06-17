@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export REPO="$(pwd | sed s,^/home/travis/builds/,,g)"
-if [ "$TRAVIS_BRANCH" == "travis" ]; then
+if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     echo "Pushing OSX files."
+    export REPO="$(pwd | sed s,^/home/travis/builds/,,g)"
     git branch -D osx
     git checkout -B osx
     git add -f build/*osx*plugin

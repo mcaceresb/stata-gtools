@@ -16,7 +16,7 @@ else
 		OUTM = build/gtools_unix_multi.plugin build/gtools_multi.o
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		OSFLAGS = -shared -bundle -DSYSTEM=APPLEMAC
+		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx.plugin  build/gtools.o
 		OUTM = build/gtools_macosx_multi.plugin build/gtools_multi.o
 	endif

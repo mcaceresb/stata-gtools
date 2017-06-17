@@ -29,7 +29,7 @@ void mf_counting_sort_index (
 size_t * mf_panelsetup128 (
     uint64_t h1[],
     uint64_t h2[],
-    uint64_t index[],
+    size_t index[],
     const size_t N,
     size_t * J
 );

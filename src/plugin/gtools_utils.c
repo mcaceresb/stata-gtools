@@ -256,8 +256,10 @@ double mf_query_free_space (char *fname)
     return (mib_free);
 }
 
+#ifdef __APPLE__
+#else
 /**
- * @brief Implement memcpy as a dummy function for memset
+ * @brief Implement memcpy as a dummy function for memset (not on OSX)
  *
  * Stata requires plugins to be compied as shared executables. Since
  * this is being compiled on a relatively new linux system (by 2017
@@ -277,6 +279,7 @@ void * memcpy (void *dest, const void *src, size_t n)
 {
     return memmove(dest, src, n);
 }
+#endif
 
 /*********************************************************************
  *                          Stata utilities                          *

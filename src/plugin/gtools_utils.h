@@ -1,7 +1,10 @@
 #ifndef GTOOLS_UTILS
 #define GTOOLS_UTILS
 
+#ifdef __APPLE__
+#else
 void * memcpy (void *dest, const void *src, size_t n);
+#endif
 
 int mf_strcmp_wrapper (char * fname, char *compare);
 

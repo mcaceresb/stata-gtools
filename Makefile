@@ -46,11 +46,6 @@ ifeq ($(OS),Windows_NT)
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-	ls -lah ./lib/
-	ls -lah ./build/
-	ls -lah ./lib/windows/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/build/
 	echo -e "\nTo re-compile SpookyHash, run from the Visual Studio Developer Command Prompt:" \
 	     "\n    copy /Y lib\\\\windows\\\\spookyhash-premake5.lua lib\\\\spookyhash\\\\build\\\\premake5.lua" \
 	     "\n    cd lib\\\\spookyhash\\\\build" \
@@ -93,7 +88,9 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
+	rm -f ./build/spookyhash.dll
+	rm -f ./lib/spookyhash/build/spookyhash.dll
 
 .PHONY: clean
 clean:
-	rm -f $(OUT) $(OUTM) $(AUX) ./build/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
+	rm -f $(OUT) $(OUTM) $(AUX)

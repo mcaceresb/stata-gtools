@@ -56,6 +56,11 @@ else ifeq ($(EXECUTION),windows)
 spooky:
 	cp ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
+	ls -lah ./lib/
+	ls -lah ./build/
+	ls -lah ./lib/windows/
+	ls -lah ./lib/spookyhash/
+	ls -lah ./lib/spookyhash/build/
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake

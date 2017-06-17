@@ -9,4 +9,5 @@ environment:
 
 build_script:
   # - "%CYGWIN%\\setup-%ARCH%.exe -g -q"
+  - git submodule update --init --recursive
   - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make spooky; make'"

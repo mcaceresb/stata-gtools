@@ -221,8 +221,7 @@ additionally need
 ```bash
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
-git submodule init
-git submodule update --recursive
+git submodule update --init --recursive
 make spooky
 make clean
 make

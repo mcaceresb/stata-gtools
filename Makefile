@@ -78,11 +78,6 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
-	ls -lah ./lib/
-	ls -lah ./build/
-	ls -lah ./lib/windows/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/build/
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)

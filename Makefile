@@ -44,8 +44,13 @@ all: clean links gtools
 
 ifeq ($(OS),Windows_NT)
 spooky:
-	cp -f ./lib/windows/spookyhash.dll ./build/
-	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/
+	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
+	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
+	ls -lah ./lib/
+	ls -lah ./build/
+	ls -lah ./lib/windows/
+	ls -lah ./lib/spookyhash/
+	ls -lah ./lib/spookyhash/build/
 	echo -e "\nTo re-compile SpookyHash, run from the Visual Studio Developer Command Prompt:" \
 	     "\n    copy /Y lib\\\\windows\\\\spookyhash-premake5.lua lib\\\\spookyhash\\\\build\\\\premake5.lua" \
 	     "\n    cd lib\\\\spookyhash\\\\build" \
@@ -54,13 +59,8 @@ spooky:
 	     "\nSee 'Compiling on Windows' in README.md for details."
 else ifeq ($(EXECUTION),windows)
 spooky:
-	cp ./lib/windows/spookyhash.dll ./build/spookyhash.dll
-	cp ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-	ls -lah ./lib/
-	ls -lah ./build/
-	ls -lah ./lib/windows/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/build/
+	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
+	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake

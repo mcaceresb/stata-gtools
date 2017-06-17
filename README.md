@@ -8,8 +8,8 @@
 | [License](#license)
 
 `version 0.6.0 16Jun2017`
-[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Appveyor Build status](https://ci.appveyor.com/api/projects/status/6j3oo7pcji8ci6ra/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
@@ -245,24 +245,32 @@ It is likely that after installing the dependencies, all you need
 to do is run `make`, but I cannot guarantee that will be the case
 since I have not tested it myself.
 
-Compiling on Linux should not give problems. Compiling on Windows,
-however, was a bit difficult, so unfortunately I would not be surprised
-if you run into problems during compilation. As best I can tell, for
-SpookyHash to work correctly with this plugin you need to run `premake5
-vs2013` and compile via `msbuild` in the developer prompt.
+Compiling on Linux or Windows should not give problems. I test the
+builds using Travis and Appveyor; if both builds are passing and
+you can't get them to compile, it is likely because you have not
+installed all the requisite dependencies. For Cygwin in particular, see
+`./src/plugin/gtools.h` for all the include statements and check if you
+have any missing libraries.
 
-You also have to force `premake5` to generate project files for a 64-bit
-version only (otherwise `gcc` will complain about compatibility issues).
-Further, the target folder has not always been consistent in testing.
-While this may be due to an error on my part, I have found the compiled
-`spookyhash.dll` in
+Loading the plugin on Windows is a bit trickier. While I eventually
+got the plugin to work, it is possible for it to compile but fail to
+load. As best I can tell, all will be fine as long as you use the MinGW
+version of gcc and SpookyHash was built using visual studio. (i.e.
+`x86_64-w64-mingw32-gcc` instead of `gcc` in cygwin for the plugin;
+`premake5 vs2013` and `msbuild SpookyHash.sln` for SpookyHash, though
+you can find the dll pre-built in `./lib/windows/spookyhash.dll`).
+
+If you are re-compiling SpookyHash, you have to force `premake5` to
+generate project files for a 64-bit version only (otherwise `gcc` will
+complain about compatibility issues). Further, the target folder has not
+always been consistent in testing. While this may be due to an error on
+my part, I have found the compiled `spookyhash.dll` in
 - `./lib/spookyhash/build/bin`
 - `./lib/spookyhash/build/bin/x86_64/Release`
 - `./lib/spookyhash/build/bin/Release`
 
-during various different trial runs. Last, you may need to install some
-additional libraries on Cygwin, depending on the version that you have
-(see `./src/plugin/gtools.h` for all the include statements).
+Again, I advise against trying to re-compile SpookyHash. Just use the
+dll provided in this repo.
 
 FAQs
 ----

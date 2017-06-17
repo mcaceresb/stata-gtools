@@ -221,6 +221,7 @@ additionally need
 ```bash
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
+git submodule init
 git submodule update --recursive
 make spooky
 make clean
@@ -238,16 +239,24 @@ It is likely that after installing the dependencies, all you need
 to do is run `make`, but I cannot guarantee that will be the case
 since I have not tested it myself.
 
-Compiling on Windows was a bit difficult for me, so unfortunately I
-would not be surprised if you run into problems during compilation. As
-best I can tell, for SpookyHash to work correctly with this plugin you
-need to run `premake5 vs2013` and compile via `msbuild` in the developer
-prompt. Further, you have to force `premake5` to generate project files
-for a 64-bit version only.
+Compiling on Linux should not give problems. Compiling on Windows,
+however, was a bit difficult, so unfortunately I would not be surprised
+if you run into problems during compilation. As best I can tell, for
+SpookyHash to work correctly with this plugin you need to run `premake5
+vs2013` and compile via `msbuild` in the developer prompt.
 
-Last, you may need to install some additional libraries on Cygwin,
-depending on the version that you have (see `./src/plugin/gtools.h` for
-all the include statements).
+You also have to force `premake5` to generate project files for a 64-bit
+version only (otherwise `gcc` will complain about compatibility issues).
+Further, the target folder has not always been consistent in testing.
+While this may be due to an error on my part, I have found the compiled
+`spookyhash.dll` in
+- `./lib/spookyhash/build/bin`
+- `./lib/spookyhash/build/bin/x86_64/Release`
+- `./lib/spookyhash/build/bin/Release`
+
+during various different trial runs. Last, you may need to install some
+additional libraries on Cygwin, depending on the version that you have
+(see `./src/plugin/gtools.h` for all the include statements).
 
 FAQs
 ----

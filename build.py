@@ -134,6 +134,7 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 
 if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Trying to compile plugins for -gtools-")
+    print("(note: this assumes you have already compiled SpookyHash)")
     rc = system("make")
     print("Success!" if rc == 0 else "Failed.")
     if args['windows']:

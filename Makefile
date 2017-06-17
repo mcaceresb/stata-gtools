@@ -65,15 +65,11 @@ else ifeq ($(EXECUTION),windows)
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-	mkdir -p ./lib/spookyhash/build/bin/Release
-	mkdir -p ./lib/spookyhash/build
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
-	mkdir -p ./lib/spookyhash/build/bin/Release
-	mkdir -p ./lib/spookyhash/build
 endif
 
 spookytest:
@@ -90,7 +86,9 @@ links:
 	ln -sf lib/spookyhash src/plugin/spookyhash
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
-	mkdir -p build
+	mkdir -p ./build
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	mkdir -p ./lib/spookyhash/build
 	ls -lah ./lib/spookyhash/
 	ls -lah ./lib/spookyhash/build/
 	ls -lah ./lib/spookyhash/build/bin/

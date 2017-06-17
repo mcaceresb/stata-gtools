@@ -44,15 +44,18 @@ all: clean links gtools
 
 ifeq ($(OS),Windows_NT)
 spooky:
-	cp -f ./lib/windows/spookyhash.dll build/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/src/
+	cp -f ./lib/windows/spookyhash.dll ./build/
+	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/
 	echo -e "\nTo re-compile SpookyHash, run from the Visual Studio Developer Command Prompt:" \
 	     "\n    copy /Y lib\\\\windows\\\\spookyhash-premake5.lua lib\\\\spookyhash\\\\build\\\\premake5.lua" \
 	     "\n    cd lib\\\\spookyhash\\\\build" \
 	     "\n    $(PREMAKE) vs2013" \
 	     "\n    msbuild SpookyHash.sln" \
 	     "\nSee 'Compiling on Windows' in README.md for details."
+else ifeq ($(EXECUTION),windows)
+spooky:
+	cp -f ./lib/windows/spookyhash.dll ./build/
+	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
@@ -83,4 +86,4 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 
 .PHONY: clean
 clean:
-	rm -f $(OUT) $(OUTM) $(AUX)
+	rm -f $(OUT) $(OUTM) $(AUX) ./build/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll

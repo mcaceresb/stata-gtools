@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:00 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.5.2
+ * Version: 0.6.0
  *********************************************************************/
 
 #include "gegen.h"
@@ -18,11 +18,6 @@
  */
 int sf_egen (struct StataInfo *st_info)
 {
-    if ( (st_info->read_method != 1) & (st_info->read_method != 2) ) {
-        sf_errprintf ("data copying method #%d unknown; available: 1 (sequential), 2 (grouped)\n");
-        return (198);
-    }
-
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
@@ -62,65 +57,65 @@ int sf_egen (struct StataInfo *st_info)
     // ---------------------------------
 
     size_t *index_st       = calloc(st_info->N, sizeof *index_st);
-    if ( st_info->read_method == 1 ) {
-        for (j = 0; j < st_info->J; j++) {
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
-            offsets_buffer[j] = start * st_info->kvars_source;
-            for (i = start; i < end; i++)
-                index_st[st_info->index[i]] = j;
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        offsets_buffer[j] = start * st_info->kvars_source;
+        for (i = start; i < end; i++)
+            index_st[st_info->index[i]] = j;
 
-            do {
-                sel = st_info->in1 + st_info->index[start];
-                ++start;
-            } while ( !SF_ifobs(sel) & (start < end) );
-            pos_firstmiss[j] = sel;
-            --start;
+        do {
+            sel = st_info->in1 + st_info->index[start];
+            ++start;
+        } while ( !SF_ifobs(sel) & (start < end) );
+        pos_firstmiss[j] = sel;
+        --start;
 
-            do {
-                sel = st_info->in1 + st_info->index[end - 1];
-                --end;
-            } while ( !SF_ifobs(sel) & (start < end) );
-            pos_lastmiss[j] = sel;
-        }
+        do {
+            sel = st_info->in1 + st_info->index[end - 1];
+            --end;
+        } while ( !SF_ifobs(sel) & (start < end) );
+        pos_lastmiss[j] = sel;
+    }
 
-        offset_buffer = 0;
-        for (i = 0; i < st_info->N; i++) {
-            sel   = i + st_info->in1;
-            j     = index_st[i];
-            start = st_info->info[j];
-            end   = st_info->info[j + 1];
-            offset_buffer = start * st_info->kvars_source;
+    offset_buffer = 0;
+    for (i = 0; i < st_info->N; i++) {
+        sel   = i + st_info->in1;
+        j     = index_st[i];
+        start = st_info->info[j];
+        end   = st_info->info[j + 1];
+        offset_buffer = start * st_info->kvars_source;
 
-            // Loop through variables in sequence
-            for (k = 0; k < st_info->kvars_source; k++) {
-                // Read Stata in order
-                if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
-                    rct = rc;
-                    continue;
+        // Loop through variables in sequence
+        for (k = 0; k < st_info->kvars_source; k++) {
+            // Read Stata in order
+            if ( (rc = SF_vdata(k + st_info->start_collapse_vars, sel, &z)) ) {
+                rct = rc;
+                continue;
+            }
+            if ( SF_ifobs(sel) ) {
+                if ( SF_is_missing(z) ) {
+                    if ( sel == pos_firstmiss[j] ) all_firstmiss[j] = 1;
+                    if ( sel == pos_lastmiss[j] )  all_lastmiss[j]  = 1;
                 }
-                if ( SF_ifobs(sel) ) {
-                    if ( SF_is_missing(z) ) {
-                        if ( sel == pos_firstmiss[j] ) all_firstmiss[j] = 1;
-                        if ( sel == pos_lastmiss[j] )  all_lastmiss[j]  = 1;
-                    }
-                    else {
-                        // Read into C in order as well, via index_st, so
-                        // non-missing entries of given variable for each group
-                        // occupy a contiguous segment in memory.
-                        all_buffer [offset_buffer + all_nonmiss[j]++] = z;
-                    }
+                else {
+                    // Read into C in order as well, via index_st, so
+                    // non-missing entries of given variable for each group
+                    // occupy a contiguous segment in memory.
+                    all_buffer [offset_buffer + all_nonmiss[j]++] = z;
                 }
             }
         }
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
-        if ( rct ) return (rct);
     }
+    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+    if ( rct ) return (rct);
     free (index_st);
 
     // Method 2: Out of order
     // ----------------------
 
+    /*
+     *
     if ( st_info->read_method == 2 ) {
         offset_buffer = 0;
         for (j = 0; j < st_info->J; j++) {
@@ -171,6 +166,8 @@ int sf_egen (struct StataInfo *st_info)
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables by group");
         if ( rct ) return (rct);
     }
+     *
+     */
 
     free (pos_firstmiss);
     free (pos_lastmiss);

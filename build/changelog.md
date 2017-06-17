@@ -1,6 +1,51 @@
 Change Log
 ==========
 
+## gtools-0.6.0 (2017-06-16)
+
+### Features
+
+- Windows version!
+
+### Bug fixes
+
+- `gegen tag()` now gives the correct result when there are no obs that
+  match the tag (e.g. all missing). Previous versions returned all
+  missing values. The new version returns all 0s, matching `egen`.
+
+### Known problems
+
+* The multi-threaded version does not load on Windows. Getting this to
+  work on Windows was painful enough that I have 0 plans to debug it at
+  this time. The single-threaded version works fine, however.
+* The marginal time to add a variable to memory is non-linear. If there
+  are 100 variables in memory, adding the 101th varaible will take
+  longer than if there are 0 variables in memory and we are adding the
+  first one.
+* This is problematic because we try to estimate the time by
+  benchmarking adding two variables. The non-linear relation is not
+  obvious as it would depend on the user's system's RAM and CPU.
+  Hence we simply scale the benchmark by K / 2.
+* Stata's timer feature is only accurate up to miliseconds. Since adding
+  the two variables for benchmarking is faster than adding marginal
+  variables thereafter, occasionally Stata incorrectly estimates the
+  time to add a variable to be 0 seconds. Empirically it does not bear
+  out that adding variables after the benchmark variables takes more
+  than 0 seconds. Hence we assume that Stata would actually take 0.001
+  seconds to add 2 variables to memory.
+
+### Planned
+
+* Allow `greedy` option to skip drops and recasting? (Depending on
+  the implementation this may be slower because adding variables takes
+  longer with more variables in memory.)
+* Sort variables in C, not in Stata (high priority; performance)
+* Allow merge with an if statement (low priority; feature).
+* If you sort the data in C, then assert the sort is unique and
+  print "(hashed correctly grouped observations: resulting sort is unique)"
+
+---
+
 ## gtools-0.5.2 (2017-06-15)
 
 ### Misc

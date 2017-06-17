@@ -7,8 +7,9 @@
 | [FAQs](#faqs)
 | [License](#license)
 
-`version 0.5.2 15Jun2017`
-[![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools)
+`version 0.6.0 16Jun2017`
+Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
@@ -33,16 +34,13 @@ data and sorting the hash is a lot faster than sorting the data before
 processing it by group. Second, compiled C code is much faster than
 Stata commands.
 
-The current beta release only provides Unix versions of the C plugin.
-Windows and OSX versions are planned for a future release.
+The current beta release only provides Unix (Linux) and Windows versions
+of the C plugin. An OSX version is planned for a future release.
 
 Installation
 ------------
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
-Further, since my own machine and the servers I have access to run
-Linux, I have only developed this for Stata for Unix so far. Future
-releases will be cross-platform.
 ```stata
 net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/build/)
 * adoupdate, update
@@ -180,7 +178,7 @@ collapsing):
 `fcollapse` did better for a modest numbers of groups, but it performed
 poorly for very few groups and for a large number of groups. Overall
 `gcollapse` was 7-16 times faster. I have not benchmarked `collapsed`
-against version `0.5.1` in this case because each run will take over
+against version `0.6.0` in this case because each run will take over
 an hour and have not found the time. I ran a "smaller" version of this
 benchmark: Vary J for N = 5,000,000
 ```
@@ -210,44 +208,69 @@ you will need
 I keep a copy of Stata's Plugin Interface in this repository, and I
 have added `centaurean`'s implementation of SpookyHash as a submodule.
 However, you will have to make sure you have `gcc` and `premake5`
-installed and in your system's `PATH`.
+installed and in your system's `PATH`. Last, on windows, you will
+additionally need
+- [Cygwin](https://cygwin.com) with gcc, make, libgomp, x86_64-w64-mingw32-gcc-5.4.0.exe
+  (Cygwin is pretty massive by default; I would install only those packages).
+
+If you also want to compile SpookyHash on windows yourself, you will
+also need
+- [Microsoft Visual Studio](https://www.visualstudio.com) with the
+  Visual Studio Developer Command Prompt (again, this is pretty massive
+  so I would recommend you install the least you can to get the
+  Developer Prompt).
+
+I keep a copy of `spookyhash.dll` in `./lib/windows` so there is no need
+to re-compile SpookyHash.
 
 ### Compilation
 
 ```bash
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
-git submodule update --recursive
+git submodule update --init --recursive
 make spooky
-./build.py --test
+make clean
+make
 ```
 
-`./build.py` runs `make` to compile the plugins and places all
-the requisite `.ado` files, `.sthlp` files, and test scripts in
-`./build`. A log with the output of the test script will be printed
-to `./build/gtools_tests.log`; if successful, the exit message should
-be "tests finished running" followed by the start and end time.
+If that is successful then run `./build/gtools_tests.do` to test the
+program will work as expected. If successful, the exit message should be
+"tests finished running" followed by the start and end time.
 
 ### Troubleshooting
 
-If you are not on Linux, you will have to comment out lines 34, 1167,
-and 1170 in `./src/ado/gcollapse.ado` and lines 15, 517, and 520 in
-`./src/ado/gegen.ado`. These lines prevent the function from running
-outside Stata for Unix.
+If you are on OSX, you will have to compile the plugin yourself.
+It is likely that after installing the dependencies, all you need
+to do is run `make`, but I cannot guarantee that will be the case
+since I have not tested it myself.
 
-On OSX this will likely be enough. On Windows, however, it is possible
-you will have to modify the Makefile (while this should compile from
-Cygwin, it is possible the plugins will not load into Stata correctly)
-or throw the Makefile away altogether and try to compile the plugin
-using Visual Studio.
+Compiling on Linux or Windows should not give problems. I test the
+builds using Travis and Appveyor; if both builds are passing and
+you can't get them to compile, it is likely because you have not
+installed all the requisite dependencies. For Cygwin in particular, see
+`./src/plugin/gtools.h` for all the include statements and check if you
+have any missing libraries.
 
-If the build fails, test that SpookyHash was compiled correctly:
-```
-make spookytest
-```
+Loading the plugin on Windows is a bit trickier. While I eventually
+got the plugin to work, it is possible for it to compile but fail to
+load. As best I can tell, all will be fine as long as you use the MinGW
+version of gcc and SpookyHash was built using visual studio. (i.e.
+`x86_64-w64-mingw32-gcc` instead of `gcc` in cygwin for the plugin;
+`premake5 vs2013` and `msbuild SpookyHash.sln` for SpookyHash, though
+you can find the dll pre-built in `./lib/windows/spookyhash.dll`).
 
-These take a long time to run, so it is faster to try to test the plugin
-first and only test SpookyHash if the plugin does not work.
+If you are re-compiling SpookyHash, you have to force `premake5` to
+generate project files for a 64-bit version only (otherwise `gcc` will
+complain about compatibility issues). Further, the target folder has not
+always been consistent in testing. While this may be due to an error on
+my part, I have found the compiled `spookyhash.dll` in
+- `./lib/spookyhash/build/bin`
+- `./lib/spookyhash/build/bin/x86_64/Release`
+- `./lib/spookyhash/build/bin/Release`
+
+Again, I advise against trying to re-compile SpookyHash. Just use the
+dll provided in this repo.
 
 FAQs
 ----
@@ -308,12 +331,23 @@ results, but Mata cannot compare to the raw speed a low level language like
 C would afford. The only question is whether the overhead reading and writing
 data to and from C compensates the speed gain, and in this case it does.
 
-### Why only Unix?
+### Why not OSX?
 
-C is platform dependent and I don't have access to Stata on Windows or
-OSX. Sorry! I use Linux on my personal computer and on all the servers
-where I do my work. If anyone is willing to try compiling the plugins
-out on Windows and OSX, I'd be happy to take pull requests!
+C is platform dependent and I don't have access to a laptop running
+Windows or OSX. Windows, however, makes it easy for you to download
+their ISO, hence I was able to test this on a virtual machine. OSX does
+not make their ISO available, as best I can tell.
+
+Feel free to try and compile this for OSX. There's likely minimal
+tinkering to be done beyond installing the dependencies. I'm happy to
+take pull requests!
+
+### My OS has a 32-bit CPU
+
+This uses 128-bit hashes split into 2 64-bit parts. As far as I know, it
+will not work with a 32-bit processor. If you try to force it to run,
+you will almost surely see integer overflows and pretty bad errors will
+followit.
 
 ### Why can't the function do weights?
 
@@ -414,7 +448,7 @@ J to be small, they can force collapsing to disk via `forceio`.
 ### TODO
 
 - [ ] Add support for weights.
-- [ ] Compile for Windows and OSX.
+- [ ] Compile for OSX.
 - [ ] Implement all by-able `egen` functions.
 
 License

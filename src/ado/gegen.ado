@@ -1,4 +1,4 @@
-*! version 0.5.2 15Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.0 16Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -12,7 +12,7 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
+    * if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
 
     * Time the entire function execution
     {
@@ -77,7 +77,6 @@ program define gegen, byable(onecall)
         debug_force_single       /// (experimental) Force non-multi-threaded version
         debug_force_multi        /// (experimental) Force muti-threading
         debug_checkhash          /// (experimental) Check for hash collisions
-        debug_read_method(int 0) /// (experimental) Choose a method for reading data from Stata
         *                        ///
     ]
 
@@ -106,11 +105,16 @@ program define gegen, byable(onecall)
     * Choose plugin version
     * ---------------------
 
-    cap `noi' plugin call gtoolsmulti_plugin, check
+    cap plugin call gtoolsmulti_plugin, check
     if ( _rc ) {
         if ( `verbose'  ) di "(note: failed to load multi-threaded version; using fallback)"
         local plugin_call plugin call gtools_plugin
         local multi ""
+        cap `noi' plugin call gtools_plugin, check
+        if ( _rc ) {
+            di as err "Failed to load -gtools.plugin-"
+            exit 198
+        }
     }
     else {
         local plugin_call plugin call gtoolsmulti_plugin
@@ -123,39 +127,14 @@ program define gegen, byable(onecall)
     if ( "`debug_force_multi'" != "" ) {
         di as txt "(warning: forcing multi-threaded version)"
         local multi multi
-        local debug_read_method     = 3
-        local debug_collapse_method = 2
         local plugin_call plugin call gtoolsmulti_plugin
     }
 
     if ( "`debug_force_single'" != "" ) {
         di as txt "(warning: forcing non-multi-threaded version)"
         local multi ""
-        * local debug_read_method = 1
-        local debug_collapse_method = 1
         local plugin_call plugin call gtools_plugin
     }
-
-    * Parse reading method (beta)
-    * ---------------------------
-
-    if !inlist(`debug_read_method', 0, 1, 2, 3) {
-        di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped), 3 (parallel)"
-        exit 198
-    }
-    else if ( `debug_read_method' != 0 ) {
-        di as text "(warning: custom reading methods in beta)"
-        if ( ("`multi'" == "") & !inlist(`debug_read_method', 1, 2) ) {
-            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped)"
-            exit 198
-        }
-        if ( ("`multi'" != "") & !inlist(`debug_read_method', 1, 3) ) {
-            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 3 (parallel)"
-            exit 198
-        }
-    }
-    scalar __gtools_read_method = `debug_read_method'
-    scalar __gtools_collapse_method = 2
 
     * Check hash collisions in C
     * --------------------------
@@ -367,7 +346,10 @@ program define gegen, byable(onecall)
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
     if ( `=_N > 0' ) {
         cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
-        if ( _rc == 42001 ) di as txt "(no observations)"
+        if ( _rc == 42001 ) {
+            di as txt "(no observations)"
+            if ( "`fcn'" == "tag" ) qui replace `dummy' = 0
+        }
         else if ( _rc != 0 ) exit _rc
     }
 
@@ -421,8 +403,6 @@ program define gegen, byable(onecall)
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_checkhash
-    cap scalar drop __gtools_read_method
-    cap scalar drop __gtools_collapse_method
 
     cap matrix drop __gtools_strpos
     cap matrix drop __gtools_numpos
@@ -514,7 +494,9 @@ end
 * ------------
 
 cap program drop gtools_plugin
-if inlist("`c(os)'", "Unix") program gtools_plugin, plugin using("gtools.plugin")
+* if inlist("`c(os)'", "Unix")
+program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 
 cap program drop gtoolsmulti_plugin
-if inlist("`c(os)'", "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+* if inlist("`c(os)'", "Unix")
+cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')

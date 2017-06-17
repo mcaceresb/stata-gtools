@@ -25,6 +25,13 @@ parser.add_argument('--stata',
                     default  = None,
                     required = False,
                     help     = "Path to stata executable")
+parser.add_argument('--stata-args',
+                    nargs    = 1,
+                    type     = str,
+                    metavar  = 'STATA_ARGS',
+                    default  = None,
+                    required = False,
+                    help     = "Arguments to pass to Stata executable")
 parser.add_argument('--clean',
                     dest     = 'clean',
                     action   = 'store_true',
@@ -39,6 +46,11 @@ parser.add_argument('--test',
                     dest     = 'test',
                     action   = 'store_true',
                     help     = "Run tests",
+                    required = False)
+parser.add_argument('--windows',
+                    dest     = 'windows',
+                    action   = 'store_true',
+                    help     = "Compile for Windows from Unix environment.",
                     required = False)
 args = vars(parser.parse_args())
 
@@ -96,16 +108,19 @@ makedirs_safe("releases")
 # I make it look for my local executable when Stata is not found.
 if args['stata'] is not None:
     statadir = path.abspath(".")
-    stataexe = args['stata']
-    statado  = stataexe + " -b do"
+    stataexe = args['stata'][0]
+    statargs = "-b do" if args['stata_args'] is None else args['stata_args'][0]
+    statado  = '"{0}" {1}'.format(stataexe, statargs)
 elif which("stata") is None:
     statadir = path.expanduser("~/.local/stata13")
     stataexe = path.join(statadir, "stata")
-    statado  = stataexe + " -b do"
+    statargs = "-b do" if args['stata_args'] is None else args['stata_args']
+    statado  = '"{0}" {1}'.format(stataexe, statargs)
 else:
     statadir = path.abspath(".")
     stataexe = 'stata'
-    statado  = stataexe + " -b do"
+    statargs = "-b do" if args['stata_args'] is None else args['stata_args']
+    statado  = '"{0}" {1}'.format(stataexe, statargs)
 
 # Temporary files
 # ---------------
@@ -119,8 +134,12 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 
 if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Trying to compile plugins for -gtools-")
+    print("(note: this assumes you have already compiled SpookyHash)")
     rc = system("make")
     print("Success!" if rc == 0 else "Failed.")
+    if args['windows']:
+        rc = system("make EXECUTION=windows clean")
+        rc = system("make EXECUTION=windows")
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
     exit(198)
@@ -133,9 +152,7 @@ print("")
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_gegen.do"),
-            path.join("src", "test", "bench_gcollapse.do"),
-            path.join("src", "test", "bench_gcollapse_fcoll.do"),
-            path.join("src", "test", "bench_gcollapse_gcoll.do")]
+            path.join("src", "test", "bench_gcollapse.do")]
 
 with open(path.join("build", "gtools_tests.do"), 'w') as outfile:
     outfile.writelines(testfile[:-4])
@@ -167,13 +184,37 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
+plugins = ["gtools_unix.plugin",
+           "gtools_unix_multi.plugin",
+           "spookyhash.dll",
+           "gtools_windows.plugin",
+           "gtools_windows_multi.plugin"]
+plugbak = plugins.copy()
+for plug in plugbak:
+    if not path.isfile(path.join("build", plug)):
+        alt = path.join("lib", "plugin", plug)
+        if path.isfile(alt):
+            copy2(alt, "build")
+        else:
+            print("Could not find '{0}'".format(plug))
+
 chdir("build")
 print("Compressing build files for gtools-{0}".format(version))
 if rc == 0:
-    plugins = ["gtools.plugin", "gtools_multi.plugin"]
+    gtools_anyplug = False
+    for plug in plugbak:
+        if path.isfile(plug):
+            gtools_anyplug = True
+            rename(path.join(plug), path.join("gtools", plug))
+        else:
+            plugins.remove(plug)
+            print("\t'{0}' not found; skipping.".format(plug))
+
+    if not gtools_anyplug:
+        print("WARNING: Could not find plugins despite build exit with 0 status.")
+        exit(-1)
+
     gtools_zip += plugins
-    for plug in plugins:
-        rename(path.join(plug), path.join("gtools", plug))
 else:
     print("WARNING: Failed to build plugins. Will exit.")
     exit(-1)
@@ -231,6 +272,9 @@ if args["replace"]:
         remove(tmpupdate)
         print(linesep + "Replaced gtools in ~/ado/plus")
         chdir(maindir)
+    else:
+        print("Could not find Stata executable '{0}'.".format(stataexe))
+        exit(-1)
 
 # Run tests
 # ---------

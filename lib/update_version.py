@@ -115,7 +115,9 @@ for fname in todo:
 
                 continue
 
-            if search('(^v|[Vv]ersion).+(\d+\.?){3,3}', line):
+            v = search('(^v|[Vv]ersion).+(\d+\.?){3,3}', line)
+            s = search('Stata version', line)
+            if v and not s:
                 try:
                     res = findall('(\d+)(\.| |$)', line)
                     new_major = int(res[0][0]) + major

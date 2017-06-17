@@ -1,0 +1,12 @@
+version: "cygwin-{build}"
+
+environment:
+  matrix:
+    - ARCH: x86_64
+      CYGWIN: C:\Cygwin64
+      CHOST: x86_64-w64-mingw32
+      CC: x86_64-w64-mingw32-gcc
+
+build_script:
+  - git submodule update --init --recursive
+  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make spooky; make'"

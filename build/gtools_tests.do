@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Wed Jun 14 19:14:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.5.2
+* Version: 0.6.0
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -40,35 +40,39 @@ program main
         * do test_gcollapse.do
         * do test_gegen.do
         * do bench_gcollapse.do
-        * do bench_gcollapse_fcoll.do
-        * do bench_gcollapse_gcoll.do
         if ( `:list posof "checks" in options' ) {
-            checks_byvars_gcollapse,      debug_force_multi
-            checks_options_gcollapse,     debug_force_multi
+            checks_byvars_gcollapse,  debug_force_single
+            checks_options_gcollapse, debug_force_single
+            if !inlist("`c(os)'", "Windows") {
+                checks_byvars_gcollapse,  debug_force_multi
+                checks_options_gcollapse, debug_force_multi
+            }
 
-            checks_byvars_gcollapse,      debug_force_single
-            checks_options_gcollapse,     debug_force_single
+            checks_options_gegen, debug_force_single
+            if !inlist("`c(os)'", "Windows") {
+                checks_options_gegen, debug_force_multi
+            }
 
-            checks_options_gegen,         debug_force_multi
-            checks_options_gegen,         debug_force_single
-            checks_options_gegen,         debug_force_multi  debug_read_method(2)
-            checks_options_gegen,         debug_force_single debug_read_method(2)
-
-            checks_consistency_gcollapse, debug_force_multi
-            checks_consistency_gcollapse, debug_force_single
-            checks_consistency_gcollapse, debug_force_multi  debug_read_method(2)
-            checks_consistency_gcollapse, debug_force_single debug_read_method(2)
             checks_consistency_gcollapse, debug_checkhash
             checks_consistency_gcollapse, forceio debug_io_read_method(0)
             checks_consistency_gcollapse, forceio debug_io_read_method(1)
             checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(0)
             checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(1000000)
+            checks_consistency_gcollapse, debug_force_single
+            if !inlist("`c(os)'", "Windows") {
+                checks_consistency_gcollapse, debug_force_multi
+            }
 
-            checks_consistency_gegen,     debug_force_multi  b
-            checks_consistency_gegen,     debug_force_single b
+            checks_consistency_gegen, debug_force_single b
+            if !inlist("`c(os)'", "Windows") {
+                checks_consistency_gegen, debug_force_multi  b
+            }
         }
 
         if ( `:list posof "test" in options' ) {
+            cap ssc install ftools
+            cap ssc install moremata
+
             di "Short (quick) versions of the benchmarks"
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
             bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
@@ -81,15 +85,12 @@ program main
             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
             bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
             bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
-
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
-            bench_switch_gcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
-            bench_switch_gcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
-            bench_switch_gcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
         }
 
         if ( `:list posof "benchmark" in options' ) {
+            cap ssc install ftools
+            cap ssc install moremata
+
             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
             bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
             bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
@@ -98,19 +99,14 @@ program main
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {
+            cap ssc install ftools
+            cap ssc install moremata
+
             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools)
             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools)
             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
-        }
-
-        if ( `:list posof "bench_gcoll" in options' ) {
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools)
-            bench_switch_gcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools)
-            bench_switch_gcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
-            bench_switch_gcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
-            bench_switch_gcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
         }
     }
     local rc = _rc
@@ -1155,57 +1151,10 @@ program bench_group_size
     timer clear
 end
 
-* cd /home/mauricio/code/stata-gtools/build/
-* do gtools_tests.do
-* qui do gegen.ado
-* sim, n(5000000) nj(8) njsub(4) string groupmiss outmiss
-*     local collapse (sum) rnorm (mean) mean = rnorm (sd) sd = rnorm (median) med = rnorm (count) count = rnorm (min) min = rnorm
-*     local by groupstr groupsub
-* bench_sim_ftools 5000000 6
-*     local collapse (sum) y1-y6
-*     foreach stat in mean median min max {
-*         local collapse `collapse' (`stat')
-*         foreach var of varlist y1-y6 {
-*             local collapse `collapse' `stat'_`var' = `var'
-*         }
-*     }
-*     local by x2 x3
-* !cd ..; ./build.py
-* qui do gcollapse.ado
-* preserve
-*     gcollapse `collapse', by(`by') v b
-*     * l in 1/10
-* restore
-* preserve
-*     gcollapse `collapse', by(`by') v b merge
-*     * l in 1/10
-* restore
-* preserve
-*     gcollapse `collapse', by(`by') v b forceio
-*     * l in 1/10
-* restore
-* preserve
-*     gcollapse `collapse', by(`by') v b forcemem
-*     * l in 1/10
-* restore
+***********************************************************************
+*                      Benchmark fcollapse only                       *
+***********************************************************************
 
-* Benchmarks in the README
-* ------------------------
-
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-* bench_ftools y1 y2 y3,   by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(4) kmax(7) kvars(10) stats(mean median min max)
-* bench_sample_size x1 x2, by(groupstr) kmin(4) kmax(7) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6) 
-
-* Misc
-* ----
-
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(8) kvars(15)
-* bench_ftools y1 y2 y3,   by(x3) kmin(5) kmax(8) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
-* bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)
 capture program drop bench_switch_fcoll
 program bench_switch_fcoll
     syntax anything, style(str) [*]
@@ -1317,129 +1266,24 @@ program bench_switch_fcoll
     }
     timer clear
 end
-capture program drop bench_switch_gcoll
-program bench_switch_gcoll
-    syntax anything, style(str) [*]
-    if !inlist("`style'", "ftools", "gtools") {
-        di as error "Don't know benchmark style '`style''; available: ftools, gtools"
-        exit 198
-    }
 
-    local 0 `anything', `options'
-    if ( "`style'" == "ftools" ) {
-        syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) *]
-        if ("`stats'" == "") local stats sum
-        local i = 0
-        local N ""
-        local L N
-        local dstr J = 100
-        di "Benchmarking `L' for `dstr'; by(`by')"
-        di "    vars  = `anything'"
-        di "    stats = `stats'"
+* Benchmarks in the README
+* ------------------------
 
-        mata: print_matrix = J(1, 0, "")
-        mata: sim_matrix   = J(1, 0, "")
-        forvalues k = `kmin' / `kmax' {
-            mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
-            mata: sim_matrix   = sim_matrix,   "bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'"
-            local N `N' `:di %21.0g 2 * 10^`k''
-        }
-    }
-    else {
-        * syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
-        syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 4) kmax(int 7) *]
-        if !inlist("`margin'", "N", "J") {
-            di as error "Don't know margin '`margin''; available: N, J"
-            exit 198
-        }
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
+* bench_ftools y1 y2 y3,   by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(4) kmax(7) kvars(10) stats(mean median min max)
+* bench_sample_size x1 x2, by(groupstr) kmin(4) kmax(7) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6) 
 
-        if ("`stats'" == "") local stats sum mean sd max min count percent first last firstnm lastnm
-        local stats `stats' `pct'
-        local i = 0
-        local N ""
-        local L `margin'
-        local jstr = trim("`:di %21.0gc `nj''")
-        local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
-        local dstr = cond("`L'" == "N", "J = `jstr'", "N = `nstr'")
-        di "Benchmarking `L' for `dstr'; by(`by')"
-        di "    vars  = `anything'"
-        di "    stats = `stats'"
+* Misc
+* ----
 
-        mata: print_matrix = J(1, 0, "")
-        mata: sim_matrix   = J(1, 0, "")
-        forvalues k = `kmin' / `kmax' {
-            if ( "`L'" == "N" ) {
-                mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
-                mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)"
-            }
-            else {
-                mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 10^`k'''"
-                mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(2)"
-            }
-            local J `J' `:di %21.0g 10^`k''
-            local N `N' `:di %21.0g 2 * 10^`k''
-        }
-    }
-
-    local collapse ""
-    foreach stat of local stats {
-        local collapse `collapse' (`stat')
-        foreach var of local anything {
-            local collapse `collapse' `stat'_`var' = `var'
-        }
-    }
-
-    forvalues k = 1 / `:di `kmax' - `kmin' + 1' {
-        mata: st_local("sim",   sim_matrix[`k'])
-        qui `sim'
-        mata: printf(print_matrix[`k'])
-        preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse-default ")
-                qui gcollapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse-single-1 ")
-                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(1) fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse-single-2 ")
-                qui gcollapse `collapse', by(`by') debug_force_single debug_read_method(2) fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'')\n")
-        restore
-    }
-
-    local i = 1
-    di "Results varying `L' for `dstr'; by(`by')"
-    di "|              `L' | gcollapse |  gcoll-s1 |  gcoll-s2 | ratio (1/g) | ratio (2/g) |"
-    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
-    foreach nn in ``L'' {
-        local ii  = `i' + 1
-        local iii = `i' + 2
-        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
-        local ++i
-        local ++i
-        local ++i
-    }
-    timer clear
-end
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(8) kvars(15)
+* bench_ftools y1 y2 y3,   by(x3) kmin(5) kmax(8) kvars(3) stats(mean median)
+* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
+* bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
+* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)
 
 * ---------------------------------------------------------------------
 * Run the things

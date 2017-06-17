@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:21 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.5.2
+ * Version: 0.6.0
  *********************************************************************/
 
 /**
@@ -57,12 +57,6 @@ STDLL stata_call(int argc, char *argv[])
     struct StataInfo st_info;
     char todo[8], tostat[8];
     strcpy (todo, argv[0]);
-
-    // Note: These are set in sf_parse_info from Stata
-    // st_info.read_method       = 1; // Sequentially
-    // st_info.read_method_multi = 1; // Sequentially
-    // st_info.read_method       = 2; // Out of order
-    // st_info.read_method_multi = 3; // Out of order in parallel
 
     if ( strcmp(todo, "check") == 0 ) {
         // Exit; if you're here the plugin was loaded fine
@@ -143,25 +137,31 @@ STDLL stata_call(int argc, char *argv[])
                 }
 
                 // Print some info on the switching criteria to the console
-                char *buffer = malloc (32 * sizeof(char));
-                int used_io  = ( (mib_c < mib_free) & ((mib_c + mib_cstata) < (mib_stata / threshold)) );
+                int used_io;
+                if ( QUERY_FREE_SPACE ) {
+                    used_io = ( (mib_c < mib_free) & ((mib_c + mib_cstata) < (mib_stata / threshold)) );
+                }
+                else {
+                    used_io = ( (mib_c + mib_cstata) < (mib_stata / threshold) );
+                }
                 if ( st_info.verbose ) {
-                    memset (buffer, '\0', 32);
-                    sprintf (buffer, (st_info.J * mib_base > 1)? "%.1f": "%.2g", st_info.J * mib_base);
-                    sf_printf("Will write %lu extra targets to disk (full data = %'.1f MiB; collapsed data = %s MiB).\n",
-                              (size_t) k_extra, st_info.N * mib_base, buffer);
+                    // I had a cleaner way to do this, but it failed badly on Windows ):
+                    sf_printf("Will write %lu extra targets to disk (full data = %'.1f MiB; collapsed data = ",
+                              (size_t) k_extra, st_info.N * mib_base);
+                    sf_printf ((st_info.J * mib_base > 1)? "%.1f": "%.2g", st_info.J * mib_base);
+                    sf_printf(" MiB).\n");
 
-                    memset (buffer, '\0', 32);
-                    sprintf (buffer, (mib_stata > 1)? "%.1f": "%.2g", mib_stata);
-                    sf_printf("\tAdding targets before collapse estimated to take %s seconds.\n", buffer);
+                    sf_printf("\tAdding targets before collapse estimated to take ");
+                    sf_printf ((mib_stata > 1)? "%.1f": "%.2g", mib_stata);
+                    sf_printf(" seconds.\n");
 
-                    memset (buffer, '\0', 32);
-                    sprintf (buffer, (mib_cstata > 1)? "%.1f": "%.2g", mib_cstata);
-                    sf_printf("\tAdding targets after collapse estimated to take %s seconds.\n", buffer);
+                    sf_printf("\tAdding targets after collapse estimated to take ");
+                    sf_printf ((mib_cstata > 1)? "%.1f": "%.2g", mib_cstata);
+                    sf_printf(" seconds.\n");
 
-                    memset (buffer, '\0', 32);
-                    sprintf (buffer, (mib_c > 1)? "%.1f": "%.2g", mib_c);
-                    sf_printf("\tWriting/reading targets to/from disk estimated to take %s seconds.\n", buffer);
+                    sf_printf("\tWriting/reading targets to/from disk estimated to take ");
+                    sf_printf ((mib_c > 1)? "%.1f": "%.2g", mib_c);
+                    sf_printf(" seconds.\n");
                 }
 
                 if ( used_io ) {
@@ -184,7 +184,6 @@ STDLL stata_call(int argc, char *argv[])
                 if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
 
                 sf_free (&st_info);
-                free (buffer);
                 return (0);
             }
             else if ( strcmp(tostat, "ixfinish") == 0 ) {
@@ -365,34 +364,6 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     }
     else {
         checkhash = (int) checkhash_double;
-    }
-
-    // read_method
-    int read_method, read_method_multi;
-    ST_double read_method_double ;
-    if ( (rc = SF_scal_use("__gtools_read_method", &read_method_double)) ) {
-        return(rc) ;
-    }
-    else {
-        read_method = (int) read_method_double;
-    }
-
-    if ( read_method == 0 ) {
-        read_method = 1;
-        read_method_multi = 0;
-    }
-    else {
-        read_method_multi = read_method;
-    }
-
-    // Collapse method
-    int collapse_method;
-    ST_double coll_method_double ;
-    if ( (rc = SF_scal_use("__gtools_collapse_method", &coll_method_double)) ) {
-        return(rc) ;
-    }
-    else {
-        collapse_method = (int) coll_method_double;
     }
 
     // Verbose printing
@@ -668,9 +639,6 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->byvars_minlen       = byvars_minlen;
     st_info->byvars_maxlen       = byvars_maxlen;
     st_info->strmax              = strmax;
-    st_info->read_method         = read_method;
-    st_info->read_method_multi   = read_method_multi;
-    st_info->collapse_method     = collapse_method;
 
     if ( benchmark ) sf_running_timer (&timer, "\tPlugin step 1: stata parsing done");
     return (0);

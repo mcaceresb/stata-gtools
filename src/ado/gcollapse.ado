@@ -1,4 +1,4 @@
-*! version 0.5.2 15Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.0 16Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -25,13 +25,11 @@ program gcollapse
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
         debug_checkhash               /// (experimental) Check for hash collisions
-        debug_read_method(int 0)      /// (experimental) Choose a method for reading data from Stata
-        debug_collapse_method(int 0)  /// (experimental) Choose a method for collapsing the data
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
         debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
-    if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
+    * if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
 
     ***********************************************************************
     *                       Parsing syntax options                        *
@@ -57,8 +55,6 @@ program gcollapse
                 `debug_force_single'                           ///
                 `debug_force_multi'                            ///
                 `debug_checkhash'                              ///
-                debug_read_method(`debug_read_method')         ///
-                debug_collapse_method(`debug_collapse_method') ///
                                                                 //
 
     local multi       = "`r(muti)'"
@@ -71,8 +67,6 @@ program gcollapse
     scalar __gtools_verbose   = `verbose'
     scalar __gtools_benchmark = `benchmark'
     scalar __gtools_checkhash = `checkhash'
-    scalar __gtools_collapse_method = `r(collapse_method)'
-    scalar __gtools_read_method     = `r(read_method)'
 
     if ( `verbose'  | `benchmark' ) local noi noisily
 
@@ -285,10 +279,10 @@ program gcollapse
         scalar __gtools_io_thresh = `debug_io_threshold'
 
         * Collapse the data. If it will be faster to collapse to disk,
-        * this stores the results in ibinary format to `__gtools_file'.
+        * this stores the results in binary format to `__gtools_file'.
         * If it will be slower, then it stores the index and info
         * variabes in memory (it will be faster to pick up the execution
-        * from there then re-hash and re-sort).
+        * from there than re-hash and re-sort).
         cap `noi' `plugin_call' `plugvars', collapse index `"`__gtools_file'"'
         if ( _rc != 0 ) exit _rc
 
@@ -524,8 +518,6 @@ program gcollapse
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_checkhash
-    cap scalar drop __gtools_read_method
-    cap scalar drop __gtools_collapse_method
     cap scalar drop __gtools_k_extra
     cap scalar drop __gtools_k_recast
     cap scalar drop __gtools_used_io
@@ -591,8 +583,6 @@ program parse_opts, rclass
         debug_force_single           /// (experimental) Force non-multi-threaded version
         debug_force_multi            /// (experimental) Force muti-threading
         debug_checkhash              /// (experimental) Check for hash collisions
-        debug_read_method(int 0)     /// (experimental) Choose a method for reading data from Stata
-        debug_collapse_method(int 0) /// (experimental) Choose a method for collapsing the data
     ]
 
 
@@ -617,11 +607,16 @@ program parse_opts, rclass
     * Choose plugin version
     * ---------------------
 
-    cap `noi' plugin call gtoolsmulti_plugin, check
+    cap plugin call gtoolsmulti_plugin, check
     if ( _rc ) {
-        if ( `verbose'  ) di "(note: failed to load multi-threaded version; using fallback)"
+        if ( `verbose'  ) di as txt "(note: failed to load multi-threaded version; using fallback)"
         local plugin_call plugin call gtools_plugin
         local multi ""
+        cap `noi' plugin call gtools_plugin, check
+        if ( _rc ) {
+            di as err "Failed to load -gtools.plugin-"
+            exit 198
+        }
     }
     else {
         local plugin_call plugin call gtoolsmulti_plugin
@@ -634,50 +629,13 @@ program parse_opts, rclass
     if ( "`debug_force_multi'" != "" ) {
         di as txt "(warning: forcing multi-threaded version)"
         local multi multi
-        local debug_read_method     = 3
-        local debug_collapse_method = 2
         local plugin_call plugin call gtoolsmulti_plugin
     }
 
     if ( "`debug_force_single'" != "" ) {
         di as txt "(warning: forcing non-multi-threaded version)"
         local multi ""
-        * local debug_read_method = 1
-        local debug_collapse_method = 1
         local plugin_call plugin call gtools_plugin
-    }
-
-    * Parse reading method
-    * --------------------
-
-    if !inlist(`debug_read_method', 0, 1, 2, 3) {
-        di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped), 3 (parallel)"
-        exit 198
-    }
-    else if ( `debug_read_method' != 0 ) {
-        di as text "(warning: custom reading methods in beta)"
-        if ( ("`multi'" == "") & !inlist(`debug_read_method', 1, 2) ) {
-            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 2 (grouped)"
-            exit 198
-        }
-        if ( ("`multi'" != "") & !inlist(`debug_read_method', 1, 3) ) {
-            di as err "data copying method #`debug_read_method' unknown; available: 1 (sequential), 3 (parallel)"
-            exit 198
-        }
-    }
-
-    * Parse collapse method
-    * ---------------------
-
-    if !inlist(`debug_collapse_method', 0, 1, 2) {
-        di as err "data collapse method #`debug_collapse_method' unknown; available: 1 (sequential), 2 (parallel)"
-        exit 198
-    }
-    else if ( `debug_collapse_method' != 0 ) {
-        di as text "(warning: custom collapsing methods in beta)"
-        if ( "`multi'" == "" ) {
-            di "(note: data collapsing method only available for option -multi-)"
-        }
     }
 
     * Check hash collisions in C
@@ -696,8 +654,6 @@ program parse_opts, rclass
     return local verbose         = `verbose'
     return local benchmark       = `benchmark'
     return local checkhash       = `checkhash'
-    return local read_method     = `debug_read_method'
-    return local collapse_method = `debug_collapse_method'
 end
 
 * Parse summary stats and by variables
@@ -738,7 +694,7 @@ program parse_vars, rclass
 
             * TODO: The theory behind this is sound but it requires some
             * debugging for it to work correctly (since you can't do by `by'
-            * because it's not sorted. Debug and implement. // 2017-06-14 15:15 EDT
+            * because it's not sorted. Debug and implement). // 2017-06-14 15:15 EDT
             local indexed = 0
         }
         else {
@@ -1164,10 +1120,12 @@ end
 ***********************************************************************
 
 cap program drop gtools_plugin
-if inlist("`c(os)'", "Unix") program gtools_plugin, plugin using("gtools.plugin")
+* if inlist("`c(os)'", "Unix")
+program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 
 cap program drop gtoolsmulti_plugin
-if inlist("`c(os)'", "Unix") cap program gtoolsmulti_plugin, plugin using("gtools_multi.plugin")
+* if inlist("`c(os)'", "Unix")
+cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
 
 ***********************************************************************
 *       Parsing is adapted from Sergio Correia's fcollapse.ado        *

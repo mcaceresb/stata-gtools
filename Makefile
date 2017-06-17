@@ -42,11 +42,13 @@ AUX = build/stplugin.o
 
 # OpenMP only tested on Linux
 ifeq ($(OS),Windows_NT)
-all: clean links gtools cleandll
+all: clean links gtools
+else ifeq ($(EXECUTION),windows)
+all: clean links gtools
 else ifeq ($(UNAME_S),Darwin)
-all: clean links gtools cleandll
+all: clean links gtools
 else ifeq ($(UNAME_S),Linux)
-all: clean links gtools gtools_multi cleandll
+all: clean links gtools gtools_multi
 endif
 
 ifeq ($(OS),Windows_NT)
@@ -63,11 +65,15 @@ else ifeq ($(EXECUTION),windows)
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	mkdir -p ./lib/spookyhash/build
 else
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	mkdir -p ./lib/spookyhash/build
 endif
 
 spookytest:
@@ -85,6 +91,10 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p build
+	ls -lah ./lib/spookyhash/
+	ls -lah ./lib/spookyhash/build/
+	ls -lah ./lib/spookyhash/build/bin/
+	ls -lah ./lib/spookyhash/build/bin/Release/
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
@@ -92,10 +102,6 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 gtools_multi: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
-
-cleandll:
-	rm -f ./build/spookyhash.dll
-	rm -f ./lib/spookyhash/build/spookyhash.dll
 
 .PHONY: clean
 clean:

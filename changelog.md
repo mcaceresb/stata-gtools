@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-0.6.2 (2017-06-18)
+
+### Bug fixes
+
+- Forgot to commit new files in `./build`
+
 ## gtools-0.6.1 (2017-06-17)
 
 ### Bug fixes

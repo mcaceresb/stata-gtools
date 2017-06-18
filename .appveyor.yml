@@ -1,4 +1,4 @@
-version: "cygwin-{build}"
+version: "gtools-0.6.1-{build}"
 
 environment:
   matrix:

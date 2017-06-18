@@ -3,6 +3,12 @@
 
 capture program drop gtools
 program gtools
+    version 13
+    if inlist("`c(os)'", "MacOSX") {
+        di as err "Not available for `c(os)'."
+        exit 198
+    }
+
     syntax, [Dependencies Install_latest Upgrade replace dll hashlib(str)]
     local cwd `c(pwd)'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
@@ -105,4 +111,4 @@ program gtools
 end
 
 cap program drop env_set
-program env_set, plugin using("env_set.plugin")
+program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")

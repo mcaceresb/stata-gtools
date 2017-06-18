@@ -7,6 +7,7 @@ ifeq ($(OS),Windows_NT)
 	PREMAKE = premake5.exe
 	OUT = build/gtools_windows.plugin
 	OUTM =
+	OUTE = build/env_set_windows.plugin
 	OPENMP = -fopenmp -DGMULTI=1
 else
 	UNAME_S := $(shell uname -s)
@@ -14,12 +15,14 @@ else
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix.plugin  build/gtools.o
 		OUTM = build/gtools_unix_multi.plugin build/gtools_multi.o
+		OUTE = build/env_set_unix.plugin
 		SPOOKYLIB = -l:libspookyhash.a
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx.plugin
 		OUTM =
+		OUTE = build/env_set_macosx.plugin
 		SPOOKYLIB = -l:glibspookyhash.so
 	endif
 	GCC = gcc
@@ -33,6 +36,7 @@ ifeq ($(EXECUTION),windows)
 	GCC = x86_64-w64-mingw32-gcc
 	OUT = build/gtools_windows.plugin
 	OUTM =
+	OUTE = build/env_set_windows.plugin
 endif
 
 SPI = 2.0
@@ -40,7 +44,6 @@ SPT = 0.2
 CFLAGS = -Wall -O2 $(OSFLAGS)
 SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
-OUTE = build/env_set.plugin
 
 # OpenMP only tested on Linux
 ifeq ($(OS),Windows_NT)

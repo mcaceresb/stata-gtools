@@ -1,4 +1,4 @@
-*! version 0.6.1 17Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.3 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -12,10 +12,10 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    * if !inlist("`c(os)'", "MacOSX") {
-    *     di as err "Not available for `c(os)`."
-    *     exit 198
-    * }
+    if inlist("`c(os)'", "MacOSX") {
+        di as err "Not available for `c(os)'."
+        exit 198
+    }
 
     * Time the entire function execution
     {
@@ -549,7 +549,7 @@ end
 * ------------
 
 cap program drop env_set
-program env_set, plugin using("env_set.plugin")
+program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
 
 * Windows hack
 if ( "`c(os)'" == "Windows" ) {
@@ -561,14 +561,12 @@ if ( "`c(os)'" == "Windows" ) {
         di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
         exit _rc
     }
-    mata:
-        __gtools_hashpath = ""
-        __gtools_dll = ""
-        pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-        st_local("__gtools_hashpath", __gtools_hashpath)
-        mata drop __gtools_hashpath
-        mata drop __gtools_dll
-    end
+    mata: __gtools_hashpath = ""
+    mata: __gtools_dll = ""
+    mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+    mata: st_local("__gtools_hashpath", __gtools_hashpath)
+    mata: mata drop __gtools_hashpath
+    mata: mata drop __gtools_dll
     local path: env PATH
     if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
         local path = substr("`path'"', 1, length(`"`path'"') - 1)

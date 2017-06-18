@@ -12,7 +12,7 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    if !inlist("`c(os)'", "MacOSX") {
+    if inlist("`c(os)'", "MacOSX") {
         di as err "Not available for `c(os)'."
         exit 198
     }

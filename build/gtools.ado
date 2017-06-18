@@ -4,7 +4,7 @@
 capture program drop gtools
 program gtools
     version 13
-    if !inlist("`c(os)'", "MacOSX") {
+    if inlist("`c(os)'", "MacOSX") {
         di as err "Not available for `c(os)'."
         exit 198
     }

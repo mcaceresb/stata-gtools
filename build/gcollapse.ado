@@ -4,7 +4,7 @@
 capture program drop gcollapse
 program gcollapse
     version 13
-    if !inlist("`c(os)'", "MacOSX") {
+    if inlist("`c(os)'", "MacOSX") {
         di as err "Not available for `c(os)'."
         exit 198
     }

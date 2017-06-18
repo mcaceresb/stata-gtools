@@ -5,9 +5,10 @@ Change Log
 
 ### Bug fixes
 
-- Program now installs correctly from build folder on Windows. I had to
-  create a `gtools.ado` file and tell the user to run `gtools, dependencies`
-  to install spookyhash.dll so Stata can find it...
+- Program now installs correctly from build folder on Windows. I had
+  to add the assumed `spookyhash.dll` path to the system `PATH` at
+  eacah run. I also provide a `gtools.ado` file that allows the user to
+  troubleshoot some possible issues that may arise.
 
 ### Misc
 

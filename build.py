@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Tue May 16 06:12:25 EDT 2017
-# Updated: Sat Jun 17 00:28:51 EDT 2017
+# Updated: Sun Jun 18 15:18:20 EDT 2017
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -189,7 +189,7 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
-plugins = ["env_append.plugin",
+plugins = ["env_set.plugin",
            "gtools_unix.plugin",
            "gtools_unix_multi.plugin",
            "spookyhash.dll",

@@ -2,7 +2,7 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Thu Jun 15 15:55:21 EDT 2017
+ * Updated: Sun Jun 18 15:35:38 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.6.1
@@ -11,7 +11,7 @@
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 14 Jun 2017
+ * @date 18 Jun 2017
  * @brief Stata plugin for a faster -collapse- and -egen- implementation
  *
  * This file should only ever be called from gcollapse.ado or gegen.ado

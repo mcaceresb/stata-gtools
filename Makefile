@@ -40,7 +40,7 @@ SPT = 0.2
 CFLAGS = -Wall -O2 $(OSFLAGS)
 SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
-OUTE = build/env_append.plugin
+OUTE = build/env_set.plugin
 
 # OpenMP only tested on Linux
 ifeq ($(OS),Windows_NT)
@@ -98,7 +98,7 @@ gtools_other: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
 	mkdir -p ./lib/spookyhash/build/bin/Release
 	$(GCC) $(CFLAGS) -o $(OUT) src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
-	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_append.c
+	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 
 gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
@@ -108,7 +108,7 @@ gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
 	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
-	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_append.c
+	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 
 .PHONY: clean
 clean:

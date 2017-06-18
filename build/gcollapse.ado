@@ -1,9 +1,14 @@
-*! version 0.6.1 17Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.3 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
 program gcollapse
     version 13
+    if !inlist("`c(os)'", "MacOSX") {
+        di as err "Not available for `c(os)'."
+        exit 198
+    }
+
     syntax [anything(equalok)]        /// main call; must parse manually
         [if] [in] ,                   /// subset
     [                                 ///
@@ -30,10 +35,6 @@ program gcollapse
         debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
-    * if !inlist("`c(os)'", "MacOSX") {
-    *     di as err "Not available for `c(os)`."
-    *     exit 198
-    * }
 
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
@@ -1171,7 +1172,7 @@ end
 ***********************************************************************
 
 cap program drop env_set
-program env_set, plugin using("env_set.plugin")
+program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
 
 * Windows hack
 if ( "`c(os)'" == "Windows" ) {

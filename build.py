@@ -189,7 +189,9 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
-plugins = ["env_set.plugin",
+plugins = ["env_set_unix.plugin",
+           "env_set_windows.plugin",
+           "env_set_macosx.plugin",
            "gtools_unix.plugin",
            "gtools_unix_multi.plugin",
            "spookyhash.dll",

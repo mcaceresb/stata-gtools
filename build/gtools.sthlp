@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0 17Jun2017}{...}
+{* *! version 0.1.0 18Jun2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -35,6 +35,10 @@ before using any of the programs provided by gtools.
 {p_end}
 {synopt :{opt replace}}Replace dependencies if already found.
 {p_end}
+{synopt :{opt dll}}Add the assumed path to {it:spookyhash.dll} to the system {opt PATH} (Windows)
+{p_end}
+{synopt :{opth hashlib(str)}}Custom path to {it:spookyhash.dll}.
+{p_end}
 
 {synoptline}
 {p2colreset}{...}
@@ -47,10 +51,12 @@ before using any of the programs provided by gtools.
 {opt gtools} is a Stata package is a Stata package that provides a fast
 implementation of common group commands like collapse and egen using C
 plugins for a massive speed improvement. This program helps the user
-manage their gtools installation. While unnecessary in Linux, when trying
-to compile the plugin on Windows it became apparent that I would need
-to include a DLL with the package (in particular the DLL for the hash
-library). I don't know how to do this automatically, hence this script.
+manage their gtools installation. While unnecessary in Linux, when
+trying to compile the plugin on Windows it became apparent that I would
+need to include a DLL with the package (in particular the DLL for the
+hash library). While I try to do this automatically, I run into enough
+problems while developing the plugin that I felt compelled to include
+this program.
 
 {marker options}{...}
 {title:Options}
@@ -66,6 +72,15 @@ is required for the plugin to execute correctly.
 
 {phang}
 {opt install_latest} Alias for {opt upgrade}.
+
+{phang}
+{opt replace} Replace {it:spookyhash.dll} if already installed.
+
+{phang}
+{opt dll} Add path to {it:spookyhash.dll} to system path.
+
+{phang}
+{opth hashlib(str)}Custom path to {it:spookyhash.dll}.
 
 {marker author}{...}
 {title:Author}

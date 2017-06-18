@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-0.6.3 (2017-06-18)
+
+### Bug fixes
+
+- Forgot to provide OS-specific versions of `env_set` as well...
+
 ## gtools-0.6.2 (2017-06-18)
 
 ### Bug fixes

@@ -3,14 +3,15 @@ language: c
 env:
   global:
     - OMP_NUM_THREADS=4
-    - secure: "r3fJmDhN8A0Bai9iEHCTdNYQQPr8ytfp3m26xcbJ3fe5oLXMUUHLQNQrQbokFOiAJ7lEl5WHC7XnpMtAZfQPDUksOvs/5/Ltn61L0thiSUrA7Z1wr1n3L5VqcWSF8t4DSEJNeruWJOb0pVbDzFtNP9TdHs0obltqrYn97wRkG4jl8YKkBjenkBxayYxIfB6nxDdJfjWCscYUN6xMm4Lr9oYG2893ID8kkPUsPA65CiQ53v8UEQeEyjROLkowvI6jkosJ1DyJpMCO/PADsl6VmwrEutJ6+QaIjqjKa41/6epDplIlQxYec5gO6JMCUa3dSZMaGQeAyGL8WnqxAVPrR9K7VPgYgQEq7nKp+hLYJK4ypbO0CkXw5wfGoGdSGZlOr/3AZ6Z06cE06d+OCFCxrHg4kCkoXKuMTqB0CBDSvbFyuin6eWijEYwah+RMKb2uCdQEJhvItPyYYB6221bexqvtZ3dEvltgOuv+8AoA3fXFPF5dNWG0QprkUIRBI7m0Pc1O62iCwa+313TtUcTHv6Y/hXJsd9aNpvI7CKfic8RwzKYLHgYrTCrmSAjd+z3bhj57q015QRVLCwSkfU/JMBcwCZ2k4t/CvwqsvkvH5FKYIuKBMlOK4NCnsNK6mco66nYznnLyBPeiMkJl/qzydbHZp5UKxKbEcHpXYtTXk1I="
+    # - secure: "encrypted environment variable"
 
 compiler:
   - gcc
 
+# OSX build failing; wait until you get access to a Mac
 os:
   - linux
-  - osx
+  # - osx
 
 script:
   - cd lib/spookyhash/build

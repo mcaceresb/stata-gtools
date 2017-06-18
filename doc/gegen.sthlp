@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.0 16Jun2017}{...}
+{* *! version 0.6.1 17Jun2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -13,6 +13,10 @@
 
 {marker syntax}{...}
 {title:Syntax}
+
+{phang}
+{it:Note for Windows users}: Please run {opt gtools, dependencies}
+before using any of the programs provided by gtools.
 
 {p 8 14 2}
 {cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 

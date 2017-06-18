@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:21 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.0
+ * Version: 0.6.1
  *********************************************************************/
 
 /**
@@ -60,7 +60,6 @@ STDLL stata_call(int argc, char *argv[])
 
     if ( strcmp(todo, "check") == 0 ) {
         // Exit; if you're here the plugin was loaded fine
-        sf_printf ("(plugin -gtools- was loaded correctly)\n");
         return (0);
     }
     else if ( strcmp(todo, "collapse") == 0 ) {

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.0 16Jun2017}{...}
+{* *! version 0.6.1 17Jun2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -14,6 +14,10 @@ make dataset of summary statistics using C.{p_end}
 
 {marker syntax}{...}
 {title:Syntax}
+
+{phang}
+{it:Note for Windows users}: Please run {opt gtools, dependencies}
+before using any of the programs provided by gtools.
 
 {p 8 17 2}
 {cmd:gcollapse}

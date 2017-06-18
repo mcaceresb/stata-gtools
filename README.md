@@ -7,7 +7,7 @@
 | [FAQs](#faqs)
 | [License](#license)
 
-`version 0.6.0 16Jun2017`
+`version 0.6.1 17Jun2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -43,6 +43,7 @@ Installation
 I only have access to Stata 13.1, so I impose that to be the minimum.
 ```stata
 net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/build/)
+gtools, dependencies
 * adoupdate, update
 * ado uninstall gtools
 ```

@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-0.6.1 (2017-06-17)
+
+### Bug fixes
+
+- Program now installs correctly from build folder on Windows. I had to
+  create a `gtools.ado` file and tell the user to run `gtools, dependencies`
+  to install spookyhash.dll so Stata can find it...
+
+### Misc
+
+- Tried and failed to compile on OSX using Travis, but cleaned it up
+  enough that it will be easier to compile once I get access to OSX, if
+  ever. Windows version still OK.
+
 ## gtools-0.6.0 (2017-06-16)
 
 ### Features

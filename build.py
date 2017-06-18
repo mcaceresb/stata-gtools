@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Tue May 16 06:12:25 EDT 2017
-# Updated: Sat May 20 16:57:01 EDT 2017
+# Updated: Sat Jun 17 00:28:51 EDT 2017
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -66,7 +66,9 @@ gtools_ssc = [
     "gcollapse.ado",
     "gcollapse.sthlp",
     "gegen.ado",
-    "gegen.sthlp"
+    "gegen.sthlp",
+    "gtools.ado",
+    "gtools.sthlp"
 ]
 
 gtools_zip = [
@@ -139,6 +141,7 @@ if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Success!" if rc == 0 else "Failed.")
     if args['windows']:
         rc = system("make EXECUTION=windows clean")
+        rc = system("make EXECUTION=windows spooky")
         rc = system("make EXECUTION=windows")
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
@@ -173,8 +176,10 @@ copy2(path.join("src", "gtools.pkg"), gdir)
 copy2(path.join("src", "stata.toc"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"), gdir)
 copy2(path.join("src", "ado", "gegen.ado"), gdir)
+copy2(path.join("src", "ado", "gtools.ado"), gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
 copy2(path.join("doc", "gegen.sthlp"), gdir)
+copy2(path.join("doc", "gtools.sthlp"), gdir)
 
 # Copy files to .zip folder in ./releases
 # ---------------------------------------
@@ -184,7 +189,8 @@ with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
-plugins = ["gtools_unix.plugin",
+plugins = ["env_append.plugin",
+           "gtools_unix.plugin",
            "gtools_unix_multi.plugin",
            "spookyhash.dll",
            "gtools_windows.plugin",

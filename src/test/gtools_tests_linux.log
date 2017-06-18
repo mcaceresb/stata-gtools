@@ -4,10 +4,6 @@
   log type:  text
  opened on:  18 Jun 2017, 16:56:58
 
-. do /home/mauricio/code/stata-gtools/gtools_tests.do
-file /home/mauricio/code/stata-gtools/gtools_tests.do not found
-r(601);
-
 . do /home/mauricio/code/stata-gtools/build/gtools_tests.do
 
 . * ---------------------------------------------------------------------

@@ -1,9 +1,9 @@
-v 0.6.0
+v 0.6.1
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d
-d This package provides C-based implementations of Stata's -egen- and
-d collapse via -gegen- and -gcollapse- via Stata plugins. I got the
+d This package provides C-based implementations of Stata's -collapse-
+d and -egen- via -gcollapse- and -gegen- using Stata plugins. I got the
 d original idea after finding Sergio Correia's ftools.
 d
 d KW: gtools
@@ -17,17 +17,16 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20170616
-d
-d Planned: gtools_macosx.plugin
-d Planned: gtools_macosx_multi.plugin
+d Distribution-Date: 20170618
 d
 f gcollapse.ado
 f gcollapse.sthlp
 f gegen.ado
 f gegen.sthlp
+f gtools.ado
+f gtools.sthlp
 f gtools_unix.plugin
 f gtools_unix_multi.plugin
-f spookyhash.dll
 f gtools_windows.plugin
-f gtools_windows_multi.plugin
+f env_set.plugin
+F spookyhash.dll

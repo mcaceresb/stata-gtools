@@ -5,8 +5,8 @@ ifeq ($(OS),Windows_NT)
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	PREMAKE = premake5.exe
-	OUT = build/gtools_windows.plugin  build/gtools.o
-	OUTM = build/gtools_windows_multi.plugin build/gtools_multi.o
+	OUT = build/gtools_windows.plugin
+	OUTM =
 	OPENMP = -fopenmp -DGMULTI=1
 else
 	UNAME_S := $(shell uname -s)
@@ -14,13 +14,14 @@ else
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix.plugin  build/gtools.o
 		OUTM = build/gtools_unix_multi.plugin build/gtools_multi.o
+		SPOOKYLIB = -l:libspookyhash.a
 	endif
 	ifeq ($(UNAME_S),Darwin)
-		OSFLAGS = -shared -bundle -DSYSTEM=APPLEMAC
-		OUT = build/gtools_macosx.plugin  build/gtools.o
-		OUTM = build/gtools_macosx_multi.plugin build/gtools_multi.o
+		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
+		OUT = build/gtools_macosx.plugin
+		OUTM =
+		SPOOKYLIB = -l:glibspookyhash.so
 	endif
-	SPOOKYLIB = -l:libspookyhash.a
 	GCC = gcc
 	PREMAKE = premake5
 	OPENMP = -fopenmp -DGMULTI=1
@@ -30,8 +31,8 @@ ifeq ($(EXECUTION),windows)
 	SPOOKYLIB = -l:spookyhash.dll
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
-	OUT = build/gtools_windows.plugin  build/gtools.o
-	OUTM = build/gtools_windows_multi.plugin build/gtools_multi.o
+	OUT = build/gtools_windows.plugin
+	OUTM =
 endif
 
 SPI = 2.0
@@ -39,8 +40,18 @@ SPT = 0.2
 CFLAGS = -Wall -O2 $(OSFLAGS)
 SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
+OUTE = build/env_set.plugin
 
-all: clean links gtools
+# OpenMP only tested on Linux
+ifeq ($(OS),Windows_NT)
+all: clean links gtools_other
+else ifeq ($(EXECUTION),windows)
+all: clean links gtools_other
+else ifeq ($(UNAME_S),Darwin)
+all: clean links gtools_other
+else ifeq ($(UNAME_S),Linux)
+all: clean links gtools_nix
+endif
 
 ifeq ($(OS),Windows_NT)
 spooky:
@@ -51,12 +62,19 @@ spooky:
 	     "\n    cd lib\\\\spookyhash\\\\build" \
 	     "\n    $(PREMAKE) vs2013" \
 	     "\n    msbuild SpookyHash.sln" \
-	     "\nSee 'Compiling on Windows' in README.md for details."
+	     "\nSee 'Building#Troubleshooting' in README.md for details."
 else ifeq ($(EXECUTION),windows)
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-else
+else ifeq ($(UNAME_S),Darwin)
+spooky:
+	cd lib/spookyhash/build && $(PREMAKE) gmake
+	cd lib/spookyhash/build && make clean
+	cd lib/spookyhash/build && make
+	mkdir -p ./build
+	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/glibspookyhash.so
+else ifeq ($(UNAME_S),Linux)
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
 	cd lib/spookyhash/build && make clean
@@ -76,21 +94,22 @@ links:
 	ln -sf lib/spi-$(SPI) src/plugin/spi
 	ln -sf lib/spookyhash src/plugin/spookyhash
 
-gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
-	mkdir -p build
-	ls -lah ./lib/
-	ls -lah ./build/
-	ls -lah ./lib/windows/
-	ls -lah ./lib/spookyhash/
-	ls -lah ./lib/spookyhash/build/
-	$(GCC) $(CFLAGS) -c -o build/stplugin.o      src/plugin/spi/stplugin.c
-	$(GCC) $(CFLAGS) -c -o build/gtools.o        src/plugin/gtools.c
-	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
+gtools_other: src/plugin/gtools.c src/plugin/spi/stplugin.c
+	mkdir -p ./build
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	$(GCC) $(CFLAGS) -o $(OUT) src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
+	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
+
+gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
+	mkdir -p ./build
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	$(GCC) $(CFLAGS) -c -o build/stplugin.o src/plugin/spi/stplugin.c
+	$(GCC) $(CFLAGS) -c -o build/gtools.o   src/plugin/gtools.c
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
+	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
-	rm -f ./build/spookyhash.dll
-	rm -f ./lib/spookyhash/build/spookyhash.dll
+	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 
 .PHONY: clean
 clean:
-	rm -f $(OUT) $(OUTM) $(AUX)
+	rm -f $(OUT) $(OUTM) $(OUTE) $(AUX)

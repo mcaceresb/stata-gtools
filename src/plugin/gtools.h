@@ -2,6 +2,8 @@
 #define GTOOLS
 
 // Libraries
+// ---------
+
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
@@ -14,28 +16,8 @@
 #include <inttypes.h>
 #include <sys/types.h>
 
-// statvfs is POSIX only; repalce with dummies on windows
-#if defined(_WIN64) || defined(_WIN32)
-#define QUERY_FREE_SPACE 0
-struct statvfs {
-    int f_bsize;
-    int f_bfree;
-};
-void statvfs (char *path, struct statvfs *info);
-void statvfs (char *path, struct statvfs *info)
-{
-    info->f_bsize = 0;
-    info->f_bfree = 0;
-}
-char * strndup (const char *s, size_t n);
-char * strndup (const char *s, size_t n)
-{
-  return (char *) strdup (s);
-}
-#else
-#define QUERY_FREE_SPACE 1
-#include <sys/statvfs.h>
-#endif
+// Definitions
+// -----------
 
 // Number of bits to sort each pass of the radix sort
 #define RADIX_SHIFT 16
@@ -75,10 +57,43 @@ struct StataInfo {
     char *statstr;
 };
 
+// Main programs in gtools
 int  sf_parse_info  (struct StataInfo *st_info, int level);
 int  sf_hash_byvars (struct StataInfo *st_info);
 void sf_free        (struct StataInfo *st_info);
 int  sf_numsetup    ();
 int  sf_anyobs_sel  ();
+
+// Windows-specific foo
+// --------------------
+
+#if defined(_WIN64) || defined(_WIN32)
+
+// statvfs is POSIX only; repalce with dummies on windows
+#define QUERY_FREE_SPACE 0
+struct statvfs {
+    int f_bsize;
+    int f_bfree;
+};
+void statvfs (char *path, struct statvfs *info);
+void statvfs (char *path, struct statvfs *info)
+{
+    info->f_bsize = 0;
+    info->f_bfree = 0;
+}
+char * strndup (const char *s, size_t n);
+char * strndup (const char *s, size_t n)
+{
+  return (char *) strdup (s);
+}
+
+#else
+
+// Use statvfs to query free space in tmp drive
+#define QUERY_FREE_SPACE 1
+#include <sys/statvfs.h>
+
+#endif
+
 
 #endif

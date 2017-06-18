@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+## gtools-0.6.1 (2017-06-17)
+
+### Bug fixes
+
+- Program now installs correctly from build folder on Windows. I had
+  to add the assumed `spookyhash.dll` path to the system `PATH` at
+  eacah run. I also provide a `gtools.ado` file that allows the user to
+  troubleshoot some possible issues that may arise.
+
+### Misc
+
+- Tried and failed to compile on OSX using Travis, but cleaned it up
+  enough that it will be easier to compile once I get access to OSX, if
+  ever. Windows version still OK.
+
 ## gtools-0.6.0 (2017-06-16)
 
 ### Features

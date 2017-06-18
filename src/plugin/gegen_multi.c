@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:54:53 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.0
+ * Version: 0.6.1
  *********************************************************************/
 
 #include <omp.h>
@@ -313,7 +313,7 @@ int sf_egen_tag (struct StataInfo *st_info)
     clock_t timer = clock();
 
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
-    size_t *firstj = calloc(st_info->J, sizeof *firstj);
+    uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
 
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in
@@ -383,7 +383,7 @@ int sf_egen_group (struct StataInfo *st_info)
     clock_t timer = clock();
 
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
-    size_t *firstj = calloc(st_info->J, sizeof *firstj);
+    uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
 
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in

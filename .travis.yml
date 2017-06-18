@@ -1,16 +1,24 @@
 language: c
+
 env:
   global:
     - OMP_NUM_THREADS=4
-compiler: gcc
+    # - secure: "encrypted environment variable"
+
+compiler:
+  - gcc
+
+# OSX build failing; wait until you get access to a Mac
+os:
+  - linux
+  # - osx
 
 script:
   - cd lib/spookyhash/build
-  - wget https://github.com/premake/premake-core/releases/download/v5.0.0.alpha4/premake-5.0.0.alpha4-linux.tar.gz
-  - tar zxvf premake-5.0.0.alpha4-linux.tar.gz
+  - ../../travis_build_premake.sh
   - ./premake5 gmake
   - make clean
   - ALL_CFLAGS+=-fPIC make
-  # - ./spookyhash-test
   - cd -
   - make clean && make
+  # - ./lib/travis_build_push.sh

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Jun 14 19:14:56 EDT 2017
+* Updated: Fri Jun 16 17:37:39 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.0
+* Version: 0.6.1
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -15,7 +15,6 @@ version 13
 clear all
 set more off
 set varabbrev off
-capture log close _all
 * set seed 42
 set seed 1729
 set linesize 128

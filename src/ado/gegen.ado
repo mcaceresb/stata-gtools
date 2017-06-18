@@ -1,4 +1,4 @@
-*! version 0.6.0 16Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.1 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -12,7 +12,10 @@
 capture program drop gegen
 program define gegen, byable(onecall)
     version 13
-    * if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
+    * if !inlist("`c(os)'", "MacOSX") {
+    *     di as err "Not available for `c(os)`."
+    *     exit 198
+    * }
 
     * Time the entire function execution
     {
@@ -73,6 +76,7 @@ program define gegen, byable(onecall)
         Verbose                  /// debugging
         Benchmark                /// print benchmark info
         smart                    /// check if data is sorted to speed up hashing
+        hashlib(str)             /// path to hash library (Windows only)
                                  ///
         debug_force_single       /// (experimental) Force non-multi-threaded version
         debug_force_multi        /// (experimental) Force muti-threading
@@ -102,8 +106,53 @@ program define gegen, byable(onecall)
     }
     if ( `verbose'  | `benchmark' ) local noi noisily
 
-    * Choose plugin version
-    * ---------------------
+    * Check you will find the hash library (Windows only)
+    * ---------------------------------------------------
+
+    if ( "`hashlib'" == "" ) {
+        local hashlib `c(sysdir_plus)'s/spookyhash.dll
+        local hashusr 0
+    }
+    else local hashusr 1
+    if ( ("`c(os)'" == "Windows") & `hashusr' ) {
+        cap confirm file spookyhash.dll
+        if ( _rc | `hashusr' ) {
+            cap findfile spookyhash.dll
+            if ( _rc | `hashusr' ) {
+                cap confirm file `"`hashlib'"'
+                if ( _rc ) {
+                    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+                    local url `url'/master/spookyhash.dll
+                    di as err `"'`hashlib'' not found."'
+                    di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
+                    exit _rc
+                }
+            }
+            else local hashlib `r(fn)'
+            cap findfile spookyhash.dll
+            mata: __gtools_hashpath = ""
+            mata: __gtools_dll = ""
+            mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
+            mata: st_local("__gtools_hashpath", __gtools_hashpath)
+            mata: mata drop __gtools_hashpath
+            mata: mata drop __gtools_dll
+            local path: env PATH
+            if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+            }
+            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+            if ( _rc ) {
+                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+                exit _rc
+            }
+        }
+        else local hashlib spookyhash.dll
+    }
+    scalar __gtools_l_hashlib = length(`"`hashlib'"')
+
+    * Check plugin loads
+    * ------------------
 
     cap plugin call gtoolsmulti_plugin, check
     if ( _rc ) {
@@ -111,10 +160,15 @@ program define gegen, byable(onecall)
         local plugin_call plugin call gtools_plugin
         local multi ""
         cap `noi' plugin call gtools_plugin, check
-        if ( _rc ) {
+        if ( _rc == 42001 ) {
+            di as err "Unable to load spookyhash.dll; plugin will not load on Windows."
+            exit 198
+        }
+        else if ( _rc ) {
             di as err "Failed to load -gtools.plugin-"
             exit 198
         }
+        else di as txt "(plugin -gtools- was loaded correctly)"
     }
     else {
         local plugin_call plugin call gtoolsmulti_plugin
@@ -398,6 +452,7 @@ program define gegen, byable(onecall)
     * Clean up after yourself
     * -----------------------
 
+    cap scalar drop __gtools_l_hashlib
     cap scalar drop __gtools_indexed
     cap scalar drop __gtools_l_stats
     cap scalar drop __gtools_benchmark
@@ -493,10 +548,44 @@ end
 * Load plugins
 * ------------
 
+cap program drop env_set
+program env_set, plugin using("env_set.plugin")
+
+* Windows hack
+if ( "`c(os)'" == "Windows" ) {
+    cap findfile spookyhash.dll
+    if ( _rc ) {
+        local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+        local url `url'/master/spookyhash.dll
+        di as err `"'`hashlib'' not found."'
+        di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
+        exit _rc
+    }
+    mata:
+        __gtools_hashpath = ""
+        __gtools_dll = ""
+        pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+        st_local("__gtools_hashpath", __gtools_hashpath)
+        mata drop __gtools_hashpath
+        mata drop __gtools_dll
+    end
+    local path: env PATH
+    if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+        local path = substr("`path'"', 1, length(`"`path'"') - 1)
+    }
+    local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+    cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+    if ( _rc ) {
+        cap confirm file spookyhash.dll
+        if ( _rc ) {
+            di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+            exit _rc
+        }
+    }
+}
+
 cap program drop gtools_plugin
-* if inlist("`c(os)'", "Unix")
 program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 
 cap program drop gtoolsmulti_plugin
-* if inlist("`c(os)'", "Unix")
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')

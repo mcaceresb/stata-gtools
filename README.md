@@ -7,24 +7,24 @@
 | [FAQs](#faqs)
 | [License](#license)
 
-`version 0.6.0 16Jun2017`
-Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
-Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
-
 _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
+`version 0.6.1 17Jun2017`
+Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+
 Faster Stata for Group Operations
 ---------------------------------
 
-This is currently a beta release. This package's aim is to provide a
-fast implementation of group commands in Stata using C plugins. At
-the moment, the package's main feature is a faster implementation
-of `collapse`, called `gcollapse`, that is also faster than Sergio
-Correia's `fcollapse` from `ftools` (further, group variables can be
-a mix of string and numeric, like `collapse`). It also provides some
-(limited) support for by-able `egen` functions via `gegen`.
+This package's aim is to provide a fast implementation of group commands
+in Stata using C plugins. At the moment, the package's main feature
+is a faster implementation of `collapse`, called `gcollapse`, that is
+also faster than Sergio Correia's `fcollapse` from `ftools` (further,
+group variables can be a mix of string and numeric, like `collapse`). It
+also provides some (limited) support for by-able `egen` functions via
+`gegen`.
 
 In our benchmarks, `gcollapse` was 5 to 120 times faster than `collapse`
 and 3 to 20 times faster than `fcollapse` (the speed gain is smaller for
@@ -34,8 +34,8 @@ data and sorting the hash is a lot faster than sorting the data before
 processing it by group. Second, compiled C code is much faster than
 Stata commands.
 
-The current beta release only provides Unix (Linux) and Windows versions
-of the C plugin. An OSX version is planned for a future release.
+The current release only provides Unix (Linux) and Windows versions of
+the C plugin. An OSX version is planned for a future release.
 
 Installation
 ------------
@@ -47,8 +47,7 @@ net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtool
 * ado uninstall gtools
 ```
 
-The syntax is identical to `collapse`, except the current release does
-not support weights
+The syntax is identical to `collapse`, except weights are not yet supported:
 ```stata
 gcollapse (stat) target = source [(stat) target = source ...], by(varlist)
 gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar)
@@ -241,7 +240,7 @@ program will work as expected. If successful, the exit message should be
 ### Troubleshooting
 
 If you are on OSX, you will have to compile the plugin yourself.
-It is likely that after installing the dependencies, all you need
+It is possible that after installing the dependencies, all you need
 to do is run `make`, but I cannot guarantee that will be the case
 since I have not tested it myself.
 
@@ -254,17 +253,39 @@ have any missing libraries.
 
 Loading the plugin on Windows is a bit trickier. While I eventually
 got the plugin to work, it is possible for it to compile but fail to
-load. As best I can tell, all will be fine as long as you use the MinGW
-version of gcc and SpookyHash was built using visual studio. (i.e.
-`x86_64-w64-mingw32-gcc` instead of `gcc` in cygwin for the plugin;
-`premake5 vs2013` and `msbuild SpookyHash.sln` for SpookyHash, though
-you can find the dll pre-built in `./lib/windows/spookyhash.dll`).
+load. One very possible reason for this is that Stata cannot find the
+SpookyHash library, `spookyhash.dll` (Stata does not look in the ado
+path by default, just the current directory and the system path). I keep
+a copy in `./lib/windows` but the user can also run
+```
+gtools, dependencies
+```
 
-If you are re-compiling SpookyHash, you have to force `premake5` to
-generate project files for a 64-bit version only (otherwise `gcc` will
-complain about compatibility issues). Further, the target folder has not
-always been consistent in testing. While this may be due to an error on
-my part, I have found the compiled `spookyhash.dll` in
+If that does not do the trick, run
+```
+gtools, dll
+```
+
+before calling `gcollapse` and `gegen` (should only be required
+once per script/interactive session). Alternatively, you can keep
+`spookyhash.dll` in the working directory or run your commands with
+`hashlib()`. For example,
+```
+gcollapse (sum) varlist, by(varlist) hashlib(C:\path\to\spookyhash.dll)
+```
+
+Other than that, as best I can tell, all will be fine as long
+as you use the MinGW version of gcc and SpookyHash was built
+using visual studio. (i.e. `x86_64-w64-mingw32-gcc` instead of
+`gcc` in cygwin for the plugin; `premake5 vs2013` and `msbuild
+SpookyHash.sln` for SpookyHash, though you can find the dll pre-built in
+`./lib/windows/spookyhash.dll`, as I mentioned).
+
+If you are set on re-compiling SpookyHash, you have to force `premake5`
+to generate project files for a 64-bit version only (otherwise `gcc`
+will complain about compatibility issues). Further, the target folder
+has not always been consistent in testing. While this may be due to an
+error on my part, I have found the compiled `spookyhash.dll` in
 - `./lib/spookyhash/build/bin`
 - `./lib/spookyhash/build/bin/x86_64/Release`
 - `./lib/spookyhash/build/bin/Release`
@@ -340,14 +361,15 @@ not make their ISO available, as best I can tell.
 
 Feel free to try and compile this for OSX. There's likely minimal
 tinkering to be done beyond installing the dependencies. I'm happy to
-take pull requests!
+take pull requests! If you try to compile the plugin yourself, make sure
+`./build/gtools_tests.do` runs without errors and that you include the
+resulting `./build/gtools_tests_macosx.log` in the request.
 
-### My OS has a 32-bit CPU
+### My computer has a 32-bit CPU
 
 This uses 128-bit hashes split into 2 64-bit parts. As far as I know, it
 will not work with a 32-bit processor. If you try to force it to run,
-you will almost surely see integer overflows and pretty bad errors will
-followit.
+you will almost surely see integer overflows and pretty bad errors.
 
 ### Why can't the function do weights?
 
@@ -447,8 +469,9 @@ J to be small, they can force collapsing to disk via `forceio`.
 
 ### TODO
 
-- [ ] Add support for weights.
 - [ ] Compile for OSX.
+- [ ] Add support for weights.
+- [ ] Implement sorting on C.
 - [ ] Implement all by-able `egen` functions.
 
 License

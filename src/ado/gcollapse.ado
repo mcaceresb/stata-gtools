@@ -1,4 +1,4 @@
-*! version 0.6.0 16Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.1 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -20,6 +20,7 @@ program gcollapse
         double                        /// do all operations in double precision
         forceio                       /// use disk temp drive for writing/reading collapsed data
         forcemem                      /// use memory for writing/reading collapsed data
+        hashlib(str)                  /// path to hash library (Windows only)
                                       /// greedy /// (Planned) skip the memory-saviung recasts and drops
                                       ///
         debug_force_single            /// (experimental) Force non-multi-threaded version
@@ -29,7 +30,54 @@ program gcollapse
         debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
-    * if !inlist("`c(os)'", "Unix") di as err "Not available for `c(os)`, only Unix."
+    * if !inlist("`c(os)'", "MacOSX") {
+    *     di as err "Not available for `c(os)`."
+    *     exit 198
+    * }
+
+    * Check you will find the hash library (Windows only)
+    * ---------------------------------------------------
+
+    if ( "`hashlib'" == "" ) {
+        local hashlib `c(sysdir_plus)'s/spookyhash.dll
+        local hashusr 0
+    }
+    else local hashusr 1
+    if ( ("`c(os)'" == "Windows") & `hashusr' ) {
+        cap confirm file spookyhash.dll
+        if ( _rc | `hashusr' ) {
+            cap findfile spookyhash.dll
+            if ( _rc | `hashusr' ) {
+                cap confirm file `"`hashlib'"'
+                if ( _rc ) {
+                    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+                    local url `url'/master/spookyhash.dll
+                    di as err `"'`hashlib'' not found."'
+                    di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
+                    exit 198
+                }
+            }
+            else local hashlib `r(fn)'
+            mata: __gtools_hashpath = ""
+            mata: __gtools_dll = ""
+            mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
+            mata: st_local("__gtools_hashpath", __gtools_hashpath)
+            mata: mata drop __gtools_hashpath
+            mata: mata drop __gtools_dll
+            local path: env PATH
+            if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+            }
+            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+            if ( _rc ) {
+                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+                exit _rc
+            }
+        }
+        else local hashlib spookyhash.dll
+    }
+    scalar __gtools_l_hashlib = length(`"`hashlib'"')
 
     ***********************************************************************
     *                       Parsing syntax options                        *
@@ -51,11 +99,12 @@ program gcollapse
     }
 
     * Parse options (no variable manupulation)
-    parse_opts, `verbose' `benchmark'                          ///
-                `debug_force_single'                           ///
-                `debug_force_multi'                            ///
-                `debug_checkhash'                              ///
-                                                                //
+    parse_opts, `verbose' `benchmark'  ///
+                hashlib(`hashlib')     ///
+                `debug_force_single'   ///
+                `debug_force_multi'    ///
+                `debug_checkhash'      ///
+                                        //
 
     local multi       = "`r(muti)'"
     local plugin_call = "`r(plugin_call)'"
@@ -502,6 +551,7 @@ program gcollapse
     cap mata: mata drop gtools_pos
     cap mata: mata drop gtools_io_order
 
+    cap scalar drop __gtools_l_hashlib
     cap scalar drop __gtools_indexed
     cap scalar drop __gtools_J
     cap scalar drop __gtools_k_uniq_stats
@@ -576,13 +626,14 @@ end
 
 capture program drop parse_opts
 program parse_opts, rclass
-    syntax,                          ///
-    [                                ///
-        Verbose                      /// debugging
-        Benchmark                    /// print benchmark info
-        debug_force_single           /// (experimental) Force non-multi-threaded version
-        debug_force_multi            /// (experimental) Force muti-threading
-        debug_checkhash              /// (experimental) Check for hash collisions
+    syntax,                ///
+    [                      ///
+        Verbose            /// debugging
+        Benchmark          /// print benchmark info
+        hashlib(str)       ///
+        debug_force_single /// (experimental) Force non-multi-threaded version
+        debug_force_multi  /// (experimental) Force muti-threading
+        debug_checkhash    /// (experimental) Check for hash collisions
     ]
 
 
@@ -1119,12 +1170,46 @@ end
 *                         Define the plugins                          *
 ***********************************************************************
 
+cap program drop env_set
+program env_set, plugin using("env_set.plugin")
+
+* Windows hack
+if ( "`c(os)'" == "Windows" ) {
+    cap findfile spookyhash.dll
+    if ( _rc ) {
+        local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+        local url `url'/master/spookyhash.dll
+        di as err `"'`hashlib'' not found."'
+        di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
+        exit _rc
+    }
+    mata:
+        __gtools_hashpath = ""
+        __gtools_dll = ""
+        pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+        st_local("__gtools_hashpath", __gtools_hashpath)
+        mata drop __gtools_hashpath
+        mata drop __gtools_dll
+    end
+    local path: env PATH
+    if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+        local path = substr("`path'"', 1, length(`"`path'"') - 1)
+    }
+    local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+    cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+    if ( _rc ) {
+        cap confirm file spookyhash.dll
+        if ( _rc ) {
+            di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+            exit _rc
+        }
+    }
+}
+
 cap program drop gtools_plugin
-* if inlist("`c(os)'", "Unix")
 program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 
 cap program drop gtoolsmulti_plugin
-* if inlist("`c(os)'", "Unix")
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
 
 ***********************************************************************

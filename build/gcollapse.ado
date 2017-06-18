@@ -1184,14 +1184,12 @@ if ( "`c(os)'" == "Windows" ) {
         di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
         exit _rc
     }
-    mata:
-        __gtools_hashpath = ""
-        __gtools_dll = ""
-        pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-        st_local("__gtools_hashpath", __gtools_hashpath)
-        mata drop __gtools_hashpath
-        mata drop __gtools_dll
-    end
+    mata: __gtools_hashpath = ""
+    mata: __gtools_dll = ""
+    mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+    mata: st_local("__gtools_hashpath", __gtools_hashpath)
+    mata: mata drop __gtools_hashpath
+    mata: mata drop __gtools_dll
     local path: env PATH
     if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
         local path = substr("`path'"', 1, length(`"`path'"') - 1)

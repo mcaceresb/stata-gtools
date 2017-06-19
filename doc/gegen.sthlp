@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.3 18Jun2017}{...}
+{* *! version 0.7.0 18Jun2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}

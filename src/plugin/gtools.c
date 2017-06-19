@@ -5,7 +5,7 @@
  * Updated: Sun Jun 18 15:35:38 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.3
+ * Version: 0.6.4
  *********************************************************************/
 
 /**
@@ -464,11 +464,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
         if (kvars_by > 1) {
             integers_ok = 1;
             size_t worst = st_info->byvars_maxs[0] - st_info->byvars_mins[0] + 1;
-            size_t range = st_info->byvars_maxs[1] - st_info->byvars_mins[1] + (1 < (kvars_by - 1));
+            // I cannot quite recall why I was only adding 1 from the
+            // third variable onward, but in case you feel the urge to
+            // do it again, just remember this causes a nasry crash due
+            // to division by 0 when the second variable has only one value.
+            // size_t range = st_info->byvars_maxs[1] - st_info->byvars_mins[1] + (1 < (kvars_by - 1));
+            size_t range = st_info->byvars_maxs[1] - st_info->byvars_mins[1] + 1;
             for (k = 1; k < kvars_by; k++) {
                 if ( worst > (ULONG_MAX / range)  ) {
                     if ( verbose ) sf_printf("By variables all intergers but bijection could fail! Won't risk it.\n");
-                    integers_ok  = 0;
+                    integers_ok = 0;
                     break;
                 }
                 else {
@@ -651,6 +656,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
  */
 int sf_hash_byvars (struct StataInfo *st_info)
 {
+
     ST_retcode rc ;
     ST_double z ;
     int i, j;

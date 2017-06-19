@@ -11,9 +11,9 @@ _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
-`version 0.6.3 18Jun2017`
-Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
-Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+`version 0.6.4 18Jun2017`
+Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Group Operations
 ---------------------------------
@@ -177,7 +177,7 @@ collapsing):
 `fcollapse` did better for a modest numbers of groups, but it performed
 poorly for very few groups and for a large number of groups. Overall
 `gcollapse` was 7-16 times faster. I have not benchmarked `collapsed`
-against version `0.6.0` in this case because each run will take over
+against version `0.6.4` in this case because each run will take over
 an hour and have not found the time. I ran a "smaller" version of this
 benchmark: Vary J for N = 5,000,000
 ```

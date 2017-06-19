@@ -296,8 +296,9 @@ int sf_get_varlist_bijection (
     size_t offsets[K];
     int i, k;
 
+    offsets[0] = 0;
     for (k = 0; k < K - 1; k++) {
-        offset *= maxs[k] - mins[k] + 1;
+        offset *= (maxs[k] - mins[k] + 1);
         offsets[k + 1] = offset;
     }
 
@@ -313,7 +314,7 @@ int sf_get_varlist_bijection (
             if ( SF_is_missing(z) ) z = maxs[k];
             h1[i] += (z - mins[k]) * offsets[k];
         }
-        // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
+        sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
     }
 
     return (0);

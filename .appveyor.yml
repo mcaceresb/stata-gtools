@@ -1,4 +1,4 @@
-version: "gtools-0.6.3-{build}"
+version: "gtools-0.6.4-{build}"
 
 environment:
   matrix:

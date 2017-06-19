@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:54:37 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.3
+ * Version: 0.6.4
  *********************************************************************/
 
 #include "gcollapse.h"

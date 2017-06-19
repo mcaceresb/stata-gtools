@@ -1,4 +1,4 @@
-v 0.6.3
+v 0.6.4
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d

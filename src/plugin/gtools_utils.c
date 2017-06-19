@@ -124,7 +124,6 @@ double mf_benchmark (char *fname)
     size_t kw   = k2 - k1;
     size_t J    = 64 * KiB;
     srand(time(NULL));
-    setlocale (LC_ALL, "");
 
     double *A = calloc(J * k2, sizeof *A);
     double *B = calloc(J * kw, sizeof *A);

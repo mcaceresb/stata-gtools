@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.6.4 (2017-06-18)
+
+### Bug fixes
+
+- On windows, when all variables are numeric and the second variable
+  is constant, there used to be a division by 0 crash. This was fixed.
+
 ## gtools-0.6.3 (2017-06-18)
 
 ### Bug fixes

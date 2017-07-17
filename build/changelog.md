@@ -1,6 +1,27 @@
 Change Log
 ==========
 
+## gtools-0.6.5 (2017-06-18)
+
+### Features
+
+* The function now checks numerical variabes to see if they are integers.
+  Working with integers is faster than hashing.
+* The function is now smarter about generating targets. In prior versions,
+  when the target statistic was a sum the function would force the target
+  type to be `double`. Now if the source already exists and is a float, the
+  function now checks if the resultimg sum would overflow. It will only
+  recast the source as double for collapsing if the sum might overflow, that
+  is, if `_N * min < -10^38` or `10^38 < _N * max` (note +/- 10^38 are the
+  largest/smallest floats stata can represent; see `help data_types`).
+
+### Bug fixes
+
+* Fixed bug where Stata crashes when it can no longer allocate memory. It now
+  exists with error.
+* In Windows, `gcollapse` and `gegen` now check whether `spookyhash.dll` can be
+  found before trying to modify the `PATH` environment variable.
+
 ## gtools-0.6.4 (2017-06-18)
 
 ### Bug fixes
@@ -348,7 +369,7 @@ Change Log
 
 ### Features
 
-* `gcollapse` `smart` option indexes thye data based on the sorted groups
+* `gcollapse` `smart` option indexes the data based on the sorted groups
   so no hashing and sorting is necessary. It no longer calls `collapse`,
   which is slower.
 * `gcollapse` provides `merge` to merge the collapsed data back with the
@@ -387,7 +408,7 @@ Change Log
 * `gcollapse` provides a C-based near-drop-in replacement for `collapse`
   that is (almost always) several times faster than `fcollapse`.
 * Though computing percentiles is currently very inefficient (see below),
-  `gcollapse`, unlike `collapse` (of `fcollapse` as best I can tell) can
+  `gcollapse`, unlike `collapse` (or `fcollapse` as best I can tell) can
   compute quantiles, not just percentiles (e.g. p2.5, p15.25)
 
 ### Problems

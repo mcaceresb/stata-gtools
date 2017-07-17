@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:00 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.4
+ * Version: 0.6.5
  *********************************************************************/
 
 #include "gegen.h"
@@ -40,6 +40,15 @@ int sf_egen (struct StataInfo *st_info)
     size_t *all_nonmiss    = calloc(st_info->J, sizeof *all_nonmiss);
     size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
 
+    if ( output  == NULL ) return(sf_oom_error("sf_egen", "output"));
+    if ( outmiss == NULL ) return(sf_oom_error("sf_egen", "outmiss"));
+
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen", "all_buffer"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen", "all_nonmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen", "offsets_buffer"));
+
     for (i = 0; i < st_info->J; i++)
         outmiss[i] = 0;
 
@@ -53,10 +62,14 @@ int sf_egen (struct StataInfo *st_info)
     size_t *pos_firstmiss = calloc(st_info->J, sizeof *pos_firstmiss);
     size_t *pos_lastmiss  = calloc(st_info->J, sizeof *pos_lastmiss);
 
+    if ( pos_firstmiss == NULL ) return(sf_oom_error("sf_egen", "pos_firstmiss"));
+    if ( pos_lastmiss  == NULL ) return(sf_oom_error("sf_egen", "pos_lastmiss"));
+
     // Method 1: Continuously from Stata
     // ---------------------------------
 
-    size_t *index_st       = calloc(st_info->N, sizeof *index_st);
+    size_t *index_st = calloc(st_info->N, sizeof *index_st);
+    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[j];
         end    = st_info->info[j + 1];
@@ -296,6 +309,9 @@ int sf_egen_tag (struct StataInfo *st_info)
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
 
+    if ( indexj == NULL ) return(sf_oom_error("sf_collapse", "indexj"));
+    if ( firstj == NULL ) return(sf_oom_error("sf_collapse", "firstj"));
+
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in
     // which the groups appear in Stata, and then write by looping over
@@ -318,7 +334,8 @@ int sf_egen_tag (struct StataInfo *st_info)
 
     // indexj[j] will contain the order in which the jth C group
     // inappeared Stata
-    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    rc = mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( rc ) return(rc);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Tagged groups in memory");
 
     // We loop in C using indexj and write to Stata based on index
@@ -366,6 +383,9 @@ int sf_egen_group (struct StataInfo *st_info)
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
 
+    if ( indexj == NULL ) return(sf_oom_error("sf_collapse", "indexj"));
+    if ( firstj == NULL ) return(sf_oom_error("sf_collapse", "firstj"));
+
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in
     // which the groups appear in Stata, and then write by looping over
@@ -388,7 +408,8 @@ int sf_egen_group (struct StataInfo *st_info)
 
     // indexj[j] will contain the order in which the jth C group
     // inappeared Stata
-    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    rc = mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( rc ) return(rc);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
 
     // We loop in C using indexj and write to Stata based on index

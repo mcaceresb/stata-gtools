@@ -6,7 +6,10 @@
 void * memcpy (void *dest, const void *src, size_t n);
 #endif
 
+int sf_oom_error (char * step_desc, char * obj_desc);
 int mf_strcmp_wrapper (char * fname, char *compare);
+
+int sf_isint ();
 
 void sf_running_timer (clock_t *timer, const char *msg);
 

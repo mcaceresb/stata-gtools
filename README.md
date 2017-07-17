@@ -11,7 +11,7 @@ _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
-`version 0.6.4 18Jun2017`
+`version 0.6.5 17Jul2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -469,10 +469,19 @@ J to be small, they can force collapsing to disk via `forceio`.
 
 ### TODO
 
+- [ ] Fix Windows bug where comma-format is not correctly displayed.
+- [ ] Implement fallback in case hashing fails (maybe just fall back to
+-     `collapse` if there is a collision; this should never happen so it
+-     is fine to fall back on plain collapse, I think).
+- [ ] Provide `sumup` and `sum` altetnative, `gsum` (skip the gen dummy if no
+      `by`; gen the hash in C manually in that case).
+- [ ] Add `gtab` as a fast version of your `tabcustom` function. (`gtab`
+      mimics `tab` but add `custom` to access extra features).
 - [ ] Compile for OSX.
 - [ ] Add support for weights.
 - [ ] Implement sorting on C.
 - [ ] Implement all by-able `egen` functions.
+- [ ] Add `Var`, `kurtosis`, `skewness`
 
 License
 -------

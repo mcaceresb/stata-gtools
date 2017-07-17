@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.3 18Jun2017}{...}
+{* *! version 0.6.5 17Jul2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -120,6 +120,26 @@ faster to use {opt gcollapse} with the {opt merge} option.
 Depending on {it:fcn}{cmd:()}, {it:arguments}, if present, refers to an
 expression, {varlist}, or a {it:{help numlist}}, and the {it:options}
 are similarly {it:fcn} dependent.
+
+{pstd}
+If your system runs out of memory, it will start to use its swap space (*nix)
+or its pagefile (Windows). If it then runs out of swap space or if the
+pagefile size is not large enough, it will not be able to allocate any more
+memory. If the program does not take this into account, it will attempt to use
+more memory than is actually physically available and crash.
+
+{pstd}
+Stata is written so that when the system cannot allocate any more memory, it
+will not crash. I do not know what it does, exactly, but I suspect it falls
+back on free disk space by using temporary files. The current iteration of
+{it:gegen}, however, is not robust enough to fall back on free disk space when
+it can no longer allocate memory. Instead, it will simply exit with error.
+
+{pstd}
+If this happens, the user should fall back on {it:fegen}, if available,
+or plain {it:egen}. Feel free to pester me about building a fallback
+directly into {it:gegen} (file an issue on {browse "https://github.com/mcaceresb/stata-gtools/issues/new":the project's github page}),
+but I think other features are more important at the moment (as of v0.6.5).
 
 {marker example}{...}
 {title:Examples}

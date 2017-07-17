@@ -1,4 +1,4 @@
-*! version 0.6.4 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.5 17Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -28,6 +28,7 @@ program gcollapse
         hashlib(str)                  /// path to hash library (Windows only)
                                       /// greedy /// (Planned) skip the memory-saviung recasts and drops
                                       ///
+        debug_force_hash              /// (experimental) Force use of SpookyHash (usually slower)
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
         debug_checkhash               /// (experimental) Check for hash collisions
@@ -157,7 +158,7 @@ program gcollapse
     * - subset: If applicable, drop missings (cw) or keep if in.
     * - check plugin: Use multi-threaded if correctly loaded; fall back
     *                 on single-threaded otherwise.
-    parse_vars `anything' `if' `in', by(`by') `cw' smart(`smart') v(`verbose') `multi'
+    parse_vars `anything' `if' `in', by(`by') `cw' smart(`smart') v(`verbose') `multi' `debug_force_hash'
     local indexed = `r(indexed)'
     if ( `indexed' ) {
         tempvar bysmart
@@ -178,10 +179,11 @@ program gcollapse
         __gtools_uniq_stats(`__gtools_uniq_stats') ///
                                                    //
 
-    local dropme   = "`r(dropme)'"
-    local keepvars = "`r(keepvars)'"
-    local added    = "`r(added)'"
-    local memvars  = "`r(memvars)'"
+    local dropme       = "`r(dropme)'"
+    local keepvars     = "`r(keepvars)'"
+    local added        = "`r(added)'"
+    local memvars      = "`r(memvars)'"
+    local check_recast = "`r(check_recast)'"
 
     * Get a list with all string by variables
     local bystr ""
@@ -256,24 +258,65 @@ program gcollapse
     * Recast variables to save mem
     * ----------------------------
 
+    * Recast variables when there is no better option
     mata: st_numscalar("__gtools_k_recast", cols(__gtools_recastvars))
     if ( `=scalar(__gtools_k_recast)' > 0 ) {
-        local gtools_recastvars ""
-        local gtools_recastsrc  ""
-        forvalues k = 1 / `=scalar(__gtools_k_recast)' {
-            mata: st_local("var", __gtools_recastvars[`k'])
-            tempvar dropvar
-            rename `var' `dropvar'
-            local dropme `dropme' `dropvar'
-            local gtools_recastvars `gtools_recastvars' `var'
-            local gtools_recastsrc  `gtools_recastsrc'  `dropvar'
+
+        local totry = `:list sizeof check_recast'
+        if ( ("`double'" == "") & (`:list sizeof check_recast' > 0) ) {
+            * Since recasting variables is really expensive, we will not recast
+            * variables where the summary stat is a sum and the result cannot be
+            * larger than +/-10^38 (see help data_types).
+            matrix c_gtools_bymiss = J(1, `:list sizeof check_recast', 0)
+            matrix c_gtools_bymin  = J(1, `:list sizeof check_recast', 0)
+            matrix c_gtools_bymax  = J(1, `:list sizeof check_recast', 0)
+
+            if ( (`=_N > 0') & (`:list sizeof check_recast' > 0) ) {
+                cap `plugin_call' `check_recast', setup
+                if ( _rc ) exit _rc
+                mata: c_gtools_bymin   = (`=_N' :* st_matrix("c_gtools_bymin")) :> -10^38
+                mata: c_gtools_bymax   = (`=_N' :* st_matrix("c_gtools_bymax")) :< 10^38
+                mata: __gtools_asfloat = ( c_gtools_bymin :& c_gtools_bymax )
+            }
+
+            mata: __gtools_checkrecast = (`:di subinstr(`""`check_recast'""', " ", `"", ""', .)')
+            mata: __gtools_norecast    = J(1, 0, .)
+            mata: __gtools_keeprecast  = J(1, 0, .)
+            mata: for (k = 1; k <= cols(__gtools_checkrecast); k++) ///
+                __gtools_norecast = __gtools_norecast,              ///
+                (__gtools_asfloat[k]? selectindex(__gtools_checkrecast[k] :== __gtools_recastvars): J(1, 0, .))
+            mata: for (k = 1; k <= cols(__gtools_recastvars); k++) ///
+                __gtools_keeprecast = __gtools_keeprecast,         ///
+                (sum(k :== __gtools_norecast)? J(1, 0, .): k)
+
+            * Lease floats as is when their sum won't overflow
+            mata: __gtools_recastvars  = __gtools_recastvars [__gtools_keeprecast]
+            mata: __gtools_recasttypes = __gtools_recasttypes[__gtools_keeprecast]
+            mata: st_numscalar("__gtools_k_recast", cols(__gtools_recastvars))
         }
-        qui mata: st_addvar(__gtools_recasttypes, __gtools_recastvars, 1)
-        if ( `=_N > 0' ) {
-            cap `noi' `plugin_call' `gtools_recastvars' `gtools_recastsrc', recast
-            if ( _rc != 0 ) exit _rc
+
+        * Recast variables as doubles if the sum might overflow
+        if ( `=scalar(__gtools_k_recast)' > 0 ) {
+            local gtools_recastvars ""
+            local gtools_recastsrc  ""
+            forvalues k = 1 / `=scalar(__gtools_k_recast)' {
+                mata: st_local("var", __gtools_recastvars[`k'])
+                tempvar dropvar
+                rename `var' `dropvar'
+                local dropme `dropme' `dropvar'
+                local gtools_recastvars `gtools_recastvars' `var'
+                local gtools_recastsrc  `gtools_recastsrc'  `dropvar'
+            }
+            qui mata: st_addvar(__gtools_recasttypes, __gtools_recastvars, 1)
+            if ( `=_N > 0' ) {
+                cap `noi' `plugin_call' `gtools_recastvars' `gtools_recastsrc', recast
+                if ( _rc != 0 ) exit _rc
+            }
+            gtools_timer info 97 `"Recast source variables to save memory"', prints(`benchmark')
         }
-        gtools_timer info 97 `"Recast source variables to save memory"', prints(`benchmark')
+        else {
+            if ( `verbose' ) di as txt "(skipped recasting `totry' floats; to force recasting run with option -double-)"
+        }
     }
 
     * Use I/O instead of memory for results (faster for J small)
@@ -545,6 +588,10 @@ program gcollapse
     cap mata: mata drop __gtools_recastsrc
     cap mata: mata drop __gtools_iovars
     cap mata: mata drop __gtools_data
+    cap mata: mata drop __gtools_checkrecast
+    cap mata: mata drop __gtools_norecast
+    cap mata: mata drop __gtools_keeprecast
+    cap mata: mata drop __gtools_asfloat
 
     cap mata: mata drop gtools_vars
     cap mata: mata drop gtools_targets
@@ -575,6 +622,7 @@ program gcollapse
     cap scalar drop __gtools_io_thresh
     cap scalar drop __gtools_mib_base
     cap scalar drop __gtools_bench_st
+    cap scalar drop __gtools_is_int
 
     cap matrix drop __gtools_outpos
     cap matrix drop __gtools_strpos
@@ -722,6 +770,8 @@ program parse_vars, rclass
                                 ///
         multi                   ///
         Verbose(int 0)          ///
+                                ///
+        debug_force_hash        /// Force use of SpookyHash (usually slower)
     ]
 
     * If data already sorted, create index
@@ -847,7 +897,7 @@ program parse_vars, rclass
     * Parse type of each by variable
     * ------------------------------
 
-    cap parse_by_types `by', `multi'
+    cap parse_by_types `by', `multi' `debug_force_hash'
     if ( _rc ) exit _rc
 
     * Locals to be read by C
@@ -867,7 +917,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist, [multi]
+    syntax varlist, [multi] [debug_force_hash]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
@@ -875,22 +925,65 @@ program parse_by_types
     cap matrix drop c_gtools_bymin
     cap matrix drop c_gtools_bymax
 
-    * Check whether we only have integers
-    local varnum ""
-    local knum  = 0
-    local khash = 0
+    * If any strings, skip integer check
+    local kmaybe  = 1
+    local usehash = ( "`debug_force_hash'" != "" )
     foreach byvar of varlist `varlist' {
-        if inlist("`:type `byvar''", "byte", "int", "long") {
-            local ++knum
-            local varnum `varnum' `byvar'
+        if regexm("`:type `byvar''", "str") local kmaybe = 0
+    }
+    if ( `usehash' ) local kmaybe = 0
+
+    * Check whether we only have integers. We also check whether        .
+    * floats|doubles are integers in disguise                          .
+    local varnum ""
+    local knum    = 0
+    local khash   = 0
+    local intlist ""
+    foreach byvar of varlist `varlist' {
+        if ( `kmaybe' ) {
+            if inlist("`:type `byvar''", "byte", "int", "long") {
+                local ++knum
+                local varnum `varnum' `byvar'
+                local intlist `intlist' 1
+            }
+            else if inlist("`:type `byvar''", "float", "double") {
+                if ( `=_N > 0' ) {
+                    cap plugin call gtools`multi'_plugin `byvar', isint
+                    if ( _rc ) exit _rc
+                }
+                else scalar __gtools_is_int = 0
+                if ( `=scalar(__gtools_is_int)' ) {
+                    local ++knum
+                    local varnum `varnum' `byvar'
+                    local intlist `intlist' 1
+                }
+                else {
+                    local kmaybe = 0
+                    local ++khash
+                    local intlist `intlist' 0
+                }
+            }
+            else {
+                local kmaybe = 0
+                local ++khash
+                local intlist `intlist' 0
+            }
         }
-        else local ++khash
+        else {
+            local ++khash
+            local intlist `intlist' 0
+        }
+    }
+    else {
+        foreach byvar of varlist `varlist' {
+            local intlist `intlist' 0
+        }
     }
 
     * If so, set up min and max in C. Later we will check whether we can
     * use a bijection of the by variables to the whole numbers as our
     * index, which is faster than hashing.
-    if ( (`knum' > 0) & (`khash' == 0) ) {
+    if ( (`knum' > 0) & (`khash' == 0) & (`usehash' == 0) ) {
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
@@ -920,14 +1013,10 @@ program parse_by_types
     * as double) and strings are read into a string buffer, which is
     * allocated the length of the longest by string variable.
     foreach byvar of varlist `varlist' {
+        gettoken is_int intlist: intlist
         local bytype: type `byvar'
-        if inlist("`bytype'", "byte", "int", "long") {
-            * qui count if mi(`byvar')
-            * local addmax = (`r(N)' > 0)
-            * qui sum `byvar'
-            * matrix __gtools_bymin = nullmat(__gtools_bymin), `r(min)'
-            * matrix __gtools_bymax = nullmat(__gtools_bymax), `r(max)' + `addmax'
-            matrix __gtools_byk   = nullmat(__gtools_byk), -1
+        if ( (`is_int' | inlist("`bytype'", "byte", "int", "long")) & (`usehash' == 0) ) {
+            matrix __gtools_byk = nullmat(__gtools_byk), -1
         }
         else {
             matrix __gtools_bymin = J(1, `:list sizeof varlist', 0)
@@ -945,6 +1034,9 @@ program parse_by_types
                 }
             }
             else if inlist("`bytype'", "float", "double") {
+                matrix __gtools_byk = nullmat(__gtools_byk), 0
+            }
+            else if ( inlist("`bytype'", "byte", "int", "long") & `usehash' ) {
                 matrix __gtools_byk = nullmat(__gtools_byk), 0
             }
             else {
@@ -1031,6 +1123,7 @@ program parse_keep_drop, rclass
     c_local __gtools_vars      `__gtools_vars'
     c_local __gtools_uniq_vars `__gtools_keepvars'
 
+    local check_recast ""
     foreach var of local __gtools_targets {
         gettoken sourcevar __gtools_vars:  __gtools_vars
         gettoken collstat  __gtools_stats: __gtools_stats
@@ -1088,16 +1181,20 @@ program parse_keep_drop, rclass
             local recast = !( `already_same_type' | `already_double' | `already_higher' )
 
             if ( `recast' ) {
+                if ( ("`collstat'" == "sum") & ("`targettype'" == "double") & ("`:type `var''" == "float") ) {
+                    local check_recast `check_recast' `var'
+                }
                 mata: __gtools_recastvars  = __gtools_recastvars,  "`var'"
                 mata: __gtools_recasttypes = __gtools_recasttypes, "`targettype'"
             }
         }
     }
 
-    return local dropme   = "`dropme'"
-    return local keepvars = "`keepvars'"
-    return local added    = "`added'"
-    return local memvars  = "`memvars'"
+    return local dropme       = "`dropme'"
+    return local keepvars     = "`keepvars'"
+    return local added        = "`added'"
+    return local memvars      = "`memvars'"
+    return local check_recast = "`check_recast'"
 end
 
 * Check if variable is OK to use as target
@@ -1176,31 +1273,34 @@ program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
 
 * Windows hack
 if ( "`c(os)'" == "Windows" ) {
-    cap findfile spookyhash.dll
+    cap confirm file spookyhash.dll
     if ( _rc ) {
-        local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-        local url `url'/master/spookyhash.dll
-        di as err `"'`hashlib'' not found."'
-        di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
-        exit _rc
-    }
-    mata: __gtools_hashpath = ""
-    mata: __gtools_dll = ""
-    mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-    mata: st_local("__gtools_hashpath", __gtools_hashpath)
-    mata: mata drop __gtools_hashpath
-    mata: mata drop __gtools_dll
-    local path: env PATH
-    if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-        local path = substr("`path'"', 1, length(`"`path'"') - 1)
-    }
-    local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
-    cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-    if ( _rc ) {
-        cap confirm file spookyhash.dll
+        cap findfile spookyhash.dll
         if ( _rc ) {
-            di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+            local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+            local url `url'/master/spookyhash.dll
+            di as err `"'`hashlib'' not found."'
+            di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
             exit _rc
+        }
+        mata: __gtools_hashpath = ""
+        mata: __gtools_dll = ""
+        mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+        mata: st_local("__gtools_hashpath", __gtools_hashpath)
+        mata: mata drop __gtools_hashpath
+        mata: mata drop __gtools_dll
+        local path: env PATH
+        if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+            local path = substr("`path'"', 1, length(`"`path'"') - 1)
+        }
+        local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+        cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+        if ( _rc ) {
+            cap confirm file spookyhash.dll
+            if ( _rc ) {
+                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+                exit _rc
+            }
         }
     }
 }

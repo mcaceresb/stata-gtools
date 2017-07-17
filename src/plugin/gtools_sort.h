@@ -1,7 +1,7 @@
 #ifndef GTOOLS_SORT
 #define GTOOLS_SORT
 
-void mf_radix_sort_index (
+int mf_radix_sort_index (
     uint64_t x[],
     size_t index[], 
     const size_t N,
@@ -10,7 +10,7 @@ void mf_radix_sort_index (
     const int verbose
 );
 
-void mf_radix_sort_index_pass (
+int mf_radix_sort_index_pass (
     uint64_t x[],
     size_t index[], 
     const size_t N,
@@ -18,7 +18,7 @@ void mf_radix_sort_index_pass (
     const size_t shift
 );
 
-void mf_counting_sort_index (
+int mf_counting_sort_index (
     uint64_t x[],
     size_t index[], 
     const size_t N,

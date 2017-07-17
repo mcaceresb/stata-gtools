@@ -17,7 +17,7 @@
  * @param raw alternatively, have d be the base power
  * @return stable sorted @x and @index of the sort
  */
-void mf_radix_sort_index (
+int mf_radix_sort_index (
     uint64_t x[],
     size_t index[],
     const size_t N,
@@ -25,6 +25,7 @@ void mf_radix_sort_index (
     const size_t raw,
     const int verbose)
 {
+    int rc ;
     int i;
     size_t nloops  = 0;
     uint64_t exp   = 1;
@@ -47,20 +48,22 @@ void mf_radix_sort_index (
         index[i] = i;
 
     if ( range < ctol ) {
-        mf_counting_sort_index (x, index, N, min, max);
+        if ( (rc = mf_counting_sort_index (x, index, N, min, max)) ) return(rc);
         if ( verbose ) {
             sf_printf("counting sort on hash; min = %'lu, max = %'lu\n", min, max);
         }
     }
     else {
         do {
-            mf_radix_sort_index_pass (x, index, N, exp, shift);
+            if ( (rc = mf_radix_sort_index_pass (x, index, N, exp, shift)) ) return(rc);
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
             sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = %'lu\n",
                       nloops, dshift, shift);
         }
     }
+
+    return(0);
 }
 
 /**
@@ -76,7 +79,7 @@ void mf_radix_sort_index (
  * @param shift number of bits to sort at a time (equal to 2^d)
  * @return jth pass of radix sort for @x and corresponding @index
  */
-void mf_radix_sort_index_pass (
+int mf_radix_sort_index_pass (
     uint64_t x[],
     size_t index[],
     const size_t N,
@@ -88,6 +91,10 @@ void mf_radix_sort_index_pass (
     uint64_t *outx = calloc(N, sizeof *outx);
     size_t   *outi = calloc(N, sizeof *outi);
     int i, c, count[shift];
+
+    if ( xmod == NULL ) return(sf_oom_error("mf_radix_sort_index_pass", "xmod"));
+    if ( outx == NULL ) return(sf_oom_error("mf_radix_sort_index_pass", "outx"));
+    if ( outi == NULL ) return(sf_oom_error("mf_radix_sort_index_pass", "outi"));
 
     // Initialize count as 0s
     for (i = 0; i < shift; i++)
@@ -113,6 +120,8 @@ void mf_radix_sort_index_pass (
     free(xmod);
     free(outx);
     free(outi);
+
+    return(0);
 }
 
 /**
@@ -126,7 +135,7 @@ void mf_radix_sort_index_pass (
  * @param N length of array
  * @return Counting sort on integer array.
  */
-void mf_counting_sort_index(
+int mf_counting_sort_index(
     uint64_t x[],
     size_t index[],
     const size_t N,
@@ -140,6 +149,10 @@ void mf_counting_sort_index(
     uint64_t *xcopy = calloc(N, sizeof *xcopy);
     size_t   *icopy = calloc(N, sizeof *icopy);
     int      *count = calloc(range + 1, sizeof *count);
+
+    if ( xcopy == NULL ) return(sf_oom_error("mf_counting_sort_index", "xcopy"));
+    if ( icopy == NULL ) return(sf_oom_error("mf_counting_sort_index", "icopy"));
+    if ( count == NULL ) return(sf_oom_error("mf_counting_sort_index", "count"));
 
     // Initialize count as 0s
     for (i = 0; i < range + 1; i++)
@@ -166,6 +179,8 @@ void mf_counting_sort_index(
     free (count);
     free (xcopy);
     free (icopy);
+
+    return(0);
 }
 
 
@@ -200,6 +215,7 @@ size_t * mf_panelsetup128 (
 
     uint64_t el = h1[i++];
     size_t *info_largest = calloc(N + 1, sizeof *info_largest);
+    if ( info_largest == NULL ) return(NULL);
     info_largest[l++] = 0;
     do {
         if (h1[i] != el) {
@@ -230,6 +246,10 @@ size_t * mf_panelsetup128 (
                 size_t   *ix_c = calloc(range_l, sizeof *ix_c);
                 uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
 
+                if ( ix_l == NULL ) return(NULL);
+                if ( ix_c == NULL ) return(NULL);
+                if ( h2_l == NULL ) return(NULL);
+
                 for (j = start_l; j < i; j++)
                     h2_l[j - start_l] = h2[j];
 
@@ -254,6 +274,7 @@ size_t * mf_panelsetup128 (
 
     *J = l;
     size_t *info = calloc(l + 1, sizeof *info);
+    if ( info == NULL ) return(NULL);
     for (i = 0; i < l + 1; i++)
         info[i] = info_largest[i];
     free (info_largest);
@@ -304,6 +325,7 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
 
     uint64_t el = h1[i++];
     size_t *info_largest = calloc(N + 1, sizeof *info_largest);
+    if ( info_largest == NULL ) return(NULL);
     info_largest[l++] = 0;
     do {
         if (h1[i] != el) {
@@ -316,6 +338,7 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
 
     *J = l;
     size_t *info = calloc(l + 1, sizeof *info);
+    if ( info == NULL ) return(NULL);
     for (i = 0; i < l + 1; i++)
         info[i] = info_largest[i];
     free (info_largest);

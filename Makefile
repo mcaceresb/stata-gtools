@@ -23,7 +23,7 @@ else
 		OUT = build/gtools_macosx.plugin
 		OUTM =
 		OUTE = build/env_set_macosx.plugin
-		SPOOKYLIB = -l:glibspookyhash.so
+		SPOOKYLIB = -l:libspookyhash.so
 	endif
 	GCC = gcc
 	PREMAKE = premake5
@@ -76,7 +76,7 @@ spooky:
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
 	mkdir -p ./build
-	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/glibspookyhash.so
+	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/libspookyhash.so
 else ifeq ($(UNAME_S),Linux)
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake

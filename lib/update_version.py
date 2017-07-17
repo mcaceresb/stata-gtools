@@ -46,6 +46,7 @@ else:
 
 main = [path.join("src", "gtools.pkg"),
         path.join("src", "stata.toc"),
+        path.join("src", "ado", "gtools.ado"),
         path.join("src", "ado", "gcollapse.ado"),
         path.join("doc", "gcollapse.sthlp"),
         path.join("src", "ado", "gegen.ado"),

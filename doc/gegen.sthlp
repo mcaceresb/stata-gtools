@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.5 17Jul2017}{...}
+{* *! version 0.6.6 17Jul2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -121,25 +121,41 @@ Depending on {it:fcn}{cmd:()}, {it:arguments}, if present, refers to an
 expression, {varlist}, or a {it:{help numlist}}, and the {it:options}
 are similarly {it:fcn} dependent.
 
-{pstd}
-If your system runs out of memory, it will start to use its swap space (*nix)
-or its pagefile (Windows). If it then runs out of swap space or if the
-pagefile size is not large enough, it will not be able to allocate any more
-memory. If the program does not take this into account, it will attempt to use
-more memory than is actually physically available and crash.
+{marker memory}{...}
+{title:Out of memory}
 
 {pstd}
-Stata is written so that when the system cannot allocate any more memory, it
-will not crash. I do not know what it does, exactly, but I suspect it falls
-back on free disk space by using temporary files. The current iteration of
-{it:gegen}, however, is not robust enough to fall back on free disk space when
-it can no longer allocate memory. Instead, it will simply exit with error.
+(See also Stata's own discussion: {help memory:help memory}.)
 
 {pstd}
-If this happens, the user should fall back on {it:fegen}, if available,
-or plain {it:egen}. Feel free to pester me about building a fallback
-directly into {it:gegen} (file an issue on {browse "https://github.com/mcaceresb/stata-gtools/issues/new":the project's github page}),
-but I think other features are more important at the moment (as of v0.6.5).
+There are many reasons for why an OS may run out of memory. The best-case
+scenario is that your system is running some other memory-intensive program.
+This is specially likely if you are running your program on a server, where
+memory is shared across all users. In this case, you should attempt to re-run
+{it:gegen} once other memory-intensive programs finish.
+
+{pstd}
+If no memory-intensive programs were running concurrently, the second best-case
+scenario is that your user has a memory cap that your programs can use. Again,
+this is specially likely on a server, and even more likely on a computing grid.
+If you are on a grid, see if you can increase the amount of memory your programs
+can use (there is typically a setting for this). If your cap was set by a system
+administrator, consider contacting them and asking for a higher memory cap.
+
+{pstd}
+If you have no memory cap imposed on your user, the likely scenario is that
+your system cannot allocate enough memory for {it:gegen}. At this point you
+have two options: One option is to try {it:fegen} or {it:egen}, which are
+slower but using either should require a trivial one-letter change to the
+code; another option is to re-write egen the data in segments. (the easiest
+way to do this would be to egen a portion of all rows at a time and
+perform a series of append statements at the end.)
+
+{pstd}
+Replacing {it:gegen} with {it:fegen} or plain {it:egen} is not guaranteed to
+work. I have not benchmarked memory use very extensively, but it is possible
+that the latter use less memory. If all fail, you will have to perform the
+task on segments of the data.
 
 {marker example}{...}
 {title:Examples}

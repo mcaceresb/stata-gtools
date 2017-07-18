@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:00 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.6
+ * Version: 0.6.7
  *********************************************************************/
 
 #include "gegen.h"

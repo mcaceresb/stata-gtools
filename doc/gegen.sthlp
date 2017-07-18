@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.6 17Jul2017}{...}
+{* *! version 0.6.7 17Jul2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -147,7 +147,7 @@ If you have no memory cap imposed on your user, the likely scenario is that
 your system cannot allocate enough memory for {it:gegen}. At this point you
 have two options: One option is to try {it:fegen} or {it:egen}, which are
 slower but using either should require a trivial one-letter change to the
-code; another option is to re-write egen the data in segments. (the easiest
+code; another option is to re-write egen the data in segments (the easiest
 way to do this would be to egen a portion of all rows at a time and
 perform a series of append statements at the end.)
 

@@ -26,7 +26,17 @@ errno_t getenv_s (
 int setenv (const char *name, const char *value, int overwrite);
 int setenv (const char *name, const char *value, int overwrite)
 {
-    return (_putenv_s(name, value));
+    if ( overwrite ) {
+        return (_putenv_s(name, value));
+    }
+    else {
+        return (0);
+    }
+}
+
+int unsetenv (const char *name);
+int unsetenv (const char *name) {
+    return (_putenv_s(name, ""));
 }
 #define ENV_DELIM ';'
 #else
@@ -47,6 +57,7 @@ char* EMPTY = "";
 STDLL stata_call (int argc, char *argv[])
 {
     ST_retcode rc;
+sf_errprintf("debug-1\n");
 
     if ( argc != 2 ) {
         sf_errprintf ("env_set: incorrect number of arguments (%d). Use:\n", argc);
@@ -54,14 +65,32 @@ STDLL stata_call (int argc, char *argv[])
         return (198);
     }
     else if ( argc == 2 ) {
-        rc = setenv(argv[0], argv[1], 1);
+sf_errprintf("debug-2\n");
+        rc = unsetenv(argv[0]);
+sf_errprintf("debug-3\n");
         if ( rc ) {
-            sf_errprintf ("env_set: unable to set %s to '%s': %d\n", argv[0], argv[1], rc);
+sf_errprintf("debug-4\n");
+            sf_errprintf ("env_set: unable to unset %s: %d\n", argv[0], rc);
+sf_errprintf("debug-5\n");
             return (rc);
         }
+sf_errprintf("debug-6\n");
+        rc = setenv(argv[0], argv[1], 1);
+sf_errprintf("debug-7\n");
+        if ( rc ) {
+sf_errprintf("debug-8\n");
+            sf_errprintf ("env_set: unable to set %s to '%s': %d\n", argv[0], argv[1], rc);
+sf_errprintf("debug-9\n");
+            return (rc);
+sf_errprintf("debug-10\n");
+        }
         else {
+sf_errprintf("debug-11\n");
             sf_printf ("Set '%s' to %s\n", argv[0], argv[1]);
         }
+sf_errprintf("debug-12\n");
     }
+sf_errprintf("debug-13\n");
     return (0);
+sf_errprintf("debug-14\n");
 }

@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.6.6 (2017-06-18)
+
+### Bug fixes
+
+* Removed old debugging code that had been left uncommented
+* Improved out-of-memory message (now links to relevant help section).
+
 ## gtools-0.6.5 (2017-06-18)
 
 ### Features

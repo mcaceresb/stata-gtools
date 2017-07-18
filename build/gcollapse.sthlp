@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.6 17Jul2017}{...}
+{* *! version 0.6.7 17Jul2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -195,7 +195,7 @@ If you have no memory cap imposed on your user, the likely scenario is that
 your system cannot allocate enough memory for {it:gcollapse}. At this point
 you have two options: One option is to try {it:fcollapse} or {it:collapse},
 which are slower but using either should require a trivial one-letter change
-to the code; another option is to re-write collapse the data in segments. (the
+to the code; another option is to re-write collapse the data in segments (the
 easiest way to do this would be to collapse a portion of all variables at a
 time and perform a series of 1:1 merges at the end.)
 

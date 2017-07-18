@@ -314,7 +314,7 @@ int sf_get_varlist_bijection (
             if ( SF_is_missing(z) ) z = maxs[k];
             h1[i] += (z - mins[k]) * offsets[k];
         }
-        sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
+        // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
     }
 
     return (0);

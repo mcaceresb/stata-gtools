@@ -19,6 +19,7 @@ program sim, rclass
             tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
             local target `:di cond("`replace'" == "", "groupstr", "group")'
             replace `target' = "i am a modesly long string" + `target'
+            if ("`groupmiss'" != "") replace groupstr = "" if mi(group)
         }
         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
     }

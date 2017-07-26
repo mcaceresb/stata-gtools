@@ -11,7 +11,7 @@ _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
-`version 0.6.7 17Jul2017`
+`version 0.6.8 18Jul2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -296,6 +296,46 @@ dll provided in this repo.
 FAQs
 ----
 
+### Stata crashes on Windows
+
+Most of the time I do not have access to physical hardware running Windows.
+The servers where I do my work, and my personal computer, are running Linux.
+I developed the plugin for Windows on a virtual machine, and what works on my
+virtual machine has occasionally not worked on some Windows systems.
+
+There are two known instances where Stata for Windows will become
+non-responsive. One is a crash and the other is a delay. The delay
+occurrs when the user's system runs out of memory (RAM) Stata will become
+non-responsive. This is not a crash. The system is merely trying to use the
+Windows pagefile and Stata will either become responsive once the system is
+done using the pagefile or it will exit with error if the pagefile is not
+large enough (this latter behaviro is the same exhibited by `collapse`).
+
+Windows requries `spookyhash.dll`, included with `gtools`, for the functions
+in `gtools` to run corectly. Since Stata has to find it when it calls the C
+plugin, it must either be in the working directory or in the system's PATH.
+On some systems, the utility provided by `gtools` to temporarily add the
+path to `spookyhash.dll` to the system's PATH causes a crash (refer to
+https://github.com/mcaceresb/stata-gtools/issues/1). For now, the fix is to run
+```stata
+findfile spookyhash.dll
+```
+
+from Stata and append the resulting path to your system's PATH.
+To append to the system PATH,
+- Control Panel 
+- Ctrl + F 
+- Environment Variables 
+- Edit the System's Environment Variables 
+- Advanced 
+- Environment Variables... 
+- Path 
+- Edit... 
+- New
+
+If you cannot do this (e.g. if you do not have admin provileges) please
+submit a comment on the bug report referenced above (https://github.com/mcaceresb/stata-gtools/issues/1).
+
 ### How can this be faster?
 
 In theory, C shouldn't be faster than Stata native commands because,
@@ -472,9 +512,7 @@ J to be small, they can force collapsing to disk via `forceio`.
 In order of priority:
 
 - [ ] Compile for OSX.
-- [ ] Implement fallback in case hashing fails (maybe just fall back to
--     `collapse` if there is a collision; this should never happen so it
--     is fine to fall back on plain collapse, I think).
+- [ ] Implement fallback in case hashing fails (maybe just fall back to `collapse` if there is a collision; this should never happen so it is fine to fall back on plain collapse, I think).
 - [ ] Add support for weights.
 - [ ] Implement sorting on C.
 - [ ] Provide `sumup` and `sum` altetnative, `gsum`.

@@ -1,4 +1,4 @@
-*! version 0.6.7 17Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.8 18Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -28,10 +28,11 @@ program gcollapse
         hashlib(str)                  /// path to hash library (Windows only)
                                       /// greedy /// (Planned) skip the memory-saviung recasts and drops
                                       ///
+        oncollision(str)              /// (experimental) On collision, fall back to collapse or throw error
+        debug_checkhash               /// (experimental) Check for hash collisions
         debug_force_hash              /// (experimental) Force use of SpookyHash (usually slower)
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
-        debug_checkhash               /// (experimental) Check for hash collisions
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
         debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C

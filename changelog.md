@@ -1,11 +1,20 @@
 Change Log
 ==========
 
+## gtools-0.6.8 (2017-06-25)
+
+* Fixed issue https://github.com/mcaceresb/stata-gtools/issues/1
+* The problem was that the wrapper I wrote to print to the Stata
+  console has a maximum buffer size; when it tries to print the
+  new PATH it encounters an error when the string is longer than
+  the allocated size. Since printing this is unnecessary and
+  will only ever be used for debugging, I no longer print the PATH.
+
 ## gtools-0.6.7 (2017-06-18)
 
 ### Debugging
 
-* Debugging [issue #1](https://github.com/mcaceresb/stata-gtools/issues/1)
+* Debugging issue https://github.com/mcaceresb/stata-gtools/issues/1
   on github (in particular, `env_set` on Windows).
 
 ## gtools-0.6.6 (2017-06-18)

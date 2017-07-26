@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.6.7 (2017-06-18)
+
+### Debugging
+
+* Debugging issue https://github.com/mcaceresb/stata-gtools/issues/1
+  on github (in particular, `env_set` on Windows).
+
 ## gtools-0.6.6 (2017-06-18)
 
 ### Bug fixes

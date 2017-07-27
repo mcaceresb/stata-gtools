@@ -12,8 +12,8 @@ common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
 `version 0.6.10 27Jul2017`
-Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
-Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Group Operations
 ---------------------------------
@@ -44,7 +44,7 @@ Installation
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 ```stata
-net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/build/)
+net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/build/)
 * adoupdate, update
 * ado uninstall gtools
 ```
@@ -99,9 +99,9 @@ is several times faster than `fcollapse` under all circumstances. The speed
 gain is specially sharp when computing multiple complex statistics, such as
 percentiles.
 
-<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/src/test/plots/barComparisonTag2.png" alt="compare-J" width="700px"/>
+<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/src/test/plots/barComparisonTag2.png" alt="compare-J" width="700px"/>
 
-<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/src/test/plots/barComparisonJ.png" alt="compare-J" width="700px"/>
+<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/src/test/plots/barComparisonJ.png" alt="compare-J" width="700px"/>
 
 ### Benchmark details: In the style of `ftools`
 

@@ -66,7 +66,7 @@ def comparePlot(which):
 
     note  = "'All stats' refers to: sum, mean, max, min, count, percent, first, last, firstnm, lastnm, median, iqr;"
     note += linesep + "in addition, p23 and p77 are also computed."
-    ax.text(0, -0.18, note , ha = 'left', fontsize = 14, transform = ax.transAxes)
+    ax.text(0, -0.19, note , ha = 'left', fontsize = 14, transform = ax.transAxes)
 
     figTitle = "Execution time of gcollapse vs collapse and fcollapse (N = {0})"
     fig.suptitle(figTitle.format(df1.loc[which]["N"]), fontsize = 24)
@@ -117,7 +117,7 @@ def compareJ():
     for ticky in ax.xaxis.get_major_ticks():
         ticky.label.set_fontsize(16)
 
-    figOutput = 'barComparisonJ.png'.format(which)
+    figOutput = 'barComparisonJ.png'
     fig.savefig(path.join("plots", figOutput), bbox_inches = 'tight', dpi = 300)
     fig.clf()
 

@@ -89,10 +89,22 @@ yet benchmarked this version of `gcollapse` against `collapse` for 200M
 observations. This is because `collapse` takes several hours in that
 case, and I have not found occasion to run them.
 
-All commands were run with the `fast` option. The data for the plots is
-`./src/test/bench_mp_fcoll.log`
+All commands were run with the `fast` option.
 
-### Benchmarks in the style of `ftools`
+### Benchmark summary plots
+
+We present a graphical comparison of `gcollapse` vs `fcollapse` (full numbers
+and comparisons to `collapse` further below). We can see that `gcollapse`
+is several times faster than `fcollapse` under all circumstances. The speed
+gain is specially sharp when computing multiple complex statistics, such as
+percentiles.
+
+<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/src/test/plots/barComparisonTag2.png" alt="compare-J" width="700px"/>
+
+<img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/src/test/plots/barComparisonJ.png" alt="compare-J" width="700px"/>
+
+### Benchmark details: In the style of `ftools`
+
 
 Vary N for J = 100 and collapse 15 variables:
 ```
@@ -137,7 +149,7 @@ style: Multiple simple statistics for many variables.
 
 `gcollapse` was 4-6 times faster than `fcollapse` and 30-60 times faster than `collapse`.
 
-### Increasing the sample size
+### Benchmark details: Increasing the sample size
 
 I thought it fitting to also compare a benchmark that produced one of
 each available statistic. Here I vary N for J = 10 (data was sorted on a
@@ -156,7 +168,7 @@ random variable before collapsing):
 `gcollapse` handles multiple complex statistics specially well relative to
 `collapse` (95 to 125 times faster) and `fcollapse` (7 to 21 times faster).
 
-### Increasing the number of levels
+### Benchmark details: Increasing the number of levels
 
 All the benchmarks above have collapsed to a small number of groups;
 hence I also benchmark the effect of increasing the group size. Here I

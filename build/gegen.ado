@@ -148,9 +148,9 @@ program define gegen, byable(onecall)
             mata: mata drop __gtools_dll
             local path: env PATH
             if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+                mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
             }
-            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+            local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
             local newpath `"`path';`__gtools_hashpath'"'
             local truncate 2048
             if ( `:length local newpath' > `truncate' ) {
@@ -427,7 +427,10 @@ program define gegen, byable(onecall)
         if ( _rc == 42000 ) {
             di as err "There may be 128-bit hash collisions!"
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
-            if ( "`oncollision'" == "fallback" ) collision_handler `00'
+            if ( "`oncollision'" == "fallback" ) {
+                cap noi collision_handler `00'
+                exit _rc
+            }
             else exit 42000 
         }
         else if ( _rc == 42001 ) {
@@ -601,9 +604,9 @@ if ( "`c(os)'" == "Windows" ) {
         mata: mata drop __gtools_dll
         local path: env PATH
         if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-            local path = substr("`path'"', 1, length(`"`path'"') - 1)
+            mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
         }
-        local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+        local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
         local newpath `"`path';`__gtools_hashpath'"'
         local truncate 2048
         if ( `:length local newpath' > `truncate' ) {

@@ -148,9 +148,9 @@ program define gegen, byable(onecall)
             mata: mata drop __gtools_dll
             local path: env PATH
             if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+                mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
             }
-            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+            local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
             local newpath `"`path';`__gtools_hashpath'"'
             local truncate 2048
             if ( `:length local newpath' > `truncate' ) {
@@ -604,9 +604,9 @@ if ( "`c(os)'" == "Windows" ) {
         mata: mata drop __gtools_dll
         local path: env PATH
         if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-            local path = substr("`path'"', 1, length(`"`path'"') - 1)
+            mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
         }
-        local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+        local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
         local newpath `"`path';`__gtools_hashpath'"'
         local truncate 2048
         if ( `:length local newpath' > `truncate' ) {

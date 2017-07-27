@@ -1,10 +1,13 @@
 Change Log
 ==========
 
-## gtools-0.6.9 (2017-06-26)
+## gtools-0.6.9 (2017-06-27)
 
 ### Enhancements
 
+* Addressed the possible issue noted in issue
+  https://github.com/mcaceresb/stata-gtools/issues/3 and the functions now
+  use mata and extended macro functions as applicable.
 * `gegen varname = group(varlist)` no longer has holes, as noted in issue
   https://github.com/mcaceresb/stata-gtools/issues/4
 * `gegen` and `gcollapse` fall back on `collapse` and `egen` in case there
@@ -19,6 +22,8 @@ Change Log
 
 ### Bug fixes
 
+* `gegen varname = tag(varlist)` no longer tags missing values, as noted
+  in issue https://github.com/mcaceresb/stata-gtools/issues/5
 * Additional fixes for issue https://github.com/mcaceresb/stata-gtools/issues/1
 * Apparentlly the argument Stata passes to plugins have a maximum length. The
   code now makes sure chuncks are passed when the PATH length will exceed the

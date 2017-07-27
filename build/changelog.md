@@ -5,8 +5,13 @@ Change Log
 
 ### Enhancements
 
+* Addressed the possible issue noted in issue
+  https://github.com/mcaceresb/stata-gtools/issues/3 and the functions now
+  use mata and extended macro functions as applicable.
 * `gegen varname = group(varlist)` no longer has holes, as noted in issue
   https://github.com/mcaceresb/stata-gtools/issues/4
+* `gegen varname = tag(varlist)` no longer tags missing values, as noted
+  in issue https://github.com/mcaceresb/stata-gtools/issues/5
 * `gegen` and `gcollapse` fall back on `collapse` and `egen` in case there
   is a collision. Future releases will implement an internal way to resolve
   collisions. This is not a huge concern, as SpookyHash has no known

@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Jul 27 00:08:31 EDT 2017
+* Updated: Thu Jul 27 00:54:24 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.6.9
 * Manual:  help gcollapse, help gegen
@@ -64,7 +64,7 @@ program main
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error) debug_checkhash
+            consistency_gcollapse,       `noisily' oncollision(error)
             consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(0)
             consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(1)
             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)

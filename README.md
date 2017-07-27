@@ -358,7 +358,7 @@ which allows computing quantiles; e.g. 2.5 or 97.5).
   that **`gegen group` will produce different output than `egen group`**. The
   former tags groups as they appear, whereas the latter tags the first group
   as it would appear sorted as 1, the second as it would appear sorted as 2,
-  and so on. This is discussed in issue https://github.com/mcaceresb/stata-gtools/issues/4
+  and so on. This is discussed in [issue #6](https://github.com/mcaceresb/stata-gtools/issues/6)
 - Most egen function are not yet supported by `gegen`; only
   the functions noted above are currently available.
 
@@ -427,8 +427,8 @@ devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
 at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
 Nevertheless, the function does check for hash collisions and will fall back
 on `collapse` and `egen` when it encounters a collision. An internal
-mechanism for resolving potential collisions is in the works. See issue
-https://github.com/mcaceresb/stata-gtools/issues/2 for a discussion.
+mechanism for resolving potential collisions is in the works. See (issue
+2)[https://github.com/mcaceresb/stata-gtools/issues/2] for a discussion.
 
 ### Why use platform-dependent plugins?
 

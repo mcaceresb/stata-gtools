@@ -1,4 +1,4 @@
-*! version 0.6.9 26Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.10 27Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -143,6 +143,10 @@ program gcollapse
     scalar __gtools_benchmark = `benchmark'
     scalar __gtools_checkhash = `checkhash'
 
+    * -gegen- option; included here so plugin is consistent but it
+    * is ignored for gcollapse
+    scalar __gtools_missing = 0
+
     if ( `verbose'  | `benchmark' ) local noi noisily
 
     ***********************************************************************
@@ -246,9 +250,9 @@ program gcollapse
     local gtools_orig_stats      `gtools_stats'
     local gtools_orig_uniq_stats `gtools_uniq_stats'
 
-    mata: gtools_vars     = (`:di subinstr(`""`gtools_vars'""',    " ", `"", ""', .)')
-    mata: gtools_targets  = (`:di subinstr(`""`gtools_targets'""', " ", `"", ""', .)')
-    mata: gtools_stats    = (`:di subinstr(`""`gtools_stats'""',   " ", `"", ""', .)')
+    mata: gtools_vars     = `:di subinstr(`""`gtools_vars'""',    " ", `"", ""', .)'
+    mata: gtools_targets  = `:di subinstr(`""`gtools_targets'""', " ", `"", ""', .)'
+    mata: gtools_stats    = `:di subinstr(`""`gtools_stats'""',   " ", `"", ""', .)'
     mata: gtools_pos      = gtools_vars :== gtools_targets
     mata: gtools_io_order = selectindex(gtools_pos), selectindex(!gtools_pos)
 

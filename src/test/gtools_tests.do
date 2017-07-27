@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Jul 27 00:54:24 EDT 2017
+* Updated: Thu Jul 27 10:49:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.9
+* Version: 0.6.10
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -70,12 +70,12 @@ program main
             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
-            consistency_gegen,           `noisily' oncollision(error) debug_force_single b
+            consistency_gegen,           `noisily' oncollision(error) debug_force_single
             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
 
             if !inlist("`c(os)'", "Windows") {
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
-                consistency_gegen,           `noisily' oncollision(error) debug_force_multi b
+                consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
         }

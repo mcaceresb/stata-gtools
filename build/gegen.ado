@@ -1,4 +1,4 @@
-*! version 0.6.9 26Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.10 27Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -101,6 +101,10 @@ program define gegen, byable(onecall)
         scalar __gtools_missing = 0
     }
     else {
+        if !inlist("`fcn'", "tag", "group", "total") {
+            di as err "Option {opt missing} not allowed"
+            exit 198
+        }
         scalar __gtools_missing = 1
     }
 
@@ -272,6 +276,10 @@ program define gegen, byable(onecall)
         }
         * local fcn p`p'
         local fcn `p'
+    }
+    else if ( `p' != 50  ) {
+        di as err "Option {opt p()} not allowed"
+        exit 198
     }
 
     * Parse variable(s)

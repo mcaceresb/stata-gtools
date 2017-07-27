@@ -22,6 +22,8 @@ Change Log
 
 ### Bug fixes
 
+* `gegen` no longer ignores unavailable options, as noted in issue 
+  https://github.com/mcaceresb/stata-gtools/issues/4, and now it throws an error.
 * `gegen varname = tag(varlist)` no longer tags missing values, as noted
   in issue https://github.com/mcaceresb/stata-gtools/issues/5
 * Additional fixes for issue https://github.com/mcaceresb/stata-gtools/issues/1

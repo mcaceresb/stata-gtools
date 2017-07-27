@@ -83,8 +83,10 @@ program define gegen, byable(onecall)
         debug_force_multi        /// (experimental) Force muti-threading
         debug_checkhash          /// (experimental) Check for hash collisions
         oncollision(str)         /// (experimental) On collision, fall back to collapse or throw error
-        *                        ///
     ]
+
+    * Misc options
+    * ------------
 
     local website_url  https://github.com/mcaceresb/stata-gtools/issues
     local website_disp github.com/mcaceresb/stata-gtools
@@ -93,6 +95,13 @@ program define gegen, byable(onecall)
     if ( !inlist("`oncollision'", "fallback", "error") ) {
         di as err "option -oncollision()- must be 'fallback' or 'error'"
         exit 198
+    }
+
+    if ( "`missing'" == "" ) {
+        scalar __gtools_missing = 0
+    }
+    else {
+        scalar __gtools_missing = 1
     }
 
     * Verbose and benchmark printing
@@ -224,14 +233,14 @@ program define gegen, byable(onecall)
     * Parse by call
     * -------------
 
-    if ( _by() ) {
-        * local byopt "by(`_byvars')"
-        local by `_byvars'
-        local cma ","
-    }
-    else if ( `"`options'"' != "" ) {
-        local cma ","
-    }
+    * if ( _by() ) {
+    *     * local byopt "by(`_byvars')"
+    *     local by `_byvars'
+    *     local cma ","
+    * }
+    * else if ( `"`options'"' != "" ) {
+    *     local cma ","
+    * }
 
     * egen to summary stat
     * --------------------
@@ -289,18 +298,13 @@ program define gegen, byable(onecall)
     if inlist("`fcn'", "tag", "group") local by `gtools_vars'
 
     * Parse missing option for group; else just pass `if' `in'
-    if ( "`fcn'" == "group" ) {
+    if ( inlist("`fcn'", "group", "tag") ) {
 		if ( "`missing'" == "" ) {
             marksample touse
             markout `touse' `by', strok
             local sub if `touse'
         }
         else local sub `if' `in'
-    }
-    else if ( "`fcn'" == "tag" ) {
-        marksample touse
-        markout `touse' `by', strok
-        local sub if `touse'
     }
     else local sub `if' `in'
 
@@ -423,7 +427,7 @@ program define gegen, byable(onecall)
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
     if ( `=_N > 0' ) {
-        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
+        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn'
         if ( _rc == 42000 ) {
             di as err "There may be 128-bit hash collisions!"
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'

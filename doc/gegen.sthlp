@@ -32,9 +32,7 @@ creates a constant (within {it:varlist}) containing the number of nonmissing
 observations of {it:exp}.
 
 {phang2}
-{opth group(varlist)} [{cmd:,} {opt m:issing}
-{opt l:abel} {opt lname}{cmd:(}{it:name}{cmd:)}
-{opt t:runcate}{cmd:(}{it:num}{cmd:)}]{p_end}
+{opth group(varlist)} [{cmd:,} {opt m:issing}]{p_end}
 {pmore2}
 may not be combined with {cmd:by}.  It creates one variable taking on
 values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may

@@ -382,6 +382,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
         checkhash = (int) checkhash_double;
     }
 
+    // Sums are missing if all elements are missing, insteaad of 0
+    int missing;
+    ST_double missing_double ;
+    if ( (rc = SF_scal_use("__gtools_missing", &missing_double)) ) {
+        return(rc) ;
+    }
+    else {
+        missing = (int) missing_double;
+    }
+
     // Verbose printing
     int verbose;
     ST_double verb_double ;
@@ -660,6 +670,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->start_collapse_vars = start_collapse_vars;
     st_info->start_target_vars   = start_target_vars;
     st_info->checkhash           = checkhash;
+    st_info->missing             = missing;
     st_info->verbose             = verbose;
     st_info->benchmark           = benchmark;
     st_info->merge               = merge;

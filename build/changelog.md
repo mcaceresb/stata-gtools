@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## gtools-0.6.9 (2017-06-26)
+## gtools-0.6.9 (2017-06-27)
 
 ### Enhancements
 
@@ -10,8 +10,6 @@ Change Log
   use mata and extended macro functions as applicable.
 * `gegen varname = group(varlist)` no longer has holes, as noted in issue
   https://github.com/mcaceresb/stata-gtools/issues/4
-* `gegen varname = tag(varlist)` no longer tags missing values, as noted
-  in issue https://github.com/mcaceresb/stata-gtools/issues/5
 * `gegen` and `gcollapse` fall back on `collapse` and `egen` in case there
   is a collision. Future releases will implement an internal way to resolve
   collisions. This is not a huge concern, as SpookyHash has no known
@@ -24,6 +22,8 @@ Change Log
 
 ### Bug fixes
 
+* `gegen varname = tag(varlist)` no longer tags missing values, as noted
+  in issue https://github.com/mcaceresb/stata-gtools/issues/5
 * Additional fixes for issue https://github.com/mcaceresb/stata-gtools/issues/1
 * Apparentlly the argument Stata passes to plugins have a maximum length. The
   code now makes sure chuncks are passed when the PATH length will exceed the

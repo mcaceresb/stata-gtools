@@ -213,12 +213,16 @@ int sf_egen (struct StataInfo *st_info)
                 output[j] = 100 * end;
             }
             else if ( end == 0 ) {
-                // If everything is missing, write a missing value
                 // If everything is missing, write a missing value,
-                // Except for sums, which go to 0 for some reason (this
+                // except for sums, which go to 0 for some reason (this
                 // is the behavior of collapse).
                 if ( statdbl == -1 ) {
-                    output[j] = 0;
+                    if ( st_info->missing ) {
+                        outmiss[j] = 1;
+                    }
+                    else {
+                        output[j] = 0;
+                    }
                 }
                 else {
                     outmiss[j] = 1;

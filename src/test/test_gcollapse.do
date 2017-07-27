@@ -1,72 +1,31 @@
-capture program drop sim
-program sim, rclass
-    syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
-    qui {
-        if ("`offset'" == "") local offset 0
-        clear
-        set obs `n'
-        gen group  = ceil(`nj' *  _n / _N) + `offset'
-        bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
-        bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
-        gen rsort = runiform() - 0.5
-        gen rnorm = rnormal()
-        if ("`sortg'" == "")  sort rsort
-        if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
-        if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
-        if ("`outmiss'" != "") replace rnorm = . if runiform() < 0.1
-        if ("`float'" != "")  replace group = group / `nj'
-        if ("`string'" != "") {
-            tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
-            local target `:di cond("`replace'" == "", "groupstr", "group")'
-            replace `target' = "i am a modesly long string" + `target'
-        }
-        gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
-    }
-    sum rsort
-    di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
-    compress
-    return local n  = `n'
-    return local nj = `nj'
-    return local offset = `offset'
-    return local string = ("`string'" != "")
-end
-
-capture program drop checks_consistency_gcollapse
-program checks_consistency_gcollapse
+capture program drop consistency_gcollapse
+program consistency_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "checks_consistency_gcollapse `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
 
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
+    local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
     foreach stat of local stats {
         local collapse_str `collapse_str' (`stat') `stat' = rnorm
     }
-    local collapse_str `collapse_str' (p23) p23 = rnorm
-    local collapse_str `collapse_str' (p77) p77 = rnorm
+    foreach pct of local percentiles {
+        local collapse_str `collapse_str' (`pct') `pct' = rnorm
+    }
 
-    sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
+    qui sim, n(50000) nj(8) njsub(4) string groupmiss outmiss float
     mytimer 9
     qui `noisily' foreach i in 0 3 6 9 {
-        if (`i' == 0) local by groupsub groupstr
-        if (`i' == 3) local by groupstr
-        if (`i' == 6) local by groupsub group
-        if (`i' == 9) local by grouplong
+        if ( `i' == 0 ) local by groupsub groupstr
+        if ( `i' == 3 ) local by groupstr groupsubstr 
+        if ( `i' == 6 ) local by groupsub group
+        if ( `i' == 9 ) local by grouplong
     preserve
         mytimer 9 info
         gcollapse `collapse_str', by(`by') verbose benchmark `options'
         mytimer 9 info "gcollapse to groups"
         tempfile f`i'
         save `f`i''
-    * I originally was also testing fcollapse, but it can't do sd for
-    * some reason, and you can't mix string and numeric variables...
-    * restore, preserve
-    *     mytimer 9 info
-    *     if (`i' != 0) {
-    *         fcollapse `collapse_str', by(`by') verbose
-    *         mytimer 9 info "fcollapse to groups"
-    *         tempfile f`:di `i' + 1'
-    *         save `f`:di `i' + 1''
-    *     }
     restore, preserve
         mytimer 9 info
         collapse `collapse_str', by(`by')
@@ -77,7 +36,7 @@ program checks_consistency_gcollapse
     }
     mytimer 9 off
 
-    sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
+    qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
     qui `noisily' foreach i in 12 15 18 21 {
         if (`i' == 12) local by groupsub groupstr
         if (`i' == 15) local by groupstr
@@ -86,17 +45,9 @@ program checks_consistency_gcollapse
     preserve
         mytimer 9 info
         gcollapse `collapse_str', by(`by') verbose benchmark `options'
-        mytimer 9 info "gcollapse 2 groups"
+        mytimer 9 info "gcollapse to groups"
         tempfile f`i'
         save `f`i''
-    * restore, preserve
-    *     mytimer 9 info
-    *     if (`i' != 12) {
-    *         fcollapse `collapse_str', by(`by') verbose
-    *         mytimer 9 info "fcollapse to groups"
-    *         tempfile f`:di `i' + 1'
-    *         save `f`:di `i' + 1''
-    *     }
     restore, preserve
         mytimer 9 info
         collapse `collapse_str', by(`by')
@@ -106,24 +57,71 @@ program checks_consistency_gcollapse
     restore
     }
 
-    foreach i in 0 3 6 9 12 15 18 21 {
+    qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
+    qui `noisily' foreach i in 24 27 30 33 {
+        if (`i' == 24) local by groupsub groupstr
+        if (`i' == 27) local by groupstr
+        if (`i' == 30) local by groupsub group
+        if (`i' == 33) local by grouplong
+        local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        local ifin if rsort < 0 in `from' / `to'
+        qui count `ifin'
+        if (`r(N)' == 0) {
+            local in1  = ceil(runiform() * 10)
+            local in2  = ceil(`=_N' - runiform() * 10)
+            local from = cond(`in1' < `in2', `in1', `in2')
+            local to   = cond(`in1' > `in2', `in1', `in2')
+            local ifin if rsort < 0 in `from' / `to'
+        }
+    preserve
+        mytimer 9 info
+        gcollapse `collapse_str' `ifin', by(`by') verbose benchmark `options'
+        mytimer 9 info "gcollapse to groups"
+        tempfile f`i'
+        save `f`i''
+    restore, preserve
+        mytimer 9 info
+        collapse `collapse_str' `ifin', by(`by')
+        mytimer 9 info "collapse to groups"
+        tempfile f`:di `i' + 2'
+        save `f`:di `i' + 2''
+    restore
+    }
+
+    foreach i in 0 3 6 9 12 15 18 21 24 27 30 33 {
     preserve
     use `f`:di `i' + 2'', clear
         local bad_any = 0
-        if (`i' == 0)  local bad groupsub groupstr
-        if (`i' == 3)  local bad groupstr
-        if (`i' == 6)  local bad groupsub group
-        if (`i' == 9)  local bad grouplong
-        if (`i' == 12) local bad groupsub groupstr
-        if (`i' == 15) local bad groupstr
-        if (`i' == 18) local bad groupsub group
-        if (`i' == 21) local bad grouplong
+        if (`i' == 0  ) local bad groupsub groupstr
+        if (`i' == 3  ) local bad groupstr groupsubstr 
+        if (`i' == 6  ) local bad groupsub group
+        if (`i' == 9  ) local bad grouplong
+        if (`i' == 12 ) local bad groupsub groupstr
+        if (`i' == 15 ) local bad groupstr
+        if (`i' == 18 ) local bad groupsub group
+        if (`i' == 21 ) local bad grouplong
+        if (`i' == 24 ) local bad groupsub groupstr
+        if (`i' == 27 ) local bad groupstr
+        if (`i' == 30 ) local bad groupsub group
+        if (`i' == 33 ) local bad grouplong
+        if ( `i' == 0 ) {
+            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4"
+        }
+        if ( `i' == 12 ) {
+            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4"
+        }
+        if ( `i' == 24 ) {
+            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)"
+        }
         local by `bad'
-        foreach var in `stats' p23 p77 {
+        foreach var in `stats' `percentiles' {
             rename `var' c_`var'
         }
         qui merge 1:1 `by' using `f`i'', assert(3)
-        foreach var in `stats' p23 p77 {
+        foreach var in `stats' `percentiles' {
             qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
             if ( `r(N)' > 0 ) {
                 gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
@@ -140,50 +138,10 @@ program checks_consistency_gcollapse
             exit 9
         }
         else {
-            di "gcollapse produced identical data to collapse (tol = `tol', `by')"
+            di "    compare_collapse (passed): gcollapse results equal to collapse (tol = `tol', `by')"
         }
     restore
     }
-
-    * foreach i in 4 7 10 16 19 22 {
-    * preserve
-    * use `f`:di `i' + 1'', clear
-    *     local bad_any = 0
-    *     if (`i' == 4)  local bad groupstr
-    *     if (`i' == 7)  local bad groupsub group
-    *     if (`i' == 10) local bad grouplong
-    *     if (`i' == 16) local bad groupstr
-    *     if (`i' == 19) local bad groupsub group
-    *     if (`i' == 22) local bad grouplong
-    *     local by `bad'
-    *     foreach var in `stats' p23 p77 {
-    *         rename `var' c_`var'
-    *     }
-    *     qui merge 1:1 `bad' using `f`i'', assert(3)
-    *     foreach var in `stats' p23 p77 {
-    *         qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
-    *         if ( `r(N)' > 0 ) {
-    *             gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
-    *             local bad `bad' *`var'
-    *             di "`var' has `:di r(N)' mismatches".
-    *             local bad_any = 1
-    *         }
-    *     }
-    *     if ( `bad_any' ) {
-    *         order `bad'
-    *         egen bad_any = rowmax(bad_*)
-    *         l *count* `bad' if bad_any & _n < 100
-    *         sum bad_*
-    *         di "fcollapse produced different data to collapse (tol = `tol', `by')"
-    *     }
-    *     else {
-    *         di "fcollapse produced identical data to collapse (tol = `tol', `by')"
-    *     }
-    * restore
-    * }
-
-    di ""
-    di as txt "Passed! checks_consistency_gcollapse `options'"
 end
 
 capture program drop checks_byvars_gcollapse
@@ -192,26 +150,26 @@ program checks_byvars_gcollapse
     di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `options'" _n(1) "{hline 80}" _n(1)
 
     sim, n(1000) nj(250) string
+
     set rmsg on
     preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group groupsub)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong groupsub)
     restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `options'
+        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr groupsub)
     restore
     set rmsg off
-
 
     di ""
     di as txt "Passed! checks_byvars_gcollapse `options'"
@@ -250,11 +208,30 @@ program checks_options_gcollapse
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
+        gcollapse `collapse_str', by(groupstr) verbose benchmark fast `options'
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore, preserve
         gcollapse `collapse_str', by(groupstr) double `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
         gcollapse `collapse_str', by(groupstr) merge `options'
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore
+
+    preserve
+        gcollapse `collapse_str', verbose benchmark `options'
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore, preserve
+        gcollapse rnorm (mean) mean_rnorm = rnorm, by(groupstr groupsub) verbose benchmark `options'
+        assert rnorm == mean_rnorm
+        if ( `=_N' > 10 ) l in 1/10
+        if ( `=_N' < 10 ) l
+    restore, preserve
+        gcollapse rnorm, verbose benchmark `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore
@@ -293,5 +270,3 @@ program checks_options_gcollapse
     di ""
     di as txt "Passed! checks_options_gcollapse `options'"
 end
-
-* TODO: Edge cases (nothing in anything, no -by-, should mimic collapse // 2017-05-16 08:03 EDT

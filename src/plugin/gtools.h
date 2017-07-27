@@ -45,6 +45,7 @@ struct StataInfo {
     int verbose;
     int benchmark;
     int checkhash;
+    int missing;
     int merge;
     int indexed;
     int integers_ok;

@@ -1,9 +1,9 @@
 /**
  * @file st_gentools.c
- * @version 0.2.0
+ * @version 0.3.0
  * @author Mauricio Caceres Bravo
  * @email <mauricio.caceres.bravo@gmail.com>
- * @date 20 Apr 2017
+ * @date 25 Jul 2017
  * @brief General-purpose utility functions for writing Stata plugins
  *
  * These are various wrappers to make it easier to write Stata plugins.
@@ -29,7 +29,7 @@
 #include <stdarg.h>
 #include "st_gentools.h"
 
-#define BUF_MAX 1024
+#define BUF_MAX 4096
 
 /**
  * @brief Short wrapper to print to Stata

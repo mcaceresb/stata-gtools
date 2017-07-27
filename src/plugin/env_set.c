@@ -8,6 +8,7 @@
 #include "spt/st_gentools.c"
 
 #if defined(_WIN64) || defined(_WIN32)
+// #include <stdio.h>
 
 #if defined(__MINGW32__) || defined(__MINGW64__)
 /* MINGW defines _wgetenv_s(), but not getenv_s. However, it *is* in the
@@ -26,7 +27,19 @@ errno_t getenv_s (
 int setenv (const char *name, const char *value, int overwrite);
 int setenv (const char *name, const char *value, int overwrite)
 {
-    return (_putenv_s(name, value));
+    if ( overwrite ) {
+        // return (_wputenv_s(name, value));
+        return (_putenv_s(name, value));
+    }
+    else {
+        return (0);
+    }
+}
+
+int unsetenv (const char *name);
+int unsetenv (const char *name) {
+    // return (_wputenv_s(name, ""));
+    return (_putenv_s(name, ""));
 }
 #define ENV_DELIM ';'
 #else
@@ -42,25 +55,43 @@ void * memcpy (void *dest, const void *src, size_t n)
 }
 #endif
 
+#define MAX_LEN 4096
 char* EMPTY = "";
 
 STDLL stata_call (int argc, char *argv[])
 {
     ST_retcode rc;
 
-    if ( argc != 2 ) {
+    if ( argc < 2 ) {
         sf_errprintf ("env_set: incorrect number of arguments (%d). Use:\n", argc);
         sf_errprintf ("\tplugin call env_set, ENV `\"VALUE\"'\n");
         return (198);
     }
-    else if ( argc == 2 ) {
-        rc = setenv(argv[0], argv[1], 1);
+    else if ( argc >= 2 ) {
+        rc = unsetenv(argv[0]);
         if ( rc ) {
-            sf_errprintf ("env_set: unable to set %s to '%s': %d\n", argv[0], argv[1], rc);
+            sf_errprintf ("env_set: unable to unset %s: %d\n", argv[0], rc);
+            return (rc);
+        }
+        if ( argc == 2 ) {
+            rc = setenv(argv[0], argv[1], 1);
+        }
+        else {
+            int c; char *path;
+            path = malloc((argc - 1) * MAX_LEN * sizeof(char));
+            memset (path, '\0', (argc - 1) * MAX_LEN);
+            strcpy (path, argv[1]);
+            for (c = 2; c < argc; c++) {
+                strcat(path, argv[c]);
+            }
+            rc = setenv(argv[0], path, 1);
+        }
+        if ( rc ) {
+            sf_errprintf ("env_set: unable to set %s: %d\n", argv[0], rc);
             return (rc);
         }
         else {
-            sf_printf ("Set '%s' to %s\n", argv[0], argv[1]);
+            sf_printf ("Successfully set %s\n", argv[0]);
         }
     }
     return (0);

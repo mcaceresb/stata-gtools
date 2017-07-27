@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:55:00 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.4
+ * Version: 0.6.9
  *********************************************************************/
 
 #include "gegen.h"
@@ -40,6 +40,15 @@ int sf_egen (struct StataInfo *st_info)
     size_t *all_nonmiss    = calloc(st_info->J, sizeof *all_nonmiss);
     size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
 
+    if ( output  == NULL ) return(sf_oom_error("sf_egen", "output"));
+    if ( outmiss == NULL ) return(sf_oom_error("sf_egen", "outmiss"));
+
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen", "all_buffer"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen", "all_nonmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen", "offsets_buffer"));
+
     for (i = 0; i < st_info->J; i++)
         outmiss[i] = 0;
 
@@ -53,10 +62,14 @@ int sf_egen (struct StataInfo *st_info)
     size_t *pos_firstmiss = calloc(st_info->J, sizeof *pos_firstmiss);
     size_t *pos_lastmiss  = calloc(st_info->J, sizeof *pos_lastmiss);
 
+    if ( pos_firstmiss == NULL ) return(sf_oom_error("sf_egen", "pos_firstmiss"));
+    if ( pos_lastmiss  == NULL ) return(sf_oom_error("sf_egen", "pos_lastmiss"));
+
     // Method 1: Continuously from Stata
     // ---------------------------------
 
-    size_t *index_st       = calloc(st_info->N, sizeof *index_st);
+    size_t *index_st = calloc(st_info->N, sizeof *index_st);
+    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
     for (j = 0; j < st_info->J; j++) {
         start  = st_info->info[j];
         end    = st_info->info[j + 1];
@@ -200,12 +213,16 @@ int sf_egen (struct StataInfo *st_info)
                 output[j] = 100 * end;
             }
             else if ( end == 0 ) {
-                // If everything is missing, write a missing value
                 // If everything is missing, write a missing value,
-                // Except for sums, which go to 0 for some reason (this
+                // except for sums, which go to 0 for some reason (this
                 // is the behavior of collapse).
                 if ( statdbl == -1 ) {
-                    output[j] = 0;
+                    if ( st_info->missing ) {
+                        outmiss[j] = 1;
+                    }
+                    else {
+                        output[j] = 0;
+                    }
                 }
                 else {
                     outmiss[j] = 1;
@@ -296,6 +313,9 @@ int sf_egen_tag (struct StataInfo *st_info)
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
 
+    if ( indexj == NULL ) return(sf_oom_error("sf_collapse", "indexj"));
+    if ( firstj == NULL ) return(sf_oom_error("sf_collapse", "firstj"));
+
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in
     // which the groups appear in Stata, and then write by looping over
@@ -318,10 +338,12 @@ int sf_egen_tag (struct StataInfo *st_info)
 
     // indexj[j] will contain the order in which the jth C group
     // inappeared Stata
-    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    rc = mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( rc ) return(rc);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Tagged groups in memory");
 
     // We loop in C using indexj and write to Stata based on index
+    k = st_info->start_target_vars;
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[indexj[j]];
         end   = st_info->info[indexj[j] + 1];
@@ -330,12 +352,11 @@ int sf_egen_tag (struct StataInfo *st_info)
         }
         if ( start < end ) {
             out = st_info->index[start] + st_info->in1;
-            if ( (rc = SF_vstore(st_info->start_target_vars, out, 1)) ) return (rc);
+            if ( (rc = SF_vstore(k, out, 1)) ) return (rc);
         }
     }
 
     // Tag ignores if/in for missing values (all non-tagged are 0)
-    k = st_info->start_target_vars;
     for (i = 1; i <= SF_nobs(); i++) {
         if ( (rc = SF_vdata(k, i, &z)) ) return(rc);
         if ( SF_is_missing(z) ) {
@@ -359,12 +380,16 @@ int sf_egen_tag (struct StataInfo *st_info)
 int sf_egen_group (struct StataInfo *st_info)
 {
     ST_retcode rc ;
-    int i, j, out;
+    short augment_id;
+    int i, j, k, out;
     size_t start, end, minj;
     clock_t timer = clock();
 
     size_t *indexj = calloc(st_info->J, sizeof *indexj);
     uint64_t *firstj = calloc(st_info->J, sizeof *firstj);
+
+    if ( indexj == NULL ) return(sf_oom_error("sf_collapse", "indexj"));
+    if ( firstj == NULL ) return(sf_oom_error("sf_collapse", "firstj"));
 
     // Since we hash the data, the order in C has to be mapped to the
     // order in Stata via info and index. First figure out the order in
@@ -388,19 +413,27 @@ int sf_egen_group (struct StataInfo *st_info)
 
     // indexj[j] will contain the order in which the jth C group
     // inappeared Stata
-    mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    rc = mf_radix_sort_index (firstj, indexj, st_info->J, RADIX_SHIFT, 0, st_info->verbose);
+    if ( rc ) return(rc);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
 
-    // We loop in C using indexj and write to Stata based on index
+    // We loop in C using indexj and write to Stata based on index.  We make
+    // sure to tag the groups using k so that in case [if] [in] conditions
+    // were passed, there are no holes (so if gorup 3 is excluded, group ID 3
+    // still appears, but for the next group that is included).
+    k = 1;    
     for (j = 0; j < st_info->J; j++) {
+        augment_id = 0;
         start  = st_info->info[indexj[j]];
         end    = st_info->info[indexj[j] + 1];
         for (i = start; i < end; i++) {
             out = st_info->index[i] + st_info->in1;
             if ( SF_ifobs(out) ) {
-                if ( (rc = SF_vstore(st_info->start_target_vars, out, j + 1)) ) return (rc);
+                if ( (rc = SF_vstore(st_info->start_target_vars, out, k)) ) return (rc);
+                augment_id = 1;
             }
         }
+        k += augment_id;
     }
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
 

@@ -2,18 +2,18 @@
       name:  <unnamed>
        log:  /home/mauricio/code/stata-gtools/gtools.log
   log type:  text
- opened on:  18 Jun 2017, 13:58:38
+ opened on:  27 Jul 2017, 05:02:30
 
-. do /home/mauricio/code/stata-gtools/build/gtools_tests.do
+. do C:\cygwin64\home\mauricio\gtools\build\gtools_tests.do
 
 . * ---------------------------------------------------------------------
 . * Project: gtools
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Fri Jun 16 17:37:39 EDT 2017
+. * Updated: Thu Jul 27 00:54:24 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.6.3
+. * Version: 0.6.9
 . * Manual:  help gcollapse, help gegen
 . 
 . * Stata start-up options
@@ -54,90 +54,95 @@
 .         * do test_gegen.do
 .         * do bench_gcollapse.do
 .         if ( `:list posof "checks" in options' ) {
-  7.             checks_byvars_gcollapse,  debug_force_single
-  8.             checks_options_gcollapse, debug_force_single
-  9.             if !inlist("`c(os)'", "Windows") {
- 10.                 checks_byvars_gcollapse,  debug_force_multi
- 11.                 checks_options_gcollapse, debug_force_multi
- 12.             }
- 13. 
-.             checks_options_gegen, debug_force_single
- 14.             if !inlist("`c(os)'", "Windows") {
- 15.                 checks_options_gegen, debug_force_multi
- 16.             }
+  7. 
+.             di ""
+  8.             di "-------------------------------------"
+  9.             di "Basic unit-tests $S_TIME $S_DATE"
+ 10.             di "-------------------------------------"
+ 11. 
+.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
+ 12.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))
+ 13.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(1))
+ 14. 
+.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
+ 15.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(0))
+ 16.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(1))
  17. 
-.             checks_consistency_gcollapse, debug_checkhash
- 18.             checks_consistency_gcollapse, forceio debug_io_read_method(0)
- 19.             checks_consistency_gcollapse, forceio debug_io_read_method(1)
- 20.             checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(0)
- 21.             checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(1000000)
- 22.             checks_consistency_gcollapse, debug_force_single
- 23.             if !inlist("`c(os)'", "Windows") {
- 24.                 checks_consistency_gcollapse, debug_force_multi
- 25.             }
- 26. 
-.             checks_consistency_gegen, debug_force_single b
- 27.             if !inlist("`c(os)'", "Windows") {
- 28.                 checks_consistency_gegen, debug_force_multi  b
- 29.             }
- 30.         }
- 31. 
+.             if !inlist("`c(os)'", "Windows") {
+ 18.                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
+ 19.                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
+ 20.             }
+ 21. 
+.             di ""
+ 22.             di "-----------------------------------------------------------"
+ 23.             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+ 24.             di "-----------------------------------------------------------"
+ 25. 
+.             consistency_gcollapse,       `noisily' oncollision(error)
+ 26.             consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(0)
+ 27.             consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(1)
+ 28.             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
+ 29.             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
+ 30.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
+ 31.             consistency_gegen,           `noisily' oncollision(error) debug_force_single b
+ 32.             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
+ 33. 
+.             if !inlist("`c(os)'", "Windows") {
+ 34.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
+ 35.                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi b
+ 36.                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
+ 37.             }
+ 38.         }
+ 39. 
 .         if ( `:list posof "test" in options' ) {
- 32.             cap ssc install ftools
- 33.             cap ssc install moremata
- 34. 
+ 40.             cap ssc install ftools
+ 41.             cap ssc install moremata
+ 42. 
 .             di "Short (quick) versions of the benchmarks"
- 35.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
- 36.             bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
- 37.             bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
- 38.             bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
- 39.             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
- 40. 
-.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftoo
-> ls)
- 41.             bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(f
-> tools)
- 42.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(f
-> tools)
- 43.             bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(g
-> tools)
- 44.             bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(g
-> tools)
- 45.         }
- 46. 
+ 43.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
+ 44.             bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
+ 45.             bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
+ 46.             bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
+ 47.             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
+ 48. 
+.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
+ 49.             bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
+ 50.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
+ 51.             bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
+ 52.             bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
+ 53.         }
+ 54. 
 .         if ( `:list posof "benchmark" in options' ) {
- 47.             cap ssc install ftools
- 48.             cap ssc install moremata
- 49. 
+ 55.             cap ssc install ftools
+ 56.             cap ssc install moremata
+ 57. 
 .             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
- 50.             bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
- 51.             bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
- 52.             bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
- 53.             bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
- 54.         }
- 55. 
+ 58.             bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
+ 59.             bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
+ 60.             bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
+ 61.             bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
+ 62.         }
+ 63. 
 .         if ( `:list posof "bench_fcoll" in options' ) {
- 56.             cap ssc install ftools
- 57.             cap ssc install moremata
- 58. 
-.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftoo
-> ls)
- 59.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(f
-> tools)
- 60.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(f
-> tools)
- 61.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(g
-> tools)
- 62.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(g
-> tools)
- 63.         }
- 64.     }
- 65.     local rc = _rc
+ 64.             cap ssc install ftools
+ 65.             cap ssc install moremata
  66. 
+.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools)
+ 67.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools)
+ 68.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
+ 69.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
+ 70.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
+ 71.         }
+ 72.     }
+ 73.     local rc = _rc
+ 74. 
 .     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
- 67.     exit `rc'
- 68. end
+ 75.     exit `rc'
+ 76. end
 
+. 
+. * ---------------------------------------------------------------------
+. * Aux programs
 . 
 . capture program drop exit_message
 
@@ -231,6 +236,23 @@
   7. end
 
 . 
+. capture program drop unit_test
+
+. program unit_test
+  1.     syntax, test(str) [NOIsily tab(int 4)]
+  2.     local tabs `""'
+  3.     forvalues i = 1 / `tab' {
+  4.         local tabs "`tabs' "
+  5.     }
+  6.     cap `noisily' `test'
+  7.     if ( _rc ) {
+  8.         di as error `"`tabs'test(failed): `test'"'
+  9.         exit _rc
+ 10.     }
+ 11.     else di as txt `"`tabs'test(passed): `test'"'
+ 12. end
+
+. 
 . capture program drop sim
 
 . program sim, rclass
@@ -244,183 +266,185 @@
   8.         bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
   9.         gen rsort = runiform() - 0.5
  10.         gen rnorm = rnormal()
- 11.         if ("`sortg'" == "")  sort rsort
- 12.         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
- 13.         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
- 14.         if ("`outmiss'" != "") replace rnorm = . if runiform() < 0.1
- 15.         if ("`float'" != "")  replace group = group / `nj'
- 16.         if ("`string'" != "") {
- 17.             tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
- 18.             local target `:di cond("`replace'" == "", "groupstr", "group")'
- 19.             replace `target' = "i am a modesly long string" + `target'
- 20.         }
- 21.         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
- 22.     }
- 23.     sum rsort
- 24.     di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
- 25.     compress
- 26.     return local n  = `n'
- 27.     return local nj = `nj'
- 28.     return local offset = `offset'
- 29.     return local string = ("`string'" != "")
- 30. end
+ 11.         if ( "`sortg'"     == "" ) sort rsort
+ 12.         if ( "`groupmiss'" != "" ) replace group = . if runiform() < 0.1
+ 13.         if ( "`outmiss'"   != "" ) replace rsort = . if runiform() < 0.1
+ 14.         if ( "`outmiss'"   != "" ) replace rnorm = . if runiform() < 0.1
+ 15.         if ( "`float'"     != "" ) replace group = group / `nj'
+ 16.         if ( "`string'" != "" ) {
+ 17.             tostring group,    `:di cond("`replace'" == "", "gen(groupstr)",    "replace")'
+ 18.             tostring groupsub, `:di cond("`replace'" == "", "gen(groupsubstr)", "replace")'
+ 19.             if ( "`replace'" == "replace" ) {
+ 20.                 replace group    = "" if group    == "."
+ 21.                 replace groupsub = "" if groupsub == "."
+ 22.             }
+ 23.             else {
+ 24.                 replace groupstr    = "" if mi(group)
+ 25.                 replace groupsubstr = "" if mi(groupsub)
+ 26.             }
+ 27.             local target `:di cond("`replace'" == "", "groupstr", "group")'
+ 28.             replace `target' = "i am a modesly long string" + `target' if !mi(`target')
+ 29.             local target `:di cond("`replace'" == "", "groupstr", "group")'
+ 30.             replace `target' = "ss" + `target' if !mi(`target')
+ 31.         }
+ 32.         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
+ 33.     }
+ 34.     qui sum rsort
+ 35.     di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
+ 36.     compress
+ 37.     return local n  = `n'
+ 38.     return local nj = `nj'
+ 39.     return local offset = `offset'
+ 40.     return local string = ("`string'" != "")
+ 41. end
 
 . 
-. capture program drop checks_consistency_gcollapse
+. capture program drop consistency_gcollapse
 
-. program checks_consistency_gcollapse
+. program consistency_gcollapse
   1.     syntax, [tol(real 1e-6) NOIsily *]
-  2.     di _n(1) "{hline 80}" _n(1) "checks_consistency_gcollapse `options'" _n(1) "{hline 80}" _n(1)
+  2.     di _n(1) "{hline 80}" _n(1) "consistency_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
   3. 
 .     local stats sum mean sd max min count percent first last firstnm lastnm median iqr
-  4.     local collapse_str ""
-  5.     foreach stat of local stats {
-  6.         local collapse_str `collapse_str' (`stat') `stat' = rnorm
-  7.     }
-  8.     local collapse_str `collapse_str' (p23) p23 = rnorm
-  9.     local collapse_str `collapse_str' (p77) p77 = rnorm
- 10. 
-.     sim, n(50000) nj(8) njsub(4) string groupmiss outmiss
- 11.     mytimer 9
- 12.     qui `noisily' foreach i in 0 3 6 9 {
- 13.         if (`i' == 0) local by groupsub groupstr
- 14.         if (`i' == 3) local by groupstr
- 15.         if (`i' == 6) local by groupsub group
- 16.         if (`i' == 9) local by grouplong
- 17.     preserve
- 18.         mytimer 9 info
- 19.         gcollapse `collapse_str', by(`by') verbose benchmark `options'
- 20.         mytimer 9 info "gcollapse to groups"
- 21.         tempfile f`i'
- 22.         save `f`i''
- 23.     * I originally was also testing fcollapse, but it can't do sd for
-.     * some reason, and you can't mix string and numeric variables...
-.     * restore, preserve
-.     *     mytimer 9 info
-.     *     if (`i' != 0) {
-.     *         fcollapse `collapse_str', by(`by') verbose
-.     *         mytimer 9 info "fcollapse to groups"
-.     *         tempfile f`:di `i' + 1'
-.     *         save `f`:di `i' + 1''
-.     *     }
-.     restore, preserve
- 24.         mytimer 9 info
- 25.         collapse `collapse_str', by(`by')
- 26.         mytimer 9 info "collapse to groups"
- 27.         tempfile f`:di `i' + 2'
- 28.         save `f`:di `i' + 2''
- 29.     restore
- 30.     }
- 31.     mytimer 9 off
- 32. 
-.     sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
- 33.     qui `noisily' foreach i in 12 15 18 21 {
- 34.         if (`i' == 12) local by groupsub groupstr
- 35.         if (`i' == 15) local by groupstr
- 36.         if (`i' == 18) local by groupsub group
- 37.         if (`i' == 21) local by grouplong
- 38.     preserve
- 39.         mytimer 9 info
- 40.         gcollapse `collapse_str', by(`by') verbose benchmark `options'
- 41.         mytimer 9 info "gcollapse 2 groups"
- 42.         tempfile f`i'
- 43.         save `f`i''
- 44.     * restore, preserve
-.     *     mytimer 9 info
-.     *     if (`i' != 12) {
-.     *         fcollapse `collapse_str', by(`by') verbose
-.     *         mytimer 9 info "fcollapse to groups"
-.     *         tempfile f`:di `i' + 1'
-.     *         save `f`:di `i' + 1''
-.     *     }
-.     restore, preserve
- 45.         mytimer 9 info
- 46.         collapse `collapse_str', by(`by')
- 47.         mytimer 9 info "collapse to groups"
- 48.         tempfile f`:di `i' + 2'
- 49.         save `f`:di `i' + 2''
- 50.     restore
- 51.     }
- 52. 
-.     foreach i in 0 3 6 9 12 15 18 21 {
- 53.     preserve
- 54.     use `f`:di `i' + 2'', clear
- 55.         local bad_any = 0
- 56.         if (`i' == 0)  local bad groupsub groupstr
- 57.         if (`i' == 3)  local bad groupstr
- 58.         if (`i' == 6)  local bad groupsub group
- 59.         if (`i' == 9)  local bad grouplong
- 60.         if (`i' == 12) local bad groupsub groupstr
- 61.         if (`i' == 15) local bad groupstr
- 62.         if (`i' == 18) local bad groupsub group
- 63.         if (`i' == 21) local bad grouplong
- 64.         local by `bad'
- 65.         foreach var in `stats' p23 p77 {
- 66.             rename `var' c_`var'
- 67.         }
- 68.         qui merge 1:1 `by' using `f`i'', assert(3)
- 69.         foreach var in `stats' p23 p77 {
- 70.             qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
- 71.             if ( `r(N)' > 0 ) {
- 72.                 gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
- 73.                 local bad `bad' *`var'
- 74.                 di "`var' has `:di r(N)' mismatches".
- 75.                 local bad_any = 1
- 76.             }
- 77.         }
- 78.         if ( `bad_any' ) {
- 79.             order `bad'
- 80.             egen bad_any = rowmax(bad_*)
- 81.             l *count* `bad' if bad_any
- 82.             sum bad_*
- 83.             exit 9
- 84.         }
- 85.         else {
- 86.             di "gcollapse produced identical data to collapse (tol = `tol', `by')"
- 87.         }
- 88.     restore
- 89.     }
- 90. 
-.     * foreach i in 4 7 10 16 19 22 {
-.     * preserve
-.     * use `f`:di `i' + 1'', clear
-.     *     local bad_any = 0
-.     *     if (`i' == 4)  local bad groupstr
-.     *     if (`i' == 7)  local bad groupsub group
-.     *     if (`i' == 10) local bad grouplong
-.     *     if (`i' == 16) local bad groupstr
-.     *     if (`i' == 19) local bad groupsub group
-.     *     if (`i' == 22) local bad grouplong
-.     *     local by `bad'
-.     *     foreach var in `stats' p23 p77 {
-.     *         rename `var' c_`var'
-.     *     }
-.     *     qui merge 1:1 `bad' using `f`i'', assert(3)
-.     *     foreach var in `stats' p23 p77 {
-.     *         qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
-.     *         if ( `r(N)' > 0 ) {
-.     *             gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
-.     *             local bad `bad' *`var'
-.     *             di "`var' has `:di r(N)' mismatches".
-.     *             local bad_any = 1
-.     *         }
-.     *     }
-.     *     if ( `bad_any' ) {
-.     *         order `bad'
-.     *         egen bad_any = rowmax(bad_*)
-.     *         l *count* `bad' if bad_any & _n < 100
-.     *         sum bad_*
-.     *         di "fcollapse produced different data to collapse (tol = `tol', `by')"
-.     *     }
-.     *     else {
-.     *         di "fcollapse produced identical data to collapse (tol = `tol', `by')"
-.     *     }
-.     * restore
-.     * }
-. 
-.     di ""
- 91.     di as txt "Passed! checks_consistency_gcollapse `options'"
- 92. end
+  4.     local percentiles p1 p13 p30 p50 p70 p87 p99
+  5.     local collapse_str ""
+  6.     foreach stat of local stats {
+  7.         local collapse_str `collapse_str' (`stat') `stat' = rnorm
+  8.     }
+  9.     foreach pct of local percentiles {
+ 10.         local collapse_str `collapse_str' (`pct') `pct' = rnorm
+ 11.     }
+ 12. 
+.     qui sim, n(50000) nj(8) njsub(4) string groupmiss outmiss float
+ 13.     mytimer 9
+ 14.     qui `noisily' foreach i in 0 3 6 9 {
+ 15.         if ( `i' == 0 ) local by groupsub groupstr
+ 16.         if ( `i' == 3 ) local by groupstr groupsubstr 
+ 17.         if ( `i' == 6 ) local by groupsub group
+ 18.         if ( `i' == 9 ) local by grouplong
+ 19.     preserve
+ 20.         mytimer 9 info
+ 21.         gcollapse `collapse_str', by(`by') verbose benchmark `options'
+ 22.         mytimer 9 info "gcollapse to groups"
+ 23.         tempfile f`i'
+ 24.         save `f`i''
+ 25.     restore, preserve
+ 26.         mytimer 9 info
+ 27.         collapse `collapse_str', by(`by')
+ 28.         mytimer 9 info "collapse to groups"
+ 29.         tempfile f`:di `i' + 2'
+ 30.         save `f`:di `i' + 2''
+ 31.     restore
+ 32.     }
+ 33.     mytimer 9 off
+ 34. 
+.     qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
+ 35.     qui `noisily' foreach i in 12 15 18 21 {
+ 36.         if (`i' == 12) local by groupsub groupstr
+ 37.         if (`i' == 15) local by groupstr
+ 38.         if (`i' == 18) local by groupsub group
+ 39.         if (`i' == 21) local by grouplong
+ 40.     preserve
+ 41.         mytimer 9 info
+ 42.         gcollapse `collapse_str', by(`by') verbose benchmark `options'
+ 43.         mytimer 9 info "gcollapse to groups"
+ 44.         tempfile f`i'
+ 45.         save `f`i''
+ 46.     restore, preserve
+ 47.         mytimer 9 info
+ 48.         collapse `collapse_str', by(`by')
+ 49.         mytimer 9 info "collapse to groups"
+ 50.         tempfile f`:di `i' + 2'
+ 51.         save `f`:di `i' + 2''
+ 52.     restore
+ 53.     }
+ 54. 
+.     qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
+ 55.     qui `noisily' foreach i in 24 27 30 33 {
+ 56.         if (`i' == 24) local by groupsub groupstr
+ 57.         if (`i' == 27) local by groupstr
+ 58.         if (`i' == 30) local by groupsub group
+ 59.         if (`i' == 33) local by grouplong
+ 60.         local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
+ 61.         local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+ 62.         local from = cond(`in1' < `in2', `in1', `in2')
+ 63.         local to   = cond(`in1' > `in2', `in1', `in2')
+ 64.         local ifin if rsort < 0 in `from' / `to'
+ 65.         qui count `ifin'
+ 66.         if (`r(N)' == 0) {
+ 67.             local in1  = ceil(runiform() * 10)
+ 68.             local in2  = ceil(`=_N' - runiform() * 10)
+ 69.             local from = cond(`in1' < `in2', `in1', `in2')
+ 70.             local to   = cond(`in1' > `in2', `in1', `in2')
+ 71.             local ifin if rsort < 0 in `from' / `to'
+ 72.         }
+ 73.     preserve
+ 74.         mytimer 9 info
+ 75.         gcollapse `collapse_str' `ifin', by(`by') verbose benchmark `options'
+ 76.         mytimer 9 info "gcollapse to groups"
+ 77.         tempfile f`i'
+ 78.         save `f`i''
+ 79.     restore, preserve
+ 80.         mytimer 9 info
+ 81.         collapse `collapse_str' `ifin', by(`by')
+ 82.         mytimer 9 info "collapse to groups"
+ 83.         tempfile f`:di `i' + 2'
+ 84.         save `f`:di `i' + 2''
+ 85.     restore
+ 86.     }
+ 87. 
+.     foreach i in 0 3 6 9 12 15 18 21 24 27 30 33 {
+ 88.     preserve
+ 89.     use `f`:di `i' + 2'', clear
+ 90.         local bad_any = 0
+ 91.         if (`i' == 0  ) local bad groupsub groupstr
+ 92.         if (`i' == 3  ) local bad groupstr groupsubstr 
+ 93.         if (`i' == 6  ) local bad groupsub group
+ 94.         if (`i' == 9  ) local bad grouplong
+ 95.         if (`i' == 12 ) local bad groupsub groupstr
+ 96.         if (`i' == 15 ) local bad groupstr
+ 97.         if (`i' == 18 ) local bad groupsub group
+ 98.         if (`i' == 21 ) local bad grouplong
+ 99.         if (`i' == 24 ) local bad groupsub groupstr
+100.         if (`i' == 27 ) local bad groupstr
+101.         if (`i' == 30 ) local bad groupsub group
+102.         if (`i' == 33 ) local bad grouplong
+103.         if ( `i' == 0 ) {
+104.             di _n(1) "Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4"
+105.         }
+106.         if ( `i' == 12 ) {
+107.             di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4"
+108.         }
+109.         if ( `i' == 24 ) {
+110.             di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)"
+111.         }
+112.         local by `bad'
+113.         foreach var in `stats' `percentiles' {
+114.             rename `var' c_`var'
+115.         }
+116.         qui merge 1:1 `by' using `f`i'', assert(3)
+117.         foreach var in `stats' `percentiles' {
+118.             qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
+119.             if ( `r(N)' > 0 ) {
+120.                 gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
+121.                 local bad `bad' *`var'
+122.                 di "`var' has `:di r(N)' mismatches".
+123.                 local bad_any = 1
+124.             }
+125.         }
+126.         if ( `bad_any' ) {
+127.             order `bad'
+128.             egen bad_any = rowmax(bad_*)
+129.             l *count* `bad' if bad_any
+130.             sum bad_*
+131.             exit 9
+132.         }
+133.         else {
+134.             di "    compare_collapse (passed): gcollapse results equal to collapse (tol = `tol', `by')"
+135.         }
+136.     restore
+137.     }
+138. end
 
 . 
 . capture program drop checks_byvars_gcollapse
@@ -430,27 +454,27 @@
   2.     di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `options'" _n(1) "{hline 80}" _n(1)
   3. 
 .     sim, n(1000) nj(250) string
-  4.     set rmsg on
+  4. 
+.     set rmsg on
   5.     preserve
-  6.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
+  6.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr)
   7.     restore, preserve
-  8.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group) verbose `options'
+  8.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group)
   9.     restore, preserve
- 10.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr) verbose `options'
+ 10.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
  11.     restore, preserve
- 12.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong) verbose `options'
+ 12.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong)
  13.     restore, preserve
- 14.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupsub) verbose `options'
+ 14.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
  15.     restore, preserve
- 16.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(group groupsub) verbose `options'
+ 16.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group groupsub)
  17.     restore, preserve
- 18.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(grouplong groupsub) verbose `options'
+ 18.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong groupsub)
  19.     restore, preserve
- 20.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, by(groupstr groupsub) verbose `options'
+ 20.         gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr groupsub)
  21.     restore
  22.     set rmsg off
  23. 
-. 
 .     di ""
  24.     di as txt "Passed! checks_byvars_gcollapse `options'"
  25. end
@@ -490,430 +514,502 @@
  27.         if ( `=_N' > 10 ) l in 1/10
  28.         if ( `=_N' < 10 ) l
  29.     restore, preserve
- 30.         gcollapse `collapse_str', by(groupstr) double `options'
+ 30.         gcollapse `collapse_str', by(groupstr) verbose benchmark fast `options'
  31.         if ( `=_N' > 10 ) l in 1/10
  32.         if ( `=_N' < 10 ) l
  33.     restore, preserve
- 34.         gcollapse `collapse_str', by(groupstr) merge `options'
+ 34.         gcollapse `collapse_str', by(groupstr) double `options'
  35.         if ( `=_N' > 10 ) l in 1/10
  36.         if ( `=_N' < 10 ) l
- 37.     restore
- 38. 
-.     sort groupstr groupsub
- 39.     preserve
- 40.         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `options'
- 41.         if ( `=_N' > 10 ) l in 1/10
- 42.         if ( `=_N' < 10 ) l
- 43.     restore, preserve
- 44.         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `options'
- 45.         if ( `=_N' > 10 ) l in 1/10
- 46.         if ( `=_N' < 10 ) l
- 47.     restore, preserve
- 48.         gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `options'
+ 37.     restore, preserve
+ 38.         gcollapse `collapse_str', by(groupstr) merge `options'
+ 39.         if ( `=_N' > 10 ) l in 1/10
+ 40.         if ( `=_N' < 10 ) l
+ 41.     restore
+ 42. 
+.     preserve
+ 43.         gcollapse `collapse_str', verbose benchmark `options'
+ 44.         if ( `=_N' > 10 ) l in 1/10
+ 45.         if ( `=_N' < 10 ) l
+ 46.     restore, preserve
+ 47.         gcollapse rnorm (mean) mean_rnorm = rnorm, by(groupstr groupsub) verbose benchmark `options'
+ 48.         assert rnorm == mean_rnorm
  49.         if ( `=_N' > 10 ) l in 1/10
  50.         if ( `=_N' < 10 ) l
  51.     restore, preserve
- 52.         gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
+ 52.         gcollapse rnorm, verbose benchmark `options'
  53.         if ( `=_N' > 10 ) l in 1/10
  54.         if ( `=_N' < 10 ) l
- 55.     restore, preserve
- 56.         gcollapse `collapse_str', by(groupstr) verbose benchmark smart `options'
- 57.         if ( `=_N' > 10 ) l in 1/10
- 58.         if ( `=_N' < 10 ) l
- 59.     restore, preserve
- 60.         gcollapse `collapse_str', by(groupsub) verbose benchmark smart `options'
- 61.         if ( `=_N' > 10 ) l in 1/10
- 62.         if ( `=_N' < 10 ) l
- 63.     restore, preserve
- 64.         gcollapse `collapse_str', by(groupsub) verbose benchmark `options'
- 65.         if ( `=_N' > 10 ) l in 1/10
- 66.         if ( `=_N' < 10 ) l
- 67.     restore
- 68. 
+ 55.     restore
+ 56. 
+.     sort groupstr groupsub
+ 57.     preserve
+ 58.         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `options'
+ 59.         if ( `=_N' > 10 ) l in 1/10
+ 60.         if ( `=_N' < 10 ) l
+ 61.     restore, preserve
+ 62.         gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `options'
+ 63.         if ( `=_N' > 10 ) l in 1/10
+ 64.         if ( `=_N' < 10 ) l
+ 65.     restore, preserve
+ 66.         gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `options'
+ 67.         if ( `=_N' > 10 ) l in 1/10
+ 68.         if ( `=_N' < 10 ) l
+ 69.     restore, preserve
+ 70.         gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
+ 71.         if ( `=_N' > 10 ) l in 1/10
+ 72.         if ( `=_N' < 10 ) l
+ 73.     restore, preserve
+ 74.         gcollapse `collapse_str', by(groupstr) verbose benchmark smart `options'
+ 75.         if ( `=_N' > 10 ) l in 1/10
+ 76.         if ( `=_N' < 10 ) l
+ 77.     restore, preserve
+ 78.         gcollapse `collapse_str', by(groupsub) verbose benchmark smart `options'
+ 79.         if ( `=_N' > 10 ) l in 1/10
+ 80.         if ( `=_N' < 10 ) l
+ 81.     restore, preserve
+ 82.         gcollapse `collapse_str', by(groupsub) verbose benchmark `options'
+ 83.         if ( `=_N' > 10 ) l in 1/10
+ 84.         if ( `=_N' < 10 ) l
+ 85.     restore
+ 86. 
 .     di ""
- 69.     di as txt "Passed! checks_options_gcollapse `options'"
- 70. end
+ 87.     di as txt "Passed! checks_options_gcollapse `options'"
+ 88. end
 
-. 
-. * TODO: Edge cases (nothing in anything, no -by-, should mimic collapse // 2017-05-16 08:03 EDT
-. capture program drop sim
+. capture program drop consistency_gegen
 
-. program sim, rclass
-  1.     syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
-  2.     qui {
-  3.         if ("`offset'" == "") local offset 0
-  4.         clear
-  5.         set obs `n'
-  6.         gen group  = ceil(`nj' *  _n / _N) + `offset'
-  7.         bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
-  8.         bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
-  9.         gen rsort = runiform() - 0.5
- 10.         gen rnorm = rnormal()
- 11.         if ("`sortg'" == "")  sort rsort
- 12.         if ("`groupmiss'" != "") replace group = . if runiform() < 0.1
- 13.         if ("`outmiss'" != "") replace rsort = . if runiform() < 0.1
- 14.         if ("`outmiss'" != "") replace rnorm = . if runiform() < 0.1
- 15.         if ("`float'" != "")  replace group = group / `nj'
- 16.         if ("`string'" != "") {
- 17.             tostring group, `:di cond("`replace'" == "", "gen(groupstr)", "replace")'
- 18.             local target `:di cond("`replace'" == "", "groupstr", "group")'
- 19.             replace `target' = "i am a modesly long string" + `target'
- 20.         }
- 21.         gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
- 22.     }
- 23.     sum rsort
- 24.     di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
- 25.     compress
- 26.     return local n  = `n'
- 27.     return local nj = `nj'
- 28.     return local offset = `offset'
- 29.     return local string = ("`string'" != "")
- 30. end
-
-. 
-. capture program drop checks_consistency_gegen
-
-. program checks_consistency_gegen
-  1.     syntax, [tol(real 1e-6) *]
-  2.     di _n(1) "{hline 80}" _n(1) "checks_consistency_gegen `options'" _n(1) "{hline 80}" _n(1)
+. program consistency_gegen
+  1.     syntax, [tol(real 1e-6) NOIsily *]
+  2.     di _n(1) "{hline 80}" _n(1) "consistency_gegen, `options'" _n(1) "{hline 80}" _n(1)
   3. 
 .     local stats total sum mean sd max min count median iqr
-  4.     sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
-  5. 
+  4.     local percentiles 1 10 30 50 70 90 99
+  5.     qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+  6. 
 .     cap drop g*_*
-  6.     cap drop c*_*
-  7.     di "Checking full range"
-  8.     foreach fun of local stats {
-  9.         qui gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) `options'
- 10.         qui  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
- 11.         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
- 12.         if ( _rc ) {
- 13.             di as err "`fun' failed! (tol = `tol')"
- 14.             exit _rc
- 15.         }
- 16.         else di as txt "    `fun' was OK"
- 17.     }
- 18. 
-.     foreach p in 10 30 70 90 {
- 19.         qui gegen g_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p') `options'
- 20.         qui  egen c_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p')
- 21.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
- 22.         if ( _rc ) {
- 23.             di as err "percentile `p' failed! (tol = `tol')"
- 24.             exit _rc
- 25.         }
- 26.         else di as txt "    percentile `p' was OK"
- 27.     }
- 28. 
+  7.     cap drop c*_*
+  8.     di _n(1) "Checking full egen range"
+  9.     foreach fun of local stats {
+ 10.         qui `noisily' gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) `options'
+ 11.         qui `noisily'  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
+ 12.         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
+ 13.         if ( _rc ) {
+ 14.             di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 15.             exit _rc
+ 16.         }
+ 17.         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 18.             
+.     }
+ 19. 
+.     foreach p in `percentiles' {
+ 20.         qui  `noisily' gegen g_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p') `options'
+ 21.         qui  `noisily'  egen c_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p')
+ 22.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+ 23.         if ( _rc ) {
+ 24.             di as err "    compare_egen (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+ 25.             exit _rc
+ 26.         }
+ 27.         else di as txt "    compare_egen (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+ 28.     }
+ 29. 
 .     local fun tag
- 29.     {
- 30.         qui gegen g_`fun' = `fun'(groupstr groupsub), v `options'
- 31.         qui  egen c_`fun' = `fun'(groupstr groupsub)
- 32.         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
- 33.         if ( _rc ) {
- 34.             di as err "`fun' failed! (tol = `tol')"
- 35.             exit _rc
- 36.         }
- 37.         else di as txt "    `fun' was OK"
- 38.     }
- 39. 
+ 30.     {
+ 31.         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub), v `options'
+ 32.         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub)
+ 33.         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
+ 34.         if ( _rc ) {
+ 35.             di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 36.             exit _rc
+ 37.         }
+ 38.         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 39.     }
+ 40. 
+.     local fun group
+ 41.     {
+ 42.         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub), v `options'
+ 43.         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub)
+ 44.         qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
+ 45.         qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
+ 46.         cap noi assert g_`fun'_check & c_`fun'_check
+ 47.         if ( _rc ) {
+ 48.             di as err "    compare_egen (failed): gegen `fun' IDs do not map to egen IDs"
+ 49.             exit _rc
+ 50.         }
+ 51.         else di as txt "    compare_egen (passed): gegen `fun' IDs correctly map to egen IDs"
+ 52.     }
+ 53. 
+.     * ---------------------------------------------------------------------
+.     * ---------------------------------------------------------------------
+. 
 .     cap drop g*_*
- 40.     cap drop c*_*
- 41.     di "Checking if range"
- 42.     foreach fun of local stats {
- 43.         qui gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub) `options'
- 44.         qui  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
- 45.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
- 46.         if ( _rc ) {
- 47.             di as err "`fun' failed! (tol = `tol')"
- 48.             exit _rc
- 49.         }
- 50.         else di as txt "    `fun' was OK"
- 51.     }
- 52. 
-.     foreach p in 10 30 70 90 {
- 53.         qui gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p') `options'
- 54.         qui  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
- 55.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
- 56.         if ( _rc ) {
- 57.             di as err "percentile `p' failed! (tol = `tol')"
- 58.             exit _rc
- 59.         }
- 60.         else di as txt "    percentile `p' was OK"
- 61.     }
- 62. 
+ 54.     cap drop c*_*
+ 55.     di "Checking egen if range"
+ 56.     foreach fun of local stats {
+ 57.         qui  `noisily' gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub) `options'
+ 58.         qui  `noisily'  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+ 59.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+ 60.         if ( _rc ) {
+ 61.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 62.             exit _rc
+ 63.         }
+ 64.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 65.     }
+ 66. 
+.     foreach p in `percentiles' {
+ 67.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p') `options'
+ 68.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
+ 69.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+ 70.         if ( _rc ) {
+ 71.             di as err "    compare_egen_if (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+ 72.             exit _rc
+ 73.         }
+ 74.         else di as txt "    compare_egen_if (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+ 75.     }
+ 76. 
 .     local fun tag
- 63.     {
- 64.         qui gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
- 65.         qui  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
- 66.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
- 67.         if ( _rc ) {
- 68.             di as err "`fun' failed! (tol = `tol')"
- 69.             exit _rc
- 70.         }
- 71.         else di as txt "    `fun' was OK"
- 72.     }
- 73. 
+ 77.     {
+ 78.         qui  `noisily' gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
+ 79.         qui  `noisily'  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+ 80.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+ 81.         if ( _rc ) {
+ 82.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 83.             exit _rc
+ 84.         }
+ 85.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 86.     }
+ 87. 
+.     local fun group
+ 88.     {
+ 89.         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
+ 90.         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) if rsort > 0
+ 91.         qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
+ 92.         qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
+ 93.         cap noi assert g_`fun'_check & c_`fun'_check
+ 94.         if ( _rc ) {
+ 95.             di as err "    compare_egen_if (failed): gegen `fun' IDs do not map to egen IDs"
+ 96.             exit _rc
+ 97.         }
+ 98.         else di as txt "    compare_egen_if (passed): gegen `fun' IDs correctly map to egen IDs"
+ 99.     }
+100. 
+.     * ---------------------------------------------------------------------
+.     * ---------------------------------------------------------------------
+. 
 .     cap drop g*_*
- 74.     cap drop c*_*
- 75.     di "Checking in range"
- 76.     foreach fun of local stats {
- 77.         local in1 = ceil(runiform() * `=_N')
- 78.         local in2 = ceil(runiform() * `=_N')
- 79.         local from = cond(`in1' < `in2', `in1', `in2')
- 80.         local to   = cond(`in1' > `in2', `in1', `in2')
- 81.         qui gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) `options'
- 82.         qui  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
- 83.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
- 84.         if ( _rc ) {
- 85.             di as err "`fun' failed! (tol = `tol')"
- 86.             exit _rc
- 87.         }
- 88.         else di as txt "    `fun' was OK"
- 89.     }
- 90. 
-.     foreach p in 10 30 70 90 {
- 91.         local in1 = ceil(runiform() * `=_N')
- 92.         local in2 = ceil(runiform() * `=_N')
- 93.         local from = cond(`in1' < `in2', `in1', `in2')
- 94.         local to   = cond(`in1' > `in2', `in1', `in2')
- 95.         qui gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p') `options'
- 96.         qui  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
- 97.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
- 98.         if ( _rc ) {
- 99.             di as err "percentile `p' failed! (tol = `tol')"
-100.             exit _rc
-101.         }
-102.         else di as txt "    percentile `p' was OK"
-103.     }
-104. 
+101.     cap drop c*_*
+102.     di "Checking egen in range"
+103.     foreach fun of local stats {
+104.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+105.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+106.         local from = cond(`in1' < `in2', `in1', `in2')
+107.         local to   = cond(`in1' > `in2', `in1', `in2')
+108.         qui  `noisily' gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) `options'
+109.         qui  `noisily'  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
+110.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+111.         if ( _rc ) {
+112.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
+113.             exit _rc
+114.         }
+115.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
+116.     }
+117. 
+.     foreach p in `percentiles' {
+118.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+119.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+120.         local from = cond(`in1' < `in2', `in1', `in2')
+121.         local to   = cond(`in1' > `in2', `in1', `in2')
+122.         qui  `noisily' gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p') `options'
+123.         qui  `noisily'  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
+124.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+125.         if ( _rc ) {
+126.             di as err "    compare_egen_in (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+127.             exit _rc
+128.         }
+129.         else di as txt "    compare_egen_in (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+130.     }
+131. 
 .     local fun tag
-105.     {
-106.         local in1 = ceil(runiform() * `=_N')
-107.         local in2 = ceil(runiform() * `=_N')
-108.         local from = cond(`in1' < `in2', `in1', `in2')
-109.         local to   = cond(`in1' > `in2', `in1', `in2')
-110.         qui gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b `options'
-111.         qui  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
-112.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-113.         if ( _rc ) {
-114.             di as err "`fun' failed! (tol = `tol')"
-115.             exit _rc
-116.         }
-117.         else di as txt "    `fun' was OK"
-118.     }
-119. 
+132.     {
+133.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+134.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+135.         local from = cond(`in1' < `in2', `in1', `in2')
+136.         local to   = cond(`in1' > `in2', `in1', `in2')
+137.         qui  `noisily' gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b `options'
+138.         qui  `noisily'  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
+139.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+140.         if ( _rc ) {
+141.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
+142.             exit _rc
+143.         }
+144.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
+145.     }
+146. 
+.     local fun group
+147.     {
+148.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+149.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+150.         local from = cond(`in1' < `in2', `in1', `in2')
+151.         local to   = cond(`in1' > `in2', `in1', `in2')
+152.         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) in `from' / `to', v `options'
+153.         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) in `from' / `to'
+154.         qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
+155.         qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
+156.         cap noi assert g_`fun'_check & c_`fun'_check
+157.         if ( _rc ) {
+158.             di as err "    compare_egen_in (failed): gegen `fun' IDs do not map to egen IDs"
+159.             exit _rc
+160.         }
+161.         else di as txt "    compare_egen_in (passed): gegen `fun' IDs correctly map to egen IDs"
+162.     }
+163. 
+.     * ---------------------------------------------------------------------
+.     * ---------------------------------------------------------------------
+. 
 .     cap drop g*_*
-120.     cap drop c*_*
-121.     di "Checking if in range"
-122.     foreach fun of local stats {
-123.         local in1 = ceil(runiform() * `=_N')
-124.         local in2 = ceil(runiform() * `=_N')
-125.         local from = cond(`in1' < `in2', `in1', `in2')
-126.         local to   = cond(`in1' > `in2', `in1', `in2')
-127.         qui gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) `options'
-128.         qui  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
-129.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-130.         if ( _rc ) {
-131.             di as err "`fun' failed! (tol = `tol')"
-132.             exit _rc
-133.         }
-134.         else di as txt "    `fun' was OK"
-135.     }
-136. 
-.     foreach p in 10 30 70 90 {
-137.         local in1 = ceil(runiform() * `=_N')
-138.         local in2 = ceil(runiform() * `=_N')
-139.         local from = cond(`in1' < `in2', `in1', `in2')
-140.         local to   = cond(`in1' > `in2', `in1', `in2')
-141.         qui gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p') `options'
-142.         qui  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
-143.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-144.         if ( _rc ) {
-145.             di as err "percentile `p' failed! (tol = `tol')"
-146.             exit _rc
-147.         }
-148.         else di as txt "    percentile `p' was OK"
-149.     }
-150. 
+164.     cap drop c*_*
+165.     di "Checking egen if in range"
+166.     foreach fun of local stats {
+167.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+168.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+169.         local from = cond(`in1' < `in2', `in1', `in2')
+170.         local to   = cond(`in1' > `in2', `in1', `in2')
+171.         qui  `noisily' gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) `options'
+172.         qui  `noisily'  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+173.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+174.         if ( _rc ) {
+175.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
+176.             exit _rc
+177.         }
+178.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
+179.     }
+180. 
+.     foreach p in `percentiles' {
+181.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+182.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+183.         local from = cond(`in1' < `in2', `in1', `in2')
+184.         local to   = cond(`in1' > `in2', `in1', `in2')
+185.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p') `options'
+186.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
+187.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+188.         if ( _rc ) {
+189.             di as err "    compare_egen_ifin (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+190.             exit _rc
+191.         }
+192.         else di as txt "    compare_egen_ifin (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+193.     }
+194. 
 .     local fun tag
-151.     {
-152.         local in1 = ceil(runiform() * `=_N')
-153.         local in2 = ceil(runiform() * `=_N')
-154.         local from = cond(`in1' < `in2', `in1', `in2')
-155.         local to   = cond(`in1' > `in2', `in1', `in2')
-156.         qui gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
-157.         qui  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
-158.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-159.         if ( _rc ) {
-160.             di as err "`fun' failed! (tol = `tol')"
-161.             exit _rc
-162.         }
-163.         else di as txt "    `fun' was OK"
-164.     }
-165. 
-.     di ""
-166.     di as txt "Passed! checks_consistency_gegen `options'"
-167. end
+195.     {
+196.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+197.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+198.         local from = cond(`in1' < `in2', `in1', `in2')
+199.         local to   = cond(`in1' > `in2', `in1', `in2')
+200.         qui  `noisily' gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
+201.         qui  `noisily'  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+202.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+203.         if ( _rc ) {
+204.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
+205.             exit _rc
+206.         }
+207.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
+208.     }
+209. 
+.     local fun group
+210.     {
+211.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+212.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+213.         local from = cond(`in1' < `in2', `in1', `in2')
+214.         local to   = cond(`in1' > `in2', `in1', `in2')
+215.         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
+216.         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+217.         qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
+218.         qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
+219.         cap noi assert g_`fun'_check & c_`fun'_check
+220.         if ( _rc ) {
+221.             di as err "    compare_egen_ifin (failed): gegen `fun' IDs do not map to egen IDs"
+222.             exit _rc
+223.         }
+224.         else di as txt "    compare_egen_ifin (passed): gegen `fun' IDs correctly map to egen IDs"
+225.     }
+226. end
 
 . 
-. capture program drop checks_options_gegen
+. capture program drop consistency_gegen_gcollapse
 
-. program checks_options_gegen
-  1.     syntax, [tol(real 1e-6) *]
-  2.     di _n(1) "{hline 80}" _n(1) "checks_options_gegen `options'" _n(1) "{hline 80}" _n(1)
+. program consistency_gegen_gcollapse
+  1.     syntax, [tol(real 1e-6) NOIsily *]
+  2.     di _n(1) "{hline 80}" _n(1) "consistency_gegen_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
   3. 
-.     sim, n(20000) nj(100) njsub(2) string outmiss
-  4. 
-.     gegen id = group(groupstr groupsub)
-  5.     gegen double mean    = mean   (rnorm),  by(groupstr groupsub) verbose benchmark `options'
-  6.     gegen double sum     = sum    (rnorm),  by(groupstr groupsub) `options'
-  7.     gegen double median  = median (rnorm),  by(groupstr groupsub) `options'
-  8.     gegen double sd      = sd     (rnorm),  by(groupstr groupsub) `options'
-  9.     gegen double iqr     = iqr    (rnorm),  by(groupstr groupsub) `options'
- 10.     gegen double first   = first  (rnorm),  by(groupstr groupsub) `options' v b
- 11.     gegen double last    = last   (rnorm),  by(groupstr groupsub) `options'
- 12.     gegen double firstnm = firstnm(rnorm),  by(groupstr groupsub) `options'
- 13.     gegen double lastnm  = lastnm (rnorm),  by(groupstr groupsub) `options'
- 14.     gegen double q10     = pctile (rnorm),  by(groupstr groupsub) `options' p(10.5)
- 15.     gegen double q30     = pctile (rnorm),  by(groupstr groupsub) `options' p(30)
- 16.     gegen double q70     = pctile (rnorm),  by(groupstr groupsub) `options' p(70)
- 17.     gegen double q90     = pctile (rnorm),  by(groupstr groupsub) `options' p(90.5)
- 18. 
-.     gcollapse (mean)    g_mean    = rnorm  ///
->               (sum)     g_sum     = rnorm  ///
->               (median)  g_median  = rnorm  ///
->               (sd)      g_sd      = rnorm  ///
->               (iqr)     g_iqr     = rnorm  ///
->               (first)   g_first   = rnorm  ///
->               (last)    g_last    = rnorm  ///
->               (firstnm) g_firstnm = rnorm  ///
->               (lastnm)  g_lastnm  = rnorm  ///
->               (p10.5)   g_q10     = rnorm  ///
->               (p30)     g_q30     = rnorm  ///
->               (p70)     g_q70     = rnorm  ///
->               (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
+.     qui `noisily' {
+  4.         sim, n(20000) nj(100) njsub(2) string outmiss
+  5.         gegen id = group(groupstr groupsub)
+  6.         gegen double mean    = mean   (rnorm),  by(groupstr groupsub) verbose benchmark `options'
+  7.         gegen double sum     = sum    (rnorm),  by(groupstr groupsub) `options'
+  8.         gegen double median  = median (rnorm),  by(groupstr groupsub) `options'
+  9.         gegen double sd      = sd     (rnorm),  by(groupstr groupsub) `options'
+ 10.         gegen double iqr     = iqr    (rnorm),  by(groupstr groupsub) `options'
+ 11.         gegen double first   = first  (rnorm),  by(groupstr groupsub) `options' v b
+ 12.         gegen double last    = last   (rnorm),  by(groupstr groupsub) `options'
+ 13.         gegen double firstnm = firstnm(rnorm),  by(groupstr groupsub) `options'
+ 14.         gegen double lastnm  = lastnm (rnorm),  by(groupstr groupsub) `options'
+ 15.         gegen double q10     = pctile (rnorm),  by(groupstr groupsub) `options' p(10.5)
+ 16.         gegen double q30     = pctile (rnorm),  by(groupstr groupsub) `options' p(30)
+ 17.         gegen double q70     = pctile (rnorm),  by(groupstr groupsub) `options' p(70)
+ 18.         gegen double q90     = pctile (rnorm),  by(groupstr groupsub) `options' p(90.5)
  19. 
-.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
- 20.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 21.         if ( _rc ) {
- 22.             recast double g_`fun' `fun'
- 23.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 24.             if ( _rc ) {
- 25.                 di as err "`fun' vs gcollapse failed! (tol = `tol')"
- 26.                 exit _rc
- 27.             }
- 28.         }
- 29.         else di as txt "    `fun' vs gcollapse was OK"
- 30.     }
- 31. 
-.     sim, n(20000) nj(100) njsub(2) string outmiss
- 32. 
-.     local in1 = ceil(runiform() * `=_N')
- 33.     local in2 = ceil(runiform() * `=_N')
- 34.     local from = cond(`in1' < `in2', `in1', `in2')
- 35.     local to   = cond(`in1' > `in2', `in1', `in2')
- 36. 
-.     gegen id = group(groupstr groupsub) in `from' / `to'
- 37.     gegen double mean    = mean   (rnorm) in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
- 38.     gegen double sum     = sum    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 39.     gegen double median  = median (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 40.     gegen double sd      = sd     (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 41.     gegen double iqr     = iqr    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 42.     gegen double first   = first  (rnorm) in `from' / `to',  by(groupstr groupsub) `options' v b
- 43.     gegen double last    = last   (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 44.     gegen double firstnm = firstnm(rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 45.     gegen double lastnm  = lastnm (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
- 46.     gegen double q10     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
- 47.     gegen double q30     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(30)
- 48.     gegen double q70     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(70)
- 49.     gegen double q90     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
- 50. 
-.     gcollapse (mean)    g_mean    = rnorm  ///
->               (sum)     g_sum     = rnorm  ///
->               (median)  g_median  = rnorm  ///
->               (sd)      g_sd      = rnorm  ///
->               (iqr)     g_iqr     = rnorm  ///
->               (first)   g_first   = rnorm  ///
->               (last)    g_last    = rnorm  ///
->               (firstnm) g_firstnm = rnorm  ///
->               (lastnm)  g_lastnm  = rnorm  ///
->               (p10.5)   g_q10     = rnorm  ///
->               (p30)     g_q30     = rnorm  ///
->               (p70)     g_q70     = rnorm  ///
->               (p90.5)   g_q90     = rnorm in `from' / `to', by(id) benchmark verbose `options' merge double
- 51. 
-.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
- 52.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 53.         if ( _rc ) {
- 54.             recast double g_`fun' `fun'
- 55.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 56.             if ( _rc ) {
- 57.                 di as err "`fun' vs gcollapse (in) failed! (tol = `tol')"
- 58.                 exit _rc
- 59.             }
- 60.         }
- 61.         else di as txt "    `fun' vs gcollapse (in) was OK"
- 62.     }
- 63. 
-.     sim, n(20000) nj(100) njsub(2) string outmiss
+.         gcollapse (mean)    g_mean    = rnorm  ///
+>                   (sum)     g_sum     = rnorm  ///
+>                   (median)  g_median  = rnorm  ///
+>                   (sd)      g_sd      = rnorm  ///
+>                   (iqr)     g_iqr     = rnorm  ///
+>                   (first)   g_first   = rnorm  ///
+>                   (last)    g_last    = rnorm  ///
+>                   (firstnm) g_firstnm = rnorm  ///
+>                   (lastnm)  g_lastnm  = rnorm  ///
+>                   (p10.5)   g_q10     = rnorm  ///
+>                   (p30)     g_q30     = rnorm  ///
+>                   (p70)     g_q70     = rnorm  ///
+>                   (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
+ 20.     }
+ 21. 
+.     di _n(1) "Checking gegen vs gcollapse full range"
+ 22.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
+ 23.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+ 24.         if ( _rc ) {
+ 25.             recast double g_`fun' `fun'
+ 26.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+ 27.             if ( _rc ) {
+ 28.                 di as err "    compare_gegen_gcollapse (failed): `fun' yielded different results (tol = `tol')"
+ 29.                 exit _rc
+ 30.             }
+ 31.             else di as txt "    compare_gegen_gcollapse (passed): `fun' yielded same results (tol = `tol')"
+ 32.         }
+ 33.         else di as txt "    compare_gegen_gcollapse (passed): `fun' yielded same results (tol = `tol')"
+ 34.     }
+ 35. 
+.     qui `noisily' {
+ 36.         sim, n(20000) nj(100) njsub(2) string outmiss
+ 37. 
+.         local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
+ 38.         local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+ 39.         local from = cond(`in1' < `in2', `in1', `in2')
+ 40.         local to   = cond(`in1' > `in2', `in1', `in2')
+ 41.         qui count if rsort < 0 in `from' / `to'
+ 42.         if ( `r(N)' == 0 ) {
+ 43.             local in1  = ceil(runiform() * 10)
+ 44.             local in2  = ceil(`=_N' - runiform() * 10)
+ 45.             local from = cond(`in1' < `in2', `in1', `in2')
+ 46.             local to   = cond(`in1' > `in2', `in1', `in2')
+ 47.         }
+ 48. 
+.         gegen id = group(groupstr groupsub) in `from' / `to'
+ 49.         gegen double mean    = mean   (rnorm) in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
+ 50.         gegen double sum     = sum    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 51.         gegen double median  = median (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 52.         gegen double sd      = sd     (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 53.         gegen double iqr     = iqr    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 54.         gegen double first   = first  (rnorm) in `from' / `to',  by(groupstr groupsub) `options' v b
+ 55.         gegen double last    = last   (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 56.         gegen double firstnm = firstnm(rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 57.         gegen double lastnm  = lastnm (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
+ 58.         gegen double q10     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
+ 59.         gegen double q30     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(30)
+ 60.         gegen double q70     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(70)
+ 61.         gegen double q90     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
+ 62. 
+.         gcollapse (mean)    g_mean    = rnorm  ///
+>                   (sum)     g_sum     = rnorm  ///
+>                   (median)  g_median  = rnorm  ///
+>                   (sd)      g_sd      = rnorm  ///
+>                   (iqr)     g_iqr     = rnorm  ///
+>                   (first)   g_first   = rnorm  ///
+>                   (last)    g_last    = rnorm  ///
+>                   (firstnm) g_firstnm = rnorm  ///
+>                   (lastnm)  g_lastnm  = rnorm  ///
+>                   (p10.5)   g_q10     = rnorm  ///
+>                   (p30)     g_q30     = rnorm  ///
+>                   (p70)     g_q70     = rnorm  ///
+>                   (p90.5)   g_q90     = rnorm in `from' / `to', by(id) benchmark verbose `options' merge double
+ 63.     }
  64. 
-.     local in1 = ceil(runiform() * `=_N')
- 65.     local in2 = ceil(runiform() * `=_N')
- 66.     local from = cond(`in1' < `in2', `in1', `in2')
- 67.     local to   = cond(`in1' > `in2', `in1', `in2')
- 68.     qui count if rsort < 0 in `from' / `to'
- 69.     if !( `r(N)' < `=_N' ) {
- 70.         local from = 100
- 71.         local to = 19000
- 72.     }
- 73. 
-.     gegen id = group(groupstr groupsub)   if rsort < 0 in `from' / `to'
- 74.     gegen double mean    = mean   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
- 75.     gegen double sum     = sum    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 76.     gegen double median  = median (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 77.     gegen double sd      = sd     (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 78.     gegen double iqr     = iqr    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 79.     gegen double first   = first  (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' v b
- 80.     gegen double last    = last   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 81.     gegen double firstnm = firstnm(rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 82.     gegen double lastnm  = lastnm (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
- 83.     gegen double q10     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
- 84.     gegen double q30     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(30)
- 85.     gegen double q70     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(70)
- 86.     gegen double q90     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
- 87. 
-.     keep if rsort < 0 in `from' / `to'
- 88.     gcollapse (mean)    g_mean    = rnorm  ///
->               (sum)     g_sum     = rnorm  ///
->               (median)  g_median  = rnorm  ///
->               (sd)      g_sd      = rnorm  ///
->               (iqr)     g_iqr     = rnorm  ///
->               (first)   g_first   = rnorm  ///
->               (last)    g_last    = rnorm  ///
->               (firstnm) g_firstnm = rnorm  ///
->               (lastnm)  g_lastnm  = rnorm  ///
->               (p10.5)   g_q10     = rnorm  ///
->               (p30)     g_q30     = rnorm  ///
->               (p70)     g_q70     = rnorm  ///
->               (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
- 89. 
-.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
- 90.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 91.         if ( _rc ) {
- 92.             recast double g_`fun' `fun'
- 93.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
- 94.             if ( _rc ) {
- 95.                 di as err "`fun' vs gcollapse (if in) failed! (tol = `tol')"
- 96.                 exit _rc
- 97.             }
- 98.         }
- 99.         else di as txt "    `fun' vs gcollapse (if in) was OK"
-100.     }
-101. 
-.     di ""
-102.     di as txt "Passed! checks_options_gegen `options'"
-103. end
+.     di _n(1) "Checking gegen vs gcollapse in range"
+ 65.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
+ 66.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+ 67.         if ( _rc ) {
+ 68.             recast double g_`fun' `fun'
+ 69.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+ 70.             if ( _rc ) {
+ 71.                 di as err "    compare_gegen_gcollapse_in (failed): `fun' yielded different results (tol = `tol')"
+ 72.                 exit _rc
+ 73.             }
+ 74.             else di as txt "    compare_gegen_gcollapse_in (passed): `fun' yielded same results (tol = `tol')"
+ 75.         }
+ 76.         else di as txt "    compare_gegen_gcollapse_in (passed): `fun' yielded same results (tol = `tol')"
+ 77.     }
+ 78. 
+.     qui `noisily' {
+ 79.         sim, n(20000) nj(100) njsub(2) string outmiss
+ 80. 
+.         local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
+ 81.         local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+ 82.         local from = cond(`in1' < `in2', `in1', `in2')
+ 83.         local to   = cond(`in1' > `in2', `in1', `in2')
+ 84.         qui count if rsort < 0 in `from' / `to'
+ 85.         if ( `r(N)' == 0 ) {
+ 86.             local in1  = ceil(runiform() * 10)
+ 87.             local in2  = ceil(`=_N' - runiform() * 10)
+ 88.             local from = cond(`in1' < `in2', `in1', `in2')
+ 89.             local to   = cond(`in1' > `in2', `in1', `in2')
+ 90.         }
+ 91. 
+.         gegen id = group(groupstr groupsub)   if rsort < 0 in `from' / `to'
+ 92.         gegen double mean    = mean   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) verbose benchmark `opti
+> ons'
+ 93.         gegen double sum     = sum    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+ 94.         gegen double median  = median (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+ 95.         gegen double sd      = sd     (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+ 96.         gegen double iqr     = iqr    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+ 97.         gegen double first   = first  (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' v b
+ 98.         gegen double last    = last   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+ 99.         gegen double firstnm = firstnm(rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+100.         gegen double lastnm  = lastnm (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
+101.         gegen double q10     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
+102.         gegen double q30     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(30)
+103.         gegen double q70     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(70)
+104.         gegen double q90     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
+105. 
+.         keep if rsort < 0 in `from' / `to'
+106.         gcollapse (mean)    g_mean    = rnorm  ///
+>                   (sum)     g_sum     = rnorm  ///
+>                   (median)  g_median  = rnorm  ///
+>                   (sd)      g_sd      = rnorm  ///
+>                   (iqr)     g_iqr     = rnorm  ///
+>                   (first)   g_first   = rnorm  ///
+>                   (last)    g_last    = rnorm  ///
+>                   (firstnm) g_firstnm = rnorm  ///
+>                   (lastnm)  g_lastnm  = rnorm  ///
+>                   (p10.5)   g_q10     = rnorm  ///
+>                   (p30)     g_q30     = rnorm  ///
+>                   (p70)     g_q70     = rnorm  ///
+>                   (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
+107.     }
+108. 
+.     di _n(1) "Checking gegen vs gcollapse if in range"
+109.     foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
+110.         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+111.         if ( _rc ) {
+112.             recast double g_`fun' `fun'
+113.             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+114.             if ( _rc ) {
+115.                 di as err "    compare_gegen_gcollapse_ifin (failed): `fun' yielded different results (tol = `tol')"
+116.                 exit _rc
+117.             }
+118.             else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
+119.         }
+120.         else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
+121.     }
+122. end
 
 . ***********************************************************************
 . *                           Data simulation                           *
@@ -1243,8 +1339,7 @@
  24.     }
  25.     else {
  26.         * syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
-.         syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 4) kmax(int 7) nvars(int 2
-> ) *]
+.         syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 4) kmax(int 7) nvars(int 2) *]
  27.         if !inlist("`margin'", "N", "J") {
  28.             di as error "Don't know margin '`margin''; available: N, J"
  29.             exit 198
@@ -1271,8 +1366,7 @@
  48.             }
  49.             else {
  50.                 mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 10^`k'''"
- 51.                 mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(
-> 2) nvars(`nvars')"
+ 51.                 mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(`nvars')"
  52.             }
  53.             local J `J' `:di %21.0g 10^`k''
  54.             local N `N' `:di %21.0g 2 * 10^`k''
@@ -1349,1326 +1443,405 @@
 . * ---------------------------------------------------------------------
 . * Run the things
 . 
-. main, cap noi checks test
-Start: 13:58:51 18 Jun 2017
+. main, checks test
+Start: 05:02:30 27 Jul 2017
+
+-------------------------------------
+Basic unit-tests 05:02:30 27 Jul 2017
+-------------------------------------
+    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single
+    test(passed): checks_byvars_gcollapse, oncollision(error) forceio debug_io_read_method(0)
+    test(passed): checks_byvars_gcollapse, oncollision(error) forceio debug_io_read_method(1)
+    test(passed): checks_options_gcollapse, oncollision(error) debug_force_single
+    test(passed): checks_options_gcollapse, oncollision(error) debug_io_read_method(0)
+    test(passed): checks_options_gcollapse, oncollision(error) debug_io_read_method(1)
+
+-----------------------------------------------------------
+Consistency checks (vs collapse, egen) 05:02:32 27 Jul 2017
+-----------------------------------------------------------
 
 --------------------------------------------------------------------------------
-checks_byvars_gcollapse debug_force_single
---------------------------------------------------------------------------------
-
-
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |      1000    .0006117    .2971319  -.4988952   .4985919
-Obs = 1,000; Groups = 250
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (7,000 bytes saved)
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupsub rnorm sum sd
-Using sole integer by variable as hash.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: group rnorm sum sd
-Using sole integer by variable as hash.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupstr rnorm sum sd
-Using 128-bit hash to index string by variable.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: rnorm grouplong sum sd
-Using sole integer by variable as hash.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupsub rnorm sum sd
-Using sole integer by variable as hash.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: group groupsub rnorm sum sd
-Hashing 2 integer by variables to whole-nubmer index.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupsub rnorm grouplong sum sd
-Hashing 2 integer by variables to whole-nubmer index.
-counting sort on hash; min = 'lu, max = 'lu
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupstr groupsub rnorm sum sd
-Using 128-bit hash to index 2 by variables (string and numeric).
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-
-Passed! checks_byvars_gcollapse debug_force_single
-
---------------------------------------------------------------------------------
-checks_options_gcollapse debug_force_single
+consistency_gcollapse, oncollision(error)
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |       181   -.0118814     .276691  -.4938449   .4965275
-Obs = 200; Groups = 10
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (1,800 bytes saved)
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .071 seconds
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index string by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .071 seconds
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupstr mean
-Using 128-bit hash to index string by variable.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Using 128-bit hash to index string by variable.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Using 128-bit hash to index string by variable.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-N = 'lu; 'lu balanced groups of size 'lu
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .024 seconds
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index string by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .023 seconds
-Program exit executed; 0 seconds
-The program executed; .047 seconds
-(warning: forcing non-multi-threaded version)
-(warning: forcing non-multi-threaded version)
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-     +-----------------------------------------------------------------------------------------------------------------------+
-  1. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |    10 | i am a modesly long string10 |        2 |      2.5 | -.4938449 | -.0040006 |        1 |  .0232557 |  .0232557 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        16      |         16      |     -.1594192      |      -.1594192      |      1.541633      |      1.541633      |
-     +-----------------------------------------------------------------------------------------------------------------------+
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-     +-----------------------------------------------------------------------------------------------------------------------+
-  2. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     6 |  i am a modesly long string6 |        1 |      1.5 |         . | -1.418848 |        1 | -.1650908 | -.1650908 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        19      |         19      |      .2513901      |       .2513901      |      2.087131      |      2.087131      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  3. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     9 |  i am a modesly long string9 |        1 |      1.5 | -.4890387 |  .6816186 |        1 | -.1266331 | -.1266331 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        19      |         19      |      .0585369      |       .0585369      |      1.085953      |      1.085953      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  4. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     6 |  i am a modesly long string6 |        2 |      2.5 | -.4832857 | -2.196897 |        1 | -.1650908 | -.1650908 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        19      |         19      |      .2513901      |       .2513901      |      2.087131      |      2.087131      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  5. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     2 |  i am a modesly long string2 |        2 |      2.5 | -.4820115 | -.4962967 |        1 |  .0398927 |  .0398927 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        18      |         18      |      .1249817      |       .1249817      |      1.751675      |      1.751675      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  6. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     5 |  i am a modesly long string5 |        1 |      1.5 | -.4809864 | -1.165238 |        1 |  .2724212 |  .2724212 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        20      |         20      |      .3673322      |       .3673322      |       1.89893      |       1.89893      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  7. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |    10 | i am a modesly long string10 |        2 |      2.5 | -.4758189 |  .6841249 |        1 |  .0232557 |  .0232557 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        16      |         16      |     -.1594192      |      -.1594192      |      1.541633      |      1.541633      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  8. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     7 |  i am a modesly long string7 |        1 |      1.5 | -.4624406 | -.3743784 |        1 | -.5757579 | -.5757579 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        18      |         18      |      -.449741      |       -.449741      |      1.779376      |      1.779376      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
-  9. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     6 |  i am a modesly long string6 |        1 |      1.5 | -.4546936 | -2.443357 |        1 | -.1650908 | -.1650908 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        19      |         19      |      .2513901      |       .2513901      |      2.087131      |      2.087131      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-
-     +-----------------------------------------------------------------------------------------------------------------------+
- 10. | group |                     groupstr | groupsub | groupf~t |     rsort |     rnorm | groupl~g |      mean |     mean2 |
-     |     1 |  i am a modesly long string1 |        2 |      2.5 | -.4528995 | -.5074096 |        1 | -.0981773 | -.0981773 |
-     |-----------------------------------------------------------------------------------------------------------------------|
-     |     count      |     count2      |        median      |        median2      |           iqr      |          iqr2      |
-     |        18      |         18      |      .0134574      |       .0134574      |      1.122901      |      1.122901      |
-     +-----------------------------------------------------------------------------------------------------------------------+
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .047 seconds
-In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .047 seconds
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  1. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string1 |        1 | -.1643312 | -.1643312 |     9 |      9 | -.0912356 | -.0912356 | .4092174 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .4092174                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  2. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string1 |        2 | -.0320235 | -.0320235 |     9 |      9 |  .3434474 |  .3434474 |  1.19036 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                       1.19036                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  3. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     | i am a modesly long string10 |        1 |  .1625166 |  .1625166 |     9 |      9 |  -.427907 |  -.427907 | 2.330888 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      2.330888                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  4. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     | i am a modesly long string10 |        2 | -.1557941 | -.1557941 |     7 |      7 | -.0040006 | -.0040006 | 1.750871 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.750871                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  5. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string2 |        1 | -.2739882 | -.2739882 |     9 |      9 | -.4433172 | -.4433172 | 1.699651 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.699651                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  6. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string2 |        2 |  .3537735 |  .3537735 |     9 |      9 |  .7683715 |  .7683715 | 1.366579 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.366579                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  7. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string3 |        1 | -.3516622 | -.3516622 |     9 |      9 | -.3361298 | -.3361298 | 1.109526 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.109526                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  8. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string3 |        2 | -.1977251 | -.1977251 |    10 |     10 |  -.030783 |  -.030783 | .8843895 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .8843895                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  9. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string4 |        1 |  .6487527 |  .6487527 |     8 |      8 |  .6301131 |  .6301131 | 1.020262 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.020262                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
- 10. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string4 |        2 |  .2986489 |  .2986489 |     9 |      9 |  .1078866 |  .1078866 | .3525327 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .3525327                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-data already sorted; indexing in stata
-Parsed by variables, sources, and targets; .047 seconds
-In memory: groupstr groupsub mean __000000 mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using index provided by stata (data was already soreted).
-        Plugin step 2: Read in index helper; 0.000 seconds.
-        Plugin step 3: Set up index from Stata; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .047 seconds
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  1. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string1 |        1 | -.1643312 | -.1643312 |     9 |      9 | -.0912356 | -.0912356 | .4092174 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .4092174                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  2. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string1 |        2 | -.0320235 | -.0320235 |     9 |      9 |  .3434474 |  .3434474 |  1.19036 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                       1.19036                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  3. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     | i am a modesly long string10 |        1 |  .1625166 |  .1625166 |     9 |      9 |  -.427907 |  -.427907 | 2.330888 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      2.330888                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  4. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     | i am a modesly long string10 |        2 | -.1557941 | -.1557941 |     7 |      7 | -.0040006 | -.0040006 | 1.750871 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.750871                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  5. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string2 |        1 | -.2739882 | -.2739882 |     9 |      9 | -.4433172 | -.4433172 | 1.699651 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.699651                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  6. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string2 |        2 |  .3537735 |  .3537735 |     9 |      9 |  .7683715 |  .7683715 | 1.366579 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.366579                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  7. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string3 |        1 | -.3516622 | -.3516622 |     9 |      9 | -.3361298 | -.3361298 | 1.109526 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.109526                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  8. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string3 |        2 | -.1977251 | -.1977251 |    10 |     10 |  -.030783 |  -.030783 | .8843895 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .8843895                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  9. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string4 |        1 |  .6487527 |  .6487527 |     8 |      8 |  .6301131 |  .6301131 | 1.020262 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.020262                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
- 10. |                     groupstr | groupsub |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |  i am a modesly long string4 |        2 |  .2986489 |  .2986489 |     9 |      9 |  .1078866 |  .1078866 | .3525327 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .3525327                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .023 seconds
-In memory: groupstr groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; .047 seconds
-The program executed; .07 seconds
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  1. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string1 | -.1643312 | -.1643312 |     9 |      9 | -.0912356 | -.0912356 | .4092174 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .4092174                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  2. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 | i am a modesly long string10 |  .1625166 |  .1625166 |     9 |      9 |  -.427907 |  -.427907 | 2.330888 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      2.330888                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  3. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string2 | -.2739882 | -.2739882 |     9 |      9 | -.4433172 | -.4433172 | 1.699651 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.699651                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  4. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string3 | -.3516622 | -.3516622 |     9 |      9 | -.3361298 | -.3361298 | 1.109526 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.109526                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  5. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string4 |  .6487527 |  .6487527 |     8 |      8 |  .6301131 |  .6301131 | 1.020262 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.020262                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  6. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string5 |  .3682817 |  .3682817 |    10 |     10 |   .651777 |   .651777 | 2.113784 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      2.113784                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  7. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string6 | -.3959126 | -.3959126 |     9 |      9 | -.5473607 | -.5473607 | 1.944451 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.944451                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  8. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string7 |  -.756433 |  -.756433 |     8 |      8 | -.6734579 | -.6734579 | 1.705667 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.705667                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
-  9. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string8 | -.0966864 | -.0966864 |    10 |     10 | -.1573083 | -.1573083 | 1.075722 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      1.075722                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-
-     +---------------------------------------------------------------------------------------------------------------------+
- 10. | groupsub |                     groupstr |      mean |     mean2 | count | count2 |    median |   median2 |      iqr |
-     |        1 |  i am a modesly long string9 | -.1400709 | -.1400709 |    10 |     10 |  -.100068 |  -.100068 | .9875529 |
-     |---------------------------------------------------------------------------------------------------------------------|
-     |                                                          iqr2                                                       |
-     |                                                      .9875529                                                       |
-     +---------------------------------------------------------------------------------------------------------------------+
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .024 seconds
-In memory: groupstr mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index string by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .024 seconds
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-data sorted in similar order (groupstr groupsub); indexing in stata
-Parsed by variables, sources, and targets; .047 seconds
-In memory: groupstr mean __000000 mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using index provided by stata (data was already soreted).
-        Plugin step 2: Read in index helper; 0.000 seconds.
-        Plugin step 3: Set up index from Stata; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .07 seconds
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .024 seconds
-In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using sole integer by variable as hash.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-counting sort on hash; min = 'lu, max = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .047 seconds
-
-     +-------------------------------------------------------------------------------------------------+
-     | groupsub        mean       mean2   count   count2      median     median2        iqr       iqr2 |
-     |-------------------------------------------------------------------------------------------------|
-  1. |        1   -.0962263   -.0962263      91       91   -.0912356   -.0912356   1.613915   1.613915 |
-  2. |        2    .0295612    .0295612      92       92    .1134683    .1134683   1.268566   1.268566 |
-     +-------------------------------------------------------------------------------------------------+
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .024 seconds
-In memory: groupsub mean mean2 count count2 median median2 iqr iqr2
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using sole integer by variable as hash.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-counting sort on hash; min = 'lu, max = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu balanced groups of size 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Copied collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; 0 seconds
-The program executed; .024 seconds
-
-     +-------------------------------------------------------------------------------------------------+
-     | groupsub        mean       mean2   count   count2      median     median2        iqr       iqr2 |
-     |-------------------------------------------------------------------------------------------------|
-  1. |        1   -.0962263   -.0962263      91       91   -.0912356   -.0912356   1.613915   1.613915 |
-  2. |        2    .0295612    .0295612      92       92    .1134683    .1134683   1.268566   1.268566 |
-     +-------------------------------------------------------------------------------------------------+
-
-Passed! checks_options_gcollapse debug_force_single
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_options_gegen debug_force_single
+consistency_gcollapse, oncollision(error) forceio debug_io_read_method(0)
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     17893    -.001412     .290853  -.4999922   .4999006
-Obs = 20,000; Groups = 100
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (180,000 bytes saved)
-(plugin -gtools- was loaded correctly)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.024 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .024 seconds
-Program exit executed in 0 seconds
-The program executed in .024 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.023 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .047 seconds
-(1501 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .047 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(1800 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .07 seconds
-In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
-> q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.023 seconds.
-The plugin executed; .023 seconds
-Program exit executed; 0 seconds
-The program executed; .093 seconds
-    mean vs gcollapse was OK
-    sum vs gcollapse was OK
-    median vs gcollapse was OK
-    sd vs gcollapse was OK
-    iqr vs gcollapse was OK
-    first vs gcollapse was OK
-    last vs gcollapse was OK
-    firstnm vs gcollapse was OK
-    lastnm vs gcollapse was OK
-    q10 vs gcollapse was OK
-    q30 vs gcollapse was OK
-    q70 vs gcollapse was OK
-    q90 vs gcollapse was OK
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     17904    .0020942    .2871854  -.4996828   .4999703
-Obs = 20,000; Groups = 100
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (180,000 bytes saved)
-(plugin -gtools- was loaded correctly)
-(7418 missing values generated)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .023 seconds
-(7418 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .07 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.024 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .024 seconds
-(8468 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .024 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(8963 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(7418 missing values generated)
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .023 seconds
-In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
-> q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.024 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.000 seconds.
-The plugin executed; .024 seconds
-Program exit executed; 0 seconds
-The program executed; .069 seconds
-    mean vs gcollapse (in) was OK
-    sum vs gcollapse (in) was OK
-    median vs gcollapse (in) was OK
-    sd vs gcollapse (in) was OK
-    iqr vs gcollapse (in) was OK
-    first vs gcollapse (in) was OK
-    last vs gcollapse (in) was OK
-    firstnm vs gcollapse (in) was OK
-    lastnm vs gcollapse (in) was OK
-    q10 vs gcollapse (in) was OK
-    q30 vs gcollapse (in) was OK
-    q70 vs gcollapse (in) was OK
-    q90 vs gcollapse (in) was OK
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     18003   -.0028926    .2909829  -.4999989   .4999902
-Obs = 20,000; Groups = 100
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (180,000 bytes saved)
-(plugin -gtools- was loaded correctly)
-(14381 missing values generated)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .024 seconds
-(14381 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .024 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(note: failed to load multi-threaded version; using fallback)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-Program set up executed in 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index 2 by variables (string and numeric).
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.023 seconds.
-        Plugin step 5.2: By vars summary stats; 0.000 seconds.
-        Plugin step 6: Copied output back to stata; 0.000 seconds.
-The plugin executed in .023 seconds
-(14874 missing values generated)
-Program exit executed in 0 seconds
-The program executed in .023 seconds
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(15035 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(plugin -gtools- was loaded correctly)
-(warning: forcing non-multi-threaded version)
-(14381 missing values generated)
-(14381 observations deleted)
-(note: failed to load multi-threaded version; using fallback)
-(warning: forcing non-multi-threaded version)
-Parsed by variables, sources, and targets; .024 seconds
-In memory: group groupstr groupsub groupfloat rsort rnorm grouplong id mean sum median sd iqr first last firstnm lastnm q10 q30 
-> q70 q90 g_mean g_sum g_median g_sd g_iqr g_first g_last g_firstnm g_lastnm g_q10 g_q30 g_q70 g_q90
-Generated additional targets; 0 seconds
-        Plugin step 1: stata parsing done; 0.000 seconds.
-Using 128-bit hash to index numeric by variable.
-        Plugin step 2: Hashed by variables; 0.000 seconds.
-radix sort on hash: loops = 4, bits = 16, shift = 'lu
-        Plugin step 3: Sorted on integer-only hash index; 0.000 seconds.
-        Plugin step 4: Set up variables for main group loop; 0.000 seconds.
-N = 'lu; 'lu unbalanced groups of sizes 'lu to 'lu
-        Plugin step 5.1: Read source variables sequentially; 0.000 seconds.
-        Plugin step 5.2: Collapsed source variables; 0.000 seconds.
-        Plugin step 6: Merged collapsed variables back to stata; 0.000 seconds.
-The plugin executed; 0 seconds
-Program exit executed; .024 seconds
-The program executed; .071 seconds
-    mean vs gcollapse (if in) was OK
-    sum vs gcollapse (if in) was OK
-    median vs gcollapse (if in) was OK
-    sd vs gcollapse (if in) was OK
-    iqr vs gcollapse (if in) was OK
-    first vs gcollapse (if in) was OK
-    last vs gcollapse (if in) was OK
-    firstnm vs gcollapse (if in) was OK
-    lastnm vs gcollapse (if in) was OK
-    q10 vs gcollapse (if in) was OK
-    q30 vs gcollapse (if in) was OK
-    q70 vs gcollapse (if in) was OK
-    q90 vs gcollapse (if in) was OK
-
-Passed! checks_options_gegen debug_force_single
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse debug_checkhash
+consistency_gcollapse, oncollision(error) forceio debug_io_read_method(1)
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     45077    .0014494    .2890386  -.4999653   .4999828
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44928   -.0029387    .2880127  -.4999129   .4999942
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-Passed! checks_consistency_gcollapse debug_checkhash
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse forceio debug_io_read_method(0)
+consistency_gcollapse, oncollision(error) debug_io_check(1) debug_io_threshold(0)
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44952    .0002823    .2886229  -.4999987   .4999914
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44910   -.0000622    .2887498  -.4999923   .4999405
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-Passed! checks_consistency_gcollapse forceio debug_io_read_method(0)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse forceio debug_io_read_method(1)
+consistency_gcollapse, oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44865   -.0032903    .2883658  -.4999617   .4999945
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44971      .00022    .2895965  -.4999867   .4999949
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-Passed! checks_consistency_gcollapse forceio debug_io_read_method(1)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse debug_io_check(1) debug_io_threshold(0)
+consistency_gcollapse, oncollision(error) debug_force_single
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44915   -.0009537     .288703   -.499975   .4999645
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
+Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     45085    .0019057    .2899188  -.4999973   .4999698
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
-Passed! checks_consistency_gcollapse debug_io_check(1) debug_io_threshold(0)
+Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
+    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse debug_io_check(1) debug_io_threshold(1000000)
+consistency_gegen, oncollision(error) debug_force_single b
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44973   -.0000316    .2887014  -.4999906   .4999479
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
-
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44935    .0010383     .288993  -.4999433   .4999998
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-
-Passed! checks_consistency_gcollapse debug_io_check(1) debug_io_threshold(1000000)
+Checking full egen range
+    compare_egen (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen group IDs correctly map to egen IDs
+Checking egen if range
+    compare_egen_if (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_if (passed): gegen group IDs correctly map to egen IDs
+Checking egen in range
+    compare_egen_in (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_in (passed): gegen group IDs correctly map to egen IDs
+Checking egen if in range
+    compare_egen_ifin (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
+    compare_egen_ifin (passed): gegen group IDs correctly map to egen IDs
 
 --------------------------------------------------------------------------------
-checks_consistency_gcollapse debug_force_single
+consistency_gegen_gcollapse, oncollision(error) debug_force_single
 --------------------------------------------------------------------------------
 
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     45040    .0011184     .289688  -.4999991   .4999733
-Obs = 50,000; Groups = 8
-  group was float now byte
-  groupsub was float now byte
-  grouplong was long now byte
-  (450,000 bytes saved)
+Checking gegen vs gcollapse full range
+    compare_gegen_gcollapse (passed): mean yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): sum yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): median yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): sd yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): iqr yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): first yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): last yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): firstnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): lastnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): q10 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): q30 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): q70 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse (passed): q90 yielded same results (tol = 1.00000000000e-06)
 
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |     44906    .0026823    .2883103   -.499971   .4999898
-Obs = 50,000; Groups = 8,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (350,000 bytes saved)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupstr)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, groupsub group)
-gcollapse produced identical data to collapse (tol = 1.00000000000e-06, grouplong)
+Checking gegen vs gcollapse in range
+    compare_gegen_gcollapse_in (passed): mean yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): sum yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): median yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): sd yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): iqr yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): first yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): last yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): firstnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): lastnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): q10 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): q30 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): q70 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_in (passed): q90 yielded same results (tol = 1.00000000000e-06)
 
-Passed! checks_consistency_gcollapse debug_force_single
-
---------------------------------------------------------------------------------
-checks_consistency_gegen debug_force_single b
---------------------------------------------------------------------------------
-
-
-    Variable |       Obs        Mean    Std. Dev.       Min        Max
--------------+--------------------------------------------------------
-       rsort |    450009   -.0006229     .288582  -.4999987   .4999993
-Obs = 500,000; Groups = 10,000
-  group was float now int
-  groupsub was float now byte
-  grouplong was long now int
-  (3,500,000 bytes saved)
-Checking full range
-    total was OK
-    sum was OK
-    mean was OK
-    sd was OK
-    max was OK
-    min was OK
-    count was OK
-    median was OK
-    iqr was OK
-    percentile 10 was OK
-    percentile 30 was OK
-    percentile 70 was OK
-    percentile 90 was OK
-    tag was OK
-Checking if range
-    total was OK
-    sum was OK
-    mean was OK
-    sd was OK
-    max was OK
-    min was OK
-    count was OK
-    median was OK
-    iqr was OK
-    percentile 10 was OK
-    percentile 30 was OK
-    percentile 70 was OK
-    percentile 90 was OK
-    tag was OK
-Checking in range
-    total was OK
-    sum was OK
-    mean was OK
-    sd was OK
-    max was OK
-    min was OK
-    count was OK
-    median was OK
-    iqr was OK
-    percentile 10 was OK
-    percentile 30 was OK
-    percentile 70 was OK
-    percentile 90 was OK
-    tag was OK
-Checking if in range
-    total was OK
-    sum was OK
-    mean was OK
-    sd was OK
-    max was OK
-    min was OK
-    count was OK
-    median was OK
-    iqr was OK
-    percentile 10 was OK
-    percentile 30 was OK
-    percentile 70 was OK
-    percentile 90 was OK
-    tag was OK
-
-Passed! checks_consistency_gegen debug_force_single b
+Checking gegen vs gcollapse if in range
+    compare_gegen_gcollapse_ifin (passed): mean yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): sum yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): median yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): sd yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): iqr yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): first yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): last yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): firstnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): lastnm yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): q10 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): q30 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): q70 yielded same results (tol = 1.00000000000e-06)
+    compare_gegen_gcollapse_ifin (passed): q90 yielded same results (tol = 1.00000000000e-06)
 Short (quick) versions of the benchmarks
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse  (.047)  collapse  (.046)  fcollapse  (.117)
-                   20,000 gcollapse  (.047)  collapse  (.165)  fcollapse  (.07)
+                    2,000 gcollapse  (.031)  collapse  (.032)  fcollapse  (.109)
+                   20,000 gcollapse  (.046)  collapse  (.188)  fcollapse  (.062)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.05 |      0.05 |      0.12 |        2.49 |        0.98 |
-|         20,000 |      0.05 |      0.17 |      0.07 |        1.49 |        3.51 |
+|          2,000 |      0.03 |      0.03 |      0.11 |        3.52 |        1.03 |
+|         20,000 |      0.05 |      0.19 |      0.06 |        1.35 |        4.09 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse  (.024)  collapse  (.047)  fcollapse  (.023)
-                   20,000 gcollapse  (.023)  collapse  (.211)  fcollapse  (.047)
+                    2,000 gcollapse  (.031)  collapse  (.063)  fcollapse  (.03)
+                   20,000 gcollapse  (.047)  collapse  (.219)  fcollapse  (.062)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.05 |      0.02 |        0.96 |        1.96 |
-|         20,000 |      0.02 |      0.21 |      0.05 |        2.04 |        9.17 |
+|          2,000 |      0.03 |      0.06 |      0.03 |        0.97 |        2.03 |
+|         20,000 |      0.05 |      0.22 |      0.06 |        1.32 |        4.66 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse  (.071)  collapse  (.094)  fcollapse  (.047)
-                   20,000 gcollapse  (.071)  collapse  (.914)  fcollapse  (.071)
+                    2,000 gcollapse  (.062)  collapse  (.062)  fcollapse  (.032)
+                   20,000 gcollapse  (.047)  collapse  (.5600000000000001)  fcollapse  (.062)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.07 |      0.09 |      0.05 |        0.66 |        1.32 |
-|         20,000 |      0.07 |      0.91 |      0.07 |        1.00 |       12.87 |
+|          2,000 |      0.06 |      0.06 |      0.03 |        0.52 |        1.00 |
+|         20,000 |      0.05 |      0.56 |      0.06 |        1.32 |       11.91 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse  (.07)  collapse  (.188)  fcollapse  (.047)
-                   20,000 gcollapse  (.071)  collapse  (2.812)  fcollapse  (.117)
+                    2,000 gcollapse  (.078)  collapse  (.14)  fcollapse  (.032)
+                   20,000 gcollapse  (.063)  collapse  (1.812)  fcollapse  (.079)
 Results varying N for J = 10; by(group)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.07 |      0.19 |      0.05 |        0.67 |        2.69 |
-|         20,000 |      0.07 |      2.81 |      0.12 |        1.65 |       39.61 |
+|          2,000 |      0.08 |      0.14 |      0.03 |        0.41 |        1.79 |
+|         20,000 |      0.06 |      1.81 |      0.08 |        1.25 |       28.76 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse  (.071)  collapse  (.468)  fcollapse  (.071)
-                    1,000 gcollapse  (.071)  collapse  (.632)  fcollapse  (.118)
+                      100 gcollapse  (.047)  collapse  (.297)  fcollapse  (.047)
+                    1,000 gcollapse  (.062)  collapse  (.438)  fcollapse  (.078)
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|            100 |      0.07 |      0.47 |      0.07 |        1.00 |        6.59 |
-|          1,000 |      0.07 |      0.63 |      0.12 |        1.66 |        8.90 |
+|            100 |      0.05 |      0.30 |      0.05 |        1.00 |        6.32 |
+|          1,000 |      0.06 |      0.44 |      0.08 |        1.26 |        7.06 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse-default  (.047)  fcollapse  (.024) 
-                   20,000 gcollapse-default  (.071)  fcollapse  (.07) 
+                    2,000 gcollapse-default  (.031)  fcollapse  (0) 
+                   20,000 gcollapse-default  (.031)  fcollapse  (.048) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.05 |      0.02 |        0.51 |
-|         20,000 |      0.07 |      0.07 |        0.99 |
+|          2,000 |      0.03 |      0.00 |        0.00 |
+|         20,000 |      0.03 |      0.05 |        1.55 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse-default  (.023)  fcollapse  (0) 
-                   20,000 gcollapse-default  (.024)  fcollapse  (.071) 
+                    2,000 gcollapse-default  (.031)  fcollapse  (.016) 
+                   20,000 gcollapse-default  (.031)  fcollapse  (.047) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.02 |      0.00 |        0.00 |
-|         20,000 |      0.02 |      0.07 |        2.96 |
+|          2,000 |      0.03 |      0.02 |        0.52 |
+|         20,000 |      0.03 |      0.05 |        1.52 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse-default  (.047)  fcollapse  (.047) 
-                   20,000 gcollapse-default  (.07)  fcollapse  (.07) 
+                    2,000 gcollapse-default  (.046)  fcollapse  (.032) 
+                   20,000 gcollapse-default  (.063)  fcollapse  (.047) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.05 |      0.05 |        1.00 |
-|         20,000 |      0.07 |      0.07 |        1.00 |
+|          2,000 |      0.05 |      0.03 |        0.70 |
+|         20,000 |      0.06 |      0.05 |        0.75 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse-default  (.047)  fcollapse  (.047) 
-                   20,000 gcollapse-default  (.07)  fcollapse  (.117) 
+                    2,000 gcollapse-default  (.047)  fcollapse  (.031) 
+                   20,000 gcollapse-default  (.063)  fcollapse  (.078) 
 Results varying N for J = 10; by(group)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.05 |      0.05 |        1.00 |
-|         20,000 |      0.07 |      0.12 |        1.67 |
+|          2,000 |      0.05 |      0.03 |        0.66 |
+|         20,000 |      0.06 |      0.08 |        1.24 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse-default  (.071)  fcollapse  (.046) 
-                    1,000 gcollapse-default  (.07)  fcollapse  (.118) 
+                      100 gcollapse-default  (.031)  fcollapse  (.032) 
+                    1,000 gcollapse-default  (.047)  fcollapse  (.062) 
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|            100 |      0.07 |      0.05 |        0.65 |
-|          1,000 |      0.07 |      0.12 |        1.69 |
+|            100 |      0.03 |      0.03 |        1.03 |
+|          1,000 |      0.05 |      0.06 |        1.32 |
 
-End: 14:07:32 18 Jun 2017
+End: 05:13:32 27 Jul 2017
 tests ran
 
 tests finished running
 
-Start: 13:58:51 18 Jun 2017
-End: 14:07:32 18 Jun 2017
-
-. 
-end of do-file
+Start: 05:02:30 27 Jul 2017
+End: 05:13:32 27 Jul 2017
 
 . log close _all
       name:  <unnamed>
        log:  E:\gtools\gtools.log
   log type:  text
- closed on:  18 Jun 2017, 14:09:04
+ closed on:  27 Jul 2017, 05:13:32
 --------------------------------------------------------------------------------------------------------------------------------

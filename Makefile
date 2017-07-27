@@ -6,7 +6,7 @@ ifeq ($(OS),Windows_NT)
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	PREMAKE = premake5.exe
 	OUT = build/gtools_windows.plugin
-	OUTM =
+	OUTM = build/gtools_windows_multi.plugin build/gtools_multi.o 
 	OUTE = build/env_set_windows.plugin
 	OPENMP = -fopenmp -DGMULTI=1
 else
@@ -21,9 +21,9 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx.plugin
-		OUTM =
+		OUTM = build/gtools_macosx_multi.plugin build/gtools_multi.o
 		OUTE = build/env_set_macosx.plugin
-		SPOOKYLIB = -l:glibspookyhash.so
+		SPOOKYLIB = -l:libspookyhash.so
 	endif
 	GCC = gcc
 	PREMAKE = premake5
@@ -35,7 +35,7 @@ ifeq ($(EXECUTION),windows)
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
 	OUT = build/gtools_windows.plugin
-	OUTM =
+	OUTM = build/gtools_windows_multi.plugin build/gtools_multi.o 
 	OUTE = build/env_set_windows.plugin
 endif
 
@@ -76,7 +76,7 @@ spooky:
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
 	mkdir -p ./build
-	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/glibspookyhash.so
+	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/libspookyhash.so
 else ifeq ($(UNAME_S),Linux)
 spooky:
 	cd lib/spookyhash/build && $(PREMAKE) gmake
@@ -100,7 +100,11 @@ links:
 gtools_other: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
 	mkdir -p ./lib/spookyhash/build/bin/Release
-	$(GCC) $(CFLAGS) -o $(OUT) src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
+	$(GCC) $(CFLAGS) -o $(OUT)  src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
+	# $(GCC) $(CFLAGS) -c -o build/stplugin.o src/plugin/spi/stplugin.c
+	# $(GCC) $(CFLAGS) -c -o build/gtools_multi.o src/plugin/gtools.c $(OPENMP)
+	# $(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Does not load
+	# $(GCC) -Wall -O2    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Crashes
 	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 
 gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
@@ -109,7 +113,7 @@ gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/stplugin.o src/plugin/spi/stplugin.c
 	$(GCC) $(CFLAGS) -c -o build/gtools.o   src/plugin/gtools.c
 	$(GCC) $(CFLAGS)    -o $(OUT)  $(AUX) $(SPOOKY)
-	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o  src/plugin/gtools.c $(OPENMP)
+	$(GCC) $(CFLAGS) -c -o build/gtools_multi.o src/plugin/gtools.c $(OPENMP)
 	$(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP)
 	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 

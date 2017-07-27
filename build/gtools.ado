@@ -1,4 +1,4 @@
-*! version 0.1.0 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.9 26Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -78,7 +78,7 @@ program gtools
                 }
             }
             else local hashlib `r(fn)'
-            cap findfile spookyhash.dll
+
             mata: __gtools_hashpath = ""
             mata: __gtools_dll = ""
             mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
@@ -90,7 +90,23 @@ program gtools
                 local path = substr("`path'"', 1, length(`"`path'"') - 1)
             }
             local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
-            cap noi plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+
+            local newpath `"`path';`__gtools_hashpath'"'
+            local truncate 2048
+            if ( `:length local newpath' > `truncate' ) {
+            local loops = ceil(`:length local newpath' / `truncate')
+            mata: __gtools_pathpieces = J(1, `loops', "")
+            mata: __gtools_pathcall   = ""
+            mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
+            mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
+            mata: st_local("pathcall", __gtools_pathcall)
+            mata: mata drop __gtools_pathcall __gtools_pathpieces
+            cap plugin call env_set, PATH `pathcall'
+            }
+            else {
+                cap plugin noi call env_set, PATH `"`path';`__gtools_hashpath'"'
+            }
+
             if ( _rc ) {
                 di as err "Unable to add '`__gtools_hashpath'' to system PATH."
                 exit 198

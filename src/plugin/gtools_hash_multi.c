@@ -1,3 +1,4 @@
+#include <omp.h>
 #include "gtools_hash.h"
 #include "spookyhash/src/spookyhash_api.h"
 
@@ -37,8 +38,11 @@ int sf_get_variable_hash (
 
     int i;
     size_t N = in2 - in1 + 1;
-    char s[strmax + 1];
+    char *s;
     spookyhash_context sc;
+
+    int nloops, rct;
+    int rcp = 0;
 
     // Get data on every row from in1 to in2 regardless of `if'; in case
     // the plugin was not called with an `if' statement this will not
@@ -46,22 +50,90 @@ int sf_get_variable_hash (
     // so we do not have multiple ifs within the long for loop.
 
     if ( strmax > 0 ) {
-        for (i = 0; i < N; i++) {
-            if ( (rc = SF_sdata(k, i + in1, s)) ) return(rc);
-            spookyhash_context_init(&sc, 1, 2);
-            spookyhash_update(&sc, &s, strlen(s));
-            spookyhash_final(&sc, &h1[i], &h2[i]);
-            // sf_printf ("Obs %9d = %s, %21lu, %21lu\n", i, s, h1[i], h2[i]);
+        #pragma omp parallel \
+                private (    \
+                    rc,      \
+                    rct,     \
+                    sc,      \
+                    nloops,  \
+                    s        \
+                )            \
+                shared (     \
+                    k,       \
+                    in1,     \
+                    N,       \
+                    strmax,  \
+                    h1,      \
+                    h2,      \
+                    rcp      \
+                )
+        {
+            nloops = 0;
+            rc     = 0;
+            rct    = 0;
+            s      = malloc((strmax + 1) * sizeof(char));
+            memset (s, '\0', strmax + 1);
+            #pragma omp for
+            for (i = 0; i < N; i++) {
+                ++nloops;
+                if ( (rc = SF_sdata(k, i + in1, s)) ) {
+                    rct = rc;
+                    continue;
+                }
+                spookyhash_context_init(&sc, 1, 2);
+                spookyhash_update(&sc, s, strlen(s));
+                spookyhash_final(&sc, &h1[i], &h2[i]);
+                // sf_printf ("\t\t\tObs %9d = %s, %21lu, %21lu\n", i, s, h1[i], h2[i]);
+            }
+            #pragma omp critical
+            {
+                if ( rct ) rcp = rct;
+                if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+            }
         }
+        if ( rcp ) return (rcp);
     }
     else {
-        for (i = 0; i < N; i++) {
-            if ( (rc = SF_vdata(k, i + in1, &z)) ) return(rc);
-            spookyhash_context_init(&sc, 1, 2);
-            spookyhash_update(&sc, &z, 8);
-            spookyhash_final(&sc, &h1[i], &h2[i]);
-            // sf_printf ("Obs %9d = %.1f, %21lu, %21lu\n", i, z, h1[i], h2[i]);
+        #pragma omp parallel \
+                private (    \
+                    rc,      \
+                    rct,     \
+                    sc,      \
+                    nloops,  \
+                    z        \
+                )            \
+                shared (     \
+                    k,       \
+                    in1,     \
+                    N,       \
+                    h1,      \
+                    h2,      \
+                    rcp      \
+                )
+        {
+            nloops = 0;
+            rc     = 0;
+            rct    = 0;
+            z      = 0;
+            #pragma omp for
+            for (i = 0; i < N; i++) {
+                ++nloops;
+                if ( (rc = SF_vdata(k, i + in1, &z)) ) {
+                    rct = rc;
+                    continue;
+                }
+                spookyhash_context_init(&sc, 1, 2);
+                spookyhash_update(&sc, &z, 8);
+                spookyhash_final(&sc, &h1[i], &h2[i]);
+                // sf_printf ("Obs %9d = %.1f, %21lu, %21lu\n", i, z, h1[i], h2[i]);
+            }
+            #pragma omp critical
+            {
+                if ( rct ) rcp = rct;
+                if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+            }
         }
+        if ( rcp ) return (rcp);
     }
     return(0);
 }
@@ -114,9 +186,12 @@ int sf_get_varlist_hash (
     size_t K = k2 - k1 + 1;            // Number of vars to hash
     int kmax = mf_max_signed(karr, K); // To detemrine if there are strings
     int kmin = mf_min_signed(karr, K); // To determine if there are nubmers
-    char s[kmax + 1];
+    char *s;
     spookyhash_context sc;
     int i, k;
+
+    int nloops, rct;
+    int rcp = 0;
 
     // Get data on every row from in1 to in2 regardless of `if'; in
     // case the plugin was not called with an `if' statement this will
@@ -128,52 +203,169 @@ int sf_get_varlist_hash (
     if (kmax > 0) {
         if (kmin > 0) {
             // All variables are strings (all have a length)
-            for (i = 0; i < N; i++) {
-                spookyhash_context_init(&sc, 1, 2);
+            #pragma omp parallel \
+                    private (    \
+                        rc,      \
+                        rct,     \
+                        sc,      \
+                        nloops,  \
+                        k,       \
+                        s        \
+                    )            \
+                    shared (     \
+                        k1,      \
+                        K,       \
+                        in1,     \
+                        N,       \
+                        kmax,    \
+                        h1,      \
+                        h2,      \
+                        rcp      \
+                    )
+            {
+                nloops = 0;
+                k      = 0;
+                rc     = 0;
+                rct    = 0;
+                s      = malloc((kmax + 1) * sizeof(char));
+                memset (s, '\0', kmax + 1);
+                #pragma omp for
+                for (i = 0; i < N; i++) {
+                    ++nloops;
+                    spookyhash_context_init(&sc, 1, 2);
 
-                for (k = 0; k < K; k++) {
-                    if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                    spookyhash_update(&sc, &s, strlen(s));
+                    for (k = 0; k < K; k++) {
+                        if ( (rc = SF_sdata(k + k1, i + in1, s)) ) {
+                            rct = rc;
+                            continue;
+                        }
+                        spookyhash_update(&sc, s, strlen(s));
+                    }
+
+                    spookyhash_final(&sc, &h1[i], &h2[i]);
+                    // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
                 }
-
-                spookyhash_final(&sc, &h1[i], &h2[i]);
-                // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
+                #pragma omp critical
+                {
+                    if ( rct ) rcp = rct;
+                    if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+                }
             }
+            if ( rcp ) return (rcp);
         }
         else {
             // Mix of variables and numeric.
-            for (i = 0; i < N; i++) {
-                spookyhash_context_init(&sc, 1, 2);
+            #pragma omp parallel \
+                    private (    \
+                        rc,      \
+                        rct,     \
+                        sc,      \
+                        nloops,  \
+                        k,       \
+                        s,       \
+                        z        \
+                    )            \
+                    shared (     \
+                        k1,      \
+                        K,       \
+                        in1,     \
+                        N,       \
+                        kmax,    \
+                        h1,      \
+                        h2,      \
+                        rcp      \
+                    )
+            {
+                nloops = 0;
+                k      = 0;
+                rc     = 0;
+                rct    = 0;
+                z      = 0;
+                s      = malloc((kmax + 1) * sizeof(char));
+                memset (s, '\0', kmax + 1);
+                #pragma omp for
+                for (i = 0; i < N; i++) {
+                    ++nloops;
+                    spookyhash_context_init(&sc, 1, 2);
 
-                for (k = 0; k < K; k++) {
-                    if (karr[k] > 0) {
-                        if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                        spookyhash_update(&sc, &s, strlen(s));
+                    for (k = 0; k < K; k++) {
+                        if (karr[k] > 0) {
+                            if ( (rc = SF_sdata(k + k1, i + in1, s)) ) {
+                                rct = rc;
+                                continue;
+                            }
+                            spookyhash_update(&sc, s, strlen(s));
+                        }
+                        else {
+                            if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) {
+                                rct = rc;
+                                continue;
+                            }
+                            spookyhash_update(&sc, &z, 8);
+                        }
                     }
-                    else {
-                        if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
-                        spookyhash_update(&sc, &z, 8);
-                    }
+
+                    spookyhash_final(&sc, &h1[i], &h2[i]);
+                    // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
                 }
-
-                spookyhash_final(&sc, &h1[i], &h2[i]);
-                // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
+                #pragma omp critical
+                {
+                    if ( rct ) rcp = rct;
+                    if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+                }
             }
+            if ( rcp ) return (rcp);
         }
     }
     else {
         // All variables are numeric
-        for (i = 0; i < N; i++) {
-            spookyhash_context_init(&sc, 1, 2);
+        #pragma omp parallel \
+                private (    \
+                    rc,      \
+                    rct,     \
+                    sc,      \
+                    nloops,  \
+                    k,       \
+                    z        \
+                )            \
+                shared (     \
+                    k1,      \
+                    K,       \
+                    in1,     \
+                    N,       \
+                    h1,      \
+                    h2,      \
+                    rcp      \
+                )
+        {
+            nloops = 0;
+            k      = 0;
+            rc     = 0;
+            rct    = 0;
+            z      = 0;
+            #pragma omp for
+            for (i = 0; i < N; i++) {
+                nloops++;
+                spookyhash_context_init(&sc, 1, 2);
 
-            for (k = 0; k < K; k++) {
-                if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
-                spookyhash_update(&sc, &z, 8);
+                for (k = 0; k < K; k++) {
+                    if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) {
+                        rct = rc;
+                        continue;
+                    }
+                    spookyhash_update(&sc, &z, 8);
+                }
+
+                spookyhash_final(&sc, &h1[i], &h2[i]);
+                // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
             }
-
-            spookyhash_final(&sc, &h1[i], &h2[i]);
-            // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
+            #pragma omp critical
+            {
+                if ( rct ) rcp = rct;
+                if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+            }
         }
+        if ( rcp ) return (rcp);
     }
     return(0);
 }
@@ -212,16 +404,51 @@ int sf_get_variable_ashash (
     int i;
     size_t N = in2 - in1 + 1;
 
+    int nloops, rct;
+    int rcp = 0;
+
     // Get data on every row from in1 to in2 regardless of `if'; in case
     // the plugin was not called with an `if' statement this will not
     // work, so subset before starting the plugin. The if condition is
     // so we do not have multiple ifs within the long for loop.
 
-    for (i = 0; i < N; i++) {
-        if ( (rc = SF_vdata(k, i + in1, &z)) ) return(rc);
-        h1[i] = z - min + 1;
-        // sf_printf ("Obs %9d = %.1f, %21lu\n", i, z, h1[i]);
+    #pragma omp parallel \
+            private (    \
+                rc,      \
+                rct,     \
+                nloops,  \
+                z        \
+            )            \
+            shared (     \
+                min,     \
+                k,       \
+                in1,     \
+                N,       \
+                h1,      \
+                rcp      \
+            )
+    {
+        nloops = 0;
+        rc     = 0;
+        rct    = 0;
+        z      = 0;
+        #pragma omp for
+        for (i = 0; i < N; i++) {
+            ++nloops;
+            if ( (rc = SF_vdata(k, i + in1, &z)) ) {
+                rct = rc;
+                continue;
+            }
+            h1[i] = z - min + 1;
+            // sf_printf ("Obs %9d = %.1f, %21lu\n", i, z, h1[i]);
+        }
+        #pragma omp critical
+        {
+            if ( rct ) rcp = rct;
+            if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+        }
     }
+    if ( rcp ) return (rcp);
 
     return(0);
 }
@@ -300,6 +527,9 @@ int sf_get_varlist_bijection (
     size_t offsets[K];
     int i, k;
 
+    int nloops, rct;
+    int rcp = 0;
+
     offsets[0] = 0;
     for (k = 0; k < K - 1; k++) {
         offset *= (maxs[k] - mins[k] + 1);
@@ -309,17 +539,57 @@ int sf_get_varlist_bijection (
     // Construct bijection to whole numbers (we index missing vaues to the
     // largest number plus 1 as a convention; note we set the maximum to
     // the actual max + 1 from Stata so the offsets are correct)
-    for (i = 0; i < N; i++) {
-        if ( (rc = SF_vdata(1, i + in1, &z)) ) return(rc);
-        if ( SF_is_missing(z) ) z = maxs[0];
-        h1[i] = z - mins[0] + 1;
-        for (k = 1; k < K; k++) {
-            if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
-            if ( SF_is_missing(z) ) z = maxs[k];
-            h1[i] += (z - mins[k]) * offsets[k];
+    #pragma omp parallel \
+            private (    \
+                k,       \
+                rc,      \
+                rct,     \
+                nloops,  \
+                z        \
+            )            \
+            shared (     \
+                maxs,    \
+                mins,    \
+                offsets, \
+                k1,      \
+                K,       \
+                in1,     \
+                N,       \
+                h1,      \
+                rcp      \
+            )
+    {
+        nloops = 0;
+        rc     = 0;
+        rct    = 0;
+        z      = 0;
+        k      = 0;
+        #pragma omp for
+        for (i = 0; i < N; i++) {
+            ++nloops;
+            if ( (rc = SF_vdata(1, i + in1, &z)) ) {
+                rct = rc;
+                continue;
+            }
+            if ( SF_is_missing(z) ) z = maxs[0];
+            h1[i] = z - mins[0] + 1;
+            for (k = 1; k < K; k++) {
+                if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) {
+                    rct = rc;
+                    continue;
+                }
+                if ( SF_is_missing(z) ) z = maxs[k];
+                h1[i] += (z - mins[k]) * offsets[k];
+            }
+            // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
         }
-        // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
+        #pragma omp critical
+        {
+            if ( rct ) rcp = rct;
+            if ( verbose ) sf_printf("\t\tThread %d hashed %d groups.\n", omp_get_thread_num(), nloops);
+        }
     }
+    if ( rcp ) return (rcp);
 
     return (0);
 }
@@ -357,7 +627,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
     // Figure out the number of numeric by variables and the combined
     // string length of string by variables.
     for (k = 0; k < K; k++) {
-        if (st_info->byvars_lens[k] > 0) {
+        if ( st_info->byvars_lens[k] > 0 ) {
             l_str += st_info->byvars_lens[k];
         }
         else {
@@ -396,11 +666,11 @@ int sf_check_hash_index (struct StataInfo *st_info)
         // Compare all entries in each group to the first entry that
         // appears in Stata
         for (k = 0; k < K; k++) {
-            if (st_info->byvars_lens[k] > 0) {
+            if ( st_info->byvars_lens[k] > 0 ) {
                 memset (s, '\0', klen);
                 if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
-                memcpy (st_strbase + strpos, &s, strlen(s));
-                // strcat (st_strbase, s);
+                // memcpy (st_strbase + strpos, &s, strlen(s));
+                strcat (st_strbase, s);
                 strpos += strlen(s);
             }
             else {
@@ -416,7 +686,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
         }
 
         // debugging
-        // sf_printf ("Checking: strings = '");
+        // sf_printf ("Checking (%d): strings = '", sel);
         // sf_printf (st_strbase);
         // sf_printf ("' and numbers = ");
         // for (k = 0; k < k_num; k++) {
@@ -438,12 +708,12 @@ int sf_check_hash_index (struct StataInfo *st_info)
             strpos = 0;
             sel    = st_info->index[i] + st_info->in1;
             for (k = 0; k < K; k++) {
-                if (st_info->byvars_lens[k] > 0) {
+                if ( st_info->byvars_lens[k] > 0 ) {
                     // Concatenate string and compare result
                     memset (s, '\0', klen);
                     if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
-                    memcpy ( st_strcomp + strpos, &s, strlen(s) );
-                    // strcat (st_strcomp, s);
+                    // memcpy ( st_strcomp + strpos, &s, strlen(s) );
+                    strcat (st_strcomp, s);
                     strpos += strlen(s);
                 }
                 else {
@@ -459,8 +729,8 @@ int sf_check_hash_index (struct StataInfo *st_info)
                 }
             }
             // debugging
-            // sf_printf ("\tstrings = '");
-            // sf_printf (st_strbase);
+            // sf_printf ("\t(%d) strings = '", sel);
+            // sf_printf (st_strcomp);
             // sf_printf ("' and numbers = ");
             // for (k = 0; k < k_num; k++) {
             //     if ( st_nummiss[k] ) {

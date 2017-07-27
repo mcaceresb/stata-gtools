@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sun Jun 18 15:35:38 EDT 2017
+ * Updated: Mon Jul 17 12:55:12 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.4
+ * Version: 0.6.9
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 18 Jun 2017
+ * @date 17 Jul 2017
  * @brief Stata plugin for a faster -collapse- and -egen- implementation
  *
  * This file should only ever be called from gcollapse.ado or gegen.ado
@@ -24,20 +24,31 @@
 #include "spi/stplugin.h"
 #include "spt/st_gentools.c"
 #include "gtools_utils.c"
-#include "gtools_hash.c"
 #include "gtools_sort.c"
 #include "gtools_math.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
+#include "gtools_hash_multi.c"
 #include "gcollapse_multi.c"
 #include "gegen_multi.c"
 #include "gtools_misc_multi.c"
 #else
+#include "gtools_hash.c"
 #include "gcollapse.c"
 #include "gegen.c"
 #include "gtools_misc.c"
 #endif
+
+int main()
+{
+    return(0);
+}
+
+int WinMain()
+{
+    return(0);
+}
 
 /* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
  * objects in memory and print an error message based on 'level' // 2017-05-20 14:09 EDT
@@ -65,11 +76,10 @@ STDLL stata_call(int argc, char *argv[])
     else if ( strcmp(todo, "collapse") == 0 ) {
         if (argc < 2) {
             // Collapse to memory (assumes targets already exist in Stata
-            if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-            if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-            if ( st_info.checkhash ) {
-                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-            }
+            if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+            if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+            // if ( st_info.checkhash ) { }
 
             if ( (rc = sf_collapse  (&st_info, 0, "")) ) return (rc);
             if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
@@ -89,11 +99,10 @@ STDLL stata_call(int argc, char *argv[])
             strcpy (tostat, argv[1]);
             if ( strcmp(tostat, "ixwrite") == 0 ) {
                 // Collapse to disk right away (for -forceio-)
-                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-                if ( st_info.checkhash ) {
-                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                }
+                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                // if ( st_info.checkhash ) { }
 
                 if ( (rc = sf_collapse  (&st_info, 1, fname)) ) return (rc);
                 if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
@@ -116,11 +125,10 @@ STDLL stata_call(int argc, char *argv[])
                 if ( (rc = SF_scal_use  ("__gtools_k_extra",   &k_extra))   ) return(rc);
 
                 // Hash by variables and sort
-                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-                if ( st_info.checkhash ) {
-                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                }
+                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                // if ( st_info.checkhash ) { }
 
                 // Estimate if it will be faster to collapse to disk
                 // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
@@ -194,9 +202,13 @@ STDLL stata_call(int argc, char *argv[])
                 ST_double J_double ;
                 if ( (rc = SF_scal_use("__gtools_J", &J_double)) ) return(rc);
                 st_info.J = (size_t) J_double;
-
+ 
                 st_info.index = calloc(st_info.N, sizeof(st_info.index));
                 st_info.info  = calloc(st_info.J + 1, sizeof(st_info.info));
+
+                if ( st_info.index == NULL ) return(sf_oom_error("stata_call", "st_info->index"));
+                if ( st_info.info  == NULL ) return(sf_oom_error("stata_call", "st_info->info"));
+
                 for (i = 0; i < st_info.N; i++) {
                     if ( (rc = SF_vdata(st_info.indexed, i + st_info.in1, &z)) ) return (rc);
                     st_info.index[i] = (size_t) z;
@@ -221,6 +233,7 @@ STDLL stata_call(int argc, char *argv[])
                 size_t K = (size_t) K_double;
 
                 double *output = calloc(J * K, sizeof *output);
+                if ( output == NULL ) return(sf_oom_error("stata_call", "output"));
                 mf_read_collapsed (fname, output, K, J);
 
                 for (j = 0; j < J; j++) {
@@ -244,11 +257,10 @@ STDLL stata_call(int argc, char *argv[])
             sf_errprintf ("No stats requested. See: -help egen-\n");
             return (198);
         }
-        if ( (rc = sf_parse_info  (&st_info, 1)) ) return (rc);
-        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-        if ( st_info.checkhash ) {
-            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-        }
+        if ( (rc = sf_parse_info  (&st_info, 1))   ) return (rc);
+        if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+        if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+        // if ( st_info.checkhash ) { }
 
         strcpy (tostat, argv[1]);
         if ( strcmp(tostat, "group") == 0 ) {
@@ -267,6 +279,11 @@ STDLL stata_call(int argc, char *argv[])
     else if ( strcmp(todo, "setup") == 0 ) {
         // Computes min, max, and rage for all numeric by variables
         if ( (rc = sf_numsetup()) ) return (rc);
+        return (0);
+    }
+    else if ( strcmp(todo, "isint") == 0 ) {
+        // Figure out if float|double variable is actually all integers
+        if ( (rc = sf_isint()) ) return (rc);
         return (0);
     }
     else if ( strcmp(todo, "recast") == 0 ) {
@@ -365,6 +382,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
         checkhash = (int) checkhash_double;
     }
 
+    // Sums are missing if all elements are missing, insteaad of 0
+    int missing;
+    ST_double missing_double ;
+    if ( (rc = SF_scal_use("__gtools_missing", &missing_double)) ) {
+        return(rc) ;
+    }
+    else {
+        missing = (int) missing_double;
+    }
+
     // Verbose printing
     int verbose;
     ST_double verb_double ;
@@ -422,6 +449,10 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->byvars_lens = calloc(kvars_by, sizeof st_info->byvars_lens);
     st_info->byvars_mins = calloc(kvars_by, sizeof st_info->byvars_mins);
     st_info->byvars_maxs = calloc(kvars_by, sizeof st_info->byvars_maxs);
+
+    if ( st_info->byvars_lens == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->byvars_mins == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_mins"));
+    if ( st_info->byvars_maxs == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_maxs"));
 
     double byvars_lens_double[kvars_by],
            byvars_mins_double[kvars_by],
@@ -597,6 +628,10 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->pos_num_byvars = calloc(kvars_by_num,  sizeof st_info->pos_num_byvars);
     st_info->pos_str_byvars = calloc(kvars_by_str,  sizeof st_info->pos_str_byvars);
 
+    if ( st_info->pos_targets    == NULL ) return(sf_oom_error("sf_parse_info", "st_info->pos_targets"));
+    if ( st_info->pos_num_byvars == NULL ) return(sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars == NULL ) return(sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+
     double pos_str_byvars_double[kvars_by_str];
     double pos_num_byvars_double[kvars_by_num];
 
@@ -635,6 +670,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->start_collapse_vars = start_collapse_vars;
     st_info->start_target_vars   = start_target_vars;
     st_info->checkhash           = checkhash;
+    st_info->missing             = missing;
     st_info->verbose             = verbose;
     st_info->benchmark           = benchmark;
     st_info->merge               = merge;
@@ -673,6 +709,9 @@ int sf_hash_byvars (struct StataInfo *st_info)
     uint64_t *ghash1 = calloc(st_info->N, sizeof *ghash1);
     uint64_t *ghash, *ghash2;
 
+    if ( index  == NULL ) sf_oom_error("sf_hash_byvars", "index");
+    if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
+
     if ( st_info->indexed > 0 ) {
         if ( st_info->verbose )
             sf_printf("Using index provided by stata (data was already soreted).\n");
@@ -691,6 +730,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Set up index from Stata");
 
         info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else if ( st_info->integers_ok ) {
@@ -709,7 +749,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
                                                  st_info->in1,
                                                  st_info->in2,
                                                  st_info->byvars_mins,
-                                                 st_info->byvars_maxs)) ) return(rc);
+                                                 st_info->byvars_maxs,
+                                                 st_info->verbose)) ) return(rc);
         }
         else {
             if ( st_info->verbose )
@@ -717,7 +758,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
             if ( (rc = sf_get_variable_ashash (ghash1, 1,
                                                st_info->in1,
                                                st_info->in2,
-                                               st_info->byvars_mins[0])) ) return(rc);
+                                               st_info->byvars_mins[0],
+                                               st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 
@@ -725,13 +767,15 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // ---------------------------------
 
         // index[i] gives the position in Stata of the ith entry
-        mf_radix_sort_index (ghash1, index, st_info->N, RADIX_SHIFT, 0, st_info->verbose);
+        rc = mf_radix_sort_index (ghash1, index, st_info->N, RADIX_SHIFT, 0, st_info->verbose);
+        if ( rc ) return(rc);
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Sorted on integer-only hash index");
 
         // info[j], info[j + 1] give the starting and ending position of the
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
         info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else {
@@ -745,6 +789,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         //     github.com/centaurean/spookyhash
 
         ghash2 = calloc(st_info->N, sizeof *ghash2);
+        if ( ghash2  == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
         if ( st_info->kvars_by > 1 ) {
             if ( st_info->verbose ) {
                 if ( st_info->byvars_maxlen > 0 ) {
@@ -756,14 +801,15 @@ int sf_hash_byvars (struct StataInfo *st_info)
                     }
                 }
                 else {
-                    sf_printf("Using 128-bit hash to index %d numeric-only by variables", st_info->kvars_by);
+                    sf_printf("Using 128-bit hash to index %d numeric-only by variables\n", st_info->kvars_by);
                 }
             }
             if ( (rc = sf_get_varlist_hash (ghash1, ghash2, 1,
                                             st_info->kvars_by,
                                             st_info->in1,
                                             st_info->in2,
-                                            st_info->byvars_lens)) ) return(rc);
+                                            st_info->byvars_lens,
+                                            st_info->verbose)) ) return(rc);
         }
         else {
             if ( (st_info->byvars_lens[0] > 0) & st_info->verbose ) {
@@ -775,7 +821,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
             if ( (rc = sf_get_variable_hash (ghash1, ghash2, 1,
                                              st_info->in1,
                                              st_info->in2,
-                                             st_info->byvars_lens[0])) ) return(rc);
+                                             st_info->byvars_lens[0],
+                                             st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 
@@ -783,11 +830,13 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // ---------------------------------
 
         // index[i] gives the position in Stata of the ith entry
-        mf_radix_sort_index (ghash1, index, st_info->N, RADIX_SHIFT, 0, st_info->verbose);
+        rc = mf_radix_sort_index (ghash1, index, st_info->N, RADIX_SHIFT, 0, st_info->verbose);
+        if ( rc ) return(rc);
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Sorted on integer-only hash index");
 
         // Copy ghash2 in case you will need it
         ghash = calloc(st_info->N, sizeof *ghash);
+        if ( ghash  == NULL ) sf_oom_error("sf_hash_byvars", "ghash");
         for (i = 0; i < st_info->N; i++) {
             ghash[i] = ghash2[index[i]];
         }
@@ -797,6 +846,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
         info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J);
+        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
         free (ghash);
     }
@@ -832,11 +882,13 @@ int sf_hash_byvars (struct StataInfo *st_info)
     // we copy elements back like this:
 
     st_info->info = calloc(J + 1, sizeof *info);
+    if ( st_info->info == NULL ) sf_oom_error("sf_hash_byvars", "st_info->info");
     for (j = 0; j < J + 1; j++)
         st_info->info[j] = info[j];
     free (info);
 
     st_info->index = calloc(st_info->N, sizeof *index);
+    if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_index->index");
     for (i = 0; i < st_info->N; i++)
         st_info->index[i] = index[i];
     free (index);

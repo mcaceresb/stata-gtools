@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.3 18Jun2017}{...}
+{* *! version 0.6.9 26Jul2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -32,9 +32,7 @@ creates a constant (within {it:varlist}) containing the number of nonmissing
 observations of {it:exp}.
 
 {phang2}
-{opth group(varlist)} [{cmd:,} {opt m:issing}
-{opt l:abel} {opt lname}{cmd:(}{it:name}{cmd:)}
-{opt t:runcate}{cmd:(}{it:num}{cmd:)}]{p_end}
+{opth group(varlist)} [{cmd:,} {opt m:issing}]{p_end}
 {pmore2}
 may not be combined with {cmd:by}.  It creates one variable taking on
 values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may
@@ -120,6 +118,42 @@ faster to use {opt gcollapse} with the {opt merge} option.
 Depending on {it:fcn}{cmd:()}, {it:arguments}, if present, refers to an
 expression, {varlist}, or a {it:{help numlist}}, and the {it:options}
 are similarly {it:fcn} dependent.
+
+{marker memory}{...}
+{title:Out of memory}
+
+{pstd}
+(See also Stata's own discussion: {help memory:help memory}.)
+
+{pstd}
+There are many reasons for why an OS may run out of memory. The best-case
+scenario is that your system is running some other memory-intensive program.
+This is specially likely if you are running your program on a server, where
+memory is shared across all users. In this case, you should attempt to re-run
+{it:gegen} once other memory-intensive programs finish.
+
+{pstd}
+If no memory-intensive programs were running concurrently, the second best-case
+scenario is that your user has a memory cap that your programs can use. Again,
+this is specially likely on a server, and even more likely on a computing grid.
+If you are on a grid, see if you can increase the amount of memory your programs
+can use (there is typically a setting for this). If your cap was set by a system
+administrator, consider contacting them and asking for a higher memory cap.
+
+{pstd}
+If you have no memory cap imposed on your user, the likely scenario is that
+your system cannot allocate enough memory for {it:gegen}. At this point you
+have two options: One option is to try {it:fegen} or {it:egen}, which are
+slower but using either should require a trivial one-letter change to the
+code; another option is to re-write egen the data in segments (the easiest
+way to do this would be to egen a portion of all rows at a time and
+perform a series of append statements at the end.)
+
+{pstd}
+Replacing {it:gegen} with {it:fegen} or plain {it:egen} is not guaranteed to
+work. I have not benchmarked memory use very extensively, but it is possible
+that the latter use less memory. If all fail, you will have to perform the
+task on segments of the data.
 
 {marker example}{...}
 {title:Examples}

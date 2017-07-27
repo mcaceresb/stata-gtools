@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:54:46 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.4
+ * Version: 0.6.9
  *********************************************************************/
 
 #include <omp.h>
@@ -51,6 +51,7 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     // ---------------------------------------------------------------
 
     char **bystr = calloc(st_info->kvars_by_str * st_info->J, sizeof(*bystr));
+    if ( bystr == NULL ) return(sf_oom_error("sf_collapse", "bystr"));
     if ( st_info->kvars_by_str > 0 ) {
         for (j = 0; j < st_info->J; j++) {
             for (k = 0; k < st_info->kvars_by_str; k++) {
@@ -77,6 +78,16 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     short  *all_lastmiss   = calloc(st_info->kvars_source * st_info->J, sizeof *all_lastmiss );
     size_t *all_nonmiss    = calloc(st_info->kvars_source * st_info->J, sizeof *all_nonmiss);
     size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
+
+    if ( bynum  == NULL ) return(sf_oom_error("sf_collapse", "bynum"));
+    if ( bymiss == NULL ) return(sf_oom_error("sf_collapse", "bymiss"));
+    if ( output == NULL ) return(sf_oom_error("sf_collapse", "output"));
+
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_collapse", "all_buffer"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_collapse", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_collapse", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_collapse", "all_nonmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_collapse", "offsets_buffer"));
 
     double statcode[st_info->kvars_targets], dblstat;
     // char *stat[st_info->kvars_targets];

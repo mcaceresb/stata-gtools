@@ -7,7 +7,8 @@ int sf_get_variable_hash (
     size_t k,
     size_t in1,
     size_t in2,
-    int strmax
+    int strmax,
+    short verbose 
 );
 
 int sf_get_varlist_hash (
@@ -17,7 +18,8 @@ int sf_get_varlist_hash (
     size_t k2,
     size_t in1,
     size_t in2,
-    int karr[]
+    int karr[],
+    short verbose
 );
 
 int sf_get_variable_ashash (
@@ -25,7 +27,8 @@ int sf_get_variable_ashash (
     size_t k,
     size_t in1,
     size_t in2,
-    int min
+    int min,
+    short verbose
 );
 
 int sf_get_varlist_bijection (
@@ -35,7 +38,8 @@ int sf_get_varlist_bijection (
     size_t in1,
     size_t in2,
     int mins[],
-    int maxs[]
+    int maxs[],
+    short verbose
 );
 
 int sf_check_hash_index (struct StataInfo *st_info);

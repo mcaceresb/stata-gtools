@@ -1,4 +1,4 @@
-*! version 0.6.3 18Jun2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.9 26Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -16,6 +16,7 @@ program define gegen, byable(onecall)
         di as err "Not available for `c(os)'."
         exit 198
     }
+    local 00 `0'
 
     * Time the entire function execution
     {
@@ -81,8 +82,27 @@ program define gegen, byable(onecall)
         debug_force_single       /// (experimental) Force non-multi-threaded version
         debug_force_multi        /// (experimental) Force muti-threading
         debug_checkhash          /// (experimental) Check for hash collisions
-        *                        ///
+        oncollision(str)         /// (experimental) On collision, fall back to collapse or throw error
     ]
+
+    * Misc options
+    * ------------
+
+    local website_url  https://github.com/mcaceresb/stata-gtools/issues
+    local website_disp github.com/mcaceresb/stata-gtools
+
+    if ( "`oncollision'" == "" ) local oncollision fallback
+    if ( !inlist("`oncollision'", "fallback", "error") ) {
+        di as err "option -oncollision()- must be 'fallback' or 'error'"
+        exit 198
+    }
+
+    if ( "`missing'" == "" ) {
+        scalar __gtools_missing = 0
+    }
+    else {
+        scalar __gtools_missing = 1
+    }
 
     * Verbose and benchmark printing
     * ------------------------------
@@ -129,7 +149,6 @@ program define gegen, byable(onecall)
                 }
             }
             else local hashlib `r(fn)'
-            cap findfile spookyhash.dll
             mata: __gtools_hashpath = ""
             mata: __gtools_dll = ""
             mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
@@ -138,10 +157,24 @@ program define gegen, byable(onecall)
             mata: mata drop __gtools_dll
             local path: env PATH
             if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+                mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
             }
-            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
-            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+            local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
+            local newpath `"`path';`__gtools_hashpath'"'
+            local truncate 2048
+            if ( `:length local newpath' > `truncate' ) {
+                local loops = ceil(`:length local newpath' / `truncate')
+                mata: __gtools_pathpieces = J(1, `loops', "")
+                mata: __gtools_pathcall   = ""
+                mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
+                mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
+                mata: st_local("pathcall", __gtools_pathcall)
+                mata: mata drop __gtools_pathcall __gtools_pathpieces
+                cap plugin call env_set, PATH `pathcall'
+            }
+            else {
+                cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+            }
             if ( _rc ) {
                 di as err "Unable to add '`__gtools_hashpath'' to system PATH."
                 exit _rc
@@ -156,19 +189,14 @@ program define gegen, byable(onecall)
 
     cap plugin call gtoolsmulti_plugin, check
     if ( _rc ) {
-        if ( `verbose'  ) di "(note: failed to load multi-threaded version; using fallback)"
+        if ( `verbose'  ) di as txt "(note: failed to load multi-threaded version; using fallback)"
         local plugin_call plugin call gtools_plugin
         local multi ""
         cap `noi' plugin call gtools_plugin, check
-        if ( _rc == 42001 ) {
-            di as err "Unable to load spookyhash.dll; plugin will not load on Windows."
-            exit 198
-        }
-        else if ( _rc ) {
+        if ( _rc ) {
             di as err "Failed to load -gtools.plugin-"
             exit 198
         }
-        else di as txt "(plugin -gtools- was loaded correctly)"
     }
     else {
         local plugin_call plugin call gtoolsmulti_plugin
@@ -205,14 +233,14 @@ program define gegen, byable(onecall)
     * Parse by call
     * -------------
 
-    if ( _by() ) {
-        * local byopt "by(`_byvars')"
-        local by `_byvars'
-        local cma ","
-    }
-    else if ( `"`options'"' != "" ) {
-        local cma ","
-    }
+    * if ( _by() ) {
+    *     * local byopt "by(`_byvars')"
+    *     local by `_byvars'
+    *     local cma ","
+    * }
+    * else if ( `"`options'"' != "" ) {
+    *     local cma ","
+    * }
 
     * egen to summary stat
     * --------------------
@@ -270,7 +298,7 @@ program define gegen, byable(onecall)
     if inlist("`fcn'", "tag", "group") local by `gtools_vars'
 
     * Parse missing option for group; else just pass `if' `in'
-    if ( "`fcn'" == "group" ) {
+    if ( inlist("`fcn'", "group", "tag") ) {
 		if ( "`missing'" == "" ) {
             marksample touse
             markout `touse' `by', strok
@@ -399,8 +427,17 @@ program define gegen, byable(onecall)
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
     if ( `=_N > 0' ) {
-        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn' `options'
-        if ( _rc == 42001 ) {
+        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn'
+        if ( _rc == 42000 ) {
+            di as err "There may be 128-bit hash collisions!"
+            di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
+            if ( "`oncollision'" == "fallback" ) {
+                cap noi collision_handler `00'
+                exit _rc
+            }
+            else exit 42000 
+        }
+        else if ( _rc == 42001 ) {
             di as txt "(no observations)"
             if ( "`fcn'" == "tag" ) qui replace `dummy' = 0
         }
@@ -553,31 +590,52 @@ program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
 
 * Windows hack
 if ( "`c(os)'" == "Windows" ) {
-    cap findfile spookyhash.dll
+    cap confirm file spookyhash.dll
     if ( _rc ) {
-        local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-        local url `url'/master/spookyhash.dll
-        di as err `"'`hashlib'' not found."'
-        di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
-        exit _rc
-    }
-    mata: __gtools_hashpath = ""
-    mata: __gtools_dll = ""
-    mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-    mata: st_local("__gtools_hashpath", __gtools_hashpath)
-    mata: mata drop __gtools_hashpath
-    mata: mata drop __gtools_dll
-    local path: env PATH
-    if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-        local path = substr("`path'"', 1, length(`"`path'"') - 1)
-    }
-    local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
-    cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-    if ( _rc ) {
-        cap confirm file spookyhash.dll
+        cap findfile spookyhash.dll
         if ( _rc ) {
-            di as err "Unable to add '`__gtools_hashpath'' to system PATH."
+            local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+            local url `url'/master/spookyhash.dll
+            di as err `"gtools: `hashlib'' not found."'
+            di as err `"gtools: download {browse "`url'":here} or run {opt gtools, dependencies}"'
             exit _rc
+        }
+        mata: __gtools_hashpath = ""
+        mata: __gtools_dll = ""
+        mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
+        mata: st_local("__gtools_hashpath", __gtools_hashpath)
+        mata: mata drop __gtools_hashpath
+        mata: mata drop __gtools_dll
+        local path: env PATH
+        if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
+            mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
+        }
+        local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
+        local newpath `"`path';`__gtools_hashpath'"'
+        local truncate 2048
+        if ( `:length local newpath' > `truncate' ) {
+            local loops = ceil(`:length local newpath' / `truncate')
+            mata: __gtools_pathpieces = J(1, `loops', "")
+            mata: __gtools_pathcall   = ""
+            mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
+            mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
+            mata: st_local("pathcall", __gtools_pathcall)
+            mata: mata drop __gtools_pathcall __gtools_pathpieces
+            cap plugin call env_set, PATH `pathcall'
+        }
+        else {
+            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
+        }
+        if ( _rc ) {
+            cap confirm file spookyhash.dll
+            if ( _rc ) {
+                cap plugin call env_set, PATH `"`__gtools_hashpath'"'
+                if ( _rc ) {
+                    di as err `"gtools: Unable to add '`__gtools_hashpath'' to system PATH."'
+                    di as err `"gtools: download {browse "`url'":here} or run {opt gtools, dependencies}"'
+                    exit _rc
+                }
+            }
         }
     }
 }
@@ -587,3 +645,27 @@ program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 
 cap program drop gtoolsmulti_plugin
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+
+***********************************************************************
+*                        Fallback to collapse                         *
+***********************************************************************
+
+capture program drop collision_handler
+program collision_handler
+    syntax [anything(equalok)]   ///
+        [if] [in] ,              ///
+    [                            ///
+        Verbose                  ///
+        Benchmark                ///
+        smart                    ///
+        hashlib(str)             ///
+                                 ///
+        debug_force_single       ///
+        debug_force_multi        ///
+        debug_checkhash          ///
+        oncollision(str)         ///
+        *                        ///
+    ]
+    di as txt "Falling back on -egen-"
+    egen `anything' `if' `in', `options'
+end

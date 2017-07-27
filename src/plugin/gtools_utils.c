@@ -125,8 +125,8 @@ double mf_benchmark (char *fname)
     size_t J    = 64 * KiB;
     srand(time(NULL));
 
-    double *A = calloc(J * k2, sizeof *A);
-    double *B = calloc(J * kw, sizeof *A);
+    double *A = malloc(J * k2 * sizeof(double));
+    double *B = malloc(J * kw * sizeof(double));
     for (j = 0; j < J; j++) {
         for (k = 0; k < k2; k++)
             A[k2 * j + k] = (double) rand() / RAND_MAX;
@@ -285,6 +285,16 @@ void * memcpy (void *dest, const void *src, size_t n)
  *********************************************************************/
 
 /**
+ * @brief Wrapper for OOM error exit message
+ */
+int sf_oom_error (char * step_desc, char * obj_desc)
+{
+    sf_errprintf("%s: Unable to allocate memory for object '%s'.\n", step_desc, obj_desc);
+    SF_display ("See {help gcollapse##memory:help gcollapse (Out of memory)}.\n");
+    return (42002);
+}
+
+/**
  * @brief Get length of Stata vector
  *
  * @param st_matrix name of Stata vector (1xN or Nx1)
@@ -351,4 +361,30 @@ void sf_running_timer (clock_t *timer, const char *msg)
     sf_printf (msg);
     sf_printf ("; %.3f seconds.\n", diff);
     *timer = clock();
+}
+
+/**
+ * @brief Check if variable requested is integer in disguise
+ *
+ * @return Stores __gtools_is_int in Stata with result
+ */
+int sf_isint()
+{
+    ST_retcode rc ;
+    ST_double  z ;
+    size_t i;
+
+    for (i = SF_in1(); i <= SF_in2(); i++) {
+        if ( (rc = SF_vdata(1, i, &z)) ) return (rc);
+        if ( ceilf(z) == z ) continue;
+        else {
+            if ( (rc = SF_scal_save ("__gtools_is_int", (double) 0)) ) return (rc);
+            sf_printf ("(not an integer)\n");
+            return (0);
+        }
+    }
+
+    if ( (rc = SF_scal_save ("__gtools_is_int", (double) 1)) ) return (rc);
+    sf_printf ("(an integer in disguise!)\n");
+    return(0);
 }

@@ -1,6 +1,82 @@
 Change Log
 ==========
 
+## gtools-0.6.9 (2017-06-27)
+
+### Enhancements
+
+* Addressed the possible issue noted in issue
+  https://github.com/mcaceresb/stata-gtools/issues/3 and the functions now
+  use mata and extended macro functions as applicable.
+* `gegen varname = group(varlist)` no longer has holes, as noted in issue
+  https://github.com/mcaceresb/stata-gtools/issues/4
+* `gegen` and `gcollapse` fall back on `collapse` and `egen` in case there
+  is a collision. Future releases will implement an internal way to resolve
+  collisions. This is not a huge concern, as SpookyHash has no known
+  vulnerabilities (I believe the concern raied in issue https://github.com/mcaceresb/stata-gtools/issues/2
+  was base on a typo; see [here](https://github.com/rurban/smhasher/issues/34))
+  and the probability of a collision is very low.
+* `gegen varname = group(varlist)` now has a consistency test (though
+  the group IDs are not the same as `egen`'s, they should map to the `egen`
+  group IDs 1 to 1, which is what the tests now check for).
+
+### Bug fixes
+
+* `gegen` no longer ignores unavailable options, as noted in issue 
+  https://github.com/mcaceresb/stata-gtools/issues/4, and now it throws an error.
+* `gegen varname = tag(varlist)` no longer tags missing values, as noted
+  in issue https://github.com/mcaceresb/stata-gtools/issues/5
+* Additional fixes for issue https://github.com/mcaceresb/stata-gtools/issues/1
+* Apparentlly the argument Stata passes to plugins have a maximum length. The
+  code now makes sure chuncks are passed when the PATH length will exceed the
+  maximum. The plugin later concatenates the chuncks to set the PATH correctly.
+
+## gtools-0.6.8 (2017-06-25)
+
+### Bug fixes
+
+* Fixed issue https://github.com/mcaceresb/stata-gtools/issues/1
+* The problem was that the wrapper I wrote to print to the Stata
+  console has a maximum buffer size; when it tries to print the
+  new PATH it encounters an error when the string is longer than
+  the allocated size. Since printing this is unnecessary and
+  will only ever be used for debugging, I no longer print the PATH.
+
+## gtools-0.6.7 (2017-06-18)
+
+### Debugging
+
+* Debugging issue https://github.com/mcaceresb/stata-gtools/issues/1
+  on github (in particular, `env_set` on Windows).
+
+## gtools-0.6.6 (2017-06-18)
+
+### Bug fixes
+
+* Removed old debugging code that had been left uncommented
+* Improved out-of-memory message (now links to relevant help section).
+
+## gtools-0.6.5 (2017-06-18)
+
+### Features
+
+* The function now checks numerical variabes to see if they are integers.
+  Working with integers is faster than hashing.
+* The function is now smarter about generating targets. In prior versions,
+  when the target statistic was a sum the function would force the target
+  type to be `double`. Now if the source already exists and is a float, the
+  function now checks if the resultimg sum would overflow. It will only
+  recast the source as double for collapsing if the sum might overflow, that
+  is, if `_N * min < -10^38` or `10^38 < _N * max` (note +/- 10^38 are the
+  largest/smallest floats stata can represent; see `help data_types`).
+
+### Bug fixes
+
+* Fixed bug where Stata crashes when it can no longer allocate memory. It now
+  exists with error.
+* In Windows, `gcollapse` and `gegen` now check whether `spookyhash.dll` can be
+  found before trying to modify the `PATH` environment variable.
+
 ## gtools-0.6.4 (2017-06-18)
 
 ### Bug fixes
@@ -348,7 +424,7 @@ Change Log
 
 ### Features
 
-* `gcollapse` `smart` option indexes thye data based on the sorted groups
+* `gcollapse` `smart` option indexes the data based on the sorted groups
   so no hashing and sorting is necessary. It no longer calls `collapse`,
   which is slower.
 * `gcollapse` provides `merge` to merge the collapsed data back with the
@@ -387,7 +463,7 @@ Change Log
 * `gcollapse` provides a C-based near-drop-in replacement for `collapse`
   that is (almost always) several times faster than `fcollapse`.
 * Though computing percentiles is currently very inefficient (see below),
-  `gcollapse`, unlike `collapse` (of `fcollapse` as best I can tell) can
+  `gcollapse`, unlike `collapse` (or `fcollapse` as best I can tell) can
   compute quantiles, not just percentiles (e.g. p2.5, p15.25)
 
 ### Problems

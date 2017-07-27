@@ -70,12 +70,12 @@ program main
             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
-            consistency_gegen,           `noisily' oncollision(error) debug_force_single b
+            consistency_gegen,           `noisily' oncollision(error) debug_force_single
             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
 
             if !inlist("`c(os)'", "Windows") {
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
-                consistency_gegen,           `noisily' oncollision(error) debug_force_multi b
+                consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
         }

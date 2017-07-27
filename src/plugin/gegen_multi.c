@@ -5,7 +5,7 @@
  * Updated: Thu Jun 15 15:54:53 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.8
+ * Version: 0.6.9
  *********************************************************************/
 
 #include <omp.h>
@@ -357,6 +357,7 @@ int sf_egen_tag (struct StataInfo *st_info)
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Tagged groups in memory");
 
     // We loop in C using indexj and write to Stata based on index
+    k = st_info->start_target_vars;
     for (j = 0; j < st_info->J; j++) {
         start = st_info->info[indexj[j]];
         end   = st_info->info[indexj[j] + 1];
@@ -365,12 +366,11 @@ int sf_egen_tag (struct StataInfo *st_info)
         }
         if ( start < end ) {
             out = st_info->index[start] + st_info->in1;
-            if ( (rc = SF_vstore(st_info->start_target_vars, out, 1)) ) return (rc);
+            if ( (rc = SF_vstore(k, out, 1)) ) return (rc);
         }
     }
 
     // Tag ignores if/in for missing values (all non-tagged are 0)
-    k = st_info->start_target_vars;
     for (i = 1; i <= SF_nobs(); i++) {
         if ( (rc = SF_vdata(k, i, &z)) ) return(rc);
         if ( SF_is_missing(z) ) {
@@ -394,7 +394,8 @@ int sf_egen_tag (struct StataInfo *st_info)
 int sf_egen_group (struct StataInfo *st_info)
 {
     ST_retcode rc ;
-    int i, j, out;
+    short augment_id;
+    int i, j, k, out;
     size_t start, end, minj;
     clock_t timer = clock();
 
@@ -430,16 +431,23 @@ int sf_egen_group (struct StataInfo *st_info)
     if ( rc ) return(rc);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
 
-    // We loop in C using indexj and write to Stata based on index
+    // We loop in C using indexj and write to Stata based on index.  We make
+    // sure to tag the groups using k so that in case [if] [in] conditions
+    // were passed, there are no holes (so if gorup 3 is excluded, group ID 3
+    // still appears, but for the next group that is included).
+    k = 1;    
     for (j = 0; j < st_info->J; j++) {
+        augment_id = 0;
         start  = st_info->info[indexj[j]];
         end    = st_info->info[indexj[j] + 1];
         for (i = start; i < end; i++) {
             out = st_info->index[i] + st_info->in1;
             if ( SF_ifobs(out) ) {
-                if ( (rc = SF_vstore(st_info->start_target_vars, out, j + 1)) ) return (rc);
+                if ( (rc = SF_vstore(st_info->start_target_vars, out, k)) ) return (rc);
+                augment_id = 1;
             }
         }
+        k += augment_id;
     }
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
 

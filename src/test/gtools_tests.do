@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jun 16 17:37:39 EDT 2017
+* Updated: Thu Jul 27 00:54:24 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.8
+* Version: 0.6.9
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -40,31 +40,43 @@ program main
         * do test_gegen.do
         * do bench_gcollapse.do
         if ( `:list posof "checks" in options' ) {
-            checks_byvars_gcollapse,  debug_force_single
-            checks_options_gcollapse, debug_force_single
+
+            di ""
+            di "-------------------------------------"
+            di "Basic unit-tests $S_TIME $S_DATE"
+            di "-------------------------------------"
+
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(1))
+
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(0))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(1))
+
             if !inlist("`c(os)'", "Windows") {
-                checks_byvars_gcollapse,  debug_force_multi
-                checks_options_gcollapse, debug_force_multi
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
             }
 
-            checks_options_gegen, debug_force_single
-            if !inlist("`c(os)'", "Windows") {
-                checks_options_gegen, debug_force_multi
-            }
+            di ""
+            di "-----------------------------------------------------------"
+            di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+            di "-----------------------------------------------------------"
 
-            checks_consistency_gcollapse, debug_checkhash
-            checks_consistency_gcollapse, forceio debug_io_read_method(0)
-            checks_consistency_gcollapse, forceio debug_io_read_method(1)
-            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(0)
-            checks_consistency_gcollapse, debug_io_check(1) debug_io_threshold(1000000)
-            checks_consistency_gcollapse, debug_force_single
-            if !inlist("`c(os)'", "Windows") {
-                checks_consistency_gcollapse, debug_force_multi
-            }
+            consistency_gcollapse,       `noisily' oncollision(error)
+            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(0)
+            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(1)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
+            consistency_gegen,           `noisily' oncollision(error) debug_force_single b
+            consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
 
-            checks_consistency_gegen, debug_force_single b
             if !inlist("`c(os)'", "Windows") {
-                checks_consistency_gegen, debug_force_multi  b
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
+                consistency_gegen,           `noisily' oncollision(error) debug_force_multi b
+                consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
         }
 
@@ -113,6 +125,9 @@ program main
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
     exit `rc'
 end
+
+* ---------------------------------------------------------------------
+* Aux programs
 
 capture program drop exit_message
 program exit_message
@@ -200,7 +215,66 @@ program mytimer_ts
     display  "{hline 79}" _n(1)
 end
 
+capture program drop unit_test
+program unit_test
+    syntax, test(str) [NOIsily tab(int 4)]
+    local tabs `""'
+    forvalues i = 1 / `tab' {
+        local tabs "`tabs' "
+    }
+    cap `noisily' `test'
+    if ( _rc ) {
+        di as error `"`tabs'test(failed): `test'"'
+        exit _rc
+    }
+    else di as txt `"`tabs'test(passed): `test'"'
+end
+
+capture program drop sim
+program sim, rclass
+    syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
+    qui {
+        if ("`offset'" == "") local offset 0
+        clear
+        set obs `n'
+        gen group  = ceil(`nj' *  _n / _N) + `offset'
+        bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
+        bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
+        gen rsort = runiform() - 0.5
+        gen rnorm = rnormal()
+        if ( "`sortg'"     == "" ) sort rsort
+        if ( "`groupmiss'" != "" ) replace group = . if runiform() < 0.1
+        if ( "`outmiss'"   != "" ) replace rsort = . if runiform() < 0.1
+        if ( "`outmiss'"   != "" ) replace rnorm = . if runiform() < 0.1
+        if ( "`float'"     != "" ) replace group = group / `nj'
+        if ( "`string'" != "" ) {
+            tostring group,    `:di cond("`replace'" == "", "gen(groupstr)",    "replace")'
+            tostring groupsub, `:di cond("`replace'" == "", "gen(groupsubstr)", "replace")'
+            if ( "`replace'" == "replace" ) {
+                replace group    = "" if group    == "."
+                replace groupsub = "" if groupsub == "."
+            }
+            else {
+                replace groupstr    = "" if mi(group)
+                replace groupsubstr = "" if mi(groupsub)
+            }
+            local target `:di cond("`replace'" == "", "groupstr", "group")'
+            replace `target' = "i am a modesly long string" + `target' if !mi(`target')
+            local target `:di cond("`replace'" == "", "groupstr", "group")'
+            replace `target' = "ss" + `target' if !mi(`target')
+        }
+        gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
+    }
+    qui sum rsort
+    di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
+    compress
+    return local n  = `n'
+    return local nj = `nj'
+    return local offset = `offset'
+    return local string = ("`string'" != "")
+end
+
 * ---------------------------------------------------------------------
 * Run the things
 
-main, cap noi checks test
+main, checks test

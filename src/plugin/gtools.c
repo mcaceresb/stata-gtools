@@ -5,7 +5,7 @@
  * Updated: Mon Jul 17 12:55:12 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.8
+ * Version: 0.6.9
  *********************************************************************/
 
 /**
@@ -24,20 +24,31 @@
 #include "spi/stplugin.h"
 #include "spt/st_gentools.c"
 #include "gtools_utils.c"
-#include "gtools_hash.c"
 #include "gtools_sort.c"
 #include "gtools_math.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
+#include "gtools_hash_multi.c"
 #include "gcollapse_multi.c"
 #include "gegen_multi.c"
 #include "gtools_misc_multi.c"
 #else
+#include "gtools_hash.c"
 #include "gcollapse.c"
 #include "gegen.c"
 #include "gtools_misc.c"
 #endif
+
+int main()
+{
+    return(0);
+}
+
+int WinMain()
+{
+    return(0);
+}
 
 /* TODO: implement clean_exit(rc, level, ...) instead of return(rc) where you free
  * objects in memory and print an error message based on 'level' // 2017-05-20 14:09 EDT
@@ -65,11 +76,10 @@ STDLL stata_call(int argc, char *argv[])
     else if ( strcmp(todo, "collapse") == 0 ) {
         if (argc < 2) {
             // Collapse to memory (assumes targets already exist in Stata
-            if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-            if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-            if ( st_info.checkhash ) {
-                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-            }
+            if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+            if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+            // if ( st_info.checkhash ) { }
 
             if ( (rc = sf_collapse  (&st_info, 0, "")) ) return (rc);
             if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
@@ -89,11 +99,10 @@ STDLL stata_call(int argc, char *argv[])
             strcpy (tostat, argv[1]);
             if ( strcmp(tostat, "ixwrite") == 0 ) {
                 // Collapse to disk right away (for -forceio-)
-                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-                if ( st_info.checkhash ) {
-                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                }
+                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                // if ( st_info.checkhash ) { }
 
                 if ( (rc = sf_collapse  (&st_info, 1, fname)) ) return (rc);
                 if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
@@ -116,11 +125,10 @@ STDLL stata_call(int argc, char *argv[])
                 if ( (rc = SF_scal_use  ("__gtools_k_extra",   &k_extra))   ) return(rc);
 
                 // Hash by variables and sort
-                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-                if ( st_info.checkhash ) {
-                    if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                }
+                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+                // if ( st_info.checkhash ) { }
 
                 // Estimate if it will be faster to collapse to disk
                 // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
@@ -249,11 +257,10 @@ STDLL stata_call(int argc, char *argv[])
             sf_errprintf ("No stats requested. See: -help egen-\n");
             return (198);
         }
-        if ( (rc = sf_parse_info  (&st_info, 1)) ) return (rc);
-        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
-        if ( st_info.checkhash ) {
-            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-        }
+        if ( (rc = sf_parse_info  (&st_info, 1))   ) return (rc);
+        if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
+        if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
+        // if ( st_info.checkhash ) { }
 
         strcpy (tostat, argv[1]);
         if ( strcmp(tostat, "group") == 0 ) {
@@ -731,7 +738,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
                                                  st_info->in1,
                                                  st_info->in2,
                                                  st_info->byvars_mins,
-                                                 st_info->byvars_maxs)) ) return(rc);
+                                                 st_info->byvars_maxs,
+                                                 st_info->verbose)) ) return(rc);
         }
         else {
             if ( st_info->verbose )
@@ -739,7 +747,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
             if ( (rc = sf_get_variable_ashash (ghash1, 1,
                                                st_info->in1,
                                                st_info->in2,
-                                               st_info->byvars_mins[0])) ) return(rc);
+                                               st_info->byvars_mins[0],
+                                               st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 
@@ -781,14 +790,15 @@ int sf_hash_byvars (struct StataInfo *st_info)
                     }
                 }
                 else {
-                    sf_printf("Using 128-bit hash to index %d numeric-only by variables", st_info->kvars_by);
+                    sf_printf("Using 128-bit hash to index %d numeric-only by variables\n", st_info->kvars_by);
                 }
             }
             if ( (rc = sf_get_varlist_hash (ghash1, ghash2, 1,
                                             st_info->kvars_by,
                                             st_info->in1,
                                             st_info->in2,
-                                            st_info->byvars_lens)) ) return(rc);
+                                            st_info->byvars_lens,
+                                            st_info->verbose)) ) return(rc);
         }
         else {
             if ( (st_info->byvars_lens[0] > 0) & st_info->verbose ) {
@@ -800,7 +810,8 @@ int sf_hash_byvars (struct StataInfo *st_info)
             if ( (rc = sf_get_variable_hash (ghash1, ghash2, 1,
                                              st_info->in1,
                                              st_info->in2,
-                                             st_info->byvars_lens[0])) ) return(rc);
+                                             st_info->byvars_lens[0],
+                                             st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 

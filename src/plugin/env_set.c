@@ -55,24 +55,37 @@ void * memcpy (void *dest, const void *src, size_t n)
 }
 #endif
 
+#define MAX_LEN 4096
 char* EMPTY = "";
 
 STDLL stata_call (int argc, char *argv[])
 {
     ST_retcode rc;
 
-    if ( argc != 2 ) {
+    if ( argc < 2 ) {
         sf_errprintf ("env_set: incorrect number of arguments (%d). Use:\n", argc);
         sf_errprintf ("\tplugin call env_set, ENV `\"VALUE\"'\n");
         return (198);
     }
-    else if ( argc == 2 ) {
+    else if ( argc >= 2 ) {
         rc = unsetenv(argv[0]);
         if ( rc ) {
             sf_errprintf ("env_set: unable to unset %s: %d\n", argv[0], rc);
             return (rc);
         }
-        rc  = setenv(argv[0], argv[1], 1);
+        if ( argc == 2 ) {
+            rc = setenv(argv[0], argv[1], 1);
+        }
+        else {
+            int c; char *path;
+            path = malloc((argc - 1) * MAX_LEN * sizeof(char));
+            memset (path, '\0', (argc - 1) * MAX_LEN);
+            strcpy (path, argv[1]);
+            for (c = 2; c < argc; c++) {
+                strcat(path, argv[c]);
+            }
+            rc = setenv(argv[0], path, 1);
+        }
         if ( rc ) {
             sf_errprintf ("env_set: unable to set %s: %d\n", argv[0], rc);
             return (rc);

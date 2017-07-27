@@ -1,6 +1,40 @@
 Change Log
 ==========
 
+## gtools-0.6.9 (2017-06-26)
+
+### Enhancements
+
+* `gegen varname = group(varlist)` no longer has holes, as noted in issue
+  https://github.com/mcaceresb/stata-gtools/issues/4
+* `gegen` and `gcollapse` fall back on `collapse` and `egen` in case there
+  is a collision. Future releases will implement an internal way to resolve
+  collisions. This is not a huge concern, as SpookyHash has no known
+  vulnerabilities (I believe the concern raied in issue https://github.com/mcaceresb/stata-gtools/issues/2
+  was base on a typo; see [here](https://github.com/rurban/smhasher/issues/34))
+  and the probability of a collision is very low.
+* `gegen varname = group(varlist)` now has a consistency test (though
+  the group IDs are not the same as `egen`'s, they should map to the `egen`
+  group IDs 1 to 1, which is what the tests now check for).
+
+### Bug fixes
+
+* Additional fixes for issue https://github.com/mcaceresb/stata-gtools/issues/1
+* Apparentlly the argument Stata passes to plugins have a maximum length. The
+  code now makes sure chuncks are passed when the PATH length will exceed the
+  maximum. The plugin later concatenates the chuncks to set the PATH correctly.
+
+## gtools-0.6.8 (2017-06-25)
+
+### Bug fixes
+
+* Fixed issue https://github.com/mcaceresb/stata-gtools/issues/1
+* The problem was that the wrapper I wrote to print to the Stata
+  console has a maximum buffer size; when it tries to print the
+  new PATH it encounters an error when the string is longer than
+  the allocated size. Since printing this is unnecessary and
+  will only ever be used for debugging, I no longer print the PATH.
+
 ## gtools-0.6.7 (2017-06-18)
 
 ### Debugging

@@ -1,4 +1,4 @@
-*! version 0.6.10 27Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.11 17Aug2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -61,6 +61,31 @@ program define gegen, byable(onecall)
     *     unab args : _all
     *     local args : subinstr local args "`_sortindex'"  "", all word
     * }
+
+
+    * Available functions
+    local funcs tag      ///
+                group    ///
+                total    ///
+                sum      ///
+                mean     ///
+                sd       ///
+                max      ///
+                min      ///
+                count    ///
+                median   ///
+                iqr      ///
+                percent  ///
+                first    ///
+                last     ///
+                firstnm  ///
+                lastnm   ///
+                pctile
+
+    if !( `:list fcn in funcs' ) {
+        di as err "-gegen `fcn'- not supported."
+        exit 198
+    }
 
     * Parse egen by, if, in, and options
     * ----------------------------------
@@ -237,28 +262,17 @@ program define gegen, byable(onecall)
     * Parse by call
     * -------------
 
-    * if ( _by() ) {
-    *     * local byopt "by(`_byvars')"
-    *     local by `_byvars'
-    *     local cma ","
-    * }
-    * else if ( `"`options'"' != "" ) {
-    *     local cma ","
-    * }
-
-    * egen to summary stat
-    * --------------------
-
+    if ( _by() ) local by `_byvars'
     if ( "`by'" == "" ) {
-        if inlist("`fcn'", "tag", "group") {
+        * if inlist("`fcn'", "tag", "group") {
             tempvar byvar
             gen byte `byvar' = 0
             local by `byvar'
-        }
-        else {
-            di as err "-gegen- only provides support for by-able egen functions"
-            exit 198
-        }
+        * }
+        * else {
+        *     di as err "-gegen- only provides support for by-able egen functions"
+        *     exit 198
+        * }
     }
     else {
         qui ds `by'
@@ -373,24 +387,6 @@ program define gegen, byable(onecall)
 
     scalar __gtools_l_stats = length("`gtools_stats'")
     scalar __gtools_k_vars  = `:list sizeof gtools_vars'
-
-    * Available functions
-    local funcs tag      ///
-                group    ///
-                sum      ///
-                mean     ///
-                sd       ///
-                max      ///
-                min      ///
-                count    ///
-                median   ///
-                iqr      ///
-                percent  ///
-                first    ///
-                last     ///
-                firstnm  ///
-                lastnm   ///
-                pctile
 
     * Parse type of each by variable
     cap parse_by_types `by', `multi'

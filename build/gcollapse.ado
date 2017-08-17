@@ -1,4 +1,4 @@
-*! version 0.6.10 27Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.11 17Aug2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -747,14 +747,14 @@ program parse_opts, rclass
     * Verbose and benchmark printing
     * ------------------------------
 
-    if ("`verbose'" == "") {
+    if ( "`verbose'" == "" ) {
         local verbose = 0
     }
     else {
         local verbose = 1
     }
 
-    if ("`benchmark'" == "") {
+    if ( "`benchmark'" == "" ) {
         local benchmark = 0
     }
     else {

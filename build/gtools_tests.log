@@ -28,9 +28,9 @@ Note:  Your site can add messages to the introduction by editing the file
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Thu Jul 27 00:54:24 EDT 2017
+. * Updated: Thu Jul 27 10:49:56 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.6.9
+. * Version: 0.6.12
 . * Manual:  help gcollapse, help gegen
 . 
 . * Stata start-up options
@@ -101,12 +101,12 @@ Note:  Your site can add messages to the introduction by editing the file
  28.             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
  29.             consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
  30.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
- 31.             consistency_gegen,           `noisily' oncollision(error) debug_force_single b
+ 31.             consistency_gegen,           `noisily' oncollision(error) debug_force_single
  32.             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
  33. 
 .             if !inlist("`c(os)'", "Windows") {
  34.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
- 35.                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi b
+ 35.                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
  36.                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
  37.             }
  38.         }
@@ -1473,10 +1473,10 @@ Note:  Your site can add messages to the introduction by editing the file
 . * Run the things
 . 
 . main, checks test
-Start: 08:00:27 27 Jul 2017
+Start: 13:05:51 11 Sep 2017
 
 -------------------------------------
-Basic unit-tests 08:00:27 27 Jul 2017
+Basic unit-tests 13:05:51 11 Sep 2017
 -------------------------------------
     test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single
     test(passed): checks_byvars_gcollapse, oncollision(error) forceio debug_io_read_method(0)
@@ -1488,7 +1488,7 @@ Basic unit-tests 08:00:27 27 Jul 2017
     test(passed): checks_options_gcollapse, oncollision(error) debug_force_multi
 
 -----------------------------------------------------------
-Consistency checks (vs collapse, egen) 08:00:28 27 Jul 2017
+Consistency checks (vs collapse, egen) 13:05:53 11 Sep 2017
 -----------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -1630,7 +1630,7 @@ Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
     compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-consistency_gegen, oncollision(error) debug_force_single b
+consistency_gegen, oncollision(error) debug_force_single
 --------------------------------------------------------------------------------
 
 
@@ -1785,7 +1785,7 @@ Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
     compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
 
 --------------------------------------------------------------------------------
-consistency_gegen, oncollision(error) debug_force_multi b
+consistency_gegen, oncollision(error) debug_force_multi
 --------------------------------------------------------------------------------
 
 
@@ -1919,111 +1919,111 @@ Short (quick) versions of the benchmarks
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse  (.084)  collapse  (.041)  fcollapse  (.035)
-                   20,000 gcollapse  (.048)  collapse  (.17)  fcollapse  (.038)
+                    2,000 gcollapse  (.027)  collapse  (.016)  fcollapse  (.044)
+                   20,000 gcollapse  (.052)  collapse  (.131)  fcollapse  (.032)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.08 |      0.04 |      0.04 |        0.42 |        0.49 |
-|         20,000 |      0.05 |      0.17 |      0.04 |        0.79 |        3.54 |
+|          2,000 |      0.03 |      0.02 |      0.04 |        1.63 |        0.59 |
+|         20,000 |      0.05 |      0.13 |      0.03 |        0.62 |        2.52 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse  (.036)  collapse  (.017)  fcollapse  (.011)
-                   20,000 gcollapse  (.015)  collapse  (.212)  fcollapse  (.041)
+                    2,000 gcollapse  (.01)  collapse  (.018)  fcollapse  (.009)
+                   20,000 gcollapse  (.016)  collapse  (.16)  fcollapse  (.072)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.04 |      0.02 |      0.01 |        0.31 |        0.47 |
-|         20,000 |      0.01 |      0.21 |      0.04 |        2.73 |       14.13 |
+|          2,000 |      0.01 |      0.02 |      0.01 |        0.90 |        1.80 |
+|         20,000 |      0.02 |      0.16 |      0.07 |        4.50 |       10.00 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse  (.058)  collapse  (.047)  fcollapse  (.021)
-                   20,000 gcollapse  (.073)  collapse  (.646)  fcollapse  (.038)
+                    2,000 gcollapse  (.15)  collapse  (.039)  fcollapse  (.014)
+                   20,000 gcollapse  (.084)  collapse  (.484)  fcollapse  (.041)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.06 |      0.05 |      0.02 |        0.36 |        0.81 |
-|         20,000 |      0.07 |      0.65 |      0.04 |        0.52 |        8.85 |
+|          2,000 |      0.15 |      0.04 |      0.01 |        0.09 |        0.26 |
+|         20,000 |      0.08 |      0.48 |      0.04 |        0.49 |        5.76 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse  (.048)  collapse  (.115)  fcollapse  (.019)
-                   20,000 gcollapse  (.089)  collapse  (1.833)  fcollapse  (.07)
+                    2,000 gcollapse  (.034)  collapse  (.084)  fcollapse  (.016)
+                   20,000 gcollapse  (.038)  collapse  (1.231)  fcollapse  (.069)
 Results varying N for J = 10; by(group)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.05 |      0.12 |      0.02 |        0.40 |        2.40 |
-|         20,000 |      0.09 |      1.83 |      0.07 |        0.79 |       20.60 |
+|          2,000 |      0.03 |      0.08 |      0.02 |        0.47 |        2.47 |
+|         20,000 |      0.04 |      1.23 |      0.07 |        1.82 |       32.39 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse  (.117)  collapse  (.32)  fcollapse  (.037)
-                    1,000 gcollapse  (.09)  collapse  (.428)  fcollapse  (.076)
+                      100 gcollapse  (.033)  collapse  (.199)  fcollapse  (.024)
+                    1,000 gcollapse  (.033)  collapse  (.275)  fcollapse  (.063)
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|            100 |      0.12 |      0.32 |      0.04 |        0.32 |        2.74 |
-|          1,000 |      0.09 |      0.43 |      0.08 |        0.84 |        4.76 |
+|            100 |      0.03 |      0.20 |      0.02 |        0.73 |        6.03 |
+|          1,000 |      0.03 |      0.28 |      0.06 |        1.91 |        8.33 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse-default  (.037)  fcollapse  (.011) 
-                   20,000 gcollapse-default  (.079)  fcollapse  (.042) 
+                    2,000 gcollapse-default  (.107)  fcollapse  (.021) 
+                   20,000 gcollapse-default  (.035)  fcollapse  (.033) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.04 |      0.01 |        0.30 |
-|         20,000 |      0.08 |      0.04 |        0.53 |
+|          2,000 |      0.11 |      0.02 |        0.20 |
+|         20,000 |      0.04 |      0.03 |        0.94 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse-default  (.037)  fcollapse  (.009) 
-                   20,000 gcollapse-default  (.043)  fcollapse  (.041) 
+                    2,000 gcollapse-default  (.011)  fcollapse  (.008) 
+                   20,000 gcollapse-default  (.015)  fcollapse  (.032) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.04 |      0.01 |        0.24 |
-|         20,000 |      0.04 |      0.04 |        0.95 |
+|          2,000 |      0.01 |      0.01 |        0.73 |
+|         20,000 |      0.01 |      0.03 |        2.13 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse-default  (.122)  fcollapse  (.017) 
-                   20,000 gcollapse-default  (.116)  fcollapse  (.052) 
+                    2,000 gcollapse-default  (.032)  fcollapse  (.015) 
+                   20,000 gcollapse-default  (.042)  fcollapse  (.035) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.12 |      0.02 |        0.14 |
-|         20,000 |      0.12 |      0.05 |        0.45 |
+|          2,000 |      0.03 |      0.01 |        0.47 |
+|         20,000 |      0.04 |      0.04 |        0.83 |
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse-default  (.048)  fcollapse  (.021) 
-                   20,000 gcollapse-default  (.036)  fcollapse  (.088) 
+                    2,000 gcollapse-default  (.033)  fcollapse  (.017) 
+                   20,000 gcollapse-default  (.048)  fcollapse  (.082) 
 Results varying N for J = 10; by(group)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.05 |      0.02 |        0.44 |
-|         20,000 |      0.04 |      0.09 |        2.44 |
+|          2,000 |      0.03 |      0.02 |        0.52 |
+|         20,000 |      0.05 |      0.08 |        1.71 |
 Benchmarking J for N = 5,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse-default  (.045)  fcollapse  (.03) 
-                    1,000 gcollapse-default  (.061)  fcollapse  (.08) 
+                      100 gcollapse-default  (.052)  fcollapse  (.039) 
+                    1,000 gcollapse-default  (.035)  fcollapse  (.061) 
 Results varying J for N = 5,000; by(group)
 |              J | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|            100 |      0.04 |      0.03 |        0.67 |
-|          1,000 |      0.06 |      0.08 |        1.31 |
+|            100 |      0.05 |      0.04 |        0.75 |
+|          1,000 |      0.04 |      0.06 |        1.74 |
 
-End: 08:12:07 27 Jul 2017
+End: 13:15:55 11 Sep 2017
 tests ran
 
 tests finished running
 
-Start: 08:00:27 27 Jul 2017
-End: 08:12:07 27 Jul 2017
+Start: 13:05:51 11 Sep 2017
+End: 13:15:55 11 Sep 2017
 
 . 
 end of do-file

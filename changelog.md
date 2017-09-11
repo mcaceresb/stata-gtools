@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-0.6.12 (2017-09-11)
+
+### Bug fixes
+
+* Should fix https://github.com/mcaceresb/stata-gtools/issues/12
+
 ## gtools-0.6.11 (2017-08-17)
 
 ### Bug fixes

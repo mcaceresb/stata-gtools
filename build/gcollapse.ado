@@ -1,4 +1,4 @@
-*! version 0.6.11 17Aug2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.12 11Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -1143,14 +1143,18 @@ program parse_keep_drop, rclass
         local __gtools_keepvars:  subinstr local __gtools_keepvars  " "  "  ", all
         local K: list sizeof __gtools_targets
         forvalues k = 1 / `K' {
+            qui ds *
+            local memvars `r(varlist)'
+
             local k_target: word `k' of `__gtools_targets'
             local k_var:    word `k' of `__gtools_vars'
             local k_stat:   word `k' of `__gtools_stats'
+
             * Only use as target if the type matches
             parse_ok_astarget, sourcevar(`k_var') targetvar(`k_target') stat(`k_stat') `double'
             if ( `:list k_var in __gtools_uniq_vars' & `r(ok_astarget)' ) {
                 local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
-                if ( !`:list k_var in __gtools_targets' ) {
+                if ( !`:list k_var in __gtools_targets' & !`:list k_target in memvars' ) {
                     local __gtools_vars      " `__gtools_vars' "
                     local __gtools_uniq_vars " `__gtools_uniq_vars' "
                     local __gtools_keepvars  " `__gtools_keepvars' "
@@ -1188,6 +1192,12 @@ program parse_keep_drop, rclass
     * from C, and we cannot halt the C execution, create the final data
     * in Stata, and then go back to C.
 
+
+    * Variables in memory; will compare to keepvars
+    * ---------------------------------------------
+
+    qui ds *
+    local memvars `r(varlist)'
     local dropme ""
     local added  ""
 
@@ -1280,7 +1290,7 @@ capture program drop parse_ok_astarget
 program parse_ok_astarget, rclass
     syntax, sourcevar(varlist) targetvar(str) stat(str) [double]
     local ok_astarget = 0
-    local sourcetype = "`:type `sourcevar''"
+    local sourcetype  = "`:type `sourcevar''"
 
     * I try to match Stata's types when possible
     if regexm("`stat'", "first|last|min|max") {

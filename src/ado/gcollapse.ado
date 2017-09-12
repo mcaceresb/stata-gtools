@@ -1409,15 +1409,18 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
-cap program drop gtools_plugin
-program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
-
 cap program drop gtoolsmulti_plugin
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
 if ( _rc ) {
-    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
     cap program drop gtools_plugin
     program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+
+    cap program drop gtoolsmulti_plugin
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+}
+else {
+    cap program drop gtools_plugin
+    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 }
 
 ***********************************************************************

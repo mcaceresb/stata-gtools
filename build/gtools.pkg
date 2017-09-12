@@ -1,4 +1,4 @@
-v 0.6.13
+v 0.6.14
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d
@@ -26,6 +26,7 @@ f gegen.sthlp
 f gtools.ado
 f gtools.sthlp
 f gtools_unix.plugin
+f gtools_unix_legacy.plugin
 f gtools_unix_multi.plugin
 f gtools_unix_multi_legacy.plugin
 f gtools_windows.plugin

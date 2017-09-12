@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-0.6.14 (2017-09-12)
+
+### Bug fixes
+
+* No longer crashes on Linux systems with older glibc versions.
+
 ## gtools-0.6.13 (2017-09-12)
 
 ### Bug fixes

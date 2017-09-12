@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.6.13 (2017-09-12)
+
+### Bug fixes
+
+* Should fix https://github.com/mcaceresb/stata-gtools/issues/9
+  Added legacy plugin using older `libgomp.so` library.
+
 ## gtools-0.6.12 (2017-09-11)
 
 ### Bug fixes

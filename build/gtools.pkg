@@ -27,6 +27,7 @@ f gtools.ado
 f gtools.sthlp
 f gtools_unix.plugin
 f gtools_unix_multi.plugin
+f gtools_unix_multi_legacy.plugin
 f gtools_windows.plugin
 f env_set_windows.plugin
 f env_set_unix.plugin

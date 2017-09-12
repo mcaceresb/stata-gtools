@@ -1,4 +1,4 @@
-*! version 0.6.14 12Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.15 12Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -553,7 +553,7 @@ program gcollapse
     * Keep only one obs per group; keep only relevant vars
     if ( "`merge'" == "" ) {
         qui {
-            if ( `=scalar(__gtools_J) > 0' ) keep in 1 / `:di scalar(__gtools_J)'
+            if ( `=scalar(__gtools_J) > 0' ) keep in 1 / `:di %21.0g scalar(__gtools_J)'
             else if ( `=scalar(__gtools_J) == 0' ) drop if 1
             else if ( `=scalar(__gtools_J) < 0' ) {
                 di as err "The plugin returned a negative number of groups."
@@ -582,7 +582,7 @@ program gcollapse
                 if ( _rc != 0 ) exit _rc
             }
             else {
-                local nrow = `=scalar(__gtools_J)'
+                local nrow = `:di %21.0g scalar(__gtools_J)'
                 local ncol = `=scalar(__gtools_k_extra)'
                 mata: __gtools_data = gtools_get_collapsed (`"`__gtools_file'"', `nrow', `ncol')
                 mata: st_store(., __gtools_iovars, __gtools_data)
@@ -1409,6 +1409,14 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
+* The legacy versions segfault if they are not loaded First
+cap program drop __gtools_plugin
+cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+
+cap program drop __gtoolsmulti_plugin
+cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+
+* But we only want to use them when multi-threading fails normally
 cap program drop gtoolsmulti_plugin
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
 if ( _rc ) {
@@ -1422,6 +1430,8 @@ else {
     cap program drop gtools_plugin
     program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
 }
+
+* This is very inelegant, but I have debugging fatigue, and this seems to work.
 
 ***********************************************************************
 *                        Fallback to collapse                         *

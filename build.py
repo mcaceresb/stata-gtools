@@ -10,11 +10,33 @@
 #          puts a .zip file in ./releases)
 
 from os import makedirs, path, linesep, chdir, system, remove, rename
-from shutil import copy2, which, rmtree
+from shutil import copy2, rmtree
 from sys import platform
 from tempfile import gettempdir
 from zipfile import ZipFile
 from re import search
+
+try:
+    from shutil import which
+except:
+    def which(program):
+        import os
+
+        def is_exe(fpath):
+            return path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+        fpath, fname = path.split(program)
+        if fpath:
+            if is_exe(program):
+                return program
+        else:
+            for epath in os.environ["PATH"].split(os.pathsep):
+                epath = path.strip('"')
+                exe_file = path.join(epath, program)
+                if is_exe(exe_file):
+                    return exe_file
+
+        return None
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -54,6 +76,7 @@ parser.add_argument('--windows',
                     required = False)
 args = vars(parser.parse_args())
 
+
 def makedirs_safe(directory):
     try:
         makedirs(directory)
@@ -61,6 +84,7 @@ def makedirs_safe(directory):
     except OSError:
         if not path.isdir(directory):
             raise
+
 
 gtools_ssc = [
     "gcollapse.ado",
@@ -194,10 +218,11 @@ plugins = ["env_set_unix.plugin",
            "env_set_macosx.plugin",
            "gtools_unix.plugin",
            "gtools_unix_multi.plugin",
+           "gtools_unix_multi_legacy.plugin",
            "spookyhash.dll",
            "gtools_windows.plugin",
            "gtools_macosx.plugin"]
-plugbak = plugins.copy()
+plugbak = plugins[:]
 for plug in plugbak:
     if not path.isfile(path.join("build", plug)):
         alt = path.join("lib", "plugin", plug)

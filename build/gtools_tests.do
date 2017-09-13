@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Thu Jul 27 10:49:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.15
+* Version: 0.6.16
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -45,6 +45,8 @@ program main
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
+
+            unit_test, `noisily' test(checks_corners, oncollision(error))
 
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))
@@ -545,6 +547,73 @@ program checks_options_gcollapse
 
     di ""
     di as txt "Passed! checks_options_gcollapse `options'"
+end
+
+capture program drop checks_corners
+program checks_corners
+    syntax, [*]
+    di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    qui {
+        sysuse auto, clear
+        gen price2 = price
+        gcollapse price = price2, by(make)
+    }
+
+    qui {
+        clear
+        set matsize 100
+        set obs 10
+        forvalues i = 1/101 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+    }
+
+    qui {
+        clear
+        set matsize 400
+        set obs 10
+        forvalues i = 1/300 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+    }
+
+    qui {
+        clear
+        set obs 10
+        forvalues i = 1/800 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+
+        * Only fails in Stata/IC
+        * gen x801 = 10
+        * preserve
+        *     gcollapse zz, by(x*) `options'
+        * restore, preserve
+        *     gcollapse x*, by(zz) `options'
+        * restore
+    }
+
+    di ""
+    di as txt "Passed! checks_corners `options'"
 end
 capture program drop consistency_gegen
 program consistency_gegen

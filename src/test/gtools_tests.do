@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Thu Jul 27 10:49:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.15
+* Version: 0.6.16
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -45,6 +45,8 @@ program main
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
+
+            unit_test, `noisily' test(checks_corners, oncollision(error))
 
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))

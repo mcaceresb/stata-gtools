@@ -11,7 +11,7 @@ _Gtools_ is a Stata package that provides a fast implementation of
 common group commands like collapse and egen using C plugins for a
 massive speed improvement.
 
-`version 0.6.10 27Jul2017`
+`version 0.6.16 13Sep2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -427,8 +427,8 @@ devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
 at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
 Nevertheless, the function does check for hash collisions and will fall back
 on `collapse` and `egen` when it encounters a collision. An internal
-mechanism for resolving potential collisions is in the works. See (issue
-2)[https://github.com/mcaceresb/stata-gtools/issues/2] for a discussion.
+mechanism for resolving potential collisions is in the works. See [issue
+2](https://github.com/mcaceresb/stata-gtools/issues/2) for a discussion.
 
 ### Why use platform-dependent plugins?
 

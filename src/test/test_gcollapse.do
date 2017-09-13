@@ -270,3 +270,70 @@ program checks_options_gcollapse
     di ""
     di as txt "Passed! checks_options_gcollapse `options'"
 end
+
+capture program drop checks_corners
+program checks_corners
+    syntax, [*]
+    di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    qui {
+        sysuse auto, clear
+        gen price2 = price
+        gcollapse price = price2, by(make)
+    }
+
+    qui {
+        clear
+        set matsize 100
+        set obs 10
+        forvalues i = 1/101 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+    }
+
+    qui {
+        clear
+        set matsize 400
+        set obs 10
+        forvalues i = 1/300 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+    }
+
+    qui {
+        clear
+        set obs 10
+        forvalues i = 1/800 {
+            gen x`i' = 10
+        }
+        gen zz = runiform()
+        preserve
+            gcollapse zz, by(x*) `options'
+        restore, preserve
+            gcollapse x*, by(zz) `options'
+        restore
+
+        * Only fails in Stata/IC
+        * gen x801 = 10
+        * preserve
+        *     collapse zz, by(x*) `options'
+        * restore, preserve
+        *     collapse x*, by(zz) `options'
+        * restore
+    }
+
+    di ""
+    di as txt "Passed! checks_corners `options'"
+end

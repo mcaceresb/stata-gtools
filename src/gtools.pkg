@@ -1,4 +1,4 @@
-v 0.6.10
+v 0.6.16
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d
@@ -17,7 +17,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20170727
+d Distribution-Date: 20170913
 d
 f gcollapse.ado
 f gcollapse.sthlp
@@ -26,7 +26,9 @@ f gegen.sthlp
 f gtools.ado
 f gtools.sthlp
 f gtools_unix.plugin
+f gtools_unix_legacy.plugin
 f gtools_unix_multi.plugin
+f gtools_unix_multi_legacy.plugin
 f gtools_windows.plugin
 f env_set_windows.plugin
 f env_set_unix.plugin

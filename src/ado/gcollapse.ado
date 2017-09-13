@@ -1,4 +1,4 @@
-*! version 0.6.10 27Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.16 13Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -250,11 +250,31 @@ program gcollapse
     local gtools_orig_stats      `gtools_stats'
     local gtools_orig_uniq_stats `gtools_uniq_stats'
 
-    mata: gtools_vars     = `:di subinstr(`""`gtools_vars'""',    " ", `"", ""', .)'
-    mata: gtools_targets  = `:di subinstr(`""`gtools_targets'""', " ", `"", ""', .)'
-    mata: gtools_stats    = `:di subinstr(`""`gtools_stats'""',   " ", `"", ""', .)'
+    * mata: gtools_vars     = `:di subinstr(`""`gtools_vars'""',    " ", `"", ""', .)'
+    * mata: gtools_targets  = `:di subinstr(`""`gtools_targets'""', " ", `"", ""', .)'
+    * mata: gtools_stats    = `:di subinstr(`""`gtools_stats'""',   " ", `"", ""', .)'
+    mata: gtools_vars     = tokens(`"`gtools_vars'"')
+    mata: gtools_targets  = tokens(`"`gtools_targets'"')
+    mata: gtools_stats    = tokens(`"`gtools_stats'"')
+
     mata: gtools_pos      = gtools_vars :== gtools_targets
     mata: gtools_io_order = selectindex(gtools_pos), selectindex(!gtools_pos)
+
+    * Check matrix size will be able to handle the number of variables.
+    * If not, try setting matsize to a number larger than the number
+    * of variables. If it fails exit with error and prompt the user to
+    * try to set matsize manually; this should display Stata's message
+    * noting the matsize limit for their version.
+    local bynum `:list by - bystr'
+
+    cap noi check_matsize `bystr'
+    if ( _rc ) exit _rc
+
+    cap noi check_matsize `bynum'
+    if ( _rc ) exit _rc
+
+    cap noi check_matsize `gtools_vars'
+    if ( _rc ) exit _rc
 
     * Position of input to each target variable (note C has 0-based indexing)
     cap matrix drop __gtools_outpos
@@ -271,7 +291,6 @@ program gcollapse
 
     * Position of numeric variables (ibid.)
     cap matrix drop __gtools_numpos
-    local bynum `:list by - bystr'
     foreach var of local bynum {
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in by'
     }
@@ -296,6 +315,9 @@ program gcollapse
 
         local totry: list sizeof check_recast
         if ( ("`double'" == "") & (`:list sizeof check_recast' > 0) ) {
+            cap noi check_matsize `check_recast'
+            if ( _rc ) exit _rc
+
             * Since recasting variables is really expensive, we will not recast
             * variables where the summary stat is a sum and the result cannot be
             * larger than +/-10^38 (see help data_types).
@@ -311,7 +333,8 @@ program gcollapse
                 mata: __gtools_asfloat = ( c_gtools_bymin :& c_gtools_bymax )
             }
 
-            mata: __gtools_checkrecast = (`:di subinstr(`""`check_recast'""', " ", `"", ""', .)')
+            * mata: __gtools_checkrecast = (`:di subinstr(`""`check_recast'""', " ", `"", ""', .)')
+            mata: __gtools_checkrecast = tokens(`"`check_recast'"')
             mata: __gtools_norecast    = J(1, 0, .)
             mata: __gtools_keeprecast  = J(1, 0, .)
             mata: for (k = 1; k <= cols(__gtools_checkrecast); k++) ///
@@ -382,7 +405,8 @@ program gcollapse
         * memory. Dropping superfluous variables also saves memory.
         local dropme `dropme' `:list memvars - keepvars'
         local dropme `:list dropme  - plugvars'
-        if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+        * if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+        if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
         gtools_timer info 97 `"Dropped superfluous variables"', prints(`benchmark')
 
         * Initialize __gtools_J; pass whether the data was indexed in stata
@@ -484,7 +508,8 @@ program gcollapse
 
             if ( "`merge'"  == "" ) local dropme `dropme' `:list memvars - keepvars'
             local dropme `:list dropme - plugvars'
-            if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+            * if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+            if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
             qui ds *
             if ( `verbose' ) di as text "In memory: `r(varlist)'"
@@ -511,7 +536,8 @@ program gcollapse
 
             if ( "`merge'"  == "" ) local dropme `dropme' `:list memvars - keepvars'
             local dropme `:list dropme - plugvars'
-            if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+            * if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+            if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
             if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_k_extra)' == 0) ) {
                 if ( `verbose' ) di as text "(ignored option -forceio- because sources are being used as targets)"
@@ -553,7 +579,7 @@ program gcollapse
     * Keep only one obs per group; keep only relevant vars
     if ( "`merge'" == "" ) {
         qui {
-            if ( `=scalar(__gtools_J) > 0' ) keep in 1 / `:di scalar(__gtools_J)'
+            if ( `=scalar(__gtools_J) > 0' ) keep in 1 / `:di %21.0g scalar(__gtools_J)'
             else if ( `=scalar(__gtools_J) == 0' ) drop if 1
             else if ( `=scalar(__gtools_J) < 0' ) {
                 di as err "The plugin returned a negative number of groups."
@@ -567,7 +593,8 @@ program gcollapse
         local memvars  `r(varlist)'
         local keepvars `by' `gtools_targets'
         local dropme   `:list memvars - keepvars'
-        if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+        * if ( "`dropme'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropme'""', " ", `"", ""', .)'))
+        if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
         * If we collapsed to disk, read back the data
         if ( (`=_N > 0') & (`=scalar(__gtools_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
@@ -576,13 +603,14 @@ program gcollapse
 
             * For debugging, we can choose to read it back using mata or C
             local __gtools_iovars: list gtools_targets - gtools_uniq_vars
-            mata: __gtools_iovars = (`:di subinstr(`""`__gtools_iovars'""', " ", `"", ""', .)')
+            * mata: __gtools_iovars = (`:di subinstr(`""`__gtools_iovars'""', " ", `"", ""', .)')
+            mata: __gtools_iovars = tokens(`"`__gtools_iovars'"')
             if ( `debug_io_read_method' == 0 ) {
                 cap `noi' `plugin_call' `__gtools_iovars', collapse read `"`__gtools_file'"'
                 if ( _rc != 0 ) exit _rc
             }
             else {
-                local nrow = `=scalar(__gtools_J)'
+                local nrow = `:di %21.0g scalar(__gtools_J)'
                 local ncol = `=scalar(__gtools_k_extra)'
                 mata: __gtools_data = gtools_get_collapsed (`"`__gtools_file'"', `nrow', `ncol')
                 mata: st_store(., __gtools_iovars, __gtools_data)
@@ -618,7 +646,8 @@ program gcollapse
         local dropvars ""
         if ( `indexed' ) local dropvars `dropvars' `bysmart'
         local dropvars `dropvars'
-        if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
+        * if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
+        if ( "` dropvars'" != "" ) mata: st_dropvar(tokens(`"`dropvars'"'))
     }
 
     ***********************************************************************
@@ -747,14 +776,14 @@ program parse_opts, rclass
     * Verbose and benchmark printing
     * ------------------------------
 
-    if ("`verbose'" == "") {
+    if ( "`verbose'" == "" ) {
         local verbose = 0
     }
     else {
         local verbose = 1
     }
 
-    if ("`benchmark'" == "") {
+    if ( "`benchmark'" == "" ) {
         local benchmark = 0
     }
     else {
@@ -957,6 +986,9 @@ program parse_vars, rclass
     * Parse type of each by variable
     * ------------------------------
 
+    cap noi check_matsize `by'
+    if ( _rc ) exit _rc
+
     cap parse_by_types `by', `multi' `debug_force_hash'
     if ( _rc ) exit _rc
 
@@ -1072,6 +1104,7 @@ program parse_by_types
     * C and hash them. Numeric data are 8 bytes (we will read them
     * as double) and strings are read into a string buffer, which is
     * allocated the length of the longest by string variable.
+
     foreach byvar of varlist `varlist' {
         gettoken is_int intlist: intlist
         local bytype: type `byvar'
@@ -1143,14 +1176,18 @@ program parse_keep_drop, rclass
         local __gtools_keepvars:  subinstr local __gtools_keepvars  " "  "  ", all
         local K: list sizeof __gtools_targets
         forvalues k = 1 / `K' {
+            qui ds *
+            local memvars `r(varlist)'
+
             local k_target: word `k' of `__gtools_targets'
             local k_var:    word `k' of `__gtools_vars'
             local k_stat:   word `k' of `__gtools_stats'
+
             * Only use as target if the type matches
             parse_ok_astarget, sourcevar(`k_var') targetvar(`k_target') stat(`k_stat') `double'
             if ( `:list k_var in __gtools_uniq_vars' & `r(ok_astarget)' ) {
                 local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
-                if ( !`:list k_var in __gtools_targets' ) {
+                if ( !`:list k_var in __gtools_targets' & !`:list k_target in memvars' ) {
                     local __gtools_vars      " `__gtools_vars' "
                     local __gtools_uniq_vars " `__gtools_uniq_vars' "
                     local __gtools_keepvars  " `__gtools_keepvars' "
@@ -1188,6 +1225,12 @@ program parse_keep_drop, rclass
     * from C, and we cannot halt the C execution, create the final data
     * in Stata, and then go back to C.
 
+
+    * Variables in memory; will compare to keepvars
+    * ---------------------------------------------
+
+    qui ds *
+    local memvars `r(varlist)'
     local dropme ""
     local added  ""
 
@@ -1280,7 +1323,7 @@ capture program drop parse_ok_astarget
 program parse_ok_astarget, rclass
     syntax, sourcevar(varlist) targetvar(str) stat(str) [double]
     local ok_astarget = 0
-    local sourcetype = "`:type `sourcevar''"
+    local sourcetype  = "`:type `sourcevar''"
 
     * I try to match Stata's types when possible
     if regexm("`stat'", "first|last|min|max") {
@@ -1319,6 +1362,21 @@ program parse_ok_astarget, rclass
         }
     }
     return local ok_astarget = `ok_astarget'
+end
+
+capture program drop check_matsize
+program check_matsize
+    syntax [anything], [nvars(int 0)]
+    if ( `nvars' == 0 ) local nvars `:list sizeof anything'
+    if ( `nvars' > `c(matsize)' ) {
+        cap set matsize `=`nvars''
+        if ( _rc ) {
+            di as err _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)'). Tried to run}"
+            di        _n(1) "    {stata set matsize `=`nvars''}"
+            di        _n(1) "{bf:but the command failed. Try setting matsize manually.}"
+            exit 908
+        }
+    }
 end
 
 ***********************************************************************
@@ -1399,11 +1457,29 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
-cap program drop gtools_plugin
-program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+* The legacy versions segfault if they are not loaded First
+cap program drop __gtools_plugin
+cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
 
+cap program drop __gtoolsmulti_plugin
+cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+
+* But we only want to use them when multi-threading fails normally
 cap program drop gtoolsmulti_plugin
 cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+if ( _rc ) {
+    cap program drop gtools_plugin
+    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+
+    cap program drop gtoolsmulti_plugin
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+}
+else {
+    cap program drop gtools_plugin
+    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+}
+
+* This is very inelegant, but I have debugging fatigue, and this seems to work.
 
 ***********************************************************************
 *                        Fallback to collapse                         *

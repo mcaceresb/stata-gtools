@@ -1,6 +1,51 @@
 Change Log
 ==========
 
+## gtools-0.6.16 (2017-09-13); addresses #7
+
+### Bug fixes
+
+* Improves the issues raised by https://github.com/mcaceresb/stata-gtools/issues/7
+  Now the commands only fail if Stata hits the `matsize` limit (internally, the plugin
+  no longer uses the `subinstr` hack to go from locals to mata string matrices and uses
+  `tokens` instead, which is more appropriate; further, the plugin tries to set matsize
+  to at least the number of variables and gives a verbose error if it fails.)
+
+## gtools-0.6.15 (2017-09-12); fixes #14, #9
+
+### Bug fixes
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/14
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/9
+  (prior fixes were erratic; this should work)
+
+## gtools-0.6.14 (2017-09-12)
+
+### Bug fixes
+
+* No longer crashes on Linux systems with older glibc versions.
+
+## gtools-0.6.13 (2017-09-12)
+
+### Bug fixes
+
+* Should fix https://github.com/mcaceresb/stata-gtools/issues/9
+  Added legacy plugin using older `libgomp.so` library.
+
+## gtools-0.6.12 (2017-09-11)
+
+### Bug fixes
+
+* Should fix https://github.com/mcaceresb/stata-gtools/issues/12
+
+## gtools-0.6.11 (2017-08-17)
+
+### Bug fixes
+
+* Fixed https://github.com/mcaceresb/stata-gtools/issues/8 so
+  `gegen` is callable via `by:`; it also gives the stat for the
+  overall group if called without a `by`.
+
 ## gtools-0.6.10 (2017-06-27)
 
 ### Bug fixes

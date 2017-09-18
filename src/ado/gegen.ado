@@ -1,4 +1,4 @@
-*! version 0.6.16 13Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.17 17Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -644,29 +644,36 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
-* The legacy versions segfault if they are not loaded First
-cap program drop __gtools_plugin
-cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+* The legacy versions segfault if they are not loaded first (Unix only)
+if ( `"`:di lower("`c(os)'")'"' == "unix" ) {
+    cap program drop __gtools_plugin
+    cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
 
-cap program drop __gtoolsmulti_plugin
-cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    cap program drop __gtoolsmulti_plugin
+    cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
 
-* But we only want to use them when multi-threading fails normally
-cap program drop gtoolsmulti_plugin
-cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
-if ( _rc ) {
-    cap program drop gtools_plugin
-    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
-
+    * But we only want to use them when multi-threading fails normally
     cap program drop gtoolsmulti_plugin
-    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+    if ( _rc ) {
+        cap program drop gtools_plugin
+        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+
+        cap program drop gtoolsmulti_plugin
+        cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    }
+    else {
+        cap program drop gtools_plugin
+        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+    }
 }
 else {
     cap program drop gtools_plugin
     program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
-}
 
-* This is very inelegant, but I have debugging fatigue, and this seems to work.
+    cap program drop gtoolsmulti_plugin
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+}
 
 * This is very inelegant, but I have debugging fatigue, and this seems to work.
 

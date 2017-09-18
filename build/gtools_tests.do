@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Thu Jul 27 10:49:56 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.16
+* Version: 0.6.17
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -606,9 +606,9 @@ program checks_corners
         * Only fails in Stata/IC
         * gen x801 = 10
         * preserve
-        *     gcollapse zz, by(x*) `options'
+        *     collapse zz, by(x*) `options'
         * restore, preserve
-        *     gcollapse x*, by(zz) `options'
+        *     collapse x*, by(zz) `options'
         * restore
     }
 

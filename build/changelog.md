@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-0.6.16 (2017-09-13); addresses #7
+
+### Bug fixes
+
+* Improves the issues raised by https://github.com/mcaceresb/stata-gtools/issues/7
+  Now the commands only fail if Stata hits the `matsize` limit (internally, the plugin
+  no longer uses the `subinstr` hack to go from locals to mata string matrices and uses
+  `tokens` instead, which is more appropriate; further, the plugin tries to set matsize
+  to at least the number of variables and gives a verbose error if it fails.)
+
 ## gtools-0.6.15 (2017-09-12); fixes #14, #9
 
 ### Bug fixes

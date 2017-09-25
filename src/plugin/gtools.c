@@ -2,7 +2,7 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Mon Jul 17 12:55:12 EDT 2017
+ * Updated: Mon Sep 25 09:11:35 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.6.17
@@ -133,11 +133,11 @@ STDLL stata_call(int argc, char *argv[])
                 // Estimate if it will be faster to collapse to disk
                 // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
                 double mib_stata, mib_c, mib_cstata;
-                mib_stata  = st_info.N * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
+                mib_stata  = st_info.N * mib_base * ( (rate_st > 0.001)? rate_st: 0.0005 );
                 // mib_c      = st_info.J * mib_base * ( (rate_st > 0.001)? rate_c:  0.001 );
-                // mib_cstata = st_info.J * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
+                mib_cstata = st_info.J * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
                 mib_c      = st_info.J * mib_base * rate_c;
-                mib_cstata = st_info.J * mib_base * rate_st;
+                // mib_cstata = st_info.J * mib_base * rate_st;
                 if ( (rate_st < 0.001) & st_info.verbose ) {
                     // sf_printf("(Stata benchmark inaccurate below 0.001s; assuming C, Stata times = 0.001)\n");
                     sf_printf("(Stata benchmark inaccurate below 0.001s; assuming benchmark time was 0.001s)\n");
@@ -759,6 +759,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
                                                st_info->in1,
                                                st_info->in2,
                                                st_info->byvars_mins[0],
+                                               st_info->byvars_maxs[0],
                                                st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");

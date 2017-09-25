@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-0.6.17 (2017-09-17); fixes #15
+
+### Bug fixes
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/15
+  which was introduced trying to fix
+  https://github.com/mcaceresb/stata-gtools/issues/15
+
 ## gtools-0.6.16 (2017-09-13); addresses #7
 
 ### Bug fixes

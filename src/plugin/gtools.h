@@ -34,6 +34,8 @@ struct StataInfo {
     size_t N;
     size_t start_collapse_vars;
     size_t start_target_vars;
+    int sort_memory;
+    int *invert;
     int *pos_targets;
     int *pos_num_byvars;
     int *pos_str_byvars;

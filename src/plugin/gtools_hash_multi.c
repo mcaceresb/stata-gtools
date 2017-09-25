@@ -390,6 +390,7 @@ int sf_get_variable_ashash (
     size_t in1,
     size_t in2,
     int min,
+    int max,
     short verbose)
 {
 
@@ -439,6 +440,7 @@ int sf_get_variable_ashash (
                 rct = rc;
                 continue;
             }
+            if ( SF_is_missing(z) ) z = max;
             h1[i] = z - min + 1;
             // sf_printf ("Obs %9d = %.1f, %21lu\n", i, z, h1[i]);
         }

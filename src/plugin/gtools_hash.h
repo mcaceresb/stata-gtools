@@ -28,6 +28,7 @@ int sf_get_variable_ashash (
     size_t in1,
     size_t in2,
     int min,
+    int max,
     short verbose
 );
 

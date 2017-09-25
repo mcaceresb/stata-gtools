@@ -284,7 +284,7 @@ end
 
 capture program drop bench_switch_fcoll
 program bench_switch_fcoll
-    syntax anything, style(str) [*]
+    syntax anything, style(str) [GCOLLapse(str) *]
     if !inlist("`style'", "ftools", "gtools") {
         di as error "Don't know benchmark style '`style''; available: ftools, gtools"
         exit 198
@@ -354,6 +354,9 @@ program bench_switch_fcoll
         }
     }
 
+    if ( "`gcollapse'" == "" ) local w f
+    else local w g
+
     forvalues k = 1 / `:di `kmax' - `kmin' + 1' {
         mata: st_local("sim",   sim_matrix[`k'])
         qui `sim'
@@ -362,8 +365,8 @@ program bench_switch_fcoll
             local ++i
             timer clear
             timer on `i'
-            mata: printf(" gcollapse-default ")
-                qui gcollapse `collapse', by(`by') `options' fast
+            mata: printf(" gcollapse-default `options'")
+                gcollapse `collapse', by(`by') `options' fast  v b
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -372,8 +375,8 @@ program bench_switch_fcoll
             local ++i
             timer clear
             timer on `i'
-            mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by') fast
+            mata: printf(" `w'collapse `gcollapse'")
+                `w'collapse `collapse', by(`by') fast `gcollapse' v b
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -383,7 +386,7 @@ program bench_switch_fcoll
 
     local i = 1
     di "Results varying `L' for `dstr'; by(`by')"
-    di "|              `L' | gcollapse | fcollapse | ratio (f/g) |"
+    di "|              `L' | gcollapse | `w'collapse | ratio (f/g) |"
     di "| -------------- | --------- | --------- | ----------- |"
     foreach nn in ``L'' {
         local ii  = `i' + 1

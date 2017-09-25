@@ -438,6 +438,7 @@ program gcollapse
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
             if ( "`oncollision'" == "fallback" ) {
                 cap noi collision_handler `0'
+                if ( "`fast'" == "" ) restore, not
                 exit _rc
             }
             else exit 42000 
@@ -519,6 +520,7 @@ program gcollapse
                 di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                 if ( "`oncollision'" == "fallback" ) {
                     cap noi collision_handler `0'
+                    if ( "`fast'" == "" ) restore, not
                     exit _rc
                 }
                 else exit 42000 
@@ -559,6 +561,7 @@ program gcollapse
                     di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                     if ( "`oncollision'" == "fallback" ) {
                         cap noi collision_handler `0'
+                        if ( "`fast'" == "" ) restore, not
                         exit _rc
                     }
                     else exit 42000 

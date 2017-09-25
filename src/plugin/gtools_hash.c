@@ -198,6 +198,7 @@ int sf_get_variable_ashash (
     size_t in1,
     size_t in2,
     int min,
+    int max,
     short verbose)
 {
 
@@ -219,6 +220,7 @@ int sf_get_variable_ashash (
 
     for (i = 0; i < N; i++) {
         if ( (rc = SF_vdata(k, i + in1, &z)) ) return(rc);
+        if ( SF_is_missing(z) ) z = max;
         h1[i] = z - min + 1;
         // sf_printf ("Obs %9d = %.1f, %21lu\n", i, z, h1[i]);
     }
@@ -298,11 +300,12 @@ int sf_get_varlist_bijection (
     size_t K = k2 - k1 + 1;
     size_t offset = 1;
     size_t offsets[K];
-    int i, k;
+    int i, k, l;
 
     offsets[0] = 0;
     for (k = 0; k < K - 1; k++) {
-        offset *= (maxs[k] - mins[k] + 1);
+        l = K - (k + 1);
+        offset *= (maxs[l] - mins[l] + 1);
         offsets[k + 1] = offset;
     }
 
@@ -310,15 +313,18 @@ int sf_get_varlist_bijection (
     // largest number plus 1 as a convention; note we set the maximum to
     // the actual max + 1 from Stata so the offsets are correct)
     for (i = 0; i < N; i++) {
-        if ( (rc = SF_vdata(1, i + in1, &z)) ) return(rc);
-        if ( SF_is_missing(z) ) z = maxs[0];
-        h1[i] = z - mins[0] + 1;
+        l = K - (0 + 1);
+        if ( (rc = SF_vdata(l + k1, i + in1, &z)) ) return(rc);
+        if ( SF_is_missing(z) ) z = maxs[l];
+        h1[i] = z - mins[l] + 1;
+
         for (k = 1; k < K; k++) {
-            if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
-            if ( SF_is_missing(z) ) z = maxs[k];
-            h1[i] += (z - mins[k]) * offsets[k];
+            l = K - (k + 1);
+            if ( (rc = SF_vdata(l + k1, i + in1, &z)) ) return(rc);
+            if ( SF_is_missing(z) ) z = maxs[l];
+            h1[i] += (z - mins[l]) * offsets[k];
         }
-        // sf_printf ("Obs %9d = %21lu\n", i, h1[i]);
+        // sf_printf ("\tObs %9d = %21lu\n", i, h1[i]);
     }
 
     return (0);
@@ -396,7 +402,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
         // Compare all entries in each group to the first entry that
         // appears in Stata
         for (k = 0; k < K; k++) {
-            if (st_info->byvars_lens[k] > 0) {
+            if ( st_info->byvars_lens[k] > 0 ) {
                 memset (s, '\0', klen);
                 if ( (rc = SF_sdata(k + k1, sel, s)) ) return(rc);
                 memcpy (st_strbase + strpos, &s, strlen(s));
@@ -409,6 +415,7 @@ int sf_check_hash_index (struct StataInfo *st_info)
                     st_nummiss[numpos] = 1;
                 }
                 else {
+                    st_nummiss[numpos] = 0;
                     st_numbase[numpos] = z;
                 }
                 ++numpos;

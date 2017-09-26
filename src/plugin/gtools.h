@@ -19,6 +19,12 @@
 // Definitions
 // -----------
 
+// Type for mixed string and numeric arrays
+typedef union {
+    double dval;
+    char *cval;
+} MixedUnion;
+
 // Number of bits to sort each pass of the radix sort
 #define RADIX_SHIFT 16
 
@@ -58,6 +64,10 @@ struct StataInfo {
     int byvars_maxlen;
     int strmax;
     char *statstr;
+    int read_dtax;
+    MixedUnion *st_dtax;
+    double *output;
+    double *st_numx;
 };
 
 // Main programs in gtools

@@ -1,6 +1,6 @@
 #include <omp.h>
 #include "gtools_hash.h"
-#include "spookyhash/src/spookyhash_api.h"
+#include "../spookyhash/src/spookyhash_api.h"
 
 /**
  * @brief Hash single variable (string or float|double)
@@ -614,7 +614,7 @@ int sf_get_varlist_bijection (
  * @return Store map to whole numbers in @h1
  *
  */
-int sf_check_hash_index (struct StataInfo *st_info)
+int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
 {
     int i, j, k;
     size_t start, end, sel, numpos, strpos;

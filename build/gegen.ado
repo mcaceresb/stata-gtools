@@ -388,6 +388,15 @@ program define gegen, byable(onecall)
     scalar __gtools_l_stats = length("`gtools_stats'")
     scalar __gtools_k_vars  = `:list sizeof gtools_vars'
 
+    * Get a list with all string by variables
+    local bystr ""
+    qui foreach byvar of varlist `by' {
+        local bytype: type `byvar'
+        if regexm("`bytype'", "str([1-9][0-9]*|L)") {
+            local bystr `bystr' `byvar'
+        }
+    }
+
     * Parse type of each by variable
     cap parse_by_types `by', `multi'
     if ( _rc ) exit _rc
@@ -398,13 +407,13 @@ program define gegen, byable(onecall)
 
     * Position of string variables
     cap matrix drop __gtools_strpos
-    foreach var of local bystr_orig {
+    foreach var of local bystr {
         matrix __gtools_strpos = nullmat(__gtools_strpos), `:list posof `"`var'"' in by'
     }
 
     * Position of numeric variables
     cap matrix drop __gtools_numpos
-    local bynum `:list by - bystr_orig'
+    local bynum `:list by - bystr'
     foreach var of local bynum {
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in by'
     }

@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Sep 25 12:12:50 EDT 2017
+* Updated: Tue Sep 26 13:54:15 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.6.17
 * Manual:  help gcollapse, help gegen
@@ -75,7 +75,7 @@ program main
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
             consistency_gegen,           `noisily' oncollision(error) debug_force_single
             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
@@ -84,7 +84,7 @@ program main
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
@@ -1429,7 +1429,7 @@ program bench_switch_fcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-default `options'")
-                qui gcollapse `collapse', by(`by') `options' fast
+                gcollapse `collapse', by(`by') `options' fast  v b
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1439,7 +1439,7 @@ program bench_switch_fcoll
             timer clear
             timer on `i'
             mata: printf(" `w'collapse `gcollapse'")
-                qui `w'collapse `collapse', by(`by') fast `gcollapse'
+                `w'collapse `collapse', by(`by') fast `gcollapse' v b
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

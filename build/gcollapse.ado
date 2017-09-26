@@ -34,7 +34,7 @@ program gcollapse
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
-        debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
+        debug_io_threshold(real 10)   /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
 

@@ -1,7 +1,7 @@
 #include <sys/cdefs.h>
 #include <stdlib.h>
 #include <string.h>
-#include "quicksortBSD.c"
+#include "quicksort.c"
 
 #define BaseCompareNum(a, b) ( ( (a) > (b) ) - ( (a) < (b) ) )
 #define BaseCompareChar(a, b) ( strcmp(a, b) )
@@ -73,7 +73,7 @@ void MultiQuicksort (
     short ischar;
     void *i, *end;
 
-    quicksortBSD (
+    quicksort_bsd (
         start,
         N,
         elsize,
@@ -183,7 +183,7 @@ void MultiQuicksort2 (
     size_t j;
     void *i, *end;
 
-    quicksortBSD (
+    quicksort_bsd (
         start,
         N,
         elsize,

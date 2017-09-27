@@ -27,15 +27,16 @@
 #include "hash/gtools_sort.c"
 #include "tools/gtools_math.c"
 #include "tools/quicksortMultiLevel.c"
+#include "hash/gtools_hash.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
-#include "hash/gtools_hash_multi.c"
+/* #include "hash/gtools_hash_multi.c" */
 #include "collapse/gcollapse_multi.c"
 #include "egen/gegen_multi.c"
 #include "tools/gtools_misc_multi.c"
 #else
-#include "hash/gtools_hash.c"
+/* #include "hash/gtools_hash.c" */
 #include "collapse/gcollapse.c"
 #include "egen/gegen.c"
 #include "tools/gtools_misc.c"

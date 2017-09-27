@@ -366,7 +366,7 @@ program bench_switch_fcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-default `options'")
-                gcollapse `collapse', by(`by') `options' fast  v b
+                qui gcollapse `collapse', by(`by') `options' fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -376,7 +376,7 @@ program bench_switch_fcoll
             timer clear
             timer on `i'
             mata: printf(" `w'collapse `gcollapse'")
-                `w'collapse `collapse', by(`by') fast `gcollapse' v b
+                qui `w'collapse `collapse', by(`by') fast `gcollapse'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

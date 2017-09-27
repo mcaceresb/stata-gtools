@@ -16,7 +16,7 @@ Swap:      15.6GiB
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Wed Jun 14 19:14:56 EDT 2017
+. * Updated: Tue Sep 26 22:12:39 EDT 2017
 . * Purpose: Unit tests for gtools
 . * Version: 0.5.1
 . * Manual:  help gcollapse, help gegen
@@ -53,86 +53,86 @@ Swap:      15.6GiB
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                   20,000 gcollapse  (.043)  fcollapse  (.044) 
-                  200,000 gcollapse  (.057)  fcollapse  (.206) 
-                2,000,000 gcollapse  (.559)  fcollapse  (2.251) 
-               20,000,000 gcollapse  (6.782)  fcollapse  (26.283) 
+                   20,000 gcollapse-default  (.056)  fcollapse  (.051) 
+                  200,000 gcollapse-default  (.076)  fcollapse  (.206) 
+                2,000,000 gcollapse-default  (.539)  fcollapse  (2.135) 
+               20,000,000 gcollapse-default  (5.041)  fcollapse  (25.866) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|         20,000 |      0.04 |      0.04 |        1.02 |
-|        200,000 |      0.06 |      0.21 |        3.61 |
-|      2,000,000 |      0.56 |      2.25 |        4.03 |
-|     20,000,000 |      6.78 |     26.28 |        3.88 |
+|         20,000 |      0.06 |      0.05 |        0.91 |
+|        200,000 |      0.08 |      0.21 |        2.71 |
+|      2,000,000 |      0.54 |      2.13 |        3.96 |
+|     20,000,000 |      5.04 |     25.87 |        5.13 |
 
 . bench_ftools y1 y2 y3, by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
 
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                   20,000 gcollapse  (.02)  fcollapse  (.14) 
-                  200,000 gcollapse  (.042)  fcollapse  (.241) 
-                2,000,000 gcollapse  (.333)  fcollapse  (2.782) 
-               20,000,000 gcollapse  (3.288)  fcollapse  (33.615) 
+                   20,000 gcollapse-default  (.015)  fcollapse  (.117) 
+                  200,000 gcollapse-default  (.043)  fcollapse  (.241) 
+                2,000,000 gcollapse-default  (.379)  fcollapse  (2.755) 
+               20,000,000 gcollapse-default  (3.094)  fcollapse  (33.23) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|         20,000 |      0.02 |      0.14 |        7.00 |
-|        200,000 |      0.04 |      0.24 |        5.74 |
-|      2,000,000 |      0.33 |      2.78 |        8.35 |
-|     20,000,000 |      3.29 |     33.62 |       10.22 |
+|         20,000 |      0.01 |      0.12 |        7.80 |
+|        200,000 |      0.04 |      0.24 |        5.60 |
+|      2,000,000 |      0.38 |      2.75 |        7.27 |
+|     20,000,000 |      3.09 |     33.23 |       10.74 |
 
 . bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
 
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                   20,000 gcollapse  (.023)  fcollapse  (.05) 
-                  200,000 gcollapse  (.077)  fcollapse  (.19) 
-                2,000,000 gcollapse  (.351)  fcollapse  (1.748) 
-               20,000,000 gcollapse  (3.274)  fcollapse  (20.395) 
+                   20,000 gcollapse-default  (.034)  fcollapse  (.046) 
+                  200,000 gcollapse-default  (.102)  fcollapse  (.188) 
+                2,000,000 gcollapse-default  (.312)  fcollapse  (1.718) 
+               20,000,000 gcollapse-default  (3.129)  fcollapse  (18.825) 
 Results varying N for J = 100; by(x3)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|         20,000 |      0.02 |      0.05 |        2.17 |
-|        200,000 |      0.08 |      0.19 |        2.47 |
-|      2,000,000 |      0.35 |      1.75 |        4.98 |
-|     20,000,000 |      3.27 |     20.39 |        6.23 |
+|         20,000 |      0.03 |      0.05 |        1.35 |
+|        200,000 |      0.10 |      0.19 |        1.84 |
+|      2,000,000 |      0.31 |      1.72 |        5.51 |
+|     20,000,000 |      3.13 |     18.82 |        6.02 |
 
 . bench_sample_size x1 x2, by(groupstr) kmin(4)   kmax(7) pct(median iqr p23 p77)
 
 Benchmarking N for J = 10; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                   20,000 gcollapse  (.033)  fcollapse  (.095) 
-                  200,000 gcollapse  (.075)  fcollapse  (.647) 
-                2,000,000 gcollapse  (.544)  fcollapse  (7.745) 
-               20,000,000 gcollapse  (5.461)  fcollapse  (138.296) 
+                   20,000 gcollapse-default  (.042)  fcollapse  (.067) 
+                  200,000 gcollapse-default  (.096)  fcollapse  (.562) 
+                2,000,000 gcollapse-default  (.671)  fcollapse  (7.002) 
+               20,000,000 gcollapse-default  (7.093)  fcollapse  (128.343) 
 Results varying N for J = 10; by(group)
 |              N | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|         20,000 |      0.03 |      0.10 |        2.88 |
-|        200,000 |      0.07 |      0.65 |        8.63 |
-|      2,000,000 |      0.54 |      7.75 |       14.21 |
-|     20,000,000 |      5.46 |    138.30 |       25.32 |
+|         20,000 |      0.04 |      0.07 |        1.60 |
+|        200,000 |      0.10 |      0.56 |        5.86 |
+|      2,000,000 |      0.67 |      7.00 |       10.42 |
+|     20,000,000 |      7.09 |    128.34 |       18.09 |
 
 . bench_group_size x1 x2,  by(groupstr) obsexp(6) kmax(6) pct(median iqr p23 p77)
 
 Benchmarking J for N = 5,000,000; by(group)
     vars  = x1 x2
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                       10 gcollapse  (1.419)  fcollapse  (23.679) 
-                      100 gcollapse  (1.248)  fcollapse  (18.605) 
-                    1,000 gcollapse  (1.36)  fcollapse  (15.517) 
-                   10,000 gcollapse  (1.447)  fcollapse  (13.618) 
-                  100,000 gcollapse  (1.772)  fcollapse  (16.123) 
-                1,000,000 gcollapse  (4.223)  fcollapse  (50.329) 
+                       10 gcollapse-default  (1.67)  fcollapse  (21.334) 
+                      100 gcollapse-default  (1.816)  fcollapse  (15.895) 
+                    1,000 gcollapse-default  (2.047)  fcollapse  (13.474) 
+                   10,000 gcollapse-default  (2.162)  fcollapse  (12.726) 
+                  100,000 gcollapse-default  (2.388)  fcollapse  (13.093) 
+                1,000,000 gcollapse-default  (4.206)  fcollapse  (42.025) 
 Results varying J for N = 5,000,000; by(group)
 |              J | gcollapse | fcollapse | ratio (f/g) |
 | -------------- | --------- | --------- | ----------- |
-|             10 |      1.42 |     23.68 |       16.69 |
-|            100 |      1.25 |     18.61 |       14.91 |
-|          1,000 |      1.36 |     15.52 |       11.41 |
-|         10,000 |      1.45 |     13.62 |        9.41 |
-|        100,000 |      1.77 |     16.12 |        9.10 |
-|      1,000,000 |      4.22 |     50.33 |       11.92 |
+|             10 |      1.67 |     21.33 |       12.77 |
+|            100 |      1.82 |     15.89 |        8.75 |
+|          1,000 |      2.05 |     13.47 |        6.58 |
+|         10,000 |      2.16 |     12.73 |        5.89 |
+|        100,000 |      2.39 |     13.09 |        5.48 |
+|      1,000,000 |      4.21 |     42.02 |        9.99 |

@@ -2,7 +2,7 @@
  * Program: gcollapse.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Sep 26 11:45:16 EDT 2017
+ * Updated: Tue Sep 26 20:34:49 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.6.17
@@ -527,8 +527,8 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
         // If merge is requested, leave source by variables unmodified
         offset_output = 0;
         for (j = 0; j < st_info->J; j++) {
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
+            start = st_info->info[j];
+            end   = st_info->info[j + 1];
 
             // Write the same value from start to end; we won't sort or modify
             // the input data, so the position of each value of the jth group

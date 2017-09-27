@@ -2,7 +2,7 @@
  * Program: gcollapse_multi.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Thu Jun 15 15:54:46 EDT 2017
+ * Updated: Tue Sep 26 20:34:53 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.6.17
@@ -19,16 +19,19 @@
  */
 int sf_collapse (struct StataInfo *st_info, int action, char *fname)
 {
+
+    /*********************************************************************
+     *                           Step 1: Setup                           *
+     *********************************************************************/
+
     ST_double  z;
     ST_retcode rc ;
     int i, j, k;
-    char *s; s = malloc(st_info->strmax * sizeof(char));
     clock_t timer = clock();
     double timerp;
 
-    size_t nj, start, end, sel, out;
+    size_t kvars, nj, start, end, sel, out;
     size_t offset_output,
-           offset_bynum,
            offset_source,
            offset_buffer,
            offset_bystr;
@@ -38,59 +41,20 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
            firstmiss[st_info->kvars_source],
            lastmiss[st_info->kvars_source];
 
-    // qselect modifies the input array, meaning if it is invoked before
-    // first, last, firstnm, or lastnm, the first observation that
-    // appeared for that gorup will not be the first observation in the
-    // corresponding segment of the input buffer. The fix is to simply
-    // read the frist and last entries to a temporary variable before
-    // applying any of the summary stats
+    for (k = 0; k < st_info->kvars_source; k++)
+        nmfreq[k] = nonmiss[k] = firstmiss[k] = lastmiss[k] = 0;
+
+    // qselect modifies the input array, so if it is invoked before first,
+    // last, firstnm, or lastnm, the first observation that appeared for that
+    // gorup will not be the first observation in the corresponding segment of
+    // the input buffer. The fix is to simply read the frist and last entries
+    // to a temporary variable before applying any of the summary stats
+
     double firstobs[st_info->kvars_source],
            lastobs[st_info->kvars_source];
 
-    // Initialize variables for use in read, collapse, and write loops
-    // ---------------------------------------------------------------
-
-    char **bystr = calloc(st_info->kvars_by_str * st_info->J, sizeof(*bystr));
-    if ( bystr == NULL ) return(sf_oom_error("sf_collapse", "bystr"));
-    if ( st_info->kvars_by_str > 0 ) {
-        for (j = 0; j < st_info->J; j++) {
-            for (k = 0; k < st_info->kvars_by_str; k++) {
-                offset_bystr = st_info->byvars_lens[st_info->pos_str_byvars[k] - 1];
-                if ( offset_bystr > 0 ) {
-                    sel = j * st_info->kvars_by_str + k;
-                    bystr[sel] = malloc(offset_bystr * sizeof(char));
-                    memset (bystr[sel], '\0', offset_bystr);
-                }
-                else {
-                    sf_errprintf ("Unable to parse string lengths from Stata.\n");
-                    return (198);
-                }
-            }
-        }
-    }
-
-    double *bynum   = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bynum);
-    short  *bymiss  = calloc(st_info->kvars_by_num  * st_info->J, sizeof *bymiss);
-    double *output  = calloc(st_info->kvars_targets * st_info->J, sizeof *output);
-
-    double *all_buffer     = calloc(st_info->kvars_source * st_info->N, sizeof *all_buffer);
-    short  *all_firstmiss  = calloc(st_info->kvars_source * st_info->J, sizeof *all_firstmiss);
-    short  *all_lastmiss   = calloc(st_info->kvars_source * st_info->J, sizeof *all_lastmiss );
-    size_t *all_nonmiss    = calloc(st_info->kvars_source * st_info->J, sizeof *all_nonmiss);
-    size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
-
-    if ( bynum  == NULL ) return(sf_oom_error("sf_collapse", "bynum"));
-    if ( bymiss == NULL ) return(sf_oom_error("sf_collapse", "bymiss"));
-    if ( output == NULL ) return(sf_oom_error("sf_collapse", "output"));
-
-    if ( all_buffer     == NULL ) return(sf_oom_error("sf_collapse", "all_buffer"));
-    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_collapse", "all_firstmiss"));
-    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_collapse", "all_lastmiss"));
-    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_collapse", "all_nonmiss"));
-    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_collapse", "offsets_buffer"));
-
+    // Parse collapse statistics into numeric codes
     double statcode[st_info->kvars_targets], dblstat;
-    // char *stat[st_info->kvars_targets];
     char *strstat, *ptr;
     strstat = strtok_r (st_info->statstr, " ", &ptr);
     for (k = 0; k < st_info->kvars_targets; k++) {
@@ -102,21 +66,88 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
             return (198);
         }
         statcode[k] = dblstat;
-        // stat[k]  = strstat;
         strstat     = strtok_r (NULL, " ", &ptr);
     }
 
-    for (i = 0; i < st_info->kvars_by_num * st_info->J; i++)
-        bymiss[i] = 0;
+    /*********************************************************************
+     *                     Step 2: Memory allocation                     *
+     *********************************************************************/
 
-    for (k = 0; k < st_info->kvars_source; k++)
-        nmfreq[k] = nonmiss[k] = firstmiss[k] = lastmiss[k] = 0;
+    // Initialize by variables
+    // -----------------------
+
+    MixedUnion *st_dtax;
+    double *output;
+    double *st_numx;
+
+    kvars = (st_info->kvars_by + st_info->kvars_targets);
+    if ( st_info->merge ) {
+        // When merging, you only need to worry about the output
+        st_dtax = malloc(sizeof(MixedUnion));
+        st_numx = malloc(sizeof(double));
+        output  = calloc(st_info->kvars_targets * st_info->J, sizeof *output);
+        if ( output  == NULL ) return(sf_oom_error("sf_collapse", "output"));
+    }
+    else if ( st_info->read_dtax ) {
+        st_dtax = st_info->st_dtax;
+        output  = st_info->output;
+        st_numx = st_info->st_numx;
+    }
+    else {
+        if ( st_info->kvars_by_str > 0 ) {
+            // If there are string variables, use a mixed type container
+            st_dtax = calloc(kvars * st_info->J, sizeof *st_dtax);
+            if ( st_dtax == NULL ) return (sf_oom_error("sf_collapse", "st_dtax"));
+
+            // In this case, you need to allocate time for all the strings
+            for (j = 0; j < st_info->J; j++) {
+                for (k = 0; k < st_info->kvars_by_str; k++) {
+                    sel = j * kvars + (st_info->pos_str_byvars[k] - 1);
+                    offset_bystr = st_info->byvars_lens[st_info->pos_str_byvars[k] - 1];
+                    if ( offset_bystr > 0 ) {
+                        st_dtax[sel].cval = malloc((offset_bystr + 1) * sizeof(char));
+                        if ( st_dtax[sel].cval == NULL ) return (sf_oom_error("sf_collapse", "st_dtax[sel].cval"));
+                        memset (st_dtax[sel].cval, '\0', offset_bystr + 1);
+                    }
+                    else {
+                        sf_errprintf ("Unable to parse string lengths from Stata.\n");
+                        return (198);
+                    }
+                }
+            }
+            st_numx = malloc(sizeof(double));
+            output  = malloc(sizeof(double));
+        }
+        else {
+            // If only numbers, just allocate a double array
+            st_dtax = malloc(sizeof(MixedUnion));
+            output  = malloc(sizeof(double));
+            st_numx = calloc(kvars * st_info->J, sizeof *st_numx);
+            if ( st_numx  == NULL ) return(sf_oom_error("sf_collapse", "st_numx"));
+        }
+    }
+
+    // Initialize variables for use in read, collapse, and write loops
+    // ---------------------------------------------------------------
+
+    double *all_buffer     = calloc(st_info->kvars_source * st_info->N, sizeof *all_buffer);
+    short  *all_firstmiss  = calloc(st_info->kvars_source * st_info->J, sizeof *all_firstmiss);
+    short  *all_lastmiss   = calloc(st_info->kvars_source * st_info->J, sizeof *all_lastmiss );
+    size_t *all_nonmiss    = calloc(st_info->kvars_source * st_info->J, sizeof *all_nonmiss);
+    size_t *offsets_buffer = calloc(st_info->J, sizeof *offsets_buffer);
+
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_collapse", "all_buffer"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_collapse", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_collapse", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_collapse", "all_nonmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_collapse", "offsets_buffer"));
 
     for (j = 0; j < st_info->J * st_info->kvars_source; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = 0;
 
-    // Read in variables from Stata
-    // ----------------------------
+    /*********************************************************************
+     *               Step 3: Read in variables from Stata                *
+     *********************************************************************/
 
     int rcp = 0;
     int nloops, rct;
@@ -205,8 +236,9 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     if ( rcp ) return (rcp);
     if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables in parallel");
 
-    // Collapse variables by group
-    // ---------------------------
+    /*********************************************************************
+     *                Step 4: Collapse variables by gorup                *
+     *********************************************************************/
 
     for (j = 0; j < st_info->J; j++)
         for (k = 0; k < st_info->kvars_source; k++)
@@ -235,7 +267,10 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
                 all_firstmiss,  \
                 all_lastmiss,   \
                 all_buffer,     \
+                st_dtax,        \
+                st_numx,        \
                 output,         \
+                nmfreq,         \
                 timer           \
             )
     {
@@ -253,85 +288,257 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
         for (k = 0; k < st_info->kvars_source; k++)
             firstobs[k] = lastobs[k] = 0;
 
-        // We encoded stat strings; see mf_code_fun in gtools_math.c
-        #pragma omp for
-        for (j = 0; j < st_info->J; j++) {
-            ++nloops;
-            offset_output = j * st_info->kvars_targets;
-            offset_source = j * st_info->kvars_source;
-            offset_buffer = offsets_buffer[j];
-            nj = st_info->info[j + 1] - st_info->info[j];
+        if ( st_info->merge ) {
 
-            // Get the position of the first and last obs of each source
-            // variable (in case they are modified by calling qselect)
-            for (k = 0; k < st_info->kvars_source; k++) {
-                sel   = offset_source + k;
-                start = offset_buffer + nj * k;
-                end   = all_nonmiss[sel];
-                firstobs[k] = all_buffer[start];
-                lastobs[k]  = all_buffer[start + end - 1];
-            }
+            // Collapse A: Output only array and merge
+            // ---------------------------------------
 
-            for (k = 0; k < st_info->kvars_targets; k++) {
-                // For each target, grab start and end position of source variable
-                sel   = offset_source + st_info->pos_targets[k];
-                start = offset_buffer + nj * st_info->pos_targets[k];
-                end   = all_nonmiss[sel];
+            // We encoded stat strings; see mf_code_fun in gtools_math.c
+            #pragma omp for
+            for (j = 0; j < st_info->J; j++) {
+                ++nloops;
+                offset_output = j * st_info->kvars_targets;
+                offset_source = j * st_info->kvars_source;
+                offset_buffer = offsets_buffer[j];
+                nj = st_info->info[j + 1] - st_info->info[j];
 
-                // If there is at least one non-missing observation, we
-                // store the result in output. If all observations are
-                // missing then we store Stata's special SV_missval
-                if ( statcode[k] == -6 ) { // count
-                    // If count, you just need to know how many non-missing obs there are
-                    output[offset_output + k] = end;
+                // Get the position of the first and last obs of each source
+                // variable (in case they are modified by calling qselect)
+                for (k = 0; k < st_info->kvars_source; k++) {
+                    sel   = offset_source + k;
+                    start = offset_buffer + nj * k;
+                    end   = all_nonmiss[sel];
+                    firstobs[k] = all_buffer[start];
+                    lastobs[k]  = all_buffer[start + end - 1];
                 }
-                else if ( statcode[k] == -7  ) { // percent
-                    // Percent outputs the % of all non-missing values of
-                    // that variable in that group relative to the number
-                    // of non-missing values of that variable in the entire
-                    // data. This latter count is stored in nmfreq; we
-                    // divide by this when writing to Stata.
-                    output[offset_output + k] = 100 * end;
-                }
-                else if ( end == 0 ) { // no obs
-                    // If everything is missing, write a missing value,
-                    // Except for sums, which go to 0 for some reason (this
-                    // is the behavior of collapse).
-                    if ( statcode[k] == -1 ) {
-                        output[offset_output + k] = 0;
+
+                for (k = 0; k < st_info->kvars_targets; k++) {
+                    // For each target, grab start and end position of source variable
+                    sel   = offset_source + st_info->pos_targets[k];
+                    start = offset_buffer + nj * st_info->pos_targets[k];
+                    end   = all_nonmiss[sel];
+
+                    // If there is at least one non-missing observation, we store
+                    // the result in output. If all observations are missing then
+                    // we store Stata's special SV_missval
+                    if ( statcode[k] == -6 ) { // count
+                        // If count, you just need to know how many non-missing obs there are
+                        output[offset_output + k] = end;
                     }
-                    else {
+                    else if ( statcode[k] == -7  ) { // percent
+                        // Percent outputs the % of all non-missing values of
+                        // that variable in that group relative to the number
+                        // of non-missing values of that variable in the entire
+                        // data. This latter count is stored in nmfreq; we divide
+                        // by this when writing to Stata.
+                        output[offset_output + k] = 100 * ((double) end / nmfreq[st_info->pos_targets[k]]);
+                    }
+                    else if ( end == 0 ) { // no obs
+                        // If everything is missing, write a missing value, Except
+                        // for sums, which go to 0 for some reason (this is the
+                        // behavior of collapse).
+                        if ( statcode[k] == -1 ) {
+                            output[offset_output + k] = 0;
+                        }
+                        else {
+                            output[offset_output + k] = SV_missval;
+                        }
+                    }
+                    else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
+                        // If first observation is missing, will write missing value
                         output[offset_output + k] = SV_missval;
                     }
-                }
-                else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
-                    // If first observation is missing, will write missing value
-                    output[offset_output + k] = SV_missval;
-                }
-                else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
-                    // First obs/first non-missing is the first entry in the inputs buffer
-                    output[offset_output + k] = firstobs[st_info->pos_targets[k]];
-                }
-                else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
-                    // If last observation is missing, will write missing value
-                    output[offset_output + k] = SV_missval;
-                }
-                else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
-                    // Last obs/last non-missing is the last entry in the inputs buffer
-                    output[offset_output + k] = lastobs[st_info->pos_targets[k]];
-                }
-                else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
-                    // Standard deviation requires at least 2 observations
-                    output[offset_output + k] = SV_missval;
-                }
-                else { // etc
-                    // Otherwise compute the requested summary stat
-                    output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
+                        // First obs/first non-missing is the first entry in the inputs buffer
+                        output[offset_output + k] = firstobs[st_info->pos_targets[k]];
+                    }
+                    else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
+                        // If last observation is missing, will write missing value
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
+                        // Last obs/last non-missing is the last entry in the inputs buffer
+                        output[offset_output + k] = lastobs[st_info->pos_targets[k]];
+                    }
+                    else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                        // Standard deviation requires at least 2 observations
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else { // etc
+                        // Otherwise compute the requested summary stat
+                        output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    }
                 }
             }
         }
-        timerp = omp_get_wtime() - timerp;
+        else if ( st_info->kvars_by_str > 0 ) {
 
+            // Collapse B: Mixed string and number array
+            // -----------------------------------------
+
+            // We encoded stat strings; see mf_code_fun in gtools_math.c
+            #pragma omp for
+            for (j = 0; j < st_info->J; j++) {
+                ++nloops;
+                offset_output = j * kvars + st_info->kvars_by;
+                offset_source = j * st_info->kvars_source;
+                offset_buffer = offsets_buffer[j];
+                nj = st_info->info[j + 1] - st_info->info[j];
+
+                // Get the position of the first and last obs of each source
+                // variable (in case they are modified by calling qselect)
+                for (k = 0; k < st_info->kvars_source; k++) {
+                    sel   = offset_source + k;
+                    start = offset_buffer + nj * k;
+                    end   = all_nonmiss[sel];
+                    firstobs[k] = all_buffer[start];
+                    lastobs[k]  = all_buffer[start + end - 1];
+                }
+
+                for (k = 0; k < st_info->kvars_targets; k++) {
+                    // For each target, grab start and end position of source variable
+                    sel   = offset_source + st_info->pos_targets[k];
+                    start = offset_buffer + nj * st_info->pos_targets[k];
+                    end   = all_nonmiss[sel];
+
+                    // If there is at least one non-missing observation, we store
+                    // the result in output. If all observations are missing then
+                    // we store Stata's special SV_missval
+                    if ( statcode[k] == -6 ) { // count
+                        // If count, you just need to know how many non-missing obs there are
+                        st_dtax[offset_output + k].dval = end;
+                    }
+                    else if ( statcode[k] == -7  ) { // percent
+                        // Percent outputs the % of all non-missing values of
+                        // that variable in that group relative to the number
+                        // of non-missing values of that variable in the entire
+                        // data. This latter count is stored in nmfreq; we divide
+                        // by this when writing to Stata.
+                        st_dtax[offset_output + k].dval = 100 * ((double) end / nmfreq[st_info->pos_targets[k]]);
+                    }
+                    else if ( end == 0 ) { // no obs
+                        // If everything is missing, write a missing value, Except
+                        // for sums, which go to 0 for some reason (this is the
+                        // behavior of collapse).
+                        if ( statcode[k] == -1 ) {
+                            st_dtax[offset_output + k].dval = 0;
+                        }
+                        else {
+                            st_dtax[offset_output + k].dval = SV_missval;
+                        }
+                    }
+                    else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
+                        // If first observation is missing, will write missing value
+                        st_dtax[offset_output + k].dval = SV_missval;
+                    }
+                    else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
+                        // First obs/first non-missing is the first entry in the inputs buffer
+                        st_dtax[offset_output + k].dval = firstobs[st_info->pos_targets[k]];
+                    }
+                    else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
+                        // If last observation is missing, will write missing value
+                        st_dtax[offset_output + k].dval = SV_missval;
+                    }
+                    else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
+                        // Last obs/last non-missing is the last entry in the inputs buffer
+                        st_dtax[offset_output + k].dval = lastobs[st_info->pos_targets[k]];
+                    }
+                    else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                        // Standard deviation requires at least 2 observations
+                        st_dtax[offset_output + k].dval = SV_missval;
+                    }
+                    else { // etc
+                        // Otherwise compute the requested summary stat
+                        st_dtax[offset_output + k].dval = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    }
+                }
+            }
+        }
+        else {
+
+            // Collapse C: Number only array
+            // -----------------------------
+
+            // We encoded stat string; see mf_code_fun in gtools_math.c
+            #pragma omp for
+            for (j = 0; j < st_info->J; j++) {
+                // offset_output = j * st_info->kvars_targets;
+                offset_output = j * kvars + st_info->kvars_by;
+                offset_source = j * st_info->kvars_source;
+                offset_buffer = offsets_buffer[j];
+                nj = st_info->info[j + 1] - st_info->info[j];
+
+                // Get the position of the first and last obs of each source
+                // variable (in case they are modified by calling qselect)
+                for (k = 0; k < st_info->kvars_source; k++) {
+                    sel   = offset_source + k;
+                    start = offset_buffer + nj * k;
+                    end   = all_nonmiss[sel];
+                    firstobs[k] = all_buffer[start];
+                    lastobs[k]  = all_buffer[start + end - 1];
+                }
+
+                for (k = 0; k < st_info->kvars_targets; k++) {
+                    // For each target, grab start and end position of source variable
+                    sel   = offset_source + st_info->pos_targets[k];
+                    start = offset_buffer + nj * st_info->pos_targets[k];
+                    end   = all_nonmiss[sel];
+
+                    // If there is at least one non-missing observation, we store
+                    // the result in output. If all observations are missing then
+                    // we store Stata's special SV_missval
+                    if ( statcode[k] == -6 ) { // count
+                        // If count, you just need to know how many non-missing obs there are
+                        st_numx[offset_output + k] = end;
+                    }
+                    else if ( statcode[k] == -7  ) { // percent
+                        // Percent outputs the % of all non-missing values of
+                        // that variable in that group relative to the number
+                        // of non-missing values of that variable in the entire
+                        // data. This latter count is stored in nmfreq; we divide
+                        // by this when writing to Stata.
+                        st_numx[offset_output + k] = 100 * ((double) end / nmfreq[st_info->pos_targets[k]]);
+                    }
+                    else if ( end == 0 ) { // no obs
+                        // If everything is missing, write a missing value, Except
+                        // for sums, which go to 0 for some reason (this is the
+                        // behavior of collapse).
+                        if ( statcode[k] == -1 ) {
+                            st_numx[offset_output + k] = 0;
+                        }
+                        else {
+                            st_numx[offset_output + k] = SV_missval;
+                        }
+                    }
+                    else if ( all_firstmiss[sel] & (statcode[k] == -10) ) { // first
+                        // If first observation is missing, will write missing value
+                        st_numx[offset_output + k] = SV_missval;
+                    }
+                    else if ( (statcode[k] == -10) | (statcode[k] == -11) ) { // first|firstnm
+                        // First obs/first non-missing is the first entry in the inputs buffer
+                        st_numx[offset_output + k] = firstobs[st_info->pos_targets[k]];
+                    }
+                    else if ( all_lastmiss[sel] & (statcode[k] == -12) ) { // last
+                        // If last observation is missing, will write missing value
+                        st_numx[offset_output + k] = SV_missval;
+                    }
+                    else if ( (statcode[k] == -12) | (statcode[k] == -13) ) { // last|lastnm
+                        // Last obs/last non-missing is the last entry in the inputs buffer
+                        st_numx[offset_output + k] = lastobs[st_info->pos_targets[k]];
+                    }
+                    else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                        // Standard deviation requires at least 2 observations
+                        st_numx[offset_output + k] = SV_missval;
+                    }
+                    else { // etc
+                        // Otherwise compute the requested summary stat
+                        st_numx[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    }
+                }
+            }
+        }
+
+        timerp = omp_get_wtime() - timerp;
         #pragma omp critical
         {
             timer = clock() - (timerp * CLOCKS_PER_SEC);
@@ -346,33 +553,86 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     free (all_nonmiss);
     free (offsets_buffer);
 
-    // Copy output back into Stata
-    // ---------------------------
+    /*********************************************************************
+     *                   Step 5: Read in by variables                    *
+     *********************************************************************/
+
+    if ( !(st_info->merge | st_info->read_dtax) ) {
+
+        // Read in first entry of each group variable
+        // ------------------------------------------
+
+        if ( st_info->kvars_by_str > 0 ) {
+
+            // Collapse B: Mixed string and number array
+            // -----------------------------------------
+
+            for (j = 0; j < st_info->J; j++) {
+                start = st_info->info[j];
+                for (k = 0; k < st_info->kvars_by; k++) {
+                    sel = j * kvars + k;
+                    if ( st_info->byvars_lens[k] > 0 ) {
+                        if ( (rc = SF_sdata(k + 1, st_info->index[start] + st_info->in1, st_dtax[sel].cval)) ) return(rc);
+                    }
+                    else {
+                        if ( (rc = SF_vdata(k + 1, st_info->index[start] + st_info->in1, &(st_dtax[sel].dval))) ) return(rc);
+                    }
+                }
+            }
+        }
+        else {
+
+            // Collapse C: Number only array
+            // -----------------------------
+
+            for (j = 0; j < st_info->J; j++) {
+                start = st_info->info[j];
+                for (k = 0; k < st_info->kvars_by; k++) {
+                    if ( (rc = SF_vdata(k + 1, st_info->index[start] + st_info->in1, &(st_numx[j * kvars + k]))) ) return(rc);
+                }
+            }
+        }
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.3: Read by variables");
+    }
+
+    // Sort in memory
+    // --------------
+
+    if ( st_info->sort_memory ) {
+        if ( st_info->kvars_by_str > 0 ) {
+            MultiQuicksort (st_dtax, st_info->J, 0, st_info->kvars_by - 1,
+                            kvars * sizeof(*st_dtax), st_info->byvars_lens, st_info->invert);
+        }
+        else {
+            MultiQuicksort2 (st_numx, st_info->J, 0, st_info->kvars_by - 1,
+                             kvars * sizeof(*st_numx), st_info->byvars_lens, st_info->invert);
+        }
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.3: Sorted collapsed data");
+    }
+
+    /*********************************************************************
+     *                Step 6: Copy output back into Stata                *
+     *********************************************************************/
 
     if ( st_info->merge ) {
-        // If merge is requested, leave source by variables unmodified
-        double output_buffer[st_info->kvars_targets];
 
+        // Collapse A: Merge output only array
+        // -----------------------------------
+
+        // If merge is requested, leave source by variables unmodified
         offset_output = 0;
         for (j = 0; j < st_info->J; j++) {
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
+            start = st_info->info[j];
+            end   = st_info->info[j + 1];
 
-            for (k = 0; k < st_info->kvars_targets; k++) {
-                sel = offset_output + k;
-                if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
-                output_buffer[k] = output[sel];
-            }
-
-            // Write the same value from start to end; we won't sort or
-            // modify the input data, so the position of each value of
-            // the jth group is index[i] for i = start to i < end.
+            // Write the same value from start to end; we won't sort or modify
+            // the input data, so the position of each value of the jth group
+            // is index[i] for i = start to i < end.
             for (i = start; i < end; i++) {
                 for (k = 0; k < st_info->kvars_targets; k++) {
                     out = st_info->index[i] + st_info->in1;
-                    // sel = offset_output + k;
-                    // if ( statcode[k] == -7 ) output[sel] /= nmfreq[st_info->pos_targets[k]];
-                    if ( (rc = SF_vstore(k + st_info->start_target_vars, out, output_buffer[k])) ) return (rc);
+                    sel = offset_output + k;
+                    if ( (rc = SF_vstore(k + st_info->start_target_vars, out, output[sel])) ) return (rc);
                 }
             }
             offset_output += st_info->kvars_targets;
@@ -380,124 +640,117 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 6: Merged collapsed variables back to stata");
     }
     else {
-        offset_bynum = 0;
-
-        // Read in first entry of each group variable
-        for (j = 0; j < st_info->J; j++) {
-            start = st_info->info[j];
-            // For string variables, read into first J entries of temporary string variables
-            for (k = 0; k < st_info->kvars_by_str; k++) {
-                memset (s, '\0', st_info->strmax);
-                if ( (rc = SF_sdata(st_info->pos_str_byvars[k], st_info->index[start] + st_info->in1, s)) ) return(rc);
-                memcpy (bystr[j * st_info->kvars_by_str + k], s, strlen(s));
-            }
-            // For numeric variables, read into numeric array
-            for (k = 0; k < st_info->kvars_by_num; k++) {
-                if ( (rc = SF_vdata(st_info->pos_num_byvars[k], st_info->index[start] + st_info->in1, &z)) ) return(rc);
-                if ( SF_is_missing(z) ) {
-                    bymiss[offset_bynum + k] = 1;
-                }
-                else {
-                    bynum[offset_bynum + k] = z;
-                }
-            }
-            offset_bynum += st_info->kvars_by_num;
-        }
-
-        // Collapse back to memory or write to disk
-        // ----------------------------------------
 
         if ( action == 0 ) {
-            // Write output to match the correct by variable group
-            offset_output = offset_bynum = 0;
-            for (j = 0; j < st_info->J; j++) {
 
-                // Copy output
-                for (k = 0; k < st_info->kvars_targets; k++) {
-                    sel = offset_output + k;
-                    if ( statcode[k] == -7 ) {
-                        if ( !SF_is_missing(output[sel]) ) {
-                            output[sel] /= nmfreq[st_info->pos_targets[k]];
-                        }
-                    }
-                    if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, output[sel])) ) return (rc);
-                }
+            // Collapse back to memory
+            // -----------------------
 
-                // Copy back string variables to replace them in the data
-                for (k = 0; k < st_info->kvars_by_str; k++) {
-                    sel = j * st_info->kvars_by_str + k;
-                    if ( (rc = SF_sstore(st_info->pos_str_byvars[k], j + 1, bystr[sel])) ) return(rc);
-                }
+            if ( st_info->kvars_by_str > 0 ) {
 
-                // Copy numeric by variables from temporary array
-                for (k = 0; k < st_info->kvars_by_num; k++) {
-                    sel = offset_bynum + k;
-                    if ( (rc = SF_vstore(st_info->pos_num_byvars[k], j + 1, bymiss[sel]? SV_missval: bynum[sel])) ) return(rc);
-                }
-                offset_output += st_info->kvars_targets;
-                offset_bynum += st_info->kvars_by_num;
-            }
-        }
-        else if ( action == 1 ) {
-            // Write output to match the correct by variable group
-            offset_output = offset_bynum = 0;
-            for (j = 0; j < st_info->J; j++) {
+                // st_dtax or st_numx will have the collapsed data set so we
+                // can simply write in Stata in order. The by variables are
+                // written first since the stata call layout is
+                //
+                //     [byvars] [sources] [targets]
+                //
+                // where targets include source variables used as targets.
 
-                // Copy output (source variavbles only)
-                for (k = 0; k < st_info->kvars_source; k++) {
-                    sel = offset_output + k;
-                    if ( statcode[k] == -7 ) {
-                        if ( !SF_is_missing(output[sel]) ) {
-                            output[sel] /= nmfreq[st_info->pos_targets[k]];
-                        }
-                    }
-                    if ( (rc = SF_vstore(k + st_info->start_target_vars, j + 1, output[sel])) ) return (rc);
-                }
+                // Collapse B: Mixed string and number array
+                // -----------------------------------------
 
-                // Copy back string variables to replace them in the data
-                for (k = 0; k < st_info->kvars_by_str; k++) {
-                    sel = j * st_info->kvars_by_str + k;
-                    if ( (rc = SF_sstore(st_info->pos_str_byvars[k], j + 1, bystr[sel])) ) return(rc);
-                }
-
-                // Copy numeric by variables from temporary array
-                for (k = 0; k < st_info->kvars_by_num; k++) {
-                    sel = offset_bynum + k;
-                    if ( (rc = SF_vstore(st_info->pos_num_byvars[k], j + 1, bymiss[sel]? SV_missval: bynum[sel])) ) return(rc);
-                }
-                offset_output += st_info->kvars_targets;
-                offset_bynum += st_info->kvars_by_num;
-            }
-
-            // Write output values as appropriate to disk file
-            size_t anyfreq = 0;
-            size_t kstart  = st_info->kvars_source;
-            size_t kend    = st_info->kvars_targets;
-            size_t knum    = kend - kstart;
-            FILE *fhandle  = fopen(fname, "wb");
-
-            // Take special care to divide by the variable's total if
-            // percent was requested. Otherwise write as is to disk.
-            for (k = kstart; k < kend; k++) {
-                if ( statcode[k] == -7 ) anyfreq = 1;
-            }
-            if ( anyfreq ) {
                 for (j = 0; j < st_info->J; j++) {
-                    for (k = kstart; k < kend; k++) {
-                        if ( statcode[k] == -7 ) {
-                            sel = j * kend + k;
-                            if ( !SF_is_missing(output[sel]) ) {
-                                output[sel] /= nmfreq[st_info->pos_targets[k]];
-                            }
+                    for (k = 0; k < st_info->kvars_by; k++) {
+                        sel = j * kvars + k;
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( (rc = SF_sstore(k + 1, j + 1, st_dtax[sel].cval)) ) return(rc);
+                        }
+                        else {
+                            if ( (rc = SF_vstore(k + 1, j + 1, st_dtax[sel].dval)) ) return(rc);
                         }
                     }
-                    fwrite (output + j * kend + kstart, sizeof(output), knum, fhandle);
+                    for (k = st_info->kvars_by; k < kvars; k++) {
+                        if ( (rc = SF_vstore(k + st_info->kvars_source + 1, j + 1, st_dtax[j * kvars + k].dval)) ) return (rc);
+                    }
                 }
             }
             else {
-                for (j = 0; j < st_info->J; j++)
-                    fwrite (output + j * kend + kstart, sizeof(output), knum, fhandle);
+
+                // Collapse C: Number only array
+                // -----------------------------
+
+                for (j = 0; j < st_info->J; j++) {
+                    for (k = 0; k < st_info->kvars_by; k++) {
+                        if ( (rc = SF_vstore(k + 1, j + 1, st_numx[j * kvars + k])) ) return (rc);
+                    }
+                    for (k = st_info->kvars_by; k < kvars; k++) {
+                        if ( (rc = SF_vstore(k + st_info->kvars_source + 1, j + 1, st_numx[j * kvars + k])) ) return (rc);
+                    }
+                }
             }
+        }
+        else if ( action == 1 ) {
+
+            // Write collapsed data to memory and extra targets to disk
+            // --------------------------------------------------------
+
+            // Write output values as appropriate
+            size_t ksource = st_info->kvars_by + st_info->kvars_source;
+            size_t knum    = kvars - ksource;
+            FILE *fhandle  = fopen(fname, "wb");
+
+            // st_dtax or st_numx will have the collapsed data set so we
+            // can simply write in Stata in order. The by variables are
+            // written first since the stata call layout is
+            //
+            //     [byvars] [sources] [targets]
+            //
+            // where targets include source variables used as targets.
+
+            if ( st_info->kvars_by_str > 0 ) {
+
+                // Collapse B: Mixed string and number array
+                // -----------------------------------------
+
+                // Will write only by variables ans sources used as targets
+                for (j = 0; j < st_info->J; j++) {
+                    for (k = 0; k < st_info->kvars_by; k++) {
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( (rc = SF_sstore(k + 1, j + 1, st_dtax[j * kvars + k].cval)) ) return(rc);
+                        }
+                        else {
+                            if ( (rc = SF_vstore(k + 1, j + 1, st_dtax[j * kvars + k].dval)) ) return(rc);
+                        }
+                    }
+                    for (k = st_info->kvars_by; k < ksource; k++) {
+                        if ( (rc = SF_vstore(k + st_info->kvars_source + 1, j + 1, st_dtax[j * kvars + k].dval)) ) return (rc);
+                    }
+                }
+
+                // Additional targets go to disk
+                for (j = 0; j < st_info->J; j++)
+                    fwrite (st_dtax + j * kvars + ksource, sizeof(st_dtax), knum, fhandle);
+            }
+            else {
+
+                // Collapse C: Number only array
+                // -----------------------------
+
+                // Will write only by variables ans sources used as targets
+                for (j = 0; j < st_info->J; j++) {
+                    for (k = 0; k < ksource; k++) {
+                        if ( (rc = SF_vstore(k + 1, j + 1, st_numx[j * kvars + k])) ) return (rc);
+                    }
+                    for (k = st_info->kvars_by; k < ksource; k++) {
+                        if ( (rc = SF_vstore(k + st_info->kvars_source + 1, j + 1, st_numx[j * kvars + k])) ) return (rc);
+                    }
+                }
+
+                // Additional targets go to disk
+                for (j = 0; j < st_info->J; j++)
+                    fwrite (st_numx + j * kvars + ksource, sizeof(st_numx), knum, fhandle);
+            }
+
             fclose (fhandle);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 6: Copied collapsed variables back to stata");
@@ -506,18 +759,19 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     // Free memory
     // -----------
 
-    free (output);
-    free (bynum);
-    free (bymiss);
-
-    if ( st_info->kvars_by_str > 0 ) {
-        for (j = 0; j < st_info->J; j++) {
-            for (k = 0; k < st_info->kvars_by_str; k++) {
-                free (bystr[j * st_info->kvars_by_str + k]);
+    if ( !st_info->merge ) {
+        if ( st_info->kvars_by_str > 0 ) {
+            for (j = 0; j < st_info->J; j++) {
+                for (k = 0; k < st_info->kvars_by_str; k++) {
+                    sel = j * kvars + (st_info->pos_str_byvars[k] - 1);
+                    free(st_dtax[sel].cval);
+                }
             }
         }
     }
-    free (bystr);
+    free (output);
+    free (st_dtax);
+    free (st_numx);
 
     return(0);
 }

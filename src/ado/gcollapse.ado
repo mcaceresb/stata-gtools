@@ -21,7 +21,6 @@ program gcollapse
         smart                         /// check if data is sorted to speed up hashing
         merge                         /// merge statistics back to original data, replacing where applicable
                                       ///
-        unsorted                      /// do not sort final output
         double                        /// do all operations in double precision
         forceio                       /// use disk temp drive for writing/reading collapsed data
         forcemem                      /// use memory for writing/reading collapsed data
@@ -636,9 +635,6 @@ program gcollapse
         forvalues k = 1 / `:list sizeof gtools_targets' {
             mata: st_varlabel("`:word `k' of `gtools_targets''", __gtools_labels[`k'])
         }
-
-        * This is really slow; implement in C
-        if ( "`unsorted'" == "" ) sort `by'
     }
     else {
         * If merge was requested, only drop temporary variables (all

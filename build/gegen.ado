@@ -259,26 +259,6 @@ program define gegen, byable(onecall)
         scalar __gtools_checkhash = 1
     }
 
-    * Parse by call
-    * -------------
-
-    if ( _by() ) local by `_byvars'
-    if ( "`by'" == "" ) {
-        * if inlist("`fcn'", "tag", "group") {
-            tempvar byvar
-            gen byte `byvar' = 0
-            local by `byvar'
-        * }
-        * else {
-        *     di as err "-gegen- only provides support for by-able egen functions"
-        *     exit 198
-        * }
-    }
-    else {
-        qui ds `by'
-        local by `r(varlist)'
-    }
-
     * Parse quantiles
     * ---------------
 
@@ -319,7 +299,29 @@ program define gegen, byable(onecall)
     * Tag and group are handled sepparately
     if inlist("`fcn'", "tag", "group") local by `gtools_vars'
 
+    * Parse by call
+    * -------------
+
+    if ( _by() ) local by `_byvars'
+    if ( "`by'" == "" ) {
+        * if inlist("`fcn'", "tag", "group") {
+            tempvar byvar
+            gen byte `byvar' = 0
+            local by `byvar'
+        * }
+        * else {
+        *     di as err "-gegen- only provides support for by-able egen functions"
+        *     exit 198
+        * }
+    }
+    else {
+        qui ds `by'
+        local by `r(varlist)'
+    }
+
     * Parse missing option for group; else just pass `if' `in'
+    * --------------------------------------------------------
+
     if ( inlist("`fcn'", "group", "tag") ) {
 		if ( "`missing'" == "" ) {
             marksample touse

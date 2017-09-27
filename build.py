@@ -54,6 +54,13 @@ parser.add_argument('--stata-args',
                     default  = None,
                     required = False,
                     help     = "Arguments to pass to Stata executable")
+parser.add_argument('--make-flags',
+                    nargs    = 1,
+                    type     = str,
+                    metavar  = 'MAKE_FLAGS',
+                    default  = None,
+                    required = False,
+                    help     = "Arguments to pass to make")
 parser.add_argument('--clean',
                     dest     = 'clean',
                     action   = 'store_true',
@@ -161,12 +168,13 @@ tmpupdate = path.join(tmpdir, ".update_gtools.do")
 if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Trying to compile plugins for -gtools-")
     print("(note: this assumes you have already compiled SpookyHash)")
-    rc = system("make")
+    make_flags = args['make_flags'] if args['make_flags'] is not None else ""
+    rc = system("make {0}".format(make_flags))
     print("Success!" if rc == 0 else "Failed.")
     if args['windows']:
         rc = system("make EXECUTION=windows clean")
         rc = system("make EXECUTION=windows spooky")
-        rc = system("make EXECUTION=windows")
+        rc = system("make EXECUTION=windows {0}".format(make_flags))
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
     exit(198)

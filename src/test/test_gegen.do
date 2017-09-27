@@ -83,20 +83,6 @@ program consistency_gegen
         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
     }
 
-    local fun group
-    {
-        qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
-        qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) if rsort > 0
-        qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
-        qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
-        cap noi assert g_`fun'_check & c_`fun'_check
-        if ( _rc ) {
-            di as err "    compare_egen_if (failed): gegen `fun' IDs do not map to egen IDs"
-            exit _rc
-        }
-        else di as txt "    compare_egen_if (passed): gegen `fun' IDs correctly map to egen IDs"
-    }
-
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
@@ -373,11 +359,3 @@ program consistency_gegen_gcollapse
         else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
     }
 end
-
-* set rmsg on
-* use /tmp/test, clear
-* drop *id*
-* sim, n(5000000) nj(100) njsub(2) string outmiss
-* gegen g_id1 = group(grouplong groupsub), v b
-* fegen f_id1 = group(grouplong groupsub)
-*  egen c_id1 = group(grouplong groupsub)

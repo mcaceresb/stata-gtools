@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.7.1 (2017-09-27)
+
+### Enhancements
+
+* `egen` now only processes observations in range for `id, group`
+* `egen, group` now marginally faster when all vars are integers
+
 ## gtools-0.7.0 (2017-09-26)
 
 ### Enhancements

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Tue Sep 26 13:54:15 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.17
+* Version: 0.6.18
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options

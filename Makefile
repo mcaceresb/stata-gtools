@@ -112,7 +112,7 @@ gtools_other: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	# $(GCC) $(CFLAGS) -c -o build/stplugin.o src/plugin/spi/stplugin.c
 	# $(GCC) $(CFLAGS) -c -o build/gtools_multi$(LEGACY).o src/plugin/gtools.c $(OPENMP)
 	# $(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Does not load
-	# $(GCC) -Wall -O2    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Crashes
+	# $(GCC) -Wall -O3    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Crashes
 	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 
 gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c

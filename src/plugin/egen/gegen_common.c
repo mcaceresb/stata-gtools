@@ -159,23 +159,45 @@ int sf_egen_group (struct StataInfo *st_info)
         free (st_numx);
     }
     else {
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
-
+        size_t *indexj = calloc(st_info->N, sizeof *indexj);
         k = 1;    
         for (j = 0; j < st_info->J; j++) {
             augment_id = 0;
             start  = st_info->info[j];
             end    = st_info->info[j + 1];
             for (i = start; i < end; i++) {
-                out = st_info->index[i] + st_info->in1;
-                if ( SF_ifobs(out) ) {
-                    if ( (rc = SF_vstore(st_info->start_target_vars, out, k)) ) return (rc);
-                    augment_id = 1;
+                indexj[st_info->index[i]] = k;
+                if ( augment_id == 0 ) {
+                    augment_id = SF_ifobs(st_info->index[i] + st_info->in1);
                 }
             }
             k += augment_id;
         }
+        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
+
+        for (i = 0; i < st_info->N; i++) {
+            if ( SF_ifobs(st_info->in1 + i) ) {
+                if ( (rc = SF_vstore(st_info->start_target_vars, st_info->in1 + i, indexj[i])) ) return (rc);
+            }
+        }
+        free(indexj);
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
+
+        // k = 1;    
+        // for (j = 0; j < st_info->J; j++) {
+        //     augment_id = 0;
+        //     start  = st_info->info[j];
+        //     end    = st_info->info[j + 1];
+        //     for (i = start; i < end; i++) {
+        //         out = st_info->index[i] + st_info->in1;
+        //         if ( SF_ifobs(out) ) {
+        //             if ( (rc = SF_vstore(st_info->start_target_vars, out, k)) ) return (rc);
+        //             augment_id = 1;
+        //         }
+        //     }
+        //     k += augment_id;
+        // }
+        // if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
     }
     return (0);
 }

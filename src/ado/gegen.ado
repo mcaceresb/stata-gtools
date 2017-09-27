@@ -1,4 +1,4 @@
-*! version 0.7.0 26Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 27Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -326,7 +326,7 @@ program define gegen, byable(onecall)
 		if ( "`missing'" == "" ) {
             marksample touse
             markout `touse' `by', strok
-            local sub if `touse'
+            local sub if `touse' `in'
         }
         else local sub `if' `in'
     }

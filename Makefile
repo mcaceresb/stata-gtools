@@ -41,7 +41,7 @@ endif
 
 SPI = 2.0
 SPT = 0.2
-CFLAGS = -Wall -O2 $(OSFLAGS)
+CFLAGS = -Wall -O3 $(OSFLAGS)
 SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
 AUX = build/stplugin.o
 

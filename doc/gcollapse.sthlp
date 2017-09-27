@@ -91,9 +91,6 @@ user press {hi:Break}
 {p_end}
 {synopt :{opt double}}store data in double precision.
 {p_end}
-{synopt :{opt unsorted}}do not sort the final data.
-Saves speed but leaves resulting collapse unsorted.
-{p_end}
 
 {synoptline}
 {p2colreset}{...}
@@ -165,9 +162,6 @@ be large {opt forcemem} will be faster.
 
 {phang}
 {opt double} stores data in double precision.
-
-{phang}
-{opt unsorted} does not sort the resulting data.
 
 {marker memory}{...}
 {title:Out of memory}

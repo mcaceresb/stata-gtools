@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Jul 27 10:49:56 EDT 2017
+* Updated: Tue Sep 26 13:54:15 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.6.17
 * Manual:  help gcollapse, help gegen
@@ -47,18 +47,24 @@ program main
             di "-------------------------------------"
 
             unit_test, `noisily' test(checks_corners, oncollision(error))
+            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
 
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(1))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1))
 
             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(0))
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(1))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1))
 
             if !inlist("`c(os)'", "Windows") {
                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0))
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1))
+
                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0))
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1))
             }
 
             di ""
@@ -66,20 +72,31 @@ program main
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error)
-            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(0)
-            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
             consistency_gegen,           `noisily' oncollision(error) debug_force_single
             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
 
             if !inlist("`c(os)'", "Windows") {
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
+        }
+
+        if ( `:list posof "bench_gtools" in options' ) {
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single)
+            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single)
         }
 
         if ( `:list posof "test" in options' ) {
@@ -478,10 +495,6 @@ program checks_options_gcollapse
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose unsorted `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark cw `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
@@ -650,8 +663,7 @@ program consistency_gegen
         else di as txt "    compare_egen (passed): gegen percentile `p' results similar to egen (tol = `tol')"
     }
 
-    local fun tag
-    {
+    foreach fun in tag group {
         qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub), v `options'
         qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub)
         cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
@@ -660,20 +672,6 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
-
-    local fun group
-    {
-        qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub), v `options'
-        qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub)
-        qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
-        qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
-        cap noi assert g_`fun'_check & c_`fun'_check
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' IDs do not map to egen IDs"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' IDs correctly map to egen IDs"
     }
 
     * ---------------------------------------------------------------------
@@ -704,8 +702,7 @@ program consistency_gegen
         else di as txt "    compare_egen_if (passed): gegen percentile `p' results similar to egen (tol = `tol')"
     }
 
-    local fun tag
-    {
+    foreach fun in tag group {
         qui  `noisily' gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
         qui  `noisily'  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
@@ -766,8 +763,7 @@ program consistency_gegen
         else di as txt "    compare_egen_in (passed): gegen percentile `p' results similar to egen (tol = `tol')"
     }
 
-    local fun tag
-    {
+    foreach fun in tag group {
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
@@ -780,24 +776,6 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
-
-    local fun group
-    {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) in `from' / `to', v `options'
-        qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) in `from' / `to'
-        qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
-        qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
-        cap noi assert g_`fun'_check & c_`fun'_check
-        if ( _rc ) {
-            di as err "    compare_egen_in (failed): gegen `fun' IDs do not map to egen IDs"
-            exit _rc
-        }
-        else di as txt "    compare_egen_in (passed): gegen `fun' IDs correctly map to egen IDs"
     }
 
     * ---------------------------------------------------------------------
@@ -836,8 +814,7 @@ program consistency_gegen
         else di as txt "    compare_egen_ifin (passed): gegen percentile `p' results similar to egen (tol = `tol')"
     }
 
-    local fun tag
-    {
+    foreach fun in tag group {
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
@@ -851,24 +828,6 @@ program consistency_gegen
         }
         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
     }
-
-    local fun group
-    {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
-        qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
-        qui bys g_`fun' (c_`fun'): gen byte g_`fun'_check = c_`fun'[1] == c_`fun'[_N]
-        qui bys c_`fun' (g_`fun'): gen byte c_`fun'_check = g_`fun'[1] == g_`fun'[_N]
-        cap noi assert g_`fun'_check & c_`fun'_check
-        if ( _rc ) {
-            di as err "    compare_egen_ifin (failed): gegen `fun' IDs do not map to egen IDs"
-            exit _rc
-        }
-        else di as txt "    compare_egen_ifin (passed): gegen `fun' IDs correctly map to egen IDs"
-    }
 end
 
 capture program drop consistency_gegen_gcollapse
@@ -878,7 +837,7 @@ program consistency_gegen_gcollapse
 
     qui `noisily' {
         sim, n(20000) nj(100) njsub(2) string outmiss
-        gegen id = group(groupstr groupsub)
+        gegen id = group(groupstr groupsub), `options'
         gegen double mean    = mean   (rnorm),  by(groupstr groupsub) verbose benchmark `options'
         gegen double sum     = sum    (rnorm),  by(groupstr groupsub) `options'
         gegen double median  = median (rnorm),  by(groupstr groupsub) `options'
@@ -938,7 +897,7 @@ program consistency_gegen_gcollapse
             local to   = cond(`in1' > `in2', `in1', `in2')
         }
 
-        gegen id = group(groupstr groupsub) in `from' / `to'
+        gegen id = group(groupstr groupsub) in `from' / `to', `options'
         gegen double mean    = mean   (rnorm) in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
         gegen double sum     = sum    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
         gegen double median  = median (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
@@ -998,7 +957,7 @@ program consistency_gegen_gcollapse
             local to   = cond(`in1' > `in2', `in1', `in2')
         }
 
-        gegen id = group(groupstr groupsub)   if rsort < 0 in `from' / `to'
+        gegen id = group(groupstr groupsub)   if rsort < 0 in `from' / `to', `options'
         gegen double mean    = mean   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
         gegen double sum     = sum    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
         gegen double median  = median (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
@@ -1330,7 +1289,7 @@ end
 
 capture program drop bench_switch_fcoll
 program bench_switch_fcoll
-    syntax anything, style(str) [*]
+    syntax anything, style(str) [GCOLLapse(str) *]
     if !inlist("`style'", "ftools", "gtools") {
         di as error "Don't know benchmark style '`style''; available: ftools, gtools"
         exit 198
@@ -1400,6 +1359,9 @@ program bench_switch_fcoll
         }
     }
 
+    if ( "`gcollapse'" == "" ) local w f
+    else local w g
+
     forvalues k = 1 / `:di `kmax' - `kmin' + 1' {
         mata: st_local("sim",   sim_matrix[`k'])
         qui `sim'
@@ -1408,7 +1370,7 @@ program bench_switch_fcoll
             local ++i
             timer clear
             timer on `i'
-            mata: printf(" gcollapse-default ")
+            mata: printf(" gcollapse-default `options'")
                 qui gcollapse `collapse', by(`by') `options' fast
             timer off `i'
             qui timer list
@@ -1418,8 +1380,8 @@ program bench_switch_fcoll
             local ++i
             timer clear
             timer on `i'
-            mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by') fast
+            mata: printf(" `w'collapse `gcollapse'")
+                qui `w'collapse `collapse', by(`by') fast `gcollapse'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1429,7 +1391,7 @@ program bench_switch_fcoll
 
     local i = 1
     di "Results varying `L' for `dstr'; by(`by')"
-    di "|              `L' | gcollapse | fcollapse | ratio (f/g) |"
+    di "|              `L' | gcollapse | `w'collapse | ratio (f/g) |"
     di "| -------------- | --------- | --------- | ----------- |"
     foreach nn in ``L'' {
         local ii  = `i' + 1
@@ -1461,4 +1423,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks test
+main, bench_fcoll

@@ -21,7 +21,6 @@ program gcollapse
         smart                         /// check if data is sorted to speed up hashing
         merge                         /// merge statistics back to original data, replacing where applicable
                                       ///
-        unsorted                      /// do not sort final output
         double                        /// do all operations in double precision
         forceio                       /// use disk temp drive for writing/reading collapsed data
         forcemem                      /// use memory for writing/reading collapsed data
@@ -34,7 +33,7 @@ program gcollapse
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
-        debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
+        debug_io_threshold(real 10)   /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
 
@@ -438,6 +437,7 @@ program gcollapse
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
             if ( "`oncollision'" == "fallback" ) {
                 cap noi collision_handler `0'
+                if ( "`fast'" == "" ) restore, not
                 exit _rc
             }
             else exit 42000 
@@ -519,6 +519,7 @@ program gcollapse
                 di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                 if ( "`oncollision'" == "fallback" ) {
                     cap noi collision_handler `0'
+                    if ( "`fast'" == "" ) restore, not
                     exit _rc
                 }
                 else exit 42000 
@@ -559,6 +560,7 @@ program gcollapse
                     di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                     if ( "`oncollision'" == "fallback" ) {
                         cap noi collision_handler `0'
+                        if ( "`fast'" == "" ) restore, not
                         exit _rc
                     }
                     else exit 42000 
@@ -633,9 +635,6 @@ program gcollapse
         forvalues k = 1 / `:list sizeof gtools_targets' {
             mata: st_varlabel("`:word `k' of `gtools_targets''", __gtools_labels[`k'])
         }
-
-        * This is really slow; implement in C
-        if ( "`unsorted'" == "" ) sort `by'
     }
     else {
         * If merge was requested, only drop temporary variables (all

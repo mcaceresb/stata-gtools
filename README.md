@@ -212,8 +212,7 @@ Building
 
 ### Requirements
 
-If you want to compile the plugin yourself, atop the C standard library
-you will need
+If you want to compile the plugin yourself, you will need
 - The GNU Compiler Collection (`gcc`)
 - [`premake5`](https://premake.github.io)
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)

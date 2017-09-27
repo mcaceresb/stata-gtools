@@ -28,6 +28,7 @@ int sf_get_variable_ashash (
     size_t in1,
     size_t in2,
     int min,
+    int max,
     short verbose
 );
 
@@ -42,6 +43,6 @@ int sf_get_varlist_bijection (
     short verbose
 );
 
-int sf_check_hash_index (struct StataInfo *st_info);
+int sf_check_hash_index (struct StataInfo *st_info, int read_dtax);
 
 #endif

@@ -53,10 +53,10 @@ main = [path.join("src", "gtools.pkg"),
         path.join("doc", "gegen.sthlp"),
         path.join("README.md")]
 test = [path.join("src", "test", "gtools_tests.do")]
-plug = [path.join("src", "plugin", "gcollapse.c"),
-        path.join("src", "plugin", "gcollapse_multi.c"),
-        path.join("src", "plugin", "gegen.c"),
-        path.join("src", "plugin", "gegen_multi.c"),
+plug = [path.join("src", "plugin", "collapse", "gcollapse.c"),
+        path.join("src", "plugin", "collapse", "gcollapse_multi.c"),
+        path.join("src", "plugin", "egen", "gegen.c"),
+        path.join("src", "plugin", "egen", "gegen_multi.c"),
         path.join("src", "plugin", "gtools.c")]
 
 callok = False

@@ -31,7 +31,7 @@ except:
                 return program
         else:
             for epath in os.environ["PATH"].split(os.pathsep):
-                epath = path.strip('"')
+                epath = epath.strip('"')
                 exe_file = path.join(epath, program)
                 if is_exe(exe_file):
                     return exe_file

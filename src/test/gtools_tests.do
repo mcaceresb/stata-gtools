@@ -46,7 +46,6 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_corners, oncollision(error))
             unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
 
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
@@ -58,6 +57,8 @@ program main
             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1))
 
             if !inlist("`c(os)'", "Windows") {
+                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
+
                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0))
                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1))

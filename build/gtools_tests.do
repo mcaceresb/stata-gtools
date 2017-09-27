@@ -1004,6 +1004,14 @@ program consistency_gegen_gcollapse
         else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
     }
 end
+
+* set rmsg on
+* use /tmp/test, clear
+* drop *id*
+* sim, n(5000000) nj(100) njsub(2) string outmiss
+* gegen g_id1 = group(grouplong groupsub), v b
+* fegen f_id1 = group(grouplong groupsub)
+*  egen c_id1 = group(grouplong groupsub)
 ***********************************************************************
 *                           Data simulation                           *
 ***********************************************************************

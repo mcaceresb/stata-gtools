@@ -61,7 +61,7 @@ int WinMain()
 STDLL stata_call(int argc, char *argv[])
 {
     if (argc < 1) {
-        sf_errprintf ("Nothing to do. Available: -collapse- and -egen-\n");
+        sf_errprintf ("Nothing to do. Available: -collapse- , -egen-, -isid-, -levelsof-\n");
         return (198);
     }
 

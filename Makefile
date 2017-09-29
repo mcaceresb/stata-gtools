@@ -3,6 +3,7 @@ LEGACY=
 
 ifeq ($(OS),Windows_NT)
 	SPOOKYLIB = spookyhash.dll
+	SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	PREMAKE = premake5.exe
@@ -18,6 +19,7 @@ else
 		OUTM = build/gtools_unix_multi$(LEGACY).plugin build/gtools_multi$(LEGACY).o
 		OUTE = build/env_set_unix$(LEGACY).plugin
 		SPOOKYLIB = libspookyhash.a
+		SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
@@ -25,6 +27,7 @@ else
 		OUTM = build/gtools_macosx_multi$(LEGACY).plugin build/gtools_multi$(LEGACY).o
 		OUTE = build/env_set_macosx$(LEGACY).plugin
 		SPOOKYLIB = libspookyhash.a
+		SPOOKY = lib/spookyhash/build/bin/Release/$(SPOOKYLIB)
 	endif
 	GCC = gcc
 	PREMAKE = premake5
@@ -43,7 +46,6 @@ endif
 SPI = 2.0
 SPT = 0.2
 CFLAGS = -Wall -O3 $(OSFLAGS)
-SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 AUX = build/stplugin.o
 
 # OpenMP only tested on Linux
@@ -77,7 +79,6 @@ spooky:
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
 	mkdir -p ./build
-	# cp -f ./lib/spookyhash/build/$(SPOOKYLIB) ./build/$(SPOOKYLIB)
 else ifeq ($(UNAME_S),Linux)
 ifeq ($(LEGACY),_legacy)
 spooky:
@@ -106,14 +107,15 @@ links:
 	ln -sf lib/spookyhash src/plugin/spookyhash
 
 gtools_other: src/plugin/gtools.c src/plugin/spi/stplugin.c
-	mkdir -p ./build
-	mkdir -p ./lib/spookyhash/build/bin/Release
-	$(GCC) $(CFLAGS) -o $(OUT)  src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
 	# $(GCC) $(CFLAGS) -c -o build/stplugin.o src/plugin/spi/stplugin.c
 	# $(GCC) $(CFLAGS) -c -o build/gtools_multi$(LEGACY).o src/plugin/gtools.c $(OPENMP)
 	# $(GCC) $(CFLAGS)    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Does not load
 	# $(GCC) -Wall -O3    -o $(OUTM) $(AUX) $(SPOOKY) $(OPENMP) # Crashes
+	mkdir -p ./build
+	mkdir -p ./lib/spookyhash/build/bin/Release
+	$(GCC) $(CFLAGS) -o $(OUT)  src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
 	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
+	cp build/*plugin lib/plugin/
 
 gtools_nix: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build

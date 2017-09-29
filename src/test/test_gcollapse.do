@@ -272,13 +272,11 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
-    sysuse auto, clear
-    gen price2 = price
-
     qui {
         sysuse auto, clear
         gen price2 = price
         gcollapse price = price2, by(make)
+        gcollapse price in 1, by(make)
     }
 
     qui {

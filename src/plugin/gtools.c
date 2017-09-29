@@ -1054,28 +1054,6 @@ int sf_hash_byvars (struct StataInfo *st_info)
     st_info->nj_min = nj_min;
     st_info->nj_max = nj_max;
 
-/*
-    // Copy info and index; since we don't know how many groups or
-    // observations there will be and we want to pass info and index
-    // across functions, we initialize them as pointers within the
-    // st_info structure. Assignning elements to them as if they were
-    // arrays after they were initialized as pointers was a bit tricky
-    // because I have to allocate space in memory for the arrays. Hence
-    // we copy elements back like this:
-
-    st_info->info = calloc(J + 1, sizeof *info);
-    if ( st_info->info == NULL ) sf_oom_error("sf_hash_byvars", "st_info->info");
-    for (j = 0; j < J + 1; j++)
-        st_info->info[j] = info[j];
-    free (info);
-
-    st_info->index = calloc(st_info->N, sizeof *index);
-    if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_index->index");
-    for (i = 0; i < st_info->N; i++)
-        st_info->index[i] = index[i];
-    free (index);
-*/
-
     return (0);
 }
 

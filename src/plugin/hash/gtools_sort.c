@@ -220,72 +220,75 @@ size_t * mf_panelsetup128 (
     size_t *info_largest = calloc(N + 1, sizeof *info_largest);
     if ( info_largest == NULL ) return(NULL);
     info_largest[l++] = 0;
-    do {
-        if (h1[i] != el) {
 
-            // The 128-bit hash is stored in 2 64-bit parts; almost
-            // surely sorting by one of them is sufficient, but in case
-            // it is not, sort by the other, and that should be enough.
-            //
-            // Sorting by both keys all the time is time-consuming,
-            // whereas sorting by only one key is fast. Since we only
-            // expect about 1 collision every 4 billion groups, it
-            // should be very rare to have to use both keys. (Stata caps
-            // observations at 20 billion anyway, and there's one hash
-            // per *group*, not row).
-            //
-            // Still, if the 64-bit hashes are not enough, use the full
-            // 128-bit hashes, wehere we don't expect a collision until
-            // we have 16 quintillion groups in our data.
-            //
-            // See burtleburtle.net/bob/hash/spooky.html for details.
+    if ( N > 1 ) {
+        do {
+            if (h1[i] != el) {
 
-            if ( !mf_check_allequal(h2, info_largest[l - 1], i) ) {
-                collision64++;
-                start_l = info_largest[l - 1];
-                range_l = i - start_l;
+                // The 128-bit hash is stored in 2 64-bit parts; almost
+                // surely sorting by one of them is sufficient, but in case
+                // it is not, sort by the other, and that should be enough.
+                //
+                // Sorting by both keys all the time is time-consuming,
+                // whereas sorting by only one key is fast. Since we only
+                // expect about 1 collision every 4 billion groups, it
+                // should be very rare to have to use both keys. (Stata caps
+                // observations at 20 billion anyway, and there's one hash
+                // per *group*, not row).
+                //
+                // Still, if the 64-bit hashes are not enough, use the full
+                // 128-bit hashes, wehere we don't expect a collision until
+                // we have 16 quintillion groups in our data.
+                //
+                // See burtleburtle.net/bob/hash/spooky.html for details.
 
-                size_t   *ix_l = calloc(range_l, sizeof *ix_l);
-                size_t   *ix_c = calloc(range_l, sizeof *ix_c);
-                // uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
-                uint64_t *h2_l = h2 + start_l;
+                if ( !mf_check_allequal(h2, info_largest[l - 1], i) ) {
+                    collision64++;
+                    start_l = info_largest[l - 1];
+                    range_l = i - start_l;
 
-                if ( ix_l == NULL ) return (NULL);
-                if ( ix_c == NULL ) return (NULL);
-                // if ( h2_l == NULL ) return (NULL);
+                    size_t   *ix_l = calloc(range_l, sizeof *ix_l);
+                    size_t   *ix_c = calloc(range_l, sizeof *ix_c);
+                    // uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
+                    uint64_t *h2_l = h2 + start_l;
 
-                for (j = start_l; j < i; j++)
-                    h2_l[j - start_l] = h2[j];
+                    if ( ix_l == NULL ) return (NULL);
+                    if ( ix_c == NULL ) return (NULL);
+                    // if ( h2_l == NULL ) return (NULL);
 
-                mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0, 0);
-                for (j = 0; j < range_l; j++)
-                    ix_c[j] = index[ix_l[j] + start_l];
+                    for (j = start_l; j < i; j++)
+                        h2_l[j - start_l] = h2[j];
 
-                free (ix_l);
+                    mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0, 0);
+                    for (j = 0; j < range_l; j++)
+                        ix_c[j] = index[ix_l[j] + start_l];
 
-                for (j = start_l; j < i; j++)
-                    index[j] = ix_c[j - start_l];
+                    free (ix_l);
 
-                free (ix_c);
+                    for (j = start_l; j < i; j++)
+                        index[j] = ix_c[j - start_l];
 
-                // Now that the hash and index are sorted, add to info_largest
-                // based on h2_l
-                el2 = h2_l[i2++];
-                while ( i2 < range_l ) {
-                    if ( h2_l[i2] != el2 ) {
-                        info_largest[l++] = start_l + i2;
-                        el2 = h2_l[i2];
+                    free (ix_c);
+
+                    // Now that the hash and index are sorted, add to info_largest
+                    // based on h2_l
+                    el2 = h2_l[i2++];
+                    while ( i2 < range_l ) {
+                        if ( h2_l[i2] != el2 ) {
+                            info_largest[l++] = start_l + i2;
+                            el2 = h2_l[i2];
+                        }
+                        i2++;
                     }
-                    i2++;
+                    // free (h2_l);
                 }
-                // free (h2_l);
-            }
 
-            info_largest[l++] = i;
-            el = h1[i];
-        }
-        i++;
-    } while( i < N );
+                info_largest[l++] = i;
+                el = h1[i];
+            }
+            i++;
+        } while( i < N );
+    }
     info_largest[l] = N;
 
     *J = l;
@@ -333,7 +336,7 @@ int mf_check_allequal (uint64_t hash[], size_t start, size_t end)
  * @param J where to store the number of groups
  * @return info arary with start and end positions of each group
  */
-size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
+size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t *J)
 {
     *J = 1;
     size_t i = 0;
@@ -343,13 +346,16 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
     size_t *info_largest = calloc(N + 1, sizeof *info_largest);
     if ( info_largest == NULL ) return(NULL);
     info_largest[l++] = 0;
-    do {
-        if (h1[i] != el) {
-            info_largest[l++] = i;
-            el  = h1[i];
-        }
-        i++;
-    } while( i < N );
+
+    if ( N > 1 ) {
+        do {
+            if (h1[i] != el) {
+                info_largest[l++] = i;
+                el  = h1[i];
+            }
+            i++;
+        } while( i < N );
+    }
     info_largest[l] = N;
 
     *J = l;
@@ -361,110 +367,3 @@ size_t * mf_panelsetup (uint64_t h1[], const size_t N, size_t * J)
 
     return (info);
 }
-
-/*********************************************************************
- *                              Planned                              *
- *********************************************************************/
-
-/**
- * @brief Sort results from Collapse for Stata
- *
- * Sort the by variables so we write to Stata in order and don't have to
- * use sort.
- *
- * @param kvars Number of by variables
- * @param lengths Array with lengths of by variables, if string, of -1 if numeric
- * @return index for reading the data back into Stata
- */
-
-/*
- * int * sf_sort_byvars (size_t kvars, size_t lengths[])
- * {
- *     // Read first by var data into struct
- *     // Indexed = ... // first variable
- *     qsort(Indexed, N, sizeof(Indexed), mf_compare_indexed)
- *     // IndexInfo = PanelSetup(Indexed, N, &J)
- *     // <- This FAILS, e.g.
- *     //
- *     // a b a
- *     // a c a
- *     // a c b
- *     //
- *     // Is a unique sort, but if we do PanelSetup just on the
- *     // third variabe we would not detect it is unique. Maybe
- *     // You can 'merge' different info variables? Maybe you can
- *     // do recursion? Man, that would be hella expensive, no? How
- *     // about some type of merge?
- *     //
- *     // info-merged <- calloc(N, ...)
- *     // J      <- levels in info-current
- *     // J-new  <- levels in info-new
- *     // J-next    <- 0 <- levels in info-next
- *     // j-current <- 0
- *     // j-new     <- 0
- *     // do {
- *     //     if ( info[j-current] == info-new[j-new] ) {
- *     //         info-merged[J-next] = info[j-current]
- *     //         ++j-current;
- *     //         ++j-new;
- *     //     }
- *     //     else if ( info[j-current] < info-new[j-new] ) {
- *     //         info-merged[J-next] = info[j-current]
- *     //         ++j-current;
- *     //     }
- *     //     else if ( info[j-current] > info-new[j-new] ) {
- *     //         info-merged[J-next0] = info[j-new]
- *     //         ++j-new;
- *     //     }
- *     //     ++J-next;
- *     // } while ( (j-current < J) & (j-new < J-new) )
- *     //
- *     //
- *     for(k = 1; k < kvars; k++) {
- *         if ( J == N ) break; // Sort by (k - 1)th variable produced a unique sort
- *         // IndexedNew = ... // kth variable
- *         // IndexedNewCopy = IndexedNew
- *         for(i = 0; i < N; i++) {
- *             IndexedNew[i] = IndexedNewCopy[Indexed[i]->index]
- *             // This should also copy the index values in the new order
- *             // i.e. do not recreate the index at each step
- *         }
- *         for (j = 0; j < J; j++){
- *             start = IndexInfo[j]
- *             end   = IndexInfo[j + 1]
- *             for(i = start; i < end; i++) {
- *                 qsort(IndexedNew + start, end - start, sizeof(IndexedNew), mf_compare_indexed)
- *             }
- *         }
- *         Indexed = IndexedNew
- *         // IndexInfo = PanelSetup(Indexed, N, &J)
- *     }
- *     // return(index); // the ith observation is given by index[i]
- * }
- */
-
-/*
- * int mf_compare_indexed_double (const void *a, const void *b) {
- *   IndexedDouble *A, *B;
- *   A = (IndexedDouble*)a;
- *   B = (IndexedDouble*)b;
- *   return (A->value - B->value);
- * }
- *
- * int mf_compare_indexed_string (const void *a, const void *b) {
- *   IndexedString *A, *B;
- *   A = (IndexedString*)a;
- *   B = (IndexedString*)b;
- *   return (strcmp(A->value, B->value));
- * }
- *
- * struct IndexedString {
- *   char *value;
- *   size_t index;
- * }
- *
- * struct IndexedDouble {
- *   double value;
- *   size_t index;
- * }
- */

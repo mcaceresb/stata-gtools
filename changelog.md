@@ -21,6 +21,7 @@ Change Log
 
 * Prior versions de-facto used a 64-bit hash instead of a 128-bit hash.
   The new version should use the 128-bit hash correctly.
+* Prior versions would fail if there was only 1 observation.
 
 ## gtools-0.7.1 (2017-09-27)
 

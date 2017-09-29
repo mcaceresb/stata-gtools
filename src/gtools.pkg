@@ -1,4 +1,4 @@
-v 0.6.16
+v 0.7.2
 d
 d 'GTOOLS': Faster -egen- and -collapse- using C plugins
 d
@@ -9,20 +9,28 @@ d
 d KW: gtools
 d KW: egen
 d KW: collapse
+d KW: isid
+d KW: levelsof
 d KW: gegen
 d KW: gcollapse
+d KW: gisid
+d KW: glevelsof
 d
 d Requires: Stata version 13.1
 d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20170913
+d Distribution-Date: 20170928
 d
 f gcollapse.ado
 f gcollapse.sthlp
 f gegen.ado
 f gegen.sthlp
+f gisid.ado
+f gisid.sthlp
+f glevelsof.ado
+f glevelsof.sthlp
 f gtools.ado
 f gtools.sthlp
 f gtools_unix.plugin

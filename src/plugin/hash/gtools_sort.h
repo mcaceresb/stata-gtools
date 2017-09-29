@@ -31,7 +31,8 @@ size_t * mf_panelsetup128 (
     uint64_t h2[],
     size_t index[],
     const size_t N,
-    size_t * J
+    size_t * J,
+    int verbose
 );
 
 size_t * mf_panelsetup (

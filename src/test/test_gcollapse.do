@@ -200,10 +200,6 @@ program checks_options_gcollapse
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
     restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose unsorted `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
         gcollapse `collapse_str', by(groupstr) verbose benchmark cw `options'
         if ( `=_N' > 10 ) l in 1/10
         if ( `=_N' < 10 ) l
@@ -280,6 +276,7 @@ program checks_corners
         sysuse auto, clear
         gen price2 = price
         gcollapse price = price2, by(make)
+        gcollapse price in 1, by(make)
     }
 
     qui {

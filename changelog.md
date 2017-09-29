@@ -1,6 +1,65 @@
 Change Log
 ==========
 
+## gtools-0.7.2 (2017-09-28)
+
+### Features
+
+* `gisid` is added as a working replacement for `isid` and `isid, missok`.
+  `gisid` taks `if` and `in` statements; however, it does not implement 
+  `isid, sort` or `isid using`.
+* `glevelsof` is added as a working replacement for `levelsof`.
+  All `levelsof` features are available.
+
+### Enhancements
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/13 so 
+  `gcollapse` maintains source formats on targets.
+* Improved internal handling of if conditions for `egen`.
+
+### Bug fixes
+
+* Prior versions de-facto used a 64-bit hash instead of a 128-bit hash.
+  The new version should use the 128-bit hash correctly.
+* Prior versions would fail if there was only 1 observation.
+
+## gtools-0.7.1 (2017-09-27)
+
+### Enhancements
+
+* `egen` now only processes observations in range for `id, group`
+* `egen, group` now marginally faster when all vars are integers
+
+## gtools-0.7.0 (2017-09-26)
+
+### Enhancements
+
+* Temporary variable no longer created for `egen, tag` or `egen, group`
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/6
+    * Variables are sorted internally for `egen, group`, which matches `egen`.
+    * Variables are sorted internally for `gcollapse`, which is faster.
+* Various internal enhancements:
+    * The hash is validated faster
+    * Hash validation is also used to read in group variables
+    * Integer bijection now sorts by the integers correctly,
+      obviating the need for a second sort.
+    * No need to validate the hash with integer bijection.
+    * The memory usage is marginally leaner.
+    * Reorganized all the files, making the code-base easier to maintain.
+* Various commented internal code deleted.
+
+### Backwards-incompatible
+
+* `gcollapse, unsorted` no longer supported (due to internal sorting)
+
+## gtools-0.6.17 (2017-09-17); fixes #15
+
+### Bug fixes
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/15
+  which was introduced trying to fix
+  https://github.com/mcaceresb/stata-gtools/issues/15
+
 ## gtools-0.6.16 (2017-09-13); addresses #7
 
 ### Bug fixes

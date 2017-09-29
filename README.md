@@ -2,16 +2,16 @@
 
 [Overview](#faster-stata-for-group-operations)
 | [Installation](#installation)
-| [Benchmarks](#benchmarks)
+| [Benchmarks](#collapse-benchmarks)
 | [Building](#building)
 | [FAQs](#faqs)
 | [License](#license)
 
-_Gtools_ is a Stata package that provides a fast implementation of
-common group commands like collapse and egen using C plugins for a
+_Gtools_ is a Stata package that provides a fast implementation of common
+group commands like collapse, egen, isid, and levelsof using C plugins for a
 massive speed improvement.
 
-`version 0.6.16 13Sep2017`
+`version 0.7.2 28Sep2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -19,23 +19,32 @@ Faster Stata for Group Operations
 ---------------------------------
 
 This package's aim is to provide a fast implementation of group commands in
-Stata using C plugins. At the moment, the package's main feature is a faster
-implementation of `collapse`, called `gcollapse`, that is also faster than
-Sergio Correia's `fcollapse` from `ftools` (further, group variables can be a
-mix of string and numeric, like `collapse`). It also provides some (limited)
-support for by-able `egen` functions via `gegen`.
+Stata using C plugins. This includes:
 
-In our benchmarks, `gcollapse` was 5 to 120 times faster than `collapse`
-and 3 to 20 times faster than `fcollapse` (the speed gain is smaller for
-simpler statistics, such as sums, and larger for complex statistics, such as
-percentiles). The key insight is two-fold: First, hashing the data and sorting
-the hash is a lot faster than sorting the data before processing it by group.
-Second, compiled C code is much faster than Stata commands.
+| Function    | Replaces   | Extras             | Unsupported        |
+| ----------- | ---------- | ------------------ | ------------------ |
+| `gcollapse` | `collapse` | Quantiles, `merge` | Weights            |
+| `gegen`     | `egen`     | Quantiles          | See [FAQs](#faqs) for available functions |
+| `gisid`     | `isid`     | `if`, `in`         | `using`, `sort`    |
+| `glevelsof` | `levelsof` | Multiple variables |                    |
+
+The key insight is two-fold: First, hashing the data and sorting the hash is
+a lot faster than sorting the data before processing it by group. Second,
+compiled C code is much faster than Stata commands. This insight is used
+in all `gtools` functions to achieve their speedup.
+
+The package's main feature is a faster implementation of `collapse`, called
+`gcollapse`, that is also faster than Sergio Correia's `fcollapse` from
+`ftools` (further, group variables can be a mix of string and numeric,
+like `collapse`). In our benchmarks, `gcollapse` was 5 to 120 times faster
+than `collapse` and 3 to 20 times faster than `fcollapse` (the speed gain
+is smaller for simpler statistics, such as sums, and larger for complex
+statistics, such as percentiles).
 
 The current release only provides Unix (Linux) and Windows versions of the C
 plugin. Further, multi-threading is only available on Linux. OSX versions and
 a muilti-threaded Windows version are planned for a future release.
-
+ 
 If you plan to use the plugin extensively, check out the [FAQs](#faqs) for
 caveats and details on the plugin.
 
@@ -49,16 +58,27 @@ net install gtools, from(https://raw.githubusercontent.com/mcaceresb/stata-gtool
 * ado uninstall gtools
 ```
 
-The syntax is identical to `collapse`, except weights are not yet supported:
+The syntax is generally analogous to the standard commands (see the corresponding
+help files for full syntax and options):
 ```stata
-gcollapse (stat) target = source [(stat) target = source ...], by(varlist)
-gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar)
+gcollapse (stat) target = source [(stat) target = source ...], by(varlist) [options]
+gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar) [options]
+
+gegen target  = stat(source), by(varlist) [options]
+gegen mean_x1 = mean(x1), by(groupvar)
+
+gisid varlist [if] [in], [options]
+gisid groupvar, missok
+
+glevelsof varlist [if] [in], [options]
+glevelsof groupvar, local(levels) sep(" | ")
 ```
 
-Support for weights is planned for a future release.
+Support for weights for `gcollapse` and `gegen` planned for a future
+release. See the [FAQs](#faqs) for a list of supported functions.
 
-Benchmarks
-----------
+Collapse benchmarks
+-------------------
 
 See `src/test/bench_gcollapse.do` for the benchmark code. I run 3 sets of benchmarks:
 - `ftools`-style benchmarks: Collapse a large number of observations
@@ -104,7 +124,6 @@ percentiles.
 <img src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/src/test/plots/barComparisonJ.png" alt="compare-J" width="700px"/>
 
 ### Benchmark details: In the style of `ftools`
-
 
 Vary N for J = 100 and collapse 15 variables:
 ```
@@ -192,7 +211,7 @@ collapsing):
 `fcollapse` did better for a modest numbers of groups, but it performed
 poorly for very few groups and for a large number of groups. Overall
 `gcollapse` was 7-16 times faster. I have not benchmarked `collapsed`
-against version `0.6.4` in this case because each run will take over
+against version `0.7.0` in this case because each run will take over
 an hour and have not found the time. I ran a "smaller" version of this
 benchmark: Vary J for N = 5,000,000
 ```
@@ -212,8 +231,7 @@ Building
 
 ### Requirements
 
-If you want to compile the plugin yourself, atop the C standard library
-you will need
+If you want to compile the plugin yourself, you will need
 - The GNU Compiler Collection (`gcc`)
 - [`premake5`](https://premake.github.io)
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
@@ -353,14 +371,18 @@ which allows computing quantiles; e.g. 2.5 or 97.5).
 
 ### Important differences from `egen`
 
-- Generating group IDs is different than `egen`: `gegen` does not care to
-  sort the groups before processing; it just groups them together. This means
-  that **`gegen group` will produce different output than `egen group`**. The
-  former tags groups as they appear, whereas the latter tags the first group
-  as it would appear sorted as 1, the second as it would appear sorted as 2,
-  and so on. This is discussed in [issue #6](https://github.com/mcaceresb/stata-gtools/issues/6)
-- Most egen function are not yet supported by `gegen`; only
-  the functions noted above are currently available.
+- Most egen function are not yet supported by `gegen`; only the functions
+  noted above are currently available.
+
+### Important differences from `flevelsof`
+
+- It can take a `varlist` and not just a `varname`
+
+### Important differences from `isid`
+
+- No support for `using`.
+- Option `sort` is not available.
+- It can check IDs with `if` and `in`
 
 ### Stata on Windows
 
@@ -524,7 +546,6 @@ In order of priority:
 
 - [ ] Compile for OSX.
 - [ ] Multi-threaded version on windows.
-- [ ] Implement a way to sort multi-dimensional mixed-type indeces in C.
 - [ ] Fix Windows bug where comma-format is not correctly displayed.
 - [ ] Add support for weights.
 - [ ] Provide `sumup` and `sum` altetnative, `gsum`.

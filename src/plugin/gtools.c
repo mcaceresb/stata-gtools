@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Mon Jul 17 12:55:12 EDT 2017
+ * Updated: Tue Sep 26 12:05:32 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.6.16
+ * Version: 0.7.2
  *********************************************************************/
 
 /**
@@ -23,21 +23,26 @@
 #include "gtools.h"
 #include "spi/stplugin.h"
 #include "spt/st_gentools.c"
-#include "gtools_utils.c"
-#include "gtools_sort.c"
-#include "gtools_math.c"
+#include "tools/gtools_utils.c"
+#include "hash/gtools_sort.c"
+#include "tools/gtools_math.c"
+#include "tools/quicksortMultiLevel.c"
+#include "hash/gtools_hash.c"
+#include "extra/common.c"
+#include "extra/gisid.c"
+#include "extra/glevelsof.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
-#include "gtools_hash_multi.c"
-#include "gcollapse_multi.c"
-#include "gegen_multi.c"
-#include "gtools_misc_multi.c"
+/* #include "hash/gtools_hash_multi.c" */
+#include "collapse/gcollapse_multi.c"
+#include "egen/gegen_multi.c"
+#include "tools/gtools_misc_multi.c"
 #else
-#include "gtools_hash.c"
-#include "gcollapse.c"
-#include "gegen.c"
-#include "gtools_misc.c"
+/* #include "hash/gtools_hash.c" */
+#include "collapse/gcollapse.c"
+#include "egen/gegen.c"
+#include "tools/gtools_misc.c"
 #endif
 
 int main()
@@ -70,50 +75,73 @@ STDLL stata_call(int argc, char *argv[])
     strcpy (todo, argv[0]);
 
     if ( strcmp(todo, "check") == 0 ) {
+
         // Exit; if you're here the plugin was loaded fine
+        // -----------------------------------------------
+
         return (0);
     }
     else if ( strcmp(todo, "collapse") == 0 ) {
-        if (argc < 2) {
-            // Collapse to memory (assumes targets already exist in Stata
-            if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
-            if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
-            if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-            // if ( st_info.checkhash ) { }
 
-            if ( (rc = sf_collapse  (&st_info, 0, "")) ) return (rc);
-            if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+        /*********************************************************************
+         *                             Collapse                              *
+         *********************************************************************/
+
+        if ( argc < 2 ) {
+
+            // Collapse 1: Work in memory (targets already exist in Stata)
+            // -----------------------------------------------------------
+
+            if ( (rc = sf_parse_info        (&st_info, 0))     ) return (rc); // Various aux data from gcollapse.ado
+            if ( (rc = sf_hash_byvars       (&st_info))        ) return (rc); // Hash grouping (by) variables
+            if ( (rc = sf_check_hash_index  (&st_info, 1))     ) return (rc); // Check hash index is correctly sorted
+            if ( (rc = sf_collapse          (&st_info, 0, "")) ) return (rc); // Collapse data by hash index
+            if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc); // Save number of groups to Stata
 
             sf_free (&st_info);
             return (0);
         }
-        else if (argc < 3) {
+        else if ( argc < 3 ) {
             sf_errprintf ("collapse sub-commands must also specify a file.\n");
             return (198);
         }
         else {
-            // Otherwise, assume you want a sub-command All            .
-            // sub-commands do operations on a file                    .
+
+            // Collapse 2: Work with disk
+            // --------------------------
+
+            // Here gtools assumes you want a sub-command. All sub-commands do
+            // operations on a file. The call is:
+            //
+            //     collapse sub-command file
+
             char fname[strlen(argv[2])];
             strcpy (fname,  argv[2]);
             strcpy (tostat, argv[1]);
-            if ( strcmp(tostat, "ixwrite") == 0 ) {
-                // Collapse to disk right away (for -forceio-)
-                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
-                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                // if ( st_info.checkhash ) { }
 
-                if ( (rc = sf_collapse  (&st_info, 1, fname)) ) return (rc);
-                if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+            if ( strcmp(tostat, "ixwrite") == 0 ) {
+
+                // Collapse to disk right away (for -forceio-)
+                // -------------------------------------------
+
+                if ( (rc = sf_parse_info        (&st_info, 0))        ) return (rc); // Various aux data from gcollapse.ado
+                if ( (rc = sf_hash_byvars       (&st_info))           ) return (rc); // Hash grouping (by) variables
+                if ( (rc = sf_check_hash_index  (&st_info, 1))        ) return (rc); // Check hash index is correctly sorted
+                if ( (rc = sf_collapse          (&st_info, 1, fname)) ) return (rc); // Collapse data by hash index to disk
+                if ( (rc = SF_scal_save    ("__gtools_J", st_info.J)) ) return (rc); // Save number of groups to Stata
 
                 sf_free (&st_info);
                 return (0);
             }
             else if ( strcmp(tostat, "index") == 0 ) {
-                // Collapse to disk if it is estimated to be faster;
-                // abort collapse and write index and info to Stata
-                // (will collapse later to memory).
+
+                // Estimate disk vs memory collapse
+                // --------------------------------
+
+                // The function tries to estimate how much time it would take
+                // to add extra targets in memory vs using I/O. It aborts and
+                // writes the index and info to Stata if it's estimated that
+                // I/O will be slower (and will collapse later to memory).
 
                 double rate_st, mib_base, threshold, k_extra;
                 double rate_c   = mf_benchmark(fname);
@@ -125,23 +153,34 @@ STDLL stata_call(int argc, char *argv[])
                 if ( (rc = SF_scal_use  ("__gtools_k_extra",   &k_extra))   ) return(rc);
 
                 // Hash by variables and sort
-                if ( (rc = sf_parse_info  (&st_info, 0))   ) return (rc);
-                if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
-                if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-                // if ( st_info.checkhash ) { }
+                if ( (rc = sf_parse_info  (&st_info, 0)) ) return (rc);
+                if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+
+                // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
+
+                // Stata tries to be smart when allocating memory. So sometimes
+                // allocating variables will be instant, and other times it will
+                // take some time. If it takes < 0.001s, it is possible it will
+                // be instant and we should do all in memory, but it is also
+                // possible it was trying to be smart.
+                //
+                // So my current thinking is that when this happens, there is
+                // nothing I can do to estimate the times. In this case I assume
+                // the rates are 0.001s and 0.001s / threshold for allocating
+                // memory before annd after the collapse, respectively. This
+                // seems to work OK-ish in practive.
 
                 // Estimate if it will be faster to collapse to disk
-                // TODO: Figure out if this makes sense; Stata caps timer at 0.001 // 2017-06-13 20:20 EDT
                 double mib_stata, mib_c, mib_cstata;
                 mib_stata  = st_info.N * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
-                // mib_c      = st_info.J * mib_base * ( (rate_st > 0.001)? rate_c:  0.001 );
-                // mib_cstata = st_info.J * mib_base * ( (rate_st > 0.001)? rate_st: 0.001 );
+                mib_cstata = st_info.J * mib_base * ( (rate_st > 0.001)? rate_st: (0.001 / threshold) );
                 mib_c      = st_info.J * mib_base * rate_c;
-                mib_cstata = st_info.J * mib_base * rate_st;
                 if ( (rate_st < 0.001) & st_info.verbose ) {
-                    // sf_printf("(Stata benchmark inaccurate below 0.001s; assuming C, Stata times = 0.001)\n");
                     sf_printf("(Stata benchmark inaccurate below 0.001s; assuming benchmark time was 0.001s)\n");
                 }
+                // mib_c      = st_info.J * mib_base * ( (rate_st > 0.001)? rate_c:  0.001 );
+                // mib_cstata = st_info.J * mib_base * rate_st;
+                // sf_printf("(Stata benchmark inaccurate below 0.001s; assuming C, Stata times = 0.001)\n");
 
                 // Print some info on the switching criteria to the console
                 int used_io;
@@ -151,6 +190,7 @@ STDLL stata_call(int argc, char *argv[])
                 else {
                     used_io = ( (mib_c + mib_cstata) < (mib_stata / threshold) );
                 }
+
                 if ( st_info.verbose ) {
                     // I had a cleaner way to do this, but it failed badly on Windows ):
                     sf_printf("Will write %lu extra targets to disk (full data = %'.1f MiB; collapsed data = ",
@@ -171,13 +211,18 @@ STDLL stata_call(int argc, char *argv[])
                     sf_printf(" seconds.\n");
                 }
 
+                // Collapse to disk if faster; else abort and save index, info
+                // -----------------------------------------------------------
+
                 if ( used_io ) {
                     // Collapse to disk if it will be faster
-                    if ( (rc = sf_collapse (&st_info, 1, fname)) ) return (rc);
+                    if ( (rc = sf_check_hash_index (&st_info, 1)) ) return (rc);
+                    if ( (rc = sf_collapse  (&st_info, 1, fname)) ) return (rc);
                 }
                 else {
-                    // Otherwise, save index and info to memory (it will
-                    // be faster to pick up from here)
+
+                    // Otherwise, save index and info to memory (it will be
+                    // faster to pick up from here)
                     size_t ipos = st_info.kvars_by + 2 * st_info.kvars_source + 1;
                     for (i = 0; i < st_info.N; i++)
                         if ( (rc = SF_vstore(ipos, i + st_info.in1, st_info.index[i])) ) return (rc);
@@ -187,13 +232,18 @@ STDLL stata_call(int argc, char *argv[])
                         if ( (rc = SF_vstore(ipos, j + st_info.in1, st_info.info[j])) ) return (rc);
                 }
 
+                // Record whether the collapse was already done; if so, Stata
+                // will also need to know the nubmer of groups.
                 if ( (rc = SF_scal_save ("__gtools_used_io", used_io)) ) return (rc);
-                if ( (rc = SF_scal_save ("__gtools_J", st_info.J)) ) return (rc);
+                if ( (rc = SF_scal_save ("__gtools_J",     st_info.J)) ) return (rc);
 
                 sf_free (&st_info);
                 return (0);
             }
             else if ( strcmp(tostat, "ixfinish") == 0 ) {
+
+                // If not collapsed to disk, read in index and info and collapse to memory
+                // -----------------------------------------------------------------------
 
                 // Pick up from having index and info in memory and collapse
                 // to memory, having created the targets in Stata.
@@ -202,7 +252,7 @@ STDLL stata_call(int argc, char *argv[])
                 ST_double J_double ;
                 if ( (rc = SF_scal_use("__gtools_J", &J_double)) ) return(rc);
                 st_info.J = (size_t) J_double;
- 
+
                 st_info.index = calloc(st_info.N, sizeof(st_info.index));
                 st_info.info  = calloc(st_info.J + 1, sizeof(st_info.info));
 
@@ -213,18 +263,23 @@ STDLL stata_call(int argc, char *argv[])
                     if ( (rc = SF_vdata(st_info.indexed, i + st_info.in1, &z)) ) return (rc);
                     st_info.index[i] = (size_t) z;
                 }
+
                 for (j = 0; j <= st_info.J; j++) {
                     if ( (rc = SF_vdata(st_info.indexed + 1, j + st_info.in1, &z)) ) return (rc);
                     st_info.info[j] = (size_t) z;
                 }
 
-                if ( (rc = sf_collapse (&st_info, 0, "")) ) return (rc);
+                if ( (rc = sf_check_hash_index (&st_info, 1))     ) return (rc);
+                if ( (rc = sf_collapse         (&st_info, 0, "")) ) return (rc);
 
                 sf_free (&st_info);
                 return (0);
             }
             else if ( strcmp(tostat, "read") == 0 ) {
-                // Read collapsed data back into Stata
+
+                // If not collapsed to disk, read collapsed data back into Stata
+                // -------------------------------------------------------------
+
                 ST_double J_double, K_double ;
                 if ( (rc = SF_scal_use("__gtools_J", &J_double)) ) return(rc);
                 size_t J = (size_t) J_double;
@@ -252,17 +307,33 @@ STDLL stata_call(int argc, char *argv[])
         }
     }
     else if ( strcmp(todo, "egen") == 0 ) {
-        // egen call; second argument is function to use
+
+        /*********************************************************************
+         *                               Egen                                *
+         *********************************************************************/
+
+        // egen call requires second argument, which is the function to compute
         if (argc < 2) {
             sf_errprintf ("No stats requested. See: -help egen-\n");
             return (198);
         }
-        if ( (rc = sf_parse_info  (&st_info, 1))   ) return (rc);
-        if ( (rc = sf_hash_byvars (&st_info))      ) return (rc);
-        if ( (rc = sf_check_hash_index (&st_info)) ) return (rc);
-        // if ( st_info.checkhash ) { }
-
         strcpy (tostat, argv[1]);
+        short check = strcmp(tostat, "group") == 0;
+
+        // First hash the data and check the index
+        if ( (rc = sf_parse_info  (&st_info, 1)) ) return (rc);
+        if ( (rc = sf_hash_byvars (&st_info))    ) return (rc);
+        if ( check ) {
+            st_info.sort_memory = !(st_info.integers_ok);
+            if ( (rc = sf_check_hash_index (&st_info, 1)) ) return (rc);
+        }
+        else {
+            if ( (rc = sf_check_hash_index (&st_info, 0)) ) return (rc);
+        }
+
+        // Now apply the summary stat; group and tag are special
+        // operations. Otherwise this follows collapse.
+
         if ( strcmp(tostat, "group") == 0 ) {
             if ( (rc = sf_egen_group (&st_info)) ) return (rc);
         }
@@ -276,65 +347,103 @@ STDLL stata_call(int argc, char *argv[])
         sf_free (&st_info);
         return (0);
     }
-    else if ( strcmp(todo, "setup") == 0 ) {
-        // Computes min, max, and rage for all numeric by variables
-        if ( (rc = sf_numsetup()) ) return (rc);
+    else if ( strcmp(todo, "isid") == 0 ) {
+        if ( (rc = sf_parse_info_lean(&st_info)) ) return (rc);
+        rc = sf_hash_byvars_isid (&st_info);
+        sf_free_lean(&st_info);
+        return (rc);
+    }
+    else if ( strcmp(todo, "levelsof") == 0 ) {
+        if ( (rc = sf_parse_info_lean  (&st_info))    ) return (rc);
+        if ( (rc = sf_hash_byvars      (&st_info))    ) return (rc);
+        if ( (rc = sf_check_hash_index (&st_info, 1)) ) return (rc);
+        if ( (rc = sf_levelsof         (&st_info))    ) return (rc);
+        free (st_info.info);
+        sf_free_lean(&st_info);
         return (0);
     }
-    else if ( strcmp(todo, "isint") == 0 ) {
-        // Figure out if float|double variable is actually all integers
-        if ( (rc = sf_isint()) ) return (rc);
-        return (0);
-    }
-    else if ( strcmp(todo, "recast") == 0 ) {
+    else {
 
-        // The program tries to use source variables as targets to save
-        // memory. When the source variable cannot be used because it's
-        // type would not allow it (e.g. mean for a byte variable) we
-        // generate temporary variables of the correct target type and
-        // fill-in the source variable values. For multiple recast
-        // variables, doing it in bulk here is faster than multiple
-        // replace statements in Stata.
-        ST_double K_double, z ;
+        /*********************************************************************
+         *                          Misc operations                          *
+         *********************************************************************/
 
-        if ( (rc = SF_scal_use("__gtools_k_recast", &K_double)) ) return(rc);
-        size_t K = (size_t) K_double;
+        if ( strcmp(todo, "setup") == 0 ) {
 
-        for (i = SF_in1(); i <= SF_in2(); i++) {
-            for (k = 1; k <= K; k++) {
-                if ( (rc = SF_vdata(k + K, i, &z)) ) return (rc);
-                if ( (rc = SF_vstore(k, i, z)) ) return (rc);
+            // Computes min, max, and rage for all numeric by variables
+            // --------------------------------------------------------
+
+            if ( (rc = sf_numsetup()) ) return (rc);
+            return (0);
+        }
+        else if ( strcmp(todo, "isint") == 0 ) {
+
+            // Figure out if float|double variable is actually all integers
+            // ------------------------------------------------------------
+
+            if ( (rc = sf_isint()) ) return (rc);
+            return (0);
+        }
+        else if ( strcmp(todo, "recast") == 0 ) {
+
+            // Recast sources to be used as targets
+            // ------------------------------------
+
+            // The program tries to use source variables as targets to save
+            // memory. When the source variable cannot be used because it's
+            // type would not allow it (e.g. mean for a byte variable) we
+            // generate temporary variables of the correct target type and
+            // fill-in the source variable values. For multiple recast
+            // variables, doing it in bulk here is faster than multiple
+            // replace statements in Stata.
+
+            ST_double K_double, z ;
+
+            if ( (rc = SF_scal_use("__gtools_k_recast", &K_double)) ) return(rc);
+            size_t K = (size_t) K_double;
+
+            for (i = SF_in1(); i <= SF_in2(); i++) {
+                for (k = 1; k <= K; k++) {
+                    if ( (rc = SF_vdata  (k + K, i, &z)) ) return (rc);
+                    if ( (rc = SF_vstore (k,     i,  z)) ) return (rc);
+                }
+            }
+
+            return (0);
+        }
+        else if ( strcmp(todo, "bench") == 0 ) {
+
+            // Benchmark writing and reading 1MiB to disk
+            // ------------------------------------------
+
+            if (argc < 2) {
+                sf_errprintf ("benchmark requires a file.\n");
+                return (198);
+            }
+            else {
+                char fname[strlen(argv[1])];
+                strcpy (fname, argv[1]);
+                double rate_c = mf_benchmark(fname);
+                if ( (rc = SF_scal_save ("__gtools_bench_c", rate_c)) ) return (rc);
+                return (0);
             }
         }
+        else if ( strcmp(todo, "query") == 0 ) {
 
-        return (0);
-    }
-    else if ( strcmp(todo, "bench") == 0 ) {
-        // Benchmark writing and reading 1MiB to disk
-        if (argc < 2) {
-            sf_errprintf ("benchmark requires a file.\n");
-            return (198);
-        }
-        else {
-            char fname[strlen(argv[1])];
-            strcpy (fname, argv[1]);
-            double rate_c = mf_benchmark(fname);
-            if ( (rc = SF_scal_save ("__gtools_bench_c", rate_c)) ) return (rc);
-            return (0);
-        }
-    }
-    else if ( strcmp(todo, "query") == 0 ) {
-        // Query the amount of free space in the path to fname
-        if (argc < 2) {
-            sf_errprintf ("query requires a file.\n");
-            return (198);
-        }
-        else {
-            char fname[strlen(argv[1])];
-            strcpy (fname, argv[1]);
-            double mib_free = mf_query_free_space(fname);
-            if ( (rc = SF_scal_save ("__gtools_free_tmp", mib_free)) ) return (rc);
-            return (0);
+            // Query the amount of free space in the path to fname
+            // ---------------------------------------------------
+
+            if (argc < 2) {
+                sf_errprintf ("query requires a file.\n");
+                return (198);
+            }
+            else {
+                char fname[strlen(argv[1])];
+                strcpy (fname, argv[1]);
+                double mib_free = mf_query_free_space(fname);
+                if ( (rc = SF_scal_save ("__gtools_free_tmp", mib_free)) ) return (rc);
+                return (0);
+            }
         }
     }
 
@@ -412,6 +521,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
         benchmark = (int) bench_double;
     }
 
+    // If condition
+    int any_if;
+    ST_double any_if_double ;
+    if ( (rc = SF_scal_use("__gtools_if", &any_if_double)) ) {
+        return(rc) ;
+    }
+    else {
+        any_if = (int) any_if_double;
+    }
+
     // Merge back to original data
     int merge;
     ST_double merge_double ;
@@ -446,23 +565,28 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     // byvars_maxs:
     //     - Largest string length. If 0 or -1 we can figure out
     //       whether we only have numbers for by variables.
+    st_info->byvars_int  = calloc(kvars_by, sizeof st_info->byvars_int);
     st_info->byvars_lens = calloc(kvars_by, sizeof st_info->byvars_lens);
     st_info->byvars_mins = calloc(kvars_by, sizeof st_info->byvars_mins);
     st_info->byvars_maxs = calloc(kvars_by, sizeof st_info->byvars_maxs);
 
+    if ( st_info->byvars_int  == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_int"));
     if ( st_info->byvars_lens == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->byvars_mins == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_mins"));
     if ( st_info->byvars_maxs == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_maxs"));
 
-    double byvars_lens_double[kvars_by],
+    double byvars_int_double[kvars_by],
+           byvars_lens_double[kvars_by],
            byvars_mins_double[kvars_by],
            byvars_maxs_double[kvars_by];
 
+    if ( (rc = sf_get_vector("__gtools_byint", byvars_int_double))  ) return(rc);
     if ( (rc = sf_get_vector("__gtools_byk",   byvars_lens_double)) ) return(rc);
     if ( (rc = sf_get_vector("__gtools_bymin", byvars_mins_double)) ) return(rc);
     if ( (rc = sf_get_vector("__gtools_bymax", byvars_maxs_double)) ) return(rc);
 
     for (i = 0; i < kvars_by; i++) {
+        st_info->byvars_int[i]  = (int) byvars_int_double[i];
         st_info->byvars_lens[i] = (int) byvars_lens_double[i];
         st_info->byvars_mins[i] = (int) byvars_mins_double[i];
         st_info->byvars_maxs[i] = (int) byvars_maxs_double[i];
@@ -596,6 +720,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
 
         st_info->kvars_targets = kvars_targets;
         st_info->kvars_source  = kvars_source;
+        st_info->sort_memory   = !(integers_ok | merge);
     }
     else if ( level == 1 ) {
         ST_double __gtools_k_vars, __gtools_l_stats;
@@ -615,7 +740,17 @@ int sf_parse_info (struct StataInfo *st_info, int level)
 
         st_info->kvars_targets = kvars_targets;
         st_info->kvars_source  = kvars_source;
+        st_info->sort_memory   = 0;
     }
+
+    st_info->read_dtax = 0;
+
+    // Whether to invert the sort order of group variables post collapse
+    st_info->invert = calloc(kvars_by, sizeof st_info->invert);
+    if ( st_info->invert == NULL ) return(sf_oom_error("sf_parse_info", "st_info->invert"));
+
+    for (k = 0; k < kvars_by; k++)
+        st_info->invert[k] = 0;
 
     /*********************************************************************
      *           Relative position of targets and by variables           *
@@ -660,10 +795,14 @@ int sf_parse_info (struct StataInfo *st_info, int level)
             st_info->pos_num_byvars[k] = (int) pos_num_byvars_double[k];
     }
 
-    // Save into st_info structure
+    /*********************************************************************
+     *                    Save into st_info structure                    *
+     *********************************************************************/
+
     st_info->in1                 = in1;
     st_info->in2                 = in2;
     st_info->N                   = N;
+    st_info->any_if              = any_if;
     st_info->kvars_by            = kvars_by;
     st_info->kvars_by_num        = kvars_by_num;
     st_info->kvars_by_str        = kvars_by_str;
@@ -697,15 +836,15 @@ int sf_hash_byvars (struct StataInfo *st_info)
     ST_double z ;
     int i, j;
     clock_t timer = clock();
-    size_t J, nj_min, nj_max;
-    size_t *info;
+    size_t J, nj_min, nj_max, N_if;
 
     // Hash the data
     // -------------
 
     // Hashing: Throughout the code we allocate to heap bc C may run out
     // of memory in the stack.
-    size_t *index    = calloc(st_info->N, sizeof *index);
+    st_info->index   = calloc(st_info->N, sizeof(st_info->index));
+    size_t *index    = st_info->index;
     uint64_t *ghash1 = calloc(st_info->N, sizeof *ghash1);
     uint64_t *ghash, *ghash2;
 
@@ -714,7 +853,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
 
     if ( st_info->indexed > 0 ) {
         if ( st_info->verbose )
-            sf_printf("Using index provided by stata (data was already soreted).\n");
+            sf_printf("Using index provided by stata (data was already soretd).\n");
 
         for (i = 0; i < st_info->N; i++) {
             if ( (rc = SF_vdata(st_info->indexed, i + st_info->in1, &z)) ) return(rc);
@@ -729,8 +868,21 @@ int sf_hash_byvars (struct StataInfo *st_info)
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Set up index from Stata");
 
-        info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
+        st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else if ( st_info->integers_ok ) {
@@ -759,6 +911,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
                                                st_info->in1,
                                                st_info->in2,
                                                st_info->byvars_mins[0],
+                                               st_info->byvars_maxs[0],
                                                st_info->verbose)) ) return(rc);
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
@@ -771,11 +924,24 @@ int sf_hash_byvars (struct StataInfo *st_info)
         if ( rc ) return(rc);
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Sorted on integer-only hash index");
 
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
         // info[j], info[j + 1] give the starting and ending position of the
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
-        info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else {
@@ -842,11 +1008,25 @@ int sf_hash_byvars (struct StataInfo *st_info)
         }
         free (ghash2);
 
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    ghash[N_if]  = ghash[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
         // info[j], info[j + 1] give the starting and ending position of the
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
-        info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        st_info->info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J, st_info->verbose);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
         free (ghash);
     }
@@ -855,6 +1035,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     // Group size info
     // ---------------
 
+    size_t *info = st_info->info;
     nj_min = info[1] - info[0];
     nj_max = info[1] - info[0];
     for (j = 1; j < J; j++) {
@@ -873,26 +1054,6 @@ int sf_hash_byvars (struct StataInfo *st_info)
     st_info->nj_min = nj_min;
     st_info->nj_max = nj_max;
 
-    // Copy info and index; since we don't know how many groups or
-    // observations there will be and we want to pass info and index
-    // across functions, we initialize them as pointers within the
-    // st_info structure. Assignning elements to them as if they were
-    // arrays after they were initialized as pointers was a bit tricky
-    // because I have to allocate space in memory for the arrays. Hence
-    // we copy elements back like this:
-
-    st_info->info = calloc(J + 1, sizeof *info);
-    if ( st_info->info == NULL ) sf_oom_error("sf_hash_byvars", "st_info->info");
-    for (j = 0; j < J + 1; j++)
-        st_info->info[j] = info[j];
-    free (info);
-
-    st_info->index = calloc(st_info->N, sizeof *index);
-    if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_index->index");
-    for (i = 0; i < st_info->N; i++)
-        st_info->index[i] = index[i];
-    free (index);
-
     return (0);
 }
 
@@ -906,6 +1067,7 @@ void sf_free (struct StataInfo *st_info)
 {
     free (st_info->info);
     free (st_info->index);
+    free (st_info->invert);
     free (st_info->byvars_lens);
     free (st_info->byvars_mins);
     free (st_info->byvars_maxs);

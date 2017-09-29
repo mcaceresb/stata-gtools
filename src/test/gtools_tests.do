@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Jul 27 10:49:56 EDT 2017
+* Updated: Thu Sep 28 18:40:14 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.16
+* Version: 0.6.19
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -38,6 +38,8 @@ program main
     `capture' `noisily' {
         * do test_gcollapse.do
         * do test_gegen.do
+        * do test_gisid.do
+        * do test_glevelsof.do
         * do bench_gcollapse.do
         if ( `:list posof "checks" in options' ) {
 
@@ -46,19 +48,26 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_corners, oncollision(error))
+            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
 
             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(0))
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) forceio debug_io_read_method(1))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1))
 
             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(0))
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_io_read_method(1))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1))
 
             if !inlist("`c(os)'", "Windows") {
+                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
+
                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0))
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1))
+
                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0))
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1))
             }
 
             di ""
@@ -66,20 +75,42 @@ program main
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error)
-            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(0)
-            consistency_gcollapse,       `noisily' oncollision(error) forceio debug_io_read_method(1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(0)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_io_check(1) debug_io_threshold(1000000)
             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
             consistency_gegen,           `noisily' oncollision(error) debug_force_single
             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
 
             if !inlist("`c(os)'", "Windows") {
                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
+
+            di ""
+            di "--------------------------------"
+            di "Check extra $S_TIME $S_DATE"     
+            di "--------------------------------"
+
+            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
+
+            compare_isid,     `noisily' oncollision(error)
+            compare_levelsof, `noisily' oncollision(error)
+        }
+
+        if ( `:list posof "bench_gtools" in options' ) {
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single)
+            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single)
+            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single)
         }
 
         if ( `:list posof "test" in options' ) {

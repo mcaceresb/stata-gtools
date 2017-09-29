@@ -1,4 +1,4 @@
-*! version 0.6.16 13Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.2 28Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -21,7 +21,6 @@ program gcollapse
         smart                         /// check if data is sorted to speed up hashing
         merge                         /// merge statistics back to original data, replacing where applicable
                                       ///
-        unsorted                      /// do not sort final output
         double                        /// do all operations in double precision
         forceio                       /// use disk temp drive for writing/reading collapsed data
         forcemem                      /// use memory for writing/reading collapsed data
@@ -34,7 +33,7 @@ program gcollapse
         debug_force_single            /// (experimental) Force non-multi-threaded version
         debug_force_multi             /// (experimental) Force muti-threading
         debug_io_check(real 1e6)      /// (experimental) Threshold to check for I/O speed gains
-        debug_io_threshold(int 10)    /// (experimental) Threshold to switch to I/O instead of RAM
+        debug_io_threshold(real 10)   /// (experimental) Threshold to switch to I/O instead of RAM
         debug_io_read_method(int 0)   /// (experimental) Read back using mata or C
     ]
 
@@ -142,6 +141,7 @@ program gcollapse
     scalar __gtools_verbose   = `verbose'
     scalar __gtools_benchmark = `benchmark'
     scalar __gtools_checkhash = `checkhash'
+    scalar __gtools_if        = 0 // Not used
 
     * -gegen- option; included here so plugin is consistent but it
     * is ignored for gcollapse
@@ -432,12 +432,13 @@ program gcollapse
         * If it will be slower, then it stores the index and info
         * variabes in memory (it will be faster to pick up the execution
         * from there than re-hash and re-sort).
-        cap `noi' `plugin_call' `plugvars', collapse index `"`__gtools_file'"'
+        cap noi `plugin_call' `plugvars', collapse index `"`__gtools_file'"'
         if ( _rc == 42000 ) {
             di as err "There may be 128-bit hash collisions!"
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
             if ( "`oncollision'" == "fallback" ) {
                 cap noi collision_handler `0'
+                if ( "`fast'" == "" ) restore, not
                 exit _rc
             }
             else exit 42000 
@@ -481,7 +482,7 @@ program gcollapse
         gtools_timer info 97 `"`msg'"', prints(`benchmark')
 
         * Collapse to memory using hashed data index and info
-        cap `noi' `plugin_call' `plugvars', collapse ixfinish `"`__gtools_file'"'
+        cap noi `plugin_call' `plugvars', collapse ixfinish `"`__gtools_file'"'
         if ( _rc != 0 ) exit _rc
 
         gtools_timer info 97 `"Collapsed indexed data to memory"', prints(`benchmark')
@@ -513,12 +514,13 @@ program gcollapse
 
             qui ds *
             if ( `verbose' ) di as text "In memory: `r(varlist)'"
-            cap `noi' `plugin_call' `plugvars', collapse ixwrite `"`__gtools_file'"'
+            cap noi `plugin_call' `plugvars', collapse ixwrite `"`__gtools_file'"'
             if ( _rc == 42000 ) {
                 di as err "There may be 128-bit hash collisions!"
                 di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                 if ( "`oncollision'" == "fallback" ) {
                     cap noi collision_handler `0'
+                    if ( "`fast'" == "" ) restore, not
                     exit _rc
                 }
                 else exit 42000 
@@ -553,12 +555,13 @@ program gcollapse
 
             * Run the full plugin:
             if ( `=_N > 0' ) {
-                cap `noi' `plugin_call' `plugvars', collapse
+                cap noi `plugin_call' `plugvars', collapse
                 if ( _rc == 42000 ) {
                     di as err "There may be 128-bit hash collisions!"
                     di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                     if ( "`oncollision'" == "fallback" ) {
                         cap noi collision_handler `0'
+                        if ( "`fast'" == "" ) restore, not
                         exit _rc
                     }
                     else exit 42000 
@@ -606,7 +609,7 @@ program gcollapse
             * mata: __gtools_iovars = (`:di subinstr(`""`__gtools_iovars'""', " ", `"", ""', .)')
             mata: __gtools_iovars = tokens(`"`__gtools_iovars'"')
             if ( `debug_io_read_method' == 0 ) {
-                cap `noi' `plugin_call' `__gtools_iovars', collapse read `"`__gtools_file'"'
+                cap noi `plugin_call' `__gtools_iovars', collapse read `"`__gtools_file'"'
                 if ( _rc != 0 ) exit _rc
             }
             else {
@@ -632,10 +635,8 @@ program gcollapse
         * Label the things in the style of collapse
         forvalues k = 1 / `:list sizeof gtools_targets' {
             mata: st_varlabel("`:word `k' of `gtools_targets''", __gtools_labels[`k'])
+            mata: st_varformat("`:word `k' of `gtools_targets''", __gtools_formats[`k'])
         }
-
-        * This is really slow; implement in C
-        if ( "`unsorted'" == "" ) sort `by'
     }
     else {
         * If merge was requested, only drop temporary variables (all
@@ -667,6 +668,7 @@ program gcollapse
     * Clean up after yourself
     * -----------------------
 
+    cap mata: mata drop __gtools_formats
     cap mata: mata drop __gtools_labels
     cap mata: mata drop __gtools_addvars
     cap mata: mata drop __gtools_addtypes
@@ -686,6 +688,7 @@ program gcollapse
     cap mata: mata drop gtools_pos
     cap mata: mata drop gtools_io_order
 
+    cap scalar drop __gtools_if
     cap scalar drop __gtools_l_hashlib
     cap scalar drop __gtools_indexed
     cap scalar drop __gtools_J
@@ -925,12 +928,17 @@ program parse_vars, rclass
     * Variable labels after collapse
     * ------------------------------
 
-    mata: __gtools_labels = J(1, `:list sizeof __gtools_targets', "")
+    mata: __gtools_formats = J(1, `:list sizeof __gtools_targets', "")
+    mata: __gtools_labels  = J(1, `:list sizeof __gtools_targets', "")
     forvalues k = 1 / `:list sizeof __gtools_targets' {
         local vl = "`:variable label `:word `k' of `__gtools_vars'''"
         local vl = cond("`vl'" == "", "`:word `k' of `__gtools_vars''", "`vl'")
         local vl = "(`:word `k' of `__gtools_stats'') `vl'"
         mata: __gtools_labels[`k'] = "`vl'"
+
+        local vf = "`:format `:word `k' of `__gtools_vars'''"
+        local vf = cond("`:word `k' of `__gtools_stats''" == "count", "%8.0g", "`vf'")
+        mata: __gtools_formats[`k'] = "`vf'"
     }
 
     * Available Stats
@@ -1009,7 +1017,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist, [multi] [debug_force_hash]
+    syntax varlist [in], [multi] [debug_force_hash]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
@@ -1040,7 +1048,7 @@ program parse_by_types
             }
             else if inlist("`:type `byvar''", "float", "double") {
                 if ( `=_N > 0' ) {
-                    cap plugin call gtools`multi'_plugin `byvar', isint
+                    cap plugin call gtools`multi'_plugin `byvar' `in', isint
                     if ( _rc ) exit _rc
                 }
                 else scalar __gtools_is_int = 0
@@ -1080,7 +1088,7 @@ program parse_by_types
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
         if ( `=_N > 0' ) {
-            cap plugin call gtools`multi'_plugin `varnum', setup
+            cap plugin call gtools`multi'_plugin `varnum' `in', setup
             if ( _rc ) exit _rc
         }
         matrix __gtools_bymin = c_gtools_bymin
@@ -1457,26 +1465,35 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
-* The legacy versions segfault if they are not loaded First
-cap program drop __gtools_plugin
-cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+* The legacy versions segfault if they are not loaded first (Unix only)
+if ( `"`:di lower("`c(os)'")'"' == "unix" ) {
+    cap program drop __gtools_plugin
+    cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
 
-cap program drop __gtoolsmulti_plugin
-cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    cap program drop __gtoolsmulti_plugin
+    cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
 
-* But we only want to use them when multi-threading fails normally
-cap program drop gtoolsmulti_plugin
-cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
-if ( _rc ) {
-    cap program drop gtools_plugin
-    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
-
+    * But we only want to use them when multi-threading fails normally
     cap program drop gtoolsmulti_plugin
-    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+    if ( _rc ) {
+        cap program drop gtools_plugin
+        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+
+        cap program drop gtoolsmulti_plugin
+        cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    }
+    else {
+        cap program drop gtools_plugin
+        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+    }
 }
 else {
     cap program drop gtools_plugin
     program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+
+    cap program drop gtoolsmulti_plugin
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
 }
 
 * This is very inelegant, but I have debugging fatigue, and this seems to work.

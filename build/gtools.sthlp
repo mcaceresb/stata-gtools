@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0 18Jun2017}{...}
+{* *! version 0.7.2 28Sep2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -49,14 +49,13 @@ before using any of the programs provided by gtools.
 
 {pstd}
 {opt gtools} is a Stata package is a Stata package that provides a fast
-implementation of common group commands like collapse and egen using C
-plugins for a massive speed improvement. This program helps the user
-manage their gtools installation. While unnecessary in Linux, when
+implementation of common group commands like collapse, egen, isid, and
+levelsof using C plugins for a massive speed improvement. This program helps
+the user manage their gtools installation. While unnecessary in Linux, when
 trying to compile the plugin on Windows it became apparent that I would
-need to include a DLL with the package (in particular the DLL for the
-hash library). While I try to do this automatically, I run into enough
-problems while developing the plugin that I felt compelled to include
-this program.
+need to include a DLL with the package (in particular the DLL for the hash
+library). While I try to do this automatically, I run into enough problems
+while developing the plugin that I felt compelled to include this program.
 
 {marker options}{...}
 {title:Options}

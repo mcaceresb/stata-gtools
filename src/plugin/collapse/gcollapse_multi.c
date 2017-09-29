@@ -5,7 +5,7 @@
  * Updated: Tue Sep 26 20:34:53 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.7.1
+ * Version: 0.7.2
  *********************************************************************/
 
 #include <omp.h>

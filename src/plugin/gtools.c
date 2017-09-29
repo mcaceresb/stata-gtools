@@ -5,7 +5,7 @@
  * Updated: Tue Sep 26 12:05:32 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.7.1
+ * Version: 0.7.2
  *********************************************************************/
 
 /**
@@ -28,6 +28,9 @@
 #include "tools/gtools_math.c"
 #include "tools/quicksortMultiLevel.c"
 #include "hash/gtools_hash.c"
+#include "extra/common.c"
+#include "extra/gisid.c"
+#include "extra/glevelsof.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
@@ -344,6 +347,21 @@ STDLL stata_call(int argc, char *argv[])
         sf_free (&st_info);
         return (0);
     }
+    else if ( strcmp(todo, "isid") == 0 ) {
+        if ( (rc = sf_parse_info_lean(&st_info)) ) return (rc);
+        rc = sf_hash_byvars_isid (&st_info);
+        sf_free_lean(&st_info);
+        return (rc);
+    }
+    else if ( strcmp(todo, "levelsof") == 0 ) {
+        if ( (rc = sf_parse_info_lean  (&st_info))    ) return (rc);
+        if ( (rc = sf_hash_byvars      (&st_info))    ) return (rc);
+        if ( (rc = sf_check_hash_index (&st_info, 1)) ) return (rc);
+        if ( (rc = sf_levelsof         (&st_info))    ) return (rc);
+        free (st_info.info);
+        sf_free_lean(&st_info);
+        return (0);
+    }
     else {
 
         /*********************************************************************
@@ -503,6 +521,16 @@ int sf_parse_info (struct StataInfo *st_info, int level)
         benchmark = (int) bench_double;
     }
 
+    // If condition
+    int any_if;
+    ST_double any_if_double ;
+    if ( (rc = SF_scal_use("__gtools_if", &any_if_double)) ) {
+        return(rc) ;
+    }
+    else {
+        any_if = (int) any_if_double;
+    }
+
     // Merge back to original data
     int merge;
     ST_double merge_double ;
@@ -537,23 +565,28 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     // byvars_maxs:
     //     - Largest string length. If 0 or -1 we can figure out
     //       whether we only have numbers for by variables.
+    st_info->byvars_int  = calloc(kvars_by, sizeof st_info->byvars_int);
     st_info->byvars_lens = calloc(kvars_by, sizeof st_info->byvars_lens);
     st_info->byvars_mins = calloc(kvars_by, sizeof st_info->byvars_mins);
     st_info->byvars_maxs = calloc(kvars_by, sizeof st_info->byvars_maxs);
 
+    if ( st_info->byvars_int  == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_int"));
     if ( st_info->byvars_lens == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->byvars_mins == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_mins"));
     if ( st_info->byvars_maxs == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_maxs"));
 
-    double byvars_lens_double[kvars_by],
+    double byvars_int_double[kvars_by],
+           byvars_lens_double[kvars_by],
            byvars_mins_double[kvars_by],
            byvars_maxs_double[kvars_by];
 
+    if ( (rc = sf_get_vector("__gtools_byint", byvars_int_double))  ) return(rc);
     if ( (rc = sf_get_vector("__gtools_byk",   byvars_lens_double)) ) return(rc);
     if ( (rc = sf_get_vector("__gtools_bymin", byvars_mins_double)) ) return(rc);
     if ( (rc = sf_get_vector("__gtools_bymax", byvars_maxs_double)) ) return(rc);
 
     for (i = 0; i < kvars_by; i++) {
+        st_info->byvars_int[i]  = (int) byvars_int_double[i];
         st_info->byvars_lens[i] = (int) byvars_lens_double[i];
         st_info->byvars_mins[i] = (int) byvars_mins_double[i];
         st_info->byvars_maxs[i] = (int) byvars_maxs_double[i];
@@ -713,10 +746,10 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->read_dtax = 0;
 
     // Whether to invert the sort order of group variables post collapse
-    st_info->invert = calloc(st_info->kvars_by, sizeof st_info->invert);
+    st_info->invert = calloc(kvars_by, sizeof st_info->invert);
     if ( st_info->invert == NULL ) return(sf_oom_error("sf_parse_info", "st_info->invert"));
 
-    for (k = 0; k < st_info->kvars_by; k++)
+    for (k = 0; k < kvars_by; k++)
         st_info->invert[k] = 0;
 
     /*********************************************************************
@@ -769,6 +802,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->in1                 = in1;
     st_info->in2                 = in2;
     st_info->N                   = N;
+    st_info->any_if              = any_if;
     st_info->kvars_by            = kvars_by;
     st_info->kvars_by_num        = kvars_by_num;
     st_info->kvars_by_str        = kvars_by_str;
@@ -802,15 +836,15 @@ int sf_hash_byvars (struct StataInfo *st_info)
     ST_double z ;
     int i, j;
     clock_t timer = clock();
-    size_t J, nj_min, nj_max;
-    size_t *info;
+    size_t J, nj_min, nj_max, N_if;
 
     // Hash the data
     // -------------
 
     // Hashing: Throughout the code we allocate to heap bc C may run out
     // of memory in the stack.
-    size_t *index    = calloc(st_info->N, sizeof *index);
+    st_info->index   = calloc(st_info->N, sizeof(st_info->index));
+    size_t *index    = st_info->index;
     uint64_t *ghash1 = calloc(st_info->N, sizeof *ghash1);
     uint64_t *ghash, *ghash2;
 
@@ -819,7 +853,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
 
     if ( st_info->indexed > 0 ) {
         if ( st_info->verbose )
-            sf_printf("Using index provided by stata (data was already soreted).\n");
+            sf_printf("Using index provided by stata (data was already soretd).\n");
 
         for (i = 0; i < st_info->N; i++) {
             if ( (rc = SF_vdata(st_info->indexed, i + st_info->in1, &z)) ) return(rc);
@@ -834,8 +868,21 @@ int sf_hash_byvars (struct StataInfo *st_info)
         }
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Set up index from Stata");
 
-        info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
+        st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else if ( st_info->integers_ok ) {
@@ -877,11 +924,24 @@ int sf_hash_byvars (struct StataInfo *st_info)
         if ( rc ) return(rc);
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 3: Sorted on integer-only hash index");
 
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
         // info[j], info[j + 1] give the starting and ending position of the
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
-        info = mf_panelsetup (ghash1, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }
     else {
@@ -948,11 +1008,25 @@ int sf_hash_byvars (struct StataInfo *st_info)
         }
         free (ghash2);
 
+        // Adjust hash to only contain hashes that match [if] condition
+        if ( st_info->any_if ) {
+            N_if = 0;
+            for (i = 0; i < st_info->N; i++) {
+                if ( SF_ifobs(index[i] + st_info->in1) ) {
+                    ghash1[N_if] = ghash1[i];
+                    ghash[N_if]  = ghash[i];
+                    index[N_if]  = index[i];
+                    N_if++;
+                }
+            }
+            st_info->N = N_if;
+        }
+
         // info[j], info[j + 1] give the starting and ending position of the
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
-        info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J);
-        if ( info == NULL ) return(sf_oom_error("sf_hash_byvars", "info"));
+        st_info->info = mf_panelsetup128 (ghash1, ghash, index, st_info->N, &J, st_info->verbose);
+        if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
         free (ghash);
     }
@@ -961,6 +1035,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     // Group size info
     // ---------------
 
+    size_t *info = st_info->info;
     nj_min = info[1] - info[0];
     nj_max = info[1] - info[0];
     for (j = 1; j < J; j++) {
@@ -979,6 +1054,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     st_info->nj_min = nj_min;
     st_info->nj_max = nj_max;
 
+/*
     // Copy info and index; since we don't know how many groups or
     // observations there will be and we want to pass info and index
     // across functions, we initialize them as pointers within the
@@ -998,6 +1074,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
     for (i = 0; i < st_info->N; i++)
         st_info->index[i] = index[i];
     free (index);
+*/
 
     return (0);
 }

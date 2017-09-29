@@ -19,7 +19,7 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
-            
+
     }
 
     foreach p in `percentiles' {

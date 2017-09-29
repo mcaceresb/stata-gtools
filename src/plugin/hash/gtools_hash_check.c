@@ -68,6 +68,7 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
      *             Allocate memory to final collapsed array              *
      *********************************************************************/
 
+    st_info->strbuffer = 0;
     size_t slen, kvars = (st_info->kvars_by + st_info->kvars_targets);
     if ( read_dtax & st_info->sort_memory ) {
         st_info->read_dtax = 1;
@@ -134,6 +135,7 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
                         ++numpos;
                     }
                 }
+                st_info->strbuffer += strpos;
 
                 // Check 2nd entry of group onward
                 // -------------------------------
@@ -267,6 +269,7 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
                     ++numpos;
                 }
             }
+            st_info->strbuffer += strpos;
 
             /***************
              *  debugging  *
@@ -364,8 +367,9 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
         return (42000);
     }
     else {
-        sf_printf ("There were no hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
-                   st_info->kvars_by, st_info->N, st_info->J);
+        if ( st_info->verbose )
+            sf_printf ("There were no hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+                       st_info->kvars_by, st_info->N, st_info->J);
     }
 
     free(s);

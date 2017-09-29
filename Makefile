@@ -2,7 +2,7 @@ EXECUTION=normal
 LEGACY=
 
 ifeq ($(OS),Windows_NT)
-	SPOOKYLIB = -l:spookyhash.dll
+	SPOOKYLIB = spookyhash.dll
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	PREMAKE = premake5.exe
@@ -17,14 +17,14 @@ else
 		OUT = build/gtools_unix$(LEGACY).plugin  build/gtools$(LEGACY).o
 		OUTM = build/gtools_unix_multi$(LEGACY).plugin build/gtools_multi$(LEGACY).o
 		OUTE = build/env_set_unix$(LEGACY).plugin
-		SPOOKYLIB = -l:libspookyhash.a
+		SPOOKYLIB = libspookyhash.a
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY).plugin
 		OUTM = build/gtools_macosx_multi$(LEGACY).plugin build/gtools_multi$(LEGACY).o
 		OUTE = build/env_set_macosx$(LEGACY).plugin
-		SPOOKYLIB = -l:libspookyhash.so
+		SPOOKYLIB = libspookyhash.a
 	endif
 	GCC = gcc
 	PREMAKE = premake5
@@ -32,7 +32,7 @@ else
 endif
 
 ifeq ($(EXECUTION),windows)
-	SPOOKYLIB = -l:spookyhash.dll
+	SPOOKYLIB = spookyhash.dll
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
 	OUT = build/gtools_windows$(LEGACY).plugin
@@ -43,7 +43,7 @@ endif
 SPI = 2.0
 SPT = 0.2
 CFLAGS = -Wall -O3 $(OSFLAGS)
-SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build $(SPOOKYLIB)
+SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 AUX = build/stplugin.o
 
 # OpenMP only tested on Linux
@@ -77,7 +77,7 @@ spooky:
 	cd lib/spookyhash/build && make clean
 	cd lib/spookyhash/build && make
 	mkdir -p ./build
-	cp -f ./lib/spookyhash/build/libspookyhash.so ./build/libspookyhash.so
+	# cp -f ./lib/spookyhash/build/$(SPOOKYLIB) ./build/$(SPOOKYLIB)
 else ifeq ($(UNAME_S),Linux)
 ifeq ($(LEGACY),_legacy)
 spooky:

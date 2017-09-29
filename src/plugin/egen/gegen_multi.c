@@ -5,7 +5,7 @@
  * Updated: Tue Sep 26 20:34:56 EDT 2017
  * Purpose: Stata plugin to compute a faster -egen- (multi-threaded version)
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.7.1
+ * Version: 0.7.2
  *********************************************************************/
 
 #include <omp.h>
@@ -20,6 +20,7 @@
  */
 int sf_egen (struct StataInfo *st_info)
 {
+
     /*********************************************************************
      *                           Step 1: Setup                           *
      *********************************************************************/

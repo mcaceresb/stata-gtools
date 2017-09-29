@@ -1,4 +1,4 @@
-*! version 0.7.1 27Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.2 28Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -322,6 +322,7 @@ program define gegen, byable(onecall)
     * Parse missing option for group; else just pass `if' `in'
     * --------------------------------------------------------
 
+    scalar __gtools_if = ( "`if'" != "" )
     if ( inlist("`fcn'", "group", "tag") ) {
 		if ( "`missing'" == "" ) {
             marksample touse
@@ -398,9 +399,19 @@ program define gegen, byable(onecall)
             local bystr `bystr' `byvar'
         }
     }
+    local bynum `:list by - bystr'
+
+    cap noi check_matsize `by'
+    if ( _rc ) exit _rc
+
+    cap noi check_matsize `bystr'
+    if ( _rc ) exit _rc
+
+    cap noi check_matsize `bynum'
+    if ( _rc ) exit _rc
 
     * Parse type of each by variable
-    cap parse_by_types `by', `multi'
+    cap parse_by_types `by' `in', `multi'
     if ( _rc ) exit _rc
     scalar __gtools_merge = 1
 
@@ -415,7 +426,6 @@ program define gegen, byable(onecall)
 
     * Position of numeric variables
     cap matrix drop __gtools_numpos
-    local bynum `:list by - bystr'
     foreach var of local bynum {
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in by'
     }
@@ -442,7 +452,7 @@ program define gegen, byable(onecall)
     local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
     if ( `=_N > 0' ) {
-        cap `noi' `plugin_call' `plugvars' `sub', egen `fcn'
+        cap noi `plugin_call' `plugvars' `sub', egen `fcn'
         if ( _rc == 42000 ) {
             di as err "There may be 128-bit hash collisions!"
             di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
@@ -504,6 +514,7 @@ program define gegen, byable(onecall)
     * Clean up after yourself
     * -----------------------
 
+    cap scalar drop __gtools_if
     cap scalar drop __gtools_l_hashlib
     cap scalar drop __gtools_indexed
     cap scalar drop __gtools_l_stats
@@ -528,7 +539,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist, [multi]
+    syntax varlist [in], [multi]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
@@ -554,7 +565,7 @@ program parse_by_types
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
         if ( `=_N > 0' ) {
-            cap plugin call gtools`multi'_plugin `varnum', setup
+            cap plugin call gtools`multi'_plugin `varnum' `in', setup
             if ( _rc ) exit _rc
         }
         matrix __gtools_bymin = c_gtools_bymin
@@ -710,4 +721,19 @@ program collision_handler
     ]
     di as txt "Falling back on -egen-"
     egen `anything' `if' `in', `options'
+end
+
+capture program drop check_matsize
+program check_matsize
+    syntax [anything], [nvars(int 0)]
+    if ( `nvars' == 0 ) local nvars `:list sizeof anything'
+    if ( `nvars' > `c(matsize)' ) {
+        cap set matsize `=`nvars''
+        if ( _rc ) {
+            di as err _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)'). Tried to run}"
+            di        _n(1) "    {stata set matsize `=`nvars''}"
+            di        _n(1) "{bf:but the command failed. Try setting matsize manually.}"
+            exit 908
+        }
+    }
 end

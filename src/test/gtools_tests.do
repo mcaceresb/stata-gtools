@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Sep 26 13:54:15 EDT 2017
+* Updated: Thu Sep 28 18:40:14 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.18
+* Version: 0.6.19
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -38,6 +38,8 @@ program main
     `capture' `noisily' {
         * do test_gcollapse.do
         * do test_gegen.do
+        * do test_gisid.do
+        * do test_glevelsof.do
         * do bench_gcollapse.do
         if ( `:list posof "checks" in options' ) {
 
@@ -90,6 +92,17 @@ program main
                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
+
+            di ""
+            di "--------------------------------"
+            di "Check extra $S_TIME $S_DATE"     
+            di "--------------------------------"
+
+            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
+
+            compare_isid,     `noisily' oncollision(error)
+            compare_levelsof, `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_gtools" in options' ) {

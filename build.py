@@ -98,6 +98,10 @@ gtools_ssc = [
     "gcollapse.sthlp",
     "gegen.ado",
     "gegen.sthlp",
+    "gisid.ado",
+    "gisid.sthlp",
+    "glevelsof.ado",
+    "glevelsof.sthlp",
     "gtools.ado",
     "gtools.sthlp"
 ]
@@ -187,6 +191,8 @@ print("")
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_gegen.do"),
+            path.join("src", "test", "test_gisid.do"),
+            path.join("src", "test", "test_glevelsof.do"),
             path.join("src", "test", "bench_gcollapse.do")]
 
 with open(path.join("build", "gtools_tests.do"), 'w') as outfile:
@@ -208,9 +214,13 @@ copy2(path.join("src", "gtools.pkg"), gdir)
 copy2(path.join("src", "stata.toc"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"), gdir)
 copy2(path.join("src", "ado", "gegen.ado"), gdir)
+copy2(path.join("src", "ado", "gisid.ado"), gdir)
+copy2(path.join("src", "ado", "glevelsof.ado"), gdir)
 copy2(path.join("src", "ado", "gtools.ado"), gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
 copy2(path.join("doc", "gegen.sthlp"), gdir)
+copy2(path.join("doc", "gisid.sthlp"), gdir)
+copy2(path.join("doc", "glevelsof.sthlp"), gdir)
 copy2(path.join("doc", "gtools.sthlp"), gdir)
 
 # Copy files to .zip folder in ./releases

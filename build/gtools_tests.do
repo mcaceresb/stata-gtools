@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Sep 26 13:54:15 EDT 2017
+* Updated: Thu Sep 28 18:40:14 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.18
+* Version: 0.6.19
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -38,6 +38,8 @@ program main
     `capture' `noisily' {
         * do test_gcollapse.do
         * do test_gegen.do
+        * do test_gisid.do
+        * do test_glevelsof.do
         * do bench_gcollapse.do
         if ( `:list posof "checks" in options' ) {
 
@@ -90,6 +92,17 @@ program main
                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
             }
+
+            di ""
+            di "--------------------------------"
+            di "Check extra $S_TIME $S_DATE"     
+            di "--------------------------------"
+
+            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
+
+            compare_isid,     `noisily' oncollision(error)
+            compare_levelsof, `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_gtools" in options' ) {
@@ -650,7 +663,7 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
-            
+
     }
 
     foreach p in `percentiles' {
@@ -988,6 +1001,364 @@ program consistency_gegen_gcollapse
             else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
         }
         else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
+    }
+end
+capture program drop checks_isid
+program checks_isid
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "consistency_isid, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
+    gen ix = _n
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub groupstr
+        if ( `i' == 3 ) local by groupstr groupsubstr 
+        if ( `i' == 6 ) local by groupsub group
+        if ( `i' == 9 ) local by grouplong
+        cap gisid `by', `options' v b missok
+        assert _rc == 459
+
+        cap gisid `by' in 1, `options'
+        assert _rc == 0
+
+        cap gisid `by' if _n == 1, `options'
+        assert _rc == 0
+
+        cap gisid `by' if _n < 10 in 5, `options'
+        assert _rc == 0
+    }
+
+    clear
+    gen x = 1
+    cap gisid x
+    assert _rc == 0
+end
+
+capture program drop compare_isid
+program compare_isid
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "consistency_isid, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+    gen ix = _n
+
+    local i 0
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub groupstr
+        if ( `i' == 3 ) local by groupstr groupsubstr 
+        if ( `i' == 6 ) local by groupsub group
+        if ( `i' == 9 ) local by grouplong
+        cap isid `by', missok
+        local rc_isid = _rc
+        cap gisid `by', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by')
+    }
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by rsort rnorm groupsub groupstr
+        if ( `i' == 3 ) local by rsort rnorm groupstr
+        if ( `i' == 6 ) local by rsort rnorm groupsub group
+        if ( `i' == 9 ) local by rsort rnorm grouplong
+        cap isid `by', missok
+        local rc_isid = _rc
+        cap gisid `by', missok
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by')
+    }
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by ix groupsub groupstr
+        if ( `i' == 3 ) local by ix groupstr
+        if ( `i' == 6 ) local by ix groupsub group
+        if ( `i' == 9 ) local by ix grouplong
+        cap isid `by', missok
+        local rc_isid = _rc
+        cap gisid `by', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by')
+    }
+
+    qui replace ix = `=_N / 2' if _n > `=_N / 2'
+    cap isid ix
+    local rc_isid = _rc
+    cap gisid ix, `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by(ix)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by ix groupsub groupstr
+        if ( `i' == 3 ) local by ix groupstr
+        if ( `i' == 6 ) local by ix groupsub group
+        if ( `i' == 9 ) local by ix grouplong
+
+        preserve
+            qui keep in 100 / `=ceil(`=_N / 2')'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' in 100 / `=ceil(`=_N / 2')', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by( `by' in 100 / `=ceil(`=_N / 2')')
+
+        preserve
+            qui keep in `=ceil(`=_N / 2')' / `=_N'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' in `=ceil(`=_N / 2')' / `=_N', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by' in `=ceil(`=_N / 2')' / `=_N')
+
+    di _n(1)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        preserve
+            qui keep if _n < `=_N / 2'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' if _n < `=_N / 2', missok
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by' if _n < `=_N / 2')
+
+        preserve
+            qui keep if _n > `=_N / 2'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' if _n > `=_N / 2', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by(`by' if _n > `=_N / 2')
+
+    di _n(1)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        qui replace ix = 100 in 1 / 100
+
+        preserve
+            qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', missok `options'
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by( `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
+
+        preserve
+            qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
+            cap isid `by', missok
+            local rc_isid = _rc
+        restore
+        cap gisid `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', missok
+        local rc_gisid = _rc
+        check_rc  `rc_isid' `rc_gisid' , by( `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
+
+        qui replace ix = _n in 1 / 100
+    }
+end
+
+capture program drop check_rc
+program check_rc
+    syntax anything, by(str)
+
+    tokenize `anything'
+    local rc_isid  `1'
+    local rc_gisid `2'
+
+    if ( `rc_isid' != `rc_gisid' ) {
+        if ( `rc_isid' & (`rc_gisid' == 0) ) {
+            di as err "    compare_isid (failed): isid `by' was an id but gisid returned error r(`rc_isid')"
+            exit `rc_gisid'
+        }
+        else if ( (`rc_isid' == 0) & `rc_gisid' ) {
+            di as err "    compare_isid (failed): gisid `by' was an id but isid returned error r(`rc_gisid')"
+            exit `rc_isid'
+        }
+        else {
+            di as err "    compare_isid (failed): `by' was not an id but isid and gisid returned different errors r(`rc_isid') vs r(`rc_gisid')"
+            exit `rc_gisid'
+        }
+    }
+    else {
+        if ( _rc ) {
+            di as txt "    compare_isid (passed): `by' was not an id"
+        }
+        else {
+            di as txt "    compare_isid (passed): `by' was an id"
+        }
+    }
+end
+capture program drop checks_levelsof
+program checks_levelsof
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
+    gen ix = _n
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub groupstr
+        if ( `i' == 3 ) local by groupstr groupsubstr 
+        if ( `i' == 6 ) local by groupsub group
+        if ( `i' == 9 ) local by grouplong
+        cap noi glevelsof `by', `options' v b clean silent
+        assert _rc == 0
+
+        cap glevelsof `by' in 1, `options' silent
+        assert _rc == 0
+
+        cap glevelsof `by' in 1, `options' miss
+        assert _rc == 0
+
+        cap glevelsof `by' if _n == 1, `options' local(hi)
+        assert _rc == 0
+        assert `"`r(levels)'"' == `"`hi'"'
+
+        cap glevelsof `by' if _n < 10 in 5, `options' s(" | ") cols(", ")
+        assert _rc == 0
+    }
+
+    clear
+    gen x = 1
+    cap glevelsof x
+    assert _rc == 2000
+
+    clear
+    set obs 100000
+    gen x = _n
+    cap glevelsof x in 1 / 10000 if mod(x, 3) == 0
+    assert _rc == 0
+end
+
+capture program drop compare_levelsof
+program compare_levelsof
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+    gen ix = _n
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub
+        if ( `i' == 3 ) local by groupstr  
+        if ( `i' == 6 ) local by groupsubstr
+        if ( `i' == 9 ) local by grouplong
+        cap  levelsof `by', s(" | ") local(l_stata)
+        cap glevelsof `by', s(" | ") local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' returned the same levels as levelsof"
+        }
+    }
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub
+        if ( `i' == 3 ) local by groupstr  
+        if ( `i' == 6 ) local by groupsubstr
+        if ( `i' == 9 ) local by grouplong
+        cap  levelsof `by', local(l_stata)  miss
+        cap glevelsof `by', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' returned the same levels as levelsof"
+        }
+    }
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    di _n(1)
+
+    foreach i in 0 3 6 9 {
+        if ( `i' == 0 ) local by groupsub
+        if ( `i' == 3 ) local by groupstr  
+        if ( `i' == 6 ) local by groupsubstr
+        if ( `i' == 9 ) local by grouplong
+
+        cap  levelsof `by' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
+        cap glevelsof `by' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [in] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [in] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `by' in `=ceil(`=_N / 2')' / `=_N', local(l_stata)
+        cap glevelsof `by' in `=ceil(`=_N / 2')' / `=_N', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [in] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [in] returned the same levels as levelsof"
+        }
+
+    di _n(1)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        cap  levelsof `by' if _n > `=_N / 2', local(l_stata)  miss
+        cap glevelsof `by' if _n > `=_N / 2', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [if] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [if] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `by' if _n < `=_N / 2', local(l_stata)
+        cap glevelsof `by' if _n < `=_N / 2', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [if] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [if] returned the same levels as levelsof"
+        }
+
+    di _n(1)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        cap  levelsof `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
+        cap glevelsof `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [if] [in] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [if] [in] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_stata)
+        cap glevelsof `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            di as err "    compare_levelsof (failed): glevelsof `by' [if] [in] returned different levels to levelsof"
+            exit 198
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `by' [if] [in] returned the same levels as levelsof"
+        }
     }
 end
 ***********************************************************************

@@ -202,18 +202,21 @@ size_t * mf_panelsetup128 (
     uint64_t h2[],
     size_t index[],
     const size_t N,
-    size_t * J)
+    size_t *J,
+    int verbose)
 {
 
     *J = 1;
     size_t collision64 = 0;
-    size_t i = 0;
+    size_t i = 0, i2 = 0;
     size_t j = 0;
     size_t l = 0;
     size_t start_l;
     size_t range_l;
 
     uint64_t el = h1[i++];
+    uint64_t el2;
+
     size_t *info_largest = calloc(N + 1, sizeof *info_largest);
     if ( info_largest == NULL ) return(NULL);
     info_largest[l++] = 0;
@@ -244,25 +247,38 @@ size_t * mf_panelsetup128 (
 
                 size_t   *ix_l = calloc(range_l, sizeof *ix_l);
                 size_t   *ix_c = calloc(range_l, sizeof *ix_c);
-                uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
+                // uint64_t *h2_l = calloc(range_l, sizeof *h2_l);
+                uint64_t *h2_l = h2 + start_l;
 
-                if ( ix_l == NULL ) return(NULL);
-                if ( ix_c == NULL ) return(NULL);
-                if ( h2_l == NULL ) return(NULL);
+                if ( ix_l == NULL ) return (NULL);
+                if ( ix_c == NULL ) return (NULL);
+                // if ( h2_l == NULL ) return (NULL);
 
                 for (j = start_l; j < i; j++)
                     h2_l[j - start_l] = h2[j];
 
                 mf_radix_sort_index (h2_l, ix_l, range_l, RADIX_SHIFT, 0, 0);
-                free (h2_l);
                 for (j = 0; j < range_l; j++)
                     ix_c[j] = index[ix_l[j] + start_l];
 
                 free (ix_l);
+
                 for (j = start_l; j < i; j++)
                     index[j] = ix_c[j - start_l];
 
                 free (ix_c);
+
+                // Now that the hash and index are sorted, add to info_largest
+                // based on h2_l
+                el2 = h2_l[i2++];
+                while ( i2 < range_l ) {
+                    if ( h2_l[i2] != el2 ) {
+                        info_largest[l++] = start_l + i2;
+                        el2 = h2_l[i2];
+                    }
+                    i2++;
+                }
+                // free (h2_l);
             }
 
             info_largest[l++] = i;
@@ -279,7 +295,7 @@ size_t * mf_panelsetup128 (
         info[i] = info_largest[i];
     free (info_largest);
 
-    if ( collision64 > 0 )
+    if ( (collision64 > 0) & (verbose) )
         sf_printf("Found %lu 64-bit hash collision(s). Fell back on 128-bit hash.\n", collision64);
 
     return (info);

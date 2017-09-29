@@ -47,10 +47,15 @@ else:
 main = [path.join("src", "gtools.pkg"),
         path.join("src", "stata.toc"),
         path.join("src", "ado", "gtools.ado"),
+        path.join("doc", "gtools.sthlp"),
         path.join("src", "ado", "gcollapse.ado"),
         path.join("doc", "gcollapse.sthlp"),
         path.join("src", "ado", "gegen.ado"),
         path.join("doc", "gegen.sthlp"),
+        path.join("src", "ado", "gisid.ado"),
+        path.join("doc", "gisid.sthlp"),
+        path.join("src", "ado", "glevelsof.ado"),
+        path.join("doc", "glevelsof.sthlp"),
         path.join("README.md")]
 test = [path.join("src", "test", "gtools_tests.do")]
 plug = [path.join("src", "plugin", "collapse", "gcollapse.c"),

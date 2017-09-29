@@ -41,6 +41,8 @@ struct StataInfo {
     size_t start_collapse_vars;
     size_t start_target_vars;
     int sort_memory;
+    int any_if;
+    int clean_str;
     int *invert;
     int *pos_targets;
     int *pos_num_byvars;
@@ -60,8 +62,12 @@ struct StataInfo {
     int *byvars_lens;
     int *byvars_mins;
     int *byvars_maxs;
+    int *byvars_int;
     int byvars_minlen;
     int byvars_maxlen;
+    size_t sep_len;
+    size_t colsep_len;
+    size_t strbuffer;
     int strmax;
     char *statstr;
     int read_dtax;

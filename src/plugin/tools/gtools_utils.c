@@ -82,6 +82,51 @@ void mf_minmax(uint64_t x[], size_t N, uint64_t * min, uint64_t * max)
     }
 }
 
+/*
+ * @brief Minimum for unsigned integer array
+ *
+ * @param x vector of integers to get the min
+ * @param N number of elements in @x
+ * @return Smallest integer in @x
+ */
+size_t mf_min_unsigned(size_t x[], size_t N)
+{
+    size_t min = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
+        if (min > x[i]) min = x[i];
+    }
+    return (min);
+}
+
+/**
+ * @brief Maximum for unsigned integer array
+ *
+ * @param x vector of integers to get the max
+ * @param N number of elements in @x
+ * @return Smallest integer in @x
+ */
+size_t mf_max_unsigned(size_t x[], size_t N)
+{
+    size_t max = x[0]; size_t i;
+    for (i = 1; i < N; ++i) {
+        if (max < x[i]) max = x[i];
+    }
+    return (max);
+}
+
+/**
+ * @brief Sum for an unsigned array
+ *
+ * @return Sum of unsigned array
+ */
+size_t mf_sum_unsigned(size_t x[], size_t N)
+{
+    size_t sum = x[0]; size_t i;
+    for (i = 1; i < N; i++)
+        sum += x[i];
+    return (sum);
+}
+
 /**
  * @brief Simple wrapper to compere a string
  *

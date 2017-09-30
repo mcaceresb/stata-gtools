@@ -44,5 +44,6 @@ int sf_get_varlist_bijection (
 );
 
 int sf_check_hash_index (struct StataInfo *st_info, int read_dtax);
+int sf_check_hashsort (struct StataInfo *st_info);
 
 #endif

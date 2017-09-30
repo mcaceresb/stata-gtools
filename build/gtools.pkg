@@ -9,10 +9,13 @@ d
 d KW: gtools
 d KW: egen
 d KW: collapse
+d KW: sort
+d KW: gsort
 d KW: isid
 d KW: levelsof
 d KW: gegen
 d KW: gcollapse
+d KW: hashsort
 d KW: gisid
 d KW: glevelsof
 d
@@ -29,6 +32,8 @@ f gegen.ado
 f gegen.sthlp
 f gisid.ado
 f gisid.sthlp
+f hashsort.ado
+f hashsort.sthlp
 f glevelsof.ado
 f glevelsof.sthlp
 f gtools.ado

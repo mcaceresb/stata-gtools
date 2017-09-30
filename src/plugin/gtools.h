@@ -71,6 +71,7 @@ struct StataInfo {
     int strmax;
     char *statstr;
     int read_dtax;
+    char* st_charx;
     MixedUnion *st_dtax;
     double *output;
     double *st_numx;

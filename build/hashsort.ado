@@ -1,13 +1,9 @@
-*! version 0.1.1 28Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! -isid- implementation using C for faster processing
+*! version 0.1.0 28Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! implementation of -sort- and -gsort- using C-plugins
 
-capture program drop gisid
-program gisid
+capture program drop hashsort
+program define hashsort
     version 13
-    if inlist("`c(os)'", "MacOSX") {
-        di as err "Not available for `c(os)'."
-        exit 198
-    }
 
     * Time the entire function execution
     {
@@ -16,13 +12,52 @@ program gisid
         timer on 99
     }
 
-    syntax varlist [if] [in] , ///
-    [                          ///
-        Missok                 /// missing ok
-        Verbose                /// debugging
-        Benchmark              /// print benchmark info
-        hashlib(str)           /// path to hash library (Windows only)
-        oncollision(str)       /// (experimental) On collision, fall back to isid or throw error
+    ***********************************************************************
+    *                      Parse gsort-like options                       *
+    ***********************************************************************
+
+    syntax anything [in], [*]
+
+    cap matrix drop __gtools_invert
+    local parse    `anything'
+    local varlist  ""
+    local skip   = 0
+    local invert = 0
+    while ( trim("`parse'") != "" ) {
+        gettoken var parse: parse, p(" -+")
+        if inlist("`var'", "-", "+") {
+            matrix __gtools_invert = nullmat(__gtools_invert), ( "`var'" == "-" )
+            local skip   = 1
+            local invert = ( "`var'" == "-" )
+        }
+        else {
+            cap confirm variable `var'
+            if ( _rc ) {
+                di as err "Variable '`var'' does not exist. Syntax:"
+                di as err "hashsort [+|-]varname [[+|-]varname ...], [options]"
+                exit _rc
+            }
+            if ( `skip' ) {
+                local skip = 0
+            }
+            else {
+                matrix __gtools_invert = nullmat(__gtools_invert), 0
+            }
+            local varlist `varlist' `var'
+        }
+    }
+
+    ***********************************************************************
+    *                          Standard parsing                           *
+    ***********************************************************************
+
+    local 0 `varlist', `options'
+    syntax varlist(min = 1) [in] , ///
+    [                              ///
+        Verbose                    /// debugging
+        Benchmark                  /// print benchmark info
+        hashlib(str)               /// path to hash library (Windows only)
+        oncollision(str)           /// (experimental) On collision, fall back to isid or throw error
     ]
 
     * Check you will find the hash library (Windows only)
@@ -87,11 +122,42 @@ program gisid
     *                       Parsing syntax options                        *
     ***********************************************************************
 
+    * Andrew Mauer's trick? From ftools
+    * ---------------------------------
+
+	loc sortvar : sortedby
+	if ( !`invert' & ("`sortvar'" == "`varlist'") ) {
+        if ( "`verbose'" != "" ) di as txt "(already sorted)"
+		exit 0
+	}
+	else if ( "`sortvar'" != "" ) {
+		* Andrew Maurer's trick to clear `: sortedby'
+		loc sortvar : word 1 of `sortvar'
+		loc val = `sortvar'[1]
+		cap replace `sortvar' = 0         in 1
+		cap replace `sortvar' = .         in 1
+		cap replace `sortvar' = ""        in 1
+		cap replace `sortvar' = "."       in 1
+		cap replace `sortvar' = `val'     in 1
+		cap replace `sortvar' = `"`val'"' in 1
+		assert "`: sortedby'" == ""
+	}
+
+    * Verbose and benchmark printing
+    * ------------------------------
+
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
     scalar __gtools_verbose   = `verbose'
     scalar __gtools_benchmark = `benchmark'
+
+    if ( `verbose'  | `benchmark' ) local noi noisily
+
+    scalar __gtools_if         = 0 // Not used
+    scalar __gtools_clean      = 0 // Not used
+    scalar __gtools_sep_len    = 0 // Not used
+    scalar __gtools_colsep_len = 0 // Not used
 
     if ( "`oncollision'" == "" ) local oncollision fallback
     if ( !inlist("`oncollision'", "fallback", "error") ) {
@@ -103,31 +169,14 @@ program gisid
     *                             Final setup                             *
     ***********************************************************************
 
-    * Parse if missing are OK
-	if ( "`missok'" == "" ) {
-        marksample touse, novar
-		qui count if `touse'
-		local N = `r(N)'
-		markout `touse' `varlist', strok
-		qui count if `touse'
-		if ( `r(N)' < `N' ) {
-			local kvars: word count `varlist'
-			local s = cond(`kvars' == 1, "", "s")
-			di as err "variable`s' `varlist' should never be missing"
-			exit 459
-		}
+    * Parse sort variables
+    * --------------------
 
-        if ( `r(N)' == 0 ) {
-            di as txt "(no observations)"
-            exit 0
-        }
+    qui ds *
+    local memvars `r(varlist)'
 
-        local if if `touse'
-    }
-    else if ( "`if'" != "" ) {
-        marksample touse, novar
-        local if if `touse'
-    }
+    qui ds `varlist'
+    local varlist `r(varlist)'
 
     * Get a list with all string by variables
     local bystr ""
@@ -148,12 +197,7 @@ program gisid
     cap noi check_matsize `bynum'
     if ( _rc ) exit _rc
 
-    scalar __gtools_if         = ( "`if'" != "" )
-    scalar __gtools_clean      = 0 // Not used
-    scalar __gtools_sep_len    = 0 // Not used
-    scalar __gtools_colsep_len = 0 // Not used
-
-    cap noi parse_by_types `varlist' `in'
+    cap parse_by_types `varlist' `in'
     if ( _rc ) exit _rc
 
     * Position of string variables (the position in the variable list passed
@@ -179,54 +223,50 @@ program gisid
     }
 
     ***********************************************************************
-    *                             Plugin Call                             *
+    *                           Run the plugin                            *
     ***********************************************************************
 
     local website_url  https://github.com/mcaceresb/stata-gtools/issues
     local website_disp github.com/mcaceresb/stata-gtools
 
-    cap noi plugin call gtools_plugin `varlist' `if' `in', isid
+    cap noi hashsort_inner `varlist' `in', benchmark(`benchmark')
     if ( _rc == 42000 ) {
         di as err "There may be 128-bit hash collisions!"
         di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
         if ( "`oncollision'" == "fallback" ) {
-            cap noi collision_handler `0'
+            cap noi collision_handler `anything', invert(`invert')
             exit _rc
         }
-        else exit 42000
-    }
-    else if ( _rc == 42007 ) {
-        di as err `"gisid failed. This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
-        if ( "`oncollision'" == "fallback" ) {
-            cap noi collision_handler `0'
-            exit _rc
-        }
-        else exit 42007
+        else exit 42000 
     }
     else if ( _rc == 42001 ) {
         di as txt "(no observations)"
         exit 0
     }
-    else if ( _rc == 42005 ) {
-		local kvars : word count `varlist'
-		local var  = cond(`kvars'==1, "variable", "variables")
-		local does = cond(`kvars'==1, "does", "do")
-		di as err "`var' `varlist' `does' not uniquely identify the observations"
-		exit 459
-    }
-    else if ( _rc == 42006 ) {
-        * isid successful; exit normally
-    }
-    else if ( _rc != 0 ) exit _rc
+    else if ( _rc ) exit _rc
 
-    * If benchmark, output plugin run time
+    * If benchmark, output program setup time
     {
         cap timer off 99
         qui timer list
-        if ( `benchmark' ) di "The plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
+        if ( `benchmark' ) di "Stata shuffle executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
         cap timer clear 99
         timer on 99
-        timer clear 99
+    }
+
+    * Fianl sort (if benchmark, output program setup time)
+    if ( !`invert' ) {
+        sort `varlist'
+        cap timer off 99
+        qui timer list
+        if ( `benchmark' ) di "Final sort executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
+        cap timer clear 99
+        timer on 99
+    }
+    else {
+        cap timer off 99
+        qui timer list
+        cap timer clear 99
     }
 
     ***********************************************************************
@@ -239,10 +279,10 @@ program gisid
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_if
-    cap scalar drop __gtools_is_int
     cap scalar drop __gtools_clean
     cap scalar drop __gtools_sep_len
     cap scalar drop __gtools_colsep_len
+    cap scalar drop __gtools_is_int
 
     cap matrix drop __gtools_byint
     cap matrix drop __gtools_byk
@@ -251,13 +291,32 @@ program gisid
     cap matrix drop c_gtools_bymiss
     cap matrix drop c_gtools_bymin
     cap matrix drop c_gtools_bymax
+
+    exit 0
+end
+
+capture program drop hashsort_inner
+program hashsort_inner, sortpreserve
+    syntax varlist [in], benchmark(int)
+    cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
+    if ( _rc ) exit _rc
+    mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
+
+    * If benchmark, output program setup time
+    {
+        cap timer off 99
+        qui timer list
+        if ( `benchmark' ) di "Plugin executed in `:di trim("`:di %21.4gc r(t99)'")' seconds"
+        cap timer clear 99
+        timer on 99
+    }
 end
 
 capture program drop parse_by_types
 program parse_by_types
     syntax varlist [in]
-    cap matrix drop __gtools_byint
     cap matrix drop __gtools_byk
+    cap matrix drop __gtools_byint
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
     cap matrix drop c_gtools_bymiss
@@ -389,9 +448,15 @@ end
 
 capture program drop collision_handler
 program collision_handler
-    syntax varlist, [Missok *]
-    di as txt "Falling back on -isid-"
-    isid `varlist', `missok'
+	syntax anything [, invert(int 0)]
+    if ( `invert' ) {
+        di as txt "Falling back on -gsort-"
+        gsort `anything'
+    }
+    else {
+        di as txt "Falling back on -sort-"
+        sort `anything'
+    }
 end
 
 capture program drop check_matsize

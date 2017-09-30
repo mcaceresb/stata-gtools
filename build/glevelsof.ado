@@ -221,6 +221,9 @@ program glevelsof, rclass
     *                       Clean up after yourself                       *
     ***********************************************************************
 
+    cap matrix drop __gtools_strpos
+    cap matrix drop __gtools_numpos
+
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_if

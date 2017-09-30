@@ -18,6 +18,7 @@ set varabbrev off
 * set seed 42
 set seed 1729
 set linesize 128
+ssc install ralpha
 
 * Main program wrapper
 * --------------------
@@ -38,6 +39,7 @@ program main
     `capture' `noisily' {
         * do test_gcollapse.do
         * do test_gegen.do
+        * do test_hashsort.do
         * do test_gisid.do
         * do test_glevelsof.do
         * do bench_gcollapse.do
@@ -98,11 +100,13 @@ program main
             di "Check extra $S_TIME $S_DATE"     
             di "--------------------------------"
 
+            unit_test, `noisily' test(checks_hashsort, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
 
             compare_isid,     `noisily' oncollision(error)
             compare_levelsof, `noisily' oncollision(error)
+            compare_hashsort, `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_gtools" in options' ) {

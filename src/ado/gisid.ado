@@ -98,7 +98,7 @@ program gisid
         di as err "option -oncollision()- must be 'fallback' or 'error'"
         exit 198
     }
-    
+
     ***********************************************************************
     *                             Final setup                             *
     ***********************************************************************
@@ -193,7 +193,7 @@ program gisid
             cap noi collision_handler `0'
             exit _rc
         }
-        else exit 42000 
+        else exit 42000
     }
     else if ( _rc == 42007 ) {
         di as err `"gisid failed. This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
@@ -201,7 +201,7 @@ program gisid
             cap noi collision_handler `0'
             exit _rc
         }
-        else exit 42007 
+        else exit 42007
     }
     else if ( _rc == 42001 ) {
         di as txt "(no observations)"
@@ -232,6 +232,9 @@ program gisid
     ***********************************************************************
     *                       Clean up after yourself                       *
     ***********************************************************************
+
+    cap matrix drop __gtools_strpos
+    cap matrix drop __gtools_numpos
 
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose

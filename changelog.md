@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.7.4 (2017-09-29)
+
+### Features
+
+* `hashsort` is added as a working replacement for `sort` and `gsort`.
+  The sort is always stable. `mfirst` is not allowed.
+
 ## gtools-0.7.2 (2017-09-28)
 
 ### Features

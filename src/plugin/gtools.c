@@ -27,10 +27,12 @@
 #include "hash/gtools_sort.c"
 #include "tools/gtools_math.c"
 #include "tools/quicksortMultiLevel.c"
+#include "tools/radixSort.c"
 #include "hash/gtools_hash.c"
 #include "extra/common.c"
 #include "extra/gisid.c"
 #include "extra/glevelsof.c"
+#include "extra/hashsort.c"
 
 // -DGMUTI=1 flag compiles multi-threaded version of the plugin
 #if GMULTI
@@ -348,17 +350,31 @@ STDLL stata_call(int argc, char *argv[])
         return (0);
     }
     else if ( strcmp(todo, "isid") == 0 ) {
-        if ( (rc = sf_parse_info_lean(&st_info)) ) return (rc);
+        if ( (rc = sf_parse_info_lean(&st_info, 0)) ) return (rc);
         rc = sf_hash_byvars_isid (&st_info);
+        st_info.info = malloc(sizeof(size_t));
         sf_free_lean(&st_info);
         return (rc);
     }
     else if ( strcmp(todo, "levelsof") == 0 ) {
-        if ( (rc = sf_parse_info_lean  (&st_info))    ) return (rc);
+        if ( (rc = sf_parse_info_lean  (&st_info, 0)) ) return (rc);
         if ( (rc = sf_hash_byvars      (&st_info))    ) return (rc);
         if ( (rc = sf_check_hash_index (&st_info, 1)) ) return (rc);
         if ( (rc = sf_levelsof         (&st_info))    ) return (rc);
-        free (st_info.info);
+        sf_free_lean(&st_info);
+        return (0);
+    }
+    else if ( strcmp(todo, "hashsort") == 0 ) {
+        if ( (rc = sf_parse_info_lean (&st_info, 1)) ) return (rc);
+        if ( !st_info.integers_ok ) {
+            if ( (rc = sf_hash_byvars    (&st_info)) ) return (rc);
+            if ( (rc = sf_check_hashsort (&st_info)) ) return (rc);
+        }
+        else {
+            st_info.info  = malloc(sizeof(size_t));
+            st_info.index = malloc(sizeof(size_t));
+        }
+        if ( (rc = sf_hashsort (&st_info)) ) return (rc);
         sf_free_lean(&st_info);
         return (0);
     }

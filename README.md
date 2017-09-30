@@ -21,12 +21,13 @@ Faster Stata for Group Operations
 This package's aim is to provide a fast implementation of group commands in
 Stata using C plugins. This includes:
 
-| Function    | Replaces   | Extras             | Unsupported        |
-| ----------- | ---------- | ------------------ | ------------------ |
-| `gcollapse` | `collapse` | Quantiles, `merge` | Weights            |
-| `gegen`     | `egen`     | Quantiles          | See [FAQs](#faqs) for available functions |
-| `gisid`     | `isid`     | `if`, `in`         | `using`, `sort`    |
-| `glevelsof` | `levelsof` | Multiple variables |                    |
+| Function    | Replaces        | Extras               | Unsupported                               |
+| ----------- | --------------- | -------------------- | ----------------------------------------- |
+| `gcollapse` | `collapse`      | Quantiles, `merge`   | Weights                                   |
+| `gegen`     | `egen`          | Quantiles            | See [FAQs](#faqs) for available functions |
+| `hashsort`  | `sort`, `gsort` | Group (hash) sorting | `mfirst`, `gen`                           |
+| `gisid`     | `isid`          | `if`, `in`           | `using`, `sort`                           |
+| `glevelsof` | `levelsof`      | Multiple variables   |                                           |
 
 The key insight is two-fold: First, hashing the data and sorting the hash is
 a lot faster than sorting the data before processing it by group. Second,
@@ -67,6 +68,9 @@ gcollapse (mean) mean_x1 = x1 (median) median_x1 = x1, by(groupvar) [options]
 gegen target  = stat(source), by(varlist) [options]
 gegen mean_x1 = mean(x1), by(groupvar)
 
+hashsort varlist, [options]
+hashsort -groupvar, benchmark
+
 gisid varlist [if] [in], [options]
 gisid groupvar, missok
 
@@ -76,6 +80,82 @@ glevelsof groupvar, local(levels) sep(" | ")
 
 Support for weights for `gcollapse` and `gegen` planned for a future
 release. See the [FAQs](#faqs) for a list of supported functions.
+
+Hash sort benchmarks
+--------------------
+
+We create a data set of `10,000` observations and extend it to a million
+(`1,000,000`). So there are at least 100 groups for any given sorting
+arrangement. Variables are self-descriptive, so "str_32" is a string variable
+with 32 characters. "double2" is a double. And so on.
+
+String variables were concatenated from a mix of fixed and random strings
+using the `ralpha` package. Benchmarks were performed on a personal laptop
+running Linux:
+
+    Program:   Stata/IC 13.1 (1 core)
+    OS:        x86_64 GNU/Linux
+    Processor: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
+    Cores:     2 cores with 2 virtual threads per core.
+    Memory:    15.6GiB
+    Swap:      15.6GiB
+
+### Versus `sort`
+
+    | sort | hashsort | ratio (s/q) | sorted by (stable)                                         |
+    | ---- | -------- | ----------- | ---------------------------------------------------------- |
+    | 1.58 |    .603  | 2.62        | str_12                                                     |
+    | 1.72 |    1.00  | 1.72        | str_12 str_32                                              |
+    | 1.8  |    .992  | 1.81        | str_12 str_32 str_4                                        |
+    | 1.54 |    .785  | 1.96        | double1                                                    |
+    | 1.54 |    .779  | 1.98        | double1 double2                                            |
+    | 1.84 |    .844  | 2.18        | double1 double2 double3                                    |
+    | 1.32 |    .552  | 2.39        | int1                                                       |
+    | 1.64 |    .591  | 2.77        | int1 int2                                                  |
+    | 1.67 |    .762  | 2.19        | int1 int2 int3                                             |
+    | 1.87 |    .898  | 2.08        | int1 str_32 double1                                        |
+    | 2.25 |    .977  | 2.3         | int1 str_32 double1 int2 str_12 double2                    |
+    | 2.49 |    1.16  | 2.15        | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
+
+### Versus `gsort`
+
+    | gsort | hashsort | ratio (g/h) | sorted by (stable)                                             |
+    | ----- | -------- | ----------- | ----------------------------------------------------------     |
+    |  6.43 |    .813  | 7.91        | -str_12                                                        |
+    |  6.02 |    .75   | 8.03        | str_12 -str_32                                                 |
+    |  8.48 |    1.04  | 8.15        | str_12 -str_32 str_4                                           |
+    |  6.8  |    .771  | 8.82        | -double1                                                       |
+    |  7.29 |    .915  | 7.97        | double1 -double2                                               |
+    |  9.73 |    .735  | 13.2        | double1 -double2 double3                                       |
+    |  6.53 |    .619  | 10.5        | -int1                                                          |
+    |  6.55 |    .654  | 10          | int1 -int2                                                     |
+    |  5.96 |    .479  | 12.4        | int1 -int2 int3                                                |
+    |  9.79 |    .878  | 11.2        | -int1 -str_32 -double1                                         |
+    |  15.5 |    .999  | 15.5        | int1 -str_32 double1 -int2 str_12 -double2                     |
+    |  19.5 |    .979  | 19.9        | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
+
+### Versus `sort` (alt)
+
+We can see hashsort was slowest when sorting by a large number of mixed
+variables.  Consider the same data set as above, but expanded from 100, 1,000,
+and 500,000 to 1M, sorted by `int1 str_32 double1 int2 str_12 double2 int3 str_4 double3`
+
+    | sort | hashsort | ratio (s/h) | Type           |
+    | ---- | -------- | ----------- | -------------- |
+    | 3.67 |    .976  | 3.76        | 100 -> 1M      |
+    | 2.6  |    1.03  | 2.52        | 1,000 -> 1M    |
+    | 1.55 |    1.75  | 0.886       | 500,000 -> 1M  |
+
+We can see that the speed gain is larger for fewer groups, even with many variables, but
+that if there are many groups you are better served using `sort`. The same is not true
+for gsort, since `hashsort` should perform faster regardless of the setting. Repeating
+the above benchmarks gives:
+
+    | gsort | hashsort | ratio (g/h) | Type           |
+    | ----- | -------- | ----------- | -------------- |
+    |  13.9 |    1.12  | 12.4        | 100 -> 1M      |
+    |  15.2 |    1.02  | 14.9        | 1,000 -> 1M    |
+    |  20.7 |    1.98  | 10.5        | 500,000 -> 1M  |
 
 Collapse benchmarks
 -------------------

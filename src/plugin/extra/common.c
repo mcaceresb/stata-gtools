@@ -1,6 +1,6 @@
 #include "common.h"
 
-int sf_parse_info_lean (struct StataInfo *st_info)
+int sf_parse_info_lean (struct StataInfo *st_info, int level)
 {
     ST_retcode rc ;
     int i, k;
@@ -84,9 +84,16 @@ int sf_parse_info_lean (struct StataInfo *st_info)
     // Whether to invert the sort order of group variables post collapse
     st_info->invert = calloc(kvars_by, sizeof st_info->invert);
     if ( st_info->invert == NULL ) return(sf_oom_error("sf_parse_info", "st_info->invert"));
-
-    for (k = 0; k < kvars_by; k++)
-        st_info->invert[k] = 0;
+    if ( level == 0 ) {
+        for (k = 0; k < kvars_by; k++)
+            st_info->invert[k] = 0;
+    }
+    else if ( level == 1 ) {
+        double invert_double[kvars_by];
+        if ( (rc = sf_get_vector("__gtools_invert", invert_double)) ) return(rc);
+        for (k = 0; k < kvars_by; k++)
+            st_info->invert[k] = (int) invert_double[k];
+    }
 
     /*********************************************************************
      *                    Parse by vars info vectors                     *
@@ -239,8 +246,9 @@ int sf_parse_info_lean (struct StataInfo *st_info)
 
 void sf_free_lean (struct StataInfo *st_info)
 {
-    free (st_info->invert);
+    free (st_info->info);
     free (st_info->index);
+    free (st_info->invert);
     free (st_info->byvars_int);
     free (st_info->byvars_lens);
     free (st_info->byvars_mins);

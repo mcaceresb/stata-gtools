@@ -1,4 +1,4 @@
-*! version 0.1.0 28Jul2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.2 29Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort

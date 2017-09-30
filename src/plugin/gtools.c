@@ -5,7 +5,7 @@
  * Updated: Tue Sep 26 12:05:32 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse- and -egen-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.7.2
+ * Version: 0.7.4
  *********************************************************************/
 
 /**

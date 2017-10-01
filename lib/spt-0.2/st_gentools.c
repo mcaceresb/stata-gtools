@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+// #include <locale.h>
 #include "st_gentools.h"
 
 #define BUF_MAX 4096

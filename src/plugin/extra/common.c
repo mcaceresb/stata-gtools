@@ -52,6 +52,16 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
     }
 
     // If condition
+    int missing;
+    ST_double missing_double ;
+    if ( (rc = SF_scal_use("__gtools_missing", &missing_double)) ) {
+        return(rc) ;
+    }
+    else {
+        missing = (int) missing_double;
+    }
+
+    // If condition
     int any_if;
     ST_double any_if_double ;
     if ( (rc = SF_scal_use("__gtools_if", &any_if_double)) ) {
@@ -224,6 +234,7 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
     st_info->in2                 = in2;
     st_info->N                   = N;
     st_info->any_if              = any_if;
+    st_info->missing             = missing;
     st_info->clean_str           = clean_str;
     st_info->sep_len             = sep_len;
     st_info->colsep_len          = colsep_len;

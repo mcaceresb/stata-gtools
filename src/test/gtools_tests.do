@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Sep 28 18:40:14 EDT 2017
+* Updated: Sat Sep 30 22:21:18 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.6.21
 * Manual:  help gcollapse, help gegen
@@ -43,6 +43,7 @@ program main
         * do test_gisid.do
         * do test_glevelsof.do
         * do bench_gcollapse.do
+
         if ( `:list posof "checks" in options' ) {
 
             di ""
@@ -139,11 +140,11 @@ program main
             cap ssc install ftools
             cap ssc install moremata
 
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15)
+            bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median)
+            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max)
+            bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77)
+            bench_group_size  x1 x2, margin(J) by(group) kmin(4) kmax(6) pct(median iqr p23 p77) obsexp(6)
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {
@@ -155,6 +156,13 @@ program main
             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
+        }
+
+        if ( `:list posof "bench_extra" in options' ) {
+            compare_hashsort, bench(10)
+            bench_levelsof,   bench(10)
+            bench_isid,       bench(10)
+            bench_egen,       bench(10)
         }
     }
     local rc = _rc
@@ -314,4 +322,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
+* main, benchmark bench_extra
 main, checks test

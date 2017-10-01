@@ -28,9 +28,9 @@ Note:  Your site can add messages to the introduction by editing the file
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Thu Sep 28 18:40:14 EDT 2017
+. * Updated: Sat Sep 30 22:21:18 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.6.19
+. * Version: 0.6.21
 . * Manual:  help gcollapse, help gegen
 . 
 . * Stata start-up options
@@ -77,152 +77,160 @@ all files already exist and are up to date.
 .         * do test_gisid.do
 .         * do test_glevelsof.do
 .         * do bench_gcollapse.do
-.         if ( `:list posof "checks" in options' ) {
-  7. 
-.             di ""
-  8.             di "-------------------------------------"
-  9.             di "Basic unit-tests $S_TIME $S_DATE"
- 10.             di "-------------------------------------"
- 11. 
-.             unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
+. 
+.         if ( `:list posof "bench_extra" in options' ) {
+  7.             compare_hashsort, bench(10)
+  8.             bench_levelsof,   bench(10)
+  9.             bench_isid,       bench(10)
+ 10.             bench_egen,       bench(10)
+ 11.         }
  12. 
-.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
- 13.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read
-> _method(0))
- 14.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read
-> _method(1))
- 15. 
-.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
- 16.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(
-> 0))
- 17.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(
-> 1))
+.         if ( `:list posof "checks" in options' ) {
+ 13. 
+.             di ""
+ 14.             di "-------------------------------------"
+ 15.             di "Basic unit-tests $S_TIME $S_DATE"
+ 16.             di "-------------------------------------"
+ 17. 
+.             unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
  18. 
+.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
+ 19.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read
+> _method(0))
+ 20.             unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read
+> _method(1))
+ 21. 
+.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
+ 22.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(
+> 0))
+ 23.             unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(
+> 1))
+ 24. 
 .             if !inlist("`c(os)'", "Windows") {
- 19.                 unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
- 20. 
+ 25.                 unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
+ 26. 
 .                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
- 21.                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_r
+ 27.                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_r
 > ead_method(0))
- 22.                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_r
+ 28.                 unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_r
 > ead_method(1))
- 23. 
+ 29. 
 .                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
- 24.                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_meth
+ 30.                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_meth
 > od(0))
- 25.                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_meth
+ 31.                 unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_meth
 > od(1))
- 26.             }
- 27. 
+ 32.             }
+ 33. 
 .             di ""
- 28.             di "-----------------------------------------------------------"
- 29.             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
- 30.             di "-----------------------------------------------------------"
- 31. 
+ 34.             di "-----------------------------------------------------------"
+ 35.             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+ 36.             di "-----------------------------------------------------------"
+ 37. 
 .             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
- 32.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
- 33.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
- 34.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_thresho
+ 38.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
+ 39.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
+ 40.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_thresho
 > ld(0.1)
- 35.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_thresho
+ 41.             consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_thresho
 > ld(1000000)
- 36.             consistency_gegen,           `noisily' oncollision(error) debug_force_single
- 37.             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
- 38. 
+ 42.             consistency_gegen,           `noisily' oncollision(error) debug_force_single
+ 43.             consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
+ 44. 
 .             if !inlist("`c(os)'", "Windows") {
- 39.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
- 40.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
- 41.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
- 42.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_thre
+ 45.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
+ 46.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
+ 47.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
+ 48.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_thre
 > shold(0.1)
- 43.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_thre
+ 49.                 consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_thre
 > shold(1000000)
- 44.                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
- 45.                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
- 46.             }
- 47. 
+ 50.                 consistency_gegen,           `noisily' oncollision(error) debug_force_multi
+ 51.                 consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
+ 52.             }
+ 53. 
 .             di ""
- 48.             di "--------------------------------"
- 49.             di "Check extra $S_TIME $S_DATE"     
- 50.             di "--------------------------------"
- 51. 
+ 54.             di "--------------------------------"
+ 55.             di "Check extra $S_TIME $S_DATE"     
+ 56.             di "--------------------------------"
+ 57. 
 .             unit_test, `noisily' test(checks_hashsort, `noisily' oncollision(error))
- 52.             unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
- 53.             unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
- 54. 
+ 58.             unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
+ 59.             unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
+ 60. 
 .             compare_isid,     `noisily' oncollision(error)
- 55.             compare_levelsof, `noisily' oncollision(error)
- 56.             compare_hashsort, `noisily' oncollision(error)
- 57.         }
- 58. 
+ 61.             compare_levelsof, `noisily' oncollision(error)
+ 62.             compare_hashsort, `noisily' oncollision(error)
+ 63.         }
+ 64. 
 .         if ( `:list posof "bench_gtools" in options' ) {
- 59.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(f
+ 65.             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(f
 > tools) gcoll(debug_force_single)
- 60.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(f
+ 66.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(f
 > tools) gcoll(debug_force_single)
- 61.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(f
+ 67.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(f
 > tools) gcoll(debug_force_single)
- 62.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(g
+ 68.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(g
 > tools) gcoll(debug_force_single)
- 63.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(g
+ 69.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(g
 > tools) gcoll(debug_force_single)
- 64.         }
- 65. 
+ 70.         }
+ 71. 
 .         if ( `:list posof "test" in options' ) {
- 66.             cap ssc install ftools
- 67.             cap ssc install moremata
- 68. 
-.             di "Short (quick) versions of the benchmarks"
- 69.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
- 70.             bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
- 71.             bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
- 72.             bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
- 73.             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
+ 72.             cap ssc install ftools
+ 73.             cap ssc install moremata
  74. 
+.             di "Short (quick) versions of the benchmarks"
+ 75.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
+ 76.             bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
+ 77.             bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
+ 78.             bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
+ 79.             bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
+ 80. 
 .             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftoo
 > ls)
- 75.             bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(f
+ 81.             bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(f
 > tools)
- 76.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(f
+ 82.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(f
 > tools)
- 77.             bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(g
+ 83.             bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(g
 > tools)
- 78.             bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(g
+ 84.             bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(g
 > tools)
- 79.         }
- 80. 
+ 85.         }
+ 86. 
 .         if ( `:list posof "benchmark" in options' ) {
- 81.             cap ssc install ftools
- 82.             cap ssc install moremata
- 83. 
-.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
- 84.             bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
- 85.             bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
- 86.             bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
- 87.             bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
- 88.         }
+ 87.             cap ssc install ftools
+ 88.             cap ssc install moremata
  89. 
+.             bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15)
+ 90.             bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median)
+ 91.             bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max)
+ 92.             bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77)
+ 93.             bench_group_size  x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)
+ 94.         }
+ 95. 
 .         if ( `:list posof "bench_fcoll" in options' ) {
- 90.             cap ssc install ftools
- 91.             cap ssc install moremata
- 92. 
+ 96.             cap ssc install ftools
+ 97.             cap ssc install moremata
+ 98. 
 .             bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftoo
 > ls)
- 93.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(f
+ 99.             bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(f
 > tools)
- 94.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(f
+100.             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(f
 > tools)
- 95.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(g
+101.             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(g
 > tools)
- 96.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(g
+102.             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(g
 > tools)
- 97.         }
- 98.     }
- 99.     local rc = _rc
-100. 
+103.         }
+104.     }
+105.     local rc = _rc
+106. 
 .     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
-101.     exit `rc'
-102. end
+107.     exit `rc'
+108. end
 
 . 
 . * ---------------------------------------------------------------------
@@ -383,6 +391,7 @@ all files already exist and are up to date.
  41. end
 
 . 
+. * ---------------------------------------------------------------------
 . capture program drop consistency_gcollapse
 
 . program consistency_gcollapse
@@ -1093,6 +1102,115 @@ all files already exist and are up to date.
 121.     }
 122. end
 
+. 
+. ***********************************************************************
+. *                             Benchmarks                              *
+. ***********************************************************************
+. 
+. capture program drop bench_egen
+
+. program bench_egen
+  1.     syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+  2. 
+.     cap gen_data, n(10000) expand(`=100 * `bench'')
+  3.     qui gen rsort = rnormal()
+  4.     qui sort rsort
+  5. 
+.     local N = trim("`: di %15.0gc _N'")
+  6. 
+.     di _n(1)
+  7.     di "Benchmark vs egen, obs = `N', J = 10,000 (in seconds)"
+  8.     di "     egen | fegen | gegen | ratio (i/g) | ratio (f/g) | varlist"
+  9.     di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+ 10. 
+.     versus_egen str_12,              `options' fegen
+ 11.     versus_egen str_12 str_32,       `options' fegen
+ 12.     versus_egen str_12 str_32 str_4, `options' fegen
+ 13. 
+.     versus_egen double1,                 `options' fegen
+ 14.     versus_egen double1 double2,         `options' fegen
+ 15.     versus_egen double1 double2 double3, `options' fegen
+ 16. 
+.     versus_egen int1,           `options' fegen
+ 17.     versus_egen int1 int2,      `options' fegen
+ 18.     versus_egen int1 int2 int3, `options' fegen
+ 19. 
+.     versus_egen int1 str_32 double1,                                        `options'
+ 20.     versus_egen int1 str_32 double1 int2 str_12 double2,                    `options'
+ 21.     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+ 22. 
+.     di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)
+ 23. end
+
+. 
+. capture program drop gen_data
+
+. program gen_data
+  1.     syntax, [n(int 100) expand(int 1)]
+  2.     clear
+  3.     set obs `n'
+  4.     qui ralpha str_long,  l(5)
+  5.     qui ralpha str_mid,   l(3)
+  6.     qui ralpha str_short, l(1)
+  7.     gen str32 str_32   = str_long + "this is some string padding"
+  8.     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+  9.     gen str4  str_4    = str_mid  + str_short
+ 10. 
+.     gen long int1  = floor(rnormal())
+ 11.     gen long int2  = floor(uniform() * 1000)
+ 12.     gen long int3  = floor(rnormal() * 5 + 10)
+ 13. 
+.     gen double double1 = rnormal()
+ 14.     gen double double2 = uniform() * 1000
+ 15.     gen double double3 = rnormal() * 5 + 10
+ 16. 
+.     qui expand `expand'
+ 17. end
+
+. 
+. capture program drop versus_egen
+
+. program versus_egen, rclass
+  1.     syntax varlist, [fegen unique *]
+  2. 
+.     preserve
+  3.         timer clear
+  4.         timer on 42
+  5.         cap egen id = group(`varlist')
+  6.         timer off 42
+  7.         qui timer list
+  8.         local time_egen = r(t42)
+  9.     restore
+ 10. 
+.     preserve
+ 11.         timer clear
+ 12.         timer on 43
+ 13.         cap gegen id = group(`varlist'), `options'
+ 14.         timer off 43
+ 15.         qui timer list
+ 16.         local time_gegen = r(t43)
+ 17.     restore
+ 18. 
+.     if ( "`fegen'" == "fegen" ) {
+ 19.     preserve
+ 20.         timer clear
+ 21.         timer on 44
+ 22.         cap fegen id = group(`varlist')
+ 23.         timer off 44
+ 24.         qui timer list
+ 25.         local time_fegen = r(t44)
+ 26.     restore
+ 27.     }
+ 28.     else {
+ 29.         local time_fegen = .
+ 30.     }
+ 31. 
+.     local rs = `time_egen'  / `time_gegen'
+ 32.     local rf = `time_fegen' / `time_gegen'
+ 33.     di "    `:di %5.3g `time_egen'' | `:di %5.3g `time_fegen'' | `:di %5.3g `time_gegen'' | `:di %11.3g `rs'' | `:di %11.3g
+>  `rf'' | `varlist'"
+ 34. end
+
 . capture program drop checks_isid
 
 . program checks_isid
@@ -1294,6 +1412,144 @@ all files already exist and are up to date.
  26.     }
  27. end
 
+. 
+. ***********************************************************************
+. *                             Benchmarks                              *
+. ***********************************************************************
+. 
+. capture program drop bench_isid
+
+. program bench_isid
+  1.     syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+  2. 
+.     cap gen_data, n(10000) expand(`=100 * `bench'')
+  3.     qui gen rsort = rnormal()
+  4.     qui sort rsort
+  5. 
+.     local N = trim("`: di %15.0gc _N'")
+  6. 
+.     di _n(1)
+  7.     di "Benchmark vs isid, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
+  8.     di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+  9.     di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+ 10. 
+.     versus_isid str_12,              `options' fisid unique
+ 11.     versus_isid str_12 str_32,       `options' fisid unique
+ 12.     versus_isid str_12 str_32 str_4, `options' fisid unique
+ 13. 
+.     versus_isid double1,                 `options' fisid unique
+ 14.     versus_isid double1 double2,         `options' fisid unique
+ 15.     versus_isid double1 double2 double3, `options' fisid unique
+ 16. 
+.     versus_isid int1,           `options' fisid unique
+ 17.     versus_isid int1 int2,      `options' fisid unique
+ 18.     versus_isid int1 int2 int3, `options' fisid unique
+ 19. 
+.     versus_isid int1 str_32 double1,                                        unique `options'
+ 20.     versus_isid int1 str_32 double1 int2 str_12 double2,                    unique `options'
+ 21.     versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
+ 22. 
+.     di _n(1)
+ 23.     di "Benchmark vs isid, obs = `N', J = 10,000 (in seconds)"
+ 24.     di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+ 25.     di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+ 26. 
+.     versus_isid str_12,              `options' fisid
+ 27.     versus_isid str_12 str_32,       `options' fisid
+ 28.     versus_isid str_12 str_32 str_4, `options' fisid
+ 29. 
+.     versus_isid double1,                 `options' fisid
+ 30.     versus_isid double1 double2,         `options' fisid
+ 31.     versus_isid double1 double2 double3, `options' fisid
+ 32. 
+.     versus_isid int1,           `options' fisid
+ 33.     versus_isid int1 int2,      `options' fisid
+ 34.     versus_isid int1 int2 int3, `options' fisid
+ 35. 
+.     versus_isid int1 str_32 double1,                                        `options'
+ 36.     versus_isid int1 str_32 double1 int2 str_12 double2,                    `options'
+ 37.     versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+ 38. 
+.     di _n(1) "{hline 80}" _n(1) "bench_isid, `options'" _n(1) "{hline 80}" _n(1)
+ 39. end
+
+. 
+. capture program drop gen_data
+
+. program gen_data
+  1.     syntax, [n(int 100) expand(int 1)]
+  2.     clear
+  3.     set obs `n'
+  4.     qui ralpha str_long,  l(5)
+  5.     qui ralpha str_mid,   l(3)
+  6.     qui ralpha str_short, l(1)
+  7.     gen str32 str_32   = str_long + "this is some string padding"
+  8.     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+  9.     gen str4  str_4    = str_mid  + str_short
+ 10. 
+.     gen long int1  = floor(rnormal())
+ 11.     gen long int2  = floor(uniform() * 1000)
+ 12.     gen long int3  = floor(rnormal() * 5 + 10)
+ 13. 
+.     gen double double1 = rnormal()
+ 14.     gen double double2 = uniform() * 1000
+ 15.     gen double double3 = rnormal() * 5 + 10
+ 16. 
+.     qui expand `expand'
+ 17. end
+
+. 
+. capture program drop versus_isid
+
+. program versus_isid, rclass
+  1.     syntax varlist, [fisid unique *]
+  2.     if ( "`unique'" == "unique" ) {
+  3.         tempvar ix
+  4.         gen `ix' = `=_N' - _n
+  5.         if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+  6.     }
+  7. 
+.     preserve
+  8.         timer clear
+  9.         timer on 42
+ 10.         cap isid `varlist' `ix'
+ 11.         assert inlist(_rc, 0, 459)
+ 12.         timer off 42
+ 13.         qui timer list
+ 14.         local time_isid = r(t42)
+ 15.     restore
+ 16. 
+.     preserve
+ 17.         timer clear
+ 18.         timer on 43
+ 19.         cap gisid `varlist' `ix', `options'
+ 20.         assert inlist(_rc, 0, 459)
+ 21.         timer off 43
+ 22.         qui timer list
+ 23.         local time_gisid = r(t43) 
+ 24.     restore
+ 25. 
+.     if ( "`fisid'" == "fisid" ) {
+ 26.     preserve
+ 27.         timer clear
+ 28.         timer on 44
+ 29.         cap fisid `varlist' `ix'
+ 30.         assert inlist(_rc, 0, 459)
+ 31.         timer off 44
+ 32.         qui timer list
+ 33.         local time_fisid = r(t44)
+ 34.     restore
+ 35.     }
+ 36.     else {
+ 37.         local time_fisid = .
+ 38.     }
+ 39. 
+.     local rs = `time_isid'  / `time_gisid'
+ 40.     local rf = `time_fisid' / `time_gisid'
+ 41.     di "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g
+>  `rf'' | `varlist'"
+ 42. end
+
 . capture program drop checks_hashsort
 
 . program checks_hashsort
@@ -1313,57 +1569,67 @@ all files already exist and are up to date.
 . capture program drop compare_hashsort
 
 . program compare_hashsort
-  1.     syntax, [tol(real 1e-6) NOIsily *]
+  1.     syntax, [tol(real 1e-6) NOIsily bench(int 1) *]
   2. 
-.     cap gen_data, n(100000)
-  3.     qui expand 10
-  4. 
+.     cap gen_data, n(10000)
+  3.     qui expand 10 * `bench'
+  4.     qui gen rsort = rnormal()
+  5.     qui sort rsort
+  6. 
 .     local N = trim("`: di %15.0gc _N'")
-  5. 
-.     di _n(2)
-  6.     di "Benchmark vs sort, obs = `N' (in seconds; datasets are compared via {opt cf})"
-  7.     di "    ratio | sort | hashsort | varlist"
-  8.     di "    ----- | ---- | -------- | -------"
-  9. 
-.     compare_sort str_12, `options'
- 10.     compare_sort str_12 str_32, `options'
- 11.     compare_sort str_12 str_32 str_4, `options'
- 12. 
-.     compare_sort double1, `options'
- 13.     compare_sort double1 double2, `options'
- 14.     compare_sort double1 double2 double3, `options'
- 15. 
-.     compare_sort int1, `options'
- 16.     compare_sort int1 int2, `options'
- 17.     compare_sort int1 int2 int3, `options'
- 18. 
-.     compare_sort int1 str_32 double1, `options'
- 19.     compare_sort int1 str_32 double1 int2 str_12 double2, `options'
- 20.     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
- 21. 
-.     di _n(2)
- 22.     di "Benchmark vs gsort, obs = `N' (in seconds; datasets are compared via {opt cf})"
- 23.     di "    ratio | gsort | hashsort | varlist"
- 24.     di "    ----- | ----- | -------- | -------"
+  7. 
+.     di _n(1)
+  8.     di "Benchmark vs gsort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
+  9.     di "    gsort | hashsort | ratio (g/h) | varlist"
+ 10.     di "    ----- | -------- | ----------- | -------"
+ 11. 
+.     compare_gsort -str_12,              `options'
+ 12.     compare_gsort str_12 -str_32,       `options'
+ 13.     compare_gsort str_12 -str_32 str_4, `options'
+ 14. 
+.     compare_gsort -double1,                 `options'
+ 15.     compare_gsort double1 -double2,         `options'
+ 16.     compare_gsort double1 -double2 double3, `options'
+ 17. 
+.     compare_gsort -int1,           `options'
+ 18.     compare_gsort int1 -int2,      `options'
+ 19.     compare_gsort int1 -int2 int3, `options'
+ 20. 
+.     compare_gsort -int1 -str_32 -double1,                                         `options'
+ 21.     compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+ 22.     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+ 23. 
+.     qui expand 10
+ 24.     local N = trim("`: di %15.0gc _N'")
  25. 
-.     compare_gsort -str_12, `options'
- 26.     compare_gsort str_12 -str_32, `options'
- 27.     compare_gsort str_12 -str_32 str_4, `options'
- 28. 
-.     compare_gsort -double1, `options'
- 29.     compare_gsort double1 -double2, `options'
- 30.     compare_gsort double1 -double2 double3, `options'
- 31. 
-.     compare_gsort -int1, `options'
- 32.     compare_gsort int1 -int2, `options'
- 33.     compare_gsort int1 -int2 int3, `options'
- 34. 
-.     compare_gsort -int1 -str_32 -double1, `options'
- 35.     compare_gsort int1 -str_32 double1 -int2 str_12 -double2, `options'
- 36.     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
- 37. 
+.     di _n(1)
+ 26.     di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
+ 27.     di "     sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist"
+ 28.     di "     ---- | ----- | -------- | ----------- | ----------- | -------"
+ 29. 
+.     compare_sort str_12,              `options' fsort
+ 30.     compare_sort str_12 str_32,       `options' fsort
+ 31.     compare_sort str_12 str_32 str_4, `options' fsort
+ 32. 
+.     compare_sort double1,                 `options' fsort
+ 33.     compare_sort double1 double2,         `options' fsort
+ 34.     compare_sort double1 double2 double3, `options' fsort
+ 35. 
+.     compare_sort int1,           `options' fsort
+ 36.     compare_sort int1 int2,      `options' fsort
+ 37.     compare_sort int1 int2 int3, `options' fsort
+ 38. 
+.     compare_sort int1 str_32 double1,                                        `options'
+ 39.     compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
+ 40.     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+ 41. 
+.     * cap gen_data, n(100)
+.     * qui expand 10000
+.     * compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+.     * compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+. 
 .     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
- 38. end
+ 42. end
 
 . 
 . capture program drop gen_data
@@ -1392,7 +1658,7 @@ all files already exist and are up to date.
 . capture program drop compare_sort
 
 . program compare_sort, rclass
-  1.     syntax varlist, [*]
+  1.     syntax varlist, [fsort *]
   2. 
 .     timer clear
   3.     preserve
@@ -1403,23 +1669,38 @@ all files already exist and are up to date.
   8.         qui save `file_sort'
   9.     restore
  10.     qui timer list
- 11.     local time_sort `:di %9.3g r(t42)'
+ 11.     local time_sort = r(t42)
  12. 
 .     timer clear
  13.     preserve
  14.         timer on 43
- 15.         qui hashsort `varlist', v b `options'
+ 15.         qui hashsort `varlist', `options'
  16.         timer off 43
  17.         cf * using `file_sort'
  18.     restore
  19.     qui timer list
- 20.     local time_hashsort `:di %9.3g r(t43)'
+ 20.     local time_hashsort = r(t43) 
  21. 
-.     local r `:di %9.3g `time_sort' / `time_hashsort''
- 22.     di "     `r' | `time_sort' |     `time_hashsort' | `varlist'"
- 23.     return scalar time_sort  = `time_sort'
- 24.     return scalar time_hashsort = `time_hashsort'
- 25. end
+.     if ( "`fsort'" == "fsort" ) {
+ 22.         timer clear
+ 23.         preserve
+ 24.             timer on 44
+ 25.             qui fsort `varlist'
+ 26.             timer off 44
+ 27.             cf * using `file_sort'
+ 28.         restore
+ 29.         qui timer list
+ 30.         local time_fsort = r(t44)
+ 31.     }
+ 32.     else {
+ 33.         local time_fsort = .
+ 34.     }
+ 35. 
+.     local rs = `time_sort'  / `time_hashsort'
+ 36.     local rf = `time_fsort' / `time_hashsort'
+ 37.     di "    `:di %5.3g `time_sort'' | `:di %5.3g `time_fsort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `:di %11
+> .3g `rf'' | `varlist'"
+ 38. end
 
 . 
 . capture program drop compare_gsort
@@ -1432,29 +1713,27 @@ all files already exist and are up to date.
 .     timer clear
   5.     preserve
   6.         timer on 42
-  7.         gsort `anything' `ix'
+  7.         gsort `anything'
   8.         timer off 42
   9.         tempfile file_sort
  10.         qui save `file_sort'
  11.     restore
  12.     qui timer list
- 13.     local time_sort `:di %9.3g r(t42)'
+ 13.     local time_sort = r(t42)
  14. 
 .     timer clear
  15.     preserve
  16.         timer on 43
- 17.         qui hashsort `anything', v b `options'
+ 17.         qui hashsort `anything', `options'
  18.         timer off 43
- 19.         cf * using `file_sort'
+ 19.         cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
  20.     restore
  21.     qui timer list
- 22.     local time_hashsort `:di %9.3g r(t43)'
+ 22.     local time_hashsort = r(t43) 
  23. 
-.     local r `:di %9.3g `time_sort' / `time_hashsort''
- 24.     di "     `r' |  `time_sort' |     `time_hashsort' | `anything'"
- 25.     return scalar time_sort  = `time_sort'
- 26.     return scalar time_hashsort = `time_hashsort'
- 27. end
+.     local rs = `time_sort'  / `time_hashsort'
+ 24.     di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
+ 25. end
 
 . capture program drop checks_levelsof
 
@@ -1623,6 +1902,116 @@ all files already exist and are up to date.
  96.         }
  97.     }
  98. end
+
+. 
+. ***********************************************************************
+. *                             Benchmarks                              *
+. ***********************************************************************
+. 
+. capture program drop bench_levelsof
+
+. program bench_levelsof
+  1.     syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+  2. 
+.     cap gen_data, n(100) expand(`=10000 * `bench'')
+  3.     qui gen rsort = rnormal()
+  4.     qui sort rsort
+  5. 
+.     local N = trim("`: di %15.0gc _N'")
+  6. 
+.     di _n(1)
+  7.     di "Benchmark vs levelsof, obs = `N', J = 100 (in seconds)"
+  8.     di "    levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist"
+  9.     di "    -------- | --------- | --------- | ----------- | ----------- | -------"
+ 10. 
+.     versus_levelsof str_12, `options' flevelsof
+ 11.     versus_levelsof str_32, `options' flevelsof
+ 12.     versus_levelsof str_4,  `options' flevelsof
+ 13. 
+.     versus_levelsof double1, `options' flevelsof
+ 14.     versus_levelsof double2, `options' flevelsof
+ 15.     versus_levelsof double3, `options' flevelsof
+ 16. 
+.     versus_levelsof int1, `options' flevelsof
+ 17.     versus_levelsof int2, `options' flevelsof
+ 18.     versus_levelsof int3, `options' flevelsof
+ 19. 
+.     di _n(1) "{hline 80}" _n(1) "bench_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+ 20. end
+
+. 
+. capture program drop gen_data
+
+. program gen_data
+  1.     syntax, [n(int 100) expand(int 1)]
+  2.     clear
+  3.     set obs `n'
+  4.     qui ralpha str_long,  l(5)
+  5.     qui ralpha str_mid,   l(3)
+  6.     qui ralpha str_short, l(1)
+  7.     gen str32 str_32   = str_long + "this is some string padding"
+  8.     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+  9.     gen str4  str_4    = str_mid  + str_short
+ 10. 
+.     gen long int1  = floor(rnormal())
+ 11.     gen long int2  = floor(uniform() * 1000)
+ 12.     gen long int3  = floor(rnormal() * 5 + 10)
+ 13. 
+.     gen double double1 = rnormal()
+ 14.     gen double double2 = uniform() * 1000
+ 15.     gen double double3 = rnormal() * 5 + 10
+ 16. 
+.     qui expand `expand'
+ 17. end
+
+. 
+. capture program drop versus_levelsof
+
+. program versus_levelsof, rclass
+  1.     syntax varlist, [flevelsof unique *]
+  2.     if ( "`unique'" == "unique" ) {
+  3.         tempvar ix
+  4.         gen `ix' = `=_N' - _n
+  5.         if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+  6.     }
+  7. 
+.     preserve
+  8.         timer clear
+  9.         timer on 42
+ 10.         qui levelsof `varlist' `ix'
+ 11.         timer off 42
+ 12.         qui timer list
+ 13.         local time_levelsof = r(t42)
+ 14.     restore
+ 15. 
+.     preserve
+ 16.         timer clear
+ 17.         timer on 43
+ 18.         qui glevelsof `varlist' `ix', `options'
+ 19.         timer off 43
+ 20.         qui timer list
+ 21.         local time_glevelsof = r(t43) 
+ 22.     restore
+ 23. 
+.     if ( "`flevelsof'" == "flevelsof" ) {
+ 24.     preserve
+ 25.         timer clear
+ 26.         timer on 44
+ 27.         qui flevelsof `varlist' `ix'
+ 28.         timer off 44
+ 29.         qui timer list
+ 30.         local time_flevelsof = r(t44)
+ 31.     restore
+ 32.     }
+ 33.     else {
+ 34.         local time_flevelsof = .
+ 35.     }
+ 36. 
+.     local rs = `time_levelsof'  / `time_glevelsof'
+ 37.     local rf = `time_flevelsof' / `time_glevelsof'
+ 38.     di "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' |
+>  `:di %11.3g `rf'' | `varlist'"
+ 39. end
 
 . ***********************************************************************
 . *                           Data simulation                           *
@@ -2057,798 +2446,38 @@ all files already exist and are up to date.
 . * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
 . * bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
 . * bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)
-. 
 . * ---------------------------------------------------------------------
 . * Run the things
 . 
-. main, checks test
-Start: 19:49:07 29 Sep 2017
-
--------------------------------------
-Basic unit-tests 19:49:07 29 Sep 2017
--------------------------------------
-    test(passed): checks_corners, oncollision(error) debug_force_single
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single forceio debug_io_read_method(0)
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single forceio debug_io_read_method(1)
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_single
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0)
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1)
-    test(passed): checks_corners, oncollision(error) debug_force_multi
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_multi
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_multi forceio debug_io_read_method(0)
-    test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_multi forceio debug_io_read_method(1)
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_multi
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0)
-    test(passed): checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1)
-
------------------------------------------------------------
-Consistency checks (vs collapse, egen) 19:50:43 29 Sep 2017
------------------------------------------------------------
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_single
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_single forceio debug_io_read_method(0)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_single forceio debug_io_read_method(1)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gegen, oncollision(error) debug_force_single
---------------------------------------------------------------------------------
-
-
-Checking full egen range
-    compare_egen (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen if range
-    compare_egen_if (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen in range
-    compare_egen_in (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen if in range
-    compare_egen_ifin (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-
---------------------------------------------------------------------------------
-consistency_gegen_gcollapse, oncollision(error) debug_force_single
---------------------------------------------------------------------------------
-
-
-Checking gegen vs gcollapse full range
-    compare_gegen_gcollapse (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
-Checking gegen vs gcollapse in range
-    compare_gegen_gcollapse_in (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
-Checking gegen vs gcollapse if in range
-    compare_gegen_gcollapse_ifin (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_multi
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_multi forceio debug_io_read_method(0)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_multi forceio debug_io_read_method(1)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gcollapse, oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
---------------------------------------------------------------------------------
-
-
-Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr groupsubstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
-Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupstr)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, groupsub group)
-    compare_collapse (passed): gcollapse results equal to collapse (tol = 1.00000000000e-06, grouplong)
-
---------------------------------------------------------------------------------
-consistency_gegen, oncollision(error) debug_force_multi
---------------------------------------------------------------------------------
-
-
-Checking full egen range
-    compare_egen (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen if range
-    compare_egen_if (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_if (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen in range
-    compare_egen_in (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_in (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-Checking egen if in range
-    compare_egen_ifin (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen mean results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen sd results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen max results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen min results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen count results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen median results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen iqr results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 1 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 10 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 30 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 50 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 70 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 90 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
-    compare_egen_ifin (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
-
---------------------------------------------------------------------------------
-consistency_gegen_gcollapse, oncollision(error) debug_force_multi
---------------------------------------------------------------------------------
-
-
-Checking gegen vs gcollapse full range
-    compare_gegen_gcollapse (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
-Checking gegen vs gcollapse in range
-    compare_gegen_gcollapse_in (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_in (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
-Checking gegen vs gcollapse if in range
-    compare_gegen_gcollapse_ifin (passed): mean yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): sum yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): median yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): sd yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): iqr yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): first yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): last yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): firstnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): lastnm yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q10 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q30 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q70 yielded same results (tol = 1.00000000000e-06)
-    compare_gegen_gcollapse_ifin (passed): q90 yielded same results (tol = 1.00000000000e-06)
-
---------------------------------
-Check extra 20:03:25 29 Sep 2017
---------------------------------
-    test(passed): checks_hashsort, oncollision(error)
-    test(passed): checks_isid, oncollision(error)
-    test(passed): checks_levelsof, oncollision(error)
-
---------------------------------------------------------------------------------
-consistency_isid, oncollision(error)
---------------------------------------------------------------------------------
-
-    compare_isid (passed): groupsub groupstr was not an id
-    compare_isid (passed): groupstr groupsubstr was not an id
-    compare_isid (passed): groupsub group was not an id
-    compare_isid (passed): grouplong was not an id
-    compare_isid (passed): rsort rnorm groupsub groupstr was not an id
-    compare_isid (passed): rsort rnorm groupstr was not an id
-    compare_isid (passed): rsort rnorm groupsub group was not an id
-    compare_isid (passed): rsort rnorm grouplong was not an id
-    compare_isid (passed): ix groupsub groupstr was an id
-    compare_isid (passed): ix groupstr was an id
-    compare_isid (passed): ix groupsub group was an id
-    compare_isid (passed): ix grouplong was an id
-    compare_isid (passed): ix was not an id
-    compare_isid (passed): ix groupsub groupstr in 100 / 250000 was an id
-    compare_isid (passed): ix groupsub groupstr in 250000 / 500000 was not an id
-
-
-    compare_isid (passed): ix groupsub groupstr if _n < 250000 was an id
-    compare_isid (passed): ix groupsub groupstr if _n > 250000 was not an id
-
-
-    compare_isid (passed): ix groupsub groupstr if _n < 125000 in 100 / 250000 was an id
-    compare_isid (passed): ix groupsub groupstr if _n > 125000 in 333334 / 500000 was not an id
-    compare_isid (passed): ix groupstr in 100 / 250000 was an id
-    compare_isid (passed): ix groupstr in 250000 / 500000 was not an id
-
-
-    compare_isid (passed): ix groupstr if _n < 250000 was an id
-    compare_isid (passed): ix groupstr if _n > 250000 was not an id
-
-
-    compare_isid (passed): ix groupstr if _n < 125000 in 100 / 250000 was an id
-    compare_isid (passed): ix groupstr if _n > 125000 in 333334 / 500000 was not an id
-    compare_isid (passed): ix groupsub group in 100 / 250000 was an id
-    compare_isid (passed): ix groupsub group in 250000 / 500000 was not an id
-
-
-    compare_isid (passed): ix groupsub group if _n < 250000 was an id
-    compare_isid (passed): ix groupsub group if _n > 250000 was not an id
-
-
-    compare_isid (passed): ix groupsub group if _n < 125000 in 100 / 250000 was an id
-    compare_isid (passed): ix groupsub group if _n > 125000 in 333334 / 500000 was not an id
-    compare_isid (passed): ix grouplong in 100 / 250000 was an id
-    compare_isid (passed): ix grouplong in 250000 / 500000 was not an id
-
-
-    compare_isid (passed): ix grouplong if _n < 250000 was an id
-    compare_isid (passed): ix grouplong if _n > 250000 was not an id
-
-
-    compare_isid (passed): ix grouplong if _n < 125000 in 100 / 250000 was an id
-    compare_isid (passed): ix grouplong if _n > 125000 in 333334 / 500000 was not an id
-
---------------------------------------------------------------------------------
-consistency_levelsof, oncollision(error)
---------------------------------------------------------------------------------
-
-    compare_levelsof (passed): glevelsof groupsub returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsub returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupsub [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsub [in] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupsub [if] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsub [if] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupsub [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsub [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr [in] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupstr [if] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr [if] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupstr [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupstr [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr [in] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupsubstr [if] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr [if] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof groupsubstr [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof groupsubstr [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong [in] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof grouplong [if] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong [if] returned the same levels as levelsof
-
-
-    compare_levelsof (passed): glevelsof grouplong [if] [in] returned the same levels as levelsof
-    compare_levelsof (passed): glevelsof grouplong [if] [in] returned the same levels as levelsof
-
-
-
-Benchmark vs sort, obs = 1,000,000 (in seconds; datasets are compared via cf)
-    ratio | sort | hashsort | varlist
-    ----- | ---- | -------- | -------
-     1.71 | 1.43 |     .835 | str_12
-     1.54 | 1.54 |     1 | str_12 str_32
-     1.64 | 1.67 |     1.02 | str_12 str_32 str_4
-     1.54 | 1.41 |     .914 | double1
-     1.56 | 1.48 |     .947 | double1 double2
-     1.45 | 1.41 |     .97 | double1 double2 double3
-     2.53 | 1.35 |     .534 | int1
-     2.49 | 1.52 |     .61 | int1 int2
-     2.45 | 1.62 |     .66 | int1 int2 int3
-     1.63 | 1.63 |     1 | int1 str_32 double1
-     1.51 | 1.74 |     1.15 | int1 str_32 double1 int2 str_12 double2
-     1.46 | 1.8 |     1.23 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
-
-
-
-Benchmark vs gsort, obs = 1,000,000 (in seconds; datasets are compared via cf)
-    ratio | gsort | hashsort | varlist
-    ----- | ----- | -------- | -------
-     6.47 |  5.37 |     .83 | -str_12
-     6.63 |  5.9 |     .89 | str_12 -str_32
-     8.76 |  7.3 |     .833 | str_12 -str_32 str_4
-     5.68 |  5.6 |     .986 | -double1
-     7.31 |  5.79 |     .792 | double1 -double2
-     9.22 |  7.41 |     .804 | double1 -double2 double3
-     10.4 |  5.58 |     .536 | -int1
-     9.95 |  5.98 |     .601 | int1 -int2
-     13.7 |  7.25 |     .53 | int1 -int2 int3
-     11.8 |  8.91 |     .756 | -int1 -str_32 -double1
-     13.3 |  12.8 |     .963 | int1 -str_32 double1 -int2 str_12 -double2
-     16.5 |  18.8 |     1.14 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3
-
---------------------------------------------------------------------------------
-compare_hashsort, oncollision(error)
---------------------------------------------------------------------------------
-
-Short (quick) versions of the benchmarks
+. * main, checks test bench_extra
+. main, benchmark
+Start: 16:19:01  1 Oct 2017
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
     stats = sum
-                    2,000 gcollapse  (.023)  collapse  (.014)  fcollapse  (.04)
-                   20,000 gcollapse  (.029)  collapse  (.07)  fcollapse  (.026)
+                  200,000 gcollapse  (.132)  collapse  (.768)  fcollapse  (.253)
+                2,000,000 gcollapse  (.592)  collapse  (7.986)  fcollapse  (2.069)
+               20,000,000 gcollapse  (48.227)  collapse  (83.61499999999999)  fcollapse  (23.473)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.02 |      0.01 |      0.04 |        1.74 |        0.61 |
-|         20,000 |      0.03 |      0.07 |      0.03 |        0.90 |        2.41 |
+|        200,000 |      0.13 |      0.77 |      0.25 |        1.92 |        5.82 |
+|      2,000,000 |      0.59 |      7.99 |      2.07 |        3.49 |       13.49 |
+|     20,000,000 |     48.23 |     83.61 |     23.47 |        0.49 |        1.73 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3
     stats = mean median
-                    2,000 gcollapse  (.01)  collapse  (.013)  fcollapse  (.007)
-                   20,000 gcollapse  (.013)  collapse  (.107)  fcollapse  (.025)
+                  200,000 gcollapse  (.069)  collapse  (1.202)  fcollapse  (.328)
+                2,000,000 gcollapse  (.393)  collapse  (11.724)  fcollapse  (2.78)
+               20,000,000 gcollapse  (3.517)  collapse  (135.295)  fcollapse  (36.054)
 Results varying N for J = 100; by(x3)
 |              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
 | -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.01 |      0.01 |      0.01 |        0.70 |        1.30 |
-|         20,000 |      0.01 |      0.11 |      0.03 |        1.92 |        8.23 |
+|        200,000 |      0.07 |      1.20 |      0.33 |        4.75 |       17.42 |
+|      2,000,000 |      0.39 |     11.72 |      2.78 |        7.07 |       29.83 |
+|     20,000,000 |      3.52 |    135.29 |     36.05 |       10.25 |       38.47 |
 Benchmarking N for J = 100; by(x3)
     vars  = y1 y2 y3 y4 y5 y6
     stats = sum mean count min max
-                    2,000 gcollapse  (.033)  collapse  (.035)  fcollapse  (.013)
-                   20,000 gcollapse  (.039)  collapse  (.36)  fcollapse  (.035)
-Results varying N for J = 100; by(x3)
-|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
-| -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.03 |      0.04 |      0.01 |        0.39 |        1.06 |
-|         20,000 |      0.04 |      0.36 |      0.04 |        0.90 |        9.23 |
-Benchmarking N for J = 10; by(group)
-    vars  = x1 x2
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse  (.031)  collapse  (.077)  fcollapse  (.015)
-                   20,000 gcollapse  (.046)  collapse  (1.33)  fcollapse  (.062)
-Results varying N for J = 10; by(group)
-|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
-| -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|          2,000 |      0.03 |      0.08 |      0.01 |        0.48 |        2.48 |
-|         20,000 |      0.05 |      1.33 |      0.06 |        1.35 |       28.91 |
-Benchmarking J for N = 5,000; by(group)
-    vars  = x1 x2
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse  (.037)  collapse  (.204)  fcollapse  (.022)
-                    1,000 gcollapse  (.033)  collapse  (.27)  fcollapse  (.05)
-Results varying J for N = 5,000; by(group)
-|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
-| -------------- | --------- | --------- | --------- | ----------- | ----------- |
-|            100 |      0.04 |      0.20 |      0.02 |        0.59 |        5.51 |
-|          1,000 |      0.03 |      0.27 |      0.05 |        1.52 |        8.18 |
-Benchmarking N for J = 100; by(x3)
-    vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
-    stats = sum
-                    2,000 gcollapse-default  (.023)  fcollapse  (.011) 
-                   20,000 gcollapse-default  (.028)  fcollapse  (.027) 
-Results varying N for J = 100; by(x3)
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.02 |      0.01 |        0.48 |
-|         20,000 |      0.03 |      0.03 |        0.96 |
-Benchmarking N for J = 100; by(x3)
-    vars  = y1 y2 y3
-    stats = mean median
-                    2,000 gcollapse-default  (.011)  fcollapse  (.008) 
-                   20,000 gcollapse-default  (.014)  fcollapse  (.028) 
-Results varying N for J = 100; by(x3)
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.01 |      0.01 |        0.73 |
-|         20,000 |      0.01 |      0.03 |        2.00 |
-Benchmarking N for J = 100; by(x3)
-    vars  = y1 y2 y3 y4 y5 y6
-    stats = sum mean count min max
-                    2,000 gcollapse-default  (.033)  fcollapse  (.014) 
-                   20,000 gcollapse-default  (.038)  fcollapse  (.032) 
-Results varying N for J = 100; by(x3)
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.03 |      0.01 |        0.42 |
-|         20,000 |      0.04 |      0.03 |        0.84 |
-Benchmarking N for J = 10; by(group)
-    vars  = x1 x2
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                    2,000 gcollapse-default  (.086)  fcollapse  (.018) 
-                   20,000 gcollapse-default  (.04)  fcollapse  (.059) 
-Results varying N for J = 10; by(group)
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|          2,000 |      0.09 |      0.02 |        0.21 |
-|         20,000 |      0.04 |      0.06 |        1.47 |
-Benchmarking J for N = 5,000; by(group)
-    vars  = x1 x2
-    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-                      100 gcollapse-default  (.032)  fcollapse  (.023) 
-                    1,000 gcollapse-default  (.032)  fcollapse  (.052) 
-Results varying J for N = 5,000; by(group)
-|              J | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|            100 |      0.03 |      0.02 |        0.72 |
-|          1,000 |      0.03 |      0.05 |        1.62 |
-
-End: 20:07:45 29 Sep 2017
-tests ran
-
-tests finished running
-
-Start: 19:49:07 29 Sep 2017
-End: 20:07:45 29 Sep 2017
-
-. 
-end of do-file
+                  200,000 gcollapse  (.116)  collapse  (6.609)  fcollapse  (.244)
+                2,000,000 gcollapse  (.415)  collapse  (76.735)  fcollapse  (1.981)

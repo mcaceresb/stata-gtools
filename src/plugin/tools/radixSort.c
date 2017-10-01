@@ -73,7 +73,7 @@ int RadixSortIndex (
     if ( range < ctol ) {
         if ( (rc = CountingSortIndex (x, index, N, min, max)) ) return(rc);
         if ( verbose ) {
-            sf_printf("\t\tStep (2.1) counting sort: min = %'lu, max = %'lu\n", min, max);
+            sf_printf("\t\tStep (2.1) counting sort: min = "FMT", max = "FMT"\n", min, max);
         }
     }
     else {
@@ -81,7 +81,7 @@ int RadixSortIndex (
             if ( (rc = RadixSortIndexPass (x, index, N, exp, shift)) ) return(rc);
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
-            sf_printf("\t\tStep (2.1) radix sort: loops = %lu, bits = %lu, shift = %'lu\n",
+            sf_printf("\t\tStep (2.1) radix sort: loops = %lu, bits = %lu, shift = "FMT"\n",
                       nloops, dshift, shift);
         }
     }

@@ -103,32 +103,6 @@ program gisid
     *                             Final setup                             *
     ***********************************************************************
 
-    * Parse if missing are OK
-	if ( "`missok'" == "" ) {
-        marksample touse, novar
-		qui count if `touse'
-		local N = `r(N)'
-		markout `touse' `varlist', strok
-		qui count if `touse'
-		if ( `r(N)' < `N' ) {
-			local kvars: word count `varlist'
-			local s = cond(`kvars' == 1, "", "s")
-			di as err "variable`s' `varlist' should never be missing"
-			exit 459
-		}
-
-        if ( `r(N)' == 0 ) {
-            di as txt "(no observations)"
-            exit 0
-        }
-
-        local if if `touse'
-    }
-    else if ( "`if'" != "" ) {
-        marksample touse, novar
-        local if if `touse'
-    }
-
     * Get a list with all string by variables
     local bystr ""
     qui foreach byvar of varlist `varlist' {
@@ -149,12 +123,39 @@ program gisid
     if ( _rc ) exit _rc
 
     scalar __gtools_if         = ( "`if'" != "" )
+    scalar __gtools_missing    = 0 // Not used
     scalar __gtools_clean      = 0 // Not used
     scalar __gtools_sep_len    = 0 // Not used
     scalar __gtools_colsep_len = 0 // Not used
 
     cap noi parse_by_types `varlist' `in'
     if ( _rc ) exit _rc
+
+    * Parse if missing are OK
+	if ( "`missok'" == "" ) {
+        marksample touse, novar
+		qui count if `touse'
+		local N = `r(N)'
+		markout `touse' `varlist', strok
+		qui count if `touse'
+		if ( `r(N)' < `N' ) {
+			local kvars: word count `varlist'
+			local s = cond(`kvars' == 1, "", "s")
+			di as err "variable`s' `varlist' should never be missing"
+			exit 459
+		}
+
+        if ( `r(N)' == 0 ) {
+            di as txt "(no observations)"
+            exit 0
+        }
+
+        if ( (`r(N)' == `N') & ("`if'" != "") ) local if if `touse'
+    }
+    else if ( "`if'" != "" ) {
+        marksample touse, novar
+        local if if `touse'
+    }
 
     * Position of string variables (the position in the variable list passed
     * to C has 1-based indexing, however)

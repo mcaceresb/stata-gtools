@@ -162,3 +162,106 @@ program compare_levelsof
         }
     }
 end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_levelsof
+program bench_levelsof
+    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+
+    cap gen_data, n(100) expand(`=10000 * `bench'')
+    qui gen rsort = rnormal()
+    qui sort rsort
+
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs levelsof, obs = `N', J = 100 (in seconds)"
+    di "    levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist"
+    di "    -------- | --------- | --------- | ----------- | ----------- | -------"
+
+    versus_levelsof str_12, `options' flevelsof
+    versus_levelsof str_32, `options' flevelsof
+    versus_levelsof str_4,  `options' flevelsof
+
+    versus_levelsof double1, `options' flevelsof
+    versus_levelsof double2, `options' flevelsof
+    versus_levelsof double3, `options' flevelsof
+
+    versus_levelsof int1, `options' flevelsof
+    versus_levelsof int2, `options' flevelsof
+    versus_levelsof int3, `options' flevelsof
+
+    di _n(1) "{hline 80}" _n(1) "bench_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) expand(int 1)]
+    clear
+    set obs `n'
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+    gen str32 str_32   = str_long + "this is some string padding"
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long int1  = floor(rnormal())
+    gen long int2  = floor(uniform() * 1000)
+    gen long int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = rnormal()
+    gen double double2 = uniform() * 1000
+    gen double double3 = rnormal() * 5 + 10
+
+    qui expand `expand'
+end
+
+capture program drop versus_levelsof
+program versus_levelsof, rclass
+    syntax varlist, [flevelsof unique *]
+    if ( "`unique'" == "unique" ) {
+        tempvar ix
+        gen `ix' = `=_N' - _n
+        if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+    }
+
+    preserve
+        timer clear
+        timer on 42
+        qui levelsof `varlist' `ix'
+        timer off 42
+        qui timer list
+        local time_levelsof = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        qui glevelsof `varlist' `ix', `options'
+        timer off 43
+        qui timer list
+        local time_glevelsof = r(t43) 
+    restore
+
+    if ( "`flevelsof'" == "flevelsof" ) {
+    preserve
+        timer clear
+        timer on 44
+        qui flevelsof `varlist' `ix'
+        timer off 44
+        qui timer list
+        local time_flevelsof = r(t44)
+    restore
+    }
+    else {
+        local time_flevelsof = .
+    }
+
+    local rs = `time_levelsof'  / `time_glevelsof'
+    local rf = `time_flevelsof' / `time_glevelsof'
+    di "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end

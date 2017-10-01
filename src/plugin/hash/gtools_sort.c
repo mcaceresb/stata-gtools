@@ -50,7 +50,7 @@ int mf_radix_sort_index (
     if ( range < ctol ) {
         if ( (rc = mf_counting_sort_index (x, index, N, min, max)) ) return(rc);
         if ( verbose ) {
-            sf_printf("counting sort on hash; min = %'lu, max = %'lu\n", min, max);
+            sf_printf("counting sort on hash; min = "FMT", max = "FMT"\n", min, max);
         }
     }
     else {
@@ -58,7 +58,7 @@ int mf_radix_sort_index (
             if ( (rc = mf_radix_sort_index_pass (x, index, N, exp, shift)) ) return(rc);
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
-            sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = %'lu\n",
+            sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = "FMT"\n",
                       nloops, dshift, shift);
         }
     }

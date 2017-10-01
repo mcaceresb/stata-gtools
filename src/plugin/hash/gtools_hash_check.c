@@ -356,7 +356,7 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
      *********************************************************************/
 
     if ( collisions_count > 0 ) {
-        sf_errprintf ("There may be %'lu 128-bit hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+        sf_errprintf ("There may be "FMT" 128-bit hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
                       collisions_count, st_info->kvars_by, st_info->N, st_info->J);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
@@ -368,7 +368,7 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
     }
     else {
         if ( st_info->verbose )
-            sf_printf ("There were no hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+            sf_printf ("There were no hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
                        st_info->kvars_by, st_info->N, st_info->J);
     }
 
@@ -622,7 +622,7 @@ int sf_check_hashsort (struct StataInfo *st_info)
      *********************************************************************/
 
     if ( collisions_count > 0 ) {
-        sf_errprintf ("There may be %'lu 128-bit hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+        sf_errprintf ("There may be "FMT" 128-bit hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
                       collisions_count, st_info->kvars_by, st_info->N, st_info->J);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
@@ -634,7 +634,7 @@ int sf_check_hashsort (struct StataInfo *st_info)
     }
     else {
         if ( st_info->verbose )
-            sf_printf ("There were no hash collisions: %'lu variables, %'lu obs, %'lu groups\n",
+            sf_printf ("There were no hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
                        st_info->kvars_by, st_info->N, st_info->J);
     }
 

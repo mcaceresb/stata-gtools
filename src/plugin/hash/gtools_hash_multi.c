@@ -30,7 +30,7 @@ int sf_get_variable_hash (
 {
 
     if ( in2 < in1 ) {
-        sf_errprintf("data ending position %'lu < starting position %'lu\n", in2, in1);
+        sf_errprintf("data ending position "FMT" < starting position "FMT"\n", in2, in1);
         return(198);
     }
 
@@ -177,7 +177,7 @@ int sf_get_varlist_hash (
     }
 
     if ( in2 < in1 ) {
-        sf_errprintf("data ending position %'lu < starting position %'lu\n", in2, in1);
+        sf_errprintf("data ending position "FMT" < starting position "FMT"\n", in2, in1);
         return(198);
     }
 
@@ -396,7 +396,7 @@ int sf_get_variable_ashash (
 {
 
     if ( in2 < in1 ) {
-        sf_errprintf("data ending position %'lu < starting position %'lu\n", in2, in1);
+        sf_errprintf("data ending position "FMT" < starting position "FMT"\n", in2, in1);
         return(198);
     }
 
@@ -518,7 +518,7 @@ int sf_get_varlist_bijection (
     }
 
     if ( in2 < in1 ) {
-        sf_errprintf("data ending position %'lu < starting position %'lu\n", in2, in1);
+        sf_errprintf("data ending position "FMT" < starting position "FMT"\n", in2, in1);
         return(198);
     }
 

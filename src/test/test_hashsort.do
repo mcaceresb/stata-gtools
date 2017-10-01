@@ -14,56 +14,63 @@ end
 
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) *]
 
     cap gen_data, n(10000)
-    qui expand 100
+    qui expand 10 * `bench'
+    qui gen rsort = rnormal()
+    qui sort rsort
 
     local N = trim("`: di %15.0gc _N'")
 
-    di _n(2)
-    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "    ratio | sort | hashsort | varlist"
-    di "    ----- | ---- | -------- | -------"
-
-    compare_sort str_12, `options'
-    compare_sort str_12 str_32, `options'
-    compare_sort str_12 str_32 str_4, `options'
-
-    compare_sort double1, `options'
-    compare_sort double1 double2, `options'
-    compare_sort double1 double2 double3, `options'
-
-    compare_sort int1, `options'
-    compare_sort int1 int2, `options'
-    compare_sort int1 int2 int3, `options'
-
-    compare_sort int1 str_32 double1, `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2, `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-
-    di _n(2)
+    di _n(1)
     di "Benchmark vs gsort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "    ratio | gsort | hashsort | varlist"
-    di "    ----- | ----- | -------- | -------"
+    di "    gsort | hashsort | ratio (g/h) | varlist"
+    di "    ----- | -------- | ----------- | -------"
 
-    compare_gsort -str_12, `options'
-    compare_gsort str_12 -str_32, `options'
+    compare_gsort -str_12,              `options'
+    compare_gsort str_12 -str_32,       `options'
     compare_gsort str_12 -str_32 str_4, `options'
 
-    compare_gsort -double1, `options'
-    compare_gsort double1 -double2, `options'
+    compare_gsort -double1,                 `options'
+    compare_gsort double1 -double2,         `options'
     compare_gsort double1 -double2 double3, `options'
 
-    compare_gsort -int1, `options'
-    compare_gsort int1 -int2, `options'
+    compare_gsort -int1,           `options'
+    compare_gsort int1 -int2,      `options'
     compare_gsort int1 -int2 int3, `options'
 
-    compare_gsort -int1 -str_32 -double1, `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2, `options'
+    compare_gsort -int1 -str_32 -double1,                                         `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    qui expand 10
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
+    di "     sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist"
+    di "     ---- | ----- | -------- | ----------- | ----------- | -------"
+
+    compare_sort str_12,              `options' fsort
+    compare_sort str_12 str_32,       `options' fsort
+    compare_sort str_12 str_32 str_4, `options' fsort
+
+    compare_sort double1,                 `options' fsort
+    compare_sort double1 double2,         `options' fsort
+    compare_sort double1 double2 double3, `options' fsort
+
+    compare_sort int1,           `options' fsort
+    compare_sort int1 int2,      `options' fsort
+    compare_sort int1 int2 int3, `options' fsort
+
+    compare_sort int1 str_32 double1,                                        `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     * cap gen_data, n(100)
     * qui expand 10000
+    * compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
     * compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
@@ -92,7 +99,7 @@ end
 
 capture program drop compare_sort
 program compare_sort, rclass
-    syntax varlist, [*]
+    syntax varlist, [fsort *]
 
     timer clear
     preserve
@@ -103,22 +110,36 @@ program compare_sort, rclass
         qui save `file_sort'
     restore
     qui timer list
-    local time_sort `:di %9.3g r(t42)'
+    local time_sort = r(t42)
 
     timer clear
     preserve
         timer on 43
-        qui hashsort `varlist', v b `options'
+        qui hashsort `varlist', `options'
         timer off 43
         cf * using `file_sort'
     restore
     qui timer list
-    local time_hashsort `:di %9.3g r(t43)'
+    local time_hashsort = r(t43) 
 
-    local r `:di %9.3g `time_sort' / `time_hashsort''
-    di "     `r' | `time_sort' |     `time_hashsort' | `varlist'"
-    return scalar time_sort  = `time_sort'
-    return scalar time_hashsort = `time_hashsort'
+    if ( "`fsort'" == "fsort" ) {
+        timer clear
+        preserve
+            timer on 44
+            qui fsort `varlist'
+            timer off 44
+            cf * using `file_sort'
+        restore
+        qui timer list
+        local time_fsort = r(t44)
+    }
+    else {
+        local time_fsort = .
+    }
+
+    local rs = `time_sort'  / `time_hashsort'
+    local rf = `time_fsort' / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %5.3g `time_fsort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
 
 capture program drop compare_gsort
@@ -130,26 +151,24 @@ program compare_gsort, rclass
     timer clear
     preserve
         timer on 42
-        gsort `anything' `ix'
+        gsort `anything'
         timer off 42
         tempfile file_sort
         qui save `file_sort'
     restore
     qui timer list
-    local time_sort `:di %9.3g r(t42)'
+    local time_sort = r(t42)
 
     timer clear
     preserve
         timer on 43
-        qui hashsort `anything', v b `options'
+        qui hashsort `anything', `options'
         timer off 43
-        cf * using `file_sort'
+        cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
     restore
     qui timer list
-    local time_hashsort `:di %9.3g r(t43)'
+    local time_hashsort = r(t43) 
 
-    local r `:di %9.3g `time_sort' / `time_hashsort''
-    di "     `r' |  `time_sort' |     `time_hashsort' | `anything'"
-    return scalar time_sort  = `time_sort'
-    return scalar time_hashsort = `time_hashsort'
+    local rs = `time_sort'  / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
 end

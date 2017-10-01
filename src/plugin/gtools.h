@@ -89,6 +89,8 @@ int  sf_anyobs_sel  ();
 
 #if defined(_WIN64) || defined(_WIN32)
 
+#define FMT "%lu"
+
 // statvfs is POSIX only; repalce with dummies on windows
 #define QUERY_FREE_SPACE 0
 struct statvfs {
@@ -108,6 +110,8 @@ char * strndup (const char *s, size_t n)
 }
 
 #else
+
+#define FMT "%'lu"
 
 // Use statvfs to query free space in tmp drive
 #define QUERY_FREE_SPACE 1

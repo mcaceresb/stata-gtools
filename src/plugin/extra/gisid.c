@@ -71,6 +71,7 @@ int sf_hash_byvars_isid (struct StataInfo *st_info)
                 }
             }
             st_info->N = N_if;
+            if ( st_info->benchmark ) sf_running_timer (&timer, "\t\tPlugin step 3.1: Adjusted index based on if condition");
         }
 
         // Check if hash gives unique observations
@@ -154,6 +155,7 @@ int sf_hash_byvars_isid (struct StataInfo *st_info)
                 }
             }
             st_info->N = N_if;
+            if ( st_info->benchmark ) sf_running_timer (&timer, "\t\tPlugin step 3.1: Adjusted index based on if condition");
         }
 
         // Check if hash gives unique observations
@@ -355,7 +357,7 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
      *********************************************************************/
 
 collision:
-    sf_errprintf ("There may be 128-bit hash collisions: %'lu variables, %'lu obs (%lu, %lu)\n",
+    sf_errprintf ("There may be 128-bit hash collisions: "FMT" variables, "FMT" obs (%lu, %lu)\n",
                   st_info->kvars_by, st_info->N, obs1, obs2);
     sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 

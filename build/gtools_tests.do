@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Sep 28 18:40:14 EDT 2017
+* Updated: Sat Sep 30 22:21:18 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.6.21
 * Manual:  help gcollapse, help gegen
@@ -43,6 +43,7 @@ program main
         * do test_gisid.do
         * do test_glevelsof.do
         * do bench_gcollapse.do
+
         if ( `:list posof "checks" in options' ) {
 
             di ""
@@ -139,11 +140,11 @@ program main
             cap ssc install ftools
             cap ssc install moremata
 
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15)
+            bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median)
+            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max)
+            bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77)
+            bench_group_size  x1 x2, margin(J) by(group) kmin(4) kmax(6) pct(median iqr p23 p77) obsexp(6)
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {
@@ -155,6 +156,13 @@ program main
             bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
             bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
             bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
+        }
+
+        if ( `:list posof "bench_extra" in options' ) {
+            compare_hashsort, bench(10)
+            bench_levelsof,   bench(10)
+            bench_isid,       bench(10)
+            bench_egen,       bench(10)
         }
     }
     local rc = _rc
@@ -311,6 +319,7 @@ program sim, rclass
     return local string = ("`string'" != "")
 end
 
+* ---------------------------------------------------------------------
 capture program drop consistency_gcollapse
 program consistency_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
@@ -1008,6 +1017,108 @@ program consistency_gegen_gcollapse
         else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
     }
 end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_egen
+program bench_egen
+    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+
+    cap gen_data, n(10000) expand(`=100 * `bench'')
+    qui gen rsort = rnormal()
+    qui sort rsort
+
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs egen, obs = `N', J = 10,000 (in seconds)"
+    di "     egen | fegen | gegen | ratio (i/g) | ratio (f/g) | varlist"
+    di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+
+    versus_egen str_12,              `options' fegen
+    versus_egen str_12 str_32,       `options' fegen
+    versus_egen str_12 str_32 str_4, `options' fegen
+
+    versus_egen double1,                 `options' fegen
+    versus_egen double1 double2,         `options' fegen
+    versus_egen double1 double2 double3, `options' fegen
+
+    versus_egen int1,           `options' fegen
+    versus_egen int1 int2,      `options' fegen
+    versus_egen int1 int2 int3, `options' fegen
+
+    versus_egen int1 str_32 double1,                                        `options'
+    versus_egen int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) expand(int 1)]
+    clear
+    set obs `n'
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+    gen str32 str_32   = str_long + "this is some string padding"
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long int1  = floor(rnormal())
+    gen long int2  = floor(uniform() * 1000)
+    gen long int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = rnormal()
+    gen double double2 = uniform() * 1000
+    gen double double3 = rnormal() * 5 + 10
+
+    qui expand `expand'
+end
+
+capture program drop versus_egen
+program versus_egen, rclass
+    syntax varlist, [fegen unique *]
+
+    preserve
+        timer clear
+        timer on 42
+        cap egen id = group(`varlist')
+        timer off 42
+        qui timer list
+        local time_egen = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        cap gegen id = group(`varlist'), `options'
+        timer off 43
+        qui timer list
+        local time_gegen = r(t43)
+    restore
+
+    if ( "`fegen'" == "fegen" ) {
+    preserve
+        timer clear
+        timer on 44
+        cap fegen id = group(`varlist')
+        timer off 44
+        qui timer list
+        local time_fegen = r(t44)
+    restore
+    }
+    else {
+        local time_fegen = .
+    }
+
+    local rs = `time_egen'  / `time_gegen'
+    local rf = `time_fegen' / `time_gegen'
+    di "    `:di %5.3g `time_egen'' | `:di %5.3g `time_fegen'' | `:di %5.3g `time_gegen'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end
 capture program drop checks_isid
 program checks_isid
     syntax, [tol(real 1e-6) NOIsily *]
@@ -1202,6 +1313,137 @@ program check_rc
         }
     }
 end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_isid
+program bench_isid
+    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+
+    cap gen_data, n(10000) expand(`=100 * `bench'')
+    qui gen rsort = rnormal()
+    qui sort rsort
+
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs isid, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
+    di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+    di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+
+    versus_isid str_12,              `options' fisid unique
+    versus_isid str_12 str_32,       `options' fisid unique
+    versus_isid str_12 str_32 str_4, `options' fisid unique
+
+    versus_isid double1,                 `options' fisid unique
+    versus_isid double1 double2,         `options' fisid unique
+    versus_isid double1 double2 double3, `options' fisid unique
+
+    versus_isid int1,           `options' fisid unique
+    versus_isid int1 int2,      `options' fisid unique
+    versus_isid int1 int2 int3, `options' fisid unique
+
+    versus_isid int1 str_32 double1,                                        unique `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2,                    unique `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
+
+    di _n(1)
+    di "Benchmark vs isid, obs = `N', J = 10,000 (in seconds)"
+    di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+    di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+
+    versus_isid str_12,              `options' fisid
+    versus_isid str_12 str_32,       `options' fisid
+    versus_isid str_12 str_32 str_4, `options' fisid
+
+    versus_isid double1,                 `options' fisid
+    versus_isid double1 double2,         `options' fisid
+    versus_isid double1 double2 double3, `options' fisid
+
+    versus_isid int1,           `options' fisid
+    versus_isid int1 int2,      `options' fisid
+    versus_isid int1 int2 int3, `options' fisid
+
+    versus_isid int1 str_32 double1,                                        `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di _n(1) "{hline 80}" _n(1) "bench_isid, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) expand(int 1)]
+    clear
+    set obs `n'
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+    gen str32 str_32   = str_long + "this is some string padding"
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long int1  = floor(rnormal())
+    gen long int2  = floor(uniform() * 1000)
+    gen long int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = rnormal()
+    gen double double2 = uniform() * 1000
+    gen double double3 = rnormal() * 5 + 10
+
+    qui expand `expand'
+end
+
+capture program drop versus_isid
+program versus_isid, rclass
+    syntax varlist, [fisid unique *]
+    if ( "`unique'" == "unique" ) {
+        tempvar ix
+        gen `ix' = `=_N' - _n
+        if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+    }
+
+    preserve
+        timer clear
+        timer on 42
+        cap isid `varlist' `ix'
+        assert inlist(_rc, 0, 459)
+        timer off 42
+        qui timer list
+        local time_isid = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        cap gisid `varlist' `ix', `options'
+        assert inlist(_rc, 0, 459)
+        timer off 43
+        qui timer list
+        local time_gisid = r(t43) 
+    restore
+
+    if ( "`fisid'" == "fisid" ) {
+    preserve
+        timer clear
+        timer on 44
+        cap fisid `varlist' `ix'
+        assert inlist(_rc, 0, 459)
+        timer off 44
+        qui timer list
+        local time_fisid = r(t44)
+    restore
+    }
+    else {
+        local time_fisid = .
+    }
+
+    local rs = `time_isid'  / `time_gisid'
+    local rf = `time_fisid' / `time_gisid'
+    di "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end
 capture program drop checks_hashsort
 program checks_hashsort
     syntax, [tol(real 1e-6) NOIsily *]
@@ -1218,56 +1460,63 @@ end
 
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) *]
 
     cap gen_data, n(10000)
-    qui expand 100
+    qui expand 10 * `bench'
+    qui gen rsort = rnormal()
+    qui sort rsort
 
     local N = trim("`: di %15.0gc _N'")
 
-    di _n(2)
-    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "    ratio | sort | hashsort | varlist"
-    di "    ----- | ---- | -------- | -------"
-
-    compare_sort str_12, `options'
-    compare_sort str_12 str_32, `options'
-    compare_sort str_12 str_32 str_4, `options'
-
-    compare_sort double1, `options'
-    compare_sort double1 double2, `options'
-    compare_sort double1 double2 double3, `options'
-
-    compare_sort int1, `options'
-    compare_sort int1 int2, `options'
-    compare_sort int1 int2 int3, `options'
-
-    compare_sort int1 str_32 double1, `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2, `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-
-    di _n(2)
+    di _n(1)
     di "Benchmark vs gsort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "    ratio | gsort | hashsort | varlist"
-    di "    ----- | ----- | -------- | -------"
+    di "    gsort | hashsort | ratio (g/h) | varlist"
+    di "    ----- | -------- | ----------- | -------"
 
-    compare_gsort -str_12, `options'
-    compare_gsort str_12 -str_32, `options'
+    compare_gsort -str_12,              `options'
+    compare_gsort str_12 -str_32,       `options'
     compare_gsort str_12 -str_32 str_4, `options'
 
-    compare_gsort -double1, `options'
-    compare_gsort double1 -double2, `options'
+    compare_gsort -double1,                 `options'
+    compare_gsort double1 -double2,         `options'
     compare_gsort double1 -double2 double3, `options'
 
-    compare_gsort -int1, `options'
-    compare_gsort int1 -int2, `options'
+    compare_gsort -int1,           `options'
+    compare_gsort int1 -int2,      `options'
     compare_gsort int1 -int2 int3, `options'
 
-    compare_gsort -int1 -str_32 -double1, `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2, `options'
+    compare_gsort -int1 -str_32 -double1,                                         `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    qui expand 10
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
+    di "     sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist"
+    di "     ---- | ----- | -------- | ----------- | ----------- | -------"
+
+    compare_sort str_12,              `options' fsort
+    compare_sort str_12 str_32,       `options' fsort
+    compare_sort str_12 str_32 str_4, `options' fsort
+
+    compare_sort double1,                 `options' fsort
+    compare_sort double1 double2,         `options' fsort
+    compare_sort double1 double2 double3, `options' fsort
+
+    compare_sort int1,           `options' fsort
+    compare_sort int1 int2,      `options' fsort
+    compare_sort int1 int2 int3, `options' fsort
+
+    compare_sort int1 str_32 double1,                                        `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     * cap gen_data, n(100)
     * qui expand 10000
+    * compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
     * compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
@@ -1296,7 +1545,7 @@ end
 
 capture program drop compare_sort
 program compare_sort, rclass
-    syntax varlist, [*]
+    syntax varlist, [fsort *]
 
     timer clear
     preserve
@@ -1307,22 +1556,36 @@ program compare_sort, rclass
         qui save `file_sort'
     restore
     qui timer list
-    local time_sort `:di %9.3g r(t42)'
+    local time_sort = r(t42)
 
     timer clear
     preserve
         timer on 43
-        qui hashsort `varlist', v b `options'
+        qui hashsort `varlist', `options'
         timer off 43
         cf * using `file_sort'
     restore
     qui timer list
-    local time_hashsort `:di %9.3g r(t43)'
+    local time_hashsort = r(t43) 
 
-    local r `:di %9.3g `time_sort' / `time_hashsort''
-    di "     `r' | `time_sort' |     `time_hashsort' | `varlist'"
-    return scalar time_sort  = `time_sort'
-    return scalar time_hashsort = `time_hashsort'
+    if ( "`fsort'" == "fsort" ) {
+        timer clear
+        preserve
+            timer on 44
+            qui fsort `varlist'
+            timer off 44
+            cf * using `file_sort'
+        restore
+        qui timer list
+        local time_fsort = r(t44)
+    }
+    else {
+        local time_fsort = .
+    }
+
+    local rs = `time_sort'  / `time_hashsort'
+    local rf = `time_fsort' / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %5.3g `time_fsort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
 
 capture program drop compare_gsort
@@ -1334,28 +1597,26 @@ program compare_gsort, rclass
     timer clear
     preserve
         timer on 42
-        gsort `anything' `ix'
+        gsort `anything'
         timer off 42
         tempfile file_sort
         qui save `file_sort'
     restore
     qui timer list
-    local time_sort `:di %9.3g r(t42)'
+    local time_sort = r(t42)
 
     timer clear
     preserve
         timer on 43
-        qui hashsort `anything', v b `options'
+        qui hashsort `anything', `options'
         timer off 43
-        cf * using `file_sort'
+        cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
     restore
     qui timer list
-    local time_hashsort `:di %9.3g r(t43)'
+    local time_hashsort = r(t43) 
 
-    local r `:di %9.3g `time_sort' / `time_hashsort''
-    di "     `r' |  `time_sort' |     `time_hashsort' | `anything'"
-    return scalar time_sort  = `time_sort'
-    return scalar time_hashsort = `time_hashsort'
+    local rs = `time_sort'  / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
 end
 capture program drop checks_levelsof
 program checks_levelsof
@@ -1521,6 +1782,109 @@ program compare_levelsof
         }
     }
 end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_levelsof
+program bench_levelsof
+    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+
+    cap gen_data, n(100) expand(`=10000 * `bench'')
+    qui gen rsort = rnormal()
+    qui sort rsort
+
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs levelsof, obs = `N', J = 100 (in seconds)"
+    di "    levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist"
+    di "    -------- | --------- | --------- | ----------- | ----------- | -------"
+
+    versus_levelsof str_12, `options' flevelsof
+    versus_levelsof str_32, `options' flevelsof
+    versus_levelsof str_4,  `options' flevelsof
+
+    versus_levelsof double1, `options' flevelsof
+    versus_levelsof double2, `options' flevelsof
+    versus_levelsof double3, `options' flevelsof
+
+    versus_levelsof int1, `options' flevelsof
+    versus_levelsof int2, `options' flevelsof
+    versus_levelsof int3, `options' flevelsof
+
+    di _n(1) "{hline 80}" _n(1) "bench_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) expand(int 1)]
+    clear
+    set obs `n'
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+    gen str32 str_32   = str_long + "this is some string padding"
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long int1  = floor(rnormal())
+    gen long int2  = floor(uniform() * 1000)
+    gen long int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = rnormal()
+    gen double double2 = uniform() * 1000
+    gen double double3 = rnormal() * 5 + 10
+
+    qui expand `expand'
+end
+
+capture program drop versus_levelsof
+program versus_levelsof, rclass
+    syntax varlist, [flevelsof unique *]
+    if ( "`unique'" == "unique" ) {
+        tempvar ix
+        gen `ix' = `=_N' - _n
+        if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+    }
+
+    preserve
+        timer clear
+        timer on 42
+        qui levelsof `varlist' `ix'
+        timer off 42
+        qui timer list
+        local time_levelsof = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        qui glevelsof `varlist' `ix', `options'
+        timer off 43
+        qui timer list
+        local time_glevelsof = r(t43) 
+    restore
+
+    if ( "`flevelsof'" == "flevelsof" ) {
+    preserve
+        timer clear
+        timer on 44
+        qui flevelsof `varlist' `ix'
+        timer off 44
+        qui timer list
+        local time_flevelsof = r(t44)
+    restore
+    }
+    else {
+        local time_flevelsof = .
+    }
+
+    local rs = `time_levelsof'  / `time_glevelsof'
+    local rf = `time_flevelsof' / `time_glevelsof'
+    di "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end
 ***********************************************************************
 *                           Data simulation                           *
 ***********************************************************************
@@ -1603,7 +1967,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1613,7 +1977,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1623,7 +1987,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1682,7 +2046,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1692,7 +2056,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1702,7 +2066,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1758,7 +2122,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1768,7 +2132,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1778,7 +2142,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -1937,8 +2301,8 @@ end
 * bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
 * bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
 * bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)
-
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks test
+* main, checks test
+main, benchmark bench_extra

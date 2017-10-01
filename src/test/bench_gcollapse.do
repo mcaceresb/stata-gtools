@@ -80,7 +80,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -90,7 +90,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -100,7 +100,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -159,7 +159,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -169,7 +169,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -179,7 +179,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -235,7 +235,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by')
+                qui gcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -245,7 +245,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" collapse ")
-                qui collapse `collapse', by(`by')
+                qui collapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -255,7 +255,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by')
+                qui fcollapse `collapse', by(`by') fast
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

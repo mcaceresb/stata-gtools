@@ -4,6 +4,10 @@
 capture program drop hashsort
 program define hashsort
     version 13
+    if inlist("`c(os)'", "MacOSX") {
+        di as err "Not available for `c(os)'."
+        exit 198
+    }
 
     * Time the entire function execution
     {
@@ -155,6 +159,7 @@ program define hashsort
     if ( `verbose'  | `benchmark' ) local noi noisily
 
     scalar __gtools_if         = 0 // Not used
+    scalar __gtools_missing    = 0 // Not used
     scalar __gtools_clean      = 0 // Not used
     scalar __gtools_sep_len    = 0 // Not used
     scalar __gtools_colsep_len = 0 // Not used

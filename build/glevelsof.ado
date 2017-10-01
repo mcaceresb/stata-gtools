@@ -105,15 +105,6 @@ program glevelsof, rclass
     scalar __gtools_sep_len    = length(`"`sep'"')
     scalar __gtools_colsep_len = length(`"`colsep'"')
 
-	if ( "`missing'" != "" ) local novarlist "novarlist"
-    marksample touse, strok `novarlist'
-    qui count if `touse'
-    if ( `r(N)' == 0 ) {
-        di as txt "(no observations)"
-        exit 0
-    }
-    local if if `touse'
-
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
@@ -149,8 +140,8 @@ program glevelsof, rclass
     cap noi check_matsize `bynum'
     if ( _rc ) exit _rc
 
-    scalar __gtools_if    = ( "`if'"    != "" )
-    scalar __gtools_clean = ( "`clean'" != "" )
+    scalar __gtools_clean   = ( "`clean'" != "" )
+    scalar __gtools_missing = 1
     cap noi parse_by_types `varlist' `in'
     if ( _rc ) exit _rc
 
@@ -166,6 +157,40 @@ program glevelsof, rclass
     foreach var of local bynum {
         matrix __gtools_numpos = nullmat(__gtools_numpos), `:list posof `"`var'"' in varlist'
     }
+
+    * Parse the if condition; if missing option is not specified, also make
+    * sure to exclude msising observations. Since carrying the if condition is
+    * really inefficient, we check if there is a need (only inefficient to do
+    * this check with integers).
+    scalar __gtools_if = ( "`if'" != "" )
+	if ( "`missing'" != "" ) {
+        local novarlist "novarlist"
+        if ( "`if'" != "" ) {
+            marksample touse, strok `novarlist'
+            local if if `touse'
+            scalar __gtools_if = 1
+        }
+        scalar __gtools_missing = 1
+    }
+    else if ( `=scalar(__gtools_missing)' ) {
+        marksample touse, strok `novarlist'
+        local if if `touse'
+        scalar __gtools_if = (`:list sizeof varlist' > 1)
+        scalar __gtools_missing = 0
+    }
+    else {
+        scalar __gtools_missing = 0
+    }
+
+	* if ( "`missing'" != "" ) local novarlist "novarlist"
+    * marksample touse, strok `novarlist'
+    * * qui count if `touse'
+    * * if ( `r(N)' == 0 ) {
+    * *     di as txt "(no observations)"
+    * *     exit 0
+    * * }
+    * local if if `touse'
+    * scalar __gtools_if = ( "`if'" != "" )
 
     * If benchmark, output program setup time
     {
@@ -221,6 +246,7 @@ program glevelsof, rclass
     *                       Clean up after yourself                       *
     ***********************************************************************
 
+    cap scalar drop __gtools_missing
     cap matrix drop __gtools_strpos
     cap matrix drop __gtools_numpos
 
@@ -314,9 +340,10 @@ program parse_by_types
         matrix c_gtools_bymiss = J(1, `knum', 0)
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
-        if ( `=_N > 0' ) {
+        if ( (`=_N > 0') ) {
             cap plugin call gtools_plugin `varnum' `in', setup
             if ( _rc ) exit _rc
+            mata: st_numscalar("__gtools_missing", rowsum(st_matrix("c_gtools_bymiss") :!= 0))
         }
         matrix __gtools_bymin = c_gtools_bymin
         matrix __gtools_bymax = c_gtools_bymax + c_gtools_bymiss

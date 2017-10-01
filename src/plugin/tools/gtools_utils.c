@@ -59,7 +59,7 @@ uint64_t mf_max(uint64_t x[], size_t N)
 {
     uint64_t max = x[0]; size_t i;
     for (i = 1; i < N; ++i) {
-        if (max < x[i]) max = x[i];
+        if (max < x[i]) max = x[i]; 
     }
     return (max);
 }

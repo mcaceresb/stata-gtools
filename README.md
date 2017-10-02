@@ -8,8 +8,8 @@ img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/
 | [License](#license)
 
 _Gtools_: Faster Stata for big data. This packages provides a hash-based
-implementation of collapse, sort (gsort), egen, isid, and levelsof using C
-plugins for a massive speed improvement.
+implementation of collapse, egen, isid, and levelsof using C plugins for a
+massive speed improvement.
 
 `version 0.7.4 29Sep2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
@@ -19,20 +19,23 @@ Faster Stata for Group Operations
 ---------------------------------
 
 This package's aim is to provide a fast implementation of group commands in
-Stata using hashes and C plugins. This includes:
+Stata using hashes and C plugins. This includes (benchmarked using Stata/MP):
 
-| Function    | Replaces        | Speedup    | Extras               | Unsupported       |
-| ----------- | --------------- | ---------- | -------------------- | ----------------- |
-| `gcollapse` | `collapse`      | 5x-120x    | Quantiles, `merge`   | Weights           |
-| `hashsort`  | `sort`          | 2x-4x (*)  | Group (hash) sorting |                   |
-|             | `gsort`         | 2x-10x     | Sorts are stalbe     | `mfirst`, `gen`   |
-| `gegen`     | `egen`          | 2x-9x (+)  | Quantiles            | See [FAQs](#faqs) |
-| `gisid`     | `isid`          | 5x-15x     | `if`, `in`           | `using`, `sort`   |
-| `glevelsof` | `levelsof`      | 2x-8x      | Multiple variables   |                   |
+| Function    | Replaces        | Speedup        | Extras               | Unsupported       |
+| ----------- | --------------- | -------------- | -------------------- | ----------------- |
+| `gcollapse` | `collapse`      | 5x to 120x     | Quantiles, `merge`   | Weights           |
+| `gegen`     | `egen`          | 2x to 9x (+)   | Quantiles            | See [FAQs](#faqs) |
+| `gisid`     | `isid`          | 5x to 15x      | `if`, `in`           | `using`, `sort`   |
+| `glevelsof` | `levelsof`      | 1.5x to 7x     | Multiple variables   |                   |
+| `hashsort`  | `sort`          | 0.5x to 2x (*) | Group (hash) sorting |                   |
+|             | `gsort`         | 1x to 5x (*)   | Sorts are stalbe     | `mfirst`, `gen`   |
 
-<small>(*) `hashsort` is only faster then `sort` when sorting groups (it
-should be faster than `gsort` regardless, however). If the resulting sort will
-be unique, `hashsort` may be slower than `sort`.</small>
+<small>(*) `hashsort` is only faster then `sort` when sorting a few groups
+(it should be faster than `gsort` under most situations, however). If the
+resulting sort will be unique or if there are many groups, `hashsort` may be
+slower than `sort`. Further, outside Stata/MP `hashsort`'s performance changes
+little but Stata's sorting is 2x to 3x slower, so it may make more sense when
+the user does not have access to MP.'</small>
 
 <small>(+) Only `egen group` was benchmarked.</small>
 
@@ -50,11 +53,11 @@ commands take a mix of string and numeric variables.
 
 | Gtools      | Ftools          | Speedup   |
 | ----------- | --------------- | --------- |
-| `gcollapse` | `fcollapse`     | 3x-20x    |
+| `gcollapse` | `fcollapse`     | 3.5x-20x  |
 | `hashsort`  | `fsort`         | 1.5x-2.5x |
 | `gegen`     | `fegen`         | 1x-2x (+) |
 | `gisid`     | `fisid`         | 2.5x-8x   |
-| `glevelsof` | `flevelsof`     | 2x        |
+| `glevelsof` | `flevelsof`     | 1.5-2x    |
 
 <small>(+) Only `egen group` was benchmarked.</small>
 
@@ -106,14 +109,14 @@ release. See the [FAQs](#faqs) for a list of supported functions.
 Benchmarks
 ----------
 
-Benchmarks were performed on a personal laptop running Linux:
+Benchmarks were performed on a server running Linux:
 
-    Program:   Stata/IC 13.1 (1 core)
+    Program:   Stata/MP 14.2 (8 cores)
     OS:        x86_64 GNU/Linux
-    Processor: Intel(R) Core(TM) i7-6500U CPU @ 2.50GHz
-    Cores:     2 cores with 2 virtual threads per core.
-    Memory:    15.6GiB
-    Swap:      15.6GiB
+    Processor: Intel(R) Xeon(R) CPU E5-2620 v3 @ 2.40GHz
+    Cores:     2 sockets with 6 cores and 2 virtual threads per core.
+    Memory:    62GiB
+    Swap:      119GiB
 
 ### Collapse
 
@@ -140,8 +143,8 @@ Vary N for J = 100 and collapse 15 variables:
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.72 |      8.43 |      2.15 |        3.01 |       11.77 |
-    | 20,000,000 |      5.19 |     91.44 |     24.24 |        4.67 |       17.62 |
+    |  2,000,000 |      0.60 |      4.95 |      2.12 |        3.51 |        8.22 |
+    | 20,000,000 |      5.39 |     61.48 |     21.64 |        4.01 |       11.40 |
 ```
 
 In the tables, `g`, `f`, and `c` are code for `gcollapse`, `fcollapse`,
@@ -153,8 +156,8 @@ and `collapse`, respectively.
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.44 |     13.09 |      2.87 |        6.48 |       29.62 |
-    | 20,000,000 |      3.31 |    140.14 |     34.77 |       10.49 |       42.29 |
+    |  2,000,000 |      0.39 |      5.57 |      2.84 |        7.21 |       14.14 |
+    | 20,000,000 |      3.15 |     74.54 |     33.85 |       10.74 |       23.65 |
 ```
 
 The two benchmarks above are run in the `ftools` package. We see `gcollapse`
@@ -169,8 +172,8 @@ simple statistics for many variables.
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.69 |     81.93 |      1.95 |        2.82 |      118.40 |
-    | 20,000,000 |      4.39 |   1405.14 |     22.93 |        5.22 |      320.01 |
+    |  2,000,000 |      0.37 |     20.18 |      2.29 |        6.26 |       55.15 |
+    | 20,000,000 |      3.10 |    268.31 |     22.55 |        7.27 |       86.52 |
 ```
 
 `gcollapse` was 4-6 times faster than `fcollapse` and 30-60 times faster than
@@ -180,10 +183,10 @@ simple statistics for many variables.
     stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
     J     = 10
 
-    |           N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
-    | ----------- | --------- | --------- | --------- | ----------- | ----------- |
-    |   2,000,000 |      1.25 |    119.41 |      9.68 |        7.73 |       95.37 |
-    |  20,000,000 |     13.28 |   1649.93 |    159.80 |       12.03 |      124.23 |
+    |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+    | ---------- | --------- | --------- | --------- | ----------- | ----------- |
+    |  2,000,000 |      0.75 |     66.11 |      9.26 |       12.35 |       88.14 |
+    | 20,000,000 |      6.84 |   1010.27 |     96.16 |       14.05 |      147.66 |
 ```
 
 `gcollapse` handles multiple complex statistics specially well relative to
@@ -244,27 +247,7 @@ using the `ralpha` package.
     |   6.5 |     1.08 |        6.01 | int1 -str_32 double1 -int2 str_12 -double2                     |
     |  11.7 |     .994 |        11.8 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
 
-We can see hashsort was slowest when sorting by a large number of mixed
-variables. Consider the same data set as above, but expanded from 100, 1,000,
-and 500,000 to 1M, sorted by `int1 str_32 double1 int2 str_12 double2 int3
-str_4 double3`
-
-    | sort | hashsort | ratio (g/h) | Type           |
-    | ---- | -------- | ----------- | -------------- |
-    | 3.19 |     .944 |        3.38 | 100 -> 1M      |
-    | 2.55 |     .889 |        2.87 | 1,000 -> 1M    |
-    | 1.39 |     1.61 |        .866 | 500,000 -> 1M  |
-
-We can see that the speed gain is larger for fewer groups, even with many
-variables, but that if there are many groups you are better served using
-`sort`. The same is not true for gsort, since `hashsort` should perform faster
-regardless of the setting. Repeating the above benchmarks gives:
-
-    | gsort | hashsort | ratio (g/h) | Type           |
-    | ----- | -------- | ----------- | -------------- |
-    |  9.08 |      .84 |        10.8 | 100 -> 1M      |
-    |  9.48 |     .815 |        11.6 | 1,000 -> 1M    |
-    |  14.1 |     1.41 |        10.1 | 500,000 -> 1M  |
+The above speed gains only hold when sorting groups.
 
 ### Group IDs
 
@@ -533,7 +516,7 @@ weights are implemented before adding that option to `gcollapse`.
 At the moment there are no known problems on on Windows. However, one
 important warning is that when Stata is executing the plugin, the user will
 not be able to interact with the Stata GUI. Because of this, Stata may appear
-unresponsive when it is merely executing the plugin. 
+unresponsive when it is merely executing the plugin.
 
 There is at least one known instance where this can cause a confusion for
 the user: If the system runs out of RAM, the program will attempt to use the

@@ -2304,5 +2304,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-* main, checks test
-main, benchmark bench_extra
+* main, benchmark bench_extra
+main, checks test

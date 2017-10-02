@@ -73,7 +73,7 @@ STDLL stata_call(int argc, char *argv[])
 
     int i, j, k;
     struct StataInfo st_info;
-    char todo[8], tostat[8];
+    char todo[16], tostat[16];
     strcpy (todo, argv[0]);
 
     if ( strcmp(todo, "check") == 0 ) {
@@ -117,7 +117,7 @@ STDLL stata_call(int argc, char *argv[])
             //
             //     collapse sub-command file
 
-            char fname[strlen(argv[2])];
+            char fname[strlen(argv[2]) + 1];
             strcpy (fname,  argv[2]);
             strcpy (tostat, argv[1]);
 
@@ -437,7 +437,7 @@ STDLL stata_call(int argc, char *argv[])
                 return (198);
             }
             else {
-                char fname[strlen(argv[1])];
+                char fname[strlen(argv[1]) + 1];
                 strcpy (fname, argv[1]);
                 double rate_c = mf_benchmark(fname);
                 if ( (rc = SF_scal_save ("__gtools_bench_c", rate_c)) ) return (rc);
@@ -454,7 +454,7 @@ STDLL stata_call(int argc, char *argv[])
                 return (198);
             }
             else {
-                char fname[strlen(argv[1])];
+                char fname[strlen(argv[1]) + 1];
                 strcpy (fname, argv[1]);
                 double mib_free = mf_query_free_space(fname);
                 if ( (rc = SF_scal_save ("__gtools_free_tmp", mib_free)) ) return (rc);

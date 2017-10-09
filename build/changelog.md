@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-0.7.5 (2017-10-08)
+
+### Features
+
+* Updated benchmarks for new commands, all in Stata/MP.
+* Added `counts` option (with `fill`) to `gegen group`.
+  `fill` can be a number, `group` to fill in the counts 
+  normally, or `data` to fill in the first J_th_ observations.
+* The number of groups is now stored in `r(J)`, along with
+  other useful meta stats.
+
 ## gtools-0.7.4 (2017-09-29)
 
 ### Features

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.3  29Sep2017}{...}
+{* *! version 0.1.4  08Oct2017}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -125,6 +125,13 @@ it is typically used when the number of distinct values of
 {synoptset 15 tabbed}{...}
 {p2col 5 15 19 2: Macros}{p_end}
 {synopt:{cmd:r(levels)}}list of distinct values{p_end}
+{p2colreset}{...}
+
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)   }} number of groups {p_end}
+{synopt:{cmd:r(minJ)}} largest group size {p_end}
+{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
 {p2colreset}{...}
 
 

@@ -58,7 +58,7 @@ int mf_radix_sort_index (
             if ( (rc = mf_radix_sort_index_pass (x, index, N, exp, shift)) ) return(rc);
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
-            sf_printf("radix sort on hash: loops = %lu, bits = %lu, shift = "FMT"\n",
+            sf_printf("radix sort on hash: loops = "FMT", bits = "FMT", shift = "FMT"\n",
                       nloops, dshift, shift);
         }
     }
@@ -299,7 +299,7 @@ size_t * mf_panelsetup128 (
     free (info_largest);
 
     if ( (collision64 > 0) & (verbose) )
-        sf_printf("Found %lu 64-bit hash collision(s). Fell back on 128-bit hash.\n", collision64);
+        sf_printf("Found "FMT" 64-bit hash collision(s). Fell back on 128-bit hash.\n", collision64);
 
     return (info);
 }

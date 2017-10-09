@@ -1,10 +1,11 @@
 {smcl}
-{* *! version 0.7.4 29Sep2017}{...}
+{* *! version 0.7.5 08Oct2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
 {viewerjumpto "Description" "gegen##description"}{...}
 {viewerjumpto "Options" "gegen##options"}{...}
+{viewerjumpto "Stored results" "gegen##results"}{...}
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
@@ -32,7 +33,7 @@ creates a constant (within {it:varlist}) containing the number of nonmissing
 observations of {it:exp}.
 
 {phang2}
-{opth group(varlist)} [{cmd:,} {opt m:issing}]{p_end}
+{opth group(varlist)} [{cmd:,} {opt m:issing} {opth counts(newvarname)} {opth fill(real)}]{p_end}
 {pmore2}
 may not be combined with {cmd:by}.  It creates one variable taking on
 values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may
@@ -41,7 +42,13 @@ order of the groups is the order in which {it:varlist} appears in the data.  {op
 indicates that missing values in {it:varlist}
 {bind:(either {cmd:.} or {cmd:""}}) are to be treated like any other value
 when assigning groups, instead of as missing values being assigned to the
-group missing. 
+group missing. You can specify {opt counts()} to generate a new variable with
+the number of observations per group; by default all observations within a group
+are filled with the count, but via {opt fill()} the user can specify the value
+the variable will take after the first observation that appears within a group.
+The user can also specify {opt fill(data)} to fill the first J{it:th} observations
+with the count per group (in the sorted group order) or {opt fill(group)} to keep
+the default behavior.
 
         {opth iqr(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -160,6 +167,22 @@ task on segments of the data.
 
 {pstd}
 Pending...
+
+
+{marker results}{...}
+{title:Stored results}
+
+{pstd}
+{cmd:gegen} stores the following in {cmd:r()}:
+
+{synoptset 20 tabbed}{...}
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)   }} number of groups {p_end}
+{synopt:{cmd:r(minJ)}} largest group size {p_end}
+{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
+{p2colreset}{...}
+
 
 {marker author}{...}
 {title:Author}

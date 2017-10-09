@@ -1,4 +1,4 @@
-*! version 0.1.3 29Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.4 08Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -27,6 +27,7 @@ program glevelsof, rclass
         MISSing                /// Include missing values
         Local(str)             /// Store results in local
         Clean                  /// Clean strings
+        COUNTonly              /// Only count the number of groups
         silent                 /// Do not print levels
         Verbose                /// debugging
         Benchmark              /// print benchmark info
@@ -241,6 +242,14 @@ program glevelsof, rclass
         timer on 99
         timer clear 99
     }
+
+    * Return values
+    * -------------
+
+    return scalar N    = `r_N'
+    return scalar J    = `r_J'
+    return scalar minJ = `r_minJ'
+    return scalar maxJ = `r_maxJ'
 
     ***********************************************************************
     *                       Clean up after yourself                       *

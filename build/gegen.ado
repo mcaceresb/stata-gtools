@@ -1,4 +1,4 @@
-*! version 0.7.4 29Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.5 08Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation of by-able -egen- functions using C for faster processing
 
 /*
@@ -10,7 +10,7 @@
 
 * Adapted from egen.ado
 capture program drop gegen
-program define gegen, byable(onecall)
+program define gegen, byable(onecall) rclass
     version 13
     if inlist("`c(os)'", "MacOSX") {
         di as err "Not available for `c(os)'."
@@ -98,6 +98,8 @@ program define gegen, byable(onecall)
         p(real 50)               /// percentiles (only used with pctile)
                                  ///
         missing                  /// for group(); treats
+        counts(str)              /// for group(); create new variable `counts' with group counts
+        fill(str)                /// for group(); fills rest of group with `fill'
                                  ///
         Verbose                  /// debugging
         Benchmark                /// print benchmark info
@@ -385,6 +387,57 @@ program define gegen, byable(onecall)
     }
     else local indexed 0
 
+    * Special egen, group() options
+    * -----------------------------
+
+    scalar __gtools_group_data  = 0
+    scalar __gtools_group_fill  = 0
+    scalar __gtools_group_val   = .
+    scalar __gtools_group_count = 0
+    if ( "`counts'" != "" ) {
+        if ( "`fcn'" != "group" ) {
+            di as err "-counts- only allowed with -gegen group-"
+            exit 198
+        }
+        {
+            gettoken counts_type counts_name: counts
+            if ( "`counts_name'" == "" ) {
+                local counts_name `counts_type'
+                if (`=_N' < 2^31) {
+                    local counts_type long
+                }
+                else {
+                    local counts_type `c(type)'
+                }
+            }
+            local 0 `counts_name'
+            syntax newvarname
+            scalar __gtools_group_count = 1
+        }
+        if ( "`fill'" != "" ) {
+            if ( "`fill'" == "group" ) {
+                scalar __gtools_group_fill = 0
+                scalar __gtools_group_val  = .
+            }
+            else if ( "`fill'" == "data" ) {
+                scalar __gtools_group_data = 1
+                scalar __gtools_group_fill = 0
+                scalar __gtools_group_val  = .
+            }
+            else {
+                local 0 , fill(`fill')
+                syntax , [fill(real 0)]
+                local fill_value = `fill'
+                scalar __gtools_group_fill = 1
+                scalar __gtools_group_val  = `fill'
+            }
+        }
+    }
+    else if ( "`fill'" != "" ) {
+        di as err "-fill- only allowed with -gegen group, count()-"
+        exit 198
+    }
+
     * Info for C
     * ----------
 
@@ -416,7 +469,12 @@ program define gegen, byable(onecall)
     scalar __gtools_merge = 1
 
     * Add dummy variable; will rename to target variable
-    qui mata: st_addvar("`type'", "`dummy'")
+    if ( "`counts'" != "" )  {
+        qui mata: st_addvar(("`type'", "`counts_type'"), ("`dummy'", "`counts_name'"))
+    }
+    else {
+        qui mata: st_addvar("`type'", "`dummy'")
+    }
 
     * Position of string variables
     cap matrix drop __gtools_strpos
@@ -449,7 +507,7 @@ program define gegen, byable(onecall)
         timer on 99
     }
 
-    local plugvars `by' `gtools_vars' `gtools_targets' `bysmart'
+    local plugvars `by' `gtools_vars' `gtools_targets' `counts_name' `bysmart'
     scalar __gtools_indexed = cond(`indexed', `:list sizeof plugvars', 0)
     if ( `=_N > 0' ) {
         cap noi `plugin_call' `plugvars' `sub', egen `fcn'
@@ -460,7 +518,7 @@ program define gegen, byable(onecall)
                 cap noi collision_handler `00'
                 exit _rc
             }
-            else exit 42000 
+            else exit 42000
         }
         else if ( _rc == 42001 ) {
             di as txt "(no observations)"
@@ -511,6 +569,14 @@ program define gegen, byable(onecall)
         timer clear 98
     }
 
+    * Return values
+    * -------------
+
+    return scalar N    = `r_N'
+    return scalar J    = `r_J'
+    return scalar minJ = `r_minJ'
+    return scalar maxJ = `r_maxJ'
+
     * Clean up after yourself
     * -----------------------
 
@@ -521,6 +587,10 @@ program define gegen, byable(onecall)
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_checkhash
+    cap scalar drop __gtools_group_data
+    cap scalar drop __gtools_group_fill
+    cap scalar drop __gtools_group_val
+    cap scalar drop __gtools_group_count
 
     cap matrix drop __gtools_strpos
     cap matrix drop __gtools_numpos

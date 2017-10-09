@@ -282,12 +282,12 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
     ST_double  z ;
 
     int klen = kmax > 0? (kmax + 1): 1;
-    char *s; s = malloc(klen * sizeof(char));
-    char *st_strbase; st_strbase = malloc(l_str * sizeof(char));
-    char *st_strcomp; st_strcomp = malloc(l_str * sizeof(char));
+    char *s = malloc(klen * sizeof(char)); memset (s, '\0', klen * sizeof(char));
+    char *st_strbase = malloc(l_str * sizeof(char)); memset (st_strbase, '\0', l_str * sizeof(char));
+    char *st_strcomp = malloc(l_str * sizeof(char)); memset (st_strcomp, '\0', l_str * sizeof(char));
 
-    double st_numbase[k_num > 0? k_num: 1];
-    short st_nummiss[k_num > 0? k_num: 1];
+    double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
+    short  *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
 
     /*********************************************************************
      *        Check for collisions without saving group variables        *
@@ -350,6 +350,11 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
         }
     }
 
+    free (s);
+    free (st_numbase);
+    free (st_nummiss);
+    free (st_strbase);
+    free (st_strcomp);
     return(0);
 
     /*********************************************************************
@@ -357,13 +362,15 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
      *********************************************************************/
 
 collision:
-    sf_errprintf ("There may be 128-bit hash collisions: "FMT" variables, "FMT" obs (%lu, %lu)\n",
+    sf_errprintf ("There may be 128-bit hash collisions: "FMT" variables, "FMT" obs ("FMT", "FMT")\n",
                   st_info->kvars_by, st_info->N, obs1, obs2);
     sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
-    free(s);
-    free(st_strbase);
-    free(st_strcomp);
+    free (s);
+    free (st_numbase);
+    free (st_nummiss);
+    free (st_strbase);
+    free (st_strcomp);
 
     return (42000);
 }

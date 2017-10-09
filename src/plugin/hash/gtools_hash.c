@@ -38,7 +38,7 @@ int sf_get_variable_hash (
 
     int i;
     size_t N = in2 - in1 + 1;
-    char s[strmax + 1];
+    char *s = malloc(sizeof(char) * (strmax + 1));
     spookyhash_context sc;
 
     // Get data on every row from in1 to in2 regardless of `if'; in case
@@ -48,9 +48,10 @@ int sf_get_variable_hash (
 
     if ( strmax > 0 ) {
         for (i = 0; i < N; i++) {
+            memset(s, '\0', strmax + 1);
             if ( (rc = SF_sdata(k, i + in1, s)) ) return(rc);
             spookyhash_context_init(&sc, 1, 2);
-            spookyhash_update(&sc, &s, strlen(s));
+            spookyhash_update(&sc, s, strlen(s));
             spookyhash_final(&sc, &h1[i], &h2[i]);
             // sf_printf ("Obs %9d = %s, %21lu, %21lu\n", i, s, h1[i], h2[i]);
         }
@@ -64,6 +65,8 @@ int sf_get_variable_hash (
             // sf_printf ("Obs %9d = %.1f, %21lu, %21lu\n", i, z, h1[i], h2[i]);
         }
     }
+
+    free (s);
     return(0);
 }
 
@@ -115,7 +118,7 @@ int sf_get_varlist_hash (
     size_t K = k2 - k1 + 1;            // Number of vars to hash
     int kmax = mf_max_signed(karr, K); // To detemrine if there are strings
     int kmin = mf_min_signed(karr, K); // To determine if there are nubmers
-    char s[kmax + 1];
+    char *s = malloc(sizeof(char) * (kmax + 1));
     spookyhash_context sc;
     int i, k;
 
@@ -133,8 +136,9 @@ int sf_get_varlist_hash (
                 spookyhash_context_init(&sc, 1, 2);
 
                 for (k = 0; k < K; k++) {
+                    memset(s, '\0', kmax + 1);
                     if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                    spookyhash_update(&sc, &s, strlen(s));
+                    spookyhash_update(&sc, s, strlen(s));
                 }
 
                 spookyhash_final(&sc, &h1[i], &h2[i]);
@@ -148,8 +152,9 @@ int sf_get_varlist_hash (
 
                 for (k = 0; k < K; k++) {
                     if (karr[k] > 0) {
+                        memset(s, '\0', kmax + 1);
                         if ( (rc = SF_sdata(k + k1, i + in1, s)) ) return(rc);
-                        spookyhash_update(&sc, &s, strlen(s));
+                        spookyhash_update(&sc, s, strlen(s));
                     }
                     else {
                         if ( (rc = SF_vdata(k + k1, i + in1, &z)) ) return(rc);
@@ -176,6 +181,8 @@ int sf_get_varlist_hash (
             // sf_printf ("Obs %9d, %21lu, %21lu\n", i, h1[i], h2[i]);
         }
     }
+
+    free (s);
     return(0);
 }
 
@@ -300,7 +307,7 @@ int sf_get_varlist_bijection (
     size_t N = in2 - in1 + 1;
     size_t K = k2 - k1 + 1;
     size_t offset = 1;
-    size_t offsets[K];
+    size_t *offsets = calloc(K, sizeof *offsets);
     int i, k, l;
 
     offsets[0] = 0;
@@ -328,5 +335,6 @@ int sf_get_varlist_bijection (
         // sf_printf ("\tObs %9d = %21lu\n", i, h1[i]);
     }
 
+    free (offsets);
     return (0);
 }

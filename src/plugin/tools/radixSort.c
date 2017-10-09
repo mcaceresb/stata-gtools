@@ -81,7 +81,7 @@ int RadixSortIndex (
             if ( (rc = RadixSortIndexPass (x, index, N, exp, shift)) ) return(rc);
         } while ( (max > (exp *= shift)) & (nloops++ < loops) );
         if ( verbose ) {
-            sf_printf("\t\tStep (2.1) radix sort: loops = %lu, bits = %lu, shift = "FMT"\n",
+            sf_printf("\t\tStep (2.1) radix sort: loops = "FMT", bits = "FMT", shift = "FMT"\n",
                       nloops, dshift, shift);
         }
     }

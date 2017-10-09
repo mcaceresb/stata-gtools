@@ -1,4 +1,4 @@
-img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
+<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
 [Overview](#faster-stata-for-group-operations)
 | [Installation](#installation)
@@ -11,7 +11,7 @@ _Gtools_: Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, egen, isid, and levelsof using C plugins for a
 massive speed improvement.
 
-`version 0.7.4 29Sep2017`
+`version 0.7.5 08Oct2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -21,23 +21,18 @@ Faster Stata for Group Operations
 This package's aim is to provide a fast implementation of group commands in
 Stata using hashes and C plugins. This includes (benchmarked using Stata/MP):
 
-| Function    | Replaces        | Speedup        | Extras               | Unsupported       |
+| Function    | Replaces        | Speedup (MP)   | Extras               | Unsupported       |
 | ----------- | --------------- | -------------- | -------------------- | ----------------- |
-| `gcollapse` | `collapse`      | 5x to 120x     | Quantiles, `merge`   | Weights           |
-| `gegen`     | `egen`          | 2x to 9x (+)   | Quantiles            | See [FAQs](#faqs) |
-| `gisid`     | `isid`          | 5x to 15x      | `if`, `in`           | `using`, `sort`   |
+| `gcollapse` | `collapse`      | 8x to 150x (+) | Quantiles, `merge`   | Weights           |
+| `gegen`     | `egen`          | 1.5x to 7x (*) | Quantiles            | See [FAQs](#faqs) |
+| `gisid`     | `isid`          | 3.5x to 9x     | `if`, `in`           | `using`, `sort`   |
 | `glevelsof` | `levelsof`      | 1.5x to 7x     | Multiple variables   |                   |
-| `hashsort`  | `sort`          | 0.5x to 2x (*) | Group (hash) sorting |                   |
-|             | `gsort`         | 1x to 5x (*)   | Sorts are stalbe     | `mfirst`, `gen`   |
 
-<small>(*) `hashsort` is only faster then `sort` when sorting a few groups
-(it should be faster than `gsort` under most situations, however). If the
-resulting sort will be unique or if there are many groups, `hashsort` may be
-slower than `sort`. Further, outside Stata/MP `hashsort`'s performance changes
-little but Stata's sorting is 2x to 3x slower, so it may make more sense when
-the user does not have access to MP.'</small>
+<small>Commands were benchmarked on a Linux server with Stata/MP; gains in Stata/IC are larger.</small>
 
-<small>(+) Only `egen group` was benchmarked.</small>
+<small>(+) The upper end of the speed improvements are for quantiles (e.g. median, iqr, p90) and few groups.</small>
+
+<small>(*) Only `egen group` was benchmarked.</small>
 
 The key insight is that hashing the data and sorting a hash is a lot faster
 than sorting the data to then process it by group. Sorting a hash can be
@@ -46,25 +41,48 @@ time. Sorting the groups would then be achievable in O(J log(J)) time
 (with J groups). Hence the speed improvements are largest when N / J is
 largest. Further, compiled C code is much faster than Stata commands.
 
+In addition, an experimental command, `hashsort`, is included as a `sort` and
+`gsort` replacement. While `hashsort` is often faster than `sort` in Stata/IC,
+it is generally slower in Stata/MP, where Stata sorts at 2-3x the speed. It
+is most useful as a `gsort` replacement, where even in Stata/MP there are
+often speed gains. (The reason sorting is not faster is that Stata sorts data
+in place, with virtually no memory overhead or any additional operations;
+`hashsort`, by contrast, must copy the data first and then still rely on Stata
+to perform the swaps.)
+
+| Function    | Replaces        | Speedup (MP)   | Extras               | Unsupported     |
+| ----------- | --------------- | -------------- | -------------------- | --------------- |
+| `hashsort`  | `sort`          | 0.5x to 1.5x   | Group (hash) sorting |                 |
+|             | `gsort`         | 1x to 5x       | Sorts are stalbe     | `mfirst`, `gen` |
+
+<small>`hashsort` is only faster then `sort` under limited circumstances. The
+benchmarks were conducted on Stata/MP with 8 cores, where sorting was 2-3x
+faster than on Stata/IC with one core. Further, even in Stata/IC `hashsort`
+could be slower than `sort` if the resulting sort would be unique (i.e. not
+sorting groups). By contrast, `hashsort` was often faster than `gsort` even in
+Stata/MP and it was always faster than `gsort` in Stata/IC.</small>
+
 This package was largely inspired by Sergio Correia's excellent
 [ftools](https://github.com/sergiocorreia/ftools) package. The commands here
 are also faster than the commands provided by `ftools`; further, `gtools`
 commands take a mix of string and numeric variables.
 
-| Gtools      | Ftools          | Speedup   |
-| ----------- | --------------- | --------- |
-| `gcollapse` | `fcollapse`     | 3.5x-20x  |
-| `hashsort`  | `fsort`         | 1.5x-2.5x |
-| `gegen`     | `fegen`         | 1x-2x (+) |
-| `gisid`     | `fisid`         | 2.5x-8x   |
-| `glevelsof` | `flevelsof`     | 1.5-2x    |
+| Gtools      | Ftools          | Speedup     |
+| ----------- | --------------- | ----------- |
+| `gcollapse` | `fcollapse`     | 3.5x-20x    |
+| `hashsort`  | `fsort`         | 1.5x-2.5x   |
+| `gegen`     | `fegen`         | 0.7x-2x (*) |
+| `gisid`     | `fisid`         | 2x-8.5x     |
+| `glevelsof` | `flevelsof`     | 1.2-2x      |
 
-<small>(+) Only `egen group` was benchmarked.</small>
+<small>(*) Only `egen group` was benchmarked. `gegen` was slower when encoding
+integers, where the overhead did not offset the speed gains.</small>
 
-The current release only provides Unix (Linux) and Windows versions of the
-C plugin. Further, multi-threading is only available on Linux. OSX versions
-are planned for a future release.  If you plan to use the plugin extensively,
-check out the [FAQs](#faqs) for caveats and details on the plugin.
+The current release only provides Unix (Linux) and Windows versions of the C plugin.
+Further, multi-threading is only available on Linux. An OSX version is in the works
+(see [issue 11](https://github.com/mcaceresb/stata-gtools/issues/11)). If you plan
+to use the plugin extensively, check out the [FAQs](#faqs) for caveats and details
+on the plugin.
 
 Installation
 ------------
@@ -130,9 +148,6 @@ Here I run 2 sets of benchmarks:
   the group size from 10 to 10M in geometric succession and computes
   all available stats (and 2 sample percentiles) for 2 variables.
 
-You can see the old benchmarks (ran on Stata/MP) in `./src/test/bench_mp_fcoll.log`.
-All commands were run with the `fast` option.
-
 _**In the style of `ftools`**_
 
 Vary N for J = 100 and collapse 15 variables:
@@ -143,8 +158,8 @@ Vary N for J = 100 and collapse 15 variables:
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.60 |      4.95 |      2.12 |        3.51 |        8.22 |
-    | 20,000,000 |      5.39 |     61.48 |     21.64 |        4.01 |       11.40 |
+    |  2,000,000 |      0.59 |      4.71 |      2.06 |        3.46 |        7.92 |
+    | 20,000,000 |      5.43 |     60.84 |     21.13 |        3.89 |       11.20 |
 ```
 
 In the tables, `g`, `f`, and `c` are code for `gcollapse`, `fcollapse`,
@@ -156,12 +171,12 @@ and `collapse`, respectively.
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.39 |      5.57 |      2.84 |        7.21 |       14.14 |
-    | 20,000,000 |      3.15 |     74.54 |     33.85 |       10.74 |       23.65 |
+    |  2,000,000 |      0.38 |      5.63 |      2.85 |        7.54 |       14.89 |
+    | 20,000,000 |      3.12 |     77.58 |     33.77 |       10.82 |       24.86 |
 ```
 
 The two benchmarks above are run in the `ftools` package. We see `gcollapse`
-is 3-10 times faster than `fcollapse` and 12-43 times faster than `collapse`,
+is ~4-11 times faster than `fcollapse` and ~8-25 times faster than `collapse`,
 with larger speed gains for complex statistics and a large number of
 observations. I also devised two more benchmark in this style: First, multiple
 simple statistics for many variables.
@@ -172,11 +187,11 @@ simple statistics for many variables.
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.37 |     20.18 |      2.29 |        6.26 |       55.15 |
-    | 20,000,000 |      3.10 |    268.31 |     22.55 |        7.27 |       86.52 |
+    |  2,000,000 |      0.38 |     23.13 |      2.17 |        5.68 |       60.55 |
+    | 20,000,000 |      3.14 |    297.05 |     21.33 |        6.79 |       94.51 |
 ```
 
-`gcollapse` was 4-6 times faster than `fcollapse` and 30-60 times faster than
+`gcollapse` was ~5.5-7 times faster than `fcollapse` and 60-95 times faster than
 `collapse`. Second, we do all the available statistics.
 ```
     vars  = x1 x2 ~ N(0, 1)
@@ -185,12 +200,12 @@ simple statistics for many variables.
 
     |          N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |  2,000,000 |      0.75 |     66.11 |      9.26 |       12.35 |       88.14 |
-    | 20,000,000 |      6.84 |   1010.27 |     96.16 |       14.05 |      147.66 |
+    |  2,000,000 |      0.72 |     65.47 |      8.03 |       11.14 |       90.80 |
+    | 20,000,000 |      6.62 |    978.61 |     99.40 |       15.01 |      147.78 |
 ```
 
 `gcollapse` handles multiple complex statistics specially well relative to
-`collapse` (95 to 125 times faster) and `fcollapse` (7 to 21 times faster).
+`collapse` (91-148 times faster) and `fcollapse` (11 to 15 times faster).
 
 _**Increasing the group size**_
 
@@ -201,11 +216,13 @@ Here we vary J for N = 5,000,000
 
     |          J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
     | ---------- | --------- | --------- | --------- | ----------- | ----------- |
-    |      1,000 |      2.80 |    331.23 |     22.13 |        7.91 |      118.38 |
-    |     10,000 |      3.28 |    324.73 |     20.20 |        6.16 |       99.03 |
-    |    100,000 |      3.65 |    323.46 |     26.14 |        7.17 |       88.67 |
-    |  1,000,000 |      8.91 |    347.01 |     95.51 |       10.71 |       38.92 |
+    |     10,000 |      1.79 |    194.50 |     13.97 |        7.79 |      108.54 |
+    |    100,000 |      2.25 |    194.31 |     17.19 |        7.64 |       86.36 |
+    |  1,000,000 |      4.46 |    197.25 |     63.71 |       14.28 |       44.22 |
 ```
+
+We can see that while speed gains relative to `collapse` deteriorate as J
+increases, `gcollapse` can still be orders of magnitude faster.
 
 ### Hash sort
 
@@ -219,33 +236,33 @@ using the `ralpha` package.
 
     | sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | sorted by (stable)                                         |
     | ---- | ----- | -------- | ----------- | ----------- | ---------------------------------------------------------- |
-    | 15.3 |  14.3 |     6.35 |        2.41 |        2.25 | str_12                                                     |
-    | 19.9 |    14 |     8.88 |        2.24 |        1.58 | str_12 str_32                                              |
-    | 22.7 |  18.8 |     9.65 |        2.35 |        1.95 | str_12 str_32 str_4                                        |
-    | 16.7 |  9.83 |     7.66 |        2.18 |        1.28 | double1                                                    |
-    | 16.8 |  11.3 |     7.26 |        2.32 |        1.55 | double1 double2                                            |
-    | 18.6 |  10.7 |     8.63 |        2.15 |        1.24 | double1 double2 double3                                    |
-    | 15.8 |  9.49 |     6.34 |        2.49 |         1.5 | int1                                                       |
-    | 17.4 |  10.3 |     5.11 |        3.41 |        2.02 | int1 int2                                                  |
-    | 19.1 |   8.7 |     6.43 |        2.97 |        1.35 | int1 int2 int3                                             |
-    | 20.6 |     . |     8.59 |         2.4 |           . | int1 str_32 double1                                        |
-    | 24.5 |     . |     8.59 |        2.85 |           . | int1 str_32 double1 int2 str_12 double2                    |
-    | 28.1 |     . |     11.3 |         2.5 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
+    | 7.14 |  19.7 |     7.05 |        1.01 |         2.8 | str_12                                                     |
+    | 9.12 |  22.2 |     11.3 |        .809 |        1.97 | str_12 str_32                                              |
+    | 9.39 |  26.1 |       12 |        .785 |        2.18 | str_12 str_32 str_4                                        |
+    | 7.56 |    17 |     13.2 |        .574 |        1.29 | double1                                                    |
+    | 6.52 |    18 |     8.91 |        .732 |        2.02 | double1 double2                                            |
+    | 7.95 |  20.4 |     14.7 |         .54 |        1.38 | double1 double2 double3                                    |
+    | 8.02 |  13.6 |     8.02 |        .999 |        1.69 | int1                                                       |
+    |  8.6 |  18.3 |     9.87 |        .871 |        1.85 | int1 int2                                                  |
+    | 7.95 |  17.2 |     5.33 |        1.49 |        3.22 | int1 int2 int3                                             |
+    |   10 |     . |     11.2 |        .897 |           . | int1 str_32 double1                                        |
+    | 9.41 |     . |     9.84 |        .957 |           . | int1 str_32 double1 int2 str_12 double2                    |
+    | 10.7 |     . |     14.3 |        .747 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
-    | gsort | hashsort | ratio (g/h) | sorted by (stable)                                             |
+    | gsort | hashsort | ratio (g/h) | sorted by                                                      |
     | ----- | -------- | ----------- | -------------------------------------------------------------- |
-    |   1.2 |     .703 |         1.7 | -str_12                                                        |
-    |   2.2 |     .792 |        2.77 | str_12 -str_32                                                 |
-    |  3.29 |     .817 |        4.02 | str_12 -str_32 str_4                                           |
-    |   1.2 |     .601 |           2 | -double1                                                       |
-    |  1.99 |     .649 |        3.07 | double1 -double2                                               |
-    |  2.73 |     .713 |        3.83 | double1 -double2 double3                                       |
-    |   .76 |     .338 |        2.25 | -int1                                                          |
-    |  1.88 |     .363 |        5.18 | int1 -int2                                                     |
-    |  3.25 |     .379 |        8.57 | int1 -int2 int3                                                |
-    |  4.16 |      .88 |        4.72 | -int1 -str_32 -double1                                         |
-    |   6.5 |     1.08 |        6.01 | int1 -str_32 double1 -int2 str_12 -double2                     |
-    |  11.7 |     .994 |        11.8 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
+    |  .636 |     .677 |        .939 | -str_12                                                        |
+    |  1.04 |     .817 |        1.28 | str_12 -str_32                                                 |
+    |  1.59 |     .875 |        1.82 | str_12 -str_32 str_4                                           |
+    |   .77 |     .589 |        1.31 | -double1                                                       |
+    |  1.04 |     .669 |        1.56 | double1 -double2                                               |
+    |  1.63 |      .69 |        2.36 | double1 -double2 double3                                       |
+    |   .68 |     .356 |        1.91 | -int1                                                          |
+    |  1.16 |     .437 |        2.66 | int1 -int2                                                     |
+    |  1.67 |     .466 |        3.58 | int1 -int2 int3                                                |
+    |  2.45 |     .826 |        2.97 | -int1 -str_32 -double1                                         |
+    |   3.8 |     .944 |        4.03 | int1 -str_32 double1 -int2 str_12 -double2                     |
+    |  6.03 |     1.12 |        5.37 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
 
 The above speed gains only hold when sorting groups.
 
@@ -254,20 +271,20 @@ The above speed gains only hold when sorting groups.
 We use the same data as above to benchmark `gegen id = group(varlist)`.
 Again we benchmark vs egen, obs = 10,000,000, J = 10,000 (in seconds)
 
-    | egen | fegen | gegen | ratio (i/g) | ratio (f/g) | varlist
-    | ---- | ----- | ----- | ----------- | ----------- | -------
-    | 17.8 |   9.2 |  7.46 |        2.39 |        1.23 | str_12
-    | 18.4 |    14 |  8.42 |        2.19 |        1.66 | str_12 str_32
-    | 19.5 |  16.5 |  9.09 |        2.14 |        1.81 | str_12 str_32 str_4
-    | 14.9 |  6.74 |  5.87 |        2.54 |        1.15 | double1
-    | 15.2 |  7.83 |  7.09 |        2.14 |         1.1 | double1 double2
-    | 16.1 |   8.2 |  7.52 |        2.14 |        1.09 | double1 double2 double3
-    | 10.2 |  1.68 |  1.43 |        7.11 |        1.17 | int1
-    |   16 |  1.99 |  1.78 |        8.98 |        1.12 | int1 int2
-    | 17.6 |  2.41 |  2.02 |        8.73 |         1.2 | int1 int2 int3
-    |   19 |     . |  8.18 |        2.32 |           . | int1 str_32 double1
-    | 20.9 |     . |  9.52 |         2.2 |           . | int1 str_32 double1 int2 str_12 double2
-    | 22.8 |     . |  10.7 |        2.13 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+    | egen | fegen | gegen | ratio (i/g) | ratio (f/g) | varlist                                                    |
+    | ---- | ----- | ----- | ----------- | ----------- | ---------------------------------------------------------- |
+    | 13.6 |  10.7 |  6.96 |        1.95 |        1.53 | str_12                                                     |
+    | 13.8 |  15.6 |  10.9 |        1.26 |        1.43 | str_12 str_32                                              |
+    | 13.3 |  18.7 |  9.82 |        1.35 |        1.91 | str_12 str_32 str_4                                        |
+    | 14.3 |  6.56 |  7.63 |        1.87 |         .86 | double1                                                    |
+    | 12.3 |  7.57 |  6.65 |        1.86 |        1.14 | double1 double2                                            |
+    | 15.6 |  8.21 |  9.48 |        1.65 |        .866 | double1 double2 double3                                    |
+    | 11.1 |  1.09 |  1.64 |        6.79 |        .668 | int1                                                       |
+    | 13.1 |  1.43 |  2.04 |         6.4 |        .698 | int1 int2                                                  |
+    | 12.8 |  1.89 |  2.25 |         5.7 |        .838 | int1 int2 int3                                             |
+    |   16 |     . |  10.5 |        1.53 |           . | int1 str_32 double1                                        |
+    | 17.1 |     . |  11.8 |        1.45 |           . | int1 str_32 double1 int2 str_12 double2                    |
+    | 15.1 |     . |  10.3 |        1.47 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
 While `gegen` is a boon over `egen`, it is only a marginal improvement over
 `fegen`.  I reckon the crucial advantage relative to `fegen` is its ability to
@@ -276,41 +293,71 @@ take a mix of stirng and numeric variables.
 ### `isid`
 
 Benchmark vs isid, obs = 10,000,000; all calls include an index to ensure
-uniqueness (in seconds)
+uniqueness (in seconds; fisid benchmarks were run on Stata/IC because
+I couldn't get `fisid` to work on the server).
 
     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                                                    |
-    | ---- | ----- | ----- | ----------- | ----------- | -----------------------------------------------------------|
-    |   38 |  24.6 |  3.76 |        10.1 |        6.53 | str_12                                                     |
-    | 41.2 |  29.1 |  4.15 |        9.92 |        6.99 | str_12 str_32                                              |
-    |  637 |  36.5 |  4.66 |         137 |        7.83 | str_12 str_32 str_4                                        |
-    |   32 |  15.6 |  3.71 |        8.62 |        4.21 | double1                                                    |
-    | 33.6 |  15.8 |  3.75 |        8.97 |        4.23 | double1 double2                                            |
-    | 34.7 |  16.7 |  3.55 |        9.78 |         4.7 | double1 double2 double3                                    |
-    | 33.3 |  15.9 |   2.1 |        15.8 |        7.57 | int1                                                       |
-    | 35.7 |  16.3 |  2.84 |        12.6 |        5.75 | int1 int2                                                  |
-    | 36.6 |  16.7 |     3 |        12.2 |        5.57 | int1 int2 int3                                             |
-    | 42.5 |     . |  3.67 |        11.6 |           . | int1 str_32 double1                                        |
-    | 48.6 |     . |  4.48 |        10.9 |           . | int1 str_32 double1 int2 str_12 double2                    |
-    | 55.8 |     . |  5.23 |        10.7 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
+    | ---- | ----- | ----- | ----------- | ----------- | ---------------------------------------------------------- |
+    | 27.6 |     . |  3.67 |        7.51 |           . | str_12                                                     |
+    | 28.2 |     . |  4.18 |        6.75 |           . | str_12 str_32                                              |
+    | 29.2 |     . |  4.32 |        6.76 |           . | str_12 str_32 str_4                                        |
+    | 22.4 |     . |  3.34 |        6.71 |           . | double1                                                    |
+    | 22.8 |     . |  3.43 |        6.65 |           . | double1 double2                                            |
+    | 23.4 |     . |  3.77 |        6.21 |           . | double1 double2 double3                                    |
+    | 22.8 |     . |  2.47 |        9.24 |           . | int1                                                       |
+    |   24 |     . |  2.77 |        8.64 |           . | int1 int2                                                  |
+    | 24.7 |     . |  3.48 |        7.09 |           . | int1 int2 int3                                             |
+    | 27.7 |     . |  4.14 |        6.68 |           . | int1 str_32 double1                                        |
+    | 31.4 |     . |  4.81 |        6.54 |           . | int1 str_32 double1 int2 str_12 double2                    |
+    | 32.4 |     . |  6.11 |        5.31 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
 Benchmark vs isid, obs = 10,000,000, J = 10,000 (in seconds)
 
     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                                                    |
-    | ---- | ----- | ----- | ----------- | ----------- | -----------------------------------------------------------|
-    | 15.7 |  9.27 |   2.3 |        6.84 |        4.04 | str_12                                                     |
-    | 16.3 |  14.3 |  2.82 |        5.77 |        5.06 | str_12 str_32                                              |
-    | 17.7 |    17 |  3.14 |        5.63 |        5.42 | str_12 str_32 str_4                                        |
-    | 13.9 |  6.31 |  1.97 |        7.08 |        3.21 | double1                                                    |
-    | 11.9 |  7.39 |   2.2 |        5.39 |        3.36 | double1 double2                                            |
-    | 12.4 |  7.79 |  2.31 |         5.4 |        3.38 | double1 double2 double3                                    |
-    | 8.02 |  2.81 |  1.01 |         7.9 |        2.77 | int1                                                       |
-    | 12.6 |  3.14 |   1.3 |        9.73 |        2.42 | int1 int2                                                  |
-    |   14 |  3.51 |  1.54 |        9.11 |        2.28 | int1 int2 int3                                             |
-    | 15.4 |     . |  2.55 |        6.05 |           . | int1 str_32 double1                                        |
-    | 17.3 |     . |   3.3 |        5.24 |           . | int1 str_32 double1 int2 str_12 double2                    |
-    | 19.2 |     . |  4.04 |        4.76 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
+    | ---- | ----- | ----- | ----------- | ----------- | ---------------------------------------------------------- |
+    | 9.87 |     . |  2.17 |        4.54 |           . | str_12                                                     |
+    | 10.2 |     . |  2.81 |        3.63 |           . | str_12 str_32                                              |
+    | 10.7 |     . |  2.98 |        3.61 |           . | str_12 str_32 str_4                                        |
+    | 8.89 |     . |  2.19 |        4.05 |           . | double1                                                    |
+    | 8.84 |     . |  2.32 |        3.81 |           . | double1 double2                                            |
+    | 9.36 |     . |  2.46 |         3.8 |           . | double1 double2 double3                                    |
+    | 7.59 |     . |   .94 |        8.08 |           . | int1                                                       |
+    | 10.5 |     . |  1.28 |        8.23 |           . | int1 int2                                                  |
+    |   11 |     . |  1.78 |         6.2 |           . | int1 int2 int3                                             |
+    | 12.3 |     . |  2.81 |        4.37 |           . | int1 str_32 double1                                        |
+    | 12.6 |     . |  3.33 |        3.79 |           . | int1 str_32 double1 int2 str_12 double2                    |
+    | 13.8 |     . |  3.98 |        3.46 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
-In this case, `gisid` is across the board a massive speed improvement.
+`gisid` is across the board a massive speed improvement. 
+
+Benchmark on Stata/IC vs isid and fisid, obs = 10,000,000, all calls include
+an index to ensure uniqueness (in seconds)
+
+     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
+     | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
+     | 43.3 |  35.5 |   4.2 |        10.3 |        8.46 | str_12                  |
+     | 47.2 |  34.6 |  4.37 |        10.8 |        7.92 | str_12 str_32           |
+     | 47.1 |  39.7 |  4.65 |        10.1 |        8.53 | str_12 str_32 str_4     |
+     | 30.3 |  15.8 |  3.66 |        8.29 |        4.32 | double1                 |
+     |   32 |  16.4 |  3.65 |        8.75 |        4.49 | double1 double2         |
+     | 33.3 |    17 |  4.01 |        8.31 |        4.25 | double1 double2 double3 |
+     | 31.6 |  16.2 |  2.26 |          14 |        7.18 | int1                    |
+     | 33.5 |  17.1 |  3.04 |          11 |        5.63 | int1 int2               |
+     | 35.7 |  17.6 |  3.25 |          11 |        5.41 | int1 int2 int3          |
+
+Benchmark on Stata/IC vs isid and fisid, obs = 10,000,000, J = 10,000 (in seconds)
+
+     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
+     | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
+     | 15.5 |  10.3 |  2.57 |        6.02 |        4.01 | str_12                  |
+     | 17.3 |    16 |   3.1 |        5.59 |        5.17 | str_12 str_32           |
+     | 17.9 |    19 |  3.48 |        5.14 |        5.47 | str_12 str_32 str_4     |
+     |   13 |  7.51 |  2.54 |        5.11 |        2.96 | double1                 |
+     |   14 |   8.8 |  2.65 |        5.28 |        3.32 | double1 double2         |
+     | 14.2 |  9.25 |  2.73 |        5.22 |        3.39 | double1 double2 double3 |
+     | 9.49 |  3.08 |  1.15 |        8.23 |        2.67 | int1                    |
+     | 14.5 |  3.54 |  1.61 |           9 |        2.19 | int1 int2               |
+     | 16.1 |  3.96 |  1.97 |        8.19 |        2.01 | int1 int2 int3          |
 
 ### `levelsof`
 
@@ -318,15 +365,15 @@ Benchmark vs levelsof, obs = 10,000,000, J = 100 (in seconds)
 
    | levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist |
    | -------- | --------- | --------- | ----------- | ----------- | ------- |
-   |     23.9 |      7.93 |      3.92 |        6.09 |        2.02 | str_12  |
-   |     18.3 |      8.72 |      4.14 |         4.4 |         2.1 | str_32  |
-   |     19.2 |      7.71 |      3.56 |         5.4 |        2.17 | str_4   |
-   |     3.63 |      5.81 |      2.68 |        1.36 |        2.17 | double1 |
-   |     3.64 |      5.78 |       2.7 |        1.35 |        2.14 | double2 |
-   |     3.62 |      5.85 |      2.69 |        1.34 |        2.17 | double3 |
-   |     1.21 |      .855 |      .397 |        3.05 |        2.15 | int1    |
-   |     3.28 |      .844 |      .413 |        7.94 |        2.04 | int2    |
-   |     1.58 |      .846 |      .403 |        3.93 |         2.1 | int3    |
+   |       18 |      7.58 |      3.89 |        4.62 |        1.95 | str_12  |
+   |     16.1 |      7.76 |      4.34 |        3.71 |        1.79 | str_32  |
+   |     17.3 |      7.23 |      4.65 |        3.71 |        1.55 | str_4   |
+   |     3.92 |      5.46 |      2.66 |        1.47 |        2.05 | double1 |
+   |     3.96 |      5.62 |      2.77 |        1.43 |        2.03 | double2 |
+   |     4.34 |      5.74 |      2.76 |        1.57 |        2.08 | double3 |
+   |     1.61 |      .821 |      .561 |        2.87 |        1.46 | int1    |
+   |     4.63 |      .815 |      .682 |        6.78 |         1.2 | int2    |
+   |     2.21 |      .801 |      .675 |        3.27 |        1.19 | int3    |
 
 In this case, `levelsof` is not a particularly large speed improvement for doubles.
 
@@ -364,10 +411,14 @@ to re-compile SpookyHash.
 
 ### Compilation
 
+Note that lines 37-40 in `lib/spookyhash/build/premake5.lua` cause the build
+to fail on some systems, so we delete them (they are meant to check the git
+executable exists).
 ```bash
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
+sed -i.bak -e '37,40d' ./lib/spookyhash/build/premake5.lua 
 make spooky
 make clean
 make
@@ -554,7 +605,8 @@ or OSX. Windows, however, makes it easy for you to download their ISO, hence
 I was able to test this on a virtual machine. OSX does not make their ISO
 available, as best I can tell.
 
-Feel free to try and compile this for OSX. There's likely minimal
+Feel free to try and compile this for OSX; see [issue 11](https://github.com/mcaceresb/stata-gtools/issues/11)
+for progress we have made on this front. There's likely minimal
 tinkering to be done beyond installing the dependencies. I'm happy to
 take pull requests! If you try to compile the plugin yourself, make sure
 `./build/gtools_tests.do` runs without errors and that you include the

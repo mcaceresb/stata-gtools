@@ -1,7 +1,7 @@
 capture program drop checks_levelsof
 program checks_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
     qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
     gen ix = _n
@@ -43,9 +43,9 @@ end
 capture program drop compare_levelsof
 program compare_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "compare_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+    qui `noisily' sim, n(500000) nj(10) njsub(4) string groupmiss outmiss
     gen ix = _n
 
     foreach i in 0 3 6 9 {

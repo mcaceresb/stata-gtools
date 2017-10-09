@@ -5,7 +5,7 @@
  * Updated: Tue Sep 26 20:34:49 EDT 2017
  * Purpose: Stata plugin to compute a faster -collapse-
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.7.4
+ * Version: 0.7.5
  *********************************************************************/
 
 #include "gcollapse.h"
@@ -34,10 +34,15 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
            offset_buffer,
            offset_bystr;
 
-    size_t nmfreq[st_info->kvars_source],
-           nonmiss[st_info->kvars_source],
-           firstmiss[st_info->kvars_source],
-           lastmiss[st_info->kvars_source];
+    size_t *nmfreq    = calloc(st_info->kvars_source, sizeof *nmfreq);
+    size_t *nonmiss   = calloc(st_info->kvars_source, sizeof *nonmiss);
+    size_t *firstmiss = calloc(st_info->kvars_source, sizeof *firstmiss);
+    size_t *lastmiss  = calloc(st_info->kvars_source, sizeof *lastmiss);
+
+    if ( nmfreq    == NULL ) return(sf_oom_error("sf_collapse", "nmfreq"));
+    if ( nonmiss   == NULL ) return(sf_oom_error("sf_collapse", "nonmiss"));
+    if ( firstmiss == NULL ) return(sf_oom_error("sf_collapse", "firstmiss"));
+    if ( lastmiss  == NULL ) return(sf_oom_error("sf_collapse", "lastmiss"));
 
     for (k = 0; k < st_info->kvars_source; k++)
         nmfreq[k] = nonmiss[k] = firstmiss[k] = lastmiss[k] = 0;
@@ -48,11 +53,18 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
     // the input buffer. The fix is to simply read the frist and last entries
     // to a temporary variable before applying any of the summary stats
 
-    double firstobs[st_info->kvars_source],
-           lastobs[st_info->kvars_source];
+    double *firstobs = calloc(st_info->kvars_source, sizeof *firstobs);
+    double *lastobs  = calloc(st_info->kvars_source, sizeof *lastobs);
+
+    if ( firstobs == NULL ) return(sf_oom_error("sf_collapse", "firstobs"));
+    if ( lastobs  == NULL ) return(sf_oom_error("sf_collapse", "lastobs"));
 
     // Parse collapse statistics into numeric codes
-    double statcode[st_info->kvars_targets], dblstat;
+    double *statcode = calloc(st_info->kvars_targets, sizeof *statcode);
+    if ( statcode  == NULL ) return(sf_oom_error("sf_collapse", "statcode"));
+
+    /* TODO: This may be the issue; come back here if it doesn't take // 2017-10-08 21:11 EDT */
+    double dblstat;
     char *strstat, *ptr;
     strstat = strtok_r (st_info->statstr, " ", &ptr);
     for (k = 0; k < st_info->kvars_targets; k++) {
@@ -675,9 +687,19 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
             }
         }
     }
+
     free (output);
     free (st_dtax);
     free (st_numx);
 
-    return(0);
+    free (nmfreq);
+    free (nonmiss);
+    free (firstmiss);
+    free (lastmiss);
+
+    free (firstobs);
+    free (lastobs);
+    free (statcode);
+
+    return (0);
 }

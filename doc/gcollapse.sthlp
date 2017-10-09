@@ -1,10 +1,11 @@
 {smcl}
-{* *! version 0.7.4 29Sep2017}{...}
+{* *! version 0.7.5 08Oct2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
 {viewerjumpto "Description" "gcollapse##description"}{...}
 {viewerjumpto "Options" "gcollapse##options"}{...}
+{viewerjumpto "Stored results" "gegen##results"}{...}
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
@@ -214,6 +215,22 @@ where it cannot allocate enough memory for {it:gcollapse}.
 
 {pstd}
 Pending...
+
+
+{marker results}{...}
+{title:Stored results}
+
+{pstd}
+{cmd:gegen} stores the following in {cmd:r()}:
+
+{synoptset 20 tabbed}{...}
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)   }} number of groups {p_end}
+{synopt:{cmd:r(minJ)}} largest group size {p_end}
+{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
+{p2colreset}{...}
+
 
 {marker author}{...}
 {title:Author}

@@ -129,17 +129,17 @@ int sf_levelsof (struct StataInfo *st_info)
     char *macrobuffer;
     size_t bufferlen;
 
-    char *colsep = malloc(st_info->colsep_len * sizeof(char));
-    char *sep    = malloc(st_info->sep_len * sizeof(char));
+    char *colsep = malloc((st_info->colsep_len + 1) * sizeof(char));
+    char *sep    = malloc((st_info->sep_len    + 1) * sizeof(char));
 
     if ( colsep == NULL ) return (sf_oom_error("sf_levelsof", "colsep"));
     if ( sep    == NULL ) return (sf_oom_error("sf_levelsof", "sep"));
 
-    memset (colsep, '\0', st_info->colsep_len * sizeof(char));
-    memset (sep,    '\0', st_info->sep_len * sizeof(char));
+    memset (colsep, '\0', (st_info->colsep_len + 1) * sizeof(char));
+    memset (sep,    '\0', (st_info->sep_len    + 1) * sizeof(char));
 
     if ( (rc = SF_macro_use("_colsep", colsep, st_info->colsep_len + 1)) ) return (rc);
-    if ( (rc = SF_macro_use("_sep",    sep,    st_info->sep_len + 1))    ) return (rc);
+    if ( (rc = SF_macro_use("_sep",    sep,    st_info->sep_len    + 1))    ) return (rc);
 
     char *sprintfmt    = st_info->clean_str? strdup("%s"): strdup("`\"%s\"'");
     size_t sprintextra = st_info->clean_str? 0: 4;
@@ -200,11 +200,13 @@ int sf_levelsof (struct StataInfo *st_info)
             }
             else {
                 start = 1;
-                if ( strcmp(st_dtax[0].cval, "") )
+                if ( strcmp(st_dtax[0].cval, "") ) {
                     strpos += sprintf(strpos, sprintfmt, st_dtax[0].cval);
+                    strpos += sprintf(strpos, "%s", sep);
+                }
             }
             for (j = start; j < st_info->J; j++) {
-                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                if ( j > start ) strpos += sprintf(strpos, "%s", sep);
                 sel = j * kvars;
                 strpos += sprintf(strpos, sprintfmt, st_dtax[sel].cval);
             }

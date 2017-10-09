@@ -147,6 +147,8 @@ int sf_hashsort(struct StataInfo *st_info)
              *********************************************************************/
 
             size_t *positions = calloc(kvars, sizeof(*positions));
+            if ( positions == NULL ) return (sf_oom_error("sf_hashsort", "positions"));
+
             positions[0] = 0;
             for (k = 1; k < kvars; k++) {
                 ilen = st_info->byvars_lens[k - 1];

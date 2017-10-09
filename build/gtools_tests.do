@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Sep 30 22:21:18 EDT 2017
+* Updated: Sun Oct  8 13:21:53 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.21
+* Version: 0.6.22
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -702,6 +702,19 @@ program consistency_gegen
         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
     }
 
+    {
+        qui  `noisily' gegen g_g1 = group(groupstr groupsub), counts(g_c1) fill(.)  v `options' missing
+        qui  `noisily' gegen g_g2 = group(groupstr groupsub), counts(g_c2)          v `options' missing
+        qui  `noisily' gegen g_c3 = count(1), by(groupstr groupsub)
+        qui  `noisily'  egen c_t1 = tag(groupstr groupsub),   missing
+        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+    }
+
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
@@ -739,6 +752,19 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
+    }
+
+    {
+        qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort > 0, counts(g_c1) fill(.)  v `options' missing
+        qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort > 0, counts(g_c2)          v `options' missing
+        qui  `noisily' gegen g_c3 = count(1) if rsort > 0, by(groupstr groupsub)
+        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort > 0, missing
+        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
     }
 
     * ---------------------------------------------------------------------
@@ -792,6 +818,23 @@ program consistency_gegen
         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
     }
 
+    {
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui  `noisily' gegen g_g1 = group(groupstr groupsub) in `from' / `to', counts(g_c1) fill(.)  v `options' missing
+        qui  `noisily' gegen g_g2 = group(groupstr groupsub) in `from' / `to', counts(g_c2)          v `options' missing
+        qui  `noisily' gegen g_c3 = count(1) in `from' / `to', by(groupstr groupsub)
+        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) in `from' / `to', missing
+        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+    }
+
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
@@ -841,6 +884,23 @@ program consistency_gegen
             exit _rc
         }
         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
+    }
+
+    {
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c1) fill(.)  v `options' missing
+        qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c2)          v `options' missing
+        qui  `noisily' gegen g_c3 = count(1) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort < 0 in `from' / `to', missing
+        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
     }
 end
 
@@ -1621,7 +1681,7 @@ end
 capture program drop checks_levelsof
 program checks_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
     qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
     gen ix = _n
@@ -1663,9 +1723,9 @@ end
 capture program drop compare_levelsof
 program compare_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_levelsof, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "compare_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+    qui `noisily' sim, n(500000) nj(10) njsub(4) string groupmiss outmiss
     gen ix = _n
 
     foreach i in 0 3 6 9 {

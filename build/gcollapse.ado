@@ -1,8 +1,8 @@
-*! version 0.7.4 29Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.5 08Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
-program gcollapse
+program gcollapse, rclass
     version 13
     if inlist("`c(os)'", "MacOSX") {
         di as err "Not available for `c(os)'."
@@ -650,6 +650,14 @@ program gcollapse
         * if ( "` dropvars'" != "" ) mata: st_dropvar((`:di subinstr(`""`dropvars'""', " ", `"", ""', .)'))
         if ( "` dropvars'" != "" ) mata: st_dropvar(tokens(`"`dropvars'"'))
     }
+
+    * Return values
+    * -------------
+
+    return scalar N    = `r_N'
+    return scalar J    = `r_J'
+    return scalar minJ = `r_minJ'
+    return scalar maxJ = `r_maxJ'
 
     ***********************************************************************
     *                            Program Exit                             *

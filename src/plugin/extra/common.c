@@ -99,10 +99,14 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
             st_info->invert[k] = 0;
     }
     else if ( level == 1 ) {
-        double invert_double[kvars_by];
+        double *invert_double = calloc(kvars_by, sizeof *invert_double);
+        if ( invert_double == NULL ) return(sf_oom_error("sf_parse_info", "invert_double"));
+
         if ( (rc = sf_get_vector("__gtools_invert", invert_double)) ) return(rc);
         for (k = 0; k < kvars_by; k++)
             st_info->invert[k] = (int) invert_double[k];
+
+        free (invert_double);
     }
 
     /*********************************************************************
@@ -129,10 +133,15 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
     if ( st_info->byvars_mins == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_mins"));
     if ( st_info->byvars_maxs == NULL ) return(sf_oom_error("sf_parse_info", "st_info->byvars_maxs"));
 
-    double byvars_int_double[kvars_by],
-           byvars_lens_double[kvars_by],
-           byvars_mins_double[kvars_by],
-           byvars_maxs_double[kvars_by];
+    double *byvars_int_double  = calloc(kvars_by, sizeof *byvars_int_double);
+    double *byvars_lens_double = calloc(kvars_by, sizeof *byvars_lens_double);
+    double *byvars_mins_double = calloc(kvars_by, sizeof *byvars_mins_double);
+    double *byvars_maxs_double = calloc(kvars_by, sizeof *byvars_maxs_double);
+
+    if ( byvars_int_double  == NULL ) return(sf_oom_error("sf_parse_info", "byvars_int_double"));
+    if ( byvars_lens_double == NULL ) return(sf_oom_error("sf_parse_info", "byvars_lens_double"));
+    if ( byvars_mins_double == NULL ) return(sf_oom_error("sf_parse_info", "byvars_mins_double"));
+    if ( byvars_maxs_double == NULL ) return(sf_oom_error("sf_parse_info", "byvars_maxs_double"));
 
     if ( (rc = sf_get_vector("__gtools_byint", byvars_int_double))  ) return(rc);
     if ( (rc = sf_get_vector("__gtools_byk",   byvars_lens_double)) ) return(rc);
@@ -145,6 +154,11 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
         st_info->byvars_mins[i] = (int) byvars_mins_double[i];
         st_info->byvars_maxs[i] = (int) byvars_maxs_double[i];
     }
+
+    free (byvars_int_double);
+    free (byvars_lens_double);
+    free (byvars_mins_double);
+    free (byvars_maxs_double);
 
     // Get count of numeric and string by variables
     size_t kvars_by_str = 0;
@@ -209,8 +223,8 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
     if ( st_info->pos_num_byvars == NULL ) return(sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
     if ( st_info->pos_str_byvars == NULL ) return(sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
 
-    double pos_str_byvars_double[kvars_by_str];
-    double pos_num_byvars_double[kvars_by_num];
+    double *pos_str_byvars_double = calloc(kvars_by_str, sizeof *pos_str_byvars_double);
+    double *pos_num_byvars_double = calloc(kvars_by_num, sizeof *pos_num_byvars_double);
 
     // pos_str_byvars[k] gives the position in the by variables of the kth string variable
     if ( kvars_by_str > 0 ) {
@@ -225,6 +239,9 @@ int sf_parse_info_lean (struct StataInfo *st_info, int level)
         for (k = 0; k < kvars_by_num; k++)
             st_info->pos_num_byvars[k] = (int) pos_num_byvars_double[k];
     }
+
+    free (pos_str_byvars_double);
+    free (pos_num_byvars_double);
 
     /*********************************************************************
      *                    Save into st_info structure                    *

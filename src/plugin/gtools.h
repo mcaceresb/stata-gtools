@@ -40,18 +40,22 @@ struct StataInfo {
     size_t N;
     size_t start_collapse_vars;
     size_t start_target_vars;
+    //
     int sort_memory;
     int any_if;
     int clean_str;
     int *invert;
+    //
     int *pos_targets;
     int *pos_num_byvars;
     int *pos_str_byvars;
+    //
     int kvars_targets;
     int kvars_source;
     int kvars_by;
     int kvars_by_num;
     int kvars_by_str;
+    //
     int verbose;
     int benchmark;
     int checkhash;
@@ -59,17 +63,24 @@ struct StataInfo {
     int merge;
     int indexed;
     int integers_ok;
+    //
     int *byvars_lens;
     int *byvars_mins;
     int *byvars_maxs;
     int *byvars_int;
     int byvars_minlen;
     int byvars_maxlen;
+    //
     size_t sep_len;
     size_t colsep_len;
     size_t strbuffer;
     int strmax;
     char *statstr;
+    int group_data;
+    int group_fill;
+    int group_count;
+    double group_val;
+    //
     int read_dtax;
     char* st_charx;
     MixedUnion *st_dtax;
@@ -90,6 +101,7 @@ int  sf_anyobs_sel  ();
 #if defined(_WIN64) || defined(_WIN32)
 
 #define FMT "%lu"
+#define SFMT "%lu"
 
 // statvfs is POSIX only; repalce with dummies on windows
 #define QUERY_FREE_SPACE 0
@@ -112,6 +124,7 @@ char * strndup (const char *s, size_t n)
 #else
 
 #define FMT "%'lu"
+#define SFMT "%lu"
 
 // Use statvfs to query free space in tmp drive
 #define QUERY_FREE_SPACE 1

@@ -168,7 +168,7 @@ double mf_benchmark (char *fname)
     size_t k2   = 4;
     size_t kw   = k2 - k1;
     size_t J    = 64 * KiB;
-    srand(time(NULL));
+    srand (time(NULL));
 
     double *A = malloc(J * k2 * sizeof(double));
     double *B = malloc(J * kw * sizeof(double));
@@ -284,8 +284,10 @@ void mf_split_path_file(char** p, char** f, char *pf) {
 double mf_query_free_space (char *fname)
 {
     struct statvfs finfo;
-    char *filepath = malloc(strlen(fname) * sizeof(char));
-    char *filename = malloc(strlen(fname) * sizeof(char));
+    char *filepath = malloc((strlen(fname) + 1) * sizeof(char));
+    char *filename = malloc((strlen(fname) + 1) * sizeof(char));
+    memset (filepath, '\0', (strlen(fname) + 1));
+    memset (filename, '\0', (strlen(fname) + 1));
 
     // char rpath [PATH_MAX+1];
     // char *rc = realpath (fname, rpath);

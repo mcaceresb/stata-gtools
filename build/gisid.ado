@@ -1,4 +1,4 @@
-*! version 0.1.3 29Sep2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.4 08Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid

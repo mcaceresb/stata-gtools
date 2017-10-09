@@ -55,12 +55,19 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
     ST_double  z ;
 
     int klen = kmax > 0? (kmax + 1): 1;
-    char *s; s = malloc(klen * sizeof(char));
-    char *st_strbase; st_strbase = malloc(l_str * sizeof(char));
-    char *st_strcomp; st_strcomp = malloc(l_str * sizeof(char));
+    char *s = malloc(klen * sizeof(char)); memset (s, '\0', klen);
+    char *st_strbase = malloc(l_str * sizeof(char)); memset (st_strbase, '\0', l_str);
+    char *st_strcomp = malloc(l_str * sizeof(char)); memset (st_strcomp, '\0', l_str);
 
-    double st_numbase[k_num > 0? k_num: 1];
-    short st_nummiss[k_num > 0? k_num: 1];
+    if ( st_strbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strbase"));
+    if ( st_strcomp == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strcomp"));
+
+    double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
+    short  *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
+
+    if ( st_numbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_numbase"));
+    if ( st_nummiss == NULL ) return(sf_oom_error("sf_check_hash_index", "st_nummiss"));
+
     size_t collisions_count = 0;
     size_t collisions_row   = 0;
 
@@ -167,9 +174,17 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
 
                     if ( kmax > 0 ) {
                         if ( (strlen (st_strbase) != strlen (st_strcomp)) ) {
+                            // sf_printf ("collision (i = %lu; group %lu from %lu to %lu):\n",
+                            //            st_info->index[i], j, st_info->info[j], st_info->info[j + 1]);
+                            // sf_printf ("\t(%lu) %s\n", strlen(st_strbase), st_strbase);
+                            // sf_printf ("\t(%lu) %s\n", strlen(st_strcomp), st_strcomp);
                             ++collisions_row;
                         }
                         else if ( strncmp(st_strbase, st_strcomp, strlen(st_strcomp)) != 0 ) {
+                            // sf_printf ("collision (i = %lu; group %lu from %lu to %lu):\n",
+                            //            st_info->index[i], j, st_info->info[j], st_info->info[j + 1]);
+                            // sf_printf ("\t(%lu) %s\n", strlen(st_strbase), st_strbase);
+                            // sf_printf ("\t(%lu) %s\n", strlen(st_strcomp), st_strcomp);
                             ++collisions_row;
                         }
                     }
@@ -372,9 +387,11 @@ int sf_check_hash_index (struct StataInfo *st_info, int read_dtax)
                        st_info->kvars_by, st_info->N, st_info->J);
     }
 
-    free(s);
-    free(st_strbase);
-    free(st_strcomp);
+    free (s);
+    free (st_strbase);
+    free (st_strcomp);
+    free (st_numbase);
+    free (st_nummiss);
 
     return(0);
 }
@@ -435,13 +452,15 @@ int sf_check_hashsort (struct StataInfo *st_info)
     ST_retcode rc ;
     ST_double  z ;
 
-    int klen = kmax > 0? (kmax + 1): 1;
-    char *s; s = malloc(klen * sizeof(char));
-    char *st_strbase; st_strbase = malloc(l_str * sizeof(char));
-    char *st_strcomp; st_strcomp = malloc(l_str * sizeof(char));
+    char *st_strbase = malloc(l_str * sizeof(char));
+    char *st_strcomp = malloc(l_str * sizeof(char));
 
-    double st_numbase[k_num > 0? k_num: 1];
-    short st_nummiss[k_num > 0? k_num: 1];
+    if ( st_strbase == NULL ) return(sf_oom_error("sf_check_hashsort", "st_strbase"));
+    if ( st_strcomp == NULL ) return(sf_oom_error("sf_check_hashsort", "st_strcomp"));
+
+    double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
+    short  *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
+
     size_t collisions_count = 0;
     size_t collisions_row   = 0;
 
@@ -461,7 +480,9 @@ int sf_check_hashsort (struct StataInfo *st_info)
 
         int ilen;
         size_t rowbytes, selrow;
-        size_t *positions = calloc(kvars, sizeof(*positions));
+        size_t *positions = calloc(kvars, sizeof *positions);
+        if ( positions == NULL ) return(sf_oom_error("sf_check_hashsort", "positions"));
+
         positions[0] = rowbytes = 0;
         for (k = 1; k < kvars; k++) {
             ilen = st_info->byvars_lens[k - 1];
@@ -562,6 +583,8 @@ int sf_check_hashsort (struct StataInfo *st_info)
                 if ( collisions_row > 0 ) ++collisions_count;
             }
         }
+
+        free (positions);
     }
     else {
 
@@ -626,7 +649,6 @@ int sf_check_hashsort (struct StataInfo *st_info)
                       collisions_count, st_info->kvars_by, st_info->N, st_info->J);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
-        free(s);
         free(st_strbase);
         free(st_strcomp);
 
@@ -638,9 +660,10 @@ int sf_check_hashsort (struct StataInfo *st_info)
                        st_info->kvars_by, st_info->N, st_info->J);
     }
 
-    free(s);
-    free(st_strbase);
-    free(st_strcomp);
+    free (st_strbase);
+    free (st_strcomp);
+    free (st_numbase);
+    free (st_nummiss);
 
     return(0);
 }

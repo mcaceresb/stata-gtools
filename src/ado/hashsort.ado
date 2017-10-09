@@ -4,8 +4,12 @@
 capture program drop hashsort
 program define hashsort
     version 13
-    if inlist("`c(os)'", "MacOSX") {
-        di as err "Not available for `c(os)'."
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+    else local c_os_: di lower("`c(os)'")
+
+    if inlist("`c_os_'", "macosx") {
+        di as err "Not available for MacOSX."
         exit 198
     }
 
@@ -72,7 +76,7 @@ program define hashsort
         local hashusr 0
     }
     else local hashusr 1
-    if ( ("`c(os)'" == "Windows") & `hashusr' ) {
+    if ( ("`c_os_'" == "windows") & `hashusr' ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll
@@ -483,11 +487,14 @@ end
 *                               Plugins                               *
 ***********************************************************************
 
+if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+else local c_os_: di lower("`c(os)'")
+
 cap program drop env_set
-program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
+program env_set, plugin using("env_set_`c_os_'.plugin")
 
 * Windows hack
-if ( "`c(os)'" == "Windows" ) {
+if ( "`c_os_'" == "windows" ) {
     cap confirm file spookyhash.dll
     if ( _rc ) {
         cap findfile spookyhash.dll
@@ -538,5 +545,8 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
+if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+else local c_os_: di lower("`c(os)'")
+
 cap program drop gtools_plugin
-program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+program gtools_plugin, plugin using(`"gtools_`c_os_'.plugin"')

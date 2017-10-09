@@ -4,8 +4,12 @@
 capture program drop gcollapse
 program gcollapse, rclass
     version 13
-    if inlist("`c(os)'", "MacOSX") {
-        di as err "Not available for `c(os)'."
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+    else local c_os_: di lower("`c(os)'")
+
+    if inlist("`c_os_'", "macosx") {
+        di as err "Not available for MacOSX."
         exit 198
     }
 
@@ -45,7 +49,7 @@ program gcollapse, rclass
         local hashusr 0
     }
     else local hashusr 1
-    if ( ("`c(os)'" == "Windows") & `hashusr' ) {
+    if ( ("`c_os_'" == "windows") & `hashusr' ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll
@@ -1418,11 +1422,14 @@ end
 *                         Define the plugins                          *
 ***********************************************************************
 
+if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+else local c_os_: di lower("`c(os)'")
+
 cap program drop env_set
-program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
+program env_set, plugin using("env_set_`c_os_'.plugin")
 
 * Windows hack
-if ( "`c(os)'" == "Windows" ) {
+if ( "`c_os_'" == "windows" ) {
     cap confirm file spookyhash.dll
     if ( _rc ) {
         cap findfile spookyhash.dll
@@ -1473,35 +1480,38 @@ if ( "`c(os)'" == "Windows" ) {
     }
 }
 
+if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+else local c_os_: di lower("`c(os)'")
+
 * The legacy versions segfault if they are not loaded first (Unix only)
-if ( `"`:di lower("`c(os)'")'"' == "unix" ) {
+if ( "`c_os_'" == "unix" ) {
     cap program drop __gtools_plugin
-    cap program __gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+    cap program __gtools_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
 
     cap program drop __gtoolsmulti_plugin
-    cap program __gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+    cap program __gtoolsmulti_plugin, plugin using(`"gtools_`c_os_'_multi_legacy.plugin"')
 
     * But we only want to use them when multi-threading fails normally
     cap program drop gtoolsmulti_plugin
-    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`c_os_'_multi.plugin"')
     if ( _rc ) {
         cap program drop gtools_plugin
-        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_legacy.plugin"')
+        program gtools_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
 
         cap program drop gtoolsmulti_plugin
-        cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi_legacy.plugin"')
+        cap program gtoolsmulti_plugin, plugin using(`"gtools_`c_os_'_multi_legacy.plugin"')
     }
     else {
         cap program drop gtools_plugin
-        program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+        program gtools_plugin, plugin using(`"gtools_`c_os_'.plugin"')
     }
 }
 else {
     cap program drop gtools_plugin
-    program gtools_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'.plugin"')
+    program gtools_plugin, plugin using(`"gtools_`c_os_'.plugin"')
 
     cap program drop gtoolsmulti_plugin
-    cap program gtoolsmulti_plugin, plugin using(`"gtools_`:di lower("`c(os)'")'_multi.plugin"')
+    cap program gtoolsmulti_plugin, plugin using(`"gtools_`c_os_'_multi.plugin"')
 }
 
 * This is very inelegant, but I have debugging fatigue, and this seems to work.

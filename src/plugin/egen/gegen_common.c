@@ -254,7 +254,6 @@ int sf_egen_group (struct StataInfo *st_info)
         free (st_numx);
     }
     else {
-        size_t *indexj = calloc(st_info->N, sizeof *indexj);
 
         if ( st_info->group_count ) {
             if ( st_info->group_fill ) {
@@ -263,15 +262,15 @@ int sf_egen_group (struct StataInfo *st_info)
                     end    = st_info->info[j + 1];
                     nobs   = end - start;
                     out    = st_info->index[start] + st_info->in1;
-                    indexj[st_info->index[start]] = j + 1;
+                    if ( (rc = SF_vstore(st_info->start_target_vars,     out, j + 1)) ) return (rc);
                     if ( (rc = SF_vstore(st_info->start_target_vars + 1, out, nobs)) ) return (rc);
                     for (i = start + 1; i < end; i++) {
                         out = st_info->index[i] + st_info->in1;
-                        indexj[st_info->index[i]] = j + 1;
+                        if ( (rc = SF_vstore(st_info->start_target_vars,     out, j + 1)) ) return (rc);
                         if ( (rc = SF_vstore(st_info->start_target_vars + 1, out, st_info->group_val)) ) return (rc);
                     }
                 }
-                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
+                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Copied index to Stata");
             }
             else if ( st_info->group_data ) {
                 for (j = 0; j < st_info->J; j++) {
@@ -280,10 +279,11 @@ int sf_egen_group (struct StataInfo *st_info)
                     nobs   = end - start;
                     if ( (rc = SF_vstore(st_info->start_target_vars + 1, j + 1, nobs)) ) return (rc);
                     for (i = start; i < end; i++) {
-                        indexj[st_info->index[i]] = j + 1;
+                        out = st_info->index[i] + st_info->in1;
+                        if ( (rc = SF_vstore(st_info->start_target_vars, out, j + 1)) ) return (rc);
                     }
                 }
-                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
+                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Copied index to Stata");
             }
             else {
                 for (j = 0; j < st_info->J; j++) {
@@ -291,55 +291,33 @@ int sf_egen_group (struct StataInfo *st_info)
                     end    = st_info->info[j + 1];
                     nobs   = end - start;
                     for (i = start; i < end; i++) {
-                        indexj[st_info->index[i]] = j + 1;
                         out = st_info->index[i] + st_info->in1;
+                        if ( (rc = SF_vstore(st_info->start_target_vars,     out, j + 1)) ) return (rc);
                         if ( (rc = SF_vstore(st_info->start_target_vars + 1, out, nobs)) ) return (rc);
                     }
                 }
-                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
+                if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Copied index to Stata");
             }
         }
         else {
-            size_t *indexj = calloc(st_info->N, sizeof *indexj);
-            k = 1;    
             for (j = 0; j < st_info->J; j++) {
-                augment_id = 0;
                 start  = st_info->info[j];
                 end    = st_info->info[j + 1];
                 for (i = start; i < end; i++) {
-                    indexj[st_info->index[i]] = k;
-                    if ( augment_id == 0 ) {
-                        augment_id = SF_ifobs(st_info->index[i] + st_info->in1);
-                    }
+                    out = st_info->index[i] + st_info->in1;
+                    if ( (rc = SF_vstore(st_info->start_target_vars, out, j + 1)) ) return (rc);
                 }
-                k += augment_id;
             }
-            if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Indexed groups in memory");
+            if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Copied index to Stata");
         }
 
-        for (i = 0; i < st_info->N; i++) {
-            if ( SF_ifobs(st_info->in1 + i) ) {
-                if ( (rc = SF_vstore(st_info->start_target_vars, st_info->in1 + i, indexj[i])) ) return (rc);
-            }
-        }
-        free(indexj);
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
-
-        // k = 1;    
-        // for (j = 0; j < st_info->J; j++) {
-        //     augment_id = 0;
-        //     start  = st_info->info[j];
-        //     end    = st_info->info[j + 1];
-        //     for (i = start; i < end; i++) {
-        //         out = st_info->index[i] + st_info->in1;
-        //         if ( SF_ifobs(out) ) {
-        //             if ( (rc = SF_vstore(st_info->start_target_vars, out, k)) ) return (rc);
-        //             augment_id = 1;
-        //         }
+        // size_t *indexj = calloc(st_info->N, sizeof *indexj);
+        // for (i = 0; i < st_info->N; i++) {
+        //     if ( SF_ifobs(st_info->in1 + i) ) {
+        //         if ( (rc = SF_vstore(st_info->start_target_vars, st_info->in1 + i, indexj[i])) ) return (rc);
         //     }
-        //     k += augment_id;
         // }
-        // if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Copied index to Stata");
+        // free (indexj);
     }
     return (0);
 }

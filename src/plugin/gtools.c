@@ -1006,6 +1006,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
         // jth group in index. So the jth group can be called by looping
         // through index[i] for i = info[j] to i < info[j + 1]
         st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
+
         if ( st_info->info == NULL ) return(sf_oom_error("sf_hash_byvars", "st_info->info"));
         if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Set up variables for main group loop");
     }

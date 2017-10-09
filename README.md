@@ -715,6 +715,7 @@ J to be small, they can force collapsing to disk via `forceio`.
 In order of priority:
 
 - [ ] Compile for OSX.
+- [ ] Benchmark parsing if condition when hashing vs post.
 - [ ] Provide `sumup` and `sum` altetnative, `gsum`.
     - [ ] Improve the way the program handles no "by" variables.
 - [ ] Add `gtab` as a fast version of `tabulate` with a `by` option.

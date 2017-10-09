@@ -2,18 +2,18 @@
       name:  <unnamed>
        log:  C:\cygwin64\home\mauricio\gtools\build\gtools_tests_windows.log
   log type:  text
- opened on:   8 Oct 2017, 09:54:23
+ opened on:   9 Oct 2017, 08:32:12
 
-. do gtools_tests.do
+. do C:\cygwin64\home\mauricio\gtools\build\gtools_tests.do
 
 . * ---------------------------------------------------------------------
 . * Project: gtools
 . * Program: gtools_tests.do
 . * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 . * Created: Tue May 16 07:23:02 EDT 2017
-. * Updated: Sun Oct  8 10:53:36 EDT 2017
+. * Updated: Sun Oct  8 13:21:53 EDT 2017
 . * Purpose: Unit tests for gtools
-. * Version: 0.6.21
+. * Version: 0.6.22
 . * Manual:  help gcollapse, help gegen
 . 
 . * Stata start-up options
@@ -766,147 +766,209 @@ all files already exist and are up to date.
  37.         else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
  38.     }
  39. 
+.     {
+ 40.         qui  `noisily' gegen g_g1 = group(groupstr groupsub), counts(g_c1) fill(.)  v `options' missing
+ 41.         qui  `noisily' gegen g_g2 = group(groupstr groupsub), counts(g_c2)          v `options' missing
+ 42.         qui  `noisily' gegen g_c3 = count(1), by(groupstr groupsub)
+ 43.         qui  `noisily'  egen c_t1 = tag(groupstr groupsub),   missing
+ 44.         cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+ 45.         if ( _rc ) {
+ 46.             di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+ 47.             exit _rc
+ 48.         }
+ 49.         else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+ 50.     }
+ 51. 
 .     * ---------------------------------------------------------------------
 .     * ---------------------------------------------------------------------
 . 
 .     cap drop g*_*
- 40.     cap drop c*_*
- 41.     di "Checking egen if range"
- 42.     foreach fun of local stats {
- 43.         qui  `noisily' gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub) `options'
- 44.         qui  `noisily'  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
- 45.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
- 46.         if ( _rc ) {
- 47.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
- 48.             exit _rc
- 49.         }
- 50.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
- 51.     }
- 52. 
+ 52.     cap drop c*_*
+ 53.     di "Checking egen if range"
+ 54.     foreach fun of local stats {
+ 55.         qui  `noisily' gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub) `options'
+ 56.         qui  `noisily'  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
+ 57.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+ 58.         if ( _rc ) {
+ 59.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 60.             exit _rc
+ 61.         }
+ 62.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 63.     }
+ 64. 
 .     foreach p in `percentiles' {
- 53.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p') `options'
- 54.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
- 55.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
- 56.         if ( _rc ) {
- 57.             di as err "    compare_egen_if (failed): gegen percentile `p' not equal to egen (tol = `tol')"
- 58.             exit _rc
- 59.         }
- 60.         else di as txt "    compare_egen_if (passed): gegen percentile `p' results similar to egen (tol = `tol')"
- 61.     }
- 62. 
+ 65.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p') `options'
+ 66.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
+ 67.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+ 68.         if ( _rc ) {
+ 69.             di as err "    compare_egen_if (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+ 70.             exit _rc
+ 71.         }
+ 72.         else di as txt "    compare_egen_if (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+ 73.     }
+ 74. 
 .     foreach fun in tag group {
- 63.         qui  `noisily' gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
- 64.         qui  `noisily'  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
- 65.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
- 66.         if ( _rc ) {
- 67.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
- 68.             exit _rc
- 69.         }
- 70.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
- 71.     }
- 72. 
+ 75.         qui  `noisily' gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
+ 76.         qui  `noisily'  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
+ 77.         cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
+ 78.         if ( _rc ) {
+ 79.             di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
+ 80.             exit _rc
+ 81.         }
+ 82.         else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
+ 83.     }
+ 84. 
+.     {
+ 85.         qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort > 0, counts(g_c1) fill(.)  v `options' missing
+ 86.         qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort > 0, counts(g_c2)          v `options' missing
+ 87.         qui  `noisily' gegen g_c3 = count(1) if rsort > 0, by(groupstr groupsub)
+ 88.         qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort > 0, missing
+ 89.         cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+ 90.         if ( _rc ) {
+ 91.             di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+ 92.             exit _rc
+ 93.         }
+ 94.         else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+ 95.     }
+ 96. 
 .     * ---------------------------------------------------------------------
 .     * ---------------------------------------------------------------------
 . 
 .     cap drop g*_*
- 73.     cap drop c*_*
- 74.     di "Checking egen in range"
- 75.     foreach fun of local stats {
- 76.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
- 77.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
- 78.         local from = cond(`in1' < `in2', `in1', `in2')
- 79.         local to   = cond(`in1' > `in2', `in1', `in2')
- 80.         qui  `noisily' gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) `options'
- 81.         qui  `noisily'  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
- 82.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
- 83.         if ( _rc ) {
- 84.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
- 85.             exit _rc
- 86.         }
- 87.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
- 88.     }
- 89. 
+ 97.     cap drop c*_*
+ 98.     di "Checking egen in range"
+ 99.     foreach fun of local stats {
+100.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+101.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+102.         local from = cond(`in1' < `in2', `in1', `in2')
+103.         local to   = cond(`in1' > `in2', `in1', `in2')
+104.         qui  `noisily' gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) `options'
+105.         qui  `noisily'  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
+106.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+107.         if ( _rc ) {
+108.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
+109.             exit _rc
+110.         }
+111.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
+112.     }
+113. 
 .     foreach p in `percentiles' {
- 90.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
- 91.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
- 92.         local from = cond(`in1' < `in2', `in1', `in2')
- 93.         local to   = cond(`in1' > `in2', `in1', `in2')
- 94.         qui  `noisily' gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p') `options'
- 95.         qui  `noisily'  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
- 96.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
- 97.         if ( _rc ) {
- 98.             di as err "    compare_egen_in (failed): gegen percentile `p' not equal to egen (tol = `tol')"
- 99.             exit _rc
-100.         }
-101.         else di as txt "    compare_egen_in (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-102.     }
-103. 
+114.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+115.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+116.         local from = cond(`in1' < `in2', `in1', `in2')
+117.         local to   = cond(`in1' > `in2', `in1', `in2')
+118.         qui  `noisily' gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p') `options'
+119.         qui  `noisily'  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
+120.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+121.         if ( _rc ) {
+122.             di as err "    compare_egen_in (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+123.             exit _rc
+124.         }
+125.         else di as txt "    compare_egen_in (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+126.     }
+127. 
 .     foreach fun in tag group {
-104.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-105.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-106.         local from = cond(`in1' < `in2', `in1', `in2')
-107.         local to   = cond(`in1' > `in2', `in1', `in2')
-108.         qui  `noisily' gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b `options'
-109.         qui  `noisily'  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
-110.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-111.         if ( _rc ) {
-112.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
-113.             exit _rc
-114.         }
-115.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
-116.     }
-117. 
+128.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+129.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+130.         local from = cond(`in1' < `in2', `in1', `in2')
+131.         local to   = cond(`in1' > `in2', `in1', `in2')
+132.         qui  `noisily' gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b `options'
+133.         qui  `noisily'  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
+134.         cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
+135.         if ( _rc ) {
+136.             di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
+137.             exit _rc
+138.         }
+139.         else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
+140.     }
+141. 
+.     {
+142.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+143.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+144.         local from = cond(`in1' < `in2', `in1', `in2')
+145.         local to   = cond(`in1' > `in2', `in1', `in2')
+146.         qui  `noisily' gegen g_g1 = group(groupstr groupsub) in `from' / `to', counts(g_c1) fill(.)  v `options' missing
+147.         qui  `noisily' gegen g_g2 = group(groupstr groupsub) in `from' / `to', counts(g_c2)          v `options' missing
+148.         qui  `noisily' gegen g_c3 = count(1) in `from' / `to', by(groupstr groupsub)
+149.         qui  `noisily'  egen c_t1 = tag(groupstr groupsub) in `from' / `to', missing
+150.         cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+151.         if ( _rc ) {
+152.             di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+153.             exit _rc
+154.         }
+155.         else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+156.     }
+157. 
 .     * ---------------------------------------------------------------------
 .     * ---------------------------------------------------------------------
 . 
 .     cap drop g*_*
-118.     cap drop c*_*
-119.     di "Checking egen if in range"
-120.     foreach fun of local stats {
-121.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-122.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-123.         local from = cond(`in1' < `in2', `in1', `in2')
-124.         local to   = cond(`in1' > `in2', `in1', `in2')
-125.         qui  `noisily' gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) `options'
-126.         qui  `noisily'  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
-127.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-128.         if ( _rc ) {
-129.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
-130.             exit _rc
-131.         }
-132.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
-133.     }
-134. 
+158.     cap drop c*_*
+159.     di "Checking egen if in range"
+160.     foreach fun of local stats {
+161.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+162.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+163.         local from = cond(`in1' < `in2', `in1', `in2')
+164.         local to   = cond(`in1' > `in2', `in1', `in2')
+165.         qui  `noisily' gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) `options'
+166.         qui  `noisily'  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+167.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+168.         if ( _rc ) {
+169.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
+170.             exit _rc
+171.         }
+172.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
+173.     }
+174. 
 .     foreach p in `percentiles' {
-135.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-136.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-137.         local from = cond(`in1' < `in2', `in1', `in2')
-138.         local to   = cond(`in1' > `in2', `in1', `in2')
-139.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p') `options'
-140.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
-141.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-142.         if ( _rc ) {
-143.             di as err "    compare_egen_ifin (failed): gegen percentile `p' not equal to egen (tol = `tol')"
-144.             exit _rc
-145.         }
-146.         else di as txt "    compare_egen_ifin (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-147.     }
-148. 
+175.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+176.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+177.         local from = cond(`in1' < `in2', `in1', `in2')
+178.         local to   = cond(`in1' > `in2', `in1', `in2')
+179.         qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p') `options'
+180.         qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
+181.         cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
+182.         if ( _rc ) {
+183.             di as err "    compare_egen_ifin (failed): gegen percentile `p' not equal to egen (tol = `tol')"
+184.             exit _rc
+185.         }
+186.         else di as txt "    compare_egen_ifin (passed): gegen percentile `p' results similar to egen (tol = `tol')"
+187.     }
+188. 
 .     foreach fun in tag group {
-149.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-150.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-151.         local from = cond(`in1' < `in2', `in1', `in2')
-152.         local to   = cond(`in1' > `in2', `in1', `in2')
-153.         qui  `noisily' gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
-154.         qui  `noisily'  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
-155.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-156.         if ( _rc ) {
-157.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
-158.             exit _rc
-159.         }
-160.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
-161.     }
-162. end
+189.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+190.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+191.         local from = cond(`in1' < `in2', `in1', `in2')
+192.         local to   = cond(`in1' > `in2', `in1', `in2')
+193.         qui  `noisily' gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
+194.         qui  `noisily'  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
+195.         cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
+196.         if ( _rc ) {
+197.             di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
+198.             exit _rc
+199.         }
+200.         else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
+201.     }
+202. 
+.     {
+203.         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+204.         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+205.         local from = cond(`in1' < `in2', `in1', `in2')
+206.         local to   = cond(`in1' > `in2', `in1', `in2')
+207.         qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c1) fill(.)  v `option
+> s' missing
+208.         qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c2)          v `option
+> s' missing
+209.         qui  `noisily' gegen g_c3 = count(1) if rsort < 0 in `from' / `to', by(groupstr groupsub)
+210.         qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort < 0 in `from' / `to', missing
+211.         cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
+212.         if ( _rc ) {
+213.             di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+214.             exit _rc
+215.         }
+216.         else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+217.     }
+218. end
 
 . 
 . capture program drop consistency_gegen_gcollapse
@@ -2434,10 +2496,10 @@ all files already exist and are up to date.
 . 
 . * main, benchmark bench_extra
 . main, checks test
-Start: 09:54:30  8 Oct 2017
+Start: 08:32:21  9 Oct 2017
 
 -------------------------------------
-Basic unit-tests 09:54:30  8 Oct 2017
+Basic unit-tests 08:32:21  9 Oct 2017
 -------------------------------------
     test(passed): checks_corners, oncollision(error) debug_force_single
     test(passed): checks_byvars_gcollapse, oncollision(error) debug_force_single
@@ -2448,7 +2510,7 @@ Basic unit-tests 09:54:30  8 Oct 2017
     test(passed): checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1)
 
 -----------------------------------------------------------
-Consistency checks (vs collapse, egen) 09:55:20  8 Oct 2017
+Consistency checks (vs collapse, egen) 08:33:14  9 Oct 2017
 -----------------------------------------------------------
 
 --------------------------------------------------------------------------------
@@ -2590,6 +2652,7 @@ Checking full egen range
     compare_egen (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
     compare_egen (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
     compare_egen (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen  counts results similar to gegen count (tol = 1.00000000000e-06)
 Checking egen if range
     compare_egen_if (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
     compare_egen_if (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
@@ -2609,6 +2672,7 @@ Checking egen if range
     compare_egen_if (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
     compare_egen_if (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
     compare_egen_if (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen  counts results similar to gegen count (tol = 1.00000000000e-06)
 Checking egen in range
     compare_egen_in (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
     compare_egen_in (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
@@ -2628,6 +2692,7 @@ Checking egen in range
     compare_egen_in (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
     compare_egen_in (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
     compare_egen_in (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen  counts results similar to gegen count (tol = 1.00000000000e-06)
 Checking egen if in range
     compare_egen_ifin (passed): gegen total results similar to egen (tol = 1.00000000000e-06)
     compare_egen_ifin (passed): gegen sum results similar to egen (tol = 1.00000000000e-06)
@@ -2647,6 +2712,7 @@ Checking egen if in range
     compare_egen_ifin (passed): gegen percentile 99 results similar to egen (tol = 1.00000000000e-06)
     compare_egen_ifin (passed): gegen tag results similar to egen (tol = 1.00000000000e-06)
     compare_egen_ifin (passed): gegen group results similar to egen (tol = 1.00000000000e-06)
+    compare_egen (passed): gegen  counts results similar to gegen count (tol = 1.00000000000e-06)
 
 --------------------------------------------------------------------------------
 consistency_gegen_gcollapse, oncollision(error) debug_force_single
@@ -2699,7 +2765,7 @@ Checking gegen vs gcollapse if in range
     compare_gegen_gcollapse_ifin (passed): q90 yielded same results (tol = 1.00000000000e-06)
 
 --------------------------------
-Check extra 10:03:11  8 Oct 2017
+Check extra 08:41:39  9 Oct 2017
 --------------------------------
     test(passed): checks_hashsort, oncollision(error)
     test(passed): checks_isid, oncollision(error)
@@ -2818,51 +2884,160 @@ compare_levelsof, oncollision(error)
     compare_levelsof (passed): glevelsof grouplong [if] [in] returned the same levels as levelsof
     compare_levelsof (passed): glevelsof grouplong [if] [in] returned the same levels as levelsof
 
-. 
-.             compare_hashsort, `noisily' oncollision(error)
-
 
 Benchmark vs gsort, obs = 100,000, J = 10,000 (in seconds; datasets are compared via cf)
     gsort | hashsort | ratio (g/h) | varlist
     ----- | -------- | ----------- | -------
-     .235 |     .094 |         2.5 | -str_12
-     .313 |      .11 |        2.85 | str_12 -str_32
-     .501 |      .11 |        4.55 | str_12 -str_32 str_4
-      .25 |     .078 |        3.21 | -double1
-     .344 |     .094 |        3.66 | double1 -double2
-     .546 |     .093 |        5.87 | double1 -double2 double3
-     .172 |     .046 |        3.74 | -int1
-     .313 |     .047 |        6.66 | int1 -int2
-     .454 |     .062 |        7.32 | int1 -int2 int3
-     .751 |     .094 |        7.99 | -int1 -str_32 -double1
-     1.11 |     .125 |        8.88 | int1 -str_32 double1 -int2 str_12 -double2
-     1.58 |     .125 |        12.6 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3
+     .172 |     .078 |        2.21 | -str_12
+     .266 |     .093 |        2.86 | str_12 -str_32
+     .438 |     .109 |        4.02 | str_12 -str_32 str_4
+     .204 |     .078 |        2.62 | -double1
+     .297 |     .078 |        3.81 | double1 -double2
+     .406 |     .078 |        5.21 | double1 -double2 double3
+      .11 |     .032 |        3.44 | -int1
+     .251 |      .03 |        8.37 | int1 -int2
+     .328 |     .047 |        6.98 | int1 -int2 int3
+     .547 |     .094 |        5.82 | -int1 -str_32 -double1
+     .936 |     .109 |        8.59 | int1 -str_32 double1 -int2 str_12 -double2
+     2.19 |     .141 |        15.5 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3
 
 
 Benchmark vs sort, obs = 1,000,000, J = 10,000 (in seconds; datasets are compared via cf)
      sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist
      ---- | ----- | -------- | ----------- | ----------- | -------
-     1.83 |     3 |     1.11 |        1.65 |        2.71 | str_12
-     2.67 |  3.06 |     1.35 |        1.99 |        2.28 | str_12 str_32
-     2.19 |  3.33 |     1.33 |        1.65 |        2.51 | str_12 str_32 str_4
-     1.69 |  2.17 |     1.08 |        1.57 |        2.02 | double1
-     1.72 |  2.25 |     1.14 |        1.51 |        1.97 | double1 double2
-     1.73 |  2.36 |     1.14 |        1.52 |        2.07 | double1 double2 double3
-     1.67 |  1.97 |     .719 |        2.32 |        2.74 | int1
-      1.8 |  2.03 |     .781 |         2.3 |         2.6 | int1 int2
-     1.86 |  2.08 |     .938 |        1.98 |        2.22 | int1 int2 int3
-     2.17 |     . |     1.11 |        1.96 |           . | int1 str_32 double1
-     2.48 |     . |     1.47 |        1.69 |           . | int1 str_32 double1 int2 str_12 double2
-      2.7 |     . |      1.5 |         1.8 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+     1.91 |   2.7 |     .937 |        2.03 |        2.88 | str_12
+     2.19 |  3.22 |     1.19 |        1.84 |        2.71 | str_12 str_32
+     2.59 |  3.64 |     1.52 |        1.71 |         2.4 | str_12 str_32 str_4
+     1.92 |  2.22 |     1.53 |        1.25 |        1.45 | double1
+     1.89 |  2.56 |     1.31 |        1.44 |        1.95 | double1 double2
+     1.91 |  2.36 |     1.22 |        1.56 |        1.94 | double1 double2 double3
+     1.74 |  2.36 |     .687 |        2.53 |        3.43 | int1
+     2.17 |  2.37 |     1.06 |        2.04 |        2.23 | int1 int2
+     2.06 |  2.53 |      .86 |         2.4 |        2.94 | int1 int2 int3
+     2.39 |     . |     1.42 |        1.68 |           . | int1 str_32 double1
+     2.59 |     . |     1.75 |        1.48 |           . | int1 str_32 double1 int2 str_12 double2
+     2.91 |     . |      1.7 |        1.71 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
 --------------------------------------------------------------------------------
 compare_hashsort, oncollision(error)
 --------------------------------------------------------------------------------
 
+Short (quick) versions of the benchmarks
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
+    stats = sum
+                    2,000 gcollapse  (.64)  collapse  (.047)  fcollapse  (.092)
+                   20,000 gcollapse  (.64)  collapse  (.203)  fcollapse  (.047)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|          2,000 |      0.64 |      0.05 |      0.09 |        0.14 |        0.07 |
+|         20,000 |      0.64 |      0.20 |      0.05 |        0.07 |        0.32 |
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3
+    stats = mean median
+                    2,000 gcollapse  (.015)  collapse  (.048)  fcollapse  (.031)
+                   20,000 gcollapse  (.144)  collapse  (.171)  fcollapse  (.047)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|          2,000 |      0.01 |      0.05 |      0.03 |        2.07 |        3.20 |
+|         20,000 |      0.14 |      0.17 |      0.05 |        0.33 |        1.19 |
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6
+    stats = sum mean count min max
+                    2,000 gcollapse  (1.094)  collapse  (.078)  fcollapse  (.016)
+                   20,000 gcollapse  (.625)  collapse  (.5629999999999999)  fcollapse  (.046)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|          2,000 |      1.09 |      0.08 |      0.02 |        0.01 |        0.07 |
+|         20,000 |      0.63 |      0.56 |      0.05 |        0.07 |        0.90 |
+Benchmarking N for J = 10; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                    2,000 gcollapse  (.047)  collapse  (.125)  fcollapse  (.016)
+                   20,000 gcollapse  (.063)  collapse  (1.735)  fcollapse  (.077)
+Results varying N for J = 10; by(group)
+|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|          2,000 |      0.05 |      0.13 |      0.02 |        0.34 |        2.66 |
+|         20,000 |      0.06 |      1.74 |      0.08 |        1.22 |       27.54 |
+Benchmarking J for N = 5,000; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                      100 gcollapse  (.047)  collapse  (.281)  fcollapse  (.031)
+                    1,000 gcollapse  (.047)  collapse  (.39)  fcollapse  (.063)
+Results varying J for N = 5,000; by(group)
+|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |
+| -------------- | --------- | --------- | --------- | ----------- | ----------- |
+|            100 |      0.05 |      0.28 |      0.03 |        0.66 |        5.98 |
+|          1,000 |      0.05 |      0.39 |      0.06 |        1.34 |        8.30 |
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
+    stats = sum
+                    2,000 gcollapse-default  (.032)  fcollapse  (.015) 
+                   20,000 gcollapse-default  (.046)  fcollapse  (.047) 
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|          2,000 |      0.03 |      0.01 |        0.47 |
+|         20,000 |      0.05 |      0.05 |        1.02 |
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3
+    stats = mean median
+                    2,000 gcollapse-default  (.015)  fcollapse  (.016) 
+                   20,000 gcollapse-default  (.016)  fcollapse  (.031) 
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|          2,000 |      0.01 |      0.02 |        1.07 |
+|         20,000 |      0.02 |      0.03 |        1.94 |
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6
+    stats = sum mean count min max
+                    2,000 gcollapse-default  (.046)  fcollapse  (.032) 
+                   20,000 gcollapse-default  (.063)  fcollapse  (.047) 
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|          2,000 |      0.05 |      0.03 |        0.70 |
+|         20,000 |      0.06 |      0.05 |        0.75 |
+Benchmarking N for J = 10; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                    2,000 gcollapse-default  (.062)  fcollapse  (.031) 
+                   20,000 gcollapse-default  (.062)  fcollapse  (.063) 
+Results varying N for J = 10; by(group)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|          2,000 |      0.06 |      0.03 |        0.50 |
+|         20,000 |      0.06 |      0.06 |        1.02 |
+Benchmarking J for N = 5,000; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                      100 gcollapse-default  (.047)  fcollapse  (.032) 
+                    1,000 gcollapse-default  (.063)  fcollapse  (.078) 
+Results varying J for N = 5,000; by(group)
+|              J | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|            100 |      0.05 |      0.03 |        0.68 |
+|          1,000 |      0.06 |      0.08 |        1.24 |
+
+End: 08:46:02  9 Oct 2017
+tests ran
+
+tests finished running
+
+Start: 08:32:21 9 Oct 2017
+End: 08:46:02  9 Oct 2017
+
 . 
+end of do-file
+
 . log close _all
       name:  <unnamed>
        log:  C:\cygwin64\home\mauricio\gtools\build\gtools_tests_windows.log
   log type:  text
- closed on:   8 Oct 2017, 11:10:09
+ closed on:   9 Oct 2017, 08:50:33
 --------------------------------------------------------------------------------------------------------------------------------

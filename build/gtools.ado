@@ -4,8 +4,11 @@
 capture program drop gtools
 program gtools
     version 13
-    if inlist("`c(os)'", "MacOSX") {
-        di as err "Not available for `c(os)'."
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+    else local c_os_: di lower("`c(os)'")
+
+    if inlist("`c_os_'", "macosx") {
+        di as err "Not available for MacOSX."
         exit 198
     }
 
@@ -63,7 +66,7 @@ program gtools
         local hashusr 0
     }
     else local hashusr 1
-    if ( "`c(os)'" == "Windows" & (`hashusr' | ("`dll'" == "dll") ) ) {
+    if ( "`c_os_'" == "windows" & (`hashusr' | ("`dll'" == "dll") ) ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll
@@ -126,5 +129,8 @@ program gtools
     display "Nothing to do. Specify: dependencies, dll (Windows), hasblib (Windows), upgrade."
 end
 
+if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
+else local c_os_: di lower("`c(os)'")
+
 cap program drop env_set
-program env_set, plugin using("env_set_`:di lower("`c(os)'")'.plugin")
+program env_set, plugin using("env_set_`c_os_'.plugin")

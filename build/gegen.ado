@@ -110,6 +110,7 @@ program define gegen, byable(onecall) rclass
         Benchmark                /// print benchmark info
         smart                    /// check if data is sorted to speed up hashing
         hashlib(str)             /// path to hash library (Windows only)
+        legacy                   /// force legacy version
                                  ///
         debug_force_single       /// (experimental) Force non-multi-threaded version
         debug_force_multi        /// (experimental) Force muti-threading
@@ -223,19 +224,19 @@ program define gegen, byable(onecall) rclass
     * Check plugin loads
     * ------------------
 
-    cap plugin call gtoolsmulti_plugin, check
+    cap plugin call gtools`legacy'multi_plugin, check
     if ( _rc ) {
         if ( `verbose'  ) di as txt "(note: failed to load multi-threaded version; using fallback)"
-        local plugin_call plugin call gtools_plugin
+        local plugin_call plugin call gtools`legacy'_plugin
         local multi ""
-        cap `noi' plugin call gtools_plugin, check
+        cap `noi' plugin call gtools_`legacy'plugin, check
         if ( _rc ) {
             di as err "Failed to load -gtools.plugin-"
             exit 198
         }
     }
     else {
-        local plugin_call plugin call gtoolsmulti_plugin
+        local plugin_call plugin call gtools`legacy'multi_plugin
         local multi multi
     }
 
@@ -245,13 +246,13 @@ program define gegen, byable(onecall) rclass
     if ( "`debug_force_multi'" != "" ) {
         di as txt "(warning: forcing multi-threaded version)"
         local multi multi
-        local plugin_call plugin call gtoolsmulti_plugin
+        local plugin_call plugin call gtools`legacy'multi_plugin
     }
 
     if ( "`debug_force_single'" != "" ) {
         di as txt "(warning: forcing non-multi-threaded version)"
         local multi ""
-        local plugin_call plugin call gtools_plugin
+        local plugin_call plugin call gtools`legacy'_plugin
     }
 
     * Check hash collisions in C
@@ -469,7 +470,7 @@ program define gegen, byable(onecall) rclass
     if ( _rc ) exit _rc
 
     * Parse type of each by variable
-    cap parse_by_types `by' `in', `multi'
+    cap parse_by_types `by' `in', `multi' `legacy'
     if ( _rc ) exit _rc
     scalar __gtools_merge = 1
 
@@ -614,7 +615,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist [in], [multi]
+    syntax varlist [in], [multi legacy]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_bymin
     cap matrix drop __gtools_bymax
@@ -640,7 +641,7 @@ program parse_by_types
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
         if ( `=_N > 0' ) {
-            cap plugin call gtools`multi'_plugin `varnum' `in', setup
+            cap plugin call gtools`legacy'`multi'_plugin `varnum' `in', setup
             if ( _rc ) exit _rc
         }
         matrix __gtools_bymin = c_gtools_bymin
@@ -683,8 +684,48 @@ program parse_by_types
     }
 end
 
-* Load plugins
-* ------------
+***********************************************************************
+*                        Fallback to collapse                         *
+***********************************************************************
+
+capture program drop collision_handler
+program collision_handler
+    syntax [anything(equalok)]   ///
+        [if] [in] ,              ///
+    [                            ///
+        Verbose                  ///
+        Benchmark                ///
+        smart                    ///
+        hashlib(str)             ///
+                                 ///
+        debug_force_single       ///
+        debug_force_multi        ///
+        debug_checkhash          ///
+        oncollision(str)         ///
+        *                        ///
+    ]
+    di as txt "Falling back on -egen-"
+    egen `anything' `if' `in', `options'
+end
+
+capture program drop check_matsize
+program check_matsize
+    syntax [anything], [nvars(int 0)]
+    if ( `nvars' == 0 ) local nvars `:list sizeof anything'
+    if ( `nvars' > `c(matsize)' ) {
+        cap set matsize `=`nvars''
+        if ( _rc ) {
+            di as err _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)'). Tried to run}"
+            di        _n(1) "    {stata set matsize `=`nvars''}"
+            di        _n(1) "{bf:but the command failed. Try setting matsize manually.}"
+            exit 908
+        }
+    }
+end
+
+***********************************************************************
+*                            Load plugins                             *
+***********************************************************************
 
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
@@ -750,10 +791,10 @@ else local c_os_: di lower("`c(os)'")
 * The legacy versions segfault if they are not loaded first (Unix only)
 if ( "`c_os_'" == "unix" ) {
     cap program drop __gtools_plugin
-    cap program __gtools_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
+    cap program gtoolslegacy_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
 
     cap program drop __gtoolsmulti_plugin
-    cap program __gtoolsmulti_plugin, plugin using(`"gtools_`c_os_'_multi_legacy.plugin"')
+    cap program gtoolslegacymulti_plugin, plugin using(`"gtools_`c_os_'_multi_legacy.plugin"')
 
     * But we only want to use them when multi-threading fails normally
     cap program drop gtoolsmulti_plugin
@@ -779,42 +820,3 @@ else {
 }
 
 * This is very inelegant, but I have debugging fatigue, and this seems to work.
-
-***********************************************************************
-*                        Fallback to collapse                         *
-***********************************************************************
-
-capture program drop collision_handler
-program collision_handler
-    syntax [anything(equalok)]   ///
-        [if] [in] ,              ///
-    [                            ///
-        Verbose                  ///
-        Benchmark                ///
-        smart                    ///
-        hashlib(str)             ///
-                                 ///
-        debug_force_single       ///
-        debug_force_multi        ///
-        debug_checkhash          ///
-        oncollision(str)         ///
-        *                        ///
-    ]
-    di as txt "Falling back on -egen-"
-    egen `anything' `if' `in', `options'
-end
-
-capture program drop check_matsize
-program check_matsize
-    syntax [anything], [nvars(int 0)]
-    if ( `nvars' == 0 ) local nvars `:list sizeof anything'
-    if ( `nvars' > `c(matsize)' ) {
-        cap set matsize `=`nvars''
-        if ( _rc ) {
-            di as err _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)'). Tried to run}"
-            di        _n(1) "    {stata set matsize `=`nvars''}"
-            di        _n(1) "{bf:but the command failed. Try setting matsize manually.}"
-            exit 908
-        }
-    }
-end

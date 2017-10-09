@@ -65,6 +65,7 @@ program define hashsort
         Verbose                    /// debugging
         Benchmark                  /// print benchmark info
         hashlib(str)               /// path to hash library (Windows only)
+        legacy                     /// force legacy version
         oncollision(str)           /// (experimental) On collision, fall back to isid or throw error
     ]
 
@@ -206,7 +207,7 @@ program define hashsort
     cap noi check_matsize `bynum'
     if ( _rc ) exit _rc
 
-    cap parse_by_types `varlist' `in'
+    cap parse_by_types `varlist' `in', `legacy'
     if ( _rc ) exit _rc
 
     * Position of string variables (the position in the variable list passed
@@ -238,7 +239,7 @@ program define hashsort
     local website_url  https://github.com/mcaceresb/stata-gtools/issues
     local website_disp github.com/mcaceresb/stata-gtools
 
-    cap noi hashsort_inner `varlist' `in', benchmark(`benchmark')
+    cap noi hashsort_inner `varlist' `in', benchmark(`benchmark') `legacy'
     if ( _rc == 42000 ) {
         di as err "There may be 128-bit hash collisions!"
         di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
@@ -306,8 +307,8 @@ end
 
 capture program drop hashsort_inner
 program hashsort_inner, sortpreserve
-    syntax varlist [in], benchmark(int)
-    cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
+    syntax varlist [in], benchmark(int) [legacy]
+    cap noi plugin call gtools`legacy'_plugin `varlist' `_sortindex' `in', hashsort
     if ( _rc ) exit _rc
     mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
 
@@ -323,7 +324,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types
-    syntax varlist [in]
+    syntax varlist [in], [legacy]
     cap matrix drop __gtools_byk
     cap matrix drop __gtools_byint
     cap matrix drop __gtools_bymin
@@ -355,7 +356,7 @@ program parse_by_types
             }
             else if inlist("`:type `byvar''", "float", "double") {
                 if ( `=_N > 0' ) {
-                    cap plugin call gtools_plugin `byvar' `in', isint
+                    cap plugin call gtools`legacy'_plugin `byvar' `in', isint
                     if ( _rc ) exit _rc
                 }
                 else scalar __gtools_is_int = 0
@@ -395,7 +396,7 @@ program parse_by_types
         matrix c_gtools_bymin  = J(1, `knum', 0)
         matrix c_gtools_bymax  = J(1, `knum', 0)
         if ( `=_N > 0' ) {
-            cap plugin call gtools_plugin `varnum' `in', setup
+            cap plugin call gtools`legacy'_plugin `varnum' `in', setup
             if ( _rc ) exit _rc
         }
         matrix __gtools_bymin = c_gtools_bymin
@@ -550,3 +551,8 @@ else local c_os_: di lower("`c(os)'")
 
 cap program drop gtools_plugin
 program gtools_plugin, plugin using(`"gtools_`c_os_'.plugin"')
+
+if ( "`c_os_'" == "unix" ) {
+    cap program drop __gtools_plugin
+    cap program gtoolslegacy_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
+}

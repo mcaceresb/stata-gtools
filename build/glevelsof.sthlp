@@ -11,8 +11,8 @@
 {viewerjumpto "Stored results" "glevelsof##results"}{...}
 {title:Title}
 
-{p2colset 5 21 23 2}{...}
-{p2col :{manlink P glevelsof} {hline 2}}Levels of variable using C plugins{p_end}
+{p2colset 5 18 23 2}{...}
+{p2col :{cmd:glevelsof} {hline 2}}Levels of variable using C plugins{p_end}
 {p2colreset}{...}
 
 

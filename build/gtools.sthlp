@@ -14,9 +14,30 @@
 {marker syntax}{...}
 {title:Syntax}
 
-{phang}
-{it:Note for Windows users}: Please run {opt gtools, dependencies}
-before using any of the programs provided by gtools.
+{pstd}
+{opt gtools} is a suite of commands that use hashes for a speedup over
+traditional stata commands. The following are available as part of gtools:
+
+{p 8 17 2}
+{manhelp gcollapse R:gcollapse} {opt collapse} replacement. {p_end}
+
+{p 8 17 2}
+{manhelp gisid R:gisid} {opt isid} replacement. {p_end}
+
+{p 8 17 2}
+{manhelp glevelsof R:glevelsof} {opt levelsof} replacement. {p_end}
+
+{p 8 17 2}
+{manhelp gegen R:gegen} {opt egen} alternative. {p_end}
+
+{p 8 17 2}
+{manhelp hashsort R:hashsort} (Experimental.) Hash-based sorting. {p_end}
+
+{pstd}
+{it:Note for Windows users}: Please run {opt gtools, dependencies} before
+using any of the programs provided by gtools. The {opt gtools} command
+is merely a wrapper for some high-level operations to do with package
+maintenance.
 
 {p 8 17 2}
 {cmd:gtools}

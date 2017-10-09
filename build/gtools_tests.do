@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Oct  8 13:21:53 EDT 2017
+* Updated: Mon Oct  9 14:06:44 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.22
+* Version: 0.7.5
 * Manual:  help gcollapse, help gegen
 
 * Stata start-up options
@@ -24,7 +24,7 @@ ssc install ralpha
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily *]
+    syntax, [CAPture NOIsily legacy *]
 
     * Set up
     * ------
@@ -51,26 +51,26 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
+            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single `legacy')
 
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0))
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1))
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single `legacy')
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0) `legacy')
+            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1) `legacy')
 
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0))
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1))
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single `legacy')
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0) `legacy')
+            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1) `legacy')
 
             if !inlist("`c(os)'", "Windows") {
-                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
+                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi `legacy')
 
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0))
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1))
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi `legacy')
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0) `legacy')
+                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1) `legacy')
 
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0))
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1))
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi `legacy')
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0) `legacy')
+                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1) `legacy')
             }
 
             di ""
@@ -78,22 +78,22 @@ program main
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
-            consistency_gegen,           `noisily' oncollision(error) debug_force_single
-            consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single `legacy'
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0) `legacy'
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1) `legacy'
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1) `legacy'
+            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000) `legacy'
+            consistency_gegen,           `noisily' oncollision(error) debug_force_single `legacy'
+            consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single `legacy'
 
             if !inlist("`c(os)'", "Windows") {
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
-                consistency_gegen,           `noisily' oncollision(error) debug_force_multi
-                consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi `legacy'
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0) `legacy'
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1) `legacy'
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1) `legacy'
+                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000) `legacy'
+                consistency_gegen,           `noisily' oncollision(error) debug_force_multi `legacy'
+                consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi `legacy'
             }
 
             di ""
@@ -101,21 +101,21 @@ program main
             di "Check extra $S_TIME $S_DATE"     
             di "--------------------------------"
 
-            unit_test, `noisily' test(checks_hashsort, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort, `noisily' oncollision(error) `legacy')
+            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error) `legacy')
+            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error) `legacy')
 
-            compare_isid,     `noisily' oncollision(error)
-            compare_levelsof, `noisily' oncollision(error)
-            compare_hashsort, `noisily' oncollision(error)
+            compare_isid,     `noisily' oncollision(error) `legacy'
+            compare_levelsof, `noisily' oncollision(error) `legacy'
+            compare_hashsort, `noisily' oncollision(error) `legacy'
         }
 
         if ( `:list posof "bench_gtools" in options' ) {
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single)
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single `legacy')
+            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single `legacy')
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single `legacy')
+            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single `legacy')
+            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single `legacy')
         }
 
         if ( `:list posof "test" in options' ) {
@@ -123,46 +123,46 @@ program main
             cap ssc install moremata
 
             di "Short (quick) versions of the benchmarks"
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
-            bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) `legacy'
+            bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median) `legacy'
+            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) `legacy'
+            bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77) `legacy'
+            bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3) `legacy'
 
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
-            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
-            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
-            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools) `legacy'
+            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools) `legacy'
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools) `legacy'
+            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools) `legacy'
+            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools) `legacy'
         }
 
         if ( `:list posof "benchmark" in options' ) {
             cap ssc install ftools
             cap ssc install moremata
 
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, margin(J) by(group) kmin(4) kmax(6) pct(median iqr p23 p77) obsexp(6)
+            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15) `legacy'
+            bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median) `legacy'
+            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max) `legacy'
+            bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77) `legacy'
+            bench_group_size  x1 x2, margin(J) by(group) kmin(4) kmax(6) pct(median iqr p23 p77) obsexp(6) `legacy'
         }
 
         if ( `:list posof "bench_fcoll" in options' ) {
             cap ssc install ftools
             cap ssc install moremata
 
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools)
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) `legacy'
+            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) `legacy'
+            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) `legacy'
+            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) `legacy'
+            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) `legacy'
         }
 
         if ( `:list posof "bench_extra" in options' ) {
-            compare_hashsort, bench(10)
-            bench_levelsof,   bench(10)
-            bench_isid,       bench(10)
-            bench_egen,       bench(10)
+            compare_hashsort, bench(10) `legacy'
+            bench_levelsof,   bench(10) `legacy'
+            bench_isid,       bench(10) `legacy'
+            bench_egen,       bench(10) `legacy'
         }
     }
     local rc = _rc
@@ -597,8 +597,8 @@ program checks_corners
     qui {
         sysuse auto, clear
         gen price2 = price
-        gcollapse price = price2, by(make)
-        gcollapse price in 1, by(make)
+        gcollapse price = price2, by(make) v b `options'
+        gcollapse price in 1,     by(make) v b `options'
     }
 
     qui {
@@ -1511,11 +1511,11 @@ program checks_hashsort
     sysuse auto, clear
     gen idx = _n
     hashsort -foreign rep78 make -mpg, `options'
-    hashsort idx, `options'
-    hashsort -foreign rep78, `options'
-    hashsort idx, `options'
-    hashsort foreign rep78 mpg, `options'
-    hashsort idx, v b `options'
+    hashsort idx,                      `options'
+    hashsort -foreign rep78,           `options'
+    hashsort idx,                      `options'
+    hashsort foreign rep78 mpg,        `options'
+    hashsort idx,                      `options' v b
 end
 
 capture program drop compare_hashsort
@@ -1999,7 +1999,7 @@ end
 
 capture program drop bench_ftools
 program bench_ftools
-    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) *]
+    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) legacy *]
     if ("`stats'" == "") local stats sum
 
     local collapse ""
@@ -2027,7 +2027,7 @@ program bench_ftools
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                gcollapse `collapse', by(`by') fast
+                gcollapse `collapse', by(`by') fast `legacy'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -2076,7 +2076,7 @@ end
 
 capture program drop bench_sample_size
 program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) *]
+    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) legacy *]
     * NOTE: sometimes, fcollapse can't do sd
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -2106,7 +2106,7 @@ program bench_sample_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') fast
+                qui gcollapse `collapse', by(`by') fast `legacy'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -2151,7 +2151,7 @@ end
 
 capture program drop bench_group_size
 program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
+    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) legacy *]
     * NOTE: fcollapse can't do sd, apparently
     if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
     local stats `stats' `pct'
@@ -2182,7 +2182,7 @@ program bench_group_size
             timer clear
             timer on `i'
             mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') fast
+                qui gcollapse `collapse', by(`by') fast `legacy'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'
@@ -2231,7 +2231,7 @@ end
 
 capture program drop bench_switch_fcoll
 program bench_switch_fcoll
-    syntax anything, style(str) [GCOLLapse(str) *]
+    syntax anything, style(str) [GCOLLapse(str) legacy *]
     if !inlist("`style'", "ftools", "gtools") {
         di as error "Don't know benchmark style '`style''; available: ftools, gtools"
         exit 198
@@ -2313,7 +2313,7 @@ program bench_switch_fcoll
             timer clear
             timer on `i'
             mata: printf(" gcollapse-default `options'")
-                qui gcollapse `collapse', by(`by') `options' fast
+                qui gcollapse `collapse', by(`by') `options' fast `legacy'
             timer off `i'
             qui timer list
             local r`i' = `r(t`i')'

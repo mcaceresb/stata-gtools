@@ -11,8 +11,8 @@
 {viewerjumpto "Examples" "hashsort##examples"}{...}
 {title:Title}
 
-{p2colset 5 18 20 2}{...}
-{p2col :{manlink D hashsort} {hline 2}}Implementation of {opt sort} and {opt gsort} using hashes and C-plugins{p_end}
+{p2colset 5 18 23 2}{...}
+{p2col :{cmd:hashsort} {hline 2}}{opt sort} and {opt gsort} using hashes and C-plugins{p_end}
 {p2colreset}{...}
 
 

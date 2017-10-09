@@ -8,8 +8,8 @@
 {title:Title}
 
 
-{p2colset 5 17 19 2}{...}
-{p2col :{manlink D gisid} {hline 2}}Check for unique identifiers using C plugins.{p_end}
+{p2colset 5 18 23 2}{...}
+{p2col :{cmd:gisid} {hline 2}}Check for unique identifiers using C plugins.{p_end}
 {p2colreset}{...}
 
 

@@ -275,8 +275,8 @@ program checks_corners
     qui {
         sysuse auto, clear
         gen price2 = price
-        gcollapse price = price2, by(make)
-        gcollapse price in 1, by(make)
+        gcollapse price = price2, by(make) v b `options'
+        gcollapse price in 1,     by(make) v b `options'
     }
 
     qui {

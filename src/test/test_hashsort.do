@@ -5,11 +5,11 @@ program checks_hashsort
     sysuse auto, clear
     gen idx = _n
     hashsort -foreign rep78 make -mpg, `options'
-    hashsort idx, `options'
-    hashsort -foreign rep78, `options'
-    hashsort idx, `options'
-    hashsort foreign rep78 mpg, `options'
-    hashsort idx, v b `options'
+    hashsort idx,                      `options'
+    hashsort -foreign rep78,           `options'
+    hashsort idx,                      `options'
+    hashsort foreign rep78 mpg,        `options'
+    hashsort idx,                      `options' v b
 end
 
 capture program drop compare_hashsort

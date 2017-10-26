@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.5 08Oct2017}{...}
+{* *! version 0.8.0 25Oct2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -22,13 +22,16 @@ traditional stata commands. The following are available as part of gtools:
 {manhelp gcollapse R:gcollapse} {opt collapse} replacement. {p_end}
 
 {p 8 17 2}
+{manhelp gegen R:gegen} {opt egen} alternative. {p_end}
+
+{p 8 17 2}
 {manhelp gisid R:gisid} {opt isid} replacement. {p_end}
 
 {p 8 17 2}
 {manhelp glevelsof R:glevelsof} {opt levelsof} replacement. {p_end}
 
 {p 8 17 2}
-{manhelp gegen R:gegen} {opt egen} alternative. {p_end}
+{manhelp gunique R:gunique} Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
 {manhelp hashsort R:hashsort} (Experimental.) Hash-based sorting. {p_end}
@@ -113,10 +116,16 @@ is required for the plugin to execute correctly.
 
 {pstd}{cmd:gtools} is maintained at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
 
-{marker acknowledgments}{...}
-{title:Acknowledgments}
+
+{marker acknowledgment}{...}
+{title:Acknowledgment}
 
 {pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
+{p_end}
+
+{pstd}
+The OSX version of gtools was implemented with invaluable help from @fbelotti;
+see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}

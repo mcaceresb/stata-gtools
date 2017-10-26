@@ -1,48 +1,51 @@
-v 0.7.5
+v 0.8.0
 d
-d 'GTOOLS': Faster -egen- and -collapse- using C plugins
+d 'GTOOLS': Faster group operations using C plugins
 d
-d This package provides C-based implementations of Stata group commands,
-d notably -collapse- and -egen- via -gcollapse- and -gegen-, using 
-d C plugins. I got the original idea after finding Sergio Correia's ftools.
+d This package provides a fast C-based implementations of Stata group
+d commands, such as collapse, egen, levelsof, isid, unique via gcollapse,
+d gegen, and so on. This package was inspired by Sergio Correia's ftools.
 d
+d KW: plugin
 d KW: gtools
-d KW: egen
 d KW: collapse
+d KW: egen
+d KW: levelsof
+d KW: isid
+d KW: unique
 d KW: sort
 d KW: gsort
-d KW: isid
-d KW: levelsof
 d KW: gegen
 d KW: gcollapse
-d KW: hashsort
 d KW: gisid
 d KW: glevelsof
+d KW: gunique
+d KW: hashsort
 d
 d Requires: Stata version 13.1
 d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20171008
+d Distribution-Date: 20171025
 d
+f _gtools_internal.ado
 f gcollapse.ado
-f gcollapse.sthlp
 f gegen.ado
-f gegen.sthlp
-f gisid.ado
-f gisid.sthlp
-f hashsort.ado
-f hashsort.sthlp
+f gunique.ado
 f glevelsof.ado
-f glevelsof.sthlp
+f gisid.ado
+f hashsort.ado
 f gtools.ado
+f gcollapse.sthlp
+f gegen.sthlp
+f gunique.sthlp
+f glevelsof.sthlp
+f gisid.sthlp
+f hashsort.sthlp
 f gtools.sthlp
-f gtools_unix.plugin
-f gtools_unix_legacy.plugin
-f gtools_unix_multi.plugin
-f gtools_unix_multi_legacy.plugin
 f gtools_windows.plugin
 f env_set_windows.plugin
+f gtools_unix.plugin
 f env_set_unix.plugin
 F spookyhash.dll

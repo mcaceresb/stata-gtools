@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.3  08Oct2017}{...}
+{* *! version 0.2.0  25Oct2017}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}
@@ -120,6 +120,21 @@ order of {cmd:id}{p_end}
     {hline}
 
 
+{marker results}{...}
+{title:Stored results}
+
+{pstd}
+Unless the data was already sorted, {cmd:hashsort} stores the following in {cmd:r()}:
+
+{synoptset 20 tabbed}{...}
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)   }} number of groups {p_end}
+{synopt:{cmd:r(minJ)}} largest group size {p_end}
+{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
+{p2colreset}{...}
+
+
 {marker author}{...}
 {title:Author}
 
@@ -127,16 +142,23 @@ order of {cmd:id}{p_end}
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 
-
 {title:Website}
 
 {pstd}{cmd:hashsort} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
-
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
 
 {pstd}
+This help file was based on StataCorp's own help file for {it:sort} and {it:gsort}.
+{p_end}
+
+{pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
+{p_end}
+
+{pstd}
+The OSX version of gtools was implemented with invaluable help from @fbelotti;
+see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}

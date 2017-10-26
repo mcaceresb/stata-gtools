@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "spi/stplugin.h"
-#include "spt/st_gentools.c"
+#include "spt/st_print.c"
 
 #if defined(_WIN64) || defined(_WIN32)
 // #include <stdio.h>
@@ -60,7 +60,7 @@ char* EMPTY = "";
 
 STDLL stata_call (int argc, char *argv[])
 {
-    ST_retcode rc;
+    ST_retcode rc = 0;
 
     if ( argc < 2 ) {
         sf_errprintf ("env_set: incorrect number of arguments (%d). Use:\n", argc);
@@ -73,6 +73,7 @@ STDLL stata_call (int argc, char *argv[])
             sf_errprintf ("env_set: unable to unset %s: %d\n", argv[0], rc);
             return (rc);
         }
+
         if ( argc == 2 ) {
             rc = setenv(argv[0], argv[1], 1);
         }
@@ -86,6 +87,7 @@ STDLL stata_call (int argc, char *argv[])
             }
             rc = setenv(argv[0], path, 1);
         }
+
         if ( rc ) {
             sf_errprintf ("env_set: unable to set %s: %d\n", argv[0], rc);
             return (rc);
@@ -94,5 +96,6 @@ STDLL stata_call (int argc, char *argv[])
             sf_printf ("Successfully set %s\n", argv[0]);
         }
     }
-    return (0);
+
+    return (rc);
 }

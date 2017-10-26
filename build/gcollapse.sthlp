@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.5 08Oct2017}{...}
+{* *! version 0.8.0 25Oct2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -54,6 +54,9 @@ before using any of the programs provided by gtools.
 {p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
 {p2col :{opt sum}}sums{p_end}
 {p2col :{opt sd}}standard deviation{p_end}
+{p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
+{p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}){p_end}
+{p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}){p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
@@ -78,19 +81,27 @@ before using any of the programs provided by gtools.
 saves speed but leaves the data in an unusable state shall the
 user press {hi:Break}
 {p_end}
-{synopt :{opt verbose}}verbose printing (for debugging).
+{synopt :{opt v:erbose}}verbose printing (for debugging).
 {p_end}
-{synopt :{opt benchmark}}print performance time info for each step.
+{synopt :{opt b:enchmark}}print performance time info for each step.
 {p_end}
-{synopt :{opt smart}}pre-index the data in Stata if it's already sorted.
+{synopt :{opt labelf:ormat}}custom label format for output.
+{p_end}
+{synopt :{opth labelp:rogram(str)}}custom program for {opt labelformat} placeholder engine.
 {p_end}
 {synopt :{opt merge}}merge collapsed results back to oroginal data.
+{p_end}
+{synopt :{opt mergel:abels}}label output stat when using {opt merge}.
+{p_end}
+{synopt :{opt mergef:ormats}}maintain source format when using {opt merge}.
 {p_end}
 {synopt :{opt forceio}}force using disk instead of memory for the collapsed results.
 {p_end}
 {synopt :{opt forcemem}}force using memory instead of disk for the collapsed results.
 {p_end}
 {synopt :{opt double}}store data in double precision.
+{p_end}
+{synopt :{opth hashlib(str)}}Custom path to {it:spookyhash.dll} (Windows only).
 {p_end}
 
 {synoptline}
@@ -102,12 +113,11 @@ user press {hi:Break}
 
 {pstd}
 {opt gcollapse} converts the dataset in memory into a dataset of means,
-sums, medians, etc. {it:clist} can refer to numeric and string variables
-although string variables are only supported by a few functions (first,
-last, firstnm, lastnm).
+sums, medians, etc. {it:clist} can refer only to numeric variables.
 
 {pstd}
-Weights are currently not supported.
+Weights are currently not supported. first, last, firstnm, lastnm for
+string variables are not supported.
 
 {marker options}{...}
 {title:Options}
@@ -127,12 +137,6 @@ possible observations are used for each calculated statistic.
 should the user press {hi:Break}.
 
 {phang}
-{opt smart} pre-indexes the data in Stata if it is already sorted. If the
-meta-data indicates the data is already sorted by the goruping variables,
-then we can greate a tag for each group and use that to construct an index
-in C much faster than via hashing.
-
-{phang}
 {opt verbose} prints some useful debugging info to the console.
 
 {phang}
@@ -140,10 +144,31 @@ in C much faster than via hashing.
 take to execute.
 
 {phang}
+{opt labelformat} Specifies the label format of the output. #stat#
+is replaced with the statistic: #Stat# for titlecase, #STAT#
+for uppercase, #stat:pretty# for a custom replacement; #sourcelabel#
+for the source label and #sourcelabel:start:nchars# to extract a substring
+from the source label. The default is (#stat#) #sourcelabel#. #stat#
+palceholders in the source label are also replaced.
+
+{phang}
+{opth labelprogram(str)} Specifies the program to use with #stat:pretty#.
+Thisis an {opt rclass} that must set {opt prettystat} as a return
+value. The programm is passed the requested stat by {opt gcollapse}.
+
+{phang}
 {opt merge} merges the collapsed data back to the original data set.
 Note that if you want to keep the source variable(s) then you {it:need}
 to assign a new name to it for each summary statistic. Otherwise it will
 be overwritten.
+
+{phang}
+{opt mergef:ormats} Tries to format the output stats using the source
+variable formats.
+
+{phang}
+{opt mergel:abels} Labels the output stats using the source variable
+foramts. Can be combined with {opt labelformat} and {opth labelprogram(str)}.
 
 {phang}
 {opt forceio} By default, when there are more than 3 additional targets
@@ -214,14 +239,15 @@ where it cannot allocate enough memory for {it:gcollapse}.
 {title:Examples}
 
 {pstd}
-Pending...
-
+See the
+{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
+in the git repo.
 
 {marker results}{...}
 {title:Stored results}
 
 {pstd}
-{cmd:gegen} stores the following in {cmd:r()}:
+{cmd:gcollapse} stores the following in {cmd:r()}:
 
 {synoptset 20 tabbed}{...}
 {p2col 5 20 24 2: Scalars}{p_end}
@@ -254,4 +280,9 @@ for {it:collapse} and Sergio Correia's help file for {it:fcollapse}.
 {pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
+{p_end}
+
+{pstd}
+The OSX version of gtools was implemented with invaluable help from @fbelotti;
+see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}

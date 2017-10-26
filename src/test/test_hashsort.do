@@ -2,6 +2,27 @@ capture program drop checks_hashsort
 program checks_hashsort
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_hashsort, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(5000)
+    qui expand 2
+    gen long ix = _n
+
+    checks_inner_hashsort -str_12,              `options'
+    checks_inner_hashsort str_12 -str_32,       `options'
+    checks_inner_hashsort str_12 -str_32 str_4, `options'
+
+    checks_inner_hashsort -double1,                 `options'
+    checks_inner_hashsort double1 -double2,         `options'
+    checks_inner_hashsort double1 -double2 double3, `options'
+
+    checks_inner_hashsort -int1,           `options'
+    checks_inner_hashsort int1 -int2,      `options'
+    checks_inner_hashsort int1 -int2 int3, `options'
+
+    checks_inner_hashsort -int1 -str_32 -double1,                                         `options'
+    checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
     sysuse auto, clear
     gen idx = _n
     hashsort -foreign rep78 make -mpg, `options'
@@ -12,19 +33,34 @@ program checks_hashsort
     hashsort idx,                      `options' v b
 end
 
+capture program drop checks_inner_hashsort
+program checks_inner_hashsort
+    syntax anything, [*]
+    tempvar ix
+    hashsort `anything', `options' gen(`ix')
+    hashsort `: subinstr local anything "-" "", all', `options'
+    hashsort ix, `options'
+end
+
+capture program drop bench_hashsort
+program bench_hashsort
+    compare_hashsort `0'
+end
+
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
 
-    cap gen_data, n(10000)
+    cap gen_data, n(`n')
     qui expand 10 * `bench'
     qui gen rsort = rnormal()
     qui sort rsort
 
     local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
 
     di _n(1)
-    di "Benchmark vs gsort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
+    di "Benchmark vs gsort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
     di "    gsort | hashsort | ratio (g/h) | varlist"
     di "    ----- | -------- | ----------- | -------"
 
@@ -48,8 +84,8 @@ program compare_hashsort
     local N = trim("`: di %15.0gc _N'")
 
     di _n(1)
-    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "     sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist"
+    di "Benchmark vs sort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
+    di "     sort | fsort | hashsort | ratio (s/h) | ratio (f/h) | varlist"
     di "     ---- | ----- | -------- | ----------- | ----------- | -------"
 
     compare_sort str_12,              `options' fsort
@@ -68,33 +104,7 @@ program compare_hashsort
     compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    * cap gen_data, n(100)
-    * qui expand 10000
-    * compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-    * compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
-
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
-end
-
-capture program drop gen_data
-program gen_data
-    syntax, [n(int 100)]
-    clear
-    set obs `n'
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
-
-    gen long int1  = floor(rnormal())
-    gen long int2  = floor(uniform() * 1000)
-    gen long int3  = floor(rnormal() * 5 + 10)
-
-    gen double double1 = rnormal()
-    gen double double2 = uniform() * 1000
-    gen double double3 = rnormal() * 5 + 10
 end
 
 capture program drop compare_sort
@@ -120,7 +130,7 @@ program compare_sort, rclass
         cf * using `file_sort'
     restore
     qui timer list
-    local time_hashsort = r(t43) 
+    local time_hashsort = r(t43)
 
     if ( "`fsort'" == "fsort" ) {
         timer clear
@@ -151,7 +161,7 @@ program compare_gsort, rclass
     timer clear
     preserve
         timer on 42
-        gsort `anything'
+        gsort `anything', mfirst
         timer off 42
         tempfile file_sort
         qui save `file_sort'
@@ -167,7 +177,7 @@ program compare_gsort, rclass
         cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
     restore
     qui timer list
-    local time_hashsort = r(t43) 
+    local time_hashsort = r(t43)
 
     local rs = `time_sort'  / `time_hashsort'
     di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"

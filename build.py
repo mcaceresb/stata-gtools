@@ -4,8 +4,8 @@
 # ---------------------------------------------------------------------
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
-# Created: Tue May 16 06:12:25 EDT 2017
-# Updated: Sun Jun 18 15:18:20 EDT 2017
+# Created: Sun Oct 15 10:26:39 EDT 2017
+# Updated: Sun Oct 15 10:26:39 EDT 2017
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -15,6 +15,10 @@ from sys import platform
 from tempfile import gettempdir
 from zipfile import ZipFile
 from re import search
+import argparse
+
+# ---------------------------------------------------------------------
+# Aux programs
 
 try:
     from shutil import which
@@ -38,7 +42,19 @@ except:
 
         return None
 
-import argparse
+
+def makedirs_safe(directory):
+    try:
+        makedirs(directory)
+        return directory
+    except OSError:
+        if not path.isdir(directory):
+            raise
+
+
+# ---------------------------------------------------------------------
+# Command line parsing
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--stata',
                     nargs    = 1,
@@ -83,29 +99,25 @@ parser.add_argument('--windows',
                     required = False)
 args = vars(parser.parse_args())
 
-
-def makedirs_safe(directory):
-    try:
-        makedirs(directory)
-        return directory
-    except OSError:
-        if not path.isdir(directory):
-            raise
-
+# ---------------------------------------------------------------------
+# Relevant files
 
 gtools_ssc = [
+    "_gtools_internal.ado",
     "gcollapse.ado",
-    "gcollapse.sthlp",
     "gegen.ado",
-    "gegen.sthlp",
-    "hashsort.ado",
-    "hashsort.sthlp",
-    "gisid.ado",
-    "gisid.sthlp",
+    "gunique.ado",
     "glevelsof.ado",
-    "glevelsof.sthlp",
+    "gisid.ado",
+    "hashsort.ado",
     "gtools.ado",
-    "gtools.sthlp"
+    "gcollapse.sthlp",
+    "gegen.sthlp",
+    "gunique.sthlp",
+    "glevelsof.sthlp",
+    "gisid.sthlp",
+    "hashsort.sthlp",
+    "gtools.sthlp",
 ]
 
 gtools_zip = [
@@ -115,8 +127,11 @@ gtools_zip = [
 ] + gtools_ssc
 
 gtools_build = gtools_zip + [
-    "gtools_tests.do"
+    "tests.do"
 ]
+
+# ---------------------------------------------------------------------
+# Run the script
 
 # Remove buld
 # -----------
@@ -193,10 +208,10 @@ print("")
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_gegen.do"),
-            path.join("src", "test", "test_gisid.do"),
-            path.join("src", "test", "test_hashsort.do"),
+            path.join("src", "test", "test_gunique.do"),
             path.join("src", "test", "test_glevelsof.do"),
-            path.join("src", "test", "bench_gcollapse.do")]
+            path.join("src", "test", "test_gisid.do"),
+            path.join("src", "test", "test_hashsort.do")]
 
 with open(path.join("build", "gtools_tests.do"), 'w') as outfile:
     outfile.writelines(testfile[:-4])
@@ -213,26 +228,31 @@ with open(path.join("build", "gtools_tests.do"), 'a') as outfile:
 
 gdir = path.join("build", "gtools")
 copy2("changelog.md", gdir)
-copy2(path.join("src", "gtools.pkg"), gdir)
-copy2(path.join("src", "stata.toc"), gdir)
-copy2(path.join("src", "ado", "gcollapse.ado"), gdir)
-copy2(path.join("src", "ado", "gegen.ado"), gdir)
-copy2(path.join("src", "ado", "gisid.ado"), gdir)
-copy2(path.join("src", "ado", "hashsort.ado"), gdir)
-copy2(path.join("src", "ado", "glevelsof.ado"), gdir)
-copy2(path.join("src", "ado", "gtools.ado"), gdir)
+
+copy2(path.join("src", "gtools.pkg"),      gdir)
+copy2(path.join("src", "stata.toc"),       gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
-copy2(path.join("doc", "gegen.sthlp"), gdir)
-copy2(path.join("doc", "hashsort.sthlp"), gdir)
-copy2(path.join("doc", "gisid.sthlp"), gdir)
+copy2(path.join("doc", "gegen.sthlp"),     gdir)
+copy2(path.join("doc", "gunique.sthlp"),   gdir)
 copy2(path.join("doc", "glevelsof.sthlp"), gdir)
-copy2(path.join("doc", "gtools.sthlp"), gdir)
+copy2(path.join("doc", "gisid.sthlp"),     gdir)
+copy2(path.join("doc", "hashsort.sthlp"),  gdir)
+copy2(path.join("doc", "gtools.sthlp"),    gdir)
+
+copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
+copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)
+copy2(path.join("src", "ado", "gegen.ado"),            gdir)
+copy2(path.join("src", "ado", "gunique.ado"),          gdir)
+copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
+copy2(path.join("src", "ado", "gisid.ado"),            gdir)
+copy2(path.join("src", "ado", "hashsort.ado"),         gdir)
+copy2(path.join("src", "ado", "gtools.ado"),           gdir)
 
 # Copy files to .zip folder in ./releases
 # ---------------------------------------
 
 # Get stata version
-with open(path.join("src", "ado", "gcollapse.ado"), 'r') as f:
+with open(path.join("src", "ado", "gtools.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
@@ -240,12 +260,9 @@ plugins = ["env_set_unix.plugin",
            "env_set_windows.plugin",
            "env_set_macosx.plugin",
            "gtools_unix.plugin",
-           "gtools_unix_legacy.plugin",
-           "gtools_unix_multi.plugin",
-           "gtools_unix_multi_legacy.plugin",
-           "spookyhash.dll",
            "gtools_windows.plugin",
-           "gtools_macosx.plugin"]
+           "gtools_macosx.plugin",
+           "spookyhash.dll"]
 plugbak = plugins[:]
 for plug in plugbak:
     if not path.isfile(path.join("build", plug)):
@@ -276,7 +293,7 @@ else:
     print("WARNING: Failed to build plugins. Will exit.")
     exit(-1)
 
-outzip = path.join(maindir, "releases", "gtools-{0}.zip".format(version))
+outzip = path.join(maindir, "releases", "gtools-latest.zip".format(version))
 with ZipFile(outzip, 'w') as zf:
     for zfile in gtools_zip:
         zf.write(path.join("gtools", zfile))
@@ -284,7 +301,6 @@ with ZipFile(outzip, 'w') as zf:
         rename(path.join("gtools", zfile), zfile)
 
 chdir(maindir)
-copy2(outzip, path.join("releases", "gtools-latest.zip"))
 rmtree(path.join("build", "gtools"))
 
 # Copy files to send to SSC
@@ -305,11 +321,6 @@ with ZipFile(outzip, 'w') as zf:
         zf.write(zfile)
         print("\t" + zfile)
 
-# chdir(path.join(maindir, "src"))
-# with ZipFile(outzip, 'a') as zf:
-#     zf.write("README")
-#     print("\tREADME")
-
 # Replace package in ~/ado/plus
 # -----------------------------
 
@@ -327,7 +338,7 @@ if args["replace"]:
         chdir(statadir)
         system(statado + " " + tmpupdate)
         remove(tmpupdate)
-        print(linesep + "Replaced gtools in ~/ado/plus")
+        # print(linesep + "Replaced gtools in ~/ado/plus")
         chdir(maindir)
     else:
         print("Could not find Stata executable '{0}'.".format(stataexe))

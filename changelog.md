@@ -1,6 +1,26 @@
 Change Log
 ==========
 
+## gtools-0.8.0 (2017-10-19)
+
+## Features
+
+* Refactored code base for somewhat faster runtime, but mainly for bug fixes
+  and ease of maintenance.
+* gcollapse, gegen, glevelsof, gisid, gunique, hashsort all call the function
+  `_gtools_internal`, which then calls the plugin.
+* gcollapse includes a target labeling engine.
+* gcollapse now supports semean, sebinomial, and sepoisson.
+* gegen will take (almost) any egen function. If it is not implemented
+  by gtools it will simply use hashsort and then call egen.
+* Windows and Linux versions passing tests, OSX version should be feasible.
+
+### Bug fixes
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/19
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/18
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/11
+
 ## gtools-0.7.5 (2017-10-08)
 
 ### Features

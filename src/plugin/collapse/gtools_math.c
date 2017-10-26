@@ -171,6 +171,58 @@ double mf_array_diqr_range (double v[], const size_t start, const size_t end)
 }
 
 /**
+ * @brief SE of the mean, sd / sqrt(n)
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return SE of the mean for the elements of @v from @start to @end
+ */
+double mf_array_dsemean_range (double v[], const size_t start, const size_t end)
+{
+    return (mf_array_dsd_range(v, start, end) / sqrt(end - start));
+}
+
+/**
+ * @brief SE of the mean, binomial, sqrt(p * (1 - p) / n)
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return SE of the mean for the elements of @v from @start to @end
+ */
+double mf_array_dsebinom_range (double v[], const size_t start, const size_t end)
+{
+    size_t i;
+    double p;
+    for (i = start; i < end; i++) {
+        if ( (v[i] != ((double) 0)) && (v[i] != ((double) 1)) ) return (SV_missval);
+    }
+    p = mf_array_dmean_range(v, start, end);
+    return (sqrt(p * (1 - p) / (end - start)));
+}
+
+/**
+ * @brief SE of the mean, poisson, sqrt(mean)
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return SE of the mean for the elements of @v from @start to @end
+ */
+double mf_array_dsepois_range (double v[], const size_t start, const size_t end)
+{
+    size_t i;
+    // size_t vsum = 0;
+    for (i = start; i < end; i++) {
+        if ( v[i] < 0 ) return (SV_missval);
+        // vsum += (size_t) round(v[i]);
+    }
+    double rmean = round(mf_array_dsum_range(v, start, end)) / (end - start);
+    return (sqrt(rmean / (end - start)));
+}
+
+/**
  * @brief Wrapper to choose summary function using a string
  *
  * @param fname Character with name of funtion to apply to @v
@@ -181,13 +233,16 @@ double mf_array_diqr_range (double v[], const size_t start, const size_t end)
  */
 double mf_switch_fun (char * fname, double v[], const size_t start, const size_t end)
 {
-    if ( strcmp (fname, "sum")    == 0 ) return (mf_array_dsum_range    (v, start, end));
-    if ( strcmp (fname, "mean")   == 0 ) return (mf_array_dmean_range   (v, start, end));
-    if ( strcmp (fname, "sd")     == 0 ) return (mf_array_dsd_range     (v, start, end));
-    if ( strcmp (fname, "max")    == 0 ) return (mf_array_dmax_range    (v, start, end));
-    if ( strcmp (fname, "min")    == 0 ) return (mf_array_dmin_range    (v, start, end));
-    if ( strcmp (fname, "median") == 0 ) return (mf_array_dmedian_range (v, start, end));
-    if ( strcmp (fname, "iqr")    == 0 ) return (mf_array_diqr_range    (v, start, end));
+    if ( strcmp (fname, "sum")        == 0 ) return (mf_array_dsum_range     (v, start, end));
+    if ( strcmp (fname, "mean")       == 0 ) return (mf_array_dmean_range    (v, start, end));
+    if ( strcmp (fname, "sd")         == 0 ) return (mf_array_dsd_range      (v, start, end));
+    if ( strcmp (fname, "max")        == 0 ) return (mf_array_dmax_range     (v, start, end));
+    if ( strcmp (fname, "min")        == 0 ) return (mf_array_dmin_range     (v, start, end));
+    if ( strcmp (fname, "median")     == 0 ) return (mf_array_dmedian_range  (v, start, end));
+    if ( strcmp (fname, "iqr")        == 0 ) return (mf_array_diqr_range     (v, start, end));
+    if ( strcmp (fname, "semean")     == 0 ) return (mf_array_dsemean_range  (v, start, end));
+    if ( strcmp (fname, "sebinomial") == 0 ) return (mf_array_dsebinom_range (v, start, end));
+    if ( strcmp (fname, "sepoisson ") == 0 ) return (mf_array_dsepois_range  (v, start, end));
     double q = (double) atof(fname);
     return (q > 0? mf_array_dquantile_range(v, start, end, q): 0);
 }
@@ -232,13 +287,16 @@ double mf_code_fun (char * fname)
  */
 double mf_switch_fun_code (double fcode, double v[], const size_t start, const size_t end)
 {
-    if ( fcode == -1 )  return (mf_array_dsum_range  (v, start, end)); // sum
-    if ( fcode == -2 )  return (mf_array_dmean_range (v, start, end)); // mean
-    if ( fcode == -3 )  return (mf_array_dsd_range   (v, start, end)); // sd)
-    if ( fcode == -4 )  return (mf_array_dmax_range  (v, start, end)); // max
-    if ( fcode == -5 )  return (mf_array_dmin_range  (v, start, end)); // min
-    if ( fcode == -9 )  return (mf_array_diqr_range  (v, start, end)); // iqr
-    return (mf_array_dquantile_range(v, start, end, fcode));           // percentiles
+    if ( fcode == -1  )  return (mf_array_dsum_range     (v, start, end)); // sum
+    if ( fcode == -2  )  return (mf_array_dmean_range    (v, start, end)); // mean
+    if ( fcode == -3  )  return (mf_array_dsd_range      (v, start, end)); // sd)
+    if ( fcode == -4  )  return (mf_array_dmax_range     (v, start, end)); // max
+    if ( fcode == -5  )  return (mf_array_dmin_range     (v, start, end)); // min
+    if ( fcode == -9  )  return (mf_array_diqr_range     (v, start, end)); // iqr
+    if ( fcode == -15 )  return (mf_array_dsemean_range  (v, start, end)); // semean
+    if ( fcode == -16 )  return (mf_array_dsebinom_range (v, start, end)); // sebinomial
+    if ( fcode == -17 )  return (mf_array_dsepois_range  (v, start, end)); // sepoisson
+    return (mf_array_dquantile_range(v, start, end, fcode));               // percentiles
 }
 
 /**

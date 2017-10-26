@@ -1,3 +1,3 @@
-v 0.7.5
+v 0.8.0
 d Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-p 'GTOOLS': Faster -egen- and -collapse- using C plugins
+p 'GTOOLS': Generic stata repo that uses C plugins

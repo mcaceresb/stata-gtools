@@ -1,49 +1,18 @@
 #ifndef GTOOLS_HASH
 #define GTOOLS_HASH
 
-int sf_get_variable_hash (
-    uint64_t h1[],
-    uint64_t h2[],
-    size_t k,
-    size_t in1,
-    size_t in2,
-    int strmax,
-    short verbose 
+#define RADIX_SHIFT 24
+
+int mf_biject_varlist (uint64_t *h1, struct StataInfo *st_info);
+
+int mf_panelsetup (
+    uint64_t *h1,
+    uint64_t *h2,
+    struct StataInfo *st_info,
+    const size_t hash_level
 );
 
-int sf_get_varlist_hash (
-    uint64_t h1[],
-    uint64_t h2[],
-    size_t k1,
-    size_t k2,
-    size_t in1,
-    size_t in2,
-    int karr[],
-    short verbose
-);
-
-int sf_get_variable_ashash (
-    uint64_t h1[],
-    size_t k,
-    size_t in1,
-    size_t in2,
-    int min,
-    int max,
-    short verbose
-);
-
-int sf_get_varlist_bijection (
-    uint64_t h1[],
-    size_t k1,
-    size_t k2,
-    size_t in1,
-    size_t in2,
-    int mins[],
-    int maxs[],
-    short verbose
-);
-
-int sf_check_hash_index (struct StataInfo *st_info, int read_dtax);
-int sf_check_hashsort (struct StataInfo *st_info);
+int mf_check_allequal (uint64_t *hash, size_t start, size_t end);
+int mf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info);
 
 #endif

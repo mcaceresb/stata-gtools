@@ -3,7 +3,6 @@
 
 from datetime import datetime
 from re import search, sub, findall
-from sys import argv
 from os import path
 
 import argparse
@@ -46,25 +45,25 @@ else:
 
 main = [path.join("src", "gtools.pkg"),
         path.join("src", "stata.toc"),
-        path.join("src", "ado", "gtools.ado"),
-        path.join("doc", "gtools.sthlp"),
+        path.join("src", "ado", "_gtools_internal.ado"),
         path.join("src", "ado", "gcollapse.ado"),
-        path.join("doc", "gcollapse.sthlp"),
         path.join("src", "ado", "gegen.ado"),
-        path.join("doc", "gegen.sthlp"),
-        path.join("src", "ado", "hashsort.ado"),
-        path.join("doc", "hashsort.sthlp"),
-        path.join("src", "ado", "gisid.ado"),
-        path.join("doc", "gisid.sthlp"),
+        path.join("src", "ado", "gunique.ado"),
         path.join("src", "ado", "glevelsof.ado"),
+        path.join("src", "ado", "gisid.ado"),
+        path.join("src", "ado", "hashsort.ado"),
+        path.join("src", "ado", "gtools.ado"),
+        path.join("doc", "gcollapse.sthlp"),
+        path.join("doc", "gegen.sthlp"),
+        path.join("doc", "gunique.sthlp"),
         path.join("doc", "glevelsof.sthlp"),
+        path.join("doc", "gisid.sthlp"),
+        path.join("doc", "hashsort.sthlp"),
+        path.join("doc", "gtools.sthlp"),
+        path.join(".appveyor.yml"),
         path.join("README.md")]
 test = [path.join("src", "test", "gtools_tests.do")]
-plug = [path.join("src", "plugin", "collapse", "gcollapse.c"),
-        path.join("src", "plugin", "collapse", "gcollapse_multi.c"),
-        path.join("src", "plugin", "egen", "gegen.c"),
-        path.join("src", "plugin", "egen", "gegen_multi.c"),
-        path.join("src", "plugin", "gtools.c")]
+plug = [path.join("src", "plugin", "gtools.c")]
 
 callok = False
 todo   = main
@@ -76,7 +75,6 @@ if "test" in args['set']:
     callok = True
 
 if "plug" in args['set']:
-    todo  += casc + cdsc
     callok = True
 
 if "all" in args['set']:

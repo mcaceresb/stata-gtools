@@ -34,11 +34,6 @@
 -- 2/05/15 23:04
 --
 
-if os.execute("git --version") > 0 then
-	io.write("Please install Git, it is required to update submodules.")
-	os.exit(0)
-end
-
 -- Submodules update
 os.execute("git submodule update --init --recursive")
 

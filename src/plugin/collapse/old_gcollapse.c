@@ -83,60 +83,6 @@ int sf_collapse (struct StataInfo *st_info, int action, char *fname)
      *                     Step 2: Memory allocation                     *
      *********************************************************************/
 
-    // Initialize by variables
-    // -----------------------
-
-    MixedUnion *st_dtax;
-    double *output;
-    double *st_numx;
-
-    kvars = (st_info->kvars_by + st_info->kvars_targets);
-    if ( st_info->merge ) {
-        // When merging, you only need to worry about the output
-        st_dtax = malloc(sizeof(MixedUnion));
-        st_numx = malloc(sizeof(double));
-        output  = calloc(st_info->kvars_targets * st_info->J, sizeof *output);
-        if ( output  == NULL ) return(sf_oom_error("sf_collapse", "output"));
-    }
-    else if ( st_info->read_dtax ) {
-        st_dtax = st_info->st_dtax;
-        output  = st_info->output;
-        st_numx = st_info->st_numx;
-    }
-    else {
-        if ( st_info->kvars_by_str > 0 ) {
-            // If there are string variables, use a mixed type container
-            st_dtax = calloc(kvars * st_info->J, sizeof *st_dtax);
-            if ( st_dtax == NULL ) return (sf_oom_error("sf_collapse", "st_dtax"));
-
-            // In this case, you need to allocate time for all the strings
-            for (j = 0; j < st_info->J; j++) {
-                for (k = 0; k < st_info->kvars_by_str; k++) {
-                    sel = j * kvars + (st_info->pos_str_byvars[k] - 1);
-                    offset_bystr = st_info->byvars_lens[st_info->pos_str_byvars[k] - 1];
-                    if ( offset_bystr > 0 ) {
-                        st_dtax[sel].cval = malloc((offset_bystr + 1) * sizeof(char));
-                        if ( st_dtax[sel].cval == NULL ) return (sf_oom_error("sf_collapse", "st_dtax[sel].cval"));
-                        memset (st_dtax[sel].cval, '\0', offset_bystr + 1);
-                    }
-                    else {
-                        sf_errprintf ("Unable to parse string lengths from Stata.\n");
-                        return (198);
-                    }
-                }
-            }
-            st_numx = malloc(sizeof(double));
-            output  = malloc(sizeof(double));
-        }
-        else {
-            // If only numbers, just allocate a double array
-            st_dtax = malloc(sizeof(MixedUnion));
-            output  = malloc(sizeof(double));
-            st_numx = calloc(kvars * st_info->J, sizeof *st_numx);
-            if ( st_numx  == NULL ) return(sf_oom_error("sf_collapse", "st_numx"));
-        }
-    }
-
     // Initialize variables for use in read, collapse, and write loops
     // ---------------------------------------------------------------
 

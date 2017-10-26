@@ -3,10 +3,10 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Oct 15 09:55:01 EDT 2017
+* Updated: Wed Oct 25 20:33:17 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.7.5
-* Manual:  help gcollapse, help gegen
+* Version: 0.8.0
+* Manual:  help gtools
 
 * Stata start-up options
 * ----------------------
@@ -15,13 +15,24 @@ version 13
 clear all
 set more off
 set varabbrev off
-* set seed 42
 set seed 1729
-set linesize 128
-ssc install ralpha
+set linesize 255
+
+cap which ralpha
+if ( _rc ) ssc install ralpha
+
+cap which ftools
+if ( _rc ) ssc install ftools
+
+cap which unique
+if ( _rc ) ssc install unique
 
 * Main program wrapper
 * --------------------
+
+* Generated additional targets; 2.0 seconds
+* +0.575
+
 
 program main
     syntax, [CAPture NOIsily legacy *]
@@ -37,132 +48,72 @@ program main
     * --------------
 
     `capture' `noisily' {
-        * do test_gcollapse.do
-        * do test_gegen.do
-        * do test_hashsort.do
-        * do test_gisid.do
-        * do test_glevelsof.do
-        * do bench_gcollapse.do
+        * qui do test_gcollapse.do
+        * qui do test_gegen.do
+        * qui do test_gisid.do
+        * qui do test_glevelsof.do
+        * qui do test_gunique.do
+        * qui do test_hashsort.do
 
         if ( `:list posof "checks" in options' ) {
+
+            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
             di ""
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single `legacy')
-
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single `legacy')
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0) `legacy')
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1) `legacy')
-
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single `legacy')
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0) `legacy')
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1) `legacy')
-
-            if !inlist("`c(os)'", "Windows") {
-                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi `legacy')
-
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi `legacy')
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0) `legacy')
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1) `legacy')
-
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi `legacy')
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0) `legacy')
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1) `legacy')
-            }
+            unit_test, `noisily' test(checks_gcollapse, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
 
             di ""
             di "-----------------------------------------------------------"
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single `legacy'
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0) `legacy'
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1) `legacy'
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1) `legacy'
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000) `legacy'
-            consistency_gegen,           `noisily' oncollision(error) debug_force_single `legacy'
-            consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single `legacy'
-
-            if !inlist("`c(os)'", "Windows") {
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi `legacy'
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0) `legacy'
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1) `legacy'
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1) `legacy'
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000) `legacy'
-                consistency_gegen,           `noisily' oncollision(error) debug_force_multi `legacy'
-                consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi `legacy'
-            }
-
-            di ""
-            di "--------------------------------"
-            di "Check extra $S_TIME $S_DATE"     
-            di "--------------------------------"
-
-            unit_test, `noisily' test(checks_hashsort, `noisily' oncollision(error) `legacy')
-            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error) `legacy')
-            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error) `legacy')
-
-            compare_isid,     `noisily' oncollision(error) `legacy'
-            compare_levelsof, `noisily' oncollision(error) `legacy'
-            compare_hashsort, `noisily' oncollision(error) `legacy'
+            compare_gcollapse, `noisily' oncollision(error)
+            compare_egen,      `noisily' oncollision(error)
+            compare_isid,      `noisily' oncollision(error)
+            compare_levelsof,  `noisily' oncollision(error)
+            compare_unique,    `noisily' oncollision(error)
+            compare_hashsort,  `noisily' oncollision(error)
         }
 
-        if ( `:list posof "bench_gtools" in options' ) {
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single `legacy')
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single `legacy')
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single `legacy')
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single `legacy')
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single `legacy')
+        if ( `:list posof "bench_test" in options' ) {
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
+
+            bench_egen,     n(1000) bench(1) `noisily' oncollision(error)
+            bench_isid,     n(1000) bench(1) `noisily' oncollision(error)
+            bench_levelsof, n(100)  bench(1) `noisily' oncollision(error)
+            bench_unique,   n(1000) bench(1) `noisily' oncollision(error)
+            bench_hashsort, n(1000) bench(1) `noisily' oncollision(error)
         }
 
-        if ( `:list posof "test" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
+        if ( `:list posof "bench_full" in options' ) {
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(full)   vars(1)  oncollision(error)
 
-            di "Short (quick) versions of the benchmarks"
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) `legacy'
-            bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median) `legacy'
-            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max) `legacy'
-            bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77) `legacy'
-            bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3) `legacy'
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
 
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools) `legacy'
-            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools) `legacy'
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools) `legacy'
-            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools) `legacy'
-            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools) `legacy'
-        }
-
-        if ( `:list posof "benchmark" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
-
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(7) kvars(15) `legacy'
-            bench_ftools y1 y2 y3,             by(x3)    kmin(5) kmax(7) kvars(3) stats(mean median) `legacy'
-            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(5) kmax(7) kvars(6) stats(sum mean count min max) `legacy'
-            bench_sample_size x1 x2, margin(N) by(group) kmin(5) kmax(7) pct(median iqr p23 p77) `legacy'
-            bench_group_size  x1 x2, margin(J) by(group) kmin(4) kmax(6) pct(median iqr p23 p77) obsexp(6) `legacy'
-        }
-
-        if ( `:list posof "bench_fcoll" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
-
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) `legacy'
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) `legacy'
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) `legacy'
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) `legacy'
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) `legacy'
-        }
-
-        if ( `:list posof "bench_extra" in options' ) {
-            compare_hashsort, bench(10) `legacy'
-            bench_levelsof,   bench(10) `legacy'
-            bench_isid,       bench(10) `legacy'
-            bench_egen,       bench(10) `legacy'
+            bench_egen,     n(10000) bench(10)  `noisily' oncollision(error)
+            bench_isid,     n(10000) bench(10)  `noisily' oncollision(error)
+            bench_levelsof, n(100)   bench(100) `noisily' oncollision(error)
+            bench_unique,   n(10000) bench(10)  `noisily' oncollision(error)
+            bench_hashsort, n(10000) bench(10)  `noisily' oncollision(error)
         }
     }
     local rc = _rc
@@ -275,334 +226,230 @@ program unit_test
     else di as txt `"`tabs'test(passed): `test'"'
 end
 
-capture program drop sim
-program sim, rclass
-    syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
-    qui {
-        if ("`offset'" == "") local offset 0
-        clear
-        set obs `n'
-        gen group  = ceil(`nj' *  _n / _N) + `offset'
-        bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
-        bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
-        gen rsort = runiform() - 0.5
-        gen rnorm = rnormal()
-        if ( "`sortg'"     == "" ) sort rsort
-        if ( "`groupmiss'" != "" ) {
-            replace group = .  if runiform() < 0.1
-            replace group = .a if runiform() < 0.05
-            replace group = .z if runiform() < 0.05
-        }
-        if ( "`outmiss'"   != "" ) {
-            replace rsort = .  if runiform() < 0.1
-            replace rsort = .a if runiform() < 0.05
-            replace rsort = .z if runiform() < 0.05
-            replace rnorm = .  if runiform() < 0.1
-            replace rnorm = .a if runiform() < 0.05
-            replace rnorm = .z if runiform() < 0.05
-        }
-        if ( "`float'"     != "" ) replace group = group / `nj'
-        if ( "`string'" != "" ) {
-            tostring group,    `:di cond("`replace'" == "", "gen(groupstr)",    "replace")'
-            tostring groupsub, `:di cond("`replace'" == "", "gen(groupsubstr)", "replace")'
-            if ( "`replace'" == "replace" ) {
-                replace group    = "" if group    == "."
-                replace groupsub = "" if groupsub == "."
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) random(int 0) binary(int 0) double]
+    clear
+    set obs `n'
+
+    * Random strings
+    * --------------
+
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+
+    * Generate does-what-it-says-on-the-tin variables
+    * -----------------------------------------------
+
+    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long   int1  = floor(uniform() * 1000)
+    gen long   int2  = floor(rnormal())
+    gen double int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = uniform() * 1000
+    gen double double2 = rnormal()
+    gen double double3 = rnormal() * 5 + 10
+
+    * Mix up string lengths
+    * ---------------------
+
+   replace str_32 = str_mid + str_short if mod(_n, 4) == 0
+   replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+
+    * Insert some blanks
+    * ------------------
+
+    replace str_32 = "            " in 1 / 10
+    replace str_12 = "   "          in 1 / 10
+    replace str_4  = " "            in 1 / 10
+
+    replace str_32 = "            " if mod(_n, 21) == 0
+    replace str_12 = "   "          if mod(_n, 34) == 0
+    replace str_4  = " "            if mod(_n, 55) == 0
+
+    * Missing values
+    * --------------
+
+    replace str_32 = "" if mod(_n, 10) ==  0
+    replace str_12 = "" if mod(_n, 20) ==  0
+    replace str_4  = "" if mod(_n, 20) == 10
+
+    replace int2  = .   if mod(_n, 10) ==  0
+    replace int3  = .a  if mod(_n, 20) ==  0
+    replace int3  = .f  if mod(_n, 20) == 10
+
+    replace double2 = .   if mod(_n, 10) ==  0
+    replace double3 = .h  if mod(_n, 20) ==  0
+    replace double3 = .p  if mod(_n, 20) == 10
+
+    * Singleton groups
+    * ----------------
+
+    replace str_32 = "|singleton|" in `n'
+    replace str_12 = "|singleton|" in `n'
+    replace str_4  = "|singleton|" in `n'
+
+    replace int1    = 99999  in `n'
+    replace double1 = 9999.9 in `n'
+
+    replace int3 = .  in 1
+    replace int3 = .a in 2
+    replace int3 = .b in 3
+    replace int3 = .c in 4
+    replace int3 = .d in 5
+    replace int3 = .e in 6
+    replace int3 = .f in 7
+    replace int3 = .g in 8
+    replace int3 = .h in 9
+    replace int3 = .i in 10
+    replace int3 = .j in 11
+    replace int3 = .k in 12
+    replace int3 = .l in 13
+    replace int3 = .m in 14
+    replace int3 = .n in 15
+    replace int3 = .o in 16
+    replace int3 = .p in 17
+    replace int3 = .q in 18
+    replace int3 = .r in 19
+    replace int3 = .s in 20
+    replace int3 = .t in 21
+    replace int3 = .u in 22
+    replace int3 = .v in 23
+    replace int3 = .w in 24
+    replace int3 = .x in 25
+    replace int3 = .y in 26
+    replace int3 = .z in 27
+
+    replace double3 = .  in 1
+    replace double3 = .a in 2
+    replace double3 = .b in 3
+    replace double3 = .c in 4
+    replace double3 = .d in 5
+    replace double3 = .e in 6
+    replace double3 = .f in 7
+    replace double3 = .g in 8
+    replace double3 = .h in 9
+    replace double3 = .i in 10
+    replace double3 = .j in 11
+    replace double3 = .k in 12
+    replace double3 = .l in 13
+    replace double3 = .m in 14
+    replace double3 = .n in 15
+    replace double3 = .o in 16
+    replace double3 = .p in 17
+    replace double3 = .q in 18
+    replace double3 = .r in 19
+    replace double3 = .s in 20
+    replace double3 = .t in 21
+    replace double3 = .u in 22
+    replace double3 = .v in 23
+    replace double3 = .w in 24
+    replace double3 = .x in 25
+    replace double3 = .y in 26
+    replace double3 = .z in 27
+
+    if ( `random' > 0 ) {
+        forvalues i = 1 / `random' {
+            gen `double' random`i' = rnormal() * 10
+            replace random`i' = . if mod(_n, 20) == 0
+            if ( `binary' ) {
+                replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'
             }
-            else {
-                replace groupstr    = "" if mi(group)
-                replace groupsubstr = "" if mi(groupsub)
-            }
-            local target `:di cond("`replace'" == "", "groupstr", "group")'
-            replace `target' = "i am a modesly long string" + `target' if !mi(`target')
-            local target `:di cond("`replace'" == "", "groupstr", "group")'
-            replace `target' = "ss" + `target' if !mi(`target')
         }
-        gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
     }
-    qui sum rsort
-    di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
-    compress
-    return local n  = `n'
-    return local nj = `nj'
-    return local offset = `offset'
-    return local string = ("`string'" != "")
 end
 
-* ---------------------------------------------------------------------
-capture program drop consistency_gcollapse
-program consistency_gcollapse
+capture program drop checks_gcollapse
+program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
 
-    local stats sum mean sd max min count percent first last firstnm lastnm median iqr
-    local percentiles p1 p13 p30 p50 p70 p87 p99
+    qui `noisily' gen_data, n(5000) random(2)
+    qui expand 2
+    gen long ix = _n
+
+    checks_inner_collapse, `options'
+
+    checks_inner_collapse -str_12,              `options'
+    checks_inner_collapse str_12 -str_32,       `options'
+    checks_inner_collapse str_12 -str_32 str_4, `options'
+
+    checks_inner_collapse -double1,                 `options'
+    checks_inner_collapse double1 -double2,         `options'
+    checks_inner_collapse double1 -double2 double3, `options'
+
+    checks_inner_collapse -int1,           `options'
+    checks_inner_collapse int1 -int2,      `options'
+    checks_inner_collapse int1 -int2 int3, `options'
+
+    checks_inner_collapse -int1 -str_32 -double1,                                         `options'
+    checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+end
+
+capture program drop checks_inner_collapse
+program checks_inner_collapse
+    syntax [anything], [tol(real 1e-6) *]
+
+    local stats sum mean sd max min count median iqr percent first last firstnm lastnm semean sebinomial sepoisson
+    local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
+
     local collapse_str ""
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') `stat' = rnorm
+        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
     foreach pct of local percentiles {
-        local collapse_str `collapse_str' (`pct') `pct' = rnorm
+        local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
+        local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
     }
 
-    qui sim, n(50000) nj(8) njsub(4) string groupmiss outmiss float
-    mytimer 9
-    qui `noisily' foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub groupstr
-        if ( `i' == 3 ) local by groupstr groupsubstr 
-        if ( `i' == 6 ) local by groupsub group
-        if ( `i' == 9 ) local by grouplong
     preserve
-        mytimer 9 info
-        gcollapse `collapse_str', by(`by') verbose benchmark `options'
-        mytimer 9 info "gcollapse to groups"
-        tempfile f`i'
-        save `f`i''
+        gcollapse `collapse_str', by(`anything') verbose `options'
     restore, preserve
-        mytimer 9 info
-        collapse `collapse_str', by(`by')
-        mytimer 9 info "collapse to groups"
-        tempfile f`:di `i' + 2'
-        save `f`:di `i' + 2''
-    restore
-    }
-    mytimer 9 off
-
-    qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
-    qui `noisily' foreach i in 12 15 18 21 {
-        if (`i' == 12) local by groupsub groupstr
-        if (`i' == 15) local by groupstr
-        if (`i' == 18) local by groupsub group
-        if (`i' == 21) local by grouplong
-    preserve
-        mytimer 9 info
-        gcollapse `collapse_str', by(`by') verbose benchmark `options'
-        mytimer 9 info "gcollapse to groups"
-        tempfile f`i'
-        save `f`i''
+        gcollapse `collapse_str', by(`anything') verbose benchmark `options'
     restore, preserve
-        mytimer 9 info
-        collapse `collapse_str', by(`by')
-        mytimer 9 info "collapse to groups"
-        tempfile f`:di `i' + 2'
-        save `f`:di `i' + 2''
-    restore
-    }
-
-    qui sim, n(50000) nj(8000) njsub(4) string groupmiss outmiss
-    qui `noisily' foreach i in 24 27 30 33 {
-        if (`i' == 24) local by groupsub groupstr
-        if (`i' == 27) local by groupstr
-        if (`i' == 30) local by groupsub group
-        if (`i' == 33) local by grouplong
-        local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        local ifin if rsort < 0 in `from' / `to'
-        qui count `ifin'
-        if (`r(N)' == 0) {
-            local in1  = ceil(runiform() * 10)
-            local in2  = ceil(`=_N' - runiform() * 10)
-            local from = cond(`in1' < `in2', `in1', `in2')
-            local to   = cond(`in1' > `in2', `in1', `in2')
-            local ifin if rsort < 0 in `from' / `to'
-        }
-    preserve
-        mytimer 9 info
-        gcollapse `collapse_str' `ifin', by(`by') verbose benchmark `options'
-        mytimer 9 info "gcollapse to groups"
-        tempfile f`i'
-        save `f`i''
+        gcollapse `collapse_str', by(`anything') verbose forceio `options'
     restore, preserve
-        mytimer 9 info
-        collapse `collapse_str' `ifin', by(`by')
-        mytimer 9 info "collapse to groups"
-        tempfile f`:di `i' + 2'
-        save `f`:di `i' + 2''
+        gcollapse `collapse_str', by(`anything') verbose forcemem `options'
+    restore, preserve
+        gcollapse `collapse_str', by(`anything') verbose benchmark cw `options'
+    restore, preserve
+        gcollapse `collapse_str', by(`anything') verbose benchmark fast `options'
+    restore, preserve
+        gcollapse `collapse_str', by(`anything') double `options'
+    restore, preserve
+        gcollapse `collapse_str', by(`anything') merge `options'
+    restore, preserve
+        gcollapse `collapse_str', by(`anything') verbose `options' benchmark debug_io_check(0)
     restore
-    }
-
-    foreach i in 0 3 6 9 12 15 18 21 24 27 30 33 {
-    preserve
-    use `f`:di `i' + 2'', clear
-        local bad_any = 0
-        if (`i' == 0  ) local bad groupsub groupstr
-        if (`i' == 3  ) local bad groupstr groupsubstr 
-        if (`i' == 6  ) local bad groupsub group
-        if (`i' == 9  ) local bad grouplong
-        if (`i' == 12 ) local bad groupsub groupstr
-        if (`i' == 15 ) local bad groupstr
-        if (`i' == 18 ) local bad groupsub group
-        if (`i' == 21 ) local bad grouplong
-        if (`i' == 24 ) local bad groupsub groupstr
-        if (`i' == 27 ) local bad groupstr
-        if (`i' == 30 ) local bad groupsub group
-        if (`i' == 33 ) local bad grouplong
-        if ( `i' == 0 ) {
-            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8 and J2 = 4"
-        }
-        if ( `i' == 12 ) {
-            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4"
-        }
-        if ( `i' == 24 ) {
-            di _n(1) "Comparing collapse for N = 50,000 with J1 = 8,000 and J2 = 4 (if in)"
-        }
-        local by `bad'
-        foreach var in `stats' `percentiles' {
-            rename `var' c_`var'
-        }
-        qui merge 1:1 `by' using `f`i'', assert(3)
-        foreach var in `stats' `percentiles' {
-            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
-            if ( `r(N)' > 0 ) {
-                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
-                local bad `bad' *`var'
-                di "`var' has `:di r(N)' mismatches".
-                local bad_any = 1
-            }
-        }
-        if ( `bad_any' ) {
-            order `bad'
-            egen bad_any = rowmax(bad_*)
-            l *count* `bad' if bad_any
-            sum bad_*
-            exit 9
-        }
-        else {
-            di "    compare_collapse (passed): gcollapse results equal to collapse (tol = `tol', `by')"
-        }
-    restore
-    }
 end
 
-capture program drop checks_byvars_gcollapse
-program checks_byvars_gcollapse
-    syntax, [*]
-    di _n(1) "{hline 80}" _n(1) "checks_byvars_gcollapse `options'" _n(1) "{hline 80}" _n(1)
-
-    sim, n(1000) nj(250) string
-
-    set rmsg on
-    preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupsub)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(group groupsub)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(grouplong groupsub)
-    restore, preserve
-        gcollapse (mean) rnorm (sum) sum = rnorm (sd) sd = rnorm, verbose `options' by(groupstr groupsub)
-    restore
-    set rmsg off
-
-    di ""
-    di as txt "Passed! checks_byvars_gcollapse `options'"
-end
-
-capture program drop checks_options_gcollapse
-program checks_options_gcollapse
-    syntax, [*]
-    di _n(1) "{hline 80}" _n(1) "checks_options_gcollapse `options'" _n(1) "{hline 80}" _n(1)
-
-    local stats mean count median iqr
-    local collapse_str ""
-    foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') `stat' = rnorm `stat'2 = rnorm
-    }
-
-    sim, n(200) nj(10) string outmiss
-    preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose forceio `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose forcemem `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark cw `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark fast `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) double `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) merge `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore
-
-    preserve
-        gcollapse `collapse_str', verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse rnorm (mean) mean_rnorm = rnorm, by(groupstr groupsub) verbose benchmark `options'
-        assert rnorm == mean_rnorm
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse rnorm, verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore
-
-    sort groupstr groupsub
-    preserve
-        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr groupsub) verbose benchmark smart `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupsub groupstr) verbose benchmark smart `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupstr) verbose benchmark smart `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupsub) verbose benchmark smart `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore, preserve
-        gcollapse `collapse_str', by(groupsub) verbose benchmark `options'
-        if ( `=_N' > 10 ) l in 1/10
-        if ( `=_N' < 10 ) l
-    restore
-
-    di ""
-    di as txt "Passed! checks_options_gcollapse `options'"
-end
+***********************************************************************
+*                            Corner cases                             *
+***********************************************************************
 
 capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    qui {
+        sysuse auto, clear
+        gen price2 = price
+        cap noi gcollapse price = price2 if price < 0
+        assert _rc == 2000
+    }
+
+    qui {
+        sysuse auto, clear
+        gen price2 = price
+        gcollapse price = price2
+    }
 
     qui {
         sysuse auto, clear
@@ -666,293 +513,142 @@ program checks_corners
     di ""
     di as txt "Passed! checks_corners `options'"
 end
-capture program drop consistency_gegen
-program consistency_gegen
+
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
+capture program drop compare_gcollapse
+program compare_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_gegen, `options'" _n(1) "{hline 80}" _n(1)
 
-    local stats total sum mean sd max min count median iqr
-    local percentiles 1 10 30 50 70 90 99
-    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
+    * This should be ignored for compare_inner_gcollapse_gegen bc of merge
+    local debug_io debug_io_check(0) debug_io_threshold(0.0001)
 
-    cap drop g*_*
-    cap drop c*_*
-    di _n(1) "Checking full egen range"
-    foreach fun of local stats {
-        qui `noisily' gegen g_`fun' = `fun'(rnorm), by(groupstr groupsub) `options'
-        qui `noisily'  egen c_`fun' = `fun'(rnorm), by(groupstr groupsub)
-        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
+    qui `noisily' gen_data, n(1000) random(2)
+    qui expand 100
 
-    }
+    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_gegen, `options'" _n(1) "{hline 80}" _n(1)
 
-    foreach p in `percentiles' {
-        qui  `noisily' gegen g_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p') `options'
-        qui  `noisily'  egen c_p`p' = pctile(rnorm), by(groupstr groupsub) p(`p')
-        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen percentile `p' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-    }
+    compare_inner_gcollapse_gegen, `options' tol(`tol')
 
-    foreach fun in tag group {
-        qui  `noisily' gegen g_`fun' = `fun'(groupstr groupsub), v `options'
-        qui  `noisily'  egen c_`fun' = `fun'(groupstr groupsub)
-        cap noi assert (g_`fun' == c_`fun') | abs(g_`fun' - c_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
+    compare_inner_gcollapse_gegen -str_12,              `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol')
+    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol')
 
-    {
-        qui  `noisily' gegen g_g1 = group(groupstr groupsub), counts(g_c1) fill(.)  v `options' missing
-        qui  `noisily' gegen g_g2 = group(groupstr groupsub), counts(g_c2)          v `options' missing
-        qui  `noisily' gegen g_c3 = count(1), by(groupstr groupsub)
-        qui  `noisily'  egen c_t1 = tag(groupstr groupsub),   missing
-        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
-    }
+    compare_inner_gcollapse_gegen -double1,                 `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol')
+    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol')
 
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
+    compare_inner_gcollapse_gegen -int1,           `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol')
 
-    cap drop g*_*
-    cap drop c*_*
-    di "Checking egen if range"
-    foreach fun of local stats {
-        qui  `noisily' gegen gif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub) `options'
-        qui  `noisily'  egen cif_`fun' = `fun'(rnorm) if rsort > 0, by(groupstr groupsub)
-        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
+    compare_inner_gcollapse_gegen -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
 
-    foreach p in `percentiles' {
-        qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p') `options'
-        qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort > 0, by(groupstr groupsub) p(`p')
-        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_if (failed): gegen percentile `p' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_if (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-    }
+    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui expand 50
 
-    foreach fun in tag group {
-        qui  `noisily' gegen gif_`fun' = `fun'(groupstr groupsub) if rsort > 0, v `options'
-        qui  `noisily'  egen cif_`fun' = `fun'(groupstr groupsub) if rsort > 0
-        cap noi assert (gif_`fun' == cif_`fun') | abs(gif_`fun' - cif_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_if (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_if (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
+    di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
 
-    {
-        qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort > 0, counts(g_c1) fill(.)  v `options' missing
-        qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort > 0, counts(g_c2)          v `options' missing
-        qui  `noisily' gegen g_c3 = count(1) if rsort > 0, by(groupstr groupsub)
-        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort > 0, missing
-        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
-    }
+    compare_inner_collapse, `options' tol(`tol')
 
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
+    compare_inner_collapse str_12,              `options' tol(`tol') forcemem
+    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio
+    compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
 
-    cap drop g*_*
-    cap drop c*_*
-    di "Checking egen in range"
-    foreach fun of local stats {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen gin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub) `options'
-        qui  `noisily'  egen cin_`fun' = `fun'(rnorm) in `from' / `to', by(groupstr groupsub)
-        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
+    compare_inner_collapse double1,                 `options' tol(`tol') forcemem
+    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio
+    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io'
 
-    foreach p in `percentiles' {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p') `options'
-        qui  `noisily'  egen c_p`p' = pctile(rnorm) in `from' / `to', by(groupstr groupsub) p(`p')
-        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_in (failed): gegen percentile `p' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_in (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-    }
+    compare_inner_collapse int1,           `options' tol(`tol') forcemem
+    compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
+    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io'
 
-    foreach fun in tag group {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen gin_`fun' = `fun'(groupstr groupsub) in `from' / `to', v b `options'
-        qui  `noisily'  egen cin_`fun' = `fun'(groupstr groupsub) in `from' / `to'
-        cap noi assert (gin_`fun' == cin_`fun') | abs(gin_`fun' - cin_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_in (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_in (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
-
-    {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_g1 = group(groupstr groupsub) in `from' / `to', counts(g_c1) fill(.)  v `options' missing
-        qui  `noisily' gegen g_g2 = group(groupstr groupsub) in `from' / `to', counts(g_c2)          v `options' missing
-        qui  `noisily' gegen g_c3 = count(1) in `from' / `to', by(groupstr groupsub)
-        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) in `from' / `to', missing
-        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
-    }
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-    cap drop g*_*
-    cap drop c*_*
-    di "Checking egen if in range"
-    foreach fun of local stats {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen gifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) `options'
-        qui  `noisily'  egen cifin_`fun' = `fun'(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub)
-        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
-
-    foreach p in `percentiles' {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p') `options'
-        qui  `noisily'  egen c_p`p' = pctile(rnorm) if rsort < 0 in `from' / `to', by(groupstr groupsub) p(`p')
-        cap noi assert (g_p`p' == c_p`p') | abs(g_p`p' - c_p`p') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_ifin (failed): gegen percentile `p' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_ifin (passed): gegen percentile `p' results similar to egen (tol = `tol')"
-    }
-
-    foreach fun in tag group {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen gifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to', v `options'
-        qui  `noisily'  egen cifin_`fun' = `fun'(groupstr groupsub) if rsort < 0 in `from' / `to'
-        cap noi assert (gifin_`fun' == cifin_`fun') | abs(gifin_`fun' - cifin_`fun') < `tol'
-        if ( _rc ) {
-            di as err "    compare_egen_ifin (failed): gegen `fun' not equal to egen (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen_ifin (passed): gegen `fun' results similar to egen (tol = `tol')"
-    }
-
-    {
-        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-        local from = cond(`in1' < `in2', `in1', `in2')
-        local to   = cond(`in1' > `in2', `in1', `in2')
-        qui  `noisily' gegen g_g1 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c1) fill(.)  v `options' missing
-        qui  `noisily' gegen g_g2 = group(groupstr groupsub) if rsort < 0 in `from' / `to', counts(g_c2)          v `options' missing
-        qui  `noisily' gegen g_c3 = count(1) if rsort < 0 in `from' / `to', by(groupstr groupsub)
-        qui  `noisily'  egen c_t1 = tag(groupstr groupsub) if rsort < 0 in `from' / `to', missing
-        cap noi assert ( (g_c1 == g_c3) | (c_t1 == 0) ) & (g_c2 == g_c3)
-        if ( _rc ) {
-            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
-            exit _rc
-        }
-        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
-    }
+    compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 end
 
-capture program drop consistency_gegen_gcollapse
-program consistency_gegen_gcollapse
-    syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_gegen_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
+capture program drop compare_inner_gcollapse_gegen
+program compare_inner_gcollapse_gegen
+    syntax [anything], [tol(real 1e-6) *]
+
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 45 + length("`anything'") + length("`N'")
+    di _n(2) "Checking gegen vs gcollapse. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    preserve
+        _compare_inner_gcollapse_gegen `anything', `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gcollapse_gegen  `anything' in `from' / `to', `options' tol(`tol')
+    restore, preserve
+        _compare_inner_gcollapse_gegen `anything' if random2 > 0, `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gcollapse_gegen `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+    restore
+end
+
+capture program drop _compare_inner_gcollapse_gegen
+program _compare_inner_gcollapse_gegen
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+
+    gegen id = group(`anything'), missing
+
+    gegen double mean       = mean       (random1) `if' `in',  by(`anything')
+    gegen double sum        = sum        (random1) `if' `in',  by(`anything')
+    gegen double median     = median     (random1) `if' `in',  by(`anything')
+    gegen double sd         = sd         (random1) `if' `in',  by(`anything')
+    gegen double iqr        = iqr        (random1) `if' `in',  by(`anything')
+    gegen double first      = first      (random1) `if' `in',  by(`anything')
+    gegen double last       = last       (random1) `if' `in',  by(`anything')
+    gegen double firstnm    = firstnm    (random1) `if' `in',  by(`anything')
+    gegen double lastnm     = lastnm     (random1) `if' `in',  by(`anything')
+    gegen double semean     = semean     (random1) `if' `in',  by(`anything')
+    gegen double sebinomial = sebinomial (random1) `if' `in',  by(`anything')
+    gegen double sepoisson  = sepoisson  (random1) `if' `in',  by(`anything')
+    gegen double q10        = pctile     (random1) `if' `in',  by(`anything') p(10.5)
+    gegen double q30        = pctile     (random1) `if' `in',  by(`anything') p(30)
+    gegen double q70        = pctile     (random1) `if' `in',  by(`anything') p(70)
+    gegen double q90        = pctile     (random1) `if' `in',  by(`anything') p(90.5)
 
     qui `noisily' {
-        sim, n(20000) nj(100) njsub(2) string outmiss
-        gegen id = group(groupstr groupsub), `options'
-        gegen double mean    = mean   (rnorm),  by(groupstr groupsub) verbose benchmark `options'
-        gegen double sum     = sum    (rnorm),  by(groupstr groupsub) `options'
-        gegen double median  = median (rnorm),  by(groupstr groupsub) `options'
-        gegen double sd      = sd     (rnorm),  by(groupstr groupsub) `options'
-        gegen double iqr     = iqr    (rnorm),  by(groupstr groupsub) `options'
-        gegen double first   = first  (rnorm),  by(groupstr groupsub) `options' v b
-        gegen double last    = last   (rnorm),  by(groupstr groupsub) `options'
-        gegen double firstnm = firstnm(rnorm),  by(groupstr groupsub) `options'
-        gegen double lastnm  = lastnm (rnorm),  by(groupstr groupsub) `options'
-        gegen double q10     = pctile (rnorm),  by(groupstr groupsub) `options' p(10.5)
-        gegen double q30     = pctile (rnorm),  by(groupstr groupsub) `options' p(30)
-        gegen double q70     = pctile (rnorm),  by(groupstr groupsub) `options' p(70)
-        gegen double q90     = pctile (rnorm),  by(groupstr groupsub) `options' p(90.5)
-
-        gcollapse (mean)    g_mean    = rnorm  ///
-                  (sum)     g_sum     = rnorm  ///
-                  (median)  g_median  = rnorm  ///
-                  (sd)      g_sd      = rnorm  ///
-                  (iqr)     g_iqr     = rnorm  ///
-                  (first)   g_first   = rnorm  ///
-                  (last)    g_last    = rnorm  ///
-                  (firstnm) g_firstnm = rnorm  ///
-                  (lastnm)  g_lastnm  = rnorm  ///
-                  (p10.5)   g_q10     = rnorm  ///
-                  (p30)     g_q30     = rnorm  ///
-                  (p70)     g_q70     = rnorm  ///
-                  (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
+        gcollapse (mean)       g_mean       = random1  ///
+                  (sum)        g_sum        = random1  ///
+                  (median)     g_median     = random1  ///
+                  (sd)         g_sd         = random1  ///
+                  (iqr)        g_iqr        = random1  ///
+                  (first)      g_first      = random1  ///
+                  (last)       g_last       = random1  ///
+                  (firstnm)    g_firstnm    = random1  ///
+                  (lastnm)     g_lastnm     = random1  ///
+                  (semean)     g_semean     = random1  ///
+                  (sebinomial) g_sebinomial = random1  ///
+                  (sepoisson)  g_sepoisson  = random1  ///
+                  (p10.5)      g_q10        = random1  ///
+                  (p30)        g_q30        = random1  ///
+                  (p70)        g_q70        = random1  ///
+                  (p90.5)      g_q90        = random1 `if' `in', by(id) benchmark verbose `options' merge double
     }
 
-    di _n(1) "Checking gegen vs gcollapse full range"
-    foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
+    if ( "`if'`in'" == "" ) {
+        di _n(1) "Checking full range: `anything'"
+    }
+    else if ( "`if'`in'" != "" ) {
+        di _n(1) "Checking [`if' `in'] range: `anything'"
+    }
+
+    foreach fun in mean sum median sd iqr first last firstnm lastnm semean sebinomial sepoisson q10 q30 q70 q90 {
         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
         if ( _rc ) {
             recast double g_`fun' `fun'
@@ -965,127 +661,517 @@ program consistency_gegen_gcollapse
         }
         else di as txt "    compare_gegen_gcollapse (passed): `fun' yielded same results (tol = `tol')"
     }
+end
 
-    qui `noisily' {
-        sim, n(20000) nj(100) njsub(2) string outmiss
+capture program drop compare_inner_collapse
+program compare_inner_collapse
+    syntax [anything], [tol(real 1e-6) *]
 
-        local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 35 + length("`anything'") + length("`N'")
+    di _n(2) "Checking collapse. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    preserve
+        _compare_inner_collapse `anything', `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        qui count if rsort < 0 in `from' / `to'
-        if ( `r(N)' == 0 ) {
-            local in1  = ceil(runiform() * 10)
-            local in2  = ceil(`=_N' - runiform() * 10)
-            local from = cond(`in1' < `in2', `in1', `in2')
-            local to   = cond(`in1' > `in2', `in1', `in2')
-        }
-
-        gegen id = group(groupstr groupsub) in `from' / `to', `options'
-        gegen double mean    = mean   (rnorm) in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
-        gegen double sum     = sum    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double median  = median (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double sd      = sd     (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double iqr     = iqr    (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double first   = first  (rnorm) in `from' / `to',  by(groupstr groupsub) `options' v b
-        gegen double last    = last   (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double firstnm = firstnm(rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double lastnm  = lastnm (rnorm) in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double q10     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
-        gegen double q30     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(30)
-        gegen double q70     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(70)
-        gegen double q90     = pctile (rnorm) in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
-
-        gcollapse (mean)    g_mean    = rnorm  ///
-                  (sum)     g_sum     = rnorm  ///
-                  (median)  g_median  = rnorm  ///
-                  (sd)      g_sd      = rnorm  ///
-                  (iqr)     g_iqr     = rnorm  ///
-                  (first)   g_first   = rnorm  ///
-                  (last)    g_last    = rnorm  ///
-                  (firstnm) g_firstnm = rnorm  ///
-                  (lastnm)  g_lastnm  = rnorm  ///
-                  (p10.5)   g_q10     = rnorm  ///
-                  (p30)     g_q30     = rnorm  ///
-                  (p70)     g_q70     = rnorm  ///
-                  (p90.5)   g_q90     = rnorm in `from' / `to', by(id) benchmark verbose `options' merge double
-    }
-
-    di _n(1) "Checking gegen vs gcollapse in range"
-    foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
-        cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
-        if ( _rc ) {
-            recast double g_`fun' `fun'
-            cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
-            if ( _rc ) {
-                di as err "    compare_gegen_gcollapse_in (failed): `fun' yielded different results (tol = `tol')"
-                exit _rc
-            }
-            else di as txt "    compare_gegen_gcollapse_in (passed): `fun' yielded same results (tol = `tol')"
-        }
-        else di as txt "    compare_gegen_gcollapse_in (passed): `fun' yielded same results (tol = `tol')"
-    }
-
-    qui `noisily' {
-        sim, n(20000) nj(100) njsub(2) string outmiss
-
-        local in1  = ceil((0.00 + 0.25 * runiform()) * `=_N')
-        local in2  = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        _compare_inner_collapse  `anything' in `from' / `to', `options' tol(`tol')
+    restore, preserve
+        _compare_inner_collapse `anything' if random2 > 0, `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        qui count if rsort < 0 in `from' / `to'
-        if ( `r(N)' == 0 ) {
-            local in1  = ceil(runiform() * 10)
-            local in2  = ceil(`=_N' - runiform() * 10)
-            local from = cond(`in1' < `in2', `in1', `in2')
-            local to   = cond(`in1' > `in2', `in1', `in2')
-        }
+        _compare_inner_collapse `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+    restore
+end
 
-        gegen id = group(groupstr groupsub)   if rsort < 0 in `from' / `to', `options'
-        gegen double mean    = mean   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) verbose benchmark `options'
-        gegen double sum     = sum    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double median  = median (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double sd      = sd     (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double iqr     = iqr    (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double first   = first  (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' v b
-        gegen double last    = last   (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double firstnm = firstnm(rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double lastnm  = lastnm (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options'
-        gegen double q10     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(10.5)
-        gegen double q30     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(30)
-        gegen double q70     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(70)
-        gegen double q90     = pctile (rnorm) if rsort < 0 in `from' / `to',  by(groupstr groupsub) `options' p(90.5)
+capture program drop _compare_inner_collapse
+program _compare_inner_collapse
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
 
-        keep if rsort < 0 in `from' / `to'
-        gcollapse (mean)    g_mean    = rnorm  ///
-                  (sum)     g_sum     = rnorm  ///
-                  (median)  g_median  = rnorm  ///
-                  (sd)      g_sd      = rnorm  ///
-                  (iqr)     g_iqr     = rnorm  ///
-                  (first)   g_first   = rnorm  ///
-                  (last)    g_last    = rnorm  ///
-                  (firstnm) g_firstnm = rnorm  ///
-                  (lastnm)  g_lastnm  = rnorm  ///
-                  (p10.5)   g_q10     = rnorm  ///
-                  (p30)     g_q30     = rnorm  ///
-                  (p70)     g_q70     = rnorm  ///
-                  (p90.5)   g_q90     = rnorm, by(id) benchmark verbose `options' merge double
+    local stats sum mean sd max min count percent first last firstnm lastnm median iqr semean sebinomial sepoisson
+    local percentiles p1 p13 p30 p50 p70 p87 p99
+    local collapse_str ""
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
+    }
+    foreach pct of local percentiles {
+        local collapse_str `collapse_str' (`pct') r1_`pct' = random1
+        local collapse_str `collapse_str' (`pct') r2_`pct' = random2
     }
 
-    di _n(1) "Checking gegen vs gcollapse if in range"
-    foreach fun in mean sum median sd iqr first last firstnm lastnm q10 q30 q70 q90 {
-        cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
-        if ( _rc ) {
-            recast double g_`fun' `fun'
-            cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
-            if ( _rc ) {
-                di as err "    compare_gegen_gcollapse_ifin (failed): `fun' yielded different results (tol = `tol')"
-                exit _rc
+    preserve
+        timer clear
+        timer on 43
+        qui `noisily' gcollapse `collapse_str', by(`anything') verbose benchmark `options'
+        timer off 43
+        qui timer list
+        local time_gcollapse = r(t43)
+        tempfile fg
+        qui save `fg'
+    restore
+
+    preserve
+        timer clear
+        timer on 42
+        qui `noisily' collapse `collapse_str', by(`anything')
+        timer off 42
+        qui timer list
+        local time_gcollapse = r(t42)
+        tempfile fc
+        qui save `fc'
+    restore
+
+    preserve
+    use `fc', clear
+        local bad_any = 0
+        local bad `anything'
+        local by  `anything'
+        foreach var in `stats' `percentiles' {
+            rename r1_`var' c_r1_`var'
+            rename r2_`var' c_r2_`var'
+        }
+        if ( "`by'" == "" ) {
+            qui merge 1:1 _n using `fg', assert(3)
+        }
+        else {
+            qui merge 1:1 `by' using `fg', assert(3)
+        }
+        foreach var in `stats' `percentiles' {
+            qui count if ( (abs(r1_`var' - c_r1_`var') > `tol') & (r1_`var' != c_r1_`var'))
+            if ( `r(N)' > 0 ) {
+                gen bad_r1_`var' = abs(r1_`var' - c_r1_`var') * (r1_`var' != c_r1_`var')
+                local bad `bad' *r1_`var'
+                di "    r1_`var' has `:di r(N)' mismatches".
+                local bad_any = 1
+                order *r1_`var'
             }
-            else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
+
+            qui count if ( (abs(r2_`var' - c_r2_`var') > `tol') & (r2_`var' != c_r2_`var'))
+            if ( `r(N)' > 0 ) {
+                gen bad_r2_`var' = abs(r2_`var' - c_r2_`var') * (r2_`var' != c_r2_`var')
+                local bad `bad' *r2_`var'
+                di "    r2_`var' has `:di r(N)' mismatches".
+                local bad_any = 1
+                order *r2_`var'
+            }
         }
-        else di as txt "    compare_gegen_gcollapse_ifin (passed): `fun' yielded same results (tol = `tol')"
+        if ( `bad_any' ) {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_collapse (failed): full range, `anything'"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_collapse (failed): [`if' `in'], `anything'"
+            }
+            order `bad'
+            egen bad_any = rowmax(bad_*)
+            l *count* *mean* `bad' if bad_any
+            sum bad_*
+            desc
+            exit 9
+        }
+        else {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_collapse (passed): full range, gcollapse results equal to collapse (tol = `tol')"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_collapse (passed): [`if' `in'], gcollapse results equal to collapse (tol = `tol')"
+            }
+        }
+    restore
+end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_collapse
+program bench_collapse
+    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily style(str) vars(int 1) collapse fcollapse *]
+
+    qui gen_data, n(`n') random(`vars') double
+    qui expand `=100 * `bench''
+    qui hashsort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    if ( "`style'" == "full" ) {
+        local ststr "all available plus percentiles 10, 30, 70, 90"
     }
+    else if ( "`style'" == "ftools" ) {
+        local ststr "mean median min max"
+    }
+    else {
+        local ststr "sum"
+    }
+
+    if ( `vars' > 1 ) {
+        local vstr "x1-x`vars'"
+    }
+    else {
+        local vstr x1
+    }
+
+    di as txt _n(1)
+    di as txt "Benchmark vs collapse (in seconds)"
+    di as txt "    - obs:     `N'"
+    di as txt "    - groups:  `J'"
+    di as txt "    - vars:    `vstr' ~ N(0, 10)"
+    di as txt "    - stats:   `ststr'"
+    di as txt "    - options: fast"
+    di as txt _n(1)
+    di as txt "    collapse | fcollapse | gcollapse | ratio (c/g) | ratio (f/g) | varlist"
+    di as txt "    -------- | --------- | --------- | ----------- | ----------- | -------"
+
+    local options `options' style(`style') vars(`vars')
+    versus_collapse,                         `options' `collapse' `fcollapse'
+    versus_collapse str_12 str_32 str_4,     `options' `collapse' `fcollapse'
+    versus_collapse double1 double2 double3, `options' `collapse' `fcollapse'
+    versus_collapse int1 int2 int3,          `options' `collapse' `fcollapse'
+    versus_collapse int1 str_32 double1,     `options' `collapse'
+
+    di _n(1) "{hline 80}" _n(1) "bench_collapse, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop versus_collapse
+program versus_collapse, rclass
+    syntax [anything], [fcollapse collapse style(str) vars(int 1) *]
+
+    local stats       ""
+    local percentiles ""
+
+    if ( "`style'" == "full" ) {
+        local stats sum mean sd max min count median iqr percent first last firstnm lastnm
+        local percentiles p10 p30 p70 p90
+    }
+    else if ( "`style'" == "ftools" ) {
+        local stats mean median min max
+    }
+    else {
+        local stats sum
+    }
+
+    local collapse_str ""
+    foreach stat of local stats {
+        forvalues k = 1 / `vars' {
+            local collapse_str `collapse_str' (`stat') r`k'_`stat' = random`k'
+        }
+    }
+    foreach pct of local percentiles {
+        forvalues k = 1 / `vars' {
+            local collapse_str `collapse_str' (`pct') r`k'_`pct' = random`k'
+        }
+    }
+
+    if ( "`collapse'" == "collapse" ) {
+    preserve
+        timer clear
+        timer on 42
+        qui collapse `collapse_str', by(`anything') fast
+        timer off 42
+        qui timer list
+        local time_collapse = r(t42)
+    restore
+    }
+    else {
+        local time_collapse = .
+    }
+
+    preserve
+        timer clear
+        timer on 43
+        qui gcollapse `collapse_str', by(`anything') `options' fast
+        timer off 43
+        qui timer list
+        local time_gcollapse = r(t43)
+    restore
+
+    if ( "`fcollapse'" == "fcollapse" ) {
+    preserve
+        timer clear
+        timer on 44
+        qui fcollapse `collapse_str', by(`anything') fast
+        timer off 44
+        qui timer list
+        local time_fcollapse = r(t44)
+    restore
+    }
+    else {
+        local time_fcollapse = .
+    }
+
+    local rs = `time_collapse'  / `time_gcollapse'
+    local rf = `time_fcollapse' / `time_gcollapse'
+    di as txt "    `:di %8.3g `time_collapse'' | `:di %9.3g `time_fcollapse'' | `:di %9.3g `time_gcollapse'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `anything'"
+end
+capture program drop checks_gegen
+program checks_gegen
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_egen, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(5000) random(2)
+    qui expand 2
+    gen long ix = _n
+
+    checks_inner_egen, `options'
+
+    checks_inner_egen -str_12,              `options'
+    checks_inner_egen str_12 -str_32,       `options'
+    checks_inner_egen str_12 -str_32 str_4, `options'
+
+    checks_inner_egen -double1,                 `options'
+    checks_inner_egen double1 -double2,         `options'
+    checks_inner_egen double1 -double2 double3, `options'
+
+    checks_inner_egen -int1,           `options'
+    checks_inner_egen int1 -int2,      `options'
+    checks_inner_egen int1 -int2 int3, `options'
+
+    checks_inner_egen -int1 -str_32 -double1,                                         `options'
+    checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    clear
+    gen x = 1
+    cap gegen y = group(x)
+    assert _rc == 111
+
+    clear
+    set obs 10
+    gen x = 1
+    gegen y = group(x) if x > 1
+    gegen z = tag(x)   if x > 1
+end
+
+capture program drop checks_inner_egen
+program checks_inner_egen
+    syntax [anything], [tol(real 1e-6) *]
+
+    local stats total sum mean sd max min count median iqr percent first last firstnm lastnm
+    local percentiles 1 10 30.5 50 70.5 90 99
+
+    tempvar gvar
+    foreach fun of local stats {
+        `noisily' gegen `gvar' = `fun'(random1), by(`anything') replace `options'
+        `noisily' gegen `gvar' = `fun'(random*), by(`anything') replace `options'
+    }
+
+    foreach p in `percentiles' {
+        `noisily' gegen `gvar' = pctile(random1), p(`p') by(`anything') replace `options'
+        `noisily' gegen `gvar' = pctile(random*), p(`p') by(`anything') replace `options'
+    }
+
+    if ( "`anything'" != "" ) {
+        `noisily' gegen `gvar' = tag(`anything'),   replace `options'
+        `noisily' gegen `gvar' = group(`anything'), replace `options'
+        `noisily' gegen `gvar' = count(1), by(`anything') replace `options'
+    }
+end
+
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
+capture program drop compare_egen
+program compare_egen
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(1000) random(2)
+    qui expand 100
+
+    compare_inner_egen, `options' tol(`tol')
+
+    compare_inner_egen str_12,              `options' tol(`tol')
+    compare_inner_egen str_12 str_32,       `options' tol(`tol')
+    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol')
+
+    compare_inner_egen double1,                 `options' tol(`tol')
+    compare_inner_egen double1 double2,         `options' tol(`tol')
+    compare_inner_egen double1 double2 double3, `options' tol(`tol')
+
+    compare_inner_egen int1,           `options' tol(`tol')
+    compare_inner_egen int1 int2,      `options' tol(`tol')
+    compare_inner_egen int1 int2 int3, `options' tol(`tol')
+
+    compare_inner_egen int1 str_32 double1,                                        `options' tol(`tol')
+    compare_inner_egen int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')
+    compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
+end
+
+capture program drop compare_inner_egen
+program compare_inner_egen
+    syntax [anything], [tol(real 1e-6) *]
+
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 31 + length("`anything'") + length("`N'")
+
+    di _n(2) "Checking egen. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    _compare_inner_egen `anything', `options' tol(`tol')
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    _compare_inner_egen `anything' in `from' / `to', `options' tol(`tol')
+
+    _compare_inner_egen `anything' if random2 > 0, `options' tol(`tol')
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    _compare_inner_egen `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+end
+
+capture program drop _compare_inner_egen
+program _compare_inner_egen
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+
+    local stats       total sum mean sd max min count median iqr
+    local percentiles 1 10 30 50 70 90 99
+
+    cap drop g*_*
+    cap drop c*_*
+
+    tempvar g_fun
+
+    if ( "`if'`in'" == "" ) {
+        di _n(1) "Checking full egen range: `anything'"
+    }
+    else if ( "`if'`in'" != "" ) {
+        di _n(1) "Checking [`if' `in'] egen range: `anything'"
+    }
+
+    foreach fun of local stats {
+        timer clear
+        timer on 43
+        qui `noisily' gegen float `g_fun' = `fun'(random1) `if' `in', by(`anything') replace `options'
+        timer off 43
+        qui timer list
+        local time_gegen = r(t43)
+
+
+        timer clear
+        timer on 42
+        qui `noisily'  egen float c_`fun' = `fun'(random1) `if' `in', by(`anything')
+        timer off 42
+        qui timer list
+        local time_egen = r(t42)
+
+        local rs = `time_egen'  / `time_gegen'
+        local tinfo `:di %4.3g `time_gegen'' vs `:di %4.3g `time_egen'', ratio `:di %4.3g `rs''
+
+        cap noi assert (`g_fun' == c_`fun') | abs(`g_fun' - c_`fun') < `tol'
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol'; `tinfo')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol'; `tinfo')"
+    }
+
+    foreach p in `percentiles' {
+        timer clear
+        timer on 43
+        qui  `noisily' gegen float `g_fun' = pctile(random1) `if' `in', by(`anything') p(`p') replace `options'
+        timer off 43
+        qui timer list
+        local time_gegen = r(t43)
+
+
+        timer clear
+        timer on 42
+        qui  `noisily'  egen float c_p`p'  = pctile(random1) `if' `in', by(`anything') p(`p')
+        timer off 42
+        qui timer list
+        local time_egen = r(t42)
+
+        local rs = `time_egen'  / `time_gegen'
+        local tinfo `:di %4.3g `time_gegen'' vs `:di %4.3g `time_egen'', ratio `:di %4.3g `rs''
+
+        cap noi assert (`g_fun' == c_p`p') | abs(`g_fun' - c_p`p') < `tol'
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen percentile `p' not equal to egen (tol = `tol'; `tinfo')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen percentile `p' results similar to egen (tol = `tol'; `tinfo')"
+    }
+
+    foreach fun in tag group {
+        timer clear
+        timer on 43
+        qui  `noisily' gegen float `g_fun' = `fun'(`anything') `if' `in', replace `options'
+        timer off 43
+        qui timer list
+        local time_gegen = r(t43)
+
+
+        timer clear
+        timer on 42
+        qui  `noisily'  egen float c_`fun' = `fun'(`anything') `if' `in'
+        timer off 42
+        qui timer list
+        local time_egen = r(t42)
+
+        local rs = `time_egen'  / `time_gegen'
+        local tinfo `:di %4.3g `time_gegen'' vs `:di %4.3g `time_egen'', ratio `:di %4.3g `rs''
+
+        cap noi assert (`g_fun' == c_`fun') | abs(`g_fun' - c_`fun') < `tol'
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' not equal to egen (tol = `tol'; `tinfo')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' results similar to egen (tol = `tol'; `tinfo')"
+
+        timer clear
+        timer on 43
+        qui  `noisily' gegen float `g_fun' = `fun'(`anything') `if' `in', missing replace `options'
+        timer off 43
+        qui timer list
+        local time_gegen = r(t43)
+
+
+        timer clear
+        timer on 42
+        qui  `noisily'  egen float c_`fun'2 = `fun'(`anything') `if' `in', missing
+        timer off 42
+        qui timer list
+        local time_egen = r(t42)
+
+        local rs = `time_egen'  / `time_gegen'
+        local tinfo `:di %4.3g `time_gegen'' vs `:di %4.3g `time_egen'', ratio `:di %4.3g `rs''
+
+        cap noi assert (`g_fun' == c_`fun'2) | abs(`g_fun' - c_`fun'2) < `tol'
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun', missing not equal to egen (tol = `tol'; `tinfo')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun', missing results similar to egen (tol = `tol'; `tinfo')"
+    }
+
+    {
+        qui  `noisily' gegen g_g1 = group(`anything') `if' `in', counts(g_c1) fill(.) v `options' missing
+        qui  `noisily' gegen g_g2 = group(`anything') `if' `in', counts(g_c2)         v `options' missing
+        qui  `noisily' gegen g_c3 = count(1) `if' `in', by(`anything')
+        qui  `noisily'  egen c_t1 = tag(`anything') `if' `in',  missing
+        cap noi assert ( (g_c1 == g_c3) | ((c_t1 == 0) & (g_c1 == .)) ) & (g_c2 == g_c3)
+        if ( _rc ) {
+            di as err "    compare_egen (failed): gegen `fun' counts not equal to gegen count (tol = `tol')"
+            exit _rc
+        }
+        else di as txt "    compare_egen (passed): gegen `fun' counts results similar to gegen count (tol = `tol')"
+    }
+
+    cap drop g_*
+    cap drop c_*
 end
 
 ***********************************************************************
@@ -1094,17 +1180,18 @@ end
 
 capture program drop bench_egen
 program bench_egen
-    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
 
-    cap gen_data, n(10000) expand(`=100 * `bench'')
-    qui gen rsort = rnormal()
-    qui sort rsort
+    qui gen_data, n(`n') random(1)
+    qui expand `=100 * `bench''
+    qui sort random1
 
     local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
 
     di _n(1)
-    di "Benchmark vs egen, obs = `N', J = 10,000 (in seconds)"
-    di "     egen | fegen | gegen | ratio (i/g) | ratio (f/g) | varlist"
+    di "Benchmark vs egen, obs = `N', J = `J' (in seconds)"
+    di "     egen | fegen | gegen | ratio (e/g) | ratio (f/g) | varlist"
     di "     ---- | ----- | ----- | ----------- | ----------- | -------"
 
     versus_egen str_12,              `options' fegen
@@ -1126,32 +1213,9 @@ program bench_egen
     di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)
 end
 
-capture program drop gen_data
-program gen_data
-    syntax, [n(int 100) expand(int 1)]
-    clear
-    set obs `n'
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
-
-    gen long int1  = floor(rnormal())
-    gen long int2  = floor(uniform() * 1000)
-    gen long int3  = floor(rnormal() * 5 + 10)
-
-    gen double double1 = rnormal()
-    gen double double2 = uniform() * 1000
-    gen double double3 = rnormal() * 5 + 10
-
-    qui expand `expand'
-end
-
 capture program drop versus_egen
 program versus_egen, rclass
-    syntax varlist, [fegen unique *]
+    syntax varlist, [fegen *]
 
     preserve
         timer clear
@@ -1189,198 +1253,214 @@ program versus_egen, rclass
     local rf = `time_fegen' / `time_gegen'
     di "    `:di %5.3g `time_egen'' | `:di %5.3g `time_fegen'' | `:di %5.3g `time_gegen'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
-capture program drop checks_isid
-program checks_isid
+capture program drop checks_unique
+program checks_unique
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_isid, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_unique, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
-    gen ix = _n
+    qui `noisily' gen_data, n(5000)
+    qui expand 2
+    gen long ix = _n
 
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub groupstr
-        if ( `i' == 3 ) local by groupstr groupsubstr 
-        if ( `i' == 6 ) local by groupsub group
-        if ( `i' == 9 ) local by grouplong
-        cap gisid `by', `options' v b missok
-        assert _rc == 459
+    checks_inner_unique str_12,              `options'
+    checks_inner_unique str_12 str_32,       `options'
+    checks_inner_unique str_12 str_32 str_4, `options'
 
-        cap gisid `by' in 1, `options'
-        assert _rc == 0
+    checks_inner_unique double1,                 `options'
+    checks_inner_unique double1 double2,         `options'
+    checks_inner_unique double1 double2 double3, `options'
 
-        cap gisid `by' if _n == 1, `options'
-        assert _rc == 0
+    checks_inner_unique int1,           `options'
+    checks_inner_unique int1 int2,      `options'
+    checks_inner_unique int1 int2 int3, `options'
 
-        cap gisid `by' if _n < 10 in 5, `options'
-        assert _rc == 0
-    }
+    checks_inner_unique int1 str_32 double1,                                        `options'
+    checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
+    checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     clear
     gen x = 1
-    cap gisid x
+    cap gunique x
+    assert _rc == 2000
+
+    clear
+    set obs 10
+    gen x = 1
+    cap gunique x if x < 0
     assert _rc == 0
 end
 
-capture program drop compare_isid
-program compare_isid
-    syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "consistency_isid, `options'" _n(1) "{hline 80}" _n(1)
+capture program drop checks_inner_unique
+program checks_inner_unique
+    syntax varlist, [*]
+    cap gunique `varlist', `options' v b miss
+    assert _rc == 0
 
-    qui `noisily' sim, n(500000) nj(10000) njsub(4) string groupmiss outmiss
-    gen ix = _n
+    cap gunique `varlist' in 1, `options' miss d
+    assert _rc == 0
+    assert `r(N)' == `r(J)'
+    assert `r(J)' == 1
 
-    local i 0
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub groupstr
-        if ( `i' == 3 ) local by groupstr groupsubstr 
-        if ( `i' == 6 ) local by groupsub group
-        if ( `i' == 9 ) local by grouplong
-        cap isid `by', missok
-        local rc_isid = _rc
-        cap gisid `by', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by')
-    }
+    cap gunique `varlist' if _n == 1, `options' miss
+    assert _rc == 0
+    assert `r(N)' == `r(J)'
+    assert `r(J)' == 1
 
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by rsort rnorm groupsub groupstr
-        if ( `i' == 3 ) local by rsort rnorm groupstr
-        if ( `i' == 6 ) local by rsort rnorm groupsub group
-        if ( `i' == 9 ) local by rsort rnorm grouplong
-        cap isid `by', missok
-        local rc_isid = _rc
-        cap gisid `by', missok
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by')
-    }
-
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by ix groupsub groupstr
-        if ( `i' == 3 ) local by ix groupstr
-        if ( `i' == 6 ) local by ix groupsub group
-        if ( `i' == 9 ) local by ix grouplong
-        cap isid `by', missok
-        local rc_isid = _rc
-        cap gisid `by', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by')
-    }
-
-    qui replace ix = `=_N / 2' if _n > `=_N / 2'
-    cap isid ix
-    local rc_isid = _rc
-    cap gisid ix, `options'
-    local rc_gisid = _rc
-    check_rc `rc_isid' `rc_gisid' , by(ix)
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by ix groupsub groupstr
-        if ( `i' == 3 ) local by ix groupstr
-        if ( `i' == 6 ) local by ix groupsub group
-        if ( `i' == 9 ) local by ix grouplong
-
-        preserve
-            qui keep in 100 / `=ceil(`=_N / 2')'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' in 100 / `=ceil(`=_N / 2')', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by( `by' in 100 / `=ceil(`=_N / 2')')
-
-        preserve
-            qui keep in `=ceil(`=_N / 2')' / `=_N'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' in `=ceil(`=_N / 2')' / `=_N', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by' in `=ceil(`=_N / 2')' / `=_N')
-
-    di _n(1)
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-        preserve
-            qui keep if _n < `=_N / 2'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' if _n < `=_N / 2', missok
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by' if _n < `=_N / 2')
-
-        preserve
-            qui keep if _n > `=_N / 2'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' if _n > `=_N / 2', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by(`by' if _n > `=_N / 2')
-
-    di _n(1)
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-        qui replace ix = 100 in 1 / 100
-
-        preserve
-            qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', missok `options'
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by( `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
-
-        preserve
-            qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
-            cap isid `by', missok
-            local rc_isid = _rc
-        restore
-        cap gisid `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', missok
-        local rc_gisid = _rc
-        check_rc  `rc_isid' `rc_gisid' , by( `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
-
-        qui replace ix = _n in 1 / 100
-    }
+    cap gunique `varlist' if _n < 10 in 5, `options' miss d
+    assert _rc == 0
+    assert `r(N)' == `r(J)'
+    assert `r(J)' == 1
 end
 
-capture program drop check_rc
-program check_rc
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
+capture program drop compare_unique
+program compare_unique
+    syntax, [tol(real 1e-6) NOIsily *]
+
+    qui `noisily' gen_data, n(1000)
+    qui expand 100
+
+    local N    = trim("`: di %15.0gc _N'")
+    local hlen = 22 + length("`options'") + length("`N'")
+    di _n(1) "{hline 80}" _n(1) "compare_unique, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_unique str_12,              `options'
+    compare_inner_unique str_12 str_32,       `options'
+    compare_inner_unique str_12 str_32 str_4, `options'
+
+    compare_inner_unique double1,                 `options'
+    compare_inner_unique double1 double2,         `options'
+    compare_inner_unique double1 double2 double3, `options'
+
+    compare_inner_unique int1,           `options'
+    compare_inner_unique int1 int2,      `options'
+    compare_inner_unique int1 int2 int3, `options'
+
+    compare_inner_unique int1 str_32 double1,                                        `options'
+    compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+end
+
+capture program drop compare_inner_unique
+program compare_inner_unique
+    syntax varlist, [*]
+    tempvar rsort ix
+    gen `rsort' = runiform()
+    gen long `ix' = _n
+
+    cap unique `varlist',
+    local nJ_unique = `r(unique)'
+    cap gunique `varlist', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels `nJ_unique' `nJ_gunique' , by( `varlist')
+
+    cap unique `ix' `varlist',
+    local nJ_unique = `r(unique)'
+    cap gunique `ix' `varlist', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels `nJ_unique' `nJ_gunique' , by( ix `varlist')
+
+    cap unique `rsort' `varlist',
+    local nJ_unique = `r(unique)'
+    cap gunique `rsort' `varlist', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels `nJ_unique' `nJ_gunique' , by( rsort `varlist')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    qui replace `ix' = `=_N / 2' if _n > `=_N / 2'
+    cap unique `ix'
+    local nJ_unique = `r(unique)'
+    cap gunique `ix', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels `nJ_unique' `nJ_gunique' , by( ix)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    preserve
+        qui keep in 100 / `=ceil(`=_N / 2')'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')')
+
+    preserve
+        qui keep in `=ceil(`=_N / 2')' / `=_N'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    preserve
+        qui keep if _n < `=_N / 2'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' if _n < `=_N / 2',
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 2')
+
+    preserve
+        qui keep if _n > `=_N / 2'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' if _n > `=_N / 2', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 2')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    qui replace `ix' = 100 in 1 / 100
+
+    preserve
+        qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
+
+    preserve
+        qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
+        cap unique `ix' `varlist',
+        local nJ_unique = `r(unique)'
+    restore
+    cap gunique `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N',
+    local nJ_gunique = `r(unique)'
+    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
+
+    di _n(1)
+end
+
+capture program drop check_nlevels
+program check_nlevels
     syntax anything, by(str)
 
     tokenize `anything'
-    local rc_isid  `1'
-    local rc_gisid `2'
+    local nJ_unique  `1'
+    local nJ_gunique `2'
 
-    if ( `rc_isid' != `rc_gisid' ) {
-        if ( `rc_isid' & (`rc_gisid' == 0) ) {
-            di as err "    compare_isid (failed): isid `by' was an id but gisid returned error r(`rc_isid')"
-            exit `rc_gisid'
-        }
-        else if ( (`rc_isid' == 0) & `rc_gisid' ) {
-            di as err "    compare_isid (failed): gisid `by' was an id but isid returned error r(`rc_gisid')"
-            exit `rc_isid'
-        }
-        else {
-            di as err "    compare_isid (failed): `by' was not an id but isid and gisid returned different errors r(`rc_isid') vs r(`rc_gisid')"
-            exit `rc_gisid'
-        }
+    if ( `nJ_unique' != `nJ_gunique' ) {
+        di as err "    compare_unique (failed): unique `by' gave `nJ' levels but gunique gave `nJ_gunique'"
+        exit 198
     }
     else {
-        if ( _rc ) {
-            di as txt "    compare_isid (passed): `by' was not an id"
-        }
-        else {
-            di as txt "    compare_isid (passed): `by' was an id"
-        }
+        di as txt "    compare_unique (passed): unique and gunique `by' gave the same number of levels"
     }
 end
 
@@ -1388,87 +1468,66 @@ end
 *                             Benchmarks                              *
 ***********************************************************************
 
-capture program drop bench_isid
-program bench_isid
-    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+capture program drop bench_unique
+program bench_unique
+    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
 
-    cap gen_data, n(10000) expand(`=100 * `bench'')
+    qui `noisily' gen_data, n(`n')
+    qui expand `=100 * `bench''
     qui gen rsort = rnormal()
     qui sort rsort
 
     local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
 
-    di _n(1)
-    di "Benchmark vs isid, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
-    di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
-    di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+    di as txt _n(1)
+    di as txt "Benchmark vs unique, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
+    di as txt "     unique | funique | gunique | ratio (u/g) | ratio (f/g) | varlist"
+    di as txt "     ------ | ------- | ------- | ----------- | ----------- | -------"
 
-    versus_isid str_12,              `options' fisid unique
-    versus_isid str_12 str_32,       `options' fisid unique
-    versus_isid str_12 str_32 str_4, `options' fisid unique
+    versus_unique str_12,              `options' funique unique
+    versus_unique str_12 str_32,       `options' funique unique
+    versus_unique str_12 str_32 str_4, `options' funique unique
 
-    versus_isid double1,                 `options' fisid unique
-    versus_isid double1 double2,         `options' fisid unique
-    versus_isid double1 double2 double3, `options' fisid unique
+    versus_unique double1,                 `options' funique unique
+    versus_unique double1 double2,         `options' funique unique
+    versus_unique double1 double2 double3, `options' funique unique
 
-    versus_isid int1,           `options' fisid unique
-    versus_isid int1 int2,      `options' fisid unique
-    versus_isid int1 int2 int3, `options' fisid unique
+    versus_unique int1,           `options' funique unique
+    versus_unique int1 int2,      `options' funique unique
+    versus_unique int1 int2 int3, `options' funique unique
 
-    versus_isid int1 str_32 double1,                                        unique `options'
-    versus_isid int1 str_32 double1 int2 str_12 double2,                    unique `options'
-    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
+    versus_unique int1 str_32 double1,                                        unique `options'
+    versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
+    versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
-    di _n(1)
-    di "Benchmark vs isid, obs = `N', J = 10,000 (in seconds)"
-    di "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
-    di "     ---- | ----- | ----- | ----------- | ----------- | -------"
+    di as txt _n(1)
+    di as txt "Benchmark vs unique, obs = `N', J = `J' (in seconds)"
+    di as txt "     unique | funique | gunique | ratio (i/g) | ratio (f/g) | varlist"
+    di as txt "     ------ | ------- | ------- | ----------- | ----------- | -------"
 
-    versus_isid str_12,              `options' fisid
-    versus_isid str_12 str_32,       `options' fisid
-    versus_isid str_12 str_32 str_4, `options' fisid
+    versus_unique str_12,              `options' funique
+    versus_unique str_12 str_32,       `options' funique
+    versus_unique str_12 str_32 str_4, `options' funique
 
-    versus_isid double1,                 `options' fisid
-    versus_isid double1 double2,         `options' fisid
-    versus_isid double1 double2 double3, `options' fisid
+    versus_unique double1,                 `options' funique
+    versus_unique double1 double2,         `options' funique
+    versus_unique double1 double2 double3, `options' funique
 
-    versus_isid int1,           `options' fisid
-    versus_isid int1 int2,      `options' fisid
-    versus_isid int1 int2 int3, `options' fisid
+    versus_unique int1,           `options' funique
+    versus_unique int1 int2,      `options' funique
+    versus_unique int1 int2 int3, `options' funique
 
-    versus_isid int1 str_32 double1,                                        `options'
-    versus_isid int1 str_32 double1 int2 str_12 double2,                    `options'
-    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    versus_unique int1 str_32 double1,                                        `options'
+    versus_unique int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    di _n(1) "{hline 80}" _n(1) "bench_isid, `options'" _n(1) "{hline 80}" _n(1)
+    di as txt _n(1) "{hline 80}" _n(1) "bench_unique, `options'" _n(1) "{hline 80}" _n(1)
 end
 
-capture program drop gen_data
-program gen_data
-    syntax, [n(int 100) expand(int 1)]
-    clear
-    set obs `n'
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
-
-    gen long int1  = floor(rnormal())
-    gen long int2  = floor(uniform() * 1000)
-    gen long int3  = floor(rnormal() * 5 + 10)
-
-    gen double double1 = rnormal()
-    gen double double2 = uniform() * 1000
-    gen double double3 = rnormal() * 5 + 10
-
-    qui expand `expand'
-end
-
-capture program drop versus_isid
-program versus_isid, rclass
-    syntax varlist, [fisid unique *]
+capture program drop versus_unique
+program versus_unique, rclass
+    syntax varlist, [funique unique *]
     if ( "`unique'" == "unique" ) {
         tempvar ix
         gen `ix' = `=_N' - _n
@@ -1478,245 +1537,94 @@ program versus_isid, rclass
     preserve
         timer clear
         timer on 42
-        cap isid `varlist' `ix'
+        cap unique `varlist' `ix'
         assert inlist(_rc, 0, 459)
         timer off 42
         qui timer list
-        local time_isid = r(t42)
+        local time_unique = r(t42)
     restore
 
     preserve
         timer clear
         timer on 43
-        cap gisid `varlist' `ix', `options'
+        cap gunique `varlist' `ix', `options'
         assert inlist(_rc, 0, 459)
         timer off 43
         qui timer list
-        local time_gisid = r(t43) 
+        local time_gunique = r(t43)
     restore
 
-    if ( "`fisid'" == "fisid" ) {
+    if ( "`funique'" == "funique" ) {
     preserve
         timer clear
         timer on 44
-        cap fisid `varlist' `ix'
+        cap funique `varlist' `ix'
         assert inlist(_rc, 0, 459)
         timer off 44
         qui timer list
-        local time_fisid = r(t44)
+        local time_funique = r(t44)
     restore
     }
     else {
-        local time_fisid = .
+        local time_funique = .
     }
 
-    local rs = `time_isid'  / `time_gisid'
-    local rf = `time_fisid' / `time_gisid'
-    di "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
-end
-capture program drop checks_hashsort
-program checks_hashsort
-    syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "checks_hashsort, `options'" _n(1) "{hline 80}" _n(1)
-    sysuse auto, clear
-    gen idx = _n
-    hashsort -foreign rep78 make -mpg, `options'
-    hashsort idx,                      `options'
-    hashsort -foreign rep78,           `options'
-    hashsort idx,                      `options'
-    hashsort foreign rep78 mpg,        `options'
-    hashsort idx,                      `options' v b
+    local rs = `time_unique'  / `time_gunique'
+    local rf = `time_funique' / `time_gunique'
+    di as txt "    `:di %7.3g `time_unique'' | `:di %7.3g `time_funique'' | `:di %7.3g `time_gunique'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
 
-capture program drop compare_hashsort
-program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) *]
+* Prototype of -unique-
+* ---------------------
 
-    cap gen_data, n(10000)
-    qui expand 10 * `bench'
-    qui gen rsort = rnormal()
-    qui sort rsort
-
-    local N = trim("`: di %15.0gc _N'")
-
-    di _n(1)
-    di "Benchmark vs gsort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "    gsort | hashsort | ratio (g/h) | varlist"
-    di "    ----- | -------- | ----------- | -------"
-
-    compare_gsort -str_12,              `options'
-    compare_gsort str_12 -str_32,       `options'
-    compare_gsort str_12 -str_32 str_4, `options'
-
-    compare_gsort -double1,                 `options'
-    compare_gsort double1 -double2,         `options'
-    compare_gsort double1 -double2 double3, `options'
-
-    compare_gsort -int1,           `options'
-    compare_gsort int1 -int2,      `options'
-    compare_gsort int1 -int2 int3, `options'
-
-    compare_gsort -int1 -str_32 -double1,                                         `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
-
-    qui expand 10
-    local N = trim("`: di %15.0gc _N'")
-
-    di _n(1)
-    di "Benchmark vs sort, obs = `N', J = 10,000 (in seconds; datasets are compared via {opt cf})"
-    di "     sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist"
-    di "     ---- | ----- | -------- | ----------- | ----------- | -------"
-
-    compare_sort str_12,              `options' fsort
-    compare_sort str_12 str_32,       `options' fsort
-    compare_sort str_12 str_32 str_4, `options' fsort
-
-    compare_sort double1,                 `options' fsort
-    compare_sort double1 double2,         `options' fsort
-    compare_sort double1 double2 double3, `options' fsort
-
-    compare_sort int1,           `options' fsort
-    compare_sort int1 int2,      `options' fsort
-    compare_sort int1 int2 int3, `options' fsort
-
-    compare_sort int1 str_32 double1,                                        `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-
-    * cap gen_data, n(100)
-    * qui expand 10000
-    * compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-    * compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
-
-    di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
+cap mata: mata drop funique()
+cap pr drop funique
+program funique
+	syntax varlist [if] [in], [Detail]
+	
+	mata: funique("`varlist'", "`detail'"!="")
 end
 
-capture program drop gen_data
-program gen_data
-    syntax, [n(int 100)]
-    clear
-    set obs `n'
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
-
-    gen long int1  = floor(rnormal())
-    gen long int2  = floor(uniform() * 1000)
-    gen long int3  = floor(rnormal() * 5 + 10)
-
-    gen double double1 = rnormal()
-    gen double double2 = uniform() * 1000
-    gen double double3 = rnormal() * 5 + 10
-end
-
-capture program drop compare_sort
-program compare_sort, rclass
-    syntax varlist, [fsort *]
-
-    timer clear
-    preserve
-        timer on 42
-        sort `varlist' , stable
-        timer off 42
-        tempfile file_sort
-        qui save `file_sort'
-    restore
-    qui timer list
-    local time_sort = r(t42)
-
-    timer clear
-    preserve
-        timer on 43
-        qui hashsort `varlist', `options'
-        timer off 43
-        cf * using `file_sort'
-    restore
-    qui timer list
-    local time_hashsort = r(t43) 
-
-    if ( "`fsort'" == "fsort" ) {
-        timer clear
-        preserve
-            timer on 44
-            qui fsort `varlist'
-            timer off 44
-            cf * using `file_sort'
-        restore
-        qui timer list
-        local time_fsort = r(t44)
-    }
-    else {
-        local time_fsort = .
-    }
-
-    local rs = `time_sort'  / `time_hashsort'
-    local rf = `time_fsort' / `time_hashsort'
-    di "    `:di %5.3g `time_sort'' | `:di %5.3g `time_fsort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
-end
-
-capture program drop compare_gsort
-program compare_gsort, rclass
-    syntax anything, [*]
-    tempvar ix
-    gen long `ix' = _n
-
-    timer clear
-    preserve
-        timer on 42
-        gsort `anything'
-        timer off 42
-        tempfile file_sort
-        qui save `file_sort'
-    restore
-    qui timer list
-    local time_sort = r(t42)
-
-    timer clear
-    preserve
-        timer on 43
-        qui hashsort `anything', `options'
-        timer off 43
-        cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
-    restore
-    qui timer list
-    local time_hashsort = r(t43) 
-
-    local rs = `time_sort'  / `time_hashsort'
-    di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
+mata:
+mata set matastrict off
+void funique(string scalar varlist, real scalar detail)
+{
+	class Factor scalar F
+	F = factor(varlist)
+	printf("{txt}Number of unique values of turn is {res}%-11.0f{txt}\n", F.num_levels)
+	printf("{txt}Number of records is {res}%-11.0f{txt}\n", F.num_obs)
+	if (detail) {
+		(void) st_addvar("long", tempvar=st_tempname())
+		st_store(1::F.num_levels, tempvar, F.counts)
+		st_varlabel(tempvar, "Records per " + invtokens(F.varlist))
+		stata("su " + tempvar + ", detail")
+	}
+}
 end
 capture program drop checks_levelsof
 program checks_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' sim, n(5000) nj(100) njsub(4) string groupmiss outmiss
-    gen ix = _n
+    qui `noisily' gen_data, n(50)
+    qui expand 200
+    gen long ix = _n
 
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub groupstr
-        if ( `i' == 3 ) local by groupstr groupsubstr 
-        if ( `i' == 6 ) local by groupsub group
-        if ( `i' == 9 ) local by grouplong
-        cap noi glevelsof `by', `options' v b clean silent
-        assert _rc == 0
+    checks_inner_levelsof str_12,              `options'
+    checks_inner_levelsof str_12 str_32,       `options'
+    checks_inner_levelsof str_12 str_32 str_4, `options'
 
-        cap glevelsof `by' in 1, `options' silent
-        assert _rc == 0
+    checks_inner_levelsof double1,                 `options'
+    checks_inner_levelsof double1 double2,         `options'
+    checks_inner_levelsof double1 double2 double3, `options'
 
-        cap glevelsof `by' in 1, `options' miss
-        assert _rc == 0
+    checks_inner_levelsof int1,           `options'
+    checks_inner_levelsof int1 int2,      `options'
+    checks_inner_levelsof int1 int2 int3, `options'
 
-        cap glevelsof `by' if _n == 1, `options' local(hi)
-        assert _rc == 0
-        assert `"`r(levels)'"' == `"`hi'"'
-
-        cap glevelsof `by' if _n < 10 in 5, `options' s(" | ") cols(", ")
-        assert _rc == 0
-    }
+    checks_inner_levelsof int1 str_32 double1,                                        `options'
+    checks_inner_levelsof int1 str_32 double1 int2 str_12 double2,                    `options'
+    checks_inner_levelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     clear
     gen x = 1
@@ -1730,127 +1638,292 @@ program checks_levelsof
     assert _rc == 0
 end
 
+capture program drop checks_inner_levelsof
+program checks_inner_levelsof
+    syntax varlist, [*]
+    cap noi glevelsof `varlist', `options' v b clean silent
+    assert _rc == 0
+
+    cap glevelsof `varlist' in 1, `options' silent miss
+    assert _rc == 0
+
+    cap glevelsof `varlist' in 1, `options' miss
+    assert _rc == 0
+
+    cap glevelsof `varlist' if _n == 1, `options' local(hi) miss
+    assert _rc == 0
+    assert `"`r(levels)'"' == `"`hi'"'
+
+    cap glevelsof `varlist' if _n < 10 in 5, `options' s(" | ") cols(", ") miss
+    assert _rc == 0
+end
+
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
 capture program drop compare_levelsof
 program compare_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "compare_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' sim, n(500000) nj(10) njsub(4) string groupmiss outmiss
-    gen ix = _n
+    qui `noisily' gen_data, n(50)
+    qui expand 10000
 
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub
-        if ( `i' == 3 ) local by groupstr  
-        if ( `i' == 6 ) local by groupsubstr
-        if ( `i' == 9 ) local by grouplong
-        cap  levelsof `by', s(" | ") local(l_stata)
-        cap glevelsof `by', s(" | ") local(l_gtools) `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' returned different levels to levelsof"
-            exit 198
+    local N    = trim("`: di %15.0gc _N'")
+    local hlen = 24 + length("`options'") + length("`N'")
+    di _n(1) "{hline 80}" _n(1) "compare_levelsof, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_levelsof str_12, `options'
+    compare_inner_levelsof str_32, `options'
+    compare_inner_levelsof str_4,  `options'
+
+    compare_inner_levelsof double1, `options' round
+    compare_inner_levelsof double2, `options' round
+    compare_inner_levelsof double3, `options' round
+
+    compare_inner_levelsof int1, `options'
+    compare_inner_levelsof int2, `options'
+    compare_inner_levelsof int3, `options'
+end
+
+capture program drop compare_inner_levelsof
+program compare_inner_levelsof
+    syntax varlist, [round *]
+
+    cap  levelsof `varlist', s(" | ") local(l_stata)
+    cap glevelsof `varlist', s(" | ") local(l_gtools) `options'
+    if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+        if ( "`round'" != "" ) {
+            while ( `"`l_stata'`l_gtools'"' != "" ) {
+                gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                gettoken _      l_stata:  l_stata,  p(" | ")
+                gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                gettoken _      l_gtools: l_gtools, p(" | ")
+                if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                    cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                    if ( _rc ) {
+                        di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
+                        exit 198
+                    }
+                }
+            }
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-15)"
         }
         else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' returned the same levels as levelsof"
+            di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels to levelsof"
+            exit 198
         }
     }
+    else {
+        di as txt "    compare_levelsof (passed): glevelsof `varlist' returned the same levels as levelsof"
+    }
 
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub
-        if ( `i' == 3 ) local by groupstr  
-        if ( `i' == 6 ) local by groupsubstr
-        if ( `i' == 9 ) local by grouplong
-        cap  levelsof `by', local(l_stata)  miss
-        cap glevelsof `by', local(l_gtools) miss `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' returned different levels to levelsof"
-            exit 198
+    cap  levelsof `varlist', local(l_stata)  miss
+    cap glevelsof `varlist', local(l_gtools) miss `options'
+    if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+        if ( "`round'" != "" ) {
+            while ( `"`l_stata'`l_gtools'"' != "" ) {
+                gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                gettoken _      l_stata:  l_stata,  p(" | ")
+                gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                gettoken _      l_gtools: l_gtools, p(" | ")
+                if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                    cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                    if ( _rc ) {
+                        di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
+                        exit 198
+                    }
+                }
+            }
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-15)"
         }
         else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' returned the same levels as levelsof"
+            di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels to levelsof"
+            exit 198
         }
+    }
+    else {
+        di as txt "    compare_levelsof (passed): glevelsof `varlist' returned the same levels as levelsof"
     }
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
+        cap  levelsof `varlist' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
+        cap glevelsof `varlist' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `varlist' in `=ceil(`=_N / 2')' / `=_N', local(l_stata)
+        cap glevelsof `varlist' in `=ceil(`=_N / 2')' / `=_N', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned the same levels as levelsof"
+        }
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        cap  levelsof `varlist' if _n > `=_N / 2', local(l_stata)  miss
+        cap glevelsof `varlist' if _n > `=_N / 2', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `varlist' if _n < `=_N / 2', local(l_stata)
+        cap glevelsof `varlist' if _n < `=_N / 2', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned the same levels as levelsof"
+        }
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+        cap  levelsof `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
+        cap glevelsof `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] [in] returned the same levels as levelsof"
+        }
+
+        cap glevelsof `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_stata)
+        cap glevelsof `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_gtools) `options'
+        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
+            if ( "`round'" != "" ) {
+                while ( `"`l_stata'`l_gtools'"' != "" ) {
+                    gettoken l_scmp l_stata:  l_stata,  p(" | ")
+                    gettoken _      l_stata:  l_stata,  p(" | ")
+                    gettoken l_gcmp l_gtools: l_gtools, p(" | ")
+                    gettoken _      l_gtools: l_gtools, p(" | ")
+                    if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
+                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        if ( _rc ) {
+                            di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
+                            exit 198
+                        }
+                    }
+                }
+                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-15)"
+            }
+            else {
+                di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels to levelsof"
+                exit 198
+            }
+        }
+        else {
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] [in] returned the same levels as levelsof"
+        }
+
     di _n(1)
-
-    foreach i in 0 3 6 9 {
-        if ( `i' == 0 ) local by groupsub
-        if ( `i' == 3 ) local by groupstr  
-        if ( `i' == 6 ) local by groupsubstr
-        if ( `i' == 9 ) local by grouplong
-
-        cap  levelsof `by' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
-        cap glevelsof `by' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [in] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [in] returned the same levels as levelsof"
-        }
-
-        cap glevelsof `by' in `=ceil(`=_N / 2')' / `=_N', local(l_stata)
-        cap glevelsof `by' in `=ceil(`=_N / 2')' / `=_N', local(l_gtools) `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [in] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [in] returned the same levels as levelsof"
-        }
-
-    di _n(1)
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-        cap  levelsof `by' if _n > `=_N / 2', local(l_stata)  miss
-        cap glevelsof `by' if _n > `=_N / 2', local(l_gtools) miss `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [if] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [if] returned the same levels as levelsof"
-        }
-
-        cap glevelsof `by' if _n < `=_N / 2', local(l_stata)
-        cap glevelsof `by' if _n < `=_N / 2', local(l_gtools) `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [if] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [if] returned the same levels as levelsof"
-        }
-
-    di _n(1)
-
-    * ---------------------------------------------------------------------
-    * ---------------------------------------------------------------------
-
-        cap  levelsof `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_stata)  miss
-        cap glevelsof `by' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', local(l_gtools) miss `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [if] [in] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [if] [in] returned the same levels as levelsof"
-        }
-
-        cap glevelsof `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_stata)
-        cap glevelsof `by' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', local(l_gtools) `options'
-        if ( `"`l_stata'"' != `"`l_gtools'"' ) {
-            di as err "    compare_levelsof (failed): glevelsof `by' [if] [in] returned different levels to levelsof"
-            exit 198
-        }
-        else {
-            di as txt "    compare_levelsof (passed): glevelsof `by' [if] [in] returned the same levels as levelsof"
-        }
-    }
 end
 
 ***********************************************************************
@@ -1859,18 +1932,20 @@ end
 
 capture program drop bench_levelsof
 program bench_levelsof
-    syntax, [tol(real 1e-6) bench(int 1) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 100) NOIsily *]
 
-    cap gen_data, n(100) expand(`=10000 * `bench'')
+    qui `noisily' gen_data, n(`n')
+    qui expand `=1000 * `bench''
     qui gen rsort = rnormal()
     qui sort rsort
 
     local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
 
-    di _n(1)
-    di "Benchmark vs levelsof, obs = `N', J = 100 (in seconds)"
-    di "    levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist"
-    di "    -------- | --------- | --------- | ----------- | ----------- | -------"
+    di as txt _n(1)
+    di as txt "Benchmark vs levelsof, obs = `N', J = `J' (in seconds)"
+    di as txt "    levelsof | flevelsof | glevelsof | ratio (l/g) | ratio (f/g) | varlist"
+    di as txt "    -------- | --------- | --------- | ----------- | ----------- | -------"
 
     versus_levelsof str_12, `options' flevelsof
     versus_levelsof str_32, `options' flevelsof
@@ -1884,30 +1959,7 @@ program bench_levelsof
     versus_levelsof int2, `options' flevelsof
     versus_levelsof int3, `options' flevelsof
 
-    di _n(1) "{hline 80}" _n(1) "bench_levelsof, `options'" _n(1) "{hline 80}" _n(1)
-end
-
-capture program drop gen_data
-program gen_data
-    syntax, [n(int 100) expand(int 1)]
-    clear
-    set obs `n'
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
-
-    gen long int1  = floor(rnormal())
-    gen long int2  = floor(uniform() * 1000)
-    gen long int3  = floor(rnormal() * 5 + 10)
-
-    gen double double1 = rnormal()
-    gen double double2 = uniform() * 1000
-    gen double double3 = rnormal() * 5 + 10
-
-    qui expand `expand'
+    di as txt _n(1) "{hline 80}" _n(1) "bench_levelsof, `options'" _n(1) "{hline 80}" _n(1)
 end
 
 capture program drop versus_levelsof
@@ -1953,426 +2005,517 @@ program versus_levelsof, rclass
 
     local rs = `time_levelsof'  / `time_glevelsof'
     local rf = `time_flevelsof' / `time_glevelsof'
-    di "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+    di as txt "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
-***********************************************************************
-*                           Data simulation                           *
-***********************************************************************
+capture program drop checks_isid
+program checks_isid
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_isid, `options'" _n(1) "{hline 80}" _n(1)
 
-capture program drop bench_sim
-program bench_sim
-    syntax, [n(int 100) nj(int 10) njsub(int 2) nvars(int 2)]
-    local offset = -123456
+    qui `noisily' gen_data, n(5000)
+    qui expand 2
+    gen long ix = _n
+
+    checks_inner_isid str_12,              `options'
+    checks_inner_isid str_12 str_32,       `options'
+    checks_inner_isid str_12 str_32 str_4, `options'
+
+    checks_inner_isid double1,                 `options'
+    checks_inner_isid double1 double2,         `options'
+    checks_inner_isid double1 double2 double3, `options'
+
+    checks_inner_isid int1,           `options'
+    checks_inner_isid int1 int2,      `options'
+    checks_inner_isid int1 int2 int3, `options'
+
+    checks_inner_isid int1 str_32 double1,                                        `options'
+    checks_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
+    checks_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     clear
-    set obs `n'
-    gen group  = ceil(`nj' *  _n / _N) + `offset'
-    gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
-    bys group: gen groupsub      = ceil(`njsub' *  _n / _N)
-    bys group: gen groupsubfloat = ceil(`njsub' *  _n / _N) + 0.5
-    tostring group, gen(groupstr)
-    replace groupstr = "i am a modestly long string" + groupstr
-
-    forvalues i = 1 / `nvars' {
-        gen x`i' = rnormal()
-    }
-    gen rsort = runiform() - 0.5
-    sort rsort
-
-    replace group = . if runiform() < 0.1
-    replace rsort = . if runiform() < 0.1
+    gen x = 1
+    cap gisid x
+    assert _rc == 0
 end
 
-capture program drop bench_sim_ftools
-program bench_sim_ftools
-    args n k
-    clear
-    qui set obs `n'
-    noi di "(obs set)"
-    loc m = ceil(`n' / 10)
-    gen long x1  = ceil(uniform() * 10000) * 100
-    gen int  x2  = ceil(uniform() * 3000)
-    gen byte x3  = ceil(uniform() * 100)
-    gen str  x4  = "u" + string(ceil(uniform() * 100), "%5.0f")
-    gen long x5  = ceil(uniform() * 5000)
-    gen str  x6  = "u" + string(ceil(uniform() * 10), "%5.0f")
-    noi di "(Xs set)"
-    forv i = 1 / `k' {
-        gen double y`i' = 123.456 + runiform()
-    }
-    loc obs_k = ceil(`c(N)' / 1000)
+capture program drop checks_inner_isid
+program checks_inner_isid
+    syntax varlist, [*]
+    cap gisid `varlist', `options' v b missok
+    assert _rc == 459
+
+    cap gisid `varlist' in 1, `options' missok
+    assert _rc == 0
+
+    cap gisid `varlist' if _n == 1, `options' missok
+    assert _rc == 0
+
+    cap gisid `varlist' if _n < 10 in 5, `options' missok
+    assert _rc == 0
 end
 
 ***********************************************************************
-*                       ftools-style benchmarks                       *
+*                               Compare                               *
 ***********************************************************************
 
-capture program drop bench_ftools
-program bench_ftools
-    syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) legacy *]
-    if ("`stats'" == "") local stats sum
+capture program drop compare_isid
+program compare_isid
+    syntax, [tol(real 1e-6) NOIsily *]
 
-    local collapse ""
-    foreach stat of local stats {
-        local collapse `collapse' (`stat')
-        foreach var of local anything {
-            local collapse `collapse' `stat'_`var' = `var'
+    qui `noisily' gen_data, n(1000)
+    qui expand 100
+
+    local N    = trim("`: di %15.0gc _N'")
+    local hlen = 20 + length("`options'") + length("`N'")
+    di _n(1) "{hline 80}" _n(1) "compare_isid, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_isid str_12,              `options'
+    compare_inner_isid str_12 str_32,       `options'
+    compare_inner_isid str_12 str_32 str_4, `options'
+
+    compare_inner_isid double1,                 `options'
+    compare_inner_isid double1 double2,         `options'
+    compare_inner_isid double1 double2 double3, `options'
+
+    compare_inner_isid int1,           `options'
+    compare_inner_isid int1 int2,      `options'
+    compare_inner_isid int1 int2 int3, `options'
+
+    compare_inner_isid int1 str_32 double1,                                        `options'
+    compare_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+end
+
+capture program drop compare_inner_isid
+program compare_inner_isid
+    syntax varlist, [*]
+    tempvar rsort ix
+    gen `rsort' = runiform()
+    gen long `ix' = _n
+
+    cap isid `varlist', missok
+    local rc_isid = _rc
+    cap gisid `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by( `varlist')
+
+    cap isid `ix' `varlist', missok
+    local rc_isid = _rc
+    cap gisid `ix' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
+
+    cap isid `rsort' `varlist', missok
+    local rc_isid = _rc
+    cap gisid `rsort' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    qui replace `ix' = `=_N / 2' if _n > `=_N / 2'
+    cap isid `ix'
+    local rc_isid = _rc
+    cap gisid `ix', `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by( ix)
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    preserve
+        qui keep in 100 / `=ceil(`=_N / 2')'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' in 100 / `=ceil(`=_N / 2')', missok `options'
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')')
+
+    preserve
+        qui keep in `=ceil(`=_N / 2')' / `=_N'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', missok `options'
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    preserve
+        qui keep if _n < `=_N / 2'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' if _n < `=_N / 2', missok
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' if _n < `=_N / 2')
+
+    preserve
+        qui keep if _n > `=_N / 2'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' if _n > `=_N / 2', missok `options'
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' if _n > `=_N / 2')
+
+    * ---------------------------------------------------------------------
+    * ---------------------------------------------------------------------
+
+    qui replace `ix' = 100 in 1 / 100
+
+    preserve
+        qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', missok `options'
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
+
+    preserve
+        qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
+        cap isid `ix' `varlist', missok
+        local rc_isid = _rc
+    restore
+    cap gisid `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', missok
+    local rc_gisid = _rc
+    check_rc  `rc_isid' `rc_gisid' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
+
+    di _n(1)
+end
+
+capture program drop check_rc
+program check_rc
+    syntax anything, by(str)
+
+    tokenize `anything'
+    local rc_isid  `1'
+    local rc_gisid `2'
+
+    if ( `rc_isid' != `rc_gisid' ) {
+        if ( `rc_isid' & (`rc_gisid' == 0) ) {
+            di as err "    compare_isid (failed): isid `by' was an id but gisid returned error r(`rc_isid')"
+            exit `rc_gisid'
         }
-    }
-
-    * First set of benchmarks: default vs collapse, fcollapse
-    * -------------------------------------------------------
-
-    local i = 0
-    local N ""
-    di "Benchmarking N for J = 100; by(`by')"
-    di "    vars  = `anything'"
-    di "    stats = `stats'"
-    forvalues k = `kmin' / `kmax' {
-        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
-        local N `N' `:di %21.0g 2 * 10^`k''
-        qui bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'
-        preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse ")
-                gcollapse `collapse', by(`by') fast `legacy'
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" collapse ")
-                qui collapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'')\n")
-        restore
-    }
-
-    local i = 1
-    di "Results varying N for J = 100; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
-    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
-    foreach nn in `N' {
-        local ii  = `i' + 1
-        local iii = `i' + 2
-        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
-        local ++i
-        local ++i
-        local ++i
-    }
-    timer clear
-end
-
-***********************************************************************
-*                             benchmarks                              *
-***********************************************************************
-
-capture program drop bench_sample_size
-program bench_sample_size
-    syntax anything, by(str) [nj(int 10) pct(str) stats(str) kmin(int 4) kmax(int 7) legacy *]
-    * NOTE: sometimes, fcollapse can't do sd
-    if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
-    local stats `stats' `pct'
-
-    local collapse ""
-    foreach stat of local stats {
-        local collapse `collapse' (`stat')
-        foreach var of local anything {
-            local collapse `collapse' `stat'_`var' = `var'
+        else if ( (`rc_isid' == 0) & `rc_gisid' ) {
+            di as err "    compare_isid (failed): gisid `by' was an id but isid returned error r(`rc_gisid')"
+            exit `rc_isid'
         }
-    }
-
-    * First set of benchmarks: default vs collapse, fcollapse
-    * -------------------------------------------------------
-
-    local i = 0
-    local N ""
-    di "Benchmarking N for J = `nj'; by(`by')"
-    di "    vars  = `anything'"
-    di "    stats = `stats'"
-    forvalues k = `kmin' / `kmax' {
-        mata: printf("    `:di %21.0gc `:di 2 * 10^`k'''")
-        local N `N' `:di %21.0g 2 * 10^`k''
-        qui bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(2)
-        preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') fast `legacy'
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" collapse ")
-                qui collapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'')\n")
-        restore
-    }
-
-    local i = 1
-    di "Results varying N for J = `nj'; by(`by')"
-    di "|              N | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
-    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
-    foreach nn in `N' {
-        local ii  = `i' + 1
-        local iii = `i' + 2
-        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
-        local ++i
-        local ++i
-        local ++i
-    }
-    timer clear
-end
-
-capture program drop bench_group_size
-program bench_group_size
-    syntax anything, by(str) [pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) legacy *]
-    * NOTE: fcollapse can't do sd, apparently
-    if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
-    local stats `stats' `pct'
-
-    local collapse ""
-    foreach stat of local stats {
-        local collapse `collapse' (`stat')
-        foreach var of local anything {
-            local collapse `collapse' `stat'_`var' = `var'
-        }
-    }
-
-    * First set of benchmarks: default vs collapse, fcollapse
-    * -------------------------------------------------------
-
-    local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
-    local i = 0
-    local N ""
-    di "Benchmarking J for N = `nstr'; by(`by')"
-    di "    vars  = `anything'"
-    di "    stats = `stats'"
-    forvalues k = `kmin' / `kmax' {
-        mata: printf("    `:di %21.0gc `:di 10^`k'''")
-        local N `N' `:di %21.0g 10^`k''
-        qui bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(2)
-        preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse ")
-                qui gcollapse `collapse', by(`by') fast `legacy'
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" collapse ")
-                qui collapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" fcollapse ")
-                qui fcollapse `collapse', by(`by') fast
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'')\n")
-        restore
-    }
-
-    local i = 1
-    di "Results varying J for N = `nstr'; by(`by')"
-    di "|              J | gcollapse |  collapse | fcollapse | ratio (f/g) | ratio (c/g) |"
-    di "| -------------- | --------- | --------- | --------- | ----------- | ----------- |"
-    foreach nn in `N' {
-        local ii  = `i' + 1
-        local iii = `i' + 2
-        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %9.2f `r`iii''' | `:di %11.2f `r`iii'' / `r`i''' | `:di %11.2f `r`ii'' / `r`i''' |"
-        local ++i
-        local ++i
-        local ++i
-    }
-    timer clear
-end
-
-***********************************************************************
-*                      Benchmark fcollapse only                       *
-***********************************************************************
-
-capture program drop bench_switch_fcoll
-program bench_switch_fcoll
-    syntax anything, style(str) [GCOLLapse(str) legacy *]
-    if !inlist("`style'", "ftools", "gtools") {
-        di as error "Don't know benchmark style '`style''; available: ftools, gtools"
-        exit 198
-    }
-
-    local 0 `anything', `options'
-    if ( "`style'" == "ftools" ) {
-        syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) *]
-        if ("`stats'" == "") local stats sum
-        local i = 0
-        local N ""
-        local L N
-        local dstr J = 100
-        di "Benchmarking `L' for `dstr'; by(`by')"
-        di "    vars  = `anything'"
-        di "    stats = `stats'"
-
-        mata: print_matrix = J(1, 0, "")
-        mata: sim_matrix   = J(1, 0, "")
-        forvalues k = `kmin' / `kmax' {
-            mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
-            mata: sim_matrix   = sim_matrix,   "bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'"
-            local N `N' `:di %21.0g 2 * 10^`k''
+        else {
+            di as err "    compare_isid (failed): `by' was not an id but isid and gisid returned different errors r(`rc_isid') vs r(`rc_gisid')"
+            exit `rc_gisid'
         }
     }
     else {
-        * syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
-        syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 4) kmax(int 7) nvars(int 2) *]
-        if !inlist("`margin'", "N", "J") {
-            di as error "Don't know margin '`margin''; available: N, J"
-            exit 198
+        if ( _rc ) {
+            di as txt "    compare_isid (passed): `by' was not an id"
         }
-
-        if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
-        local stats `stats' `pct'
-        local i = 0
-        local N ""
-        local L `margin'
-        local jstr = trim("`:di %21.0gc `nj''")
-        local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
-        local dstr = cond("`L'" == "N", "J = `jstr'", "N = `nstr'")
-        di "Benchmarking `L' for `dstr'; by(`by')"
-        di "    vars  = `anything'"
-        di "    stats = `stats'"
-
-        mata: print_matrix = J(1, 0, "")
-        mata: sim_matrix   = J(1, 0, "")
-        forvalues k = `kmin' / `kmax' {
-            if ( "`L'" == "N" ) {
-                mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
-                mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(`nvars')"
-            }
-            else {
-                mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 10^`k'''"
-                mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(2) nvars(`nvars')"
-            }
-            local J `J' `:di %21.0g 10^`k''
-            local N `N' `:di %21.0g 2 * 10^`k''
+        else {
+            di as txt "    compare_isid (passed): `by' was an id"
         }
     }
-
-    local collapse ""
-    foreach stat of local stats {
-        local collapse `collapse' (`stat')
-        foreach var of local anything {
-            local collapse `collapse' `stat'_`var' = `var'
-        }
-    }
-
-    if ( "`gcollapse'" == "" ) local w f
-    else local w g
-
-    forvalues k = 1 / `:di `kmax' - `kmin' + 1' {
-        mata: st_local("sim",   sim_matrix[`k'])
-        qui `sim'
-        mata: printf(print_matrix[`k'])
-        preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" gcollapse-default `options'")
-                qui gcollapse `collapse', by(`by') `options' fast `legacy'
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') ")
-        restore, preserve
-            local ++i
-            timer clear
-            timer on `i'
-            mata: printf(" `w'collapse `gcollapse'")
-                qui `w'collapse `collapse', by(`by') fast `gcollapse'
-            timer off `i'
-            qui timer list
-            local r`i' = `r(t`i')'
-            mata: printf(" (`r`i'') \n")
-        restore
-    }
-
-    local i = 1
-    di "Results varying `L' for `dstr'; by(`by')"
-    di "|              `L' | gcollapse | `w'collapse | ratio (f/g) |"
-    di "| -------------- | --------- | --------- | ----------- |"
-    foreach nn in ``L'' {
-        local ii  = `i' + 1
-        di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %11.2f `r`ii'' / `r`i''' |"
-        local ++i
-        local ++i
-    }
-    timer clear
 end
 
-* Benchmarks in the README
-* ------------------------
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
 
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-* bench_ftools y1 y2 y3,   by(x3) kmin(4) kmax(7) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(4) kmax(7) kvars(10) stats(mean median min max)
-* bench_sample_size x1 x2, by(groupstr) kmin(4) kmax(7) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6) 
+capture program drop bench_isid
+program bench_isid
+    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
 
-* Misc
-* ----
+    qui `noisily' gen_data, n(`n')
+    qui expand `=100 * `bench''
+    qui gen rsort = rnormal()
+    qui sort rsort
 
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(5) kmax(8) kvars(15)
-* bench_ftools y1 y2 y3,   by(x3) kmin(5) kmax(8) kvars(3) stats(mean median)
-* bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10, by(x3) kmin(5) kmax(8) kvars(10) stats(mean median min max)
-* bench_sample_size x1 x2, by(groupstr) kmin(5) kmax(8) pct(median iqr p23 p77)
-* bench_group_size x1 x2,  by(groupstr) kmin(1) kmax(7) pct(median iqr p23 p77) obsexp(7)
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di as txt _n(1)
+    di as txt "Benchmark vs isid, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
+    di as txt "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+    di as txt "     ---- | ----- | ----- | ----------- | ----------- | -------"
+
+    versus_isid str_12,              `options' fisid unique
+    versus_isid str_12 str_32,       `options' fisid unique
+    versus_isid str_12 str_32 str_4, `options' fisid unique
+
+    versus_isid double1,                 `options' fisid unique
+    versus_isid double1 double2,         `options' fisid unique
+    versus_isid double1 double2 double3, `options' fisid unique
+
+    versus_isid int1,           `options' fisid unique
+    versus_isid int1 int2,      `options' fisid unique
+    versus_isid int1 int2 int3, `options' fisid unique
+
+    versus_isid int1 str_32 double1,                                        unique `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2,                    unique `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
+
+    di as txt _n(1)
+    di as txt "Benchmark vs isid, obs = `N', J = `J' (in seconds)"
+    di as txt "     isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist"
+    di as txt "     ---- | ----- | ----- | ----------- | ----------- | -------"
+
+    versus_isid str_12,              `options' fisid
+    versus_isid str_12 str_32,       `options' fisid
+    versus_isid str_12 str_32 str_4, `options' fisid
+
+    versus_isid double1,                 `options' fisid
+    versus_isid double1 double2,         `options' fisid
+    versus_isid double1 double2 double3, `options' fisid
+
+    versus_isid int1,           `options' fisid
+    versus_isid int1 int2,      `options' fisid
+    versus_isid int1 int2 int3, `options' fisid
+
+    versus_isid int1 str_32 double1,                                        `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di as txt _n(1) "{hline 80}" _n(1) "bench_isid, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop versus_isid
+program versus_isid, rclass
+    syntax varlist, [fisid unique *]
+    if ( "`unique'" == "unique" ) {
+        tempvar ix
+        gen `ix' = `=_N' - _n
+        if ( strpos("`varlist'", "str") ) qui tostring `ix', replace
+    }
+
+    preserve
+        timer clear
+        timer on 42
+        cap isid `varlist' `ix', missok
+        assert inlist(_rc, 0, 459)
+        timer off 42
+        qui timer list
+        local time_isid = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        cap gisid `varlist' `ix', `options' missok
+        assert inlist(_rc, 0, 459)
+        timer off 43
+        qui timer list
+        local time_gisid = r(t43)
+    restore
+
+    if ( "`fisid'" == "fisid" ) {
+    preserve
+        timer clear
+        timer on 44
+        cap fisid `varlist' `ix', missok
+        assert inlist(_rc, 0, 459)
+        timer off 44
+        qui timer list
+        local time_fisid = r(t44)
+    restore
+    }
+    else {
+        local time_fisid = .
+    }
+
+    local rs = `time_isid'  / `time_gisid'
+    local rf = `time_fisid' / `time_gisid'
+    di as txt "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end
+capture program drop checks_hashsort
+program checks_hashsort
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_hashsort, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(5000)
+    qui expand 2
+    gen long ix = _n
+
+    checks_inner_hashsort -str_12,              `options'
+    checks_inner_hashsort str_12 -str_32,       `options'
+    checks_inner_hashsort str_12 -str_32 str_4, `options'
+
+    checks_inner_hashsort -double1,                 `options'
+    checks_inner_hashsort double1 -double2,         `options'
+    checks_inner_hashsort double1 -double2 double3, `options'
+
+    checks_inner_hashsort -int1,           `options'
+    checks_inner_hashsort int1 -int2,      `options'
+    checks_inner_hashsort int1 -int2 int3, `options'
+
+    checks_inner_hashsort -int1 -str_32 -double1,                                         `options'
+    checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    sysuse auto, clear
+    gen idx = _n
+    hashsort -foreign rep78 make -mpg, `options'
+    hashsort idx,                      `options'
+    hashsort -foreign rep78,           `options'
+    hashsort idx,                      `options'
+    hashsort foreign rep78 mpg,        `options'
+    hashsort idx,                      `options' v b
+end
+
+capture program drop checks_inner_hashsort
+program checks_inner_hashsort
+    syntax anything, [*]
+    tempvar ix
+    hashsort `anything', `options' gen(`ix')
+    hashsort `: subinstr local anything "-" "", all', `options'
+    hashsort ix, `options'
+end
+
+capture program drop bench_hashsort
+program bench_hashsort
+    compare_hashsort `0'
+end
+
+capture program drop compare_hashsort
+program compare_hashsort
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+
+    cap gen_data, n(`n')
+    qui expand 10 * `bench'
+    qui gen rsort = rnormal()
+    qui sort rsort
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di _n(1)
+    di "Benchmark vs gsort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
+    di "    gsort | hashsort | ratio (g/h) | varlist"
+    di "    ----- | -------- | ----------- | -------"
+
+    compare_gsort -str_12,              `options'
+    compare_gsort str_12 -str_32,       `options'
+    compare_gsort str_12 -str_32 str_4, `options'
+
+    compare_gsort -double1,                 `options'
+    compare_gsort double1 -double2,         `options'
+    compare_gsort double1 -double2 double3, `options'
+
+    compare_gsort -int1,           `options'
+    compare_gsort int1 -int2,      `options'
+    compare_gsort int1 -int2 int3, `options'
+
+    compare_gsort -int1 -str_32 -double1,                                         `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    qui expand 10
+    local N = trim("`: di %15.0gc _N'")
+
+    di _n(1)
+    di "Benchmark vs sort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
+    di "     sort | fsort | hashsort | ratio (s/h) | ratio (f/h) | varlist"
+    di "     ---- | ----- | -------- | ----------- | ----------- | -------"
+
+    compare_sort str_12,              `options' fsort
+    compare_sort str_12 str_32,       `options' fsort
+    compare_sort str_12 str_32 str_4, `options' fsort
+
+    compare_sort double1,                 `options' fsort
+    compare_sort double1 double2,         `options' fsort
+    compare_sort double1 double2 double3, `options' fsort
+
+    compare_sort int1,           `options' fsort
+    compare_sort int1 int2,      `options' fsort
+    compare_sort int1 int2 int3, `options' fsort
+
+    compare_sort int1 str_32 double1,                                        `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop compare_sort
+program compare_sort, rclass
+    syntax varlist, [fsort *]
+
+    timer clear
+    preserve
+        timer on 42
+        sort `varlist' , stable
+        timer off 42
+        tempfile file_sort
+        qui save `file_sort'
+    restore
+    qui timer list
+    local time_sort = r(t42)
+
+    timer clear
+    preserve
+        timer on 43
+        qui hashsort `varlist', `options'
+        timer off 43
+        cf * using `file_sort'
+    restore
+    qui timer list
+    local time_hashsort = r(t43)
+
+    if ( "`fsort'" == "fsort" ) {
+        timer clear
+        preserve
+            timer on 44
+            qui fsort `varlist'
+            timer off 44
+            cf * using `file_sort'
+        restore
+        qui timer list
+        local time_fsort = r(t44)
+    }
+    else {
+        local time_fsort = .
+    }
+
+    local rs = `time_sort'  / `time_hashsort'
+    local rf = `time_fsort' / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %5.3g `time_fsort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+end
+
+capture program drop compare_gsort
+program compare_gsort, rclass
+    syntax anything, [*]
+    tempvar ix
+    gen long `ix' = _n
+
+    timer clear
+    preserve
+        timer on 42
+        gsort `anything', mfirst
+        timer off 42
+        tempfile file_sort
+        qui save `file_sort'
+    restore
+    qui timer list
+    local time_sort = r(t42)
+
+    timer clear
+    preserve
+        timer on 43
+        qui hashsort `anything', `options'
+        timer off 43
+        cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
+    restore
+    qui timer list
+    local time_hashsort = r(t43)
+
+    local rs = `time_sort'  / `time_hashsort'
+    di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
+end
+
 * ---------------------------------------------------------------------
 * Run the things
 
-* main, benchmark bench_extra
-main, checks test
+main, checks bench_test

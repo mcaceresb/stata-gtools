@@ -1,20 +1,22 @@
 #ifndef ST_GENTOOLS
 #define ST_GENTOOLS
 
-void sf_printf (const char *fmt, ...);
-void sf_errprintf (const char *fmt, ...);
+#ifdef __APPLE__
+#else
+void * memcpy (void *dest, const void *src, size_t n);
+#endif
 
-/*
- * #if defined(_WIN64) || defined(_WIN32)
- * 
- * #define COMMA_PRINTING                      \
- *     setlocale(LC_NUMERIC, "");              \
- *     struct lconv *ptrLocale = localeconv(); \
- *     strcpy(ptrLocale->thousands_sep, ",");
- * #else
- * #define COMMA_PRINTING setlocale (LC_ALL, "");
- * #endif
- *
- */
+// Stata utilities
+// ---------------
+
+size_t sf_anyobs_sel ();
+
+void sf_running_timer (clock_t *timer, const char *msg);
+
+int sf_oom_error (char * step_desc, char * obj_desc);
+
+int sf_get_vector_length (char *st_matrix);
+int sf_get_vector        (char *st_matrix, double *v);
+int sf_get_vector_int    (char *st_matrix, size_t *v);
 
 #endif

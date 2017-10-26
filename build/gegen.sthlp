@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.5 08Oct2017}{...}
+{* *! version 0.8.0 25Oct2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -24,8 +24,15 @@ before using any of the programs provided by gtools.
 [{cmd:,} {it:options}]
 
 {phang}
-Unlike {it:egen}, {cmd:by} is required in this case, except for {opt tag}
-or {opt group}, as noted below. The available functions are:
+Unlike {it:egen}, {cmd:by} is required in this case, except for {opt tag} or
+{opt group}, as noted below. Functions not listed here hash the data and then
+call {opt egen} with {opth by(varlist)} set to the hash, which is often faster
+than calling {opt egen} directly. Natively supported functions are:
+
+        {opth first|last|firstnm|lastnm(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the first, last, first non-missing, and last non-missing
+observation. The functions are analogous to those in {opt collapse} and {opt not} to those in {opt egenmore}.
 
         {opth count(exp)} {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -199,6 +206,16 @@ Pending...
 {title:Acknowledgment}
 
 {pstd}
+This help file was based on StataCorp's own help file
+for {it:egen} and Sergio Correia's help file for {it:fegen}.
+{p_end}
+
+{pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
-{browse "https://github.com/sergiocorreia/ftools":github.com/sergiocorreia/ftools}.
+{browse "https://github.com/sergiocorreia/ftools"}.
+{p_end}
+
+{pstd}
+The OSX version of gtools was implemented with invaluable help from @fbelotti;
+see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}

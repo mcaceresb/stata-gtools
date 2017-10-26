@@ -11,7 +11,7 @@ _Gtools_: Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, egen, isid, levelsof, and unique using C plugins
 for a massive speed improvement.
 
-`version 0.8.0 25Oct2017`
+`version 0.8.1 26Oct2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -146,8 +146,8 @@ glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, local(levels) sep(" | ") colsep(", ")
 
 * gcollapse (stat) target = source [(stat) target = source ...], by(varlist) [options]
-gcollapse (mean) price (median) gear_ratio, by(make) benchmark
-gcollapse (p97.5) mpg (iqr) headroom, by(foreign rep78) verbose
+gcollapse (mean) mean = price (median) median = gear_ratio, by(make) merge v
+gcollapse (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
 ```
 
 Support for weights for `gcollapse` and `gegen` planned for a future
@@ -175,8 +175,7 @@ merge m:1 foreign using `bulk', assert(3) nogen
 But with `gtools` this is simplified to
 ```stata
 sysuse auto, clear
-gcollapse (mean) mean_pr = price (median) median_gr = gear_ratio, ///
-    by(foreign) merge mergeformats mergelabels
+gcollapse (mean) mean_pr = price (median) median_gr = gear_ratio, by(foreign) merge
 ```
 
 2. `labelformat()`, which allows the user to specify the output label format
@@ -205,17 +204,17 @@ The following placeholder options are available in the engine:
   and return `prettystat`. For example
 
 ```
+capture program drop my_pretty_stat
 program my_pretty_stat, rclass
          if ( `"`0'"' == "sum"  ) local prettystat "Total"
     else if ( `"`0'"' == "mean" ) local prettystat "Average"
     else {
-        GtoolsPrettyStat
+        local prettystat "#default#"
     }
     return local prettystat = `"`prettystat'"'
 end
 sysuse auto, clear
-gcollapse (mean) mean = price (sum) sum = price (sd) sd = price, ///
-    by(foreign) labelformat(#stat:pretty# of #sourcelabel#) labelp(my_pretty_stat)
+gcollapse (mean) mean = price (sum) sum = price (sd) sd = price, by(foreign) labelformat(#stat:pretty# of #sourcelabel#) labelp(my_pretty_stat)
 desc
 ```
 
@@ -493,7 +492,7 @@ Benchmark vs unique, obs = 10,000,000, J = 10,000 (in seconds)
 |   17.5 |       . |    4.35 |        4.02 |           . | int1 str_32 double1 int2 str_12 double2
 |   19.6 |       . |    5.05 |        3.88 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
-`gunique` ~4-26 times faster than `unique` and ~3-25 times `faster than `funique`.
+`gunique` ~4-26 times faster than `unique` and ~3-25 times faster than `funique`.
 Note that `funique` is not an actual `ftools` command, but rather a prototype that
 is found in their testing files.
 
@@ -535,7 +534,7 @@ Benchmark vs sort, obs = 10,000,000, J = 10,000 (in seconds; datasets are compar
 
 The above speed gains only hold when sorting groups. `hashsort` ~2-18 times
 faster than `gsort`, 2.5-4 times faster than `sdort`, and ~1.5-2.5 times
-`faster than `fsort`.
+faster than `fsort`.
 
 Building
 --------

@@ -1,4 +1,4 @@
-*! version 0.8.0 25Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -22,8 +22,6 @@ program gcollapse, rclass
                                      /// freq(passthru) /// include number of observations in group
                                      ///
         merge                        /// merge statistics back to original data, replacing where applicable
-        MERGELabels                  /// merge labels new variables a la collapse
-        MERGEFormats                 /// merge formats new variables a la collapse
                                      ///
         LABELFormat(passthru)        /// label format; (#stat#) #sourcelabel# is the default
         LABELProgram(passthru)       /// program to prettify stats
@@ -433,15 +431,11 @@ program gcollapse, rclass
         }
     }
     else {
-        if ( "`mergelabels'" != "" ) {
-            forvalues k = 1 / `:list sizeof __gtools_targets' {
-                mata: st_varlabel(gtools_targets[`k'], __gtools_labels[`k'])
-            }
+        forvalues k = 1 / `:list sizeof __gtools_targets' {
+            mata: st_varlabel(gtools_targets[`k'], __gtools_labels[`k'])
         }
-        if ( "`mergeformats'" != "" ) {
-            forvalues k = 1 / `:list sizeof __gtools_targets' {
-                mata: st_varformat(gtools_targets[`k'], __gtools_formats[`k'])
-            }
+        forvalues k = 1 / `:list sizeof __gtools_targets' {
+            mata: st_varformat(gtools_targets[`k'], __gtools_formats[`k'])
         }
     }
 
@@ -539,6 +533,11 @@ program parse_vars
         if ( "`labelprogram'" == "" ) GtoolsPrettyStat `vp'
         else `labelprogram' `vp'
         local vpretty = `"`r(prettystat)'"'
+
+        if ( `"`vpretty'"' == "#default#" ) {
+            GtoolsPrettyStat `vp'
+            local vpretty = `"`r(prettystat)'"'
+        }
 
         local lfmt_k = `"`labelformat'"'
 

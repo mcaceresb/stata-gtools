@@ -1,4 +1,4 @@
-*! version 0.8.0 24Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -163,6 +163,7 @@ program define gegen, byable(onecall) rclass
     * Parse quantiles
     * ---------------
 
+    local ofcn `fcn'
     if ( "`fcn'" == "pctile" ) {
         local quantbad = !( (`p' < 100) & (`p' > 0) )
         if ( `quantbad' ) {
@@ -277,7 +278,7 @@ program define gegen, byable(onecall) rclass
         cap confirm numeric v `sources'
         if ( _rc ) {
             global GTOOLS_CALLER ""
-            di as err "{opth `fcn'(varlist)} must call a numeric variable list."
+            di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
             exit _rc
         }
     }
@@ -287,7 +288,8 @@ program define gegen, byable(onecall) rclass
         cap gen double `exp' = `args'
         if ( _rc ) {
             global GTOOLS_CALLER ""
-            di as error "Invalid call; please specify {opth `fcn'(varlist)} or {opth `fcn'(exp)}."
+            di as error "Invalid call; please specify {opth `ofcn'(varlist)} or {opth `ofcn'(exp)}."
+
             exit 198
         }
         local sources `exp'
@@ -297,7 +299,7 @@ program define gegen, byable(onecall) rclass
     * -----------------
 
     if ( ("`addvar'" != "") & `retype' ) {
-        parse_target_type `sources', fcn(`fcn') sametype(`sametype')
+        parse_target_type `sources', fcn(`ofcn') sametype(`sametype')
         local type = "`r(retype)'"
         local addvar qui mata: st_addvar("`type'", "`dummy'")
     }
@@ -473,23 +475,26 @@ program parse_target_type, rclass
     if ( `=_N' < 2^31 ) local retype_C long
     else local retype_C double
 
-    if ( "`fcn'" == "tag"     ) return local retype = "byte"
-    if ( "`fcn'" == "group"   ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "total"   ) return local retype = "double"
-    if ( "`fcn'" == "sum"     ) return local retype = "double"
-    if ( "`fcn'" == "mean"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sd"      ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "max"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "min"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "count"   ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "median"  ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "iqr"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "percent" ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "first"   ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "last"    ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "firstnm" ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "lastnm"  ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "pctile"  ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "tag"        ) return local retype = "byte"
+    if ( "`fcn'" == "group"      ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "total"      ) return local retype = "double"
+    if ( "`fcn'" == "sum"        ) return local retype = "double"
+    if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "max"        ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "min"        ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "count"      ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "median"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "iqr"        ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "percent"    ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "first"      ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "last"       ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "firstnm"    ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "lastnm"     ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "semean"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sebinomial" ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
 end
 
 capture program drop encode_vartype

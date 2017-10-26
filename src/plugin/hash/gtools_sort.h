@@ -1,46 +1,31 @@
 #ifndef GTOOLS_SORT
 #define GTOOLS_SORT
 
-int mf_radix_sort_index (
-    uint64_t x[],
-    size_t index[], 
-    const size_t N,
-    const size_t dshift,
-    const size_t raw,
-    const int verbose
-);
+typedef union {
+	struct {
+		uint32_t c8[256];
+		uint32_t c7[256];
+		uint32_t c6[256];
+		uint32_t c5[256];
+		uint32_t c4[256];
+		uint32_t c3[256];
+		uint32_t c2[256];
+		uint32_t c1[256];
+	};
+	uint32_t counts[256 * 8];
+} radixCounts8;
 
-int mf_radix_sort_index_pass (
-    uint64_t x[],
-    size_t index[], 
-    const size_t N,
-    const size_t exp,
-    const size_t shift
-);
+struct  radixCounts16 {
+    uint32_t *c4;
+    uint32_t *c3;
+    uint32_t *c2;
+    uint32_t *c1;
+};
 
-int mf_counting_sort_index (
-    uint64_t x[],
-    size_t index[], 
-    const size_t N,
-    const size_t min,
-    const size_t max
-);
+int mf_sort_hash     (uint64_t *hash, size_t *index, size_t N, short verbose);
+int mf_radix_sort8   (uint64_t *hash, size_t *index, size_t N);
+int mf_radix_sort16  (uint64_t *hash, size_t *index, size_t N);
+int mf_counting_sort (uint64_t *hash, size_t *index, size_t N, uint64_t min, uint64_t max);
 
-size_t * mf_panelsetup128 (
-    uint64_t h1[],
-    uint64_t h2[],
-    size_t index[],
-    const size_t N,
-    size_t * J,
-    int verbose
-);
-
-size_t * mf_panelsetup (
-    uint64_t h1[],
-    const size_t N,
-    size_t * J
-);
-
-int mf_check_allequal (uint64_t hash[], size_t start, size_t end);
 
 #endif

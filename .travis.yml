@@ -8,17 +8,17 @@ env:
 compiler:
   - gcc
 
-# OSX build failing; wait until you get access to a Mac
 os:
   - linux
   # - osx
 
 script:
   - cd lib/spookyhash/build
+  # - sed -i.bak -e '37,40d' premake5.lua
   - ../../travis_build_premake.sh
   - ./premake5 gmake
   - make clean
   - ALL_CFLAGS+=-fPIC make
   - cd -
+  # - ls -lahR ./lib/spookyhash/build/
   - make clean && make
-  # - ./lib/travis_build_push.sh

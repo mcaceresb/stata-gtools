@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1  28Sep2017}{...}
+{* *! version 0.2.0  25Oct2017}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -11,8 +11,8 @@
 {viewerjumpto "Stored results" "glevelsof##results"}{...}
 {title:Title}
 
-{p2colset 5 21 23 2}{...}
-{p2col :{manlink P glevelsof} {hline 2}}Levels of variable using C plugins{p_end}
+{p2colset 5 18 23 2}{...}
+{p2col :{cmd:glevelsof} {hline 2}}Levels of variable using C plugins{p_end}
 {p2colreset}{...}
 
 
@@ -127,6 +127,14 @@ it is typically used when the number of distinct values of
 {synopt:{cmd:r(levels)}}list of distinct values{p_end}
 {p2colreset}{...}
 
+{synoptset 20 tabbed}{...}
+{p2col 5 20 24 2: Scalars}{p_end}
+{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)   }} number of groups {p_end}
+{synopt:{cmd:r(minJ)}} largest group size {p_end}
+{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
+{p2colreset}{...}
+
 
 {marker author}{...}
 {title:Author}
@@ -135,21 +143,23 @@ it is typically used when the number of distinct values of
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 
-
 {title:Website}
 
 {pstd}{cmd:glevelsof} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
-
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
 
 {pstd}
-This help file was based on StataCorp's own help file
-for {it:levelsof} and Sergio Correia's help file for {it:flevelsof}.
+This help file was based on StataCorp's own help file for {it:levelsof}.
 {p_end}
 
 {pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
+{p_end}
+
+{pstd}
+The OSX version of gtools was implemented with invaluable help from @fbelotti;
+see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}

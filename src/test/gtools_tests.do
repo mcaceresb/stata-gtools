@@ -3,10 +3,10 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Sep 28 18:40:14 EDT 2017
+* Updated: Wed Oct 25 20:33:17 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.6.19
-* Manual:  help gcollapse, help gegen
+* Version: 0.8.0
+* Manual:  help gtools
 
 * Stata start-up options
 * ----------------------
@@ -15,15 +15,23 @@ version 13
 clear all
 set more off
 set varabbrev off
-* set seed 42
 set seed 1729
-set linesize 128
+set linesize 255
+
+cap which ralpha
+if ( _rc ) ssc install ralpha
+
+cap which ftools
+if ( _rc ) ssc install ftools
+
+cap which unique
+if ( _rc ) ssc install unique
 
 * Main program wrapper
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily *]
+    syntax, [CAPture NOIsily legacy *]
 
     * Set up
     * ------
@@ -36,121 +44,72 @@ program main
     * --------------
 
     `capture' `noisily' {
-        * do test_gcollapse.do
-        * do test_gegen.do
-        * do test_gisid.do
-        * do test_glevelsof.do
-        * do bench_gcollapse.do
+        * qui do test_gcollapse.do
+        * qui do test_gegen.do
+        * qui do test_gisid.do
+        * qui do test_glevelsof.do
+        * qui do test_gunique.do
+        * qui do test_hashsort.do
+
         if ( `:list posof "checks" in options' ) {
+
+            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
             di ""
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_single)
-
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(0))
-            unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_single forceio debug_io_read_method(1))
-
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single)
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(0))
-            unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_single debug_io_read_method(1))
-
-            if !inlist("`c(os)'", "Windows") {
-                unit_test, `noisily' test(checks_corners, oncollision(error) debug_force_multi)
-
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi)
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(0))
-                unit_test, `noisily' test(checks_byvars_gcollapse,  oncollision(error) debug_force_multi forceio debug_io_read_method(1))
-
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi)
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(0))
-                unit_test, `noisily' test(checks_options_gcollapse, oncollision(error) debug_force_multi debug_io_read_method(1))
-            }
+            unit_test, `noisily' test(checks_gcollapse, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
 
             di ""
             di "-----------------------------------------------------------"
             di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(0)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single forceio debug_io_read_method(1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(0.1)
-            consistency_gcollapse,       `noisily' oncollision(error) debug_force_single debug_io_check(1) debug_io_threshold(1000000)
-            consistency_gegen,           `noisily' oncollision(error) debug_force_single
-            consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_single
-
-            if !inlist("`c(os)'", "Windows") {
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(0)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi forceio debug_io_read_method(1)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(0.1)
-                consistency_gcollapse,       `noisily' oncollision(error) debug_force_multi debug_io_check(1) debug_io_threshold(1000000)
-                consistency_gegen,           `noisily' oncollision(error) debug_force_multi
-                consistency_gegen_gcollapse, `noisily' oncollision(error) debug_force_multi
-            }
-
-            di ""
-            di "--------------------------------"
-            di "Check extra $S_TIME $S_DATE"     
-            di "--------------------------------"
-
-            unit_test, `noisily' test(checks_isid,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof, `noisily' oncollision(error))
-
-            compare_isid,     `noisily' oncollision(error)
-            compare_levelsof, `noisily' oncollision(error)
+            compare_gcollapse, `noisily' oncollision(error)
+            compare_egen,      `noisily' oncollision(error)
+            compare_isid,      `noisily' oncollision(error)
+            compare_levelsof,  `noisily' oncollision(error)
+            compare_unique,    `noisily' oncollision(error)
+            compare_hashsort,  `noisily' oncollision(error)
         }
 
-        if ( `:list posof "bench_gtools" in options' ) {
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single)
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single)
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single)
+        if ( `:list posof "bench_test" in options' ) {
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
+
+            bench_egen,     n(1000) bench(1) `noisily' oncollision(error)
+            bench_isid,     n(1000) bench(1) `noisily' oncollision(error)
+            bench_levelsof, n(100)  bench(1) `noisily' oncollision(error)
+            bench_unique,   n(1000) bench(1) `noisily' oncollision(error)
+            bench_hashsort, n(1000) bench(1) `noisily' oncollision(error)
         }
 
-        if ( `:list posof "test" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
+        if ( `:list posof "bench_full" in options' ) {
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(full)   vars(1)  oncollision(error)
 
-            di "Short (quick) versions of the benchmarks"
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15)
-            bench_ftools y1 y2 y3,          by(x3) kmin(3) kmax(4) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6, by(x3) kmin(3) kmax(4) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, by(group) kmin(3) kmax(4) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
 
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(3) kmax(4) kvars(15) style(ftools)
-            bench_switch_fcoll y1 y2 y3,          by(x3)    kmin(3) kmax(4) kvars(3) stats(mean median)             style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)    kmin(3) kmax(4) kvars(6) stats(sum mean count min max)  style(ftools)
-            bench_switch_fcoll x1 x2, margin(N)   by(group) kmin(3) kmax(4) pct(median iqr p23 p77)                 style(gtools)
-            bench_switch_fcoll x1 x2, margin(J)   by(group) kmin(2) kmax(3) pct(median iqr p23 p77) obsexp(3)       style(gtools)
-        }
-
-        if ( `:list posof "benchmark" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
-
-            bench_ftools y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15)
-            bench_ftools y1 y2 y3,             by(x3)    kmin(4) kmax(7) kvars(3) stats(mean median)
-            bench_ftools y1 y2 y3 y4 y5 y6,    by(x3)    kmin(4) kmax(7) kvars(6) stats(sum mean count min max)
-            bench_sample_size x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)
-            bench_group_size  x1 x2, margin(J) by(group) kmin(3) kmax(6) pct(median iqr p23 p77) obsexp(6)
-        }
-
-        if ( `:list posof "bench_fcoll" in options' ) {
-            cap ssc install ftools
-            cap ssc install moremata
-
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools)
-            bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools)
-            bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools)
-            bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools)
-            bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools)
+            bench_egen,     n(10000) bench(10)  `noisily' oncollision(error)
+            bench_isid,     n(10000) bench(10)  `noisily' oncollision(error)
+            bench_levelsof, n(100)   bench(100) `noisily' oncollision(error)
+            bench_unique,   n(10000) bench(10)  `noisily' oncollision(error)
+            bench_hashsort, n(10000) bench(10)  `noisily' oncollision(error)
         }
     }
     local rc = _rc
@@ -263,51 +222,144 @@ program unit_test
     else di as txt `"`tabs'test(passed): `test'"'
 end
 
-capture program drop sim
-program sim, rclass
-    syntax, [offset(str) n(int 100) nj(int 10) njsub(int 2) string float sortg replace groupmiss outmiss]
-    qui {
-        if ("`offset'" == "") local offset 0
-        clear
-        set obs `n'
-        gen group  = ceil(`nj' *  _n / _N) + `offset'
-        bys group: gen groupsub   = ceil(`njsub' *  _n / _N)
-        bys group: gen groupfloat = ceil(`njsub' *  _n / _N) + 0.5
-        gen rsort = runiform() - 0.5
-        gen rnorm = rnormal()
-        if ( "`sortg'"     == "" ) sort rsort
-        if ( "`groupmiss'" != "" ) replace group = . if runiform() < 0.1
-        if ( "`outmiss'"   != "" ) replace rsort = . if runiform() < 0.1
-        if ( "`outmiss'"   != "" ) replace rnorm = . if runiform() < 0.1
-        if ( "`float'"     != "" ) replace group = group / `nj'
-        if ( "`string'" != "" ) {
-            tostring group,    `:di cond("`replace'" == "", "gen(groupstr)",    "replace")'
-            tostring groupsub, `:di cond("`replace'" == "", "gen(groupsubstr)", "replace")'
-            if ( "`replace'" == "replace" ) {
-                replace group    = "" if group    == "."
-                replace groupsub = "" if groupsub == "."
+capture program drop gen_data
+program gen_data
+    syntax, [n(int 100) random(int 0) binary(int 0) double]
+    clear
+    set obs `n'
+
+    * Random strings
+    * --------------
+
+    qui ralpha str_long,  l(5)
+    qui ralpha str_mid,   l(3)
+    qui ralpha str_short, l(1)
+
+    * Generate does-what-it-says-on-the-tin variables
+    * -----------------------------------------------
+
+    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+    gen str4  str_4    = str_mid  + str_short
+
+    gen long   int1  = floor(uniform() * 1000)
+    gen long   int2  = floor(rnormal())
+    gen double int3  = floor(rnormal() * 5 + 10)
+
+    gen double double1 = uniform() * 1000
+    gen double double2 = rnormal()
+    gen double double3 = rnormal() * 5 + 10
+
+    * Mix up string lengths
+    * ---------------------
+
+   replace str_32 = str_mid + str_short if mod(_n, 4) == 0
+   replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+
+    * Insert some blanks
+    * ------------------
+
+    replace str_32 = "            " in 1 / 10
+    replace str_12 = "   "          in 1 / 10
+    replace str_4  = " "            in 1 / 10
+
+    replace str_32 = "            " if mod(_n, 21) == 0
+    replace str_12 = "   "          if mod(_n, 34) == 0
+    replace str_4  = " "            if mod(_n, 55) == 0
+
+    * Missing values
+    * --------------
+
+    replace str_32 = "" if mod(_n, 10) ==  0
+    replace str_12 = "" if mod(_n, 20) ==  0
+    replace str_4  = "" if mod(_n, 20) == 10
+
+    replace int2  = .   if mod(_n, 10) ==  0
+    replace int3  = .a  if mod(_n, 20) ==  0
+    replace int3  = .f  if mod(_n, 20) == 10
+
+    replace double2 = .   if mod(_n, 10) ==  0
+    replace double3 = .h  if mod(_n, 20) ==  0
+    replace double3 = .p  if mod(_n, 20) == 10
+
+    * Singleton groups
+    * ----------------
+
+    replace str_32 = "|singleton|" in `n'
+    replace str_12 = "|singleton|" in `n'
+    replace str_4  = "|singleton|" in `n'
+
+    replace int1    = 99999  in `n'
+    replace double1 = 9999.9 in `n'
+
+    replace int3 = .  in 1
+    replace int3 = .a in 2
+    replace int3 = .b in 3
+    replace int3 = .c in 4
+    replace int3 = .d in 5
+    replace int3 = .e in 6
+    replace int3 = .f in 7
+    replace int3 = .g in 8
+    replace int3 = .h in 9
+    replace int3 = .i in 10
+    replace int3 = .j in 11
+    replace int3 = .k in 12
+    replace int3 = .l in 13
+    replace int3 = .m in 14
+    replace int3 = .n in 15
+    replace int3 = .o in 16
+    replace int3 = .p in 17
+    replace int3 = .q in 18
+    replace int3 = .r in 19
+    replace int3 = .s in 20
+    replace int3 = .t in 21
+    replace int3 = .u in 22
+    replace int3 = .v in 23
+    replace int3 = .w in 24
+    replace int3 = .x in 25
+    replace int3 = .y in 26
+    replace int3 = .z in 27
+
+    replace double3 = .  in 1
+    replace double3 = .a in 2
+    replace double3 = .b in 3
+    replace double3 = .c in 4
+    replace double3 = .d in 5
+    replace double3 = .e in 6
+    replace double3 = .f in 7
+    replace double3 = .g in 8
+    replace double3 = .h in 9
+    replace double3 = .i in 10
+    replace double3 = .j in 11
+    replace double3 = .k in 12
+    replace double3 = .l in 13
+    replace double3 = .m in 14
+    replace double3 = .n in 15
+    replace double3 = .o in 16
+    replace double3 = .p in 17
+    replace double3 = .q in 18
+    replace double3 = .r in 19
+    replace double3 = .s in 20
+    replace double3 = .t in 21
+    replace double3 = .u in 22
+    replace double3 = .v in 23
+    replace double3 = .w in 24
+    replace double3 = .x in 25
+    replace double3 = .y in 26
+    replace double3 = .z in 27
+
+    if ( `random' > 0 ) {
+        forvalues i = 1 / `random' {
+            gen `double' random`i' = rnormal() * 10
+            replace random`i' = . if mod(_n, 20) == 0
+            if ( `binary' ) {
+                replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'
             }
-            else {
-                replace groupstr    = "" if mi(group)
-                replace groupsubstr = "" if mi(groupsub)
-            }
-            local target `:di cond("`replace'" == "", "groupstr", "group")'
-            replace `target' = "i am a modesly long string" + `target' if !mi(`target')
-            local target `:di cond("`replace'" == "", "groupstr", "group")'
-            replace `target' = "ss" + `target' if !mi(`target')
         }
-        gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
     }
-    qui sum rsort
-    di "Obs = " trim("`:di %21.0gc _N'") "; Groups = " trim("`:di %21.0gc `nj''")
-    compress
-    return local n  = `n'
-    return local nj = `nj'
-    return local offset = `offset'
-    return local string = ("`string'" != "")
 end
 
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks test
+main, checks bench_test

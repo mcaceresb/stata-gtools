@@ -943,6 +943,7 @@ int sf_hash_byvars (struct StataInfo *st_info)
                 }
             }
             st_info->N = N_if;
+            if ( st_info->benchmark ) sf_running_timer (&timer, "\t\tPlugin step 3.1: Adjusted index based on if condition");
         }
 
         st_info->info = mf_panelsetup (ghash1, st_info->N, &J);
@@ -1112,9 +1113,11 @@ int sf_hash_byvars (struct StataInfo *st_info)
 
     if ( st_info->verbose ) {
         if ( nj_min == nj_max )
-            sf_printf ("N = "FMT"; "FMT" balanced groups of size "FMT"\n", st_info->N, J, nj_min);
+            sf_printf ("N = "FMT"; "FMT" balanced groups of size "FMT"\n",
+                       st_info->N, J, nj_min);
         else
-            sf_printf ("N = "FMT"; "FMT" unbalanced groups of sizes "FMT" to "FMT"\n", st_info->N, J, nj_min, nj_max);
+            sf_printf ("N = "FMT"; "FMT" unbalanced groups of sizes "FMT" to "FMT"\n",
+                       st_info->N, J, nj_min, nj_max);
     }
 
     st_info->J      = J;

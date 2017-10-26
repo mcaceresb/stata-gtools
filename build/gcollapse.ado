@@ -741,6 +741,8 @@ program gcollapse, rclass
     exit 0
 end
 
+
+
 * Time the things
 * ---------------
 
@@ -1575,10 +1577,10 @@ else local c_os_: di lower("`c(os)'")
 
 * The legacy versions segfault if they are not loaded first (Unix only)
 if ( "`c_os_'" == "unix" ) {
-    cap program drop __gtools_plugin
+    cap program drop gtoolslegacy_plugin
     cap program gtoolslegacy_plugin, plugin using(`"gtools_`c_os_'_legacy.plugin"')
 
-    cap program drop __gtoolsmulti_plugin
+    cap program drop gtoolslegacymulti_plugin
     cap program gtoolslegacymulti_plugin, plugin using(`"gtools_`c_os_'_multi_legacy.plugin"')
 
     * But we only want to use them when multi-threading fails normally

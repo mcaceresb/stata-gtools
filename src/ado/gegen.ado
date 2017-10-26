@@ -67,7 +67,6 @@ program define gegen, byable(onecall) rclass
     *     local args : subinstr local args "`_sortindex'"  "", all word
     * }
 
-
     * Available functions
     local funcs tag      ///
                 group    ///

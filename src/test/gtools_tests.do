@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Oct  9 14:06:44 EDT 2017
+* Updated: Sun Oct 15 09:55:01 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.7.5
 * Manual:  help gcollapse, help gegen
@@ -288,9 +288,19 @@ program sim, rclass
         gen rsort = runiform() - 0.5
         gen rnorm = rnormal()
         if ( "`sortg'"     == "" ) sort rsort
-        if ( "`groupmiss'" != "" ) replace group = . if runiform() < 0.1
-        if ( "`outmiss'"   != "" ) replace rsort = . if runiform() < 0.1
-        if ( "`outmiss'"   != "" ) replace rnorm = . if runiform() < 0.1
+        if ( "`groupmiss'" != "" ) {
+            replace group = .  if runiform() < 0.1
+            replace group = .a if runiform() < 0.05
+            replace group = .z if runiform() < 0.05
+        }
+        if ( "`outmiss'"   != "" ) {
+            replace rsort = .  if runiform() < 0.1
+            replace rsort = .a if runiform() < 0.05
+            replace rsort = .z if runiform() < 0.05
+            replace rnorm = .  if runiform() < 0.1
+            replace rnorm = .a if runiform() < 0.05
+            replace rnorm = .z if runiform() < 0.05
+        }
         if ( "`float'"     != "" ) replace group = group / `nj'
         if ( "`string'" != "" ) {
             tostring group,    `:di cond("`replace'" == "", "gen(groupstr)",    "replace")'

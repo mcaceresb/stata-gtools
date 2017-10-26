@@ -328,52 +328,52 @@ Benchmark vs isid, obs = 10,000,000, J = 10,000 (in seconds)
     | 12.6 |     . |  3.33 |        3.79 |           . | int1 str_32 double1 int2 str_12 double2                    |
     | 13.8 |     . |  3.98 |        3.46 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
-`gisid` is across the board a massive speed improvement. 
+`gisid` is across the board a massive speed improvement.
 
 Benchmark on Stata/IC vs isid and fisid, obs = 10,000,000, all calls include
 an index to ensure uniqueness (in seconds)
 
-     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
-     | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
-     | 43.3 |  35.5 |   4.2 |        10.3 |        8.46 | str_12                  |
-     | 47.2 |  34.6 |  4.37 |        10.8 |        7.92 | str_12 str_32           |
-     | 47.1 |  39.7 |  4.65 |        10.1 |        8.53 | str_12 str_32 str_4     |
-     | 30.3 |  15.8 |  3.66 |        8.29 |        4.32 | double1                 |
-     |   32 |  16.4 |  3.65 |        8.75 |        4.49 | double1 double2         |
-     | 33.3 |    17 |  4.01 |        8.31 |        4.25 | double1 double2 double3 |
-     | 31.6 |  16.2 |  2.26 |          14 |        7.18 | int1                    |
-     | 33.5 |  17.1 |  3.04 |          11 |        5.63 | int1 int2               |
-     | 35.7 |  17.6 |  3.25 |          11 |        5.41 | int1 int2 int3          |
+    | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
+    | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
+    | 43.3 |  35.5 |   4.2 |        10.3 |        8.46 | str_12                  |
+    | 47.2 |  34.6 |  4.37 |        10.8 |        7.92 | str_12 str_32           |
+    | 47.1 |  39.7 |  4.65 |        10.1 |        8.53 | str_12 str_32 str_4     |
+    | 30.3 |  15.8 |  3.66 |        8.29 |        4.32 | double1                 |
+    |   32 |  16.4 |  3.65 |        8.75 |        4.49 | double1 double2         |
+    | 33.3 |    17 |  4.01 |        8.31 |        4.25 | double1 double2 double3 |
+    | 31.6 |  16.2 |  2.26 |          14 |        7.18 | int1                    |
+    | 33.5 |  17.1 |  3.04 |          11 |        5.63 | int1 int2               |
+    | 35.7 |  17.6 |  3.25 |          11 |        5.41 | int1 int2 int3          |
 
 Benchmark on Stata/IC vs isid and fisid, obs = 10,000,000, J = 10,000 (in seconds)
 
-     | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
-     | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
-     | 15.5 |  10.3 |  2.57 |        6.02 |        4.01 | str_12                  |
-     | 17.3 |    16 |   3.1 |        5.59 |        5.17 | str_12 str_32           |
-     | 17.9 |    19 |  3.48 |        5.14 |        5.47 | str_12 str_32 str_4     |
-     |   13 |  7.51 |  2.54 |        5.11 |        2.96 | double1                 |
-     |   14 |   8.8 |  2.65 |        5.28 |        3.32 | double1 double2         |
-     | 14.2 |  9.25 |  2.73 |        5.22 |        3.39 | double1 double2 double3 |
-     | 9.49 |  3.08 |  1.15 |        8.23 |        2.67 | int1                    |
-     | 14.5 |  3.54 |  1.61 |           9 |        2.19 | int1 int2               |
-     | 16.1 |  3.96 |  1.97 |        8.19 |        2.01 | int1 int2 int3          |
+    | isid | fisid | gisid | ratio (i/g) | ratio (f/g) | varlist                 |
+    | ---- | ----- | ----- | ----------- | ----------- | ----------------------- |
+    | 15.5 |  10.3 |  2.57 |        6.02 |        4.01 | str_12                  |
+    | 17.3 |    16 |   3.1 |        5.59 |        5.17 | str_12 str_32           |
+    | 17.9 |    19 |  3.48 |        5.14 |        5.47 | str_12 str_32 str_4     |
+    |   13 |  7.51 |  2.54 |        5.11 |        2.96 | double1                 |
+    |   14 |   8.8 |  2.65 |        5.28 |        3.32 | double1 double2         |
+    | 14.2 |  9.25 |  2.73 |        5.22 |        3.39 | double1 double2 double3 |
+    | 9.49 |  3.08 |  1.15 |        8.23 |        2.67 | int1                    |
+    | 14.5 |  3.54 |  1.61 |           9 |        2.19 | int1 int2               |
+    | 16.1 |  3.96 |  1.97 |        8.19 |        2.01 | int1 int2 int3          |
 
 ### `levelsof`
 
 Benchmark vs levelsof, obs = 10,000,000, J = 100 (in seconds)
 
-   | levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist |
-   | -------- | --------- | --------- | ----------- | ----------- | ------- |
-   |       18 |      7.58 |      3.89 |        4.62 |        1.95 | str_12  |
-   |     16.1 |      7.76 |      4.34 |        3.71 |        1.79 | str_32  |
-   |     17.3 |      7.23 |      4.65 |        3.71 |        1.55 | str_4   |
-   |     3.92 |      5.46 |      2.66 |        1.47 |        2.05 | double1 |
-   |     3.96 |      5.62 |      2.77 |        1.43 |        2.03 | double2 |
-   |     4.34 |      5.74 |      2.76 |        1.57 |        2.08 | double3 |
-   |     1.61 |      .821 |      .561 |        2.87 |        1.46 | int1    |
-   |     4.63 |      .815 |      .682 |        6.78 |         1.2 | int2    |
-   |     2.21 |      .801 |      .675 |        3.27 |        1.19 | int3    |
+    | levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist |
+    | -------- | --------- | --------- | ----------- | ----------- | ------- |
+    |       18 |      7.58 |      3.89 |        4.62 |        1.95 | str_12  |
+    |     16.1 |      7.76 |      4.34 |        3.71 |        1.79 | str_32  |
+    |     17.3 |      7.23 |      4.65 |        3.71 |        1.55 | str_4   |
+    |     3.92 |      5.46 |      2.66 |        1.47 |        2.05 | double1 |
+    |     3.96 |      5.62 |      2.77 |        1.43 |        2.03 | double2 |
+    |     4.34 |      5.74 |      2.76 |        1.57 |        2.08 | double3 |
+    |     1.61 |      .821 |      .561 |        2.87 |        1.46 | int1    |
+    |     4.63 |      .815 |      .682 |        6.78 |         1.2 | int2    |
+    |     2.21 |      .801 |      .675 |        3.27 |        1.19 | int3    |
 
 In this case, `levelsof` is not a particularly large speed improvement for doubles.
 
@@ -418,7 +418,7 @@ executable exists).
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
-sed -i.bak -e '37,40d' ./lib/spookyhash/build/premake5.lua 
+sed -i.bak -e '37,40d' ./lib/spookyhash/build/premake5.lua
 make spooky
 make clean
 make

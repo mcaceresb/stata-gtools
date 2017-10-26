@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-0.8.1 (2017-10-26)
+
+## Backwards Incompatible
+
+* `merge` now merges labels and formats by default
+
+### Bug fixes
+
+* `gegen` now handles the type of `pctile` correctly.
+
 ## gtools-0.8.0 (2017-10-19)
 
 ## Features

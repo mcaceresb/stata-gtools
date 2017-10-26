@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.0 25Oct2017}{...}
+{* *! version 0.8.1 26Oct2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -91,9 +91,7 @@ user press {hi:Break}
 {p_end}
 {synopt :{opt merge}}merge collapsed results back to oroginal data.
 {p_end}
-{synopt :{opt mergel:abels}}label output stat when using {opt merge}.
-{p_end}
-{synopt :{opt mergef:ormats}}maintain source format when using {opt merge}.
+{synopt :{opt replace}}allow replacing {opt by} variables or existing variables with {opt merge}.
 {p_end}
 {synopt :{opt forceio}}force using disk instead of memory for the collapsed results.
 {p_end}
@@ -158,17 +156,12 @@ value. The programm is passed the requested stat by {opt gcollapse}.
 
 {phang}
 {opt merge} merges the collapsed data back to the original data set.
-Note that if you want to keep the source variable(s) then you {it:need}
-to assign a new name to it for each summary statistic. Otherwise it will
-be overwritten.
+Note that if you want to replace the source variable(s) then you need
+to specify {opt replace}.
 
 {phang}
-{opt mergef:ormats} Tries to format the output stats using the source
-variable formats.
-
-{phang}
-{opt mergel:abels} Labels the output stats using the source variable
-foramts. Can be combined with {opt labelformat} and {opth labelprogram(str)}.
+{opt replace} Replace allows by variables to be overwritten. If run with
+{opt merge} it also allows existing variables to be overwritten.
 
 {phang}
 {opt forceio} By default, when there are more than 3 additional targets

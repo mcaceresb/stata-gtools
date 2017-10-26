@@ -1,4 +1,4 @@
-*! version 0.1.0 24Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -814,6 +814,7 @@ program _gtools_internal, rclass
         }
 
         return scalar used_io = `=scalar(__gtools_used_io)'
+        local runtxt " (internals)"
     }
     else {
         if ( inlist("`gfunction'",  "unique", "egen") ) {
@@ -833,7 +834,7 @@ program _gtools_internal, rclass
         gtools_timer info 98 `"`msg'"', prints(`benchmark') off
     }
 
-    local msg "Total runtime"
+    local msg "Total runtime`runtxt'"
     gtools_timer info 99 `"`msg'"', prints(`benchmark') off
 
     * Return values

@@ -22,6 +22,7 @@
 
 #include "gtools.h"
 #include "spi/stplugin.h"
+#include "spt/st_print.c"
 #include "spt/st_gentools.c"
 #include "spookyhash/src/spookyhash_api.h"
 

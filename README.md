@@ -298,17 +298,17 @@ J = 10,000 (in seconds)
 
 Benchmark vs levelsof, obs = 10,000,000, J = 100 (in seconds)
 
-   | levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist |
-   | -------- | --------- | --------- | ----------- | ----------- | ------- |
-   |     21.8 |      8.25 |      2.14 |        10.2 |        3.86 | str_12  |
-   |     21.7 |      8.67 |      2.49 |        8.72 |        3.48 | str_32  |
-   |     21.6 |      7.69 |      1.64 |        13.2 |        4.68 | str_4   |
-   |      3.9 |      5.63 |      .807 |        4.83 |        6.98 | double1 |
-   |      3.4 |      5.51 |      .895 |         3.8 |        6.16 | double2 |
-   |     2.39 |      5.56 |      .729 |        3.27 |        7.63 | double3 |
-   |      3.5 |      .564 |      .409 |        8.56 |        1.38 | int1    |
-   |     1.32 |      .608 |       .46 |        2.87 |        1.32 | int2    |
-   |     1.65 |       6.4 |      .448 |        3.67 |        14.3 | int3    |
+    | levelsof | flevelsof | glevelsof | ratio (i/g) | ratio (f/g) | varlist |
+    | -------- | --------- | --------- | ----------- | ----------- | ------- |
+    |     21.8 |      8.25 |      2.14 |        10.2 |        3.86 | str_12  |
+    |     21.7 |      8.67 |      2.49 |        8.72 |        3.48 | str_32  |
+    |     21.6 |      7.69 |      1.64 |        13.2 |        4.68 | str_4   |
+    |      3.9 |      5.63 |      .807 |        4.83 |        6.98 | double1 |
+    |      3.4 |      5.51 |      .895 |         3.8 |        6.16 | double2 |
+    |     2.39 |      5.56 |      .729 |        3.27 |        7.63 | double3 |
+    |      3.5 |      .564 |      .409 |        8.56 |        1.38 | int1    |
+    |     1.32 |      .608 |       .46 |        2.87 |        1.32 | int2    |
+    |     1.65 |       6.4 |      .448 |        3.67 |        14.3 | int3    |
 
 `int3` includes extended missing values, which explains the larger discrepancy.
 
@@ -428,37 +428,37 @@ Benchmark vs unique, obs = 10,000,000, J = 10,000 (in seconds)
 
 Benchmark vs gsort, obs = 1,000,000, J = 10,000 (in seconds; datasets are compared via cf)
 
-   | gsort | hashsort | ratio (g/h) | varlist                                                        |
-   | ----- | -------- | ----------- | -------------------------------------------------------------- |
-   |  1.24 |     .598 |        2.07 | -str_12                                                        |
-   |  2.27 |     .796 |        2.86 | str_12 -str_32                                                 |
-   |   3.6 |     .741 |        4.86 | str_12 -str_32 str_4                                           |
-   |  1.26 |     .487 |        2.58 | -double1                                                       |
-   |  2.06 |     .486 |        4.24 | double1 -double2                                               |
-   |  3.31 |     .532 |        6.23 | double1 -double2 double3                                       |
-   |  .946 |     .402 |        2.35 | -int1                                                          |
-   |   1.6 |     .437 |        3.67 | int1 -int2                                                     |
-   |  2.43 |     .597 |        4.07 | int1 -int2 int3                                                |
-   |  4.43 |     .711 |        6.23 | -int1 -str_32 -double1                                         |
-   |     7 |       .8 |        8.75 | int1 -str_32 double1 -int2 str_12 -double2                     |
-   |    14 |     .917 |        15.3 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
+    | gsort | hashsort | ratio (g/h) | varlist                                                        |
+    | ----- | -------- | ----------- | -------------------------------------------------------------- |
+    |  1.24 |     .598 |        2.07 | -str_12                                                        |
+    |  2.27 |     .796 |        2.86 | str_12 -str_32                                                 |
+    |   3.6 |     .741 |        4.86 | str_12 -str_32 str_4                                           |
+    |  1.26 |     .487 |        2.58 | -double1                                                       |
+    |  2.06 |     .486 |        4.24 | double1 -double2                                               |
+    |  3.31 |     .532 |        6.23 | double1 -double2 double3                                       |
+    |  .946 |     .402 |        2.35 | -int1                                                          |
+    |   1.6 |     .437 |        3.67 | int1 -int2                                                     |
+    |  2.43 |     .597 |        4.07 | int1 -int2 int3                                                |
+    |  4.43 |     .711 |        6.23 | -int1 -str_32 -double1                                         |
+    |     7 |       .8 |        8.75 | int1 -str_32 double1 -int2 str_12 -double2                     |
+    |    14 |     .917 |        15.3 | int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3 |
 
 Benchmark vs sort, obs = 10,000,000, J = 10,000 (in seconds; datasets are compared via cf)
 
-   |  sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist                                                    |
-   | ----- | ----- | -------- | ----------- | ----------- | ---------------------------------------------------------- |
-   |  17.8 |  14.7 |     7.07 |        2.52 |        2.08 | str_12                                                     |
-   |    22 |  18.3 |     8.46 |         2.6 |        2.16 | str_12 str_32                                              |
-   |  28.1 |  20.6 |     8.97 |        3.13 |         2.3 | str_12 str_32 str_4                                        |
-   |    21 |  12.6 |     8.37 |        2.51 |        1.51 | double1                                                    |
-   |  23.6 |  14.5 |     8.87 |        2.66 |        1.64 | double1 double2                                            |
-   |  24.1 |  16.8 |     8.82 |        2.73 |         1.9 | double1 double2 double3                                    |
-   |  20.4 |  11.1 |     7.37 |        2.76 |        1.51 | int1                                                       |
-   |  21.9 |  10.5 |      8.1 |        2.71 |        1.29 | int1 int2                                                  |
-   |  22.8 |  12.9 |     7.62 |           3 |        1.69 | int1 int2 int3                                             |
-   |  22.6 |     . |     8.34 |        2.71 |           . | int1 str_32 double1                                        |
-   |  24.2 |     . |     7.71 |        3.13 |           . | int1 str_32 double1 int2 str_12 double2                    |
-   |  32.1 |     . |     10.3 |        3.11 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
+    |  sort | fsort | hashsort | ratio (g/h) | ratio (f/h) | varlist                                                    |
+    | ----- | ----- | -------- | ----------- | ----------- | ---------------------------------------------------------- |
+    |  17.8 |  14.7 |     7.07 |        2.52 |        2.08 | str_12                                                     |
+    |    22 |  18.3 |     8.46 |         2.6 |        2.16 | str_12 str_32                                              |
+    |  28.1 |  20.6 |     8.97 |        3.13 |         2.3 | str_12 str_32 str_4                                        |
+    |    21 |  12.6 |     8.37 |        2.51 |        1.51 | double1                                                    |
+    |  23.6 |  14.5 |     8.87 |        2.66 |        1.64 | double1 double2                                            |
+    |  24.1 |  16.8 |     8.82 |        2.73 |         1.9 | double1 double2 double3                                    |
+    |  20.4 |  11.1 |     7.37 |        2.76 |        1.51 | int1                                                       |
+    |  21.9 |  10.5 |      8.1 |        2.71 |        1.29 | int1 int2                                                  |
+    |  22.8 |  12.9 |     7.62 |           3 |        1.69 | int1 int2 int3                                             |
+    |  22.6 |     . |     8.34 |        2.71 |           . | int1 str_32 double1                                        |
+    |  24.2 |     . |     7.71 |        3.13 |           . | int1 str_32 double1 int2 str_12 double2                    |
+    |  32.1 |     . |     10.3 |        3.11 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3 |
 
 The above speed gains only hold when sorting groups.
 

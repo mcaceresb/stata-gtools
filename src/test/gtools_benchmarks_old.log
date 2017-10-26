@@ -1,0 +1,296 @@
+
+  ___  ____  ____  ____  ____ (R)
+ /__    /   ____/   /   ____/
+___/   /   /___/   /   /___/   13.1   Copyright 1985-2013 StataCorp LP
+  Statistics/Data Analysis            StataCorp
+                                      4905 Lakeway Drive
+                                      College Station, Texas 77845 USA
+                                      800-STATA-PC        http://www.stata.com
+                                      979-696-4600        stata@stata.com
+                                      979-696-4601 (fax)
+
+Single-user Stata perpetual license:
+       Serial number:  301306294610
+         Licensed to:  Mauricio Caceres
+                       mauricio.caceres.bravo@gmail.com
+
+Notes:
+      1.  Command line editing disabled
+      2.  Stata running in batch mode
+
+Note:  Your site can add messages to the introduction by editing the file
+       stata.msg in the directory where Stata is installed.
+
+. do gtools_tests_old.do
+
+. * ---------------------------------------------------------------------
+. * Project: gtools
+. * Program: gtools_tests.do
+. * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
+. * Created: Tue May 16 07:23:02 EDT 2017
+. * Updated: Mon Oct  9 14:06:44 EDT 2017
+. * Purpose: Unit tests for gtools
+. * Version: 0.7.5
+. * Manual:  help gcollapse, help gegen
+.
+. * Stata start-up options
+. * ----------------------
+.
+. version 13
+
+. clear all
+
+. set more off
+
+. set varabbrev off
+
+. * set seed 42
+. set seed 1729
+
+. set linesize 128
+
+. ***********************************************************************
+. *                           Data simulation                           *
+. ***********************************************************************
+.
+. capture program drop bench_sim
+
+. program bench_sim
+  1.     syntax, [n(int 100) nj(int 10) njsub(int 2) nvars(int 2)]
+  2.     local offset = -123456
+  3.
+.     clear
+  4.     set obs `n'
+  5.     gen group  = ceil(`nj' *  _n / _N) + `offset'
+  6.     gen long grouplong = ceil(`nj' *  _n / _N) + `offset'
+  7.     bys group: gen groupsub      = ceil(`njsub' *  _n / _N)
+  8.     bys group: gen groupsubfloat = ceil(`njsub' *  _n / _N) + 0.5
+  9.     tostring group, gen(groupstr)
+ 10.     replace groupstr = "i am a modestly long string" + groupstr
+ 11.
+.     forvalues i = 1 / `nvars' {
+ 12.         gen x`i' = rnormal()
+ 13.     }
+ 14.     gen rsort = runiform() - 0.5
+ 15.     sort rsort
+ 16.
+.     replace group = . if runiform() < 0.1
+ 17.     replace rsort = . if runiform() < 0.1
+ 18. end
+
+.
+. ***********************************************************************
+. *                      Benchmark fcollapse only                       *
+. ***********************************************************************
+.
+. capture program drop bench_switch_fcoll
+
+. program bench_switch_fcoll
+  1.     syntax anything, style(str) [GCOLLapse(str) legacy *]
+  2.     if !inlist("`style'", "ftools", "gtools") {
+  3.         di as error "Don't know benchmark style '`style''; available: ftools, gtools"
+  4.         exit 198
+  5.     }
+  6.
+.     local 0 `anything', `options'
+  7.     if ( "`style'" == "ftools" ) {
+  8.         syntax anything, by(str) [kvars(int 5) stats(str) kmin(int 4) kmax(int 7) *]
+  9.         if ("`stats'" == "") local stats sum
+ 10.         local i = 0
+ 11.         local N ""
+ 12.         local L N
+ 13.         local dstr J = 100
+ 14.         di "Benchmarking `L' for `dstr'; by(`by')"
+ 15.         di "    vars  = `anything'"
+ 16.         di "    stats = `stats'"
+ 17.
+.         mata: print_matrix = J(1, 0, "")
+ 18.         mata: sim_matrix   = J(1, 0, "")
+ 19.         forvalues k = `kmin' / `kmax' {
+ 20.             mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
+ 21.             mata: sim_matrix   = sim_matrix,   "bench_sim_ftools `:di %21.0g 2 * 10^`k'' `kvars'"
+ 22.             local N `N' `:di %21.0g 2 * 10^`k''
+ 23.         }
+ 24.     }
+ 25.     else {
+ 26.         * syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 1) kmax(int 6) *]
+.         syntax anything, by(str) [margin(str) nj(int 10) pct(str) stats(str) obsexp(int 6) kmin(int 4) kmax(int 7) nvars(int 2
+> ) *]
+ 27.         if !inlist("`margin'", "N", "J") {
+ 28.             di as error "Don't know margin '`margin''; available: N, J"
+ 29.             exit 198
+ 30.         }
+ 31.
+.         if ("`stats'" == "") local stats sum mean max min count percent first last firstnm lastnm
+ 32.         local stats `stats' `pct'
+ 33.         local i = 0
+ 34.         local N ""
+ 35.         local L `margin'
+ 36.         local jstr = trim("`:di %21.0gc `nj''")
+ 37.         local nstr = trim("`:di %21.0gc `:di 5 * 10^`obsexp'''")
+ 38.         local dstr = cond("`L'" == "N", "J = `jstr'", "N = `nstr'")
+ 39.         di "Benchmarking `L' for `dstr'; by(`by')"
+ 40.         di "    vars  = `anything'"
+ 41.         di "    stats = `stats'"
+ 42.
+.         mata: print_matrix = J(1, 0, "")
+ 43.         mata: sim_matrix   = J(1, 0, "")
+ 44.         forvalues k = `kmin' / `kmax' {
+ 45.             if ( "`L'" == "N" ) {
+ 46.                 mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 2 * 10^`k'''"
+ 47.                 mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 2 * 10^`k'') nj(`nj') njsub(2) nvars(`nvars')"
+ 48.             }
+ 49.             else {
+ 50.                 mata: print_matrix = print_matrix, "    `:di %21.0gc `:di 10^`k'''"
+ 51.                 mata: sim_matrix   = sim_matrix, "bench_sim, n(`:di %21.0g 5 * 10^`obsexp'') nj(`:di %21.0g 10^`k'') njsub(
+> 2) nvars(`nvars')"
+ 52.             }
+ 53.             local J `J' `:di %21.0g 10^`k''
+ 54.             local N `N' `:di %21.0g 2 * 10^`k''
+ 55.         }
+ 56.     }
+ 57.
+.     local collapse ""
+ 58.     foreach stat of local stats {
+ 59.         local collapse `collapse' (`stat')
+ 60.         foreach var of local anything {
+ 61.             local collapse `collapse' `stat'_`var' = `var'
+ 62.         }
+ 63.     }
+ 64.
+.     if ( "`gcollapse'" == "" ) local w f
+ 65.     else local w g
+ 66.
+.     forvalues k = 1 / `:di `kmax' - `kmin' + 1' {
+ 67.         mata: st_local("sim",   sim_matrix[`k'])
+ 68.         qui `sim'
+ 69.         mata: printf(print_matrix[`k'])
+ 70.         preserve
+ 71.             local ++i
+ 72.             timer clear
+ 73.             timer on `i'
+ 74.             mata: printf(" gcollapse-default `options'")
+ 75.                 qui gcollapse `collapse', by(`by') `options' fast `legacy'
+ 76.             timer off `i'
+ 77.             qui timer list
+ 78.             local r`i' = `r(t`i')'
+ 79.             mata: printf(" (`r`i'') ")
+ 80.         restore, preserve
+ 81.             local ++i
+ 82.             timer clear
+ 83.             timer on `i'
+ 84.             mata: printf(" `w'collapse `gcollapse'")
+ 85.                 qui `w'collapse `collapse', by(`by') fast `gcollapse'
+ 86.             timer off `i'
+ 87.             qui timer list
+ 88.             local r`i' = `r(t`i')'
+ 89.             mata: printf(" (`r`i'') \n")
+ 90.         restore
+ 91.     }
+ 92.
+.     local i = 1
+ 93.     di "Results varying `L' for `dstr'; by(`by')"
+ 94.     di "|              `L' | gcollapse | `w'collapse | ratio (f/g) |"
+ 95.     di "| -------------- | --------- | --------- | ----------- |"
+ 96.     foreach nn in ``L'' {
+ 97.         local ii  = `i' + 1
+ 98.         di "| `:di %14.0gc `nn'' | `:di %9.2f `r`i''' | `:di %9.2f `r`ii''' | `:di %11.2f `r`ii'' / `r`i''' |"
+ 99.         local ++i
+100.         local ++i
+101.     }
+102.     timer clear
+103. end
+
+. * Programs run
+. * ------------
+.
+. * bench_switch_fcoll y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15, by(x3) kmin(4) kmax(7) kvars(15) style(ftools) gcoll(debug_force_single `legacy')
+. * bench_switch_fcoll y1 y2 y3,          by(x3)  kmin(4) kmax(7) kvars(3) stats(mean median)               style(ftools) gcoll(debug_force_single `legacy')
+. * bench_switch_fcoll y1 y2 y3 y4 y5 y6, by(x3)  kmin(4) kmax(7) kvars(6) stats(sum mean count min max)    style(ftools) gcoll(debug_force_single `legacy')
+. * bench_switch_fcoll x1 x2, margin(N) by(group) kmin(4) kmax(7) pct(median iqr p23 p77)                   style(gtools) gcoll(debug_force_single `legacy')
+. * bench_switch_fcoll x1 x2, margin(J) by(group) kmin(1) kmax(6) pct(median iqr p23 p77) obsexp(6)         style(gtools) gcoll(debug_force_single `legacy')
+
+. * ---------------------------------------------------------------------
+. * Run the things
+.
+. main, bench_fcoll
+
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
+    stats = sum
+                   20,000 gcollapse-default  (.063)  fcollapse  (.045)
+                  200,000 gcollapse-default  (.108)  fcollapse  (.202)
+                2,000,000 gcollapse-default  (.624)  fcollapse  (2.055)
+               20,000,000 gcollapse-default  (7.895)  fcollapse  (24.51)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|         20,000 |      0.06 |      0.04 |        0.71 |
+|        200,000 |      0.11 |      0.20 |        1.87 |
+|      2,000,000 |      0.62 |      2.06 |        3.29 |
+|     20,000,000 |      7.89 |     24.51 |        3.10 |
+
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3
+    stats = mean median
+                   20,000 gcollapse-default  (.019)  fcollapse  (.083)
+                  200,000 gcollapse-default  (.05)  fcollapse  (.238)
+                2,000,000 gcollapse-default  (.398)  fcollapse  (2.759)
+               20,000,000 gcollapse-default  (3.894)  fcollapse  (35.745)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|         20,000 |      0.02 |      0.08 |        4.37 |
+|        200,000 |      0.05 |      0.24 |        4.76 |
+|      2,000,000 |      0.40 |      2.76 |        6.93 |
+|     20,000,000 |      3.89 |     35.74 |        9.18 |
+
+Benchmarking N for J = 100; by(x3)
+    vars  = y1 y2 y3 y4 y5 y6
+    stats = sum mean count min max
+                   20,000 gcollapse-default  (.042)  fcollapse  (.041)
+                  200,000 gcollapse-default  (.106)  fcollapse  (.195)
+                2,000,000 gcollapse-default  (.409)  fcollapse  (1.796)
+               20,000,000 gcollapse-default  (4.104)  fcollapse  (20.204)
+Results varying N for J = 100; by(x3)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|         20,000 |      0.04 |      0.04 |        0.98 |
+|        200,000 |      0.11 |      0.20 |        1.84 |
+|      2,000,000 |      0.41 |      1.80 |        4.39 |
+|     20,000,000 |      4.10 |     20.20 |        4.92 |
+
+Benchmarking N for J = 10; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                   20,000 gcollapse-default  (.044)  fcollapse  (.065)
+                  200,000 gcollapse-default  (.085)  fcollapse  (.5660000000000001)
+                2,000,000 gcollapse-default  (.573)  fcollapse  (8.324)
+               20,000,000 gcollapse-default  (6.487)  fcollapse  (151.948)
+Results varying N for J = 10; by(group)
+|              N | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|         20,000 |      0.04 |      0.07 |        1.48 |
+|        200,000 |      0.09 |      0.57 |        6.66 |
+|      2,000,000 |      0.57 |      8.32 |       14.53 |
+|     20,000,000 |      6.49 |    151.95 |       23.42 |
+
+Benchmarking J for N = 5,000,000; by(group)
+    vars  = x1 x2
+    stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
+                       10 gcollapse-default  (2.106)  fcollapse  (23.761)
+                      100 gcollapse-default  (1.389)  fcollapse  (17.497)
+                    1,000 gcollapse-default  (1.5)  fcollapse  (15.1)
+                   10,000 gcollapse-default  (2.881)  fcollapse  (14)
+                  100,000 gcollapse-default  (3.011)  fcollapse  (13.775)
+                1,000,000 gcollapse-default  (3.911)  fcollapse  (43.363)
+Results varying J for N = 5,000,000; by(group)
+|              J | gcollapse | fcollapse | ratio (f/g) |
+| -------------- | --------- | --------- | ----------- |
+|             10 |      2.11 |     23.76 |       11.28 |
+|            100 |      1.39 |     17.50 |       12.60 |
+|          1,000 |      1.50 |     15.10 |       10.07 |
+|         10,000 |      2.88 |     14.00 |        4.86 |
+|        100,000 |      3.01 |     13.78 |        4.57 |
+|      1,000,000 |      3.91 |     43.36 |       11.09 |
+

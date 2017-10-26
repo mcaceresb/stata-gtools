@@ -89,14 +89,19 @@ which is a limitation of `ftools`.
 
 | Gtools      | Ftools          | Speedup     |
 | ----------- | --------------- | ----------- |
-| `gcollapse` | `fcollapse`     | 2-9         |
-| `gegen`     | `fegen`         | 2.5-4 (*)   |
+| `gcollapse` | `fcollapse`     | 2-9 (+)     |
+| `gegen`     | `fegen`         | 2.5-4 (.)   |
 | `gisid`     | `fisid`         | 4-14        |
 | `glevelsof` | `flevelsof`     | 1.5-13      |
 | `hashsort`  | `fsort`         | 2.5-4       |
 
-<small>Pervious versions of `gcollapse` had a larger lower bound for the speed
-gain due to mulit-threading, which has been removed in this version.</small>
+<small>(+) Pervious benchmarks of `gcollapse` showed larger speed gains
+in part due to mulit-threading, which has been removed as of `0.8.0`, and
+in part because the old benchmarks were more favorable to `gcollapse`;
+in the old benchmarks, the speed gain is still 3-23, even without
+multi-threading. See `./src/test/gtools_benchmarks_old.log`</small>
+
+<small>(.) Only `egen group` was benchmarked rigorously.</small>
 
 Acknowledgements
 ----------------

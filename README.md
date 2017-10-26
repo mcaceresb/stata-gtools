@@ -214,7 +214,8 @@ program my_pretty_stat, rclass
     return local prettystat = `"`prettystat'"'
 end
 sysuse auto, clear
-gcollapse (mean) mean = price (sum) sum = price (sd) sd = price, by(foreign) labelformat(#stat:pretty# of #sourcelabel#) labelp(my_pretty_stat)
+gcollapse (mean) mean = price (sum) sum = price (sd) sd = price, ///
+    by(foreign) labelformat(#stat:pretty# of #sourcelabel#) labelp(my_pretty_stat)
 desc
 ```
 
@@ -234,6 +235,9 @@ gcollapse (mean) mean (sum) sum (sd) price, ///
     by(foreign) labelformat(#sourcelabel#) labelp(my_pretty_stat)
 desc
 ```
+
+Note in this case `sd` does not appear in the result's label because the
+`#stat#` placeholder does not appear.
 
 Benchmarks
 ----------

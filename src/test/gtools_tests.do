@@ -30,10 +30,6 @@ if ( _rc ) ssc install unique
 * Main program wrapper
 * --------------------
 
-* Generated additional targets; 2.0 seconds
-* +0.575
-
-
 program main
     syntax, [CAPture NOIsily legacy *]
 

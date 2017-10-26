@@ -20,4 +20,5 @@ script:
   - make clean
   - ALL_CFLAGS+=-fPIC make
   - cd -
+  - ls -lahR ./lib/spookyhash/build/
   - make clean && make

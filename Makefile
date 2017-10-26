@@ -19,7 +19,7 @@ else
 		OUT = build/gtools_unix$(LEGACY).plugin
 		OUTE = build/env_set_unix$(LEGACY).plugin
 		SPOOKYLIB = libspookyhash.a
-		SPOOKY = -L./lib/spookyhash/build/bin/Release -l:$(SPOOKYLIB)
+		SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC

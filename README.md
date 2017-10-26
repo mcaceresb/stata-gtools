@@ -11,7 +11,7 @@ _Gtools_: Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, egen, isid, levelsof, and unique using C plugins
 for a massive speed improvement.
 
-`version 0.8.0 25Oct2017`
+`version 0.8.1 26Oct2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 

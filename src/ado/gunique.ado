@@ -1,4 +1,4 @@
-*! version 0.1.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -36,7 +36,7 @@ program gunique, rclass
         exit 198
     }
 
-    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision'
+    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision' seecount
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)

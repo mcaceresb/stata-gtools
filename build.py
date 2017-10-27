@@ -107,6 +107,7 @@ gtools_ssc = [
     "gcollapse.ado",
     "gegen.ado",
     "gunique.ado",
+    "gdistinct.ado",
     "glevelsof.ado",
     "gisid.ado",
     "hashsort.ado",
@@ -114,6 +115,7 @@ gtools_ssc = [
     "gcollapse.sthlp",
     "gegen.sthlp",
     "gunique.sthlp",
+    "gdistinct.sthlp",
     "glevelsof.sthlp",
     "gisid.sthlp",
     "hashsort.sthlp",
@@ -234,6 +236,7 @@ copy2(path.join("src", "stata.toc"),       gdir)
 copy2(path.join("doc", "gcollapse.sthlp"), gdir)
 copy2(path.join("doc", "gegen.sthlp"),     gdir)
 copy2(path.join("doc", "gunique.sthlp"),   gdir)
+copy2(path.join("doc", "gdistinct.sthlp"),   gdir)
 copy2(path.join("doc", "glevelsof.sthlp"), gdir)
 copy2(path.join("doc", "gisid.sthlp"),     gdir)
 copy2(path.join("doc", "hashsort.sthlp"),  gdir)
@@ -243,6 +246,7 @@ copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)
 copy2(path.join("src", "ado", "gegen.ado"),            gdir)
 copy2(path.join("src", "ado", "gunique.ado"),          gdir)
+copy2(path.join("src", "ado", "gdistinct.ado"),          gdir)
 copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
 copy2(path.join("src", "ado", "hashsort.ado"),         gdir)

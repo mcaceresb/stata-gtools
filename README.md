@@ -8,10 +8,10 @@
 | [License](#license)
 
 _Gtools_: Faster Stata for big data. This packages provides a hash-based
-implementation of collapse, egen, isid, levelsof, and unique using C plugins
-for a massive speed improvement.
+implementation of collapse, egen, isid, levelsof, and unique/distinct using C
+plugins for a massive speed improvement.
 
-`version 0.8.1 26Oct2017`
+`version 0.8.3 26Oct2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -28,6 +28,7 @@ Stata using hashes and C plugins. This includes (benchmarked using Stata/IC):
 | `gisid`     | `isid`          |  8 to 30          | `using`, `sort` | `if`, `in`                       |
 | `glevelsof` | `levelsof`      |  3 to 13          |                 | Multiple variables               |
 | `gunique`   | `unique`        |  4 to 26          | `by`            |                                  |
+| `gdistinct` | `distinct`      |  4 to 26          |                 |                                  |
 
 <small>Commands were benchmarked on a Linux laptop with Stata/IC; gains in Stata/MP are smaller.</small>
 
@@ -479,7 +480,7 @@ all calls include an index to ensure uniqueness.
 |   39.5 |       . |    5.32 |        7.42 |           . | int1 str_32 double1 int2 str_12 double2
 |   45.1 |       . |    6.15 |        7.32 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
-Benchmark vs unique, obs = 10,000,000, J = 10,000 (in seconds)
+Benchmark vs unique, obs = 10,000,000, J = 10,000 (in seconds).
 
 | unique | funique | gunique | ratio (i/g) | ratio (f/g) | varlist
 | ------ | ------- | ------- | ----------- | ----------- | -------
@@ -496,9 +497,9 @@ Benchmark vs unique, obs = 10,000,000, J = 10,000 (in seconds)
 |   17.5 |       . |    4.35 |        4.02 |           . | int1 str_32 double1 int2 str_12 double2
 |   19.6 |       . |    5.05 |        3.88 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
-`gunique` ~4-26 times faster than `unique` and ~3-25 times faster than `funique`.
-Note that `funique` is not an actual `ftools` command, but rather a prototype that
-is found in their testing files.
+`gunique` ~4-26 times faster than `unique`, and ~3-25 times faster than
+`funique`.  Note that `funique` is not an actual `ftools` command, but rather
+a prototype that is found in their testing files.
 
 ### Hash sort
 

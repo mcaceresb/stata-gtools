@@ -1,10 +1,11 @@
-v 0.8.1
+v 0.8.3
 d
 d 'GTOOLS': Faster group operations using C plugins
 d
 d This package provides a fast C-based implementations of Stata group
-d commands, such as collapse, egen, levelsof, isid, unique via gcollapse,
-d gegen, and so on. This package was inspired by Sergio Correia's ftools.
+d commands, such as collapse, egen, levelsof, isid, unique/distinct via
+d gcollapse, gegen, and so on. This package was inspired by Sergio Correia's
+d ftools.
 d
 d KW: plugin
 d KW: gtools
@@ -13,6 +14,7 @@ d KW: egen
 d KW: levelsof
 d KW: isid
 d KW: unique
+d KW: distinct
 d KW: sort
 d KW: gsort
 d KW: gegen
@@ -20,6 +22,7 @@ d KW: gcollapse
 d KW: gisid
 d KW: glevelsof
 d KW: gunique
+d KW: gdistinct
 d KW: hashsort
 d
 d Requires: Stata version 13.1
@@ -33,6 +36,7 @@ f _gtools_internal.ado
 f gcollapse.ado
 f gegen.ado
 f gunique.ado
+f gdistinct.ado
 f glevelsof.ado
 f gisid.ado
 f hashsort.ado
@@ -40,6 +44,7 @@ f gtools.ado
 f gcollapse.sthlp
 f gegen.sthlp
 f gunique.sthlp
+f gdistinct.sthlp
 f glevelsof.sthlp
 f gisid.sthlp
 f hashsort.sthlp

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.1 26Oct2017}{...}
+{* *! version 0.8.3 26Oct2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -31,7 +31,7 @@ traditional stata commands. The following are available as part of gtools:
 {manhelp glevelsof R:glevelsof} {opt levelsof} replacement. {p_end}
 
 {p 8 17 2}
-{manhelp gunique R:gunique} Count unique levels of a set of variables. {p_end}
+{manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct} Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
 {manhelp hashsort R:hashsort} (Experimental.) Hash-based sorting. {p_end}

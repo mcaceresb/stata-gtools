@@ -5,7 +5,7 @@
  * Updated: Wed Oct 25 20:33:27 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.8.1
+ * Version: 0.8.3
  *********************************************************************/
 
 /**
@@ -229,6 +229,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     size_t verbose,
            benchmark,
            countonly,
+           seecount,
            missing,
            nomiss,
            unsorted,
@@ -315,6 +316,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_int("__gtools_any_if",       &any_if)        )) goto exit;
     if ( (rc = sf_scalar_int("__gtools_init_targ",    &init_targ)     )) goto exit;
 
+    if ( (rc = sf_scalar_int("__gtools_seecount",     &seecount)      )) goto exit;
     if ( (rc = sf_scalar_int("__gtools_countonly",    &countonly)     )) goto exit;
     if ( (rc = sf_scalar_int("__gtools_unsorted",     &unsorted)      )) goto exit;
     if ( (rc = sf_scalar_int("__gtools_missing",      &missing)       )) goto exit;
@@ -410,6 +412,7 @@ int sf_parse_info (struct StataInfo *st_info, int level)
 
     st_info->unsorted      = unsorted;
     st_info->countonly     = countonly;
+    st_info->seecount      = seecount;
     st_info->missing       = missing;
     st_info->nomiss        = nomiss;
     st_info->replace       = replace;
@@ -588,6 +591,7 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
         st_info->biject    = 1;
         st_info->J         = 1;
         st_info->countonly = 1;
+        st_info->seecount  = 0;
         st_info->byvars_mins[0] = 0;
         st_info->byvars_maxs[0] = 0;
         st_info->nj_min  = st_info->N;
@@ -1120,7 +1124,7 @@ next:
             if (nj_max < (info[j + 1] - info[j])) nj_max = (info[j + 1] - info[j]);
         }
 
-        if ( st_info->verbose || st_info->countonly ) {
+        if ( st_info->verbose || (st_info->countonly & st_info->seecount) ) {
             if ( nj_min == nj_max )
                 sf_printf ("N = "FMT"; "FMT" balanced groups of size "FMT"\n",
                            st_info->N, st_info->J, nj_min);

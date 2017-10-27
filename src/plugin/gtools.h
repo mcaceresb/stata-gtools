@@ -43,6 +43,7 @@ struct StataInfo {
     short verbose;
     short benchmark;
     short countonly;
+    short seecount;
     short missing;
     short unsorted;
     short nomiss;

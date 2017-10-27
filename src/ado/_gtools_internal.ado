@@ -1,4 +1,4 @@
-*! version 0.1.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -40,6 +40,7 @@ program _gtools_internal, rclass
                                   /// General options
                                   /// ---------------
                                   ///
+        seecount                  /// print group info to console
         COUNTonly                 /// report group info and exit
         MISSing                   /// Include missing values
         unsorted                  /// Do not sort hash values; faster
@@ -320,6 +321,7 @@ program _gtools_internal, rclass
     scalar __gtools_missing    = ( "`missing'"     != "" )
     scalar __gtools_unsorted   = ( "`unsorted'"    != "" )
     scalar __gtools_countonly  = ( "`countonly'"   != "" )
+    scalar __gtools_seecount   = ( "`seecount'"    != "" )
     scalar __gtools_nomiss     = ( "`exitmissing'" != "" )
     scalar __gtools_replace    = ( "`replace'"     != "" )
     scalar __gtools_countmiss  = ( "`countmiss'"   != "" )
@@ -737,11 +739,11 @@ program _gtools_internal, rclass
             exit `rc'
         }
 
-        if ( "`gen'" == "" ) {
+        if ( "`gen_name'" == "" ) {
             if ( !`invert' ) sort `byvars'
         }
         else {
-            sort `gen'
+            sort `gen_name'
         }
 
         local msg "Stata reshuffle"
@@ -892,6 +894,7 @@ program clean_all
     cap scalar drop __gtools_verbose
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_countonly
+    cap scalar drop __gtools_seecount
     cap matrix drop __gtools_unsorted
     cap scalar drop __gtools_nomiss
     cap scalar drop __gtools_missing

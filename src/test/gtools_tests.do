@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Oct 25 20:33:17 EDT 2017
+* Updated: Thu Oct 26 06:01:25 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.8.1
+* Version: 0.8.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -93,6 +93,8 @@ program main
             bench_isid,     n(1000) bench(1) `noisily' oncollision(error)
             bench_levelsof, n(100)  bench(1) `noisily' oncollision(error)
             bench_unique,   n(1000) bench(1) `noisily' oncollision(error)
+            bench_unique,   n(1000) bench(1) `noisily' oncollision(error) distinct
+            * bench_unique,   n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
             bench_hashsort, n(1000) bench(1) `noisily' oncollision(error)
         }
 
@@ -109,6 +111,8 @@ program main
             bench_isid,     n(10000) bench(10)  `noisily' oncollision(error)
             bench_levelsof, n(100)   bench(100) `noisily' oncollision(error)
             bench_unique,   n(10000) bench(10)  `noisily' oncollision(error)
+            bench_unique,   n(10000) bench(10)  `noisily' oncollision(error) distinct
+            * bench_unique,   n(10000) bench(10)  `noisily' oncollision(error) distinct joint distunique
             bench_hashsort, n(10000) bench(10)  `noisily' oncollision(error)
         }
     }

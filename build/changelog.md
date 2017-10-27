@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.8.2 (2017-10-26)
+
+## Features
+
+* `gdistinct` is a replacement for `distinct`.  It is functionally identical
+  to `gunique` except it mimics the output format of `distinct`.
+
 ## gtools-0.8.1 (2017-10-26)
 
 ## Backwards Incompatible
@@ -9,6 +16,7 @@ Change Log
 
 ### Bug fixes
 
+* Fxied examples in README; fixed minor typos in README
 * `gegen` now handles the type of `pctile` correctly.
 
 ## gtools-0.8.0 (2017-10-19)

@@ -39,13 +39,15 @@ program main
     else {
         local c_os_: di lower("`c(os)'")
     }
-    log using gtools_tests_`c_os'.log, text repace
+    log using gtools_tests_`c_os_'.log, text replace name(gtools_tests)
 
     * Set up
     * ------
 
     local  progname tests
     local  start_time "$S_TIME $S_DATE"
+
+    di _n(1)
     di "Start:   `start_time'"
     di "Options: `options'"
 
@@ -61,6 +63,8 @@ program main
         * qui do test_hashsort.do
 
         if ( `:list posof "basic_checks" in options' ) {
+
+            di _n(1)
 
             unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
@@ -131,7 +135,7 @@ program main
     local rc = _rc
 
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
-    log close _all
+    log close gtools_tests
     exit `rc'
 end
 

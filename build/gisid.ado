@@ -2,7 +2,7 @@
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid
-program gisid, rclass
+program gisid
     version 13
 
     global GTOOLS_CALLER gisid

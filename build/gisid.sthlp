@@ -38,21 +38,6 @@ a subset of the data, but it can't do it for an external dataset or sort the dat
 {phang}{opt missok} indicates that missing values are permitted in {varlist}.
 
 
-{marker results}{...}
-{title:Stored results}
-
-{pstd}
-{cmd:gisid} stores the following in {cmd:r()}:
-
-{synoptset 20 tabbed}{...}
-{p2col 5 20 24 2: Scalars}{p_end}
-{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
-{synopt:{cmd:r(J)   }} number of groups {p_end}
-{synopt:{cmd:r(minJ)}} largest group size {p_end}
-{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
-{p2colreset}{...}
-
-
 {marker author}{...}
 {title:Author}
 

@@ -90,17 +90,35 @@ program compare_inner_isid
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `varlist'
+    cap gisid `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] `varlist')
+
     cap isid `ix' `varlist', missok
     local rc_isid = _rc
     cap gisid `ix' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `ix' `varlist'
+    cap gisid `ix' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] ix `varlist')
+
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
+
+    * make sure sorted check gives same result
+    hashsort `rsort' `varlist'
+    cap gisid `rsort' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] rsort `varlist')
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------

@@ -406,3 +406,182 @@ loop:
 
     return (1);
 }
+
+/*********************************************************************
+ *                               Is ID                               *
+ *********************************************************************/
+
+int mf_isid_sorted (void *a, size_t n, size_t es, cmp_t *cmp, void *thunk);
+int mf_isid_sorted (void *a, size_t n, size_t es, cmp_t *cmp, void *thunk)
+{
+    int rc;
+	char *pm;
+    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
+        if ( (rc = cmp(pm, pm - es, thunk)) <= 0 ) return (rc);
+    }
+    return (1);
+}
+
+int MultiIsIDCheckMC (
+    void *start,
+    size_t N,
+    size_t kstart,
+    size_t kend,
+    size_t elsize,
+    size_t *ltypes,
+    size_t *invert,
+    size_t *positions
+);
+
+int MultiIsIDCheckMC (
+    void *start,
+    size_t N,
+    size_t kstart,
+    size_t kend,
+    size_t elsize,
+    size_t *ltypes,
+    size_t *invert,
+    size_t *positions)
+{
+    int rc;
+    size_t j;
+    short ischar;
+    void *i, *end;
+
+    if ( (rc = mf_isid_sorted (
+        start,
+        N,
+        elsize,
+        ( (ischar = (ltypes[kstart] > 0)) )?
+        (invert[kstart]? AltCompareCharInvert: AltCompareChar):
+        (invert[kstart]? AltCompareNumInvert: AltCompareNum),
+        &(positions[kstart])
+    )) < 0 ) return (rc);
+
+    if ( kstart >= kend )
+        return (rc);
+
+    end = start + N * elsize;
+
+loop:
+
+    j = 1;
+    if ( invert[kstart] ) {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareCharInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+    else {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareChar(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNum(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+
+    if ( j > 1 ) {
+        if ( (rc = MultiIsIDCheckMC (
+            start,
+            j,
+            kstart + 1,
+            kend,
+            elsize,
+            ltypes,
+            invert,
+            positions
+        )) < 0) return (rc);
+    }
+
+    if ( kstart < kend ) {
+        start = i;
+        if ( start < end )
+            goto loop;
+    }
+
+    return (rc);
+}
+
+int MultiIsIDCheckDbl (
+    void *start,
+    size_t N,
+    size_t kstart,
+    size_t kend,
+    size_t elsize,
+    size_t *invert
+);
+
+int MultiIsIDCheckDbl (
+    void *start,
+    size_t N,
+    size_t kstart,
+    size_t kend,
+    size_t elsize,
+    size_t *invert)
+{
+    int rc;
+    size_t j;
+    void *i, *end;
+
+    if ( (rc = mf_isid_sorted (
+        start,
+        N,
+        elsize,
+        invert[kstart]? MultiCompareNum2Invert: MultiCompareNum2,
+        &kstart
+    )) < 0 ) return (rc);
+
+    if ( kstart >= kend )
+        return (rc);
+
+    end = start + N * elsize;
+
+loop:
+    j = 1;
+    if ( invert[kstart] ) {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+    else {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+
+    if ( j > 1 ) {
+        if ( (rc = MultiIsIDCheckDbl (
+            start,
+            j,
+            kstart + 1,
+            kend,
+            elsize,
+            invert
+        )) < 0) return (rc);
+    }
+
+    if ( kstart < kend ) {
+        start = i;
+        if ( start < end )
+            goto loop;
+    }
+
+    return (rc);
+}

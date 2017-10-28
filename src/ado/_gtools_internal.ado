@@ -5,6 +5,10 @@ capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13
 
+    if ( inlist("${GTOOLS_FORCE_PARALLEL}", "42900") ) {
+        di as txt "(note: multi-threading is not available on this platform)"
+    }
+
     local GTOOLS_CALLER $GTOOLS_CALLER
     local GTOOLS_CALLERS gegen glevelsof gisid hashsort gunique gcollapse
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
@@ -1434,4 +1438,11 @@ if ( "`c_os_'" == "windows" ) {
 }
 
 cap program drop gtools_plugin
-program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {
+    cap program gtools_plugin, plugin using("gtools_`c_os_'_multi.plugin")
+    if ( _rc ) {
+        global GTOOLS_FORCE_PARALLEL 42900
+        program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+    }
+}
+else program gtools_plugin, plugin using("gtools_`c_os_'.plugin")

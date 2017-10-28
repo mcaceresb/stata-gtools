@@ -9,7 +9,7 @@ int sf_levelsof (struct StataInfo *st_info, int level)
 
     ST_retcode rc = 0;
     double z;
-    int j, k;
+    size_t j, k;
     size_t sel;
     size_t kvars = st_info->kvars_by;
     clock_t timer = clock();
@@ -47,7 +47,7 @@ int sf_levelsof (struct StataInfo *st_info, int level)
     memset (macrobuffer, '\0', bufferlen * sizeof(char));
 
     char *strpos = macrobuffer;
-    size_t rowbytes = (st_info->rowbytes + sizeof(int));
+    size_t rowbytes = (st_info->rowbytes + sizeof(size_t));
 
     char *colsep = malloc((st_info->colsep_len + 1) * sizeof(char));
     char *sep    = malloc((st_info->sep_len    + 1) * sizeof(char));

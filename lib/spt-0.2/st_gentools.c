@@ -85,10 +85,10 @@ size_t sf_scalar_int (char *st_scalar, size_t *sval)
  */
 int sf_get_vector_length (char *st_matrix)
 {
-    int ncol = SF_col(st_matrix);
-    int nrow = SF_row(st_matrix);
+    size_t ncol = SF_col(st_matrix);
+    size_t nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to get the length a %d by %d matrix\n", nrow, ncol);
+        sf_errprintf("tried to get the length a %lu by %lu matrix\n", nrow, ncol);
         return (-1);
     }
     return ( ncol > nrow? ncol: nrow );
@@ -105,11 +105,11 @@ int sf_get_vector (char *st_matrix, double *v)
 {
     ST_retcode rc = 0;
 
-    int i;
-    int ncol = SF_col(st_matrix);
-    int nrow = SF_row(st_matrix);
+    size_t i;
+    size_t ncol = SF_col(st_matrix);
+    size_t nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a %d by %d matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a %lu by %lu matrix into an array\n", nrow, ncol);
         return(198);
     }
 
@@ -141,15 +141,15 @@ int sf_get_vector_int (char *st_matrix, size_t *v)
     ST_double z;
     ST_retcode rc = 0;
 
-    int i;
-    int ncol = SF_col(st_matrix);
-    int nrow = SF_row(st_matrix);
+    size_t i;
+    size_t ncol = SF_col(st_matrix);
+    size_t nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a %d by %d matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a %lu by %lu matrix into an array\n", nrow, ncol);
         return (198);
     }
     else if ( (ncol == 0) & (nrow == 0) ) {
-        sf_errprintf("tried to read a %d by %d matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a %lu by %lu matrix into an array\n", nrow, ncol);
         return (198);
     }
 

@@ -7,8 +7,7 @@ int sf_hashsort (struct StataInfo *st_info, int level)
      *                               Setup                               *
      *********************************************************************/
 
-    int sel;
-    int i, j, out, start, end;
+    size_t i, j, sel, out, start, end;
     size_t N     = st_info->N;
     size_t J     = st_info->J;
     size_t in1   = st_info->in1;

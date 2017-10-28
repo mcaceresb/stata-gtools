@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Oct 26 06:01:25 EDT 2017
+* Updated: Sat Oct 28 19:12:26 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.8.3
 * Manual:  help gtools
@@ -31,19 +31,30 @@ if ( _rc ) ssc install unique
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily legacy *]
+    syntax, [NOIsily *]
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
+        local c_os_ macosx
+    }
+    else {
+        local c_os_: di lower("`c(os)'")
+    }
+    log using gtools_tests_`c_os_'.log, text replace name(gtools_tests)
 
     * Set up
     * ------
 
     local  progname tests
     local  start_time "$S_TIME $S_DATE"
-    di "Start: `start_time'"
+
+    di _n(1)
+    di "Start:   `start_time'"
+    di "Options: `options'"
 
     * Run the things
     * --------------
 
-    `capture' `noisily' {
+    cap noi {
         * qui do test_gcollapse.do
         * qui do test_gegen.do
         * qui do test_gisid.do
@@ -51,7 +62,9 @@ program main
         * qui do test_gunique.do
         * qui do test_hashsort.do
 
-        if ( `:list posof "checks" in options' ) {
+        if ( `:list posof "basic_checks" in options' ) {
+
+            di _n(1)
 
             unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
@@ -66,10 +79,13 @@ program main
             unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
+        }
+
+        if ( `:list posof "comparisons" in options' ) {
 
             di ""
             di "-----------------------------------------------------------"
-            di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+            di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
             compare_gcollapse, `noisily' oncollision(error)
@@ -119,6 +135,7 @@ program main
     local rc = _rc
 
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
+    log close gtools_tests
     exit `rc'
 end
 
@@ -242,7 +259,7 @@ program gen_data
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str32 str_32   = str_long + "this is some string padding"
     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
     gen str4  str_4    = str_mid  + str_short
 
@@ -366,4 +383,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks bench_test
+main, basic_checks comparisons bench_test

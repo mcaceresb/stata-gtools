@@ -7,7 +7,7 @@
  */
 double mf_benchmark (char *fname)
 {
-    int k, j;
+    size_t k, j;
     size_t KiB  = 1024;
     size_t k1   = 2;
     size_t k2   = 4;
@@ -63,7 +63,7 @@ void mf_write_collapsed(
     size_t kend,
     size_t J)
 {
-    int j;
+    size_t j;
     size_t knum = kend - kstart;
     FILE *collapsed_handle = fopen(collapsed_file, "wb");
     for (j = 0; j < J; j++) {

@@ -1,22 +1,23 @@
-int sf_isid (
+int mf_isid (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
+    size_t *ix,
     const size_t hash_level
 );
 
-int sf_isid_bijection (
+int mf_isid_bijection (
     uint64_t *h1,
     struct StataInfo *st_info
 );
 
-int sf_check_isid_collision (
+int mf_check_isid_collision (
     struct StataInfo *st_info,
     size_t obs1,
     size_t obs2
 );
 
-int sf_isid_bijection (uint64_t *h1, struct StataInfo *st_info)
+int mf_isid_bijection (uint64_t *h1, struct StataInfo *st_info)
 {
     size_t i;
 
@@ -31,13 +32,14 @@ int sf_isid_bijection (uint64_t *h1, struct StataInfo *st_info)
     return (0);
 }
 
-int sf_isid (
+int mf_isid (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
+    size_t *ix,
     const size_t hash_level)
 {
-    if (hash_level == 0) return (sf_isid_bijection (h1, st_info));
+    if (hash_level == 0) return (mf_isid_bijection (h1, st_info));
 
     ST_retcode rc ;
     size_t i, start, end, range;
@@ -65,7 +67,7 @@ int sf_isid (
         if ( !mf_check_allequal(h2, start, end) ) {
             range = end - start;
 
-            ix_l = st_info->ix + start;
+            ix_l = ix + start;
             h2_l = h2 + start;
 
             if ( (rc = mf_radix_sort16 (h2_l, ix_l, range)) ) return (rc);
@@ -77,9 +79,9 @@ int sf_isid (
         }
 
         // Once this is sorted, you 
-        if ( (rc = sf_check_isid_collision (st_info,
-                                            st_info->ix[start],
-                                            st_info->ix[start + 1])) ) return (rc);
+        if ( (rc = mf_check_isid_collision (st_info,
+                                            ix[start],
+                                            ix[start + 1])) ) return (rc);
         return (42459);
     }
 
@@ -87,7 +89,7 @@ int sf_isid (
     return (0);
 }
 
-int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2)
+int mf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2)
 {
     ST_retcode rc = 0;
 
@@ -95,7 +97,7 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
      *                               Setup                               *
      *********************************************************************/
 
-    int k;
+    size_t k;
     size_t sel, numpos, strpos;
     size_t kvars = st_info->kvars_by;
     size_t kstr  = st_info->kvars_by_str;
@@ -119,7 +121,7 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
     // read to numbers in st_numbase and st_nummiss
     double z;
 
-    int klen = kmax > 0? (kmax + 1): 1;
+    size_t klen = kmax > 0? (kmax + 1): 1;
     char *s  = malloc(klen * sizeof(char)); memset (s, '\0', klen);
     char *st_strbase = malloc(l_str * sizeof(char)); memset (st_strbase, '\0', l_str);
     char *st_strcomp = malloc(l_str * sizeof(char)); memset (st_strcomp, '\0', l_str);

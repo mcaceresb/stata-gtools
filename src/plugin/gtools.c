@@ -2,7 +2,7 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed Oct 25 20:33:27 EDT 2017
+ * Updated: Fri Oct 27 14:00:27 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.8.3
@@ -39,10 +39,11 @@
 #include "collapse/gtools_utils.c"
 #include "collapse/gegen.c"
 
-// -DGMUTI=1 flag compiles multi-threaded version of the plugin
-#if GMULTI
-#else
-#endif
+// #if GMULTI
+// #    include ""
+// #else
+// #    include ""
+// #endif
 
 int main()
 {
@@ -224,7 +225,6 @@ exit:
 int sf_parse_info (struct StataInfo *st_info, int level)
 {
     ST_retcode rc = 0;
-    clock_t timer = clock();
     size_t i, start, in1, in2, N;
     size_t verbose,
            benchmark,
@@ -444,8 +444,6 @@ int sf_parse_info (struct StataInfo *st_info, int level)
     st_info->free = 1;
 
 exit:
-    if ( benchmark )
-        sf_running_timer (&timer, "\tPlugin step 1: stata parsing done");
 
     return (rc);
 }
@@ -460,30 +458,24 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
 {
 
     ST_retcode rc = 0, rc_isid = 0;
-    clock_t timer = clock();
+    clock_t timer  = clock();
+    clock_t stimer = clock();
 
-    double z;
     size_t *info, *index, *ix;
     size_t i,
            j,
            k,
-           sel,
            obs,
            ilen,
            rowbytes,
-           hash_level,
-           worst,
-           range,
            nj_min,
            nj_max;
-
 
     size_t in1   = st_info->in1;
     size_t N     = st_info->N;
     size_t Nread = st_info->Nread;
     size_t kvars = st_info->kvars_by;
     size_t kstr  = st_info->kvars_by_str;
-    size_t kint  = st_info->kvars_by_int;
 
     // Parse positions in char array
     // -----------------------------
@@ -492,13 +484,9 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
     st_info->byvars_mins = calloc(kvars,     sizeof(st_info->byvars_mins));
     st_info->byvars_maxs = calloc(kvars,     sizeof(st_info->byvars_maxs));
 
-    size_t *positions   = st_info->positions;
-    int    *byvars_mins = st_info->byvars_mins;
-    int    *byvars_maxs = st_info->byvars_maxs;
-
-    if ( positions   == NULL ) return (sf_oom_error("sf_read_byvars", "positions"));
-    if ( byvars_mins == NULL ) return (sf_oom_error("sf_read_byvars", "byvars_mins"));
-    if ( byvars_maxs == NULL ) return (sf_oom_error("sf_read_byvars", "byvars_maxs"));
+    if ( st_info->positions   == NULL ) return (sf_oom_error("sf_hash_byvars", "positions"));
+    if ( st_info->byvars_mins == NULL ) return (sf_oom_error("sf_hash_byvars", "byvars_mins"));
+    if ( st_info->byvars_maxs == NULL ) return (sf_oom_error("sf_hash_byvars", "byvars_maxs"));
 
     ST_GC_ALLOCATED("st_info->positions")
     ST_GC_ALLOCATED("st_info->byvars_mins")
@@ -506,33 +494,15 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
 
     st_info->free = 2;
 
-    double *double_mins = calloc(kvars, sizeof *double_mins);
-    double *double_maxs = calloc(kvars, sizeof *double_maxs);
-    int    *any_missing = calloc(kvars, sizeof *any_missing);
-    int    *all_missing = calloc(kvars, sizeof *all_missing);
-
-    if ( double_mins == NULL ) return (sf_oom_error("sf_read_byvars", "double_mins"));
-    if ( double_maxs == NULL ) return (sf_oom_error("sf_read_byvars", "double_maxs"));
-    if ( any_missing == NULL ) return (sf_oom_error("sf_read_byvars", "any_missing"));
-    if ( all_missing == NULL ) return (sf_oom_error("sf_read_byvars", "all_missing"));
-
-    ST_GC_ALLOCATED("double_mins")
-    ST_GC_ALLOCATED("double_maxs")
-    ST_GC_ALLOCATED("any_missing")
-    ST_GC_ALLOCATED("all_missing")
-
-    char *results = malloc(24 * sizeof(char));
-    ST_GC_ALLOCATED("results")
-
-    positions[0] = rowbytes = 0;
+    st_info->positions[0] = rowbytes = 0;
     for (k = 1; k < kvars + 1; k++) {
         ilen = st_info->byvars_lens[k - 1];
         if ( ilen > 0 ) {
-            positions[k] = positions[k - 1] + (ilen + 1);
+            st_info->positions[k] = st_info->positions[k - 1] + (ilen + 1);
             rowbytes    += ((ilen + 1) * sizeof(char));
         }
         else {
-            positions[k] = positions[k - 1] + sizeof(double);
+            st_info->positions[k] = st_info->positions[k - 1] + sizeof(double);
             rowbytes    += sizeof(double);
         }
     }
@@ -567,6 +537,10 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
             st_info->N = N = obs;
 
             if ( st_info->N < Nread ) {
+                if ( st_info->N < 1 ) {
+                    return (42001);
+                }
+
                 st_info->ix = calloc(N, sizeof(st_info->ix));
                 if ( st_info->ix == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->ix"));
                 ST_GC_ALLOCATED("st_info->ix")
@@ -594,277 +568,123 @@ int sf_hash_byvars (struct StataInfo *st_info, int level)
         st_info->seecount  = 0;
         st_info->byvars_mins[0] = 0;
         st_info->byvars_maxs[0] = 0;
-        st_info->nj_min  = st_info->N;
-        st_info->nj_max  = st_info->N;
+        st_info->nj_min = st_info->N;
+        st_info->nj_max = st_info->N;
 
-        index = calloc(1, sizeof(index));
-        ix    = index;
-        level = 9;
-        goto info_loc;
+        rc = sf_set_rinfo (st_info, level);
+        return (rc);
     }
+
+    index = calloc(N, sizeof(index));
+    if ( index == NULL ) return (sf_oom_error("sf_read_byvars", "index"));
+    ST_GC_ALLOCATED("index")
 
     /*********************************************************************
      *                       Read in by variables                        *
      *********************************************************************/
 
-    index = calloc(N, sizeof(index));
-    if ( index == NULL ) return (sf_oom_error("sf_hash_byvars", "index"));
-    ST_GC_ALLOCATED("index")
+    if ( (rc = sf_read_byvars (st_info,
+                               level,
+                               index)) ) goto exit;
 
-    if ( kstr > 0 ) {
-        st_info->st_numx  = malloc(sizeof(double));
-        st_info->st_charx = calloc(N, rowbytes * sizeof(char));
+    N = st_info->N;
+    if ( st_info->N < Nread ) {
+        if ( st_info->N < 1 ) {
+            rc = 42001;
+            goto exit;
+        }
 
-        if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));
-        if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_charx"));
+        ix = calloc(st_info->N, sizeof(ix));
+        if ( ix == NULL ) return (sf_oom_error("sf_hash_byvars", "ix"));
+        ST_GC_ALLOCATED("ix")
 
-        ST_GC_ALLOCATED("st_info->st_numx")
-        ST_GC_ALLOCATED("st_info->st_charx")
-
-        st_info->free = 3;
-
-        // In this case, you need to clean all the chunks
         for (i = 0; i < N; i++)
-            memset (st_info->st_charx + i * rowbytes, '\0', rowbytes);
-
-        // Loop through all the by variables
-        obs = 0;
-        if ( st_info->any_if || (st_info->missing == 0) ) {
-            if ( st_info->any_if & (st_info->missing == 0) ) {
-                for (i = 0; i < N; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        for (k = 0; k < kvars; k++) {
-                            sel = obs * rowbytes + positions[k];
-                            if ( st_info->byvars_lens[k] > 0 ) {
-                                if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
-                                    goto exit;
-
-                                if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
-                                    if ( st_info->nomiss ) {
-                                        rc = 459;
-                                        goto exit;
-                                    }
-                                    memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
-                                    goto next_inner1;
-                                }
-                            }
-                            else {
-                                if ( (rc = SF_vdata(k + 1, i + in1, &z)) )
-                                    goto exit;
-
-                                if ( SF_is_missing(z) ) {
-                                    if ( st_info->nomiss ) {
-                                        rc = 459;
-                                        goto exit;
-                                    }
-                                    memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
-                                    goto next_inner1;
-                                }
-                                memcpy (st_info->st_charx + sel, &z, sizeof(double));
-                            }
-                        }
-                        index[obs] = i;
-                        ++obs;
-next_inner1: continue;
-                    }
-                }
-            }
-            else if ( st_info->any_if & (st_info->missing == 1) ) {
-                for (i = 0; i < N; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        for (k = 0; k < kvars; k++) {
-                            sel = obs * rowbytes + positions[k];
-                            if ( st_info->byvars_lens[k] > 0 ) {
-                                if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
-                                    goto exit;
-                            }
-                            else {
-                                if ( (rc = SF_vdata(k + 1, i + in1, &z)) )
-                                    goto exit;
-                                memcpy (st_info->st_charx + sel, &z, sizeof(double));
-                            }
-                        }
-                        index[obs] = i;
-                        ++obs;
-                    }
-                }
-            }
-            else if ( (st_info->any_if == 0) & (st_info->missing == 0) ) {
-                for (i = 0; i < N; i++) {
-                    for (k = 0; k < kvars; k++) {
-                        sel = obs * rowbytes + positions[k];
-                        if ( st_info->byvars_lens[k] > 0 ) {
-                            if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
-                                goto exit;
-
-                            if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
-                                if ( st_info->nomiss ) {
-                                    rc = 459;
-                                    goto exit;
-                                }
-                                memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
-                                goto next_inner2;
-                            }
-                        }
-                        else {
-                            if ( (rc = SF_vdata(k + 1, i + in1, &z)) )
-                                goto exit;
-
-                            if ( SF_is_missing(z) ) {
-                                if ( st_info->nomiss ) {
-                                    rc = 459;
-                                    goto exit;
-                                }
-                                memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
-                                goto next_inner2;
-                            }
-                            memcpy (st_info->st_charx + sel, &z, sizeof(double));
-                        }
-                    }
-                    index[obs] = i;
-                    ++obs;
-next_inner2: continue;
-                }
-            }
-            st_info->N = N = obs;
-
-            if ( st_info->N < Nread ) {
-                ix = calloc(N, sizeof(ix));
-                if ( ix == NULL ) return (sf_oom_error("sf_hash_byvars", "ix"));
-                ST_GC_ALLOCATED("ix")
-
-                for (i = 0; i < N; i++)
-                    ix[i] = i;
-            }
-            else {
-                ix = index;
-            }
-        }
-        else {
-            for (i = 0; i < N; i++) {
-                index[i] = i;
-                for (k = 0; k < kvars; k++) {
-                    sel = i * rowbytes + positions[k];
-                    if ( st_info->byvars_lens[k] > 0 ) {
-                        if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
-                            goto exit;
-                    }
-                    else {
-                        if ( (rc = SF_vdata(k + 1, i + in1, &z)) ) goto exit;
-                        memcpy (st_info->st_charx + sel, &z, sizeof(double));
-                    }
-                }
-            }
-            ix = index;
-        }
+            ix[i] = i;
     }
     else {
-        st_info->st_numx  = calloc(N * kvars, sizeof(st_info->st_numx));
-        st_info->st_charx = malloc(sizeof(char));
-
-        if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));
-        if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_charx"));
-
-        ST_GC_ALLOCATED("st_info->st_numx")
-        ST_GC_ALLOCATED("st_info->st_charx")
-
-        st_info->free = 3;
-
-        // Loop through all the by variables
-        obs = 0;
-        if ( st_info->any_if || (st_info->missing == 0) ) {
-            if ( st_info->any_if & (st_info->missing == 0) ) {
-                for (i = 0; i < N; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        for (k = 0; k < kvars; k++) {
-                            sel = obs * kvars + k;
-                            if ( (rc = SF_vdata(k + 1, i + in1, st_info->st_numx + sel)) )
-                                goto exit;
-
-                            if ( SF_is_missing(st_info->st_numx[sel]) ) {
-                                if ( st_info->nomiss ) {
-                                    rc = 459;
-                                    goto exit;
-                                }
-                                goto next_inner3;
-                            }
-                        }
-                        index[obs] = i;
-                        ++obs;
-next_inner3: continue;
-                    }
-                }
-            }
-            else if ( st_info->any_if & (st_info->missing == 1) ) {
-                for (i = 0; i < N; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        for (k = 0; k < kvars; k++) {
-                            sel = obs * kvars + k;
-                            if ( (rc = SF_vdata(k + 1, i + in1, st_info->st_numx + sel)) )
-                                goto exit;
-                        }
-                        index[obs] = i;
-                        ++obs;
-                    }
-                }
-            }
-            else if ( (st_info->any_if == 0) & (st_info->missing == 0) ) {
-                for (i = 0; i < N; i++) {
-                    for (k = 0; k < kvars; k++) {
-                        sel = obs * kvars + k;
-                        if ( (rc = SF_vdata(k + 1, i + in1, st_info->st_numx + sel)) )
-                            goto exit;
-
-                        if ( SF_is_missing(st_info->st_numx[sel]) ) {
-                            if ( st_info->nomiss ) {
-                                rc = 459;
-                                goto exit;
-                            }
-                            goto next_inner4;
-                        }
-                    }
-                    index[obs] = i;
-                    ++obs;
-next_inner4: continue;
-                }
-            }
-            st_info->N = N = obs;
-
-            if ( st_info->N < Nread ) {
-                ix = calloc(N, sizeof(ix));
-                if ( ix == NULL ) return (sf_oom_error("sf_hash_byvars", "ix"));
-                ST_GC_ALLOCATED("ix")
-
-                for (i = 0; i < N; i++)
-                    ix[i] = i;
-            }
-            else {
-                ix = index;
-            }
-        }
-        else {
-            for (i = 0; i < N; i++) {
-                index[i] = i;
-                for (k = 0; k < kvars; k++) {
-                    sel = i * kvars + k;
-                    if ( (rc = SF_vdata(k + 1, i + in1, st_info->st_numx + sel)) )
-                        goto exit;
-                }
-            }
-            ix = index;
-        }
+        ix = index;
     }
 
     if ( st_info->benchmark )
-        sf_running_timer (&timer, "\tPlugin step 2: Read in by variables");
+        sf_running_timer (&timer, "\tPlugin step 1: Read in by variables");
 
-    if ( N < 1 ) {
-        rc = 42001;
-        goto exit;
+    stimer = clock();
+
+    /*********************************************************************
+     *                  Check whether is id (isid only)                  *
+     *********************************************************************/
+
+    if ( level == 2 ) {
+        if ( st_info->kvars_by_str > 0 ) {
+            if ( (rc = MultiIsIDCheckMC (st_info->st_charx,
+                                         st_info->N,
+                                         0,
+                                         st_info->kvars_by - 1,
+                                         st_info->rowbytes * sizeof(char),
+                                         st_info->byvars_lens,
+                                         st_info->invert,
+                                         st_info->positions)) >= 0 ) {
+
+                // rc == 0 means the result from a comparison was 0, that is,
+                // two elements within a group were the same. This means that
+                // we do NOt have an ID. rc == 1 means ALL eements were larger
+                // than the previous one, meaning they all must be different
+                // AND in order, so we do have an ID.
+
+                if ( rc == 0 ) {
+                    if ( st_info->verbose )
+                        sf_printf("(duplicate row found during sort check)\n");
+
+                    rc = 42459;
+                }
+                else {
+                    if ( st_info->verbose )
+                        sf_printf("(already sorted)\n");
+
+                    rc = 0;
+                }
+
+                goto exit;
+            }
+            else {
+                if ( st_info->verbose )
+                    sf_printf("Data not sorted; will hash.\n");
+            }
+        }
+        else {
+            if ( (rc = MultiIsIDCheckDbl(st_info->st_numx,
+                                         st_info->N,
+                                         0,
+                                         st_info->kvars_by - 1,
+                                         st_info->kvars_by * sizeof(double),
+                                         st_info->invert)) >= 0 ) {
+
+                // Ibid.
+                if ( rc == 0 ) {
+                    if ( st_info->verbose )
+                        sf_printf("(duplicate row found during sort check)\n");
+
+                    rc = 42459;
+                }
+                else {
+                    if ( st_info->verbose )
+                        sf_printf("(already sorted)\n");
+
+                    rc = 0;
+                }
+
+                goto exit;
+            }
+            else {
+                if ( st_info->verbose )
+                    sf_printf("Data not sorted; will hash.\n");
+            }
+        }
     }
 
-    // Level 3 is code for hashsort
-    // ----------------------------
+    /*********************************************************************
+     *                  Check if sorted (hashsort only)                  *
+     *********************************************************************/
 
     if ( level == 3 ) {
         if ( st_info->kvars_by_str > 0 ) {
@@ -877,7 +697,7 @@ next_inner4: continue;
                                    st_info->invert,
                                    st_info->positions) ) {
                 if ( st_info->verbose )
-                    sf_printf("(already sorted; did not parse group info)\n");
+                    sf_printf("(already sorted)\n");
                 rc = 42013;
                 goto exit;
             }
@@ -890,7 +710,7 @@ next_inner4: continue;
                                    st_info->kvars_by * sizeof(double),
                                    st_info->invert) ) {
                 if ( st_info->verbose )
-                    sf_printf("(already sorted; did not parse group info)\n");
+                    sf_printf("(already sorted)\n");
                 rc = 42013;
                 goto exit;
             }
@@ -901,218 +721,81 @@ next_inner4: continue;
      *            Check whether to hash or to use a bijection            *
      *********************************************************************/
 
-    // If only integers, check worst case of the bijection would not
-    // overflow. Given K by variables, by_1 to by_K, where by_k belongs to the
-    // set B_k, the general problem we face is devising a function f such that
-    // f: B_1 x ... x B_K -> N, where N are the natural (whole) numbers. For
-    // integers, we don't need to hash the data:
-    //
-    //     1. The first variable: z[i, 1] = f(1)(x[i, 1]) = x[i, 1] - min(x[, 1]) + 1
-    //     2. The kth variable: z[i, k] = f(k)(x[i, k]) = i * range(z[, k - 1]) + (x[i, k - 1] - min(x[, 2]))
-    //
-    // If we have too many by variables, it is possible our integers will
-    // overflow. We check whether this may happen below.
-
     if ( kstr > 0 ) {
         st_info->biject = 0;
     }
-    else if ( kint == kvars ) {
-        if ( st_info->verbose )
-            sf_printf("Bijection OK with all integers (i.e. no extended miss val)? ");
-
-        st_info->biject = 1;
-        for (k = 0; k < kvars; k++) {
-            double_maxs[k] = double_mins[k] = 0;
-            any_missing[k] = 0;
-            all_missing[k] = 1;
-        }
-
-        for (i = 0; i < N; i++) {
-            for (k = 0; k < kvars; k++) {
-                z = *(st_info->st_numx + (i * kvars + k));
-                if ( z > SV_missval ) {
-                    st_info->biject = 0;
-                    if ( st_info->verbose ) sf_printf("No; using hash.\n");
-                    goto next;
-                }
-                else {
-                    if ( SF_is_missing(z) ) {
-                        any_missing[k] = 1;
-                    }
-                    else if ( all_missing[k] ) {
-                        all_missing[k] = 0;
-                        double_mins[k] = z;
-                        double_maxs[k] = z;
-                    }
-                    else {
-                        if ( z < double_mins[k] ) double_mins[k]  = z;
-                        if ( z > double_maxs[k] ) double_maxs[k]  = z;
-                    }
-                }
-            }
-        }
-    }
     else {
-        if ( st_info->verbose )
-            sf_printf("Bijection OK with all numbers (i.e. no doubles)? ");
-
-        st_info->biject = 1;
-        for (k = 0; k < kvars; k++) {
-            double_maxs[k] = double_mins[k] = 0;
-            any_missing[k] = 0;
-            all_missing[k] = 1;
-        }
-
-        for (i = 0; i < N; i++) {
-            for (k = 0; k < kvars; k++) {
-                z = *(st_info->st_numx + (i * kvars + k));
-                if ( !((ceilf(z) == z) || (z == SV_missval)) ) {
-                    st_info->biject = 0;
-                    if ( st_info->verbose ) sf_printf("No; using hash.\n");
-                    goto next;
-                }
-                else {
-                    if ( SF_is_missing(z) ) {
-                        any_missing[k] = 1;
-                    }
-                    else if ( all_missing[k] ) {
-                        all_missing[k] = 0;
-                        double_mins[k] = z;
-                        double_maxs[k] = z;
-                    }
-                    else {
-                        if ( z < double_mins[k] ) double_mins[k]  = z;
-                        if ( z > double_maxs[k] ) double_maxs[k]  = z;
-                    }
-                }
-            }
-        }
-    }
-
-    // Check whether bijection might overflow
-    if ( st_info->biject ) {
-        for (k = 0; k < kvars; k++) {
-            byvars_mins[k] = (int) (double_mins[k]);
-            byvars_maxs[k] = (int) (double_maxs[k]) + any_missing[k];
-        }
-        worst = byvars_maxs[0] - byvars_mins[0] + 1;
-        range = byvars_maxs[1] - byvars_mins[1] + 1;
-        for (k = 1; k < kvars; k++) {
-            if ( worst > (ULONG_MAX / range)  ) {
-                if ( st_info->verbose ) {
-                    sf_printf("No.\nValues OK but range too large; falling back on hash.\n");
-                }
-                st_info->biject = 0;
-                goto next;
-            }
-            else {
-                worst *= range;
-                range  = byvars_maxs[k] - byvars_mins[k] + (k < (kvars - 1));
-            }
-        }
-        if ( st_info->verbose ) sf_printf("Yes.\n");
-    }
-
-    /*********************************************************************
-     *                          Hash variables                           *
-     *********************************************************************/
-
-next:
-    if ( st_info->benchmark )
-        sf_running_timer (&timer, "\tPlugin step 3.1: Determined hashing strategy");
-
-    uint64_t *ghash3, *ghash2, *ghash1 = calloc(N, sizeof *ghash1);
-    if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
-    ST_GC_ALLOCATED("ghash1")
-
-    if ( st_info->biject ) {
-        ghash2 = malloc(sizeof(uint64_t));
-        ST_GC_ALLOCATED("ghash2")
-
-        if ( (rc = mf_biject_varlist (ghash1, st_info)) ) goto exit;
-
-        if ( st_info->benchmark )
-            sf_running_timer (&timer, "\tPlugin step 3.2: Bijected integers to natural numbers");
-        hash_level = 0;
-    }
-    else {
-        ghash2 = calloc(N, sizeof *ghash2);
-        if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
-        ST_GC_ALLOCATED("ghash2")
-
-        if ( kstr > 0 ) {
-            for (i = 0; i < N; i++)
-                spookyhash_128(st_info->st_charx + (i * rowbytes),
-                               sizeof(char) * rowbytes, ghash1 + i, ghash2 + i);
-        }
-        else {
-            for (i = 0; i < N; i++)
-                spookyhash_128(st_info->st_numx + i * kvars,
-                               sizeof(double) * kvars, ghash1 + i, ghash2 + i);
-        }
-
-        if ( st_info->benchmark )
-            sf_running_timer (&timer, "\tPlugin step 3.2: Hashed variables (128-bit)");
-        hash_level = 1;
-    }
-
-    /*********************************************************************
-     *                             Sort hash                             *
-     *********************************************************************/
-
-    // Sort hash with index
-    // --------------------
-
-    if ( (rc = mf_sort_hash (ghash1,
-                             ix,
-                             st_info->N,
-                             st_info->verbose)) ) goto exit;
-
-    // Copy back second part of the hash in correct order
-    // --------------------------------------------------
-
-    if ( hash_level ) {
-        ghash3 = calloc(st_info->N, sizeof *ghash3);
-        if ( ghash3  == NULL ) sf_oom_error("sf_hash_byvars", "ghash3");
-        ST_GC_ALLOCATED("ghash3")
-
-        for (i = 0; i < st_info->N; i++) {
-            ghash3[i] = ghash2[ix[i]];
-        }
-
-        free (ghash2);
-        ST_GC_FREED("ghash2")
-    }
-    else {
-        ghash3 = ghash2;
+        if ( (rc = mf_bijection_limits (st_info, level)) ) goto exit;
     }
 
     if ( st_info->benchmark )
-        sf_running_timer (&timer, "\tPlugin step 3.3: Sorted integer-only hash");
+        sf_running_timer (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
 
     /*********************************************************************
      *                       Panel setup and info                        *
      *********************************************************************/
 
+    // Hash and sort
+    // -------------
+
+    uint64_t *ghash1;
+    uint64_t *ghash2;
+
+    if ( st_info->biject ) {
+        ghash1 = calloc(N, sizeof *ghash1);
+        ghash2  = malloc(sizeof(uint64_t));
+
+        if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
+        if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
+    }
+    else {
+        ghash1 = calloc(N, sizeof *ghash1);
+        ghash2 = calloc(N, sizeof *ghash2);
+
+        if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
+        if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
+    }
+
+    ST_GC_ALLOCATED("ghash1")
+    ST_GC_ALLOCATED("ghash2")
+
+    if ( (rc = mf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
+
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
+
+    stimer = clock();
+
     // Level 2 is code for isid
     // ------------------------
 
-    st_info->ix = ix; // temporary for panelsetup
-
     if ( level == 2 ) {
-        rc_isid = sf_isid (ghash1, ghash3, st_info, hash_level);
-        nj_min  = 1;
-        nj_max  = 1;
+
+        rc_isid = mf_isid (ghash1, ghash2, st_info, ix, !(st_info->biject));
+
+        if ( st_info->benchmark )
+            sf_running_timer (&timer, "\tPlugin step 3: Checked if group is id");
+
+        stimer = clock();
+
         st_info->J = st_info->N;
-        sf_running_timer (&timer, "\tPlugin step 4: Checked if group is id");
+        st_info->nj_min = nj_min  = 1;
+        st_info->nj_max = nj_max  = 1;
+
+        if ( (rc = sf_set_rinfo (st_info, level)) ) goto error;
+
+        rc = rc_isid;
     }
     else {
 
         // Otherwise, set up panel normally
         // --------------------------------
 
-        if ( (rc = mf_panelsetup (ghash1, ghash3, st_info, hash_level)) )
-            goto exit;
+        if ( (rc = mf_panelsetup (ghash1,
+                                  ghash2,
+                                  st_info,
+                                  ix,
+                                  !(st_info->biject))) ) goto error;
 
         st_info->free = 4;
 
@@ -1132,18 +815,76 @@ next:
                 sf_printf ("N = "FMT"; "FMT" unbalanced groups of sizes "FMT" to "FMT"\n",
                            st_info->N, st_info->J, nj_min, nj_max);
         }
+
+        st_info->nj_min = nj_min;
+        st_info->nj_max = nj_max;
+
+        if ( (rc = sf_set_rinfo (st_info, level)) ) goto error;
+
+        // Copy Stata index in correct order
+        // ---------------------------------
+
+        if ( st_info->N < Nread ) {
+
+            st_info->index = calloc(st_info->N, sizeof(st_info->index));
+            st_info->ix    = calloc(st_info->N, sizeof(st_info->ix));
+
+            if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
+            if ( st_info->ix    == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
+
+            ST_GC_ALLOCATED("st_info->index")
+            ST_GC_ALLOCATED("st_info->ix")
+
+            for (i = 0; i < st_info->N; i++)
+                st_info->index[i] = index[st_info->ix[i] = ix[i]];
+
+            free (ix);
+            ST_GC_FREED("ix")
+        }
+        else {
+            st_info->index = calloc(st_info->N, sizeof(st_info->index));
+            if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
+            ST_GC_ALLOCATED("st_info->index")
+
+            for (i = 0; i < st_info->N; i++)
+                st_info->index[i] = index[i];
+
+            st_info->ix = st_info->index;
+        }
+
+        st_info->free = 5;
+
+        if ( st_info->benchmark )
+            sf_running_timer (&timer, "\tPlugin step 3: Set up panel");
+
+        stimer = clock();
     }
 
+error:
     free (ghash1);
-    free (ghash3);
+    free (ghash2);
 
     ST_GC_FREED("ghash1")
-    ST_GC_FREED("ghash3")
+    ST_GC_FREED("ghash2")
 
-    st_info->nj_min = nj_min;
-    st_info->nj_max = nj_max;
+    /*********************************************************************
+     *                              Cleanup                              *
+     *********************************************************************/
 
-info_loc:
+exit:
+
+    free (index);
+    ST_GC_FREED("index")
+
+    return (rc);
+}
+
+int sf_set_rinfo(struct StataInfo *st_info, int level)
+{
+    ST_retcode rc = 0;
+
+    char *results = malloc(24 * sizeof(char));
+    ST_GC_ALLOCATED("results")
 
     memset(results, '\0', 24 * sizeof(char));
     sprintf(results, "%.15g", (double) st_info->N);
@@ -1161,73 +902,9 @@ info_loc:
     sprintf(results, "%.15g", (double) st_info->nj_max);
     if ( (rc = SF_macro_save("_r_maxJ", results)) ) goto exit;
 
-    if ( level == 2 ) {
-        rc = rc_isid;
-        goto exit;
-    }
-
-    if ( level == 9 ) {
-        goto exit;
-    }
-
-    /*********************************************************************
-     *                              Cleanup                              *
-     *********************************************************************/
-
-    // Copy Stata index in correct order
-    // ---------------------------------
-
-    if ( st_info->N < Nread ) {
-
-        st_info->index = calloc(st_info->N, sizeof(st_info->index));
-        st_info->ix    = calloc(st_info->N, sizeof(st_info->ix));
-
-        if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
-        if ( st_info->ix    == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
-
-        ST_GC_ALLOCATED("st_info->index")
-        ST_GC_ALLOCATED("st_info->ix")
-
-        for (i = 0; i < st_info->N; i++)
-            st_info->index[i] = index[st_info->ix[i] = ix[i]];
-
-        free (ix);
-        ST_GC_FREED("ix")
-    }
-    else {
-        st_info->index = calloc(st_info->N, sizeof(st_info->index));
-        if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
-        ST_GC_ALLOCATED("st_info->index")
-
-        for (i = 0; i < st_info->N; i++)
-            st_info->index[i] = index[i];
-
-        st_info->ix = st_info->index;
-    }
-
-    st_info->free = 5;
-
-    if ( st_info->benchmark )
-        sf_running_timer (&timer, "\tPlugin step 3.4: Parsed hash groups");
-
-    // Free up allocated objects
-    // -------------------------
-
 exit:
-
     free (results);
-    free (any_missing);
-    free (all_missing);
-    free (double_mins);
-    free (double_maxs);
-    free (index);
-
     ST_GC_FREED("results")
-    ST_GC_FREED("any_missing")
-    ST_GC_FREED("all_missing")
-    ST_GC_FREED("double_mins")
-    ST_GC_FREED("double_maxs")
-    ST_GC_FREED("index")
 
     return (rc);
 }

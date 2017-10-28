@@ -64,16 +64,16 @@ struct StataInfo {
     size_t *pos_targets;
     double *statcode;
     //
-    size_t *byvars_lens;
-    int    *byvars_mins;
-    int    *byvars_maxs;
-    size_t *pos_num_byvars;
-    size_t *pos_str_byvars;
-    size_t *group_targets;
-    size_t *group_init;
-    size_t *invert;
-    size_t *positions;
-    double *missval;
+    int64_t *byvars_mins;
+    int64_t *byvars_maxs;
+    size_t  *byvars_lens;
+    size_t  *pos_num_byvars;
+    size_t  *pos_str_byvars;
+    size_t  *group_targets;
+    size_t  *group_init;
+    size_t  *invert;
+    size_t  *positions;
+    double  *missval;
     //
     size_t *ix;
     size_t *index;
@@ -183,5 +183,6 @@ int sf_hash_byvars (struct StataInfo *st_info, int level);
 int sf_check_hash  (struct StataInfo *st_info, int level);
 int sf_switch_io   (struct StataInfo *st_info, int level, char* fname);
 int sf_switch_mem  (struct StataInfo *st_info, int level);
+int sf_set_rinfo   (struct StataInfo *st_info, int level);
 
 #endif

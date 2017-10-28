@@ -2,7 +2,7 @@
 *! implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
-program define hashsort, rclass
+program define hashsort
     version 13
 
     global GTOOLS_CALLER hashsort
@@ -52,9 +52,4 @@ program define hashsort, rclass
         }
     }
     else if ( `rc' ) exit `rc'
-
-    cap return scalar N      = `r(N)'
-    cap return scalar J      = `r(J)'
-    cap return scalar minJ   = `r(minJ)'
-    cap return scalar maxJ   = `r(maxJ)'
 end

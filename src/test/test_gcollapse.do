@@ -469,8 +469,8 @@ program bench_collapse
     versus_collapse,                         `options' `collapse' `fcollapse'
     versus_collapse str_12 str_32 str_4,     `options' `collapse' `fcollapse'
     versus_collapse double1 double2 double3, `options' `collapse' `fcollapse'
-    versus_collapse int1 int2 int3,          `options' `collapse' `fcollapse'
-    versus_collapse int1 str_32 double1,     `options' `collapse'
+    versus_collapse int1 int2,               `options' `collapse' `fcollapse'
+    versus_collapse int3 str_32 double1,     `options' `collapse'
 
     di _n(1) "{hline 80}" _n(1) "bench_collapse, `options'" _n(1) "{hline 80}" _n(1)
 end

@@ -128,6 +128,12 @@ program compare_sort, rclass
         qui hashsort `varlist', `options'
         timer off 43
         cf * using `file_sort'
+
+        * Make sure already sorted check is OK
+        qui gen byte one = 1
+        qui hashsort one `varlist', `options'
+        qui drop one
+        cf * using `file_sort'
     restore
     qui timer list
     local time_hashsort = r(t43)

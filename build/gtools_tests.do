@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Oct 26 06:01:25 EDT 2017
+* Updated: Sat Oct 28 19:12:26 EDT 2017
 * Purpose: Unit tests for gtools
 * Version: 0.8.3
 * Manual:  help gtools
@@ -31,19 +31,28 @@ if ( _rc ) ssc install unique
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily legacy *]
+    syntax, [NOIsily *]
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
+        local c_os_ macosx
+    }
+    else {
+        local c_os_: di lower("`c(os)'")
+    }
+    log using gtools_tests_`c_os'.log, text repace
 
     * Set up
     * ------
 
     local  progname tests
     local  start_time "$S_TIME $S_DATE"
-    di "Start: `start_time'"
+    di "Start:   `start_time'"
+    di "Options: `options'"
 
     * Run the things
     * --------------
 
-    `capture' `noisily' {
+    cap noi {
         * qui do test_gcollapse.do
         * qui do test_gegen.do
         * qui do test_gisid.do
@@ -51,7 +60,7 @@ program main
         * qui do test_gunique.do
         * qui do test_hashsort.do
 
-        if ( `:list posof "checks" in options' ) {
+        if ( `:list posof "basic_checks" in options' ) {
 
             unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
@@ -66,10 +75,13 @@ program main
             unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
+        }
+
+        if ( `:list posof "comparisons" in options' ) {
 
             di ""
             di "-----------------------------------------------------------"
-            di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+            di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
             compare_gcollapse, `noisily' oncollision(error)
@@ -119,6 +131,7 @@ program main
     local rc = _rc
 
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
+    log close _all
     exit `rc'
 end
 
@@ -242,7 +255,7 @@ program gen_data
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str32 str_32   = str_long + "this is some string padding"
     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
     gen str4  str_4    = str_mid  + str_short
 
@@ -834,8 +847,8 @@ program bench_collapse
     versus_collapse,                         `options' `collapse' `fcollapse'
     versus_collapse str_12 str_32 str_4,     `options' `collapse' `fcollapse'
     versus_collapse double1 double2 double3, `options' `collapse' `fcollapse'
-    versus_collapse int1 int2 int3,          `options' `collapse' `fcollapse'
-    versus_collapse int1 str_32 double1,     `options' `collapse'
+    versus_collapse int1 int2,               `options' `collapse' `fcollapse'
+    versus_collapse int3 str_32 double1,     `options' `collapse'
 
     di _n(1) "{hline 80}" _n(1) "bench_collapse, `options'" _n(1) "{hline 80}" _n(1)
 end
@@ -2150,17 +2163,35 @@ program compare_inner_isid
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `varlist'
+    cap gisid `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] `varlist')
+
     cap isid `ix' `varlist', missok
     local rc_isid = _rc
     cap gisid `ix' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `ix' `varlist'
+    cap gisid `ix' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] ix `varlist')
+
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
+
+    * make sure sorted check gives same result
+    hashsort `rsort' `varlist'
+    cap gisid `rsort' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] rsort `varlist')
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
@@ -2511,6 +2542,12 @@ program compare_sort, rclass
         qui hashsort `varlist', `options'
         timer off 43
         cf * using `file_sort'
+
+        * Make sure already sorted check is OK
+        qui gen byte one = 1
+        qui hashsort one `varlist', `options'
+        qui drop one
+        cf * using `file_sort'
     restore
     qui timer list
     local time_hashsort = r(t43)
@@ -2569,4 +2606,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks bench_test
+main, basic_checks comparisons bench_test

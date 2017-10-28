@@ -121,6 +121,52 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
     size_t *index_st = calloc(st_info->Nread, sizeof *index_st);
     if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
 
+    /*********************
+     *  benchmarking...  *
+     *********************/
+    // for (i = 0; i < N; i++) {
+    //     for (k = 0; k < ksources; k++) {
+    //         if ( (rc = SF_vdata(pos_sources[k],
+    //                             st_info->index[i] + st_info->in1,
+    //                             all_buffer + (i * ksources + k))) ) goto exit;
+    //         
+    //     }
+    // }
+    // offset_buffer = offset_source = 0;
+    // for (j = 0; j < J; j++) {
+    //     l      = st_info->ix[j];
+    //     start  = st_info->info[l];
+    //     end    = st_info->info[l + 1];
+    //     nj_buffer[j] = nj = end - start;
+    //     offsets_buffer[j] = start * ksources;
+    //     offset_buffer = start * ksources;
+    //     offset_source = l * ksources;
+    //     for (i = start; i < end; i++) {
+    //         for (k = 0; k < ksources; k++) {
+    //             // Read Stata in order
+    //             if ( (rc = SF_vdata(start_sources + pos_sources[k],
+    //                                 st_info->index[i] + st_info->in1,
+    //                                 &z)) ) goto exit;
+    //             if ( SF_is_missing(z) ) {
+    //                 if ( i == start   ) all_firstmiss[offset_source + k] = 1;
+    //                 if ( i == end - 1 ) all_lastmiss[offset_source + k]  = 1;
+    //                 sel = (nj - all_yesmiss[offset_source + k]++ - 1);
+    //             }
+    //             else {
+    //                 // Read into C in order as well, via index_st, so non-missing
+    //                 // entries of given variable for each group occupy a contiguous
+    //                 // segment in memory.
+    //                 sel = all_nonmiss[offset_source + k]++;
+    //             }
+    //             all_buffer [offset_buffer + nj * k + sel] = z;
+    //         }
+    //     }
+    // }
+    // sf_running_timer (&stimer, "\t\tPlugin step 5.X: Test read sources");
+    /*********************
+     *  benchmarking...  *
+     *********************/
+
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
     }

@@ -44,7 +44,6 @@ endif
 # Gtools flags
 
 SPI = 2.0
-SPT = 0.2
 CFLAGS = -Wall -O3 $(OSFLAGS)
 OPENMP = -fopenmp -DGMULTI=1
 
@@ -97,11 +96,9 @@ spookytest:
 
 links:
 	rm -f  src/plugin/lib
-	rm -f  src/plugin/spt
 	rm -f  src/plugin/spi
 	rm -f  src/plugin/spookyhash
 	ln -sf ../../lib 	  src/plugin/lib
-	ln -sf lib/spt-$(SPT) src/plugin/spt
 	ln -sf lib/spi-$(SPI) src/plugin/spi
 	ln -sf lib/spookyhash src/plugin/spookyhash
 

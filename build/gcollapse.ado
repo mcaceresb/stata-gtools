@@ -1,4 +1,4 @@
-*! version 0.8.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -374,7 +374,7 @@ program gcollapse, rclass
                 di as err "The plugin returned a negative number of groups."
                 di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
                 CleanExit
-                exit 42200
+                exit 17200
             }
             ds *
         }

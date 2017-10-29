@@ -1,6 +1,6 @@
-int sf_levelsof (struct StataInfo *st_info, int level);
+ST_retcode sf_levelsof (struct StataInfo *st_info, int level);
 
-int sf_levelsof (struct StataInfo *st_info, int level)
+ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
 {
 
     /*********************************************************************
@@ -8,10 +8,10 @@ int sf_levelsof (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    double z;
-    size_t j, k;
-    size_t sel;
-    size_t kvars = st_info->kvars_by;
+    ST_double z;
+    GT_size j, k;
+    GT_size sel;
+    GT_size kvars = st_info->kvars_by;
     clock_t timer = clock();
 
     /*********************************************************************
@@ -24,18 +24,19 @@ int sf_levelsof (struct StataInfo *st_info, int level)
     // significant digits otherwise, so 22 should be enough).
 
     char *macrobuffer;
-    size_t bufferlen;
+    GT_size bufferlen;
 
-    char *sprintfmt    = st_info->cleanstr? strdup("%s"): strdup("`\"%s\"'");
-    size_t sprintextra = st_info->cleanstr? 0: 4;
-    size_t totalseplen = (st_info->J - 1) * st_info->sep_len +
+    char *sprintfmt     = st_info->cleanstr? strdup("%s"): strdup("`\"%s\"'");
+    GT_size sprintextra = st_info->cleanstr? 0: 4;
+    GT_size totalseplen = (st_info->J - 1) * st_info->sep_len +
                           st_info->J * st_info->colsep_len * (kvars - 1);
 
     if ( st_info->kvars_by_str > 0 ) {
-        bufferlen   = totalseplen + 1;
-        bufferlen  += st_info->J * (sprintextra * st_info->kvars_by_str) + st_info->strbuffer;
-        bufferlen  += st_info->J * (st_info->kvars_by_num * 22);
-        macrobuffer = malloc(bufferlen * sizeof(char));
+        bufferlen   = sizeof(char) * totalseplen + 1;
+        bufferlen  += sizeof(char) * st_info->J * (sprintextra * st_info->kvars_by_str);
+        bufferlen  += sizeof(char) * st_info->J * (st_info->kvars_by_num * 22);
+        bufferlen  += st_info->strbuffer;
+        macrobuffer = malloc(bufferlen);
     }
     else {
         bufferlen   = totalseplen + 1;
@@ -47,7 +48,7 @@ int sf_levelsof (struct StataInfo *st_info, int level)
     memset (macrobuffer, '\0', bufferlen * sizeof(char));
 
     char *strpos = macrobuffer;
-    size_t rowbytes = (st_info->rowbytes + sizeof(size_t));
+    GT_size rowbytes = (st_info->rowbytes + sizeof(GT_size));
 
     char *colsep = malloc((st_info->colsep_len + 1) * sizeof(char));
     char *sep    = malloc((st_info->sep_len    + 1) * sizeof(char));
@@ -58,8 +59,8 @@ int sf_levelsof (struct StataInfo *st_info, int level)
     memset (colsep, '\0', (st_info->colsep_len + 1) * sizeof(char));
     memset (sep,    '\0', (st_info->sep_len    + 1) * sizeof(char));
 
-    if ( (rc = SF_macro_use("_colsep", colsep, st_info->colsep_len + 1)) ) goto exit;
-    if ( (rc = SF_macro_use("_sep",    sep,    st_info->sep_len    + 1)) ) goto exit;
+    if ( (rc = SF_macro_use("_colsep", colsep, (st_info->colsep_len + 1) * sizeof(char))) ) goto exit;
+    if ( (rc = SF_macro_use("_sep",    sep,    (st_info->sep_len    + 1) * sizeof(char))) ) goto exit;
 
     if ( kvars > 1 ) {
         if ( st_info->kvars_by_str > 0 ) {
@@ -72,10 +73,10 @@ int sf_levelsof (struct StataInfo *st_info, int level)
                         strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
                     }
                     else {
-                        z = *((double *) (st_info->st_by_charx + sel));
+                        z = *((ST_double *) (st_info->st_by_charx + sel));
                         if ( SF_is_missing(z) ) {
                             // strpos += sprintf(strpos, ".");
-                            MF_SWITCH_MISSING
+                            GTOOLS_SWITCH_MISSING
                         }
                         else {
                             strpos += sprintf(strpos, "%.16g", z);
@@ -93,7 +94,7 @@ int sf_levelsof (struct StataInfo *st_info, int level)
                     z  = st_info->st_by_numx[sel];
                     if ( SF_is_missing(z) ) {
                         // strpos += sprintf(strpos, ".");
-                        MF_SWITCH_MISSING
+                        GTOOLS_SWITCH_MISSING
                     }
                     else {
                         strpos += sprintf(strpos, "%.16g", z);
@@ -111,10 +112,10 @@ int sf_levelsof (struct StataInfo *st_info, int level)
                     strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
                 }
                 else {
-                    z = *((double *) (st_info->st_by_charx + sel));
+                    z = *((ST_double *) (st_info->st_by_charx + sel));
                     if ( SF_is_missing(z) ) {
                         // strpos += sprintf(strpos, ".");
-                        MF_SWITCH_MISSING
+                        GTOOLS_SWITCH_MISSING
                     }
                     else {
                         strpos += sprintf(strpos, "%.16g", z);
@@ -130,7 +131,7 @@ int sf_levelsof (struct StataInfo *st_info, int level)
                 z = st_info->st_by_numx[sel];
                 if ( SF_is_missing(z) ) {
                     // strpos += sprintf(strpos, ".");
-                    MF_SWITCH_MISSING
+                    GTOOLS_SWITCH_MISSING
                 }
                 else {
                     strpos += sprintf(strpos, "%.16g", z);

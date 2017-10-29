@@ -15,10 +15,10 @@
  * @param end summaryze until the (@end - 1)-th entry
  * @return Standard deviation of the elements of @v from @start to @end
  */
-double mf_array_dsd_range (const double v[], const size_t start, const size_t end) {
-    size_t i;
-    double vvar  = 0;
-    double vmean = mf_array_dmean_range(v, start, end);
+ST_double gf_array_dsd_range (const ST_double v[], const GT_size start, const GT_size end) {
+    GT_size i;
+    ST_double vvar  = 0;
+    ST_double vmean = gf_array_dmean_range(v, start, end);
     for (i = start; i < end; i++)
         vvar += SQUARE(v[i] - vmean);
     return (sqrt(vvar / (end - start - 1)));
@@ -32,8 +32,8 @@ double mf_array_dsd_range (const double v[], const size_t start, const size_t en
  * @param end summaryze until the (@end - 1)-th entry
  * @return Mean of the elements of @v from @start to @end
  */
-double mf_array_dmean_range (const double v[], const size_t start, const size_t end) {
-    return (mf_array_dsum_range(v, start, end) / (end - start));
+ST_double gf_array_dmean_range (const ST_double v[], const GT_size start, const GT_size end) {
+    return (gf_array_dsum_range(v, start, end) / (end - start));
 }
 
 /**
@@ -44,10 +44,10 @@ double mf_array_dmean_range (const double v[], const size_t start, const size_t 
  * @param end summaryze until the (@end - 1)-th entry
  * @return Mean of the elements of @v from @start to @end
  */
-double mf_array_dsum_range (const double v[], const size_t start, const size_t end)
+ST_double gf_array_dsum_range (const ST_double v[], const GT_size start, const GT_size end)
 {
-    size_t i;
-    double vsum = 0;
+    GT_size i;
+    ST_double vsum = 0;
     for (i = start; i < end; i++)
         vsum += v[i];
     return (vsum);
@@ -61,10 +61,10 @@ double mf_array_dsum_range (const double v[], const size_t start, const size_t e
  * @param end summaryze until the (@end - 1)-th entry
  * @return Min of the elements of @v from @start to @end
  */
-double mf_array_dmin_range (const double v[], const size_t start, const size_t end)
+ST_double gf_array_dmin_range (const ST_double v[], const GT_size start, const GT_size end)
 {
-    size_t i;
-    double min = v[start];
+    GT_size i;
+    ST_double min = v[start];
     for (i = start + 1; i < end; ++i) {
         if (min > v[i]) min = v[i];
     }
@@ -79,10 +79,10 @@ double mf_array_dmin_range (const double v[], const size_t start, const size_t e
  * @param end summaryze until the (@end - 1)-th entry
  * @return Max of the elements of @v from @start to @end
  */
-double mf_array_dmax_range (const double v[], const size_t start, const size_t end)
+ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const GT_size end)
 {
-    size_t i;
-    double max = v[start];
+    GT_size i;
+    ST_double max = v[start];
     for (i = start + 1; i < end; ++i) {
         if (max < v[i]) max = v[i];
     }
@@ -102,10 +102,10 @@ double mf_array_dmax_range (const double v[], const size_t start, const size_t e
  * @param end summaryze until the (@end - 1)-th entry
  * @return Quantile of the elements of @v from @start to @end
  */
-double mf_array_dquantile_range (double v[], const size_t start, const size_t end, const double quantile)
+ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT_size end, const ST_double quantile)
 {
-    size_t N   = end - start;
-    size_t qth = floor(quantile * N / 100);
+    GT_size N   = end - start;
+    GT_size qth = floor(quantile * N / 100);
 
     // Special cases
     // -------------
@@ -128,17 +128,17 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
     }
     else if ( qth == 0 ) {
         // 0th quantile is not a thing, so we can just take the min
-        return (mf_array_dmin_range(v, start, end));
+        return (gf_array_dmin_range(v, start, end));
     }
 
     // Full selection algorithm
     // ------------------------
 
-    size_t left = start, right = end;
-    int dmax = ( qth == (N - 1) );
-    double q = dmax? mf_array_dmax_range(v, left, right): mf_qselect_range (v, left, right, qth);
-    if ( (double) qth == (quantile * N / 100) ) {
-        q += mf_qselect_range (v, left, right, qth - 1);
+    GT_size left = start, right = end;
+    GT_bool dmax = ( qth == (N - 1) );
+    ST_double q = dmax? gf_array_dmax_range(v, left, right): gf_qselect_range (v, left, right, qth);
+    if ( (ST_double) qth == (quantile * N / 100) ) {
+        q += gf_qselect_range (v, left, right, qth - 1);
         q /= 2;
     }
     return (q);
@@ -152,9 +152,9 @@ double mf_array_dquantile_range (double v[], const size_t start, const size_t en
  * @param end summaryze until the (@end - 1)-th entry
  * @return Median of the elements of @v from @start to @end
  */
-double mf_array_dmedian_range (double v[], const size_t start, const size_t end)
+ST_double gf_array_dmedian_range (ST_double v[], const GT_size start, const GT_size end)
 {
-    return (mf_array_dquantile_range(v, start, end, 50));
+    return (gf_array_dquantile_range(v, start, end, 50));
 }
 
 /**
@@ -165,9 +165,9 @@ double mf_array_dmedian_range (double v[], const size_t start, const size_t end)
  * @param end summaryze until the (@end - 1)-th entry
  * @return IRQ for the elements of @v from @start to @end
  */
-double mf_array_diqr_range (double v[], const size_t start, const size_t end)
+ST_double gf_array_diqr_range (ST_double v[], const GT_size start, const GT_size end)
 {
-    return (mf_array_dquantile_range(v, start, end, 75) - mf_array_dquantile_range(v, start, end, 25));
+    return (gf_array_dquantile_range(v, start, end, 75) - gf_array_dquantile_range(v, start, end, 25));
 }
 
 /**
@@ -178,9 +178,9 @@ double mf_array_diqr_range (double v[], const size_t start, const size_t end)
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-double mf_array_dsemean_range (double v[], const size_t start, const size_t end)
+ST_double gf_array_dsemean_range (ST_double v[], const GT_size start, const GT_size end)
 {
-    return (mf_array_dsd_range(v, start, end) / sqrt(end - start));
+    return (gf_array_dsd_range(v, start, end) / sqrt(end - start));
 }
 
 /**
@@ -191,14 +191,14 @@ double mf_array_dsemean_range (double v[], const size_t start, const size_t end)
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-double mf_array_dsebinom_range (double v[], const size_t start, const size_t end)
+ST_double gf_array_dsebinom_range (ST_double v[], const GT_size start, const GT_size end)
 {
-    size_t i;
-    double p;
+    GT_size i;
+    ST_double p;
     for (i = start; i < end; i++) {
-        if ( (v[i] != ((double) 0)) && (v[i] != ((double) 1)) ) return (SV_missval);
+        if ( (v[i] != ((ST_double) 0)) && (v[i] != ((ST_double) 1)) ) return (SV_missval);
     }
-    p = mf_array_dmean_range(v, start, end);
+    p = gf_array_dmean_range(v, start, end);
     return (sqrt(p * (1 - p) / (end - start)));
 }
 
@@ -210,15 +210,15 @@ double mf_array_dsebinom_range (double v[], const size_t start, const size_t end
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-double mf_array_dsepois_range (double v[], const size_t start, const size_t end)
+ST_double gf_array_dsepois_range (ST_double v[], const GT_size start, const GT_size end)
 {
-    size_t i;
-    // size_t vsum = 0;
+    GT_size i;
+    // GT_size vsum = 0;
     for (i = start; i < end; i++) {
         if ( v[i] < 0 ) return (SV_missval);
-        // vsum += (size_t) round(v[i]);
+        // vsum += (GT_size) round(v[i]);
     }
-    double rmean = round(mf_array_dsum_range(v, start, end)) / (end - start);
+    ST_double rmean = round(gf_array_dsum_range(v, start, end)) / (end - start);
     return (sqrt(rmean / (end - start)));
 }
 
@@ -231,20 +231,20 @@ double mf_array_dsepois_range (double v[], const size_t start, const size_t end)
  * @param end summaryze until the (@end - 1)-th entry
  * @return @fname(@v[@start to @end])
  */
-double mf_switch_fun (char * fname, double v[], const size_t start, const size_t end)
+ST_double gf_switch_fun (char * fname, ST_double v[], const GT_size start, const GT_size end)
 {
-    if ( strcmp (fname, "sum")        == 0 ) return (mf_array_dsum_range     (v, start, end));
-    if ( strcmp (fname, "mean")       == 0 ) return (mf_array_dmean_range    (v, start, end));
-    if ( strcmp (fname, "sd")         == 0 ) return (mf_array_dsd_range      (v, start, end));
-    if ( strcmp (fname, "max")        == 0 ) return (mf_array_dmax_range     (v, start, end));
-    if ( strcmp (fname, "min")        == 0 ) return (mf_array_dmin_range     (v, start, end));
-    if ( strcmp (fname, "median")     == 0 ) return (mf_array_dmedian_range  (v, start, end));
-    if ( strcmp (fname, "iqr")        == 0 ) return (mf_array_diqr_range     (v, start, end));
-    if ( strcmp (fname, "semean")     == 0 ) return (mf_array_dsemean_range  (v, start, end));
-    if ( strcmp (fname, "sebinomial") == 0 ) return (mf_array_dsebinom_range (v, start, end));
-    if ( strcmp (fname, "sepoisson ") == 0 ) return (mf_array_dsepois_range  (v, start, end));
-    double q = (double) atof(fname);
-    return (q > 0? mf_array_dquantile_range(v, start, end, q): 0);
+    if ( strcmp (fname, "sum")        == 0 ) return (gf_array_dsum_range     (v, start, end));
+    if ( strcmp (fname, "mean")       == 0 ) return (gf_array_dmean_range    (v, start, end));
+    if ( strcmp (fname, "sd")         == 0 ) return (gf_array_dsd_range      (v, start, end));
+    if ( strcmp (fname, "max")        == 0 ) return (gf_array_dmax_range     (v, start, end));
+    if ( strcmp (fname, "min")        == 0 ) return (gf_array_dmin_range     (v, start, end));
+    if ( strcmp (fname, "median")     == 0 ) return (gf_array_dmedian_range  (v, start, end));
+    if ( strcmp (fname, "iqr")        == 0 ) return (gf_array_diqr_range     (v, start, end));
+    if ( strcmp (fname, "semean")     == 0 ) return (gf_array_dsemean_range  (v, start, end));
+    if ( strcmp (fname, "sebinomial") == 0 ) return (gf_array_dsebinom_range (v, start, end));
+    if ( strcmp (fname, "sepoisson ") == 0 ) return (gf_array_dsepois_range  (v, start, end));
+    ST_double q = (ST_double) atof(fname);
+    return (q > 0? gf_array_dquantile_range(v, start, end, q): 0);
 }
 
 /**
@@ -255,7 +255,7 @@ double mf_switch_fun (char * fname, double v[], const size_t start, const size_t
  * @param fname Character with name of funtion
  * @return internal code for summary function
  */
-double mf_code_fun (char * fname)
+ST_double gf_code_fun (char * fname)
 {
     if ( strcmp (fname, "sum")     == 0 ) return (-1);  // sum
     if ( strcmp (fname, "mean")    == 0 ) return (-2);  // mean
@@ -270,14 +270,14 @@ double mf_code_fun (char * fname)
     if ( strcmp (fname, "firstnm") == 0 ) return (-11); // firstnm
     if ( strcmp (fname, "last")    == 0 ) return (-12); // last
     if ( strcmp (fname, "lastnm")  == 0 ) return (-13); // lastnm
-    double q = (double) atof(fname);                    // quantile
+    ST_double q = (ST_double) atof(fname);              // quantile
     return (q > 0? q: 0);
 }
 
 /**
  * @brief Wrapper to choose summary function using internal code
  *
- * See mf_code_fun above
+ * See gf_code_fun above
  *
  * @param fcode double with function code
  * @param v vector of doubles containing the current group's variables
@@ -285,18 +285,18 @@ double mf_code_fun (char * fname)
  * @param end summaryze until the (@end - 1)-th entry
  * @return @fname(@v[@start to @end])
  */
-double mf_switch_fun_code (double fcode, double v[], const size_t start, const size_t end)
+ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size start, const GT_size end)
 {
-    if ( fcode == -1  )  return (mf_array_dsum_range     (v, start, end)); // sum
-    if ( fcode == -2  )  return (mf_array_dmean_range    (v, start, end)); // mean
-    if ( fcode == -3  )  return (mf_array_dsd_range      (v, start, end)); // sd)
-    if ( fcode == -4  )  return (mf_array_dmax_range     (v, start, end)); // max
-    if ( fcode == -5  )  return (mf_array_dmin_range     (v, start, end)); // min
-    if ( fcode == -9  )  return (mf_array_diqr_range     (v, start, end)); // iqr
-    if ( fcode == -15 )  return (mf_array_dsemean_range  (v, start, end)); // semean
-    if ( fcode == -16 )  return (mf_array_dsebinom_range (v, start, end)); // sebinomial
-    if ( fcode == -17 )  return (mf_array_dsepois_range  (v, start, end)); // sepoisson
-    return (mf_array_dquantile_range(v, start, end, fcode));               // percentiles
+    if ( fcode == -1  )  return (gf_array_dsum_range     (v, start, end)); // sum
+    if ( fcode == -2  )  return (gf_array_dmean_range    (v, start, end)); // mean
+    if ( fcode == -3  )  return (gf_array_dsd_range      (v, start, end)); // sd)
+    if ( fcode == -4  )  return (gf_array_dmax_range     (v, start, end)); // max
+    if ( fcode == -5  )  return (gf_array_dmin_range     (v, start, end)); // min
+    if ( fcode == -9  )  return (gf_array_diqr_range     (v, start, end)); // iqr
+    if ( fcode == -15 )  return (gf_array_dsemean_range  (v, start, end)); // semean
+    if ( fcode == -16 )  return (gf_array_dsebinom_range (v, start, end)); // sebinomial
+    if ( fcode == -17 )  return (gf_array_dsepois_range  (v, start, end)); // sepoisson
+    return (gf_array_dquantile_range(v, start, end, fcode));               // percentiles
 }
 
 /**
@@ -306,9 +306,9 @@ double mf_switch_fun_code (double fcode, double v[], const size_t start, const s
  * @param b Second element
  * @return @a - @b
  */
-int mf_qsort_compare (const void * a, const void * b)
+int gf_qsort_compare (const void * a, const void * b)
 {
-    return ( (int) *(double*)a - *(double*)b );
+    return ( (int) *(ST_double*)a - *(ST_double*)b );
 }
 
 /**
@@ -319,8 +319,8 @@ int mf_qsort_compare (const void * a, const void * b)
  * @param end summaryze until the (@end - 1)-th entry
  * @return Whether the elements of @v are sorted from @start to @end
  */
-int mf_array_dsorted_range (const double v[], const size_t start, const size_t end) {
-    size_t i;
+GT_bool gf_array_dsorted_range (const ST_double v[], const GT_size start, const GT_size end) {
+    GT_size i;
     for (i = start + 1; i < end; i++) {
         if (v[i - 1] > v[i]) return (0);
     }

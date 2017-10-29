@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-0.8.4 (2017-10-29)
+
+### Enhancements
+
+- Normalized types in the C base to ensure I have 64-bit integers
+  (signed and unsigned) as well as `ST_doubles` all around.
+- Bijection limit is now limit on signed 64-bit integers.
+
 ## gtools-0.8.3 (2017-10-28)
 
 ### Features

@@ -1,23 +1,23 @@
 #ifndef GTOOLS_UTILS
 #define GTOOLS_UTILS
 
-double mf_benchmark (char *fname);
-double mf_query_free_space (char *fname);
-void mf_split_path_file(char** p, char** f, char *pf);
+ST_double gf_benchmark (char *fname);
+ST_double gf_query_free_space (char *fname);
+void gf_split_path_file(char** p, char** f, char *pf);
 
-void mf_write_collapsed(
+void gf_write_collapsed(
     char *collapsed_file,
-    double *collapsed_data,
-    size_t kstart,
-    size_t kend,
-    size_t J
+    ST_double *collapsed_data,
+    GT_size kstart,
+    GT_size kend,
+    GT_size J
 );
 
-void mf_read_collapsed(
+void gf_read_collapsed(
     char *collapsed_file,
-    double *collapsed_data,
-    size_t knum,
-    size_t J
+    ST_double *collapsed_data,
+    GT_size knum,
+    GT_size J
 );
 
 #endif

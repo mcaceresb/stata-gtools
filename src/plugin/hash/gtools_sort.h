@@ -22,10 +22,10 @@ struct  radixCounts16 {
     uint32_t *c1;
 };
 
-int mf_sort_hash     (uint64_t *hash, size_t *index, size_t N, short verbose);
-int mf_radix_sort8   (uint64_t *hash, size_t *index, size_t N);
-int mf_radix_sort16  (uint64_t *hash, size_t *index, size_t N);
-int mf_counting_sort (uint64_t *hash, size_t *index, size_t N, uint64_t min, uint64_t max);
+int gf_sort_hash     (uint64_t *hash, GT_size *index, GT_size N, GT_bool verbose);
+int gf_radix_sort8   (uint64_t *hash, GT_size *index, GT_size N);
+int gf_radix_sort16  (uint64_t *hash, GT_size *index, GT_size N);
+int gf_counting_sort (uint64_t *hash, GT_size *index, GT_size N, uint64_t min, uint64_t max);
 
 
 #endif

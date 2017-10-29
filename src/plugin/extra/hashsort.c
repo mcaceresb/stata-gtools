@@ -1,18 +1,18 @@
-int sf_hashsort (struct StataInfo *st_info, int level);
+ST_retcode sf_hashsort (struct StataInfo *st_info, int level);
  
-int sf_hashsort (struct StataInfo *st_info, int level)
+ST_retcode sf_hashsort (struct StataInfo *st_info, int level)
 {
 
     /*********************************************************************
      *                               Setup                               *
      *********************************************************************/
 
-    size_t i, j, sel, out, start, end;
-    size_t N     = st_info->N;
-    size_t J     = st_info->J;
-    size_t in1   = st_info->in1;
-    size_t kvars = st_info->kvars_by;
-    size_t ksort = kvars + st_info->kvars_group + 1;
+    GT_size i, j, sel, out, start, end;
+    GT_size N     = st_info->N;
+    GT_size J     = st_info->J;
+    GT_size in1   = st_info->in1;
+    GT_size kvars = st_info->kvars_by;
+    GT_size ksort = kvars + st_info->kvars_group + 1;
 
     ST_retcode rc = 0;
     clock_t timer = clock();

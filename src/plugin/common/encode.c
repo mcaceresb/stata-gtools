@@ -4,19 +4,19 @@
  * @param st_info Pointer to container structure for Stata info
  * @return indexes by variables in Stata
  */
-int sf_encode (struct StataInfo *st_info, int level)
+ST_retcode sf_encode (struct StataInfo *st_info, int level)
 {
     ST_retcode rc ;
-    size_t i, j, l, out;
-    size_t start, end, nobs, within, missval;
-    size_t kvars = st_info->kvars_by;
+    GT_size i, j, l, out;
+    GT_size start, end, nobs, within, missval;
+    GT_size kvars = st_info->kvars_by;
     clock_t timer = clock();
 
     if ( st_info->kvars_group < 1 ) {
         return (0);
     }
 
-    size_t group_targets[3];
+    GT_size group_targets[3];
     group_targets[0] = st_info->group_targets[0] + kvars;
     group_targets[1] = st_info->group_targets[1] + kvars;
     group_targets[2] = st_info->group_targets[2] + kvars;

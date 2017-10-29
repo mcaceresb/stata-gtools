@@ -1,6 +1,39 @@
 #ifndef GTOOLS
 #define GTOOLS
 
+#include "spi/stplugin.h"
+#include "common/gttypes.h"
+
+/*
+ * Style
+ * -----
+ *
+ * ## Prefixes
+ *
+ * - GTOOLS_ for misc internal macros
+ * - GT_ for internal types
+ * - gf_ for functions that do not interact with Stata
+ * - sf_ for functions that do interact with Stata
+ * - st_ for objects that store information from/for Stata
+ *
+ * ## Types
+ *
+ * All doubles that hold stata data should be ST_double to ensure consistency
+ * with the Stata interface.  For this reason, all return codes should be
+ * ST_retcode as well, and you should stop using 42000 codes. Move to 17000
+ * codes.
+ *
+ * However, integers will be GT* typed because they involve a type cast to
+ * interact with anything form Stata anyway, and will be used internally
+ * thereafter. This gives me more control over typing. On some systems,
+ * size_t and int are not defined to their 64-bit counterparts because the
+ * standard only asks for at least 16 bits.
+ *
+ */
+
+// Largest 64-bit signed integer
+#define GTOOLS_BIJECTION_LIMIT 9223372036854775807LL
+
 // Libraries
 #include <math.h>
 #include <time.h>
@@ -16,98 +49,124 @@
 
 // Container structure for Stata-provided info
 struct StataInfo {
-    size_t start;
-    size_t in1;
-    size_t in2;
-    size_t N;
-    size_t Nread;
-    size_t J;
-    size_t nj_min;
-    size_t nj_max;
-    size_t strmax;
-    size_t rowbytes;
-    size_t free;
-    size_t strbuffer;
-    size_t sep_len;
-    size_t colsep_len;
+    GT_size   start;
+    GT_size   in1;
+    GT_size   in2;
+    GT_size   N;
+    GT_size   Nread;
+    GT_size   J;
+    GT_size   nj_min;
+    GT_size   nj_max;
+    GT_size   strmax;
+    GT_size   rowbytes;
+    GT_size   free;
+    GT_size   strbuffer;
+    GT_size   sep_len;
+    GT_size   colsep_len;
+    //        
+    GT_size   biject;
+    GT_size   encode;
+    GT_size   group_data;
+    GT_size   group_fill;
+    ST_double group_val;
     //
-    size_t biject;
-    size_t encode;
-    size_t group_data;
-    size_t group_fill;
-    double group_val;
+    GT_bool   cleanstr;
+    GT_bool   init_targ;
+    GT_bool   any_if;
+    GT_bool   verbose;
+    GT_bool   benchmark;
+    GT_bool   countonly;
+    GT_bool   seecount;
+    GT_bool   missing;
+    GT_bool   unsorted;
+    GT_bool   nomiss;
+    GT_bool   replace;
+    GT_bool   countmiss;
+    GT_bool   used_io;
+    //        
+    GT_size   kvars_group;
+    GT_size   kvars_sources;
+    GT_size   kvars_targets;
+    GT_size   kvars_extra;
+    GT_size   kvars_stats;
+    GT_size   kvars_by;
+    GT_size   kvars_by_int;
+    GT_size   kvars_by_num;
+    GT_size   kvars_by_str;
     //
-    short cleanstr;
-    short init_targ;
-    short any_if;
-    short verbose;
-    short benchmark;
-    short countonly;
-    short seecount;
-    short missing;
-    short unsorted;
-    short nomiss;
-    short replace;
-    short countmiss;
-    short used_io;
+    GT_size   *pos_targets;
+    ST_double *statcode;
     //
-    size_t kvars_group;
-    size_t kvars_sources;
-    size_t kvars_targets;
-    size_t kvars_extra;
-    size_t kvars_stats;
-    size_t kvars_by;
-    size_t kvars_by_int;
-    size_t kvars_by_num;
-    size_t kvars_by_str;
+    GT_int    *byvars_mins;
+    GT_int    *byvars_maxs;
+    GT_size   *byvars_lens;
+    GT_size   *pos_num_byvars;
+    GT_size   *pos_str_byvars;
+    GT_size   *group_targets;
+    GT_size   *group_init;
+    GT_size   *invert;
+    GT_size   *positions;
+    ST_double *missval;
     //
-    size_t *pos_targets;
-    double *statcode;
-    //
-    int64_t *byvars_mins;
-    int64_t *byvars_maxs;
-    size_t  *byvars_lens;
-    size_t  *pos_num_byvars;
-    size_t  *pos_str_byvars;
-    size_t  *group_targets;
-    size_t  *group_init;
-    size_t  *invert;
-    size_t  *positions;
-    double  *missval;
-    //
-    size_t *ix;
-    size_t *index;
-    size_t *info;
-    char   *st_charx;
-    double *st_numx;
-    char   *st_by_charx;
-    double *st_by_numx;
-    double *output;
+    GT_size   *ix;
+    GT_size   *index;
+    GT_size   *info;
+    ST_double *output;
+    ST_double *st_numx;
+    ST_double *st_by_numx;
+    char *st_charx;
+    char *st_by_charx;
     //
     char *gc_info;
 };
 
+
+// Some useful macros
+#define GTOOLS_CHAR(cvar, len)                   \
+    char *(cvar) = malloc(sizeof(char) * (len)); \
+    memset ((cvar), '\0', sizeof(char) * (len))
+
+#define GTOOLS_MIN(x, N, min, _i)             \
+    typeof (*x) (min) = *x;                   \
+    for (_i = 1; _i < N; ++_i) {              \
+        if (min > *(x + _i)) min = *(x + _i); \
+    }                                         \
+
+#define GTOOLS_MAX(x, N, max, _i)             \
+    typeof (*x) (max) = *x;                   \
+    for (_i = 1; _i < N; ++_i) {              \
+        if (max < *(x + _i)) max = *(x + _i); \
+    }                                         \
+
+#define GTOOLS_MINMAX(x, N, min, max, _i)     \
+    typeof (*x) (min) = *x;                   \
+    typeof (*x) (max) = *x;                   \
+    for (_i = 1; _i < N; ++_i) {              \
+        if (min > *(x + _i)) min = *(x + _i); \
+        if (max < *(x + _i)) max = *(x + _i); \
+    }                                         \
+
 // Check if you're actually cleaning up after yourself
-#define ST_GC_INIT                                  \
+#define GTOOLS_GC_INIT                              \
     st_info->gc_info = malloc(4096 * sizeof(char)); \
     memset (st_info->gc_info, '\0', 4096 * sizeof(char));
 
-#define ST_GC_ALLOCATED(a)                    \
+#define GTOOLS_GC_ALLOCATED(a)                \
     strcat (st_info->gc_info, "allocated: "); \
     strcat (st_info->gc_info, (a));           \
     strcat (st_info->gc_info, "\n");
 
-#define ST_GC_FREED(f)                    \
+#define GTOOLS_GC_FREED(f)                \
     strcat (st_info->gc_info, "freed: "); \
     strcat (st_info->gc_info, (f));       \
     strcat (st_info->gc_info, "\n");
 
-#define ST_GC_END(p)                          \
+#define GTOOLS_GC_END(p)                      \
     if ( p ) printf ("%s", st_info->gc_info); \
     free (st_info->gc_info);
 
 // Switch missing values
-#define MF_SWITCH_MISSING                                                    \
+#define GTOOLS_SWITCH_MISSING                                                \
          if ( z <= SV_missval )             strpos += sprintf(strpos, ".");  \
     else if ( z <= 8.990660123939097e+307 ) strpos += sprintf(strpos, ".a"); \
     else if ( z <= 8.992854573566614e+307 ) strpos += sprintf(strpos, ".b"); \
@@ -140,12 +199,8 @@ struct StataInfo {
 // Windows-specific foo
 #if defined(_WIN64) || defined(_WIN32)
 
-// Formatting
-#define  FMT "%lu"
-#define SFMT "%lu"
-
 // statvfs is POSIX only; repalce with dummies on windows
-#define QUERY_FREE_SPACE 0
+#define GTOOLS_QUERY_FREE_SPACE 0
 struct statvfs {
     int f_bsize;
     int f_bfree;
@@ -166,23 +221,20 @@ char * strndup (const char *s, size_t n)
 
 #else
 
-// Formatting
-#define FMT "%'lu"
-#define SFMT "%lu"
-
 // Use statvfs to query free space in tmp drive
-#define QUERY_FREE_SPACE 1
+#define GTOOLS_QUERY_FREE_SPACE 1
 #include <sys/statvfs.h>
 
 #endif
 
 // Functions
-void sf_free       (struct StataInfo *st_info, int level);
-int sf_parse_info  (struct StataInfo *st_info, int level);
-int sf_hash_byvars (struct StataInfo *st_info, int level);
-int sf_check_hash  (struct StataInfo *st_info, int level);
-int sf_switch_io   (struct StataInfo *st_info, int level, char* fname);
-int sf_switch_mem  (struct StataInfo *st_info, int level);
-int sf_set_rinfo   (struct StataInfo *st_info, int level);
+void sf_free (struct StataInfo *st_info, int level);
+
+ST_retcode sf_parse_info  (struct StataInfo *st_info, int level);
+ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level);
+ST_retcode sf_check_hash  (struct StataInfo *st_info, int level);
+ST_retcode sf_switch_io   (struct StataInfo *st_info, int level, char* fname);
+ST_retcode sf_switch_mem  (struct StataInfo *st_info, int level);
+ST_retcode sf_set_rinfo   (struct StataInfo *st_info, int level);
 
 #endif

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "spi/stplugin.h"
-#include "spt/st_print.c"
+#include "common/sf_printf.c"
 
 #if defined(_WIN64) || defined(_WIN32)
 // #include <stdio.h>

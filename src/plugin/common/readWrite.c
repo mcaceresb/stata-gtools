@@ -1,44 +1,44 @@
-int sf_read_byvars (
+ST_retcode sf_read_byvars (
     struct StataInfo *st_info,
     int level,
-    size_t *index
+    GT_size *index
 );
 
-int mf_bijection_limits (
+ST_retcode gf_bijection_limits (
     struct StataInfo *st_info,
     int level
 );
 
 
-int sf_read_byvars (
+ST_retcode sf_read_byvars (
     struct StataInfo *st_info,
     int level,
-    size_t *index)
+    GT_size *index)
 {
     ST_retcode rc = 0;
     ST_double z;
 
-    size_t i, k, sel, obs;
-    size_t rowbytes   = st_info->rowbytes;
-    size_t N          = st_info->N;
-    size_t in1        = st_info->in1;
-    size_t kvars      = st_info->kvars_by;
-    size_t kstr       = st_info->kvars_by_str;
-    size_t *positions = st_info->positions;
+    GT_size i, k, sel, obs;
+    GT_size rowbytes   = st_info->rowbytes;
+    GT_size N          = st_info->N;
+    GT_size in1        = st_info->in1;
+    GT_size kvars      = st_info->kvars_by;
+    GT_size kstr       = st_info->kvars_by_str;
+    GT_size *positions = st_info->positions;
 
     // index = calloc(N, sizeof(index));
     // if ( index == NULL ) return (sf_oom_error("sf_read_byvars", "index"));
-    // ST_GC_ALLOCATED("index")
+    // GTOOLS_GC_ALLOCATED("index")
 
     if ( kstr > 0 ) {
-        st_info->st_numx  = malloc(sizeof(double));
-        st_info->st_charx = calloc(N, rowbytes * sizeof(char));
+        st_info->st_numx  = malloc(sizeof(ST_double));
+        st_info->st_charx = calloc(N, rowbytes);
 
         if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_numx"));
         if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_charx"));
 
-        ST_GC_ALLOCATED("st_info->st_numx")
-        ST_GC_ALLOCATED("st_info->st_charx")
+        GTOOLS_GC_ALLOCATED("st_info->st_numx")
+        GTOOLS_GC_ALLOCATED("st_info->st_charx")
 
         st_info->free = 3;
 
@@ -79,7 +79,7 @@ int sf_read_byvars (
                                     memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
                                     goto next_inner1;
                                 }
-                                memcpy (st_info->st_charx + sel, &z, sizeof(double));
+                                memcpy (st_info->st_charx + sel, &z, sizeof(ST_double));
                             }
                         }
                         index[obs] = i;
@@ -100,7 +100,7 @@ next_inner1: continue;
                             else {
                                 if ( (rc = SF_vdata(k + 1, i + in1, &z)) )
                                     goto exit;
-                                memcpy (st_info->st_charx + sel, &z, sizeof(double));
+                                memcpy (st_info->st_charx + sel, &z, sizeof(ST_double));
                             }
                         }
                         index[obs] = i;
@@ -137,7 +137,7 @@ next_inner1: continue;
                                 memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
                                 goto next_inner2;
                             }
-                            memcpy (st_info->st_charx + sel, &z, sizeof(double));
+                            memcpy (st_info->st_charx + sel, &z, sizeof(ST_double));
                         }
                     }
                     index[obs] = i;
@@ -158,7 +158,7 @@ next_inner2: continue;
                     }
                     else {
                         if ( (rc = SF_vdata(k + 1, i + in1, &z)) ) goto exit;
-                        memcpy (st_info->st_charx + sel, &z, sizeof(double));
+                        memcpy (st_info->st_charx + sel, &z, sizeof(ST_double));
                     }
                 }
             }
@@ -171,8 +171,8 @@ next_inner2: continue;
         if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));
         if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_charx"));
 
-        ST_GC_ALLOCATED("st_info->st_numx")
-        ST_GC_ALLOCATED("st_info->st_charx")
+        GTOOLS_GC_ALLOCATED("st_info->st_numx")
+        GTOOLS_GC_ALLOCATED("st_info->st_charx")
 
         st_info->free = 3;
 
@@ -256,32 +256,32 @@ exit:
  *            Check whether to hash or to use a bijection            *
  *********************************************************************/
 
-int mf_bijection_limits (
+ST_retcode gf_bijection_limits (
     struct StataInfo *st_info,
     int level)
 {
 
     ST_retcode rc = 0;
     ST_double z;
-    size_t i, k, worst, range;
-    size_t N     = st_info->N;
-    size_t kvars = st_info->kvars_by;
-    size_t kint  = st_info->kvars_by_int;
+    GT_size i, k, worst, range;
+    GT_size N     = st_info->N;
+    GT_size kvars = st_info->kvars_by;
+    GT_size kint  = st_info->kvars_by_int;
 
-    double *double_mins = calloc(kvars, sizeof *double_mins);
-    double *double_maxs = calloc(kvars, sizeof *double_maxs);
-    short  *any_missing = calloc(kvars, sizeof *any_missing);
-    short  *all_missing = calloc(kvars, sizeof *all_missing);
+    ST_double *double_mins = calloc(kvars, sizeof *double_mins);
+    ST_double *double_maxs = calloc(kvars, sizeof *double_maxs);
+    GT_bool   *any_missing = calloc(kvars, sizeof *any_missing);
+    GT_bool   *all_missing = calloc(kvars, sizeof *all_missing);
 
-    if ( double_mins == NULL ) return (sf_oom_error("mf_bijection_limits", "double_mins"));
-    if ( double_maxs == NULL ) return (sf_oom_error("mf_bijection_limits", "double_maxs"));
-    if ( any_missing == NULL ) return (sf_oom_error("mf_bijection_limits", "any_missing"));
-    if ( all_missing == NULL ) return (sf_oom_error("mf_bijection_limits", "all_missing"));
+    if ( double_mins == NULL ) return (sf_oom_error("gf_bijection_limits", "double_mins"));
+    if ( double_maxs == NULL ) return (sf_oom_error("gf_bijection_limits", "double_maxs"));
+    if ( any_missing == NULL ) return (sf_oom_error("gf_bijection_limits", "any_missing"));
+    if ( all_missing == NULL ) return (sf_oom_error("gf_bijection_limits", "all_missing"));
 
-    ST_GC_ALLOCATED("double_mins")
-    ST_GC_ALLOCATED("double_maxs")
-    ST_GC_ALLOCATED("any_missing")
-    ST_GC_ALLOCATED("all_missing")
+    GTOOLS_GC_ALLOCATED("double_mins")
+    GTOOLS_GC_ALLOCATED("double_maxs")
+    GTOOLS_GC_ALLOCATED("any_missing")
+    GTOOLS_GC_ALLOCATED("all_missing")
 
     // If only integers, check worst case of the bijection would not
     // overflow. Given K by variables, by_1 to by_K, where by_k belongs to the
@@ -371,15 +371,19 @@ int mf_bijection_limits (
     // Check whether bijection might overflow.
     if ( st_info->biject ) {
         for (k = 0; k < kvars; k++) {
-            st_info->byvars_mins[k] = (int64_t) (double_mins[k]);
-            st_info->byvars_maxs[k] = (int64_t) (double_maxs[k]) + any_missing[k];
+            st_info->byvars_mins[k] = (GT_int) (double_mins[k]);
+            st_info->byvars_maxs[k] = (GT_int) (double_maxs[k]) + any_missing[k];
         }
         worst = st_info->byvars_maxs[0] - st_info->byvars_mins[0] + 1;
         range = st_info->byvars_maxs[1] - st_info->byvars_mins[1] + 1;
         for (k = 1; k < kvars; k++) {
-            if ( worst > (ULONG_MAX / range)  ) {
+            if ( worst > (GTOOLS_BIJECTION_LIMIT / range)  ) {
                 if ( st_info->verbose ) {
-                    sf_printf("No.\nValues OK but range too large; falling back on hash.\n");
+                    sf_printf("No.\n");
+                    sf_printf("Values OK but range ("
+                              GT_size_cfmt" * "
+                              GT_size_cfmt") too large; falling back on hash.\n",
+                              worst, range);
                 }
                 st_info->biject = 0;
                 goto exit;
@@ -399,10 +403,10 @@ exit:
     free (double_mins);
     free (double_maxs);
 
-    ST_GC_FREED("any_missing")
-    ST_GC_FREED("all_missing")
-    ST_GC_FREED("double_mins")
-    ST_GC_FREED("double_maxs")
+    GTOOLS_GC_FREED("any_missing")
+    GTOOLS_GC_FREED("all_missing")
+    GTOOLS_GC_FREED("double_mins")
+    GTOOLS_GC_FREED("double_maxs")
 
     return (rc);
 }

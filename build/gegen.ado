@@ -1,4 +1,4 @@
-*! version 0.8.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -251,11 +251,11 @@ program define gegen, byable(onecall) rclass
         local rc = _rc
         global GTOOLS_CALLER ""
 
-        if ( `rc' == 41999 ) {
+        if ( `rc' == 17999 ) {
             egen `00'
             exit 0
         }
-        else if ( `rc' == 42001 ) {
+        else if ( `rc' == 17001 ) {
             if ( `=_N' > 0 ) `noobs'
             `rename'
             exit 0
@@ -357,11 +357,11 @@ program define gegen, byable(onecall) rclass
     local rc = _rc
     global GTOOLS_CALLER ""
 
-    if ( `rc' == 41999 ) {
+    if ( `rc' == 17999 ) {
         egen `00'
         exit 0
     }
-    else if ( `rc' == 42001 ) {
+    else if ( `rc' == 17001 ) {
         exit 0
     }
     else if ( `rc' ) exit `rc'

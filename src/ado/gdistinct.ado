@@ -1,4 +1,4 @@
-*! version 0.1.2 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.3 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -44,11 +44,11 @@ program gdistinct, rclass
 
         local rc  = _rc
         global GTOOLS_CALLER ""
-        if ( `rc' == 41999 ) {
+        if ( `rc' == 17999 ) {
             distinct `varlist' `if' `in', `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
             exit 0
         }
-        else if ( `rc' == 42001 ) {
+        else if ( `rc' == 17001 ) {
             exit 0
         }
         else if ( `rc' ) exit `rc'
@@ -82,11 +82,11 @@ program gdistinct, rclass
             local r_maxJ      = `r(maxJ)'
 
             local rc  = _rc
-            if ( `rc' == 41999 ) {
+            if ( `rc' == 17999 ) {
                 global GTOOLS_CALLER ""
                 distinct `varlist' `if' `in', `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
             }
-            else if ( `rc' == 42001 ) {
+            else if ( `rc' == 17001 ) {
                 global GTOOLS_CALLER ""
                 cap mata: mata drop __gtools_distinct
                 exit 0

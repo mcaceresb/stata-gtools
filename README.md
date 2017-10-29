@@ -11,7 +11,7 @@ _Gtools_: Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, egen, isid, levelsof, and unique/distinct using C
 plugins for a massive speed improvement.
 
-`version 0.8.3 26Oct2017`
+`version 0.8.4 29Oct2017`
 Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -797,7 +797,9 @@ I had access to physical Windows and OSX hardware I would be able to do it,
 but I only have access to Linux hardware. And even then the multi-threading
 implementation that worked on my machine broke the plugin on older systems.
 
-Perhaps I will come back to multi-threading in the future. For now only the
+Basically my version of OpenMP, which is what I'd normally use, does not play
+nice with Stata's plugin interface or with older Linux versions.  Perhaps
+I will come back to multi-threading in the future, but for now only the
 single-threaded version is available, and that is already a massive speedup!
 
 ### My computer has a 32-bit CPU

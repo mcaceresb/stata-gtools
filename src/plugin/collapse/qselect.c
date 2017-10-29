@@ -7,19 +7,19 @@ do {                     \
     (b) = _a;            \
 } while(0)
 
-double mf_qselect_range (double *x, size_t start, size_t end, size_t k);
-void mf_qselect_range_partition (double *x, size_t start, size_t end, size_t *less_size, size_t *equal_size);
+ST_double gf_qselect_range (ST_double *x, GT_size start, GT_size end, GT_size k);
+void gf_qselect_range_partition (ST_double *x, GT_size start, GT_size end, GT_size *less_size, GT_size *equal_size);
 
-double mf_qselect_range(double *x, size_t start, size_t end, size_t k)
+ST_double gf_qselect_range(ST_double *x, GT_size start, GT_size end, GT_size k)
 {
     if ( (end - start) == 1 ) {
         return (x[start]);
     }
 
-    size_t less_size;
-    size_t equal_size;
+    GT_size less_size;
+    GT_size equal_size;
 
-    mf_qselect_range_partition (x, start, end, &less_size, &equal_size);
+    gf_qselect_range_partition (x, start, end, &less_size, &equal_size);
 
     if ( k < less_size ) {
         // k lies in the less-than-pivot partition
@@ -36,17 +36,17 @@ double mf_qselect_range(double *x, size_t start, size_t end, size_t k)
         k     -= less_size + equal_size;
     }
 
-    return (mf_qselect_range(x, start, end, k));
+    return (gf_qselect_range(x, start, end, k));
 }
 
-void mf_qselect_range_partition(double *x, size_t start, size_t end, size_t *less_size, size_t *equal_size)
+void gf_qselect_range_partition(ST_double *x, GT_size start, GT_size end, GT_size *less_size, GT_size *equal_size)
 {
 
     // Modified median-of-three and pivot selection.
-    size_t nj     = end - start;
-    size_t first  = start;
-    size_t middle = start + floor(nj / 2);
-    size_t last   = end - 1 ;
+    GT_size nj     = end - start;
+    GT_size first  = start;
+    GT_size middle = start + floor(nj / 2);
+    GT_size last   = end - 1 ;
 
     if ( x[first] > x[last]) {
         SWAP(x[first], x[last]);
@@ -57,14 +57,14 @@ void mf_qselect_range_partition(double *x, size_t start, size_t end, size_t *les
     if ( x[last] > x[middle] ) {
         SWAP(x[last], x[middle]);
     }
-    const double pivot_value = x[last];
+    const ST_double pivot_value = x[last];
 
     // Element swapping
-    size_t greater_idx = 0;
-    size_t equal_idx   = nj - 1;
-    size_t i = 0;
+    GT_size greater_idx = 0;
+    GT_size equal_idx   = nj - 1;
+    GT_size i = 0;
     while ( i < equal_idx ) {
-        const double elem_value = x[start + i];
+        const ST_double elem_value = x[start + i];
 
         if ( elem_value < pivot_value ) {
             SWAP(x[start + greater_idx], x[start + i]);

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sat Oct 28 19:12:26 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.8.3
+* Version: 0.8.4
 * Manual:  help gtools
 
 * Stata start-up options

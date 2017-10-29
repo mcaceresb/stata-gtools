@@ -1,4 +1,4 @@
-*! version 0.2.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid
@@ -36,11 +36,11 @@ program gisid
     local rc = _rc
     global GTOOLS_CALLER ""
 
-    if ( `rc' == 41999 ) {
+    if ( `rc' == 17999 ) {
         isid `varlist' `if' `in', `missok'
         exit 0
     }
-    else if ( `rc' == 42001 ) {
+    else if ( `rc' == 17001 ) {
         exit 0
     }
     else if ( `rc' ) exit `rc'

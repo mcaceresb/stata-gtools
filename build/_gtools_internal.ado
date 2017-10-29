@@ -1,11 +1,11 @@
-*! version 0.1.3 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13
 
-    if ( inlist("${GTOOLS_FORCE_PARALLEL}", "42900") ) {
+    if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
     }
 
@@ -18,7 +18,7 @@ program _gtools_internal, rclass
 
     if ( `=_N < 1' ) {
         di as err "no observations"
-        exit 42001
+        exit 17001
     }
 
     local 00 `0'
@@ -1136,19 +1136,19 @@ program rc_dispatch
     local website_url  https://github.com/mcaceresb/stata-gtools/issues
     local website_disp github.com/mcaceresb/stata-gtools
 
-    if ( `rc' == 42000 ) {
+    if ( `rc' == 17000 ) {
         di as err "There may be 128-bit hash collisions!"
         di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
         if ( "`oncollision'" == "fallback" ) {
-            exit 41999
+            exit 17999
         }
         else {
-            exit 42000
+            exit 17000
         }
     }
-    else if ( `rc' == 42001 ) {
+    else if ( `rc' == 17001 ) {
         di as txt "(no observations)"
-        exit 42001
+        exit 17001
     }
     else if ( `rc' == 459 ) {
 		local kvars : word count `varlist'
@@ -1156,7 +1156,7 @@ program rc_dispatch
         di as err "variable`s' `varlist' should never be missing"
         exit 459
     }
-    else if ( `rc' == 42459 ) {
+    else if ( `rc' == 17459 ) {
 		local kvars : word count `varlist'
 		local var  = cond(`kvars'==1, "variable", "variables")
 		local does = cond(`kvars'==1, "does", "do")
@@ -1441,7 +1441,7 @@ cap program drop gtools_plugin
 if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {
     cap program gtools_plugin, plugin using("gtools_`c_os_'_multi.plugin")
     if ( _rc ) {
-        global GTOOLS_FORCE_PARALLEL 42900
+        global GTOOLS_FORCE_PARALLEL 17900
         program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
     }
 }

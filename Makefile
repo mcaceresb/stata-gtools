@@ -11,12 +11,14 @@ ifeq ($(OS),Windows_NT)
 	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	PREMAKE = premake5.exe
 	OUT = build/gtools_windows$(LEGACY).plugin
+	OUTM = build/gtools_windows_multi$(LEGACY).plugin
 	OUTE = build/env_set_windows$(LEGACY).plugin
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix$(LEGACY).plugin
+		OUTM = build/gtools_unix_multi$(LEGACY).plugin
 		OUTE = build/env_set_unix$(LEGACY).plugin
 		SPOOKYLIB = libspookyhash.a
 		SPOOKY = -L./lib/spookyhash/build/bin/Release -L./lib/spookyhash/build -l:$(SPOOKYLIB)
@@ -24,6 +26,7 @@ else
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY).plugin
+		OUTM = build/gtools_macosx_multi$(LEGACY).plugin
 		OUTE = build/env_set_macosx$(LEGACY).plugin
 		SPOOKYLIB = libspookyhash.a
 		SPOOKY = lib/spookyhash/build/bin/Release/$(SPOOKYLIB)
@@ -46,6 +49,7 @@ endif
 SPI = 2.0
 CFLAGS = -Wall -O3 $(OSFLAGS)
 OPENMP = -fopenmp -DGMULTI=1
+PTHREADS = -lpthread -DGMULTI=1
 
 all: clean links gtools
 

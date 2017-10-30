@@ -29,7 +29,15 @@
 #include "common/readWrite.c"
 #include "common/encode.c"
 
-#include "hash/gtools_hash.c"
+#if GMULTI
+#    define GTOOLS_THREADS 4
+#    include <pthread.h>
+#    include <assert.h>
+#    include "parallel/hash/gtools_hash.c"
+#else
+#    include "hash/gtools_hash.c"
+#endif
+
 #include "extra/gisid.c"
 #include "extra/glevelsof.c"
 #include "extra/hashsort.c"
@@ -37,12 +45,6 @@
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_utils.c"
 #include "collapse/gegen.c"
-
-// #if GMULTI
-// #    include ""
-// #else
-// #    include ""
-// #endif
 
 int main()
 {

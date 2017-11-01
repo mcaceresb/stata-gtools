@@ -591,7 +591,7 @@ exit:
 ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtargets, char *fname)
 {
 
-    if ( st_info->kvars_targets < 1 ) {
+    if ( (st_info->kvars_targets < 1) & (level != 8) ) {
         return (0);
     }
 
@@ -608,7 +608,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
 
     GT_size kvars         = st_info->kvars_by;
     GT_size ksources      = st_info->kvars_sources;
-    GT_size ktargets      = st_info->kvars_targets;
+    GT_size ktargets      = level == 8? wtargets: st_info->kvars_targets;
     GT_size start_sources = kvars + st_info->kvars_group + 1;
     GT_size start_targets = start_sources + ksources;
 
@@ -677,8 +677,7 @@ exit:
 
 ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wtargets, char *fname)
 {
-
-    if ( st_info->kvars_targets < 1 ) {
+    if ( (st_info->kvars_targets < 1) & (level != 8) ) {
         return (0);
     }
 
@@ -699,7 +698,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
 
     GT_size kvars         = st_info->kvars_by;
     GT_size ksources      = st_info->kvars_sources;
-    GT_size ktargets      = st_info->kvars_targets;
+    GT_size ktargets      = level == 8? wtargets: st_info->kvars_targets;
     GT_size start_sources = kvars + st_info->kvars_group + 1;
     GT_size start_targets = start_sources + ksources;
 

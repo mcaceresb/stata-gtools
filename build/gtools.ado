@@ -1,4 +1,4 @@
-*! version 0.8.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -13,7 +13,7 @@ program gtools
     }
 
     syntax, [Dependencies Install_latest Upgrade replace dll hashlib(str)]
-    local cwd `c(pwd)'
+    local cwd `"`c(pwd)'"'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
 
     if ( "`dependencies'" == "dependencies" ) {
@@ -28,30 +28,30 @@ program gtools
             local url `github_url'/`spookyhash_dll'
             di as err `"Could not find directory '`c(sysdir_plus)'s/'"'
             di as err `"Please download {browse "`url'":`spookyhash_dll'} to your gtools installation."'
-            cd `cwd'
+            cd `"`cwd'"'
             exit _rc
         }
         cap confirm file `spookyhash_dll'
         if ( (_rc == 0) & ("`replace'" == "") ) {
             di as txt "`spookyhash_dll' already installed; run with -replace- to replace."
-            cd `cwd'
+            cd `"`cwd'"'
             exit 0
         }
         cap erase `spookyhash_dll'
         cap copy `download' `spookyhash_dll'
         if ( _rc ) {
             di as err "Unable to download `spookyhash_dll' from `download'."
-            cd `cwd'
+            cd `"`cwd'"'
             exit _rc
         }
         cap confirm file `spookyhash_dll'
         if ( _rc ) {
             di as err "`spookyhash_dll' could not be installed. -gtools- programs may fail on Windows."
-            cd `cwd'
+            cd `"`cwd'"'
             exit _rc
         }
         di as txt "Success!"
-        cd `cwd'
+        cd `"`cwd'"'
         exit 0
     }
 

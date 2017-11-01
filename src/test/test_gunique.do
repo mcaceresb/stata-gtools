@@ -63,14 +63,22 @@ end
 
 capture program drop compare_unique
 program compare_unique
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily distinct unique *]
+
+    if ( "`distinct'`unique'" == "" ) local unique unique
+    if ( ("`distinct'" != "") & ("`unique'" != "") ) {
+        di as err "Specify only one of: unique distinct"
+        exit 198
+    }
 
     qui `noisily' gen_data, n(1000)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
     local hlen = 22 + length("`options'") + length("`N'")
-    di _n(1) "{hline 80}" _n(1) "compare_unique, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "compare_`distinct'`unique', N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    local options `options' `distinct'`unique'
 
     compare_inner_unique str_12,              `options'
     compare_inner_unique str_12 str_32,       `options'
@@ -91,80 +99,92 @@ end
 
 capture program drop compare_inner_unique
 program compare_inner_unique
-    syntax varlist, [*]
+    syntax varlist, [distinct unique *]
+
+    if ( "`distinct'" != "" ) {
+        local joint joint
+        local rname ndistinct
+    }
+    else {
+        local joint
+        local rname unique
+    }
+
+    local options `options' `joint'
+
     tempvar rsort ix
     gen `rsort' = runiform()
     gen long `ix' = _n
 
-    cap unique `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( `varlist')
+    cap `distinct'`unique' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( `varlist') `distinct'`unique'
 
-    cap unique `ix' `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `ix' `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( ix `varlist')
+    cap `distinct'`unique' `ix' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `ix' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist') `distinct'`unique'
 
-    cap unique `rsort' `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `rsort' `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( rsort `varlist')
+    cap `distinct'`unique' `rsort' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `rsort' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( rsort `varlist') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     qui replace `ix' = `=_N / 2' if _n > `=_N / 2'
-    cap unique `ix'
-    local nJ_unique = `r(unique)'
-    cap gunique `ix', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( ix)
+    cap `distinct'`unique' `ix', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `ix', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix) `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     preserve
         qui keep in 100 / `=ceil(`=_N / 2')'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' in 100 / `=ceil(`=_N / 2')', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')')
+    cap g`distinct'`unique' `ix' `varlist' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')') `distinct'`unique'
 
     preserve
         qui keep in `=ceil(`=_N / 2')' / `=_N'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N')
+    cap g`distinct'`unique' `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     preserve
         qui keep if _n < `=_N / 2'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n < `=_N / 2',
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 2')
+    cap g`distinct'`unique' `ix' `varlist' if _n < `=_N / 2', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n < `=_N / 2') `distinct'`unique'
 
     preserve
         qui keep if _n > `=_N / 2'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n > `=_N / 2', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 2')
+    cap g`distinct'`unique' `ix' `varlist' if _n > `=_N / 2', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n > `=_N / 2') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
@@ -173,39 +193,39 @@ program compare_inner_unique
 
     preserve
         qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
+    cap g`distinct'`unique' `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')') `distinct'`unique'
 
     preserve
         qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N',
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
+    cap g`distinct'`unique' `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N') `distinct'`unique'
 
     di _n(1)
 end
 
 capture program drop check_nlevels
 program check_nlevels
-    syntax anything, by(str)
+    syntax anything, by(str) [distinct unique]
 
     tokenize `anything'
-    local nJ_unique  `1'
-    local nJ_gunique `2'
+    local nJ   `1'
+    local nJ_g `2'
 
-    if ( `nJ_unique' != `nJ_gunique' ) {
-        di as err "    compare_unique (failed): unique `by' gave `nJ' levels but gunique gave `nJ_gunique'"
+    if ( `nJ' != `nJ_g' ) {
+        di as err "    compare_`distinct'`unique' (failed): `distinct'`unique' `by' gave `nJ' levels but g`distinct'`unique' gave `nJ_g'"
         exit 198
     }
     else {
-        di as txt "    compare_unique (passed): unique and gunique `by' gave the same number of levels"
+        di as txt "    compare_`distinct'`unique' (passed): `distinct'`unique' and g`distinct'`unique' `by' gave the same number of levels"
     }
 end
 

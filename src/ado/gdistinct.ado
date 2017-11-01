@@ -1,4 +1,4 @@
-*! version 0.1.3 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -13,15 +13,16 @@ program gdistinct, rclass
     global GTOOLS_CALLER gunique
     syntax [varlist] [if] [in] ,  ///
     [                             ///
-        MISSing                   /// include missing values
-        Joint                     /// report distinct values for varlist jointly
+        MISSing                   /// Include missing values
+        Joint                     /// Report distinct values for varlist jointly
         MINimum(int 0)            /// Report distinct only for groups with at least min
         MAXimum(int -1)           /// Report distinct only for groups with at most max
         Abbrev(int -1)            /// Abbrev print of var names
-        Verbose                   /// debugging
-        Benchmark                 /// print benchmark info
-        hashlib(passthru)         /// path to hash library (Windows)
-        oncollision(passthru)     /// On collision, fall back or error
+                                  ///
+        Verbose                   /// Print info during function execution
+        Benchmark                 /// Benchmark various steps of the plugin
+        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
     ]
 
 	if ( `maximum' == -1 ) local maximum .
@@ -33,14 +34,17 @@ program gdistinct, rclass
 		di as txt "min(`maximum') max(`minimum') interpreted as min(`minimum') max(`maximum')"
 	}
 
+    tempname ndistinct
+
     local opts `missing' `verbose' `benchmark' `hashlib' `oncollision'
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
-        local r_N         = `r(N)'
-        local r_J         = `r(J)'
-        local r_ndistinct = `r(J)'
-        local r_minJ      = `r(minJ)'
-        local r_maxJ      = `r(maxJ)'
+        local r_N          = `r(N)'
+        local r_J          = `r(J)'
+        local r_ndistinct  = `r(J)'
+        local r_minJ       = `r(minJ)'
+        local r_maxJ       = `r(maxJ)'
+        matrix `ndistinct' = (`r(N)', `r(J)')
 
         local rc  = _rc
         global GTOOLS_CALLER ""
@@ -72,7 +76,8 @@ program gdistinct, rclass
 		local abbp3  = `abbrev' + 3
 
         local k = 0
-        mata: __gtools_distinct = J(2, `:list sizeof varlist', "")
+        mata: __gtools_distinct  = J(2, `:list sizeof varlist', "")
+
 		foreach v of local varlist {
             cap noi _gtools_internal `v' `if' `in', countonly unsorted `opts' gfunction(unique)
             local r_N         = `r(N)'
@@ -101,6 +106,7 @@ program gdistinct, rclass
                 local ++k
                 mata: __gtools_distinct[1, `k'] = `"" " as txt %`abbrev's abbrev("`v'", `abbrev')"'
                 mata: __gtools_distinct[2, `k'] = `"" {c |}  " as res %9.0g `r_N' "  " %9.0g `r_J'"'
+                matrix `ndistinct' = nullmat(`ndistinct') \ (`r_N', `r_J')
             }
 		}
 
@@ -117,10 +123,15 @@ program gdistinct, rclass
         cap mata: mata drop __gtools_distinct
     }
 
+	if ( "`joint'" == "" ) {
+        matrix rownames `ndistinct' = "`varlist'"
+    }
+    matrix colnames `ndistinct' = N Distinct
+
     return scalar N         = `r_N'
     return scalar J         = `r_J'
     return scalar ndistinct = `r_J'
     return scalar minJ      = `r_minJ'
     return scalar maxJ      = `r_maxJ'
+    return matrix distinct  = `ndistinct'
 end
-

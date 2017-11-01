@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Fri Oct 27 14:00:27 EDT 2017
+ * Updated: Tue Oct 31 06:01:11 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.8.4
+ * Version: 0.9.0
  *********************************************************************/
 
 /**
@@ -41,6 +41,8 @@
 #include "extra/gisid.c"
 #include "extra/glevelsof.c"
 #include "extra/hashsort.c"
+#include "extra/gcontract.c"
+#include "extra/gtop.c"
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_utils.c"
@@ -192,12 +194,26 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_levelsof    (st_info, 0)) ) goto exit;
         if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
     }
+    else if ( strcmp(todo, "top") == 0 ) {
+        if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+        if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
+        if ( (rc = sf_top         (st_info, 0)) ) goto exit;
+    }
+    else if ( strcmp(todo, "contract") == 0 ) {
+        if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+        if ( (rc = sf_contract    (st_info, 0)) ) goto exit;
+        if ( (rc = sf_write_collapsed (st_info, 8, st_info->contract_vars, "")) ) goto exit;
+    }
     else if ( strcmp(todo, "hashsort") == 0 ) {
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
         if ( (rc = sf_hash_byvars (st_info, 3)) ) goto exit;
         if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
-        if ( (rc = sf_hashsort    (st_info, 0)) ) goto exit;
         if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
+        if ( (rc = sf_hashsort    (st_info, 0)) ) goto exit;
     }
     else {
         sf_printf ("Nothing to do\n");
@@ -236,9 +252,17 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             unsorted,
             encode,
             cleanstr,
+            numfmt_max,
             colsep_len,
             sep_len,
             init_targ,
+            invertix,
+            skipcheck,
+            top_miss,
+            top_groupmiss,
+            top_other,
+            top_lmiss,
+            top_lother,
             any_if,
             countmiss,
             replace,
@@ -312,34 +336,48 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( N < 1 ) return (17001);
 
     // Parse switches
-    if ( (rc = sf_scalar_size("__gtools_verbose",      &verbose)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_benchmark",    &benchmark)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_any_if",       &any_if)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_init_targ",    &init_targ)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_verbose",       &verbose)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_benchmark",     &benchmark)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_any_if",        &any_if)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_init_targ",     &init_targ)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_invertix",      &invertix)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_skipcheck",     &skipcheck)     )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_seecount",     &seecount)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countonly",    &countonly)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_unsorted",     &unsorted)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_missing",      &missing)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_nomiss",       &nomiss)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_replace",      &replace)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countmiss",    &countmiss)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_seecount",      &seecount)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countonly",     &countonly)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_unsorted",      &unsorted)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_missing",       &missing)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_nomiss",        &nomiss)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_replace",       &replace)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countmiss",     &countmiss)     )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_cleanstr",     &cleanstr)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_colsep_len",   &colsep_len)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_sep_len",      &sep_len)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_numfmt_max",    &numfmt_max)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_cleanstr",      &cleanstr)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_colsep_len",    &colsep_len)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_sep_len",       &sep_len)       )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_encode",       &encode)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_data",   &group_data)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_fill",   &group_fill)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_groupmiss", &top_groupmiss) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_miss",      &top_miss)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_other",     &top_other)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lmiss",     &top_lmiss)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lother",    &top_lother)    )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_k_stats",      &kvars_stats)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_vars",       &kvars_sources) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_targets",    &kvars_targets) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_group",      &kvars_group)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_encode",        &encode)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_data",    &group_data)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_fill",    &group_fill)    )) goto exit;
+
+    if ( (rc = sf_scalar_size("__gtools_k_stats",       &kvars_stats)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_vars",        &kvars_sources) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_targets",     &kvars_targets) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_group",       &kvars_group)   )) goto exit;
 
     // Value fill for group
-    if ( (rc = SF_scal_use("__gtools_group_val", &(st_info->group_val))) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_group_val", &(st_info->group_val) )) ) return (rc);
+
+    // Vars for top
+    if ( (rc = SF_scal_use("__gtools_top_freq",  &(st_info->top_freq)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_top_ntop",  &(st_info->top_ntop)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_top_pct",   &(st_info->top_pct)   )) ) return (rc);
 
     // Parse number of variables
     if ( (rc = sf_scalar_size("__gtools_kvars",     &kvars_by)     )) goto exit;
@@ -355,8 +393,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->group_targets  = calloc(3,            sizeof st_info->group_targets);
     st_info->group_init     = calloc(3,            sizeof st_info->group_init);
 
-    st_info->pos_targets = calloc((kvars_targets > 1)? kvars_targets : 1, sizeof st_info->pos_targets);
-    st_info->statcode    = calloc((kvars_stats   > 1)? kvars_stats   : 1, sizeof st_info->statcode);
+    st_info->pos_targets    = calloc((kvars_targets > 1)? kvars_targets : 1, sizeof st_info->pos_targets);
+    st_info->statcode       = calloc((kvars_stats   > 1)? kvars_stats   : 1, sizeof st_info->statcode);
+    st_info->contract_which = calloc(4, sizeof st_info->contract_which);
 
     if ( st_info->byvars_lens    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->invert         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
@@ -365,8 +404,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->group_targets  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
     if ( st_info->group_init     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
 
-    if ( st_info->pos_targets == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
-    if ( st_info->statcode    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
+    if ( st_info->pos_targets    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
+    if ( st_info->statcode       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
+    if ( st_info->contract_which == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
     GTOOLS_GC_ALLOCATED("st_info->invert")
@@ -376,12 +416,14 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->group_init")
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
+    GTOOLS_GC_ALLOCATED("st_info->contract_which")
 
     if ( (rc = sf_get_vector_size ("__gtools_bylens", st_info->byvars_lens) )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_invert", st_info->invert)      )) goto exit;
 
-    if ( (rc = sf_get_vector     ("__gtools_stats",       st_info->statcode)    )) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_pos_targets", st_info->pos_targets) )) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_stats",          st_info->statcode)       )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_pos_targets",    st_info->pos_targets)    )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_contract_which", st_info->contract_which) )) goto exit;
 
     if ( kvars_by_num > 0 ) {
         if ( (rc = sf_get_vector_size ("__gtools_numpos", st_info->pos_num_byvars)) ) goto exit;
@@ -399,6 +441,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     GTOOLS_MIN (st_info->byvars_lens, kvars_by, strmax, i)
+    st_info->contract_vars = 0;
+    for (i = 0; i < 4; i++) {
+        st_info->contract_vars += st_info->contract_which[i];
+    }
 
     st_info->in1           = in1;
     st_info->in2           = in2;
@@ -410,6 +456,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->any_if        = any_if;
     st_info->init_targ     = init_targ;
     st_info->strmax        = strmax;
+    st_info->invertix      = invertix;
+    st_info->skipcheck     = skipcheck;
 
     st_info->unsorted      = unsorted;
     st_info->countonly     = countonly;
@@ -419,9 +467,16 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->replace       = replace;
     st_info->countmiss     = countmiss;
 
+    st_info->numfmt_max    = numfmt_max;
     st_info->cleanstr      = cleanstr;
     st_info->colsep_len    = colsep_len;
     st_info->sep_len       = sep_len;
+
+    st_info->top_groupmiss = top_groupmiss;
+    st_info->top_miss      = top_miss;
+    st_info->top_other     = top_other;
+    st_info->top_lmiss     = top_lmiss;
+    st_info->top_lother    = top_lother;
 
     st_info->encode        = encode;
     st_info->group_data    = group_data;
@@ -687,7 +742,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
      *                  Check if sorted (hashsort only)                  *
      *********************************************************************/
 
-    if ( level == 3 ) {
+    if ( (level == 3) & (st_info->skipcheck == 0) ) {
         if ( st_info->kvars_by_str > 0 ) {
             if ( MultiSortCheckMC (st_info->st_charx,
                                    st_info->N,
@@ -1055,6 +1110,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->pos_str_byvars);
         free (st_info->pos_targets);
         free (st_info->statcode);
+        free (st_info->contract_which);
 
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
@@ -1065,6 +1121,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->pos_str_byvars")
         GTOOLS_GC_FREED("st_info->pos_targets")
         GTOOLS_GC_FREED("st_info->statcode")
+        GTOOLS_GC_FREED("st_info->contract_which")
     }
     if ( (st_info->free >= 2) & (level != 11) ) {
         free (st_info->positions);

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.4  29Oct2017}{...}
+{* *! version 0.3.0  31Oct2017}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -12,12 +12,19 @@
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
-{p2col :{cmd:glevelsof} {hline 2}}Levels of variable using C plugins{p_end}
+{p2col :{cmd:glevelsof} {hline 2}}Efficiently get levels of variable using C plugins{p_end}
 {p2colreset}{...}
 
+{pstd}
+{it:Note for Windows users}: It may be necessary to run
+{opt gtools, dependencies} at the start of your Stata session.
 
 {marker syntax}{...}
 {title:Syntax}
+
+{phang}
+This is a fast option to Stata's {opt levelsof}. It can additionally take
+multiple variables.
 
 {p 8 17 2}
 {cmd:glevelsof}
@@ -25,15 +32,42 @@
 {ifin}
 [{cmd:,} {it:options}]
 
-{synoptset 21}{...}
+{pstd}
+Instead of {varlist}, it is possible to specify
+
+{p 8 17 2}
+[{cmd:+}|{cmd:-}]
+{varname}
+[[{cmd:+}|{cmd:-}]
+{varname} {it:...}]
+
+{pstd}
+To change the sort order of the results.
+
+{synoptset 23 tabbed}{...}
+{marker table_options}{...}
 {synopthdr}
 {synoptline}
+{syntab :Options}
 {synopt:{opt c:lean}}display string values without compound double quotes{p_end}
 {synopt:{opt l:ocal(macname)}}insert the list of values in the local macro {it:macname}{p_end}
 {synopt:{opt miss:ing}}include missing values of {varlist} in calculation{p_end}
 {synopt:{opt silent}}Do not print the levels (useful when there are many levels){p_end}
 {synopt:{opt s:eparate(separator)}}separator to serve as punctuation for the values of returned list; default is a space{p_end}
+
+{syntab:Extras}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
+{synopt:{opt silent}}Do not print levels. Useful if {opt verbose} or {opt benchmark} are on and there are many levels.{p_end}
+{synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
+
+{syntab:Gtools}
+{synopt :{opt v:erbose}}Print info during function execution.
+{p_end}
+{synopt :{opt b:enchmark}}Benchmark various steps of the plugin.
+{p_end}
+{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+
 {synoptline}
 {p2colreset}{...}
 
@@ -46,9 +80,14 @@
 It is meant to be a fast replacement of {cmd:levelsof}. Unlike {cmd:levelsof},
 it can take a single variable or multiple variables.
 
+{pstd}
+{cmd:glevelsof} is part of the {manhelp gtools R:gtools} project.
+
 
 {marker options}{...}
 {title:Options}
+
+{dlgtab:Options}
 
 {phang}
 {cmd:clean} displays string values without compound double quotes.
@@ -80,6 +119,34 @@ The default is a pipe.  Specifying a {varlist} instead of a
 {varname} is only useful for double loops or for use with
 {helpb gettoken}.
 
+{phang}
+{opth numfmt(format)} Number format for printing. By default numbers
+are printed to 16 digits of precision, but the user can specify
+the number format here. Only "%.#g|f" and "%#.#g|f" are accepted
+since this is formated internally in C.
+
+{phang}
+{opt silent} Do not print levels. If there are many levels and
+the user still wishes to see debugging or benchmark information,
+this option is useful.
+
+{dlgtab:Gtools}
+
+{phang}
+{opt verbose} prints some useful debugging info to the console.
+
+{phang}
+{opt benchmark} prints how long in seconds various parts of the program
+take to execute.
+
+{phang}
+{opth hashlib(str)} On earlier versions of gtools Windows users had a problem
+because Stata was unable to find {it:spookyhash.dll}, which is bundled with
+gtools and required for the plugin to run correctly. The best thing a Windows
+user can do is run {opt gtools, dependencies} at the start of their Stata
+session, but if Stata cannot find the plugin the user can specify a path
+manually here.
+
 
 {marker remarks}{...}
 {title:Remarks}
@@ -95,7 +162,9 @@ subsequent command.
 {pstd}
 {cmd:glevelsof} may hit the {help limits} imposed by your Stata.  However,
 it is typically used when the number of distinct values of
-{it:varlist} is modest.
+{it:varlist} is modest. If you have many levels in varlist then
+an alternative may be {help gtoplevelsof}, which shows the largest or smallest
+levels of a varlist by their frequency count.
 
 
 {marker examples}{...}
@@ -114,6 +183,11 @@ it is typically used when the number of distinct values of
 
 {phang}{cmd:. glevelsof foreign rep78, sep(,)}{p_end}
 {phang}{cmd:. display "`r(levels)'"}
+
+{pstd}
+See the
+{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
+in the git repo for more examples.
 
 
 {marker results}{...}
@@ -145,7 +219,7 @@ it is typically used when the number of distinct values of
 
 {title:Website}
 
-{pstd}{cmd:glevelsof} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
+{pstd}{cmd:glevelsof} is maintained as part of {manhelp gtools R:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
@@ -163,3 +237,13 @@ This project was largely inspired by Sergio Correia's {it:ftools}:
 The OSX version of gtools was implemented with invaluable help from @fbelotti;
 see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}
+
+{title:Also see}
+
+{p 4 13 2}
+help for 
+{help gtoplevelsof}, 
+{help gtools};
+{help flevelsof} (if installed), 
+{help ftools} (if installed)
+

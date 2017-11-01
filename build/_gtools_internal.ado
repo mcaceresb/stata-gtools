@@ -1,4 +1,4 @@
-*! version 0.1.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -10,7 +10,15 @@ program _gtools_internal, rclass
     }
 
     local GTOOLS_CALLER $GTOOLS_CALLER
-    local GTOOLS_CALLERS gegen glevelsof gisid hashsort gunique gcollapse
+    local GTOOLS_CALLERS gegen        ///
+                         gcollapse    ///
+                         gisid        ///
+                         hashsort     ///
+                         glevelsof    ///
+                         gunique      ///
+                         gtoplevelsof ///
+                         gcontract
+
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
         di as err "_gtools_internal is not meant to be called directly. See {help gtools}"
         exit 198
@@ -59,10 +67,12 @@ program _gtools_internal, rclass
         freq(str)                 /// also collapse frequencies to variable
                                   /// then # targets must = # sources)
                                   ///
-                                  /// gcollapse options
-                                  /// -----------------
+                                  /// Capture options
+                                  /// ---------------
                                   ///
-        gcollapse(str)            /// String for later parsing
+        gcontract(str)            /// options for gcontract (to parse later)
+        gcollapse(str)            /// options for gcollapse (to parse later)
+        gtop(str)                 /// options for gtop (to parse later)
         recast(str)               /// bulk recast
                                   ///
                                   /// gegen group options
@@ -81,8 +91,10 @@ program _gtools_internal, rclass
                                   /// hashsort options
                                   /// ----------------
                                   ///
+        invertinmata              /// invert sort index using mata
         sortindex(str)            /// keep sort index in memory
         sortgroup                 /// set sort by group variable
+        skipcheck                 /// skip is sorted check
                                   ///
                                   /// glevelsof options
                                   /// -----------------
@@ -90,6 +102,7 @@ program _gtools_internal, rclass
         Separate(str)             /// Levels sepparator
         COLSeparate(str)          /// Columns sepparator
         Clean                     /// Clean strings
+        numfmt(str)               /// Columns sepparator
     ]
 
     local ifin `if' `in'
@@ -179,7 +192,7 @@ program _gtools_internal, rclass
     * What to do
     * ----------
 
-    local gfunction_list hash egen levelsof isid sort unique collapse
+    local gfunction_list hash egen levelsof isid sort unique collapse top contract
     if ( "`gfunction'" == "" ) local gfunction hash
     if ( !(`:list gfunction in gfunction_list') ) {
         di as err "{opt gfunction()} was '`gfunction'' but expected one of: `gfunction_list'"
@@ -270,7 +283,7 @@ program _gtools_internal, rclass
             clean_all
             exit 198
         }
-        if ( !inlist("`gfunction'", "hash", "egen", "unique", "sort", "levelsof") ) {
+        if ( !inlist("`gfunction'", "hash", "egen", "unique") ) {
             di as err "cannot generate targets with -gfunction(`gfunction')-"
             clean_all
             exit 198
@@ -299,12 +312,13 @@ program _gtools_internal, rclass
         }
     }
 
-    if ( "`separate'`colseparate'`clean'" != "" ) {
+    if ( "`separate'`colseparate'`clean'`numfmt'" != "" ) {
         local errmsg ""
         if ( "`separate'"    != "" ) local errmsg "`errmsg' separate(),"
         if ( "`colseparate'" != "" ) local errmsg "`errmsg' colseparate(), "
         if ( "`clean'"       != "" ) local errmsg "`errmsg' -clean-, "
-        if ( !inlist("`gfunction'", "levelsof") ) {
+        if ( "`numfmt'"      != "" ) local errmsg "`errmsg' -numfmt()-, "
+        if ( !inlist("`gfunction'", "levelsof", "top") ) {
             di as err "`errmsg' only allowed with -gfunction(levelsof)-"
             clean_all
             exit 198
@@ -322,13 +336,28 @@ program _gtools_internal, rclass
     scalar __gtools_any_if     = `any_if'
     scalar __gtools_verbose    = `verbose'
     scalar __gtools_benchmark  = `benchmark'
-    scalar __gtools_missing    = ( "`missing'"     != "" )
-    scalar __gtools_unsorted   = ( "`unsorted'"    != "" )
-    scalar __gtools_countonly  = ( "`countonly'"   != "" )
-    scalar __gtools_seecount   = ( "`seecount'"    != "" )
-    scalar __gtools_nomiss     = ( "`exitmissing'" != "" )
-    scalar __gtools_replace    = ( "`replace'"     != "" )
-    scalar __gtools_countmiss  = ( "`countmiss'"   != "" )
+    scalar __gtools_missing    = ( "`missing'"      != "" )
+    scalar __gtools_unsorted   = ( "`unsorted'"     != "" )
+    scalar __gtools_countonly  = ( "`countonly'"    != "" )
+    scalar __gtools_seecount   = ( "`seecount'"     != "" )
+    scalar __gtools_nomiss     = ( "`exitmissing'"  != "" )
+    scalar __gtools_replace    = ( "`replace'"      != "" )
+    scalar __gtools_countmiss  = ( "`countmiss'"    != "" )
+    scalar __gtools_invertix   = ( "`invertinmata'" == "" )
+    scalar __gtools_skipcheck  = ( "`skipcheck'"    != "" )
+
+    scalar __gtools_top_ntop       = 0
+    scalar __gtools_top_pct        = 0
+    scalar __gtools_top_freq       = 0
+    scalar __gtools_top_miss       = 0
+    scalar __gtools_top_groupmiss  = 0
+    scalar __gtools_top_other      = 0
+    scalar __gtools_top_lmiss      = 0
+    scalar __gtools_top_lother     = 0
+    matrix __gtools_top_matrix     = J(1, 5, .)
+    matrix __gtools_top_num        = J(1, 1, .)
+    matrix __gtools_contract_which = J(1, 4, 0)
+    matrix __gtools_invert         = 0
 
     * Parse glevelsof options
     * -----------------------
@@ -336,9 +365,27 @@ program _gtools_internal, rclass
     if ( `"`separate'"' == "" ) local sep `" "'
 	else local sep `"`separate'"'
 
-    if ( `"`colseparate'"' == "" ) local colsep `"|"'
+    if ( `"`colseparate'"' == "" ) local colsep `" | "'
 	else local colsep `"`colseparate'"'
 
+    if ( `"`numfmt'"' == "" ) {
+        local numfmt `"%.16g"'
+    }
+
+    if regexm(`"`numfmt'"', "%([0-9]+)\.([0-9]+)([gf])") {
+        local numlen = max(`:di regexs(1)', `:di regexs(2)' + 4) + cond(regexs(3) == "f", 23, 0)
+    }
+    else if regexm(`"`numfmt'"', "%\.([0-9]+)([gf])") {
+        local numlen = `:di regexs(1)' + 4 + cond(regexs(2) == "f", 23, 0)
+    }
+    else {
+        di as err "Number format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
+        clean_all
+        exit 198
+    }
+
+    scalar __gtools_numfmt_max = `numlen'
+    scalar __gtools_numfmt_len = length(`"`numfmt'"')
     scalar __gtools_cleanstr   = ( "`clean'" != "" )
     scalar __gtools_sep_len    = length(`"`sep'"')
     scalar __gtools_colsep_len = length(`"`colsep'"')
@@ -562,7 +609,7 @@ program _gtools_internal, rclass
         }
     }
 
-    cap noi parse_by_types `anything' `ifin'
+    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything')
     if ( _rc ) {
         local rc = _rc
         clean_all
@@ -693,6 +740,7 @@ program _gtools_internal, rclass
     *                           Call the plugin                           *
     ***********************************************************************
 
+    local rset = 1
     local opts oncollision(`oncollision')
     if ( "`gfunction'" == "sort" ) {
 
@@ -707,35 +755,52 @@ program _gtools_internal, rclass
         * di "`contained'"
 
         * Check if already sorted
-        if ( !`invert' & ("`sortvar'" == "`byvars'") ) {
-            if ( "`verbose'" != "" ) di as txt "(already sorted; did not parse group info)"
-            clean_all
-            exit 0
+        if ( "`skipcheck'" == "" ) {
+            if ( !`invert' & ("`sortvar'" == "`byvars'") ) {
+                if ( "`verbose'" != "" ) di as txt "(already sorted)"
+                clean_all
+                exit 0
+            }
+            else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
+                * If the first k sorted variables equal byvars, just call sort
+                if ( "`verbose'" != "" ) di as txt "(already sorted)"
+                sort `byvars'
+                clean_all
+                exit 0
+            }
+            else if ( "`sortvar'" != "" ) {
+                * Andrew Maurer's trick to clear `: sortedby'
+                loc sortvar : word 1 of `sortvar'
+                scalar __gtools_sort_val = `sortvar'[1]
+                cap replace `sortvar' = 0         in 1
+                cap replace `sortvar' = .         in 1
+                cap replace `sortvar' = ""        in 1
+                cap replace `sortvar' = "."       in 1
+                cap replace `sortvar' = `=scalar(__gtools_sort_val)'     in 1
+                cap replace `sortvar' = `"`=scalar(__gtools_sort_val)'"' in 1
+                assert "`: sortedby'" == ""
+                scalar drop __gtools_sort_val
+            }
         }
-        else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
-            * If the first k sorted variables equal byvars, just call sort
-            if ( "`verbose'" != "" ) di as txt "(already sorted; did not parse group info)"
-            sort `byvars'
-            clean_all
-            exit 0
-        }
-        else if ( "`sortvar'" != "" ) {
-            * Andrew Maurer's trick to clear `: sortedby'
-            loc sortvar : word 1 of `sortvar'
-            loc val = `sortvar'[1]
-            cap replace `sortvar' = 0         in 1
-            cap replace `sortvar' = .         in 1
-            cap replace `sortvar' = ""        in 1
-            cap replace `sortvar' = "."       in 1
-            cap replace `sortvar' = `val'     in 1
-            cap replace `sortvar' = `"`val'"' in 1
-            assert "`: sortedby'" == ""
+        else {
+            if ( "`sortvar'" != "" ) {
+                * Andrew Maurer's trick to clear `: sortedby'
+                loc sortvar : word 1 of `sortvar'
+                loc val = `sortvar'[1]
+                cap replace `sortvar' = 0         in 1
+                cap replace `sortvar' = .         in 1
+                cap replace `sortvar' = ""        in 1
+                cap replace `sortvar' = "."       in 1
+                cap replace `sortvar' = `val'     in 1
+                cap replace `sortvar' = `"`val'"' in 1
+                assert "`: sortedby'" == ""
+            }
         }
 
         * Use sortindex for the shuffle
         * -----------------------------
 
-        cap noi hashsort_inner `byvars' `etargets', benchmark(`benchmark')
+        cap noi hashsort_inner `byvars' `etargets', benchmark(`benchmark') `invertinmata'
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -743,10 +808,10 @@ program _gtools_internal, rclass
             exit `rc'
         }
 
-        if ( "`gen_name'" == "" ) {
+        if ( ("`gen_name'" == "") | ("`sortgroup'" == "") ) {
             if ( !`invert' ) sort `byvars'
         }
-        else {
+        else if ( ("`gen_name'" != "") & ("`sortgroup'" != "") ) {
             sort `gen_name'
         }
 
@@ -792,6 +857,7 @@ program _gtools_internal, rclass
             return scalar J    = `r_J'
             return scalar minJ = `r_minJ'
             return scalar maxJ = `r_maxJ'
+            local rset = 0
         }
 
         if ( `=scalar(__gtools_ixfinish)' ) {
@@ -823,12 +889,55 @@ program _gtools_internal, rclass
         local runtxt " (internals)"
     }
     else {
-        if ( inlist("`gfunction'",  "unique", "egen") ) {
+        if ( inlist("`gfunction'", "unique", "egen") ) {
             local gcall hash
+        }
+        else if ( inlist("`gfunction'",  "contract") ) {
+            local 0 `gcontract'
+            syntax varlist, contractwhich(numlist)
+            local gcall `gfunction'
+            local contractvars `varlist'
+            mata: st_matrix("__gtools_contract_which", strtoreal(tokens(`"`contractwhich'"')))
+        }
+        else if ( inlist("`gfunction'",  "top") ) {
+            local 0, `gtop'
+            syntax, ntop(real) pct(real) freq(real) [misslab(str) otherlab(str) groupmiss]
+            local gcall `gfunction'
+
+            scalar __gtools_top_ntop      = `ntop'
+            scalar __gtools_top_pct       = `pct'
+            scalar __gtools_top_freq      = `freq'
+            scalar __gtools_top_miss      = ( `"`misslab'"'   != "" )
+            scalar __gtools_top_groupmiss = ( `"`groupmiss'"' != "" )
+            scalar __gtools_top_other     = ( `"`otherlab'"'  != "" )
+            scalar __gtools_top_lmiss     = length(`"`misslab'"')
+            scalar __gtools_top_lother    = length(`"`otherlab'"')
+
+            local nrows = `ntop' + scalar(__gtools_top_miss) + scalar(__gtools_top_other)
+            cap noi check_matsize, nvars(`nrows')
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                exit `rc'
+            }
+
+            cap noi check_matsize, nvars(`=scalar(__gtools_kvars_num)')
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                exit `rc'
+            }
+
+            matrix __gtools_top_matrix = J(max(`nrows', 1), 5, 0)
+            if ( `=scalar(__gtools_kvars_num)' > 0 ) {
+                matrix __gtools_top_num = J(max(`nrows', 1), `=scalar(__gtools_kvars_num)', .)
+            }
         }
         else local gcall `gfunction'
 
-        cap noi plugin call gtools_plugin `byvars' `etargets' `extravars' `ifin', `gcall'
+        local plugvars `byvars' `etargets' `extravars' `contractvars'
+        cap noi plugin call gtools_plugin `plugvars' `ifin', `gcall'
+        local rc = _rc
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -847,18 +956,36 @@ program _gtools_internal, rclass
     * -------------
 
     * generic
-    if ( "`gfunction'" != "collapse" ) {
-        return scalar N    = `r_N'
-        return scalar J    = `r_J'
-        return scalar minJ = `r_minJ'
-        return scalar maxJ = `r_maxJ'
+    if ( `rset' ) {
+        return scalar N     = `r_N'
+        return scalar J     = `r_J'
+        return scalar minJ  = `r_minJ'
+        return scalar maxJ  = `r_maxJ'
     }
 
+    return scalar kvar  = `=scalar(__gtools_kvars)'
+    return scalar knum  = `=scalar(__gtools_kvars_num)'
+    return scalar kint  = `=scalar(__gtools_kvars_int)'
+    return scalar kstr  = `=scalar(__gtools_kvars_str)'
+
+    return local byvars = "`byvars'"
+    return local bynum  = "`bynum'"
+    return local bystr  = "`bystr'"
+
     * levelsof
-    if ( "`gfunction'" == "levelsof" ) {
+    if ( inlist("`gfunction'", "levelsof", "top") ) {
         return local levels `"`vals'"'
     }
 
+    * top matrix
+    if ( inlist("`gfunction'", "top") ) {
+        return matrix toplevels = __gtools_top_matrix
+        return matrix numlevels = __gtools_top_num
+        return local sep    `"`sep'"'
+        return local colsep `"`colsep'"'
+    }
+
+    return matrix invert = __gtools_invert
     clean_all
     exit 0
 end
@@ -869,14 +996,19 @@ end
 
 capture program drop hashsort_inner
 program hashsort_inner, sortpreserve
-    syntax varlist [in], benchmark(int)
+    syntax varlist [in], benchmark(int) [invertinmata]
     cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
     if ( _rc ) {
         local rc = _rc
         clean_all
         exit `rc'
     }
-    mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
+    if ( "`invertinmata'" != "" ) {
+        mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
+    }
+    * else {
+    *     mata: st_store(., "`_sortindex'", st_data(., "`_sortindex'"))
+    * }
 
     c_local r_N    = `r_N'
     c_local r_J    = `r_J'
@@ -906,6 +1038,19 @@ program clean_all
     cap scalar drop __gtools_encode
     cap scalar drop __gtools_replace
     cap scalar drop __gtools_countmiss
+    cap scalar drop __gtools_skipcheck
+
+    cap scalar drop __gtools_top_ntop
+    cap scalar drop __gtools_top_pct
+    cap scalar drop __gtools_top_freq
+    cap scalar drop __gtools_top_miss
+    cap scalar drop __gtools_top_groupmiss
+    cap scalar drop __gtools_top_other
+    cap scalar drop __gtools_top_lmiss
+    cap scalar drop __gtools_top_lother
+    cap matrix drop __gtools_top_matrix
+    cap matrix drop __gtools_top_num
+    cap matrix drop __gtools_contract_which
 
     cap scalar drop __gtools_kvars
     cap scalar drop __gtools_kvars_num
@@ -919,6 +1064,8 @@ program clean_all
     cap scalar drop __gtools_cleanstr
     cap scalar drop __gtools_sep_len
     cap scalar drop __gtools_colsep_len
+    cap scalar drop __gtools_numfmt_len
+    cap scalar drop __gtools_numfmt_max
 
     cap scalar drop __gtools_k_vars
     cap scalar drop __gtools_k_targets
@@ -954,21 +1101,21 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in]
+    syntax [anything] [if] [in], [clean_anything(str)]
 
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0
 
-        scalar __gtools_kvars     = 0
-        scalar __gtools_kvars_int = 0
-        scalar __gtools_kvars_num = 0
-        scalar __gtools_kvars_str = 0
-
         return local invert  = 0
         return local varlist = ""
         return local varnum  = ""
         return local varstr  = ""
+
+        scalar __gtools_kvars     = 0
+        scalar __gtools_kvars_int = 0
+        scalar __gtools_kvars_num = 0
+        scalar __gtools_kvars_str = 0
 
         exit 0
     }
@@ -983,30 +1130,40 @@ program parse_by_types, rclass
     local varlist  ""
     local skip   = 0
     local invert = 0
-    while ( trim("`parse'") != "" ) {
-        gettoken var parse: parse, p(" -+")
-        if inlist("`var'", "-", "+") {
-            matrix __gtools_invert = nullmat(__gtools_invert), ( "`var'" == "-" )
-            local skip   = 1
-            local invert = ( "`var'" == "-" )
-        }
-        else {
-            cap ds `var'
-            if ( _rc ) {
-                local rc = _rc
-                di as err "Variable '`var'' does not exist."
-                di as err "Syntas: [+|-]varname [[+|-]varname ...]"
-                clean_all
-                exit `rc'
-            }
-            if ( `skip' ) {
-                local skip = 0
+    if strpos("`anything'", "-") {
+        while ( trim("`parse'") != "" ) {
+            gettoken var parse: parse, p(" -+")
+            if inlist("`var'", "-", "+") {
+                local skip   = 1
+                local invert = ( "`var'" == "-" )
             }
             else {
-                matrix __gtools_invert = nullmat(__gtools_invert), 0
+                cap ds `var'
+                if ( _rc ) {
+                    local rc = _rc
+                    di as err "Variable '`var'' does not exist."
+                    di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+                    clean_all
+                    exit `rc'
+                }
+                if ( `skip' ) {
+                    local skip = 0
+                    foreach var in `r(varlist)' {
+                        matrix __gtools_invert = nullmat(__gtools_invert), `invert'
+                    }
+                }
+                else {
+                    foreach var in `r(varlist)' {
+                        matrix __gtools_invert = nullmat(__gtools_invert), 0
+                    }
+                }
+                local varlist `varlist' `r(varlist)'
             }
-            local varlist `varlist' `r(varlist)'
         }
+    }
+    else {
+        local varlist `clean_anything'
+        matrix __gtools_invert = J(1, max(`:list sizeof varlist', 1), 0)
     }
 
     * Check how many of each variable type we have
@@ -1077,7 +1234,6 @@ program parse_by_types, rclass
     scalar __gtools_kvars_int = `kint'
     scalar __gtools_kvars_num = `knum'
     scalar __gtools_kvars_str = `kstr'
-    scalar __gtools_biject    = 0
 
     * Return hash info
     * ----------------
@@ -1163,7 +1319,10 @@ program rc_dispatch
 		di as err "`var' `varlist' `does' not uniquely identify the observations"
         exit 459
     }
-    else exit 0
+    else {
+        error `rc'
+        exit `rc'
+    }
 end
 
 capture program drop gtools_timer
@@ -1264,6 +1423,7 @@ program parse_targets
                   last       ///
                   firstnm    ///
                   lastnm     ///
+                  freq       ///
                   semean     ///
                   sebinomial ///
                   sepoisson
@@ -1367,6 +1527,7 @@ program encode_stat, rclass
     if ( "`0'" == "firstnm"     ) local statcode -11
     if ( "`0'" == "last"        ) local statcode -12
     if ( "`0'" == "lastnm"      ) local statcode -13
+    if ( "`0'" == "freq"        ) local statcode -14
     if ( "`0'" == "semean"      ) local statcode -15
     if ( "`0'" == "sebinomial"  ) local statcode -16
     if ( "`0'" == "sepoisson"   ) local statcode -17

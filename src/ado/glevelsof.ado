@@ -1,4 +1,4 @@
-*! version 0.2.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -11,36 +11,62 @@ program glevelsof, rclass
     }
 
     global GTOOLS_CALLER glevelsof
-    syntax varlist [if] [in] , ///
-    [                          ///
-        Separate(passthru)     /// Levels sepparator
-        COLSeparate(passthru)  /// Columns sepparator
-        MISSing                /// Include missing values
-        LOCal(str)             /// Store results in local
-        Clean                  /// Clean strings
-        silent                 /// Do not print levels
-                               ///
-        Verbose                /// debugging
-        Benchmark              /// print benchmark info
-        hashlib(passthru)      /// path to hash library (Windows)
-        oncollision(passthru)  /// On collision, fall back or error
-                               ///
-        group(str)             ///
-        tag(passthru)          ///
-        counts(passthru)       ///
-        replace                ///
+    syntax anything           /// Variables to get levels of: [+|-]varname [[+|-]varname ...]
+        [if] [in] ,           /// [if condition] [in start / end]
+    [                         ///
+        Separate(passthru)    /// Levels sepparator
+        COLSeparate(passthru) /// Columns sepparator
+        MISSing               /// Include missing values
+        LOCal(str)            /// Store results in local
+        Clean                 /// Clean strings
+                              ///
+        silent                /// Do not print levels
+        numfmt(passthru)      /// Number format
+                              ///
+        Verbose               /// Print info during function execution
+        Benchmark             /// Benchmark various steps of the plugin
+        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru) /// error|fallback: On collision, use native command or throw error
+                              /// 
+        group(str)            ///
+        tag(passthru)         ///
+        counts(passthru)      ///
+        replace               ///
     ]
 
+    * Get varlist
+    * -----------
+
+    if ( "`anything'" != "" ) {
+        local varlist `anything'
+        local varlist: subinstr local varlist "+" "", all
+        local varlist: subinstr local varlist "-" "", all
+        cap ds `varlist'
+        if ( _rc | ("`varlist'" == "") ) {
+            local rc = _rc
+            di as err "Malformed call: '`anything''"
+            di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+            exit 111
+        }
+    }
+
+    * Run levelsof
+    * ------------
+
     local opts  `separate' `missing' `clean'
-    local sopts `colseparate' `verbose' `benchmark' `hashlib' `oncollision'
+    local sopts `colseparate' `verbose' `benchmark' `hashlib' `oncollision' `numfmt'
     local gopts gen(`group') `tag' `counts' `replace'
-    cap noi _gtools_internal `varlist' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
+    cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
     global GTOOLS_CALLER ""
 
     if ( `rc' == 17999 ) {
         if ( `:list sizeof varlist' > 1 ) {
             di as err "Cannot use fallback with more than one variable."
+            exit 17000
+        }
+        else if strpos("`anything'", "-") {
+            di as err "Cannot use fallback with inverse order."
             exit 17000
         }
         else {

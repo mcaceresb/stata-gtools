@@ -1,4 +1,4 @@
-*! version 0.8.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -116,19 +116,19 @@ program define gegen, byable(onecall) rclass
             unab args : _all
         }
 
-        local gtools_args hashlib(passthru) oncollision(passthru)
+        local gtools_args hashlib(passthru) oncollision(passthru) Verbose Benchmark gtools_capture(str)
         syntax [if] [in] [, `gtools_args' *]
 
         if ( "`byvars'" == "" ) {
             di as txt "`fcn'() is not a gtools function and no by(); falling back on egen"
-            cap noi egen `type' `name' = `fcn'(`args') `if' `in', `options'
+            cap noi egen `type' `name' = `fcn'(`args') `if' `in', `options' `gtools_capture'
             exit _rc
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts `hashlib' `oncollision'
+            local gopts kwargs(`hashlib' `oncollision' `verbose' `benchmark')
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
-            cap noi egen_fallback `if' `in', `gopts' `popts' `options'
+            cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
             exit _rc
         }
     }
@@ -139,23 +139,45 @@ program define gegen, byable(onecall) rclass
     * Parse syntax call if function is known
     * --------------------------------------
 
-    syntax                        /// main call; must parse manually
-        [if] [in] ,               /// subset
-    [                             ///
-        by(str)                   /// collapse by variabes
-                                  ///
-        p(real 50)                /// percentiles (only used with pctile)
-                                  ///
-        missing                   /// for group(), tag(); does not get rid of missing values
-        counts(passthru)          /// for group(), tag(); create `counts' with group counts
-        fill(str)                 /// for group(), tag(); fills rest of group with `fill'
-                                  ///
-        replace                   /// debugging
-        Verbose                   /// debugging
-        Benchmark                 /// print benchmark info
-        hashlib(passthru)         /// path to hash library (Windows only)
-        oncollision(passthru)     /// On collision, fall back to collapse or throw error
-    ]
+ *     gegen [type] varname = fun(args) [if] [in], [options]
+
+    syntax                       /// Main call was parsed manually
+        [if] [in] ,              /// [if condition] [in start / end]
+    [                            ///
+        by(str)                  /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
+                                 ///
+        p(real 50)               /// Percentile to compute, #.# (only with pctile). e.g. 97.5
+                                 ///
+        missing                  /// for group(), tag(); does not get rid of missing values
+        counts(passthru)         /// for group(), tag(); create `counts' with group counts
+        fill(str)                /// for group(), tag(); fills rest of group with `fill'
+                                 ///
+        replace                  /// Replace target variable with output, if target already exists
+                                 ///
+        Verbose                  /// Print info during function execution
+        Benchmark                /// Benchmark various steps of the plugin
+        hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
+        gtools_capture(passthru) /// Ignored (captures fcn options if fcn is not known)
+                                 ///
+                                 /// Unsupported egen options
+                                 /// ------------------------
+                                 ///
+        Label                    ///
+        lname(passthru)          ///
+        Truncate(passthru)       ///
+   ]
+
+    foreach opt in label lname truncate {
+        if ( "``opt''" != "" ) {
+            di as txt ("Option -`opt'- is not implemented."
+            exit 198
+        }
+    }
+
+    if ( "`gtools_capture'" != "" ) {
+        di as txt ("option -gtools_capture()- ignored with supported function `fcn')"
+    }
 
     local bench = ( "`benchmark'" != "" )
     local ifin `if' `in'
@@ -231,7 +253,7 @@ program define gegen, byable(onecall) rclass
 
         if ( "`fcn'" == "count" ) {
             local missing missing
-            local fill fill(group) 
+            local fill fill(group)
             local action counts(`type' `dummy') gfunction(hash) countmiss unsorted
             if ( `=_N' > 1 ) local s s
             local noobs di as txt "(`=_N' missing value`i' generated)"
@@ -252,7 +274,9 @@ program define gegen, byable(onecall) rclass
         global GTOOLS_CALLER ""
 
         if ( `rc' == 17999 ) {
-            egen `00'
+            local gtools_args `hashlib' `oncollision' `verbose' `benchmark' `gtools_capture'
+            local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
+            collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
             exit 0
         }
         else if ( `rc' == 17001 ) {
@@ -358,7 +382,9 @@ program define gegen, byable(onecall) rclass
     global GTOOLS_CALLER ""
 
     if ( `rc' == 17999 ) {
-        egen `00'
+        local gtools_args `hashlib' `oncollision' `verbose' `benchmark' `gtools_capture'
+        local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
+        collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
         exit 0
     }
     else if ( `rc' == 17001 ) {
@@ -385,8 +411,7 @@ program egen_fallback, sortpreserve
         _args(str)             ///
         _byvars(str)           ///
         by(passthru)           ///
-        oncollision(passthru)  ///
-        fallback(passthru)     ///
+        kwargs(str)            ///
         *                      ///
     ]
 
@@ -399,8 +424,13 @@ program egen_fallback, sortpreserve
         local vv : display "version " string(`cvers') ", missing:"
     }
 
-    tempvar byid
-    hashsort `_byvars', group(`byid') `oncollision' `fallback'
+    if ( "`: sortedby'" == "`_byvars'" ) {
+        local byid `: sortedby'
+    }
+    else {
+        tempvar byid
+        hashsort `_byvars', group(`byid') sortgroup skipcheck `kwargs'
+    }
 
     capture noisily `vv' _g`_fcn' `_type' `dummy' = (`_args') `if' `in', by(`byid') `options'
     global EGEN_SVarname
@@ -506,4 +536,17 @@ program encode_vartype, rclass
     else if ( "`vtype'" == "float"  ) return scalar typecode = 4
     else if ( "`vtype'" == "double" ) return scalar typecode = 5
     else                              return scalar typecode = 0
+end
+
+capture program drop collision_fallback
+program collision_fallback
+    local gtools_args hashlib(passthru) oncollision(passthru) Verbose Benchmark gtools_capture(str)
+    syntax, [`gtools_args' gtools_call(str) counts(str) fill(str) replace *]
+    foreach opt in counts fill replace {
+        if ( `"``opt''"' != "" ) {
+            di as err "Cannot use fallback with option {opt `opt'}."
+            exit 17000
+        }
+    }
+    egen `gtools_call', `options'
 end

@@ -109,7 +109,8 @@ end
 
 capture program drop compare_sort
 program compare_sort, rclass
-    syntax varlist, [fsort *]
+    syntax varlist, [fsort benchmode *]
+    local rc = 0
 
     timer clear
     preserve
@@ -127,16 +128,66 @@ program compare_sort, rclass
         timer on 43
         qui hashsort `varlist', `options'
         timer off 43
-        cf * using `file_sort'
+        cap noi cf * using `file_sort'
+        if ( _rc ) {
+            qui ds *
+            local memvars `r(varlist)' 
+            local firstvar: word 1 of `varlist'
+            local compvars: list memvars - firstvar
+            if ( "`compvars'" != "" ) {
+                cf `compvars' using `file_sort'
+            }
+            keep `firstvar'
+            tempfile file_first
+            qui save `file_first'
+
+            use `firstvar' using `file_sort', clear
+            rename `firstvar' c_`firstvar'
+            qui merge 1:1 _n using `file_first'
+            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+            if ( _rc ) {
+                local rc = _rc
+                di as err "hashsort gave different sort order to sort"
+            }
+            else {
+                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+            }
+        }
 
         * Make sure already sorted check is OK
         qui gen byte one = 1
-        qui hashsort one `varlist', `options'
+        hashsort one `varlist', `options'
         qui drop one
-        cf * using `file_sort'
+        cap cf * using `file_sort'
+        if ( _rc ) {
+            qui ds *
+            local memvars `r(varlist)' 
+            local firstvar: word 1 of `varlist'
+            local compvars: list memvars - firstvar
+            if ( "`compvars'" != "" ) {
+                cf `compvars' using `file_sort'
+            }
+            keep `firstvar'
+            tempfile file_one
+            qui save `file_one'
+
+            use `firstvar' using `file_sort', clear
+            rename `firstvar' c_`firstvar'
+            qui merge 1:1 _n using `file_one'
+            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+            if ( _rc ) {
+                local rc = _rc
+                di as err "hashsort gave different sort order to sort"
+            }
+            else {
+                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+            }
+        }
     restore
     qui timer list
     local time_hashsort = r(t43)
+
+    if ( `rc' ) exit `rc'
 
     if ( "`fsort'" == "fsort" ) {
         timer clear
@@ -160,7 +211,7 @@ end
 
 capture program drop compare_gsort
 program compare_gsort, rclass
-    syntax anything, [*]
+    syntax anything, [benchmode *]
     tempvar ix
     gen long `ix' = _n
 

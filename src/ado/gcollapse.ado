@@ -1,38 +1,47 @@
-*! version 0.8.4 29Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
 program gcollapse, rclass
     version 13
+    local 00 `0'
 
     global GTOOLS_CALLER gcollapse
-    syntax [anything(equalok)]       /// main call; must parse manually
-        [if] [in] ,                  /// subset
+    syntax [anything(equalok)]       /// Main function call:
+                                     ///     [(stat)] varlist [ [(stat)] ... ]
+                                     ///     [(stat)] target = source [target = source ...] [ [(stat)] ...]
+        [if] [in] ,                  /// [if condition] [in start / end]
     [                                ///
-        by(str)                      /// collapse by variabes
-        cw                           /// case-wise non-missing
-        fast                         /// do not preserve/restore
+        by(str)                      /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
+        cw                           /// Drop ocase-wise bservations where sources are missing.
+        fast                         /// Do not preserve and restore the original dataset. Saves speed
+                                     /// but leaves data unusable if the user hits Break.
                                      ///
-        replaceby                    /// debugging
-        replace                      /// debugging
-        Verbose                      /// debugging
-        Benchmark                    /// print benchmark info
-        hashlib(passthru)            /// path to hash library (Windows only)
-        oncollision(passthru)        /// On collision, fall back to collapse or throw error
-                                     /// freq(passthru) /// include number of observations in group
+        merge                        /// Merge statistics back to original data, replacing if applicable
+        replace                      /// Allow replacing existing variables with output with merge
+        freq(passthru)               /// Include frequency count with observations per group
                                      ///
-        merge                        /// merge statistics back to original data, replacing where applicable
+        LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
+        LABELProgram(passthru)       /// Program to parse labelformat (see examples)
                                      ///
-        LABELFormat(passthru)        /// label format; (#stat#) #sourcelabel# is the default
-        LABELProgram(passthru)       /// program to prettify stats
+        unsorted                     /// Do not sort the data; faster
+        forceio                      /// Use disk temp drive for writing/reading collapsed data
+        forcemem                     /// Use memory for writing/reading collapsed data
+        double                       /// Generate all targets as doubles
                                      ///
-        double                       /// do all operations in double precision
-        forceio                      /// use disk temp drive for writing/reading collapsed data
-        forcemem                     /// use memory for writing/reading collapsed data
+        Verbose                      /// Print info during function execution
+        Benchmark                    /// Benchmark various steps of the plugin
                                      ///
-        debug_io_check(real 1e6)     /// (experimental) Threshold to check for I/O speed gains
-        debug_io_threshold(real 10)  /// (experimental) Threshold to switch to I/O instead of RAM
+        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
+                                     ///
+        debug_replaceby              /// (internal) Allow replacing by variables with output
+        debug_io_check(real 1e6)     /// (internal) Threshold to check for I/O speed gains
+        debug_io_threshold(real 10)  /// (internal) Threshold to switch to I/O instead of RAM
     ]
+
+    local replaceby `debug_replaceby'
+    local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'" == ""
 
     if ( "`by'" != "" ) {
         local clean_by `by'
@@ -74,7 +83,7 @@ program gcollapse, rclass
     * -----------------------------------------------------------
 
     gtools_timer on 97
-    cap noi parse_vars `anything' `if' `in', `cw' `labelformat' `labelprogram'
+    cap noi parse_vars `anything' `if' `in', `cw' `labelformat' `labelprogram' `freq'
     if ( _rc ) {
         local rc = _rc
         CleanExit
@@ -99,9 +108,12 @@ program gcollapse, rclass
         }
         if ( "`merge'" == "" ) {
             qui keep if `touse'
-            local if ""
+            local ifin ""
         }
-        else local if if `touse'
+        else local ifin if `touse' `in'
+    }
+    else {
+        local ifin `in'
     }
 
     if ( `=_N' == 0 ) {
@@ -250,7 +262,7 @@ program gcollapse, rclass
         if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
         local gcollapse gcollapse(forceio, fname(`__gtools_file'))
-        local action    `action' fill(data)
+        local action    `action' fill(data) `unsorted'
         local stats     stats(`gtools_stats')
     }
     else if ( !`mem' & `switch' ) {
@@ -297,7 +309,7 @@ program gcollapse, rclass
             local st_time   st_time(`=`st_time' / `debug_io_threshold'')
             local ixinfo    ixinfo(`__gtools_index' `__gtools_ix' `__gtools_info')
             local gcollapse gcollapse(switch, `st_time' fname(`__gtools_file') `ixinfo')
-            local action    `action' fill(data)
+            local action    `action' fill(data) `unsorted'
             local stats     stats(`gtools_stats')
         }
         else {
@@ -310,7 +322,7 @@ program gcollapse, rclass
             gtools_timer info 97 `"`msg'"', prints(`bench')
 
             local gcollapse gcollapse(memory)
-            local action    `action' fill(data)
+            local action    `action' fill(data) `unsorted'
         }
     }
     else {
@@ -335,8 +347,18 @@ program gcollapse, rclass
         local action    `action' `:di cond("`merge'" == "", "fill(data)", "unsorted")'
     }
 
-    cap noi _gtools_internal `by' `if' `in', `opts' `action' `gcollapse' gfunction(collapse)
-    if ( _rc ) {
+    cap noi _gtools_internal `by' `ifin', `opts' `action' `gcollapse' gfunction(collapse)
+    if ( _rc == 17999 ) {
+        if ( "`gfallbackok'" != "" ) {
+            di as err "Cannot use fallback with gtools-only options"
+            exit 17000
+        }
+        local 0 `00'
+        syntax [anything(equalok)] [if] [in] , [ by(passthru) cw fast *]
+        collapse `anything' `if' `in', `by' `cw' `fast'
+        exit 0
+    }
+    else if ( _rc ) {
         local rc = _rc
         CleanExit
         exit `rc'
@@ -497,6 +519,7 @@ program parse_vars
         [if] [in] ,            /// subset
     [                          ///
         cw                     /// case-wise non-missing
+        freq(str)              /// include number of observations in group
         labelformat(str)       /// label prefix
         labelprogram(str)      /// label prefix
     ]
@@ -510,6 +533,12 @@ program parse_vars
     }
     else {
         ParseList `anything'
+    }
+
+    if ( "`freq'" != "" ) {
+        local __gtools_targets `__gtools_targets' `freq'
+        local __gtools_stats   `__gtools_stats' freq
+        local __gtools_vars    `__gtools_vars' `:word 1 of `__gtools_vars''
     }
 
     * Get format and labels from sources
@@ -541,16 +570,32 @@ program parse_vars
 
         local lfmt_k = `"`labelformat'"'
 
-        if !regexm(`"`vl'"', "`ltxt_regex'") {
-            while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
-                local lfmt_k = regexs(1) + `"`vl'"' + regexs(3)
+        if ( "`vp'" == "freq" ) {
+            if !regexm(`"`vl'"', "`ltxt_regex'") {
+                while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
+                    local lfmt_k = regexs(1) + `""' + regexs(3)
+                }
+            }
+            if !regexm(`"`vl'"', "`lsub_regex'") {
+                while regexm(`"`lfmt_k'"', "`lsub_regex'") {
+                    local lfmt_k = regexs(1) + `""' + regexs(4)
+                }
             }
         }
-        if !regexm(`"`vl'"', "`lsub_regex'") {
-            while regexm(`"`lfmt_k'"', "`lsub_regex'") {
-                local lfmt_k = regexs(1) + substr(`"`vl'"', `:di regexs(2)', `:di regexs(3)') + regexs(4)
+        else {
+
+            if !regexm(`"`vl'"', "`ltxt_regex'") {
+                while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
+                    local lfmt_k = regexs(1) + `"`vl'"' + regexs(3)
+                }
+            }
+            if !regexm(`"`vl'"', "`lsub_regex'") {
+                while regexm(`"`lfmt_k'"', "`lsub_regex'") {
+                    local lfmt_k = regexs(1) + substr(`"`vl'"', `:di regexs(2)', `:di regexs(3)') + regexs(4)
+                }
             }
         }
+
         if !regexm(`"`vpretty'"', "`lnice_regex'") {
             while regexm(`"`lfmt_k'"', "`lnice_regex'") {
                 local lfmt_k = regexs(1) + `"`vpretty'"' + regexs(3)
@@ -574,7 +619,7 @@ program parse_vars
         mata: __gtools_labels[`k'] = `"`lfmt_k'"'
 
         local vf = "`:format `:word `k' of `__gtools_vars'''"
-        local vf = cond("`:word `k' of `__gtools_stats''" == "count", "%8.0g", "`vf'")
+        local vf = cond(inlist("`:word `k' of `__gtools_stats''", "count", "freq"), "%8.0g", "`vf'")
         mata: __gtools_formats[`k'] = "`vf'"
     }
 
@@ -615,6 +660,10 @@ program parse_vars
             di as error "Invalid stat: (`quantile'; maybe you meant 'max'?)"
             error 110
         }
+    }
+
+    if ( "`freq'" != "" ) {
+        local __gtools_uniq_stats `__gtools_uniq_stats' freq
     }
 
     * Locals one level up
@@ -772,12 +821,12 @@ program parse_keep_drop, rclass
         else if ( "`double'" != "" ) {
             local targettype double
         }
-        else if ( ("`collstat'" == "count") & (`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & (`=_N' < 2^31) ) {
             * Counts can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype long
         }
-        else if ( ("`collstat'" == "count") & !(`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & !(`=_N' < 2^31) ) {
             local targettype double
         }
         else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -839,13 +888,13 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( ("`stat'" == "count") & (`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & (`=_N' < 2^31) ) {
         * Counts can be long if we have fewer than 2^31 observations
         * (largest signed integer in long variables can be 2^31-1)
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( ("`stat'" == "count") & !(`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & !(`=_N' < 2^31) ) {
         local targettype double
     }
     else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -1065,6 +1114,7 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "max"         ) local prettystat "Max"
     if ( `"`0'"' == "min"         ) local prettystat "Min"
     if ( `"`0'"' == "count"       ) local prettystat "Count"
+    if ( `"`0'"' == "freq"        ) local prettystat "Group size"
     if ( `"`0'"' == "percent"     ) local prettystat "Percent"
     if ( `"`0'"' == "median"      ) local prettystat "Median"
     if ( `"`0'"' == "iqr"         ) local prettystat "IQR"
@@ -1080,7 +1130,7 @@ program GtoolsPrettyStat, rclass
              if ( mod(`p', 10) == 1 ) local prettystat "`p'st Pctile"
         else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd Pctile"
         else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd Pctile"
-        else                          local prettystat "`p'th Pctile" 
+        else                          local prettystat "`p'th Pctile"
     }
     return local prettystat = `"`prettystat'"'
 end

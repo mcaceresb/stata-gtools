@@ -1,6 +1,39 @@
 Change Log
 ==========
 
+## gtools-0.9.0 (2017-11-01)
+
+### Features
+
+- The plugin now works on OSX
+- `gcontract` is a fast alternative to `contrast`
+- `gtoplevelsof` is a new command that allows the user to glean the most
+  common levels of a set of variables.  Similar to `gcontract` with a `gsort`
+  of frequency by descending order thereafter, but `gtoplevelsof` does not
+  modify the source data and saves a matrix with the results after its run.
+- `gdistinct` now saves its results to a matrix when there are multiple
+  variables.
+
+### Features
+
+- Improved and normalized documentation
+
+### Bug fixes
+
+- OSX version; fixes https://github.com/mcaceresb/stata-gtools/issues/11
+- `gisid` now sient w/o benchmark or verbose; fixes https://github.com/mcaceresb/stata-gtools/issues/20
+- Added quotes to `cd cwd` in `gtools`; fixes https://github.com/mcaceresb/stata-gtools/issues/22
+- `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23 
+
+## gtools-0.8.5 (2017-10-30)
+
+### Features
+
+- `gcollapse, freq()` stores frequency count in variable.
+  Same as `gen long freq = 1` and then `(sum) freq`.
+- Hashsort is marginally faster (sortindex inversion now
+  done internally in C).
+
 ## gtools-0.8.4 (2017-10-29)
 
 ### Enhancements
@@ -77,7 +110,7 @@ Change Log
 
 * Updated benchmarks for new commands, all in Stata/MP.
 * Added `counts` option (with `fill`) to `gegen group`.
-  `fill` can be a number, `group` to fill in the counts 
+  `fill` can be a number, `group` to fill in the counts
   normally, or `data` to fill in the first J_th_ observations.
 * The number of groups is now stored in `r(J)`, along with
   other useful meta stats.
@@ -94,14 +127,14 @@ Change Log
 ### Features
 
 * `gisid` is added as a working replacement for `isid` and `isid, missok`.
-  `gisid` taks `if` and `in` statements; however, it does not implement 
+  `gisid` taks `if` and `in` statements; however, it does not implement
   `isid, sort` or `isid using`.
 * `glevelsof` is added as a working replacement for `levelsof`.
   All `levelsof` features are available.
 
 ### Enhancements
 
-* Fixes https://github.com/mcaceresb/stata-gtools/issues/13 so 
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/13 so
   `gcollapse` maintains source formats on targets.
 * Improved internal handling of if conditions for `egen`.
 
@@ -221,7 +254,7 @@ Change Log
 
 ### Bug fixes
 
-* `gegen` no longer ignores unavailable options, as noted in issue 
+* `gegen` no longer ignores unavailable options, as noted in issue
   https://github.com/mcaceresb/stata-gtools/issues/4, and now it throws an error.
 * `gegen varname = tag(varlist)` no longer tags missing values, as noted
   in issue https://github.com/mcaceresb/stata-gtools/issues/5

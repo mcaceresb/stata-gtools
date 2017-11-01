@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.4 29Oct2017}{...}
+{* *! version 0.9.0 31Oct2017}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -12,22 +12,86 @@
 {p2col :{cmd:gegen} {hline 2}}Efficient implementation of by-able egen functions using C.{p_end}
 {p2colreset}{...}
 
+{pstd}
+{it:Note for Windows users}: It may be necessary to run
+{opt gtools, dependencies} at the start of your Stata session.
+
 {marker syntax}{...}
 {title:Syntax}
 
-{phang}
-{it:Note for Windows users}: Please run {opt gtools, dependencies}
-before using any of the programs provided by gtools.
-
 {p 8 14 2}
 {cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 
-[{cmd:,} {it:options}]
+[{cmd:,}
+{opt replace}
+{it:fcn_options}
+{help gegen##gtools_options:gtools_options}]
+
+{synoptset 21 tabbed}{...}
+{marker gtools_options}{...}
+{synopthdr}
+{synoptline}
+{syntab:Gtools}
+{synopt :{opt v:erbose}}Print info during function execution.
+{p_end}
+{synopt :{opt b:enchmark}}Benchmark various steps of the plugin.
+{p_end}
+{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+{synopt :{opth gtools_capture(str)}}The above 3 options are captured and not passed to {opt egen} in case the requested function is not internally supported by gtools. You can pass extra arguments here if their names conflict with captured gtools options.
+{p_end}
 
 {phang}
-Unlike {it:egen}, {cmd:by} is required in this case, except for {opt tag} or
-{opt group}, as noted below. Functions not listed here hash the data and then
-call {opt egen} with {opth by(varlist)} set to the hash, which is often faster
-than calling {opt egen} directly. Natively supported functions are:
+Functions not listed here hash the data and then call {opt egen} with 
+{opth by(varlist)} set to the hash, which is often faster than calling
+{opt egen} directly, but not always. Natively supported functions should
+always be faster, however. They are:
+
+{phang2}
+{opth group(varlist)} [{cmd:,} {opt m:issing} {opth counts(newvarname)} {opth fill(real)}]{p_end}
+{pmore2}
+may not be combined with {cmd:by}.  It creates one variable taking on
+values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may
+contain numeric variables, string variables, or a combination of the two.  The
+order of the groups is the order in which {it:varlist} appears in the data.
+However, the user can specify:
+
+{pmore3}
+[{cmd:+}|{cmd:-}]
+{varname}
+[[{cmd:+}|{cmd:-}]
+{varname} {it:...}]
+
+{pmore2}
+And the order will be inverted for variables that have {cmd:-} prepended.
+{opt missing} indicates that missing values in {it:varlist}
+{bind:(either {cmd:.} or {cmd:""}}) are to be treated like any other value
+when assigning groups, instead of as missing values being assigned to the
+group missing.
+
+{pmore2}
+You can also specify {opt counts()} to generate a new variable with the number
+of observations per group; by default all observations within a group are
+filled with the count, but via {opt fill()} the user can specify the value
+the variable will take after the first observation that appears within a
+group. The user can also specify {opt fill(data)} to fill the first J{it:th}
+observations with the count per group (in the sorted group order) or
+{opt fill(group)} to keep the default behavior.
+
+{phang2}
+{opth tag(varlist)} [{cmd:,} {opt m:issing}]{p_end}
+{pmore2}
+may not be combined with {cmd:by}.  It tags just 1 observation in each
+distinct group defined by {it:varlist}.  When all observations in a group have
+the same value for a summary variable calculated for the group, it will be
+sufficient to use just one value for many purposes.  The result will be 1 if
+the observation is tagged and never missing, and 0 otherwise. 
+
+{pmore2}
+Note values for any observations excluded by either {helpb if} or {helpb in}
+are set to 0 (not missing).  Hence, if {opt tag} is the variable
+produced by {cmd:egen tag =} {opt tag(varlist)}, the idiom {opt if tag}
+is always safe.  {opt missing} specifies that missing values of {it:varlist}
+may be included.
 
         {opth first|last|firstnm|lastnm(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -38,24 +102,6 @@ observation. The functions are analogous to those in {opt collapse} and {opt not
 {pmore2}
 creates a constant (within {it:varlist}) containing the number of nonmissing
 observations of {it:exp}.
-
-{phang2}
-{opth group(varlist)} [{cmd:,} {opt m:issing} {opth counts(newvarname)} {opth fill(real)}]{p_end}
-{pmore2}
-may not be combined with {cmd:by}.  It creates one variable taking on
-values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may
-contain numeric variables, string variables, or a combination of the two.  The
-order of the groups is the order in which {it:varlist} appears in the data.  {opt missing}
-indicates that missing values in {it:varlist}
-{bind:(either {cmd:.} or {cmd:""}}) are to be treated like any other value
-when assigning groups, instead of as missing values being assigned to the
-group missing. You can specify {opt counts()} to generate a new variable with
-the number of observations per group; by default all observations within a group
-are filled with the count, but via {opt fill()} the user can specify the value
-the variable will take after the first observation that appears within a group.
-The user can also specify {opt fill(data)} to fill the first J{it:th} observations
-with the count per group (in the sorted group order) or {opt fill(group)} to keep
-the default behavior.
 
         {opth iqr(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -96,20 +142,6 @@ Also see {help egen##median():{bf:median()}}.
 creates a constant (within {it:varlist}) containing the standard
 deviation of {it:exp}.  Also see {help egen##mean():{bf:mean()}}.
 
-{phang2}
-{opth tag(varlist)} [{cmd:,} {opt m:issing}]{p_end}
-{pmore2}
-may not be combined with {cmd:by}.  It tags just 1 observation in each
-distinct group defined by {it:varlist}.  When all observations in a group have
-the same value for a summary variable calculated for the group, it will be
-sufficient to use just one value for many purposes.  The result will be 1 if
-the observation is tagged and never missing, and 0 otherwise.  Values
-for any observations excluded by either {helpb if} or {helpb in}
-are set to 0 (not missing).  Hence, if {opt tag} is the variable
-produced by {cmd:egen tag =} {opt tag(varlist)}, the idiom {opt if tag}
-is always safe.  {opt missing} specifies that missing values of {it:varlist}
-may be included.
-
         {opth total(exp)} [{cmd:,} {opt m:issing}] {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the sum of {it:exp}
@@ -121,12 +153,13 @@ treating missing as 0.  If {opt missing} is specified and all values in
 {title:Description}
 
 {pstd}
-{cmd:egen} creates {newvar} of the optionally specified storage type equal
-to {it:fcn}{cmd:(}{it:arguments}{cmd:)}. Here {it:fcn}{cmd:()} is a by-able
-function specifically written for {cmd:egen}, as documented above. Only
-{cmd:egen} functions may be used with {cmd:egen}. Note that if you want
-to generate multiple summary statistics from a single variable it may be
-faster to use {opt gcollapse} with the {opt merge} option.
+{cmd:gegen} creates {newvar} of the optionally specified storage type
+equal to {it:fcn}{cmd:(}{it:arguments}{cmd:)}. Here {it:fcn}{cmd:()} is either
+one of the internally supported commands above or a by-able function written
+for {cmd:egen}, as documented above. Only {cmd:egen} functions or internally
+supported functions may be used with {cmd:egen}.  If you want to generate
+multiple summary statistics from a single variable it may be faster to use
+{opt gcollapse} with the {opt merge} option.
 
 {pstd}
 Depending on {it:fcn}{cmd:()}, {it:arguments}, if present, refers to an
@@ -173,22 +206,9 @@ task on segments of the data.
 {title:Examples}
 
 {pstd}
-Pending...
-
-
-{marker results}{...}
-{title:Stored results}
-
-{pstd}
-{cmd:gegen} stores the following in {cmd:r()}:
-
-{synoptset 20 tabbed}{...}
-{p2col 5 20 24 2: Scalars}{p_end}
-{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
-{synopt:{cmd:r(J)   }} number of groups {p_end}
-{synopt:{cmd:r(minJ)}} largest group size {p_end}
-{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
-{p2colreset}{...}
+See {help egen##examples} or the
+{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
+in the git repo.
 
 
 {marker author}{...}
@@ -200,14 +220,14 @@ Pending...
 
 {title:Website}
 
-{pstd}{cmd:gegen} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
+{pstd}{cmd:gegen} is maintained as part of {manhelp gtools R:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
 
 {pstd}
 This help file was based on StataCorp's own help file
-for {it:egen} and Sergio Correia's help file for {it:fegen}.
+for {it:egen}.
 {p_end}
 
 {pstd}
@@ -219,3 +239,15 @@ This project was largely inspired by Sergio Correia's {it:ftools}:
 The OSX version of gtools was implemented with invaluable help from @fbelotti;
 see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}
+
+{title:Also see}
+
+{p 4 13 2}
+help for 
+{help gcollapse}, 
+{help gtools};
+{help fegen} (if installed), 
+{help fcollapse} (if installed), 
+{help ftools} (if installed)
+p_end}
+

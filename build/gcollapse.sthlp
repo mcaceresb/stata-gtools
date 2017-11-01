@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.4 29Oct2017}{...}
+{* *! version 0.9.0 31Oct2017}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -13,12 +13,15 @@
 make dataset of summary statistics using C.{p_end}
 {p2colreset}{...}
 
+{pstd}
+{it:Note for Windows users}: It may be necessary to run
+{opt gtools, dependencies} at the start of your Stata session.
+
 {marker syntax}{...}
 {title:Syntax}
 
 {phang}
-{it:Note for Windows users}: Please run {opt gtools, dependencies}
-before using any of the programs provided by gtools.
+This is a fast option to Stata's {opt collapse}, with several additions.
 
 {p 8 17 2}
 {cmd:gcollapse}
@@ -55,8 +58,8 @@ before using any of the programs provided by gtools.
 {p2col :{opt sum}}sums{p_end}
 {p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
-{p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}){p_end}
-{p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}){p_end}
+{p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
+{p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
@@ -68,38 +71,48 @@ before using any of the programs provided by gtools.
 {p2col :{opt lastnm}}last nonmissing value{p_end}
 {p2colreset}{...}
 
-{synoptset 15 tabbed}{...}
+{synoptset 18 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
 {syntab :Options}
-{synopt :{opth by(varlist)}}groups over which {it:stat} is to be calculated
+{synopt :{opth by(varlist)}}groups over which {it:stat} is to be calculated. Prepend "-" to invert final sort order.
 {p_end}
-{synopt :{opt cw}}casewise deletion instead of all possible observations
+{synopt :{opt cw}}Drop ocase-wise bservations where sources are missing.
 {p_end}
 {synopt :{opt fast}}do not preserve and restore the original dataset;
 saves speed but leaves the data in an unusable state shall the
 user press {hi:Break}
 {p_end}
-{synopt :{opt v:erbose}}verbose printing (for debugging).
+
+{syntab:Extras}
+{synopt :{opt merge}}Merge statistics back to original data, replacing if applicable.
 {p_end}
-{synopt :{opt b:enchmark}}print performance time info for each step.
+{synopt :{opt replace}}Allow replacing existing variables with output with {opt merge}.
 {p_end}
-{synopt :{opt labelf:ormat}}custom label format for output.
+{synopt :{opth freq(varname)}}Include frequency count with observations per group in {opt freq}.
 {p_end}
-{synopt :{opth labelp:rogram(str)}}custom program for {opt labelformat} placeholder engine.
+{synopt :{opt labelf:ormat}}Custom label engine: {opt (#stat#) #sourcelabel#} is the default.
 {p_end}
-{synopt :{opt merge}}merge collapsed results back to oroginal data.
+{synopt :{opth labelp:rogram(str)}}Program to parse {opt labelformat} (see examples).
 {p_end}
-{synopt :{opt replace}}allow replacing {opt by} variables or existing variables with {opt merge}.
+{synopt :{opt unsorted}}Do not sort resulting dataset. Saves speed.
 {p_end}
-{synopt :{opt forceio}}force using disk instead of memory for the collapsed results.
+
+{syntab:Switches}
+{synopt :{opt forceio}}Use disk temp drive for writing/reading collapsed data.
 {p_end}
-{synopt :{opt forcemem}}force using memory instead of disk for the collapsed results.
+{synopt :{opt forcemem}}Use memory for writing/reading collapsed data.
 {p_end}
-{synopt :{opt double}}store data in double precision.
+{synopt :{opt double}}Generate all targets as doubles.
 {p_end}
-{synopt :{opth hashlib(str)}}Custom path to {it:spookyhash.dll} (Windows only).
+
+{syntab:Gtools}
+{synopt :{opt v:erbose}}Print info during function execution.
+{p_end}
+{synopt :{opt b:enchmark}}Benchmark various steps of the plugin.
+{p_end}
+{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
 
 {synoptline}
@@ -134,15 +147,28 @@ possible observations are used for each calculated statistic.
 {opt fast} specifies that {opt gcollapse} not restore the original dataset
 should the user press {hi:Break}.
 
-{phang}
-{opt verbose} prints some useful debugging info to the console.
+{dlgtab:Extras}
 
 {phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+{opt merge} merges the collapsed data back to the original data set.
+Note that if you want to replace the source variable(s) then you need
+to specify {opt replace}.
 
 {phang}
-{opt labelformat} Specifies the label format of the output. #stat#
+{opt replace} Replace allows replacing existing variables with {opt merge}.
+
+{phang}
+{opth freq(varname)} stores the group frequency count in {opt freq}. It
+differs from count because it merely stores the number of occurrences of
+the group in the data, rather than the non-missing count. Hence it is
+equivalent to summing a dummy variable equal to 1 everywhere.
+
+{phang}
+{opth freq(varname)} Specifies that the row count of each group be stored
+in {opt freq} after the collapse.
+
+{phang}
+{opth labelformat(str)} Specifies the label format of the output. #stat#
 is replaced with the statistic: #Stat# for titlecase, #STAT#
 for uppercase, #stat:pretty# for a custom replacement; #sourcelabel#
 for the source label and #sourcelabel:start:nchars# to extract a substring
@@ -151,17 +177,14 @@ palceholders in the source label are also replaced.
 
 {phang}
 {opth labelprogram(str)} Specifies the program to use with #stat:pretty#.
-Thisis an {opt rclass} that must set {opt prettystat} as a return
-value. The programm is passed the requested stat by {opt gcollapse}.
+Thisis an {opt rclass} that must set {opt prettystat} as a return value. The
+program must specify a value for each summary stat or return #default# to
+use the default engine. The programm is passed the requested stat by {opt gcollapse}.
 
 {phang}
-{opt merge} merges the collapsed data back to the original data set.
-Note that if you want to replace the source variable(s) then you need
-to specify {opt replace}.
+{opt unsorted} Do not sort resulting data set. Saves speed.
 
-{phang}
-{opt replace} Replace allows by variables to be overwritten. If run with
-{opt merge} it also allows existing variables to be overwritten.
+{dlgtab:Switches}
 
 {phang}
 {opt forceio} By default, when there are more than 3 additional targets
@@ -181,6 +204,23 @@ be large {opt forcemem} will be faster.
 
 {phang}
 {opt double} stores data in double precision.
+
+{dlgtab:Gtools}
+
+{phang}
+{opt verbose} prints some useful debugging info to the console.
+
+{phang}
+{opt benchmark} prints how long in seconds various parts of the program
+take to execute.
+
+{phang}
+{opth hashlib(str)} On earlier versions of gtools Windows users had a problem
+because Stata was unable to find {it:spookyhash.dll}, which is bundled with
+gtools and required for the plugin to run correctly. The best thing a Windows
+user can do is run {opt gtools, dependencies} at the start of their Stata
+session, but if Stata cannot find the plugin the user can specify a path
+manually here.
 
 {marker memory}{...}
 {title:Out of memory}
@@ -208,13 +248,13 @@ If you have no memory cap imposed on your user, the likely scenario is that
 your system cannot allocate enough memory for {it:gcollapse}. At this point
 you have two options: One option is to try {it:fcollapse} or {it:collapse},
 which are slower but using either should require a trivial one-letter change
-to the code; another option is to re-write collapse the data in segments (the
-easiest way to do this would be to collapse a portion of all variables at a
-time and perform a series of 1:1 merges at the end.)
+to the code; another option is to re-write the code to collapse the data in
+segments (the easiest way to do this would be to collapse a portion of all
+variables at a time and perform a series of 1:1 merges at the end).
 
 {pstd}
-Replacing {it:gcollapse} with {it:fcollapse} or plain {it:collapse} is
-an option because {it:gcollapse} uses more memory. This is a consequence
+Replacing {it:gcollapse} with {it:fcollapse} or plain {it:collapse} is an
+option because {it:gcollapse} often uses more memory. This is a consequence
 of Stata's inability to create variables via C plugins. This forces
 {it:gcollapse} to create variables before collapsing, meaning that if there
 are {it:J} groups and {it:N} observations, {it:gcollapse} uses {it:N} - {it:J}
@@ -232,7 +272,7 @@ where it cannot allocate enough memory for {it:gcollapse}.
 {title:Examples}
 
 {pstd}
-See the
+See {help collapse##examples} or the
 {browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
 in the git repo.
 
@@ -260,7 +300,7 @@ in the git repo.
 
 {title:Website}
 
-{pstd}{cmd:gcollapse} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
+{pstd}{cmd:gcollapse} is maintained as part of {manhelp gtools R:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
@@ -279,3 +319,14 @@ This project was largely inspired by Sergio Correia's {it:ftools}:
 The OSX version of gtools was implemented with invaluable help from @fbelotti;
 see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}
+
+{title:Also see}
+
+{p 4 13 2}
+help for 
+{help gcontract}, 
+{help gtoplevelsof}, 
+{help gtools};
+{help fcollapse} (if installed), 
+{help ftools} (if installed)
+

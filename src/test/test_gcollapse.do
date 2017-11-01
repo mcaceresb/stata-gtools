@@ -344,7 +344,7 @@ program _compare_inner_collapse
     preserve
         timer clear
         timer on 43
-        qui `noisily' gcollapse `collapse_str', by(`anything') verbose benchmark `options'
+        qui `noisily' gcollapse `collapse_str' `if' `in', by(`anything') verbose benchmark `options' freq(freq)
         timer off 43
         qui timer list
         local time_gcollapse = r(t43)
@@ -355,7 +355,8 @@ program _compare_inner_collapse
     preserve
         timer clear
         timer on 42
-        qui `noisily' collapse `collapse_str', by(`anything')
+        qui gen long freq = 1
+        qui `noisily' collapse `collapse_str' (sum) freq `if' `in', by(`anything')
         timer off 42
         qui timer list
         local time_gcollapse = r(t42)
@@ -372,6 +373,7 @@ program _compare_inner_collapse
             rename r1_`var' c_r1_`var'
             rename r2_`var' c_r2_`var'
         }
+        rename freq c_freq
         if ( "`by'" == "" ) {
             qui merge 1:1 _n using `fg', assert(3)
         }
@@ -396,6 +398,14 @@ program _compare_inner_collapse
                 local bad_any = 1
                 order *r2_`var'
             }
+        }
+        qui count if ( (abs(freq - c_freq) > `tol') & (freq != c_freq))
+        if ( `r(N)' > 0 ) {
+            gen bad_freq = abs(freq - c_freq) * (freq != c_freq)
+            local bad `bad' *freq
+            di "    freq has `:di r(n)' mismatches".
+            local bad_any = 1
+            order *freq
         }
         if ( `bad_any' ) {
             if ( "`if'`in'" == "" ) {

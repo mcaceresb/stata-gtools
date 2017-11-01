@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.4 29Oct2017}{...}
+{* *! version 0.9.0 31Oct2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -11,15 +11,18 @@
 {p2col :{cmd:gtools} {hline 2}}Manage {opt gtools} package installation.{p_end}
 {p2colreset}{...}
 
-{marker syntax}{...}
-{title:Syntax}
+{pstd}
+{it:Note for Windows users}: Please run {opt gtools, dependencies} before
+using any of the programs provided by gtools. The {opt gtools} command
+is merely a wrapper for some high-level operations to do with package
+maintenance.
 
 {pstd}
 {opt gtools} is a suite of commands that use hashes for a speedup over
 traditional stata commands. The following are available as part of gtools:
 
 {p 8 17 2}
-{manhelp gcollapse R:gcollapse} {opt collapse} replacement. {p_end}
+{manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
 
 {p 8 17 2}
 {manhelp gegen R:gegen} {opt egen} alternative. {p_end}
@@ -31,16 +34,16 @@ traditional stata commands. The following are available as part of gtools:
 {manhelp glevelsof R:glevelsof} {opt levelsof} replacement. {p_end}
 
 {p 8 17 2}
+{manhelp gtoplevelsof R:gtoplevelsof} Frequency count of top levels of a {opt varlist}. {p_end}
+
+{p 8 17 2}
 {manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct} Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
-{manhelp hashsort R:hashsort} (Experimental.) Hash-based sorting. {p_end}
+{manhelp hashsort R:hashsort} (Experimental) Hash-based sorting. {p_end}
 
-{pstd}
-{it:Note for Windows users}: Please run {opt gtools, dependencies} before
-using any of the programs provided by gtools. The {opt gtools} command
-is merely a wrapper for some high-level operations to do with package
-maintenance.
+{marker syntax}{...}
+{title:Syntax}
 
 {p 8 17 2}
 {cmd:gtools}
@@ -72,19 +75,20 @@ maintenance.
 {title:Description}
 
 {pstd}
-{opt gtools} is a Stata package is a Stata package that provides a fast
-implementation of common group commands like collapse, egen, isid, and
-levelsof using C plugins for a massive speed improvement. This program helps
-the user manage their gtools installation. While unnecessary in Linux, when
-trying to compile the plugin on Windows it became apparent that I would
-need to include a DLL with the package (in particular the DLL for the hash
-library). While I try to do this automatically, I run into enough problems
-while developing the plugin that I felt compelled to include this program.
+{opt gtools} is a Stata package that provides a fast implementation of common
+group commands like collapse, egen, isid, levelsof, contract, distinct, and
+so on using C plugins for a massive speed improvement.
+
+{pstd}
+This program helps the user manage their gtools installation. While
+unnecessary in Linux or OSX, when trying to compile the plugin on Windows
+it became apparent that I would need to include a DLL with the package
+(in particular the DLL for the hash library). While I try to do this
+automatically, I ran into enough problems while developing the plugin that I
+felt compelled to include this program.
 
 {marker options}{...}
 {title:Options}
-
-{dlgtab:Options}
 
 {phang}
 {opt dependencies} Installs the hash library, {it:spookyhash.dll}, which

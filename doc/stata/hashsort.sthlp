@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.4  29Oct2017}{...}
+{* *! version 0.3.0  31Oct2017}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}
@@ -16,6 +16,11 @@
 {p2colreset}{...}
 
 
+{pstd}
+{it:Note for Windows users}: It may be necessary to run
+{opt gtools, dependencies} at the start of your Stata session.
+
+
 {marker syntax}{...}
 {title:Syntax}
 
@@ -25,14 +30,10 @@
 {varname}
 [[{cmd:+}|{cmd:-}]
 {varname} {it:...}]
-[{cmd:,} {opt v:erbose} {opt b:enchmark}]
+[{cmd:,} {it:{help hashsort##options:options}}]
 
 {marker menu}{...}
 {title:Menu}
-
-{phang}
-{bf:Data > Sort}
-
 
 {marker description}{...}
 {title:Description}
@@ -55,18 +56,54 @@ ascending order of {it:varname} if {opt +} or nothing is typed in front of the
 name and are placed in descending order if {opt -} is typed. {opt hashsort}
 always produces a stable sort.
 
+{pstd}
+{opt hashsort} is part of the {manhelp gtools R:gtools} project.
+
 {marker options}{...}
 {title:Options}
 
-{synopt :{opt verbose}}verbose printing (for debugging).
-{p_end}
+{dlgtab:Options}
 
-{synopt :{opt benchmark}}print performance time info for each step.
-{p_end}
+{phang}
+{opth gen(varname)} Store sort oder in {opt gen}.
+
+{phang}
+{opth group(varname)} Store group ID in {opt group}.
+
+{phang}
+{opt sortgroup} Set data sortby variable to {opt group}.
+
+{phang}
+{opt replace} If {opt group} exits, it is replaced.
+
+{phang}
+{opt skipcheck} Skip internal is sorted check.
+
+{dlgtab:Gtools}
+
+{phang}
+{opt verbose} prints some useful debugging info to the console.
+
+{phang}
+{opt benchmark} prints how long in seconds various parts of the program
+take to execute.
+
+{phang}
+{opth hashlib(str)} On earlier versions of gtools Windows users had a problem
+because Stata was unable to find {it:spookyhash.dll}, which is bundled with
+gtools and required for the plugin to run correctly. The best thing a Windows
+user can do is run {opt gtools, dependencies} at the start of their Stata
+session, but if Stata cannot find the plugin the user can specify a path
+manually here.
 
 
 {marker examples}{...}
 {title:Examples}
+
+{pstd}
+Also see the
+{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
+in the git repo.
 
     {hline}
     Setup
@@ -129,7 +166,7 @@ order of {cmd:id}{p_end}
 
 {title:Website}
 
-{pstd}{cmd:hashsort} is maintained as part of {it:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
+{pstd}{cmd:hashsort} is maintained as part of {manhelp gtools R:gtools} at {browse "https://github.com/mcaceresb/stata-gtools":github.com/mcaceresb/stata-gtools}{p_end}
 
 {marker acknowledgment}{...}
 {title:Acknowledgment}
@@ -147,3 +184,12 @@ This project was largely inspired by Sergio Correia's {it:ftools}:
 The OSX version of gtools was implemented with invaluable help from @fbelotti;
 see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}
+
+{title:Also see}
+
+{p 4 13 2}
+help for 
+{help gtools};
+{help fsort} (if installed), 
+{help ftools} (if installed)
+

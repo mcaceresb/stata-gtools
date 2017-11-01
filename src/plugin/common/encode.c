@@ -112,6 +112,8 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5: Copied back encoding to Stata");
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 5: Copied back encoding to Stata");
+
     return (0);
 }

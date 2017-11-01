@@ -63,16 +63,29 @@ struct StataInfo {
     GT_size   strbuffer;
     GT_size   sep_len;
     GT_size   colsep_len;
+    GT_size   numfmt_max;
     //        
     GT_size   biject;
     GT_size   encode;
     GT_size   group_data;
     GT_size   group_fill;
     ST_double group_val;
+    GT_size   contract_vars;
+    //
+    ST_double top_ntop;
+    ST_double top_pct;
+    ST_double top_freq;
+    GT_bool   top_other;
+    GT_bool   top_miss;
+    GT_bool   top_groupmiss;
+    GT_size   top_lother;
+    GT_size   top_lmiss;
     //
     GT_bool   cleanstr;
     GT_bool   init_targ;
     GT_bool   any_if;
+    GT_bool   invertix;
+    GT_bool   skipcheck;
     GT_bool   verbose;
     GT_bool   benchmark;
     GT_bool   countonly;
@@ -96,6 +109,7 @@ struct StataInfo {
     //
     GT_size   *pos_targets;
     ST_double *statcode;
+    GT_size   *contract_which;
     //
     GT_int    *byvars_mins;
     GT_int    *byvars_maxs;

@@ -24,7 +24,6 @@ extra_javascript:
     - helpers.js
 
 markdown_extensions:
-    - mdx_math
     - meta
     - toc
     - tables

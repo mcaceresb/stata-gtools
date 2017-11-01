@@ -10,7 +10,7 @@ compiler:
 
 os:
   - linux
-  - osx
+  # - osx
 
 script:
   - cd lib/spookyhash/build

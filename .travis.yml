@@ -10,7 +10,7 @@ compiler:
 
 os:
   - linux
-  # - osx
+  - osx
 
 script:
   - cd lib/spookyhash/build
@@ -21,5 +21,4 @@ script:
   - ALL_CFLAGS+=-fPIC make
   - cd -
   # - ls -lahR ./lib/spookyhash/build/
-  - `find ./lib/spookyhash/ -name "*libspookyhash.a"`
   - make clean && SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`) make

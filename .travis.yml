@@ -10,15 +10,16 @@ compiler:
 
 os:
   - linux
-  # - osx
+  - osx
 
 script:
   - cd lib/spookyhash/build
-  # - sed -i.bak -e '37,40d' premake5.lua
+  - sed -i.bak -e '37,40d' premake5.lua
   - ../../travis_build_premake.sh
   - ./premake5 gmake
   - make clean
   - ALL_CFLAGS+=-fPIC make
   - cd -
   # - ls -lahR ./lib/spookyhash/build/
-  - make clean && make
+  - `find ./lib/spookyhash/ -name "*libspookyhash.a"`
+  - make clean && SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`) make

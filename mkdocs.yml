@@ -1,0 +1,37 @@
+site_name: 'Gtools'
+pages:
+    - Home: index.md
+    - FAQs: faqs.md
+    - Benchmarks: benchmarks.md
+    - Usage:
+        - gcollapse:    usage/gcollapse.md
+        - gcontract:    usage/gcontract.md
+        - gdistinct:    usage/gdistinct.md
+        - gegen:        usage/gegen.md
+        - gisid:        usage/gisid.md
+        - glevelsof:    usage/glevelsof.md
+        - gtools:       usage/gtools.md
+        - gtoplevelsof: usage/gtoplevelsof.md
+        - gunique:      usage/gunique.md
+        - hashsort:     usage/hashsort.md
+    - Advanced:
+        - Compiling: compiling.md
+
+theme: readthedocs
+
+extra_javascript:
+    - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML
+    - helpers.js
+
+markdown_extensions:
+    - mdx_math
+    - meta
+    - toc
+    - tables
+    - fenced_code
+    - codehilite
+
+use_directory_urls: false
+
+extra_css:
+    - extra.css

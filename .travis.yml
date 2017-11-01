@@ -21,4 +21,4 @@ script:
   - ALL_CFLAGS+=-fPIC make
   - cd -
   # - ls -lahR ./lib/spookyhash/build/
-  - make clean && SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`) make
+  - make clean && make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)

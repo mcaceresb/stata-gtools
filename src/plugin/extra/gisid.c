@@ -1,47 +1,49 @@
-int sf_isid (
+ST_retcode gf_isid (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
-    const size_t hash_level
+    GT_size *ix,
+    const GT_bool hash_level
 );
 
-int sf_isid_bijection (
+ST_retcode gf_isid_bijection (
     uint64_t *h1,
     struct StataInfo *st_info
 );
 
-int sf_check_isid_collision (
+ST_retcode gf_check_isid_collision (
     struct StataInfo *st_info,
-    size_t obs1,
-    size_t obs2
+    GT_size obs1,
+    GT_size obs2
 );
 
-int sf_isid_bijection (uint64_t *h1, struct StataInfo *st_info)
+ST_retcode gf_isid_bijection (uint64_t *h1, struct StataInfo *st_info)
 {
-    size_t i;
+    GT_size i;
 
     // Search for a place in the sorted hash with two consecutive equal
     // values; if any two hashes are the same then we don't have an ID.
 
     for (i = 1; i < st_info->N; i++) {
-        if ( h1[i] == h1[i - 1] ) return (42459);
+        if ( h1[i] == h1[i - 1] ) return (17459);
     }
 
     // If no two hashes are the same, the varlist is an ID
     return (0);
 }
 
-int sf_isid (
+ST_retcode gf_isid (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
-    const size_t hash_level)
+    GT_size *ix,
+    const GT_bool hash_level)
 {
-    if (hash_level == 0) return (sf_isid_bijection (h1, st_info));
+    if (hash_level == 0) return (gf_isid_bijection (h1, st_info));
 
     ST_retcode rc ;
-    size_t i, start, end, range;
-    size_t   *ix_l;
+    GT_size i, start, end, range;
+    GT_size   *ix_l;
     uint64_t *h2_l;
 
     // Search for a place in the sorted hash with two consecutive equal values
@@ -62,13 +64,13 @@ int sf_isid (
         // start to end, then two groups mapped to the same hash. Check the
         // two groups are the same in the data. If they are then you don't
         // have an iD. If they are not then you have a collision.
-        if ( !mf_check_allequal(h2, start, end) ) {
+        if ( !gf_check_allequal(h2, start, end) ) {
             range = end - start;
 
-            ix_l = st_info->ix + start;
+            ix_l = ix + start;
             h2_l = h2 + start;
 
-            if ( (rc = mf_radix_sort16 (h2_l, ix_l, range)) ) return (rc);
+            if ( (rc = gf_radix_sort16 (h2_l, ix_l, range)) ) return (rc);
 
             for (i = 1; i < range; i++) {
                 if ( h2_l[i] == h2_l[i - 1] ) break;
@@ -77,17 +79,17 @@ int sf_isid (
         }
 
         // Once this is sorted, you 
-        if ( (rc = sf_check_isid_collision (st_info,
-                                            st_info->ix[start],
-                                            st_info->ix[start + 1])) ) return (rc);
-        return (42459);
+        if ( (rc = gf_check_isid_collision (st_info,
+                                            ix[start],
+                                            ix[start + 1])) ) return (rc);
+        return (17459);
     }
 
     // If no two hashes are the same, the varlist is an ID
     return (0);
 }
 
-int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2)
+ST_retcode gf_check_isid_collision (struct StataInfo *st_info, GT_size obs1, GT_size obs2)
 {
     ST_retcode rc = 0;
 
@@ -95,13 +97,13 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
      *                               Setup                               *
      *********************************************************************/
 
-    int k;
-    size_t sel, numpos, strpos;
-    size_t kvars = st_info->kvars_by;
-    size_t kstr  = st_info->kvars_by_str;
-    size_t l_str = 0;
-    size_t k_num = 0;
-    MF_MAX (st_info->byvars_lens, kvars, kmax, k);
+    GT_size k;
+    GT_size sel, numpos, strpos;
+    GT_size kvars = st_info->kvars_by;
+    GT_size kstr  = st_info->kvars_by_str;
+    GT_size l_str = 0;
+    GT_size k_num = 0;
+    GTOOLS_MAX (st_info->byvars_lens, kvars, kmax, k);
 
     // Figure out the number of numeric by variables and the combined string
     // length of string by variables.
@@ -117,9 +119,9 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
 
     // Will compare string in st_strbase to st_strcomp and number as are being
     // read to numbers in st_numbase and st_nummiss
-    double z;
+    ST_double z;
 
-    int klen = kmax > 0? (kmax + 1): 1;
+    GT_size klen = kmax > 0? (kmax + 1): 1;
     char *s  = malloc(klen * sizeof(char)); memset (s, '\0', klen);
     char *st_strbase = malloc(l_str * sizeof(char)); memset (st_strbase, '\0', l_str);
     char *st_strcomp = malloc(l_str * sizeof(char)); memset (st_strcomp, '\0', l_str);
@@ -127,13 +129,13 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
     if ( st_strbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strbase"));
     if ( st_strcomp == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strcomp"));
 
-    double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
-    short  *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
+    ST_double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
+    GT_bool   *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
 
     if ( st_numbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_numbase"));
     if ( st_nummiss == NULL ) return(sf_oom_error("sf_check_hash_index", "st_nummiss"));
 
-    size_t collisions_count = 0;
+    GT_size collisions_count = 0;
 
     /*********************************************************************
      *             Allocate memory to final collapsed array              *
@@ -158,7 +160,7 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
                 strpos = strlen(st_strbase);
             }
             else {
-                z = *((double *) (st_info->st_charx + sel));
+                z = *((ST_double *) (st_info->st_charx + sel));
                 st_numbase[numpos] = z;
                 ++numpos;
             }
@@ -182,7 +184,7 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
             }
             else {
                 // Compare each number individually
-                z = *((double *) (st_info->st_charx + sel));
+                z = *((ST_double *) (st_info->st_charx + sel));
                 if ( st_numbase[numpos] != z ) collisions_count = 1;
                 ++numpos;
             }
@@ -223,11 +225,15 @@ int sf_check_isid_collision (struct StataInfo *st_info, size_t obs1, size_t obs2
      *********************************************************************/
 
     if ( collisions_count ) {
-        sf_errprintf ("There may be 128-bit hash collisions: "FMT" variables, "FMT" obs ("FMT", "FMT")\n",
+        sf_errprintf ("There may be 128-bit hash collisions: "
+                      GT_size_cfmt" variables, "
+                      GT_size_cfmt" obs ("
+                      GT_size_cfmt", "
+                      GT_size_cfmt")\n",
                       st_info->kvars_by, st_info->N, obs1, obs2);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
-        rc = 42000;
+        rc = 17000;
     }
 
     free (s);

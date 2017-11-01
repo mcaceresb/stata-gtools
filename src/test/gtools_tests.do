@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Oct 25 20:33:17 EDT 2017
+* Updated: Wed Nov  1 07:16:28 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.8.1
+* Version: 0.9.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -18,40 +18,56 @@ set varabbrev off
 set seed 1729
 set linesize 255
 
-cap which ralpha
-if ( _rc ) ssc install ralpha
-
-cap which ftools
-if ( _rc ) ssc install ftools
-
-cap which unique
-if ( _rc ) ssc install unique
-
 * Main program wrapper
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily legacy *]
+    syntax, [NOIsily *]
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
+        local c_os_ macosx
+    }
+    else {
+        local c_os_: di lower("`c(os)'")
+    }
+    log using gtools_tests_`c_os_'.log, text replace name(gtools_tests)
 
     * Set up
     * ------
 
     local  progname tests
     local  start_time "$S_TIME $S_DATE"
-    di "Start: `start_time'"
+
+    di _n(1)
+    di "Start:        `start_time'"
+    di "Options:      `options'"
+    di "OS:           `c(os)'"
+    di "Machine Type: `c(machine_type)'"
 
     * Run the things
     * --------------
 
-    `capture' `noisily' {
+    cap noi {
         * qui do test_gcollapse.do
+        * qui do test_gcontract.do
         * qui do test_gegen.do
         * qui do test_gisid.do
         * qui do test_glevelsof.do
+        * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
 
-        if ( `:list posof "checks" in options' ) {
+        if ( `:list posof "dependencies" in options' ) {
+            cap ssc install ralpha
+            cap ssc install ftools
+            cap ssc install unique
+            cap ssc install distinct
+            cap ssc install moremata
+        }
+
+        if ( `:list posof "basic_checks" in options' ) {
+
+            di _n(1)
 
             unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
@@ -60,24 +76,31 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gcollapse, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gegen,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_isid,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcontract,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,       `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_toplevelsof, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,    `noisily' oncollision(error))
+        }
+
+        if ( `:list posof "comparisons" in options' ) {
 
             di ""
             di "-----------------------------------------------------------"
-            di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+            di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            compare_gcollapse, `noisily' oncollision(error)
-            compare_egen,      `noisily' oncollision(error)
-            compare_isid,      `noisily' oncollision(error)
-            compare_levelsof,  `noisily' oncollision(error)
-            compare_unique,    `noisily' oncollision(error)
-            compare_hashsort,  `noisily' oncollision(error)
+            compare_gcollapse,   `noisily' oncollision(error) tol(1e-4)
+            compare_gcontract,   `noisily' oncollision(error)
+            compare_egen,        `noisily' oncollision(error)
+            compare_isid,        `noisily' oncollision(error)
+            compare_levelsof,    `noisily' oncollision(error)
+            compare_toplevelsof, `noisily' oncollision(error) tol(1e-4)
+            compare_unique,      `noisily' oncollision(error) distinct
+            compare_hashsort,    `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_test" in options' ) {
@@ -89,11 +112,15 @@ program main
             bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
 
-            bench_egen,     n(1000) bench(1) `noisily' oncollision(error)
-            bench_isid,     n(1000) bench(1) `noisily' oncollision(error)
-            bench_levelsof, n(100)  bench(1) `noisily' oncollision(error)
-            bench_unique,   n(1000) bench(1) `noisily' oncollision(error)
-            bench_hashsort, n(1000) bench(1) `noisily' oncollision(error)
+            bench_contract,    n(1000) bench(1) `noisily' oncollision(error)
+            bench_egen,        n(1000) bench(1) `noisily' oncollision(error)
+            bench_isid,        n(1000) bench(1) `noisily' oncollision(error)
+            bench_levelsof,    n(100)  bench(1) `noisily' oncollision(error)
+            bench_toplevelsof, n(1000) bench(1) `noisily' oncollision(error)
+            bench_unique,      n(1000) bench(1) `noisily' oncollision(error)
+            bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
+            * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
         }
 
         if ( `:list posof "bench_full" in options' ) {
@@ -105,16 +132,21 @@ program main
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
 
-            bench_egen,     n(10000) bench(10)  `noisily' oncollision(error)
-            bench_isid,     n(10000) bench(10)  `noisily' oncollision(error)
-            bench_levelsof, n(100)   bench(100) `noisily' oncollision(error)
-            bench_unique,   n(10000) bench(10)  `noisily' oncollision(error)
-            bench_hashsort, n(10000) bench(10)  `noisily' oncollision(error)
+            bench_contract,    n(10000) bench(10)  `noisily' oncollision(error)
+            bench_egen,        n(10000) bench(10)  `noisily' oncollision(error)
+            bench_isid,        n(10000) bench(10)  `noisily' oncollision(error)
+            bench_levelsof,    n(100)   bench(100) `noisily' oncollision(error)
+            bench_toplevelsof, n(10000) bench(10) `noisily' oncollision(error)
+            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error)
+            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct
+            * bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(10000) bench(10)  `noisily' oncollision(error) benchmode
         }
     }
     local rc = _rc
 
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
+    log close gtools_tests
     exit `rc'
 end
 
@@ -238,7 +270,7 @@ program gen_data
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str32 str_32   = str_long + "this is some string padding"
     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
     gen str4  str_4    = str_mid  + str_short
 
@@ -362,4 +394,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks bench_test
+main, dependencies basic_checks comparisons bench_test

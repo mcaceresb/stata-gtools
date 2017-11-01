@@ -10,22 +10,22 @@
 
 void MultiQuicksortDbl (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *invert
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert
 );
 
 void MultiQuicksortDbl (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *invert)
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert)
 {
-    size_t j;
+    GT_size j;
     void *i, *end;
 
     quicksort_bsd (
@@ -81,27 +81,27 @@ loop:
 
 void MultiQuicksortMC (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *ltypes,
-    size_t *invert,
-    size_t *positions
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions
 );
 
 void MultiQuicksortMC (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *ltypes,
-    size_t *invert,
-    size_t *positions)
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions)
 {
-    size_t j;
-    short ischar;
+    GT_size j;
+    GT_bool ischar;
     void *i, *end;
 
     quicksort_bsd (
@@ -177,20 +177,20 @@ loop:
 
 void MultiQuicksortSpooky (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize
 );
 
 void MultiQuicksortSpooky (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize)
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize)
 {
-    size_t j;
+    GT_size j;
     void *i, *end;
 
     quicksort_bsd (
@@ -235,8 +235,8 @@ loop:
  *                             Is sorted                             *
  *********************************************************************/
 
-int mf_is_sorted (void *a, size_t n, size_t es, cmp_t *cmp, void *thunk);
-int mf_is_sorted (void *a, size_t n, size_t es, cmp_t *cmp, void *thunk)
+int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
+int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
 {
 	char *pm;
     for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
@@ -247,30 +247,30 @@ int mf_is_sorted (void *a, size_t n, size_t es, cmp_t *cmp, void *thunk)
 
 int MultiSortCheckMC (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *ltypes,
-    size_t *invert,
-    size_t *positions
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions
 );
 
 int MultiSortCheckMC (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *ltypes,
-    size_t *invert,
-    size_t *positions)
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions)
 {
-    size_t j;
-    short ischar;
+    GT_size j;
+    GT_bool ischar;
     void *i, *end;
 
-    if ( mf_is_sorted (
+    if ( gf_is_sorted (
         start,
         N,
         elsize,
@@ -341,25 +341,25 @@ loop:
 
 int MultiSortCheckDbl (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *invert
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert
 );
 
 int MultiSortCheckDbl (
     void *start,
-    size_t N,
-    size_t kstart,
-    size_t kend,
-    size_t elsize,
-    size_t *invert)
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert)
 {
-    size_t j;
+    GT_size j;
     void *i, *end;
 
-    if ( mf_is_sorted (
+    if ( gf_is_sorted (
         start,
         N,
         elsize,
@@ -405,4 +405,183 @@ loop:
     }
 
     return (1);
+}
+
+/*********************************************************************
+ *                               Is ID                               *
+ *********************************************************************/
+
+int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
+int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
+{
+    int rc;
+	char *pm;
+    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
+        if ( (rc = cmp(pm, pm - es, thunk)) <= 0 ) return (rc);
+    }
+    return (1);
+}
+
+int MultiIsIDCheckMC (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions
+);
+
+int MultiIsIDCheckMC (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions)
+{
+    int rc;
+    GT_size j;
+    GT_bool ischar;
+    void *i, *end;
+
+    if ( (rc = gf_isid_sorted (
+        start,
+        N,
+        elsize,
+        ( (ischar = (ltypes[kstart] > 0)) )?
+        (invert[kstart]? AltCompareCharInvert: AltCompareChar):
+        (invert[kstart]? AltCompareNumInvert: AltCompareNum),
+        &(positions[kstart])
+    )) < 0 ) return (rc);
+
+    if ( kstart >= kend )
+        return (rc);
+
+    end = start + N * elsize;
+
+loop:
+
+    j = 1;
+    if ( invert[kstart] ) {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareCharInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+    else {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareChar(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNum(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+
+    if ( j > 1 ) {
+        if ( (rc = MultiIsIDCheckMC (
+            start,
+            j,
+            kstart + 1,
+            kend,
+            elsize,
+            ltypes,
+            invert,
+            positions
+        )) < 0) return (rc);
+    }
+
+    if ( kstart < kend ) {
+        start = i;
+        if ( start < end )
+            goto loop;
+    }
+
+    return (rc);
+}
+
+int MultiIsIDCheckDbl (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert
+);
+
+int MultiIsIDCheckDbl (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert)
+{
+    int rc;
+    GT_size j;
+    void *i, *end;
+
+    if ( (rc = gf_isid_sorted (
+        start,
+        N,
+        elsize,
+        invert[kstart]? MultiCompareNum2Invert: MultiCompareNum2,
+        &kstart
+    )) < 0 ) return (rc);
+
+    if ( kstart >= kend )
+        return (rc);
+
+    end = start + N * elsize;
+
+loop:
+    j = 1;
+    if ( invert[kstart] ) {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+    else {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+
+    if ( j > 1 ) {
+        if ( (rc = MultiIsIDCheckDbl (
+            start,
+            j,
+            kstart + 1,
+            kend,
+            elsize,
+            invert
+        )) < 0) return (rc);
+    }
+
+    if ( kstart < kend ) {
+        start = i;
+        if ( start < end )
+            goto loop;
+    }
+
+    return (rc);
 }

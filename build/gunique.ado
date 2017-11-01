@@ -1,4 +1,4 @@
-*! version 0.1.1 26Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -13,12 +13,12 @@ program gunique, rclass
     global GTOOLS_CALLER gunique
     syntax varlist [if] [in] , ///
     [                          ///
-        Detail                 /// summary statistics for group counts
-        MISSing                /// include missing values
-        Verbose                /// debugging
-        Benchmark              /// print benchmark info
-        hashlib(passthru)      /// path to hash library (Windows)
-        oncollision(passthru)  /// On collision, fall back or error
+        Detail                 /// Summary statistics for group counts
+        MISSing                /// Include missing values
+        Verbose                /// Print info during function execution
+        Benchmark              /// Benchmark various steps of the plugin
+        hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
                                ///
                                /// Unused unique options
                                /// -------------------
@@ -36,7 +36,7 @@ program gunique, rclass
         exit 198
     }
 
-    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision'
+    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision' seecount
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)
@@ -44,11 +44,11 @@ program gunique, rclass
         local rc = _rc
         global GTOOLS_CALLER ""
 
-        if ( `rc' == 41999 ) {
+        if ( `rc' == 17999 ) {
             unique `varlist' `if' `in', `detail'
             exit 0
         }
-        else if ( `rc' == 42001 ) {
+        else if ( `rc' == 17001 ) {
             exit 0
         }
         else if ( `rc' ) exit `rc'
@@ -66,11 +66,11 @@ program gunique, rclass
         local rc = _rc
         global GTOOLS_CALLER ""
 
-        if ( `rc' == 41999 ) {
+        if ( `rc' == 17999 ) {
             unique `varlist' `if' `in', `detail'
             exit 0
         }
-        else if ( `rc' == 42001 ) {
+        else if ( `rc' == 17001 ) {
             exit 0
         }
         else if ( `rc' ) exit `rc'

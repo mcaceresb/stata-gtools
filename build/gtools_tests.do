@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Oct 25 20:33:17 EDT 2017
+* Updated: Wed Nov  1 07:16:28 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.8.1
+* Version: 0.9.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -18,40 +18,56 @@ set varabbrev off
 set seed 1729
 set linesize 255
 
-cap which ralpha
-if ( _rc ) ssc install ralpha
-
-cap which ftools
-if ( _rc ) ssc install ftools
-
-cap which unique
-if ( _rc ) ssc install unique
-
 * Main program wrapper
 * --------------------
 
 program main
-    syntax, [CAPture NOIsily legacy *]
+    syntax, [NOIsily *]
+
+    if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
+        local c_os_ macosx
+    }
+    else {
+        local c_os_: di lower("`c(os)'")
+    }
+    log using gtools_tests_`c_os_'.log, text replace name(gtools_tests)
 
     * Set up
     * ------
 
     local  progname tests
     local  start_time "$S_TIME $S_DATE"
-    di "Start: `start_time'"
+
+    di _n(1)
+    di "Start:        `start_time'"
+    di "Options:      `options'"
+    di "OS:           `c(os)'"
+    di "Machine Type: `c(machine_type)'"
 
     * Run the things
     * --------------
 
-    `capture' `noisily' {
+    cap noi {
         * qui do test_gcollapse.do
+        * qui do test_gcontract.do
         * qui do test_gegen.do
         * qui do test_gisid.do
         * qui do test_glevelsof.do
+        * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
 
-        if ( `:list posof "checks" in options' ) {
+        if ( `:list posof "dependencies" in options' ) {
+            cap ssc install ralpha
+            cap ssc install ftools
+            cap ssc install unique
+            cap ssc install distinct
+            cap ssc install moremata
+        }
+
+        if ( `:list posof "basic_checks" in options' ) {
+
+            di _n(1)
 
             unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
 
@@ -60,24 +76,31 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gcollapse, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gegen,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_isid,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,  `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_unique,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_hashsort,  `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcontract,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,       `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_toplevelsof, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,    `noisily' oncollision(error))
+        }
+
+        if ( `:list posof "comparisons" in options' ) {
 
             di ""
             di "-----------------------------------------------------------"
-            di "Consistency checks (vs collapse, egen) $S_TIME $S_DATE"
+            di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            compare_gcollapse, `noisily' oncollision(error)
-            compare_egen,      `noisily' oncollision(error)
-            compare_isid,      `noisily' oncollision(error)
-            compare_levelsof,  `noisily' oncollision(error)
-            compare_unique,    `noisily' oncollision(error)
-            compare_hashsort,  `noisily' oncollision(error)
+            compare_gcollapse,   `noisily' oncollision(error) tol(1e-4)
+            compare_gcontract,   `noisily' oncollision(error)
+            compare_egen,        `noisily' oncollision(error)
+            compare_isid,        `noisily' oncollision(error)
+            compare_levelsof,    `noisily' oncollision(error)
+            compare_toplevelsof, `noisily' oncollision(error) tol(1e-4)
+            compare_unique,      `noisily' oncollision(error) distinct
+            compare_hashsort,    `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_test" in options' ) {
@@ -89,11 +112,15 @@ program main
             bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
 
-            bench_egen,     n(1000) bench(1) `noisily' oncollision(error)
-            bench_isid,     n(1000) bench(1) `noisily' oncollision(error)
-            bench_levelsof, n(100)  bench(1) `noisily' oncollision(error)
-            bench_unique,   n(1000) bench(1) `noisily' oncollision(error)
-            bench_hashsort, n(1000) bench(1) `noisily' oncollision(error)
+            bench_contract,    n(1000) bench(1) `noisily' oncollision(error)
+            bench_egen,        n(1000) bench(1) `noisily' oncollision(error)
+            bench_isid,        n(1000) bench(1) `noisily' oncollision(error)
+            bench_levelsof,    n(100)  bench(1) `noisily' oncollision(error)
+            bench_toplevelsof, n(1000) bench(1) `noisily' oncollision(error)
+            bench_unique,      n(1000) bench(1) `noisily' oncollision(error)
+            bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
+            * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
         }
 
         if ( `:list posof "bench_full" in options' ) {
@@ -105,16 +132,21 @@ program main
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
 
-            bench_egen,     n(10000) bench(10)  `noisily' oncollision(error)
-            bench_isid,     n(10000) bench(10)  `noisily' oncollision(error)
-            bench_levelsof, n(100)   bench(100) `noisily' oncollision(error)
-            bench_unique,   n(10000) bench(10)  `noisily' oncollision(error)
-            bench_hashsort, n(10000) bench(10)  `noisily' oncollision(error)
+            bench_contract,    n(10000) bench(10)  `noisily' oncollision(error)
+            bench_egen,        n(10000) bench(10)  `noisily' oncollision(error)
+            bench_isid,        n(10000) bench(10)  `noisily' oncollision(error)
+            bench_levelsof,    n(100)   bench(100) `noisily' oncollision(error)
+            bench_toplevelsof, n(10000) bench(10) `noisily' oncollision(error)
+            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error)
+            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct
+            * bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(10000) bench(10)  `noisily' oncollision(error) benchmode
         }
     }
     local rc = _rc
 
     exit_message, rc(`rc') progname(`progname') start_time(`start_time') `capture'
+    log close gtools_tests
     exit `rc'
 end
 
@@ -238,7 +270,7 @@ program gen_data
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"    
+    gen str32 str_32   = str_long + "this is some string padding"
     gen str12 str_12   = str_mid  + "padding" + str_short + str_short
     gen str4  str_4    = str_mid  + str_short
 
@@ -705,7 +737,7 @@ program _compare_inner_collapse
     preserve
         timer clear
         timer on 43
-        qui `noisily' gcollapse `collapse_str', by(`anything') verbose benchmark `options'
+        qui `noisily' gcollapse `collapse_str' `if' `in', by(`anything') verbose benchmark `options' freq(freq)
         timer off 43
         qui timer list
         local time_gcollapse = r(t43)
@@ -716,7 +748,8 @@ program _compare_inner_collapse
     preserve
         timer clear
         timer on 42
-        qui `noisily' collapse `collapse_str', by(`anything')
+        qui gen long freq = 1
+        qui `noisily' collapse `collapse_str' (sum) freq `if' `in', by(`anything')
         timer off 42
         qui timer list
         local time_gcollapse = r(t42)
@@ -733,6 +766,7 @@ program _compare_inner_collapse
             rename r1_`var' c_r1_`var'
             rename r2_`var' c_r2_`var'
         }
+        rename freq c_freq
         if ( "`by'" == "" ) {
             qui merge 1:1 _n using `fg', assert(3)
         }
@@ -757,6 +791,14 @@ program _compare_inner_collapse
                 local bad_any = 1
                 order *r2_`var'
             }
+        }
+        qui count if ( (abs(freq - c_freq) > `tol') & (freq != c_freq))
+        if ( `r(N)' > 0 ) {
+            gen bad_freq = abs(freq - c_freq) * (freq != c_freq)
+            local bad `bad' *freq
+            di "    freq has `:di r(n)' mismatches".
+            local bad_any = 1
+            order *freq
         }
         if ( `bad_any' ) {
             if ( "`if'`in'" == "" ) {
@@ -830,8 +872,8 @@ program bench_collapse
     versus_collapse,                         `options' `collapse' `fcollapse'
     versus_collapse str_12 str_32 str_4,     `options' `collapse' `fcollapse'
     versus_collapse double1 double2 double3, `options' `collapse' `fcollapse'
-    versus_collapse int1 int2 int3,          `options' `collapse' `fcollapse'
-    versus_collapse int1 str_32 double1,     `options' `collapse'
+    versus_collapse int1 int2,               `options' `collapse' `fcollapse'
+    versus_collapse int3 str_32 double1,     `options' `collapse'
 
     di _n(1) "{hline 80}" _n(1) "bench_collapse, `options'" _n(1) "{hline 80}" _n(1)
 end
@@ -906,6 +948,255 @@ program versus_collapse, rclass
     local rs = `time_collapse'  / `time_gcollapse'
     local rf = `time_fcollapse' / `time_gcollapse'
     di as txt "    `:di %8.3g `time_collapse'' | `:di %9.3g `time_fcollapse'' | `:di %9.3g `time_gcollapse'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `anything'"
+end
+capture program drop checks_gcontract
+program checks_gcontract
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_gcontract, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(5000) random(2)
+    qui expand 2
+    gen long ix = _n
+
+    cap gcontract
+    assert _rc == 100
+
+    checks_inner_contract -str_12,              `options' nomiss
+    checks_inner_contract str_12 -str_32,       `options'
+    checks_inner_contract str_12 -str_32 str_4, `options'
+
+    checks_inner_contract -double1,                 `options' fast
+    checks_inner_contract double1 -double2,         `options' unsorted
+    checks_inner_contract double1 -double2 double3, `options' v b
+
+    checks_inner_contract -int1,           `options'
+    checks_inner_contract int1 -int2,      `options'
+    checks_inner_contract int1 int2  int3, `options' z
+
+    checks_inner_contract -int1 -str_32 -double1,                                         `options'
+    checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+end
+
+capture program drop checks_inner_contract
+program checks_inner_contract
+    syntax [anything], [tol(real 1e-6) *]
+
+    preserve
+        gcontract `anything', `options' freq(freq)
+    restore, preserve
+        gcontract `anything', `options' freq(freq) cf(cf)
+    restore, preserve
+        gcontract `anything', `options' freq(freq)        p(p)        format(%5.1g)
+    restore, preserve
+        gcontract `anything', `options' freq(freq)             cp(cp) float
+    restore, preserve
+        gcontract `anything', `options' freq(freq) cf(cf) p(p)        float
+    restore, preserve
+        gcontract `anything', `options' freq(freq) cf(cf)      cp(cp) format(%5.1g)
+    restore, preserve
+        gcontract `anything', `options' freq(freq)        p(p) cp(cp) format(%5.1g)
+    restore, preserve
+        gcontract `anything', `options' freq(freq) cf(cf) p(p) cp(cp) float
+    restore
+end
+
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
+capture program drop compare_gcontract
+program compare_gcontract
+    syntax, [tol(real 1e-6) NOIsily *]
+
+    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui expand 50
+
+    di as txt _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_contract str_12,              `options' tol(`tol') nomiss
+    compare_inner_contract str_12 str_32,       `options' tol(`tol')
+    compare_inner_contract str_12 str_32 str_4, `options' tol(`tol')
+
+    compare_inner_contract double1,                 `options' tol(`tol')
+    compare_inner_contract double1 double2,         `options' tol(`tol') nomiss
+    compare_inner_contract double1 double2 double3, `options' tol(`tol')
+
+    compare_inner_contract int1,           `options' tol(`tol')
+    compare_inner_contract int1 int2,      `options' tol(`tol')
+    compare_inner_contract int1 int2 int3, `options' tol(`tol') nomiss
+
+    compare_inner_contract int1 str_32 double1,                                        `options' tol(`tol')
+    compare_inner_contract int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')
+    compare_inner_contract int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
+end
+
+capture program drop compare_inner_contract
+program compare_inner_contract
+    syntax [anything], [tol(real 1e-6) *]
+
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 35 + length("`anything'") + length("`N'")
+    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    preserve
+        _compare_inner_contract `anything', `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_contract  `anything' in `from' / `to', `options' tol(`tol')
+    restore, preserve
+        _compare_inner_contract `anything' if random2 > 0, `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_contract `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+    restore
+end
+
+capture program drop _compare_inner_contract
+program _compare_inner_contract
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+
+    local opts freq(freq) cf(cf) p(p) cp(cp)
+
+    preserve
+        timer clear
+        timer on 43
+        qui `noisily' gcontract `anything' `if' `in', `opts'
+        timer off 43
+        qui timer list
+        local time_gcontract = r(t43)
+        tempfile fg
+        qui save `fg'
+    restore
+
+    preserve
+        timer clear
+        timer on 42
+        qui `noisily' contract `anything' `if' `in', `opts'
+        timer off 42
+        qui timer list
+        local time_gcontract = r(t42)
+        tempfile fc
+        qui save `fc'
+    restore
+
+    preserve
+    use `fc', clear
+        local bad_any = 0
+        local bad `anything'
+        foreach var in freq cf p cp {
+            rename `var' c_`var'
+        }
+        qui merge 1:1 `anything' using `fg', assert(3)
+        foreach var in freq cf p cp {
+            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
+            if ( `r(N)' > 0 ) {
+                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
+                local bad `bad' *`var'
+                di "    `var' has `:di r(N)' mismatches".
+                local bad_any = 1
+                order *`var'
+            }
+        }
+        if ( `bad_any' ) {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_contract (failed): full range, `anything'"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_contract (failed): [`if' `in'], `anything'"
+            }
+            order `bad'
+            egen bad_any = rowmax(bad_*)
+            l `bad' if bad_any
+            sum bad_*
+            desc
+            exit 9
+        }
+        else {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_contract (passed): full range, gcontract results equal to contract (tol = `tol')"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_contract (passed): [`if' `in'], gcontract results equal to contract (tol = `tol')"
+            }
+        }
+    restore
+end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_contract
+program bench_contract
+    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+
+    qui gen_data, n(`n') random(1) double
+    qui expand `=100 * `bench''
+    qui hashsort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di as txt _n(1)
+    di as txt "Benchmark vs contract, obs = `N', J = `J' (in seconds)"
+    di as txt "    contract | gcontract | ratio (c/g) | varlist"
+    di as txt "    -------- | --------- | ----------- | -------"
+
+    versus_contract str_12,              `options'
+    versus_contract str_12 str_32,       `options'
+    versus_contract str_12 str_32 str_4, `options'
+
+    versus_contract double1,                 `options'
+    versus_contract double1 double2,         `options'
+    versus_contract double1 double2 double3, `options'
+
+    versus_contract int1,           `options'
+    versus_contract int1 int2,      `options'
+    versus_contract int1 int2 int3, `options'
+
+    versus_contract int1 str_32 double1,                                        `options'
+    versus_contract int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_contract int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di _n(1) "{hline 80}" _n(1) "bench_contract, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop versus_contract
+program versus_contract, rclass
+    syntax [anything], [*]
+
+    local stats       ""
+    local percentiles ""
+
+    local opts freq(freq) cf(cf) p(p) cp(cp)
+
+    preserve
+        timer clear
+        timer on 42
+        qui contract `anything' `if' `in', `opts'
+        timer off 42
+        qui timer list
+        local time_contract = r(t42)
+    restore
+
+    preserve
+        timer clear
+        timer on 43
+        qui gcontract `anything' `if' `in', `opts'
+        timer off 43
+        qui timer list
+        local time_gcontract = r(t43)
+    restore
+
+    local rs = `time_contract'  / `time_gcontract'
+    di as txt "    `:di %8.3g `time_contract'' | `:di %9.3g `time_gcontract'' | `:di %11.3g `rs'' | `anything'"
 end
 capture program drop checks_gegen
 program checks_gegen
@@ -1314,14 +1605,22 @@ end
 
 capture program drop compare_unique
 program compare_unique
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily distinct unique *]
+
+    if ( "`distinct'`unique'" == "" ) local unique unique
+    if ( ("`distinct'" != "") & ("`unique'" != "") ) {
+        di as err "Specify only one of: unique distinct"
+        exit 198
+    }
 
     qui `noisily' gen_data, n(1000)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
     local hlen = 22 + length("`options'") + length("`N'")
-    di _n(1) "{hline 80}" _n(1) "compare_unique, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "compare_`distinct'`unique', N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    local options `options' `distinct'`unique'
 
     compare_inner_unique str_12,              `options'
     compare_inner_unique str_12 str_32,       `options'
@@ -1342,80 +1641,92 @@ end
 
 capture program drop compare_inner_unique
 program compare_inner_unique
-    syntax varlist, [*]
+    syntax varlist, [distinct unique *]
+
+    if ( "`distinct'" != "" ) {
+        local joint joint
+        local rname ndistinct
+    }
+    else {
+        local joint
+        local rname unique
+    }
+
+    local options `options' `joint'
+
     tempvar rsort ix
     gen `rsort' = runiform()
     gen long `ix' = _n
 
-    cap unique `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( `varlist')
+    cap `distinct'`unique' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( `varlist') `distinct'`unique'
 
-    cap unique `ix' `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `ix' `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( ix `varlist')
+    cap `distinct'`unique' `ix' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `ix' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist') `distinct'`unique'
 
-    cap unique `rsort' `varlist',
-    local nJ_unique = `r(unique)'
-    cap gunique `rsort' `varlist', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( rsort `varlist')
+    cap `distinct'`unique' `rsort' `varlist', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `rsort' `varlist', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( rsort `varlist') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     qui replace `ix' = `=_N / 2' if _n > `=_N / 2'
-    cap unique `ix'
-    local nJ_unique = `r(unique)'
-    cap gunique `ix', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels `nJ_unique' `nJ_gunique' , by( ix)
+    cap `distinct'`unique' `ix', `joint'
+    local nJ_`distinct'`unique' = `r(`rname')'
+    cap g`distinct'`unique' `ix', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix) `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     preserve
         qui keep in 100 / `=ceil(`=_N / 2')'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' in 100 / `=ceil(`=_N / 2')', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')')
+    cap g`distinct'`unique' `ix' `varlist' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' in 100 / `=ceil(`=_N / 2')') `distinct'`unique'
 
     preserve
         qui keep in `=ceil(`=_N / 2')' / `=_N'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N')
+    cap g`distinct'`unique' `ix' `varlist' in `=ceil(`=_N / 2')' / `=_N', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' in `=ceil(`=_N / 2')' / `=_N') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
 
     preserve
         qui keep if _n < `=_N / 2'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n < `=_N / 2',
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 2')
+    cap g`distinct'`unique' `ix' `varlist' if _n < `=_N / 2', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n < `=_N / 2') `distinct'`unique'
 
     preserve
         qui keep if _n > `=_N / 2'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n > `=_N / 2', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 2')
+    cap g`distinct'`unique' `ix' `varlist' if _n > `=_N / 2', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n > `=_N / 2') `distinct'`unique'
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
@@ -1424,39 +1735,39 @@ program compare_inner_unique
 
     preserve
         qui keep if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', `options'
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')')
+    cap g`distinct'`unique' `ix' `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n < `=_N / 4' in 100 / `=ceil(`=_N / 2')') `distinct'`unique'
 
     preserve
         qui keep if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
-        cap unique `ix' `varlist',
-        local nJ_unique = `r(unique)'
+        cap `distinct'`unique' `ix' `varlist', `joint'
+        local nJ_`distinct'`unique' = `r(`rname')'
     restore
-    cap gunique `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N',
-    local nJ_gunique = `r(unique)'
-    check_nlevels  `nJ_unique' `nJ_gunique' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N')
+    cap g`distinct'`unique' `ix' `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N', `options'
+    local nJ_g`distinct'`unique' = `r(`rname')'
+    check_nlevels  `nJ_`distinct'`unique'' `nJ_g`distinct'`unique'' , by( ix `varlist' if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N') `distinct'`unique'
 
     di _n(1)
 end
 
 capture program drop check_nlevels
 program check_nlevels
-    syntax anything, by(str)
+    syntax anything, by(str) [distinct unique]
 
     tokenize `anything'
-    local nJ_unique  `1'
-    local nJ_gunique `2'
+    local nJ   `1'
+    local nJ_g `2'
 
-    if ( `nJ_unique' != `nJ_gunique' ) {
-        di as err "    compare_unique (failed): unique `by' gave `nJ' levels but gunique gave `nJ_gunique'"
+    if ( `nJ' != `nJ_g' ) {
+        di as err "    compare_`distinct'`unique' (failed): `distinct'`unique' `by' gave `nJ' levels but g`distinct'`unique' gave `nJ_g'"
         exit 198
     }
     else {
-        di as txt "    compare_unique (passed): unique and gunique `by' gave the same number of levels"
+        di as txt "    compare_`distinct'`unique' (passed): `distinct'`unique' and g`distinct'`unique' `by' gave the same number of levels"
     }
 end
 
@@ -1466,7 +1777,25 @@ end
 
 capture program drop bench_unique
 program bench_unique
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily distinct joint distunique *]
+
+    if ( "`distinct'" != "" ) {
+        local dstr distinct
+        local dsep --------
+    }
+    else {
+        local dstr unique
+        local dsep ------
+    }
+
+    if ( "`joint'" != "" ) {
+        local dj   , joint;
+    }
+    else {
+        local dj   ,
+    }
+
+    local options `options' `distinct' `joint' `distunique'
 
     qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -1476,10 +1805,18 @@ program bench_unique
     local N = trim("`: di %15.0gc _N'")
     local J = trim("`: di %15.0gc `n''")
 
-    di as txt _n(1)
-    di as txt "Benchmark vs unique, obs = `N', all calls include an index to ensure uniqueness (in seconds)"
-    di as txt "     unique | funique | gunique | ratio (u/g) | ratio (f/g) | varlist"
-    di as txt "     ------ | ------- | ------- | ----------- | ----------- | -------"
+    if ( ("`distunique'" != "") & ("`joint'" != "") ) {
+        di as txt _n(1)
+        di as txt "Benchmark vs `dstr'`dj' obs = `N', all calls include a unique index (in seconds)"
+        di as txt "     `dstr' |    unique | g`dstr' | ratio (d/g) | ratio (u/g) | varlist"
+        di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
+    }
+    else {
+        di as txt _n(1)
+        di as txt "Benchmark vs `dstr'`dj' obs = `N', all calls include a unique index (in seconds)"
+        di as txt "     `dstr' | f`dstr' | g`dstr' | ratio (d/g) | ratio (u/g) | varlist"
+        di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
+    }
 
     versus_unique str_12,              `options' funique unique
     versus_unique str_12 str_32,       `options' funique unique
@@ -1497,10 +1834,18 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
-    di as txt _n(1)
-    di as txt "Benchmark vs unique, obs = `N', J = `J' (in seconds)"
-    di as txt "     unique | funique | gunique | ratio (i/g) | ratio (f/g) | varlist"
-    di as txt "     ------ | ------- | ------- | ----------- | ----------- | -------"
+    if ( ("`distunique'" != "") & ("`joint'" != "") ) {
+        di as txt _n(1)
+        di as txt "Benchmark vs `dstr'`dj' obs = `N', J = `J' (in seconds)"
+        di as txt "     `dstr' |    unique | g`dstr' | ratio (d/g) | ratio (u/g) | varlist"
+        di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
+    }
+    else {
+        di as txt _n(1)
+        di as txt "Benchmark vs `dstr'`dj' obs = `N', J = `J' (in seconds)"
+        di as txt "     `dstr' | f`dstr' | g`dstr' | ratio (u/g) | ratio (f/g) | varlist"
+        di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
+    }
 
     versus_unique str_12,              `options' funique
     versus_unique str_12 str_32,       `options' funique
@@ -1523,7 +1868,7 @@ end
 
 capture program drop versus_unique
 program versus_unique, rclass
-    syntax varlist, [funique unique *]
+    syntax varlist, [funique unique distinct joint distunique *]
     if ( "`unique'" == "unique" ) {
         tempvar ix
         gen `ix' = `=_N' - _n
@@ -1550,11 +1895,22 @@ program versus_unique, rclass
         local time_gunique = r(t43)
     restore
 
-    if ( "`funique'" == "funique" ) {
+    if ( ("`funique'" == "funique") & ("`distinct'" == "") ) {
     preserve
         timer clear
         timer on 44
         cap funique `varlist' `ix'
+        assert inlist(_rc, 0, 459)
+        timer off 44
+        qui timer list
+        local time_funique = r(t44)
+    restore
+    }
+    else if ( "`distunique'" != "" ) {
+    preserve
+        timer clear
+        timer on 44
+        cap unique `varlist' `ix'
         assert inlist(_rc, 0, 459)
         timer off 44
         qui timer list
@@ -1567,7 +1923,13 @@ program versus_unique, rclass
 
     local rs = `time_unique'  / `time_gunique'
     local rf = `time_funique' / `time_gunique'
+
+    if ( "`distinct'" == "" ) {
     di as txt "    `:di %7.3g `time_unique'' | `:di %7.3g `time_funique'' | `:di %7.3g `time_gunique'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+    }
+    else {
+    di as txt "    `:di %9.3g `time_unique'' | `:di %9.3g `time_funique'' | `:di %9.3g `time_gunique'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
+    }
 end
 
 * Prototype of -unique-
@@ -2003,6 +2365,332 @@ program versus_levelsof, rclass
     local rf = `time_flevelsof' / `time_glevelsof'
     di as txt "    `:di %8.3g `time_levelsof'' | `:di %9.3g `time_flevelsof'' | `:di %9.3g `time_glevelsof'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
+capture program drop checks_toplevelsof
+program checks_toplevelsof
+    syntax, [tol(real 1e-6) NOIsily *]
+    di _n(1) "{hline 80}" _n(1) "checks_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
+
+    qui `noisily' gen_data, n(50)
+    qui expand 200
+    gen long ix = _n
+
+    checks_inner_toplevelsof -str_12,              `options'
+    checks_inner_toplevelsof str_12 -str_32,       `options'
+    checks_inner_toplevelsof str_12 -str_32 str_4, `options'
+
+    checks_inner_toplevelsof -double1,                 `options'
+    checks_inner_toplevelsof double1 -double2,         `options'
+    checks_inner_toplevelsof double1 -double2 double3, `options'
+
+    checks_inner_toplevelsof -int1,           `options'
+    checks_inner_toplevelsof int1 -int2,      `options'
+    checks_inner_toplevelsof int1 -int2 int3, `options'
+
+    checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
+    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    clear
+    gen x = 1
+    gtoplevelsof x
+
+    clear
+    set obs 100000
+    gen x = _n
+    gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
+    gtoplevelsof x if _n < 1
+end
+
+capture program drop checks_inner_toplevelsof
+program checks_inner_toplevelsof
+    syntax anything, [*]
+    gtoplevelsof `anything' in 1, `options' miss
+    gtoplevelsof `anything' in 1, `options' miss
+    gtoplevelsof `anything' if _n == 1, `options' local(hi) miss
+    gtoplevelsof `anything' if _n < 10 in 5, `options' s(" | ") cols(", ") miss
+    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' ntop(2)
+    gtoplevelsof `anything', `options' ntop(0)
+    gtoplevelsof `anything', `options' ntop(0) noother
+    gtoplevelsof `anything', `options' ntop(0) missrow
+    gtoplevelsof `anything', `options' freqabove(10000)
+    gtoplevelsof `anything', `options' pctabove(5)
+    gtoplevelsof `anything', `options' pctabove(100)
+    gtoplevelsof `anything', `options' pctabove(100) noother
+    gtoplevelsof `anything', `options' groupmiss
+    gtoplevelsof `anything', `options' nomiss
+    gtoplevelsof `anything', `options' nooth
+    gtoplevelsof `anything', `options' oth
+    gtoplevelsof `anything', `options' oth(I'm some other group)
+    gtoplevelsof `anything', `options' missrow
+    gtoplevelsof `anything', `options' missrow(Hello, I'm missing)
+    gtoplevelsof `anything', `options' pctfmt(%15.6f)
+    gtoplevelsof `anything', `options' novaluelab
+    gtoplevelsof `anything', `options' hidecont
+    gtoplevelsof `anything', `options' varabb(5)
+    gtoplevelsof `anything', `options' colmax(3)
+    gtoplevelsof `anything', `options' colstrmax(2)
+    gtoplevelsof `anything', `options' numfmt(%9.4f)
+    gtoplevelsof `anything', `options' s(", ") cols(" | ")
+    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' colstrmax(0) numfmt(%.5g) colmax(0) varabb(1) freqabove(100) nooth
+    gtoplevelsof `anything', `options' missrow nooth groupmiss pctabove(2.5)
+    gtoplevelsof `anything', `options' missrow groupmiss pctabove(2.5)
+    gtoplevelsof `anything', `options' missrow groupmiss pctabove(99)
+    gtoplevelsof `anything', `options' s(|) cols(<<) missrow("I am missing ):")
+    gtoplevelsof `anything', `options' s(|) cols(<<) matrix(zz) loc(oo)
+    gtoplevelsof `anything', `options' loc(toplevels) mat(topmat)
+    disp `"`toplevels'"'
+    matrix list topmat
+end
+
+***********************************************************************
+*                               Compare                               *
+***********************************************************************
+
+capture program drop compare_toplevelsof
+program compare_toplevelsof
+    syntax, [tol(real 1e-6) NOIsily *]
+
+    qui `noisily' gen_data, n(1000) random(2)
+    qui expand 100
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_gtoplevelsof -str_12,              `options' tol(`tol')
+    compare_inner_gtoplevelsof str_12 -str_32,       `options' tol(`tol')
+    compare_inner_gtoplevelsof str_12 -str_32 str_4, `options' tol(`tol')
+
+    compare_inner_gtoplevelsof -double1,                 `options' tol(`tol')
+    compare_inner_gtoplevelsof double1 -double2,         `options' tol(`tol')
+    compare_inner_gtoplevelsof double1 -double2 double3, `options' tol(`tol')
+
+    compare_inner_gtoplevelsof -int1,           `options' tol(`tol')
+    compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol')
+    compare_inner_gtoplevelsof int1 int2  int3, `options' tol(`tol')
+
+    compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+end
+
+capture program drop compare_inner_gtoplevelsof
+program compare_inner_gtoplevelsof
+    syntax [anything], [tol(real 1e-6) *]
+
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 35 + length("`anything'") + length("`N'")
+    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    preserve
+        _compare_inner_gtoplevelsof `anything', `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gtoplevelsof  `anything' in `from' / `to', `options' tol(`tol')
+    restore, preserve
+        _compare_inner_gtoplevelsof `anything' if random2 > 0, `options' tol(`tol')
+    restore, preserve
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gtoplevelsof `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+    restore
+end
+
+capture program drop _compare_inner_gtoplevelsof
+program _compare_inner_gtoplevelsof
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+
+    * cf(Cum) p(Pct) cp(PctCum)
+    local opts freq(N)
+    preserve
+        qui {
+            `noisily' gcontract `anything' `if' `in', `opts'
+            local r_N = `r(N)'
+            hashsort -N `anything'
+            keep in 1/10
+            set obs 11
+            gen byte ID = 1
+            replace ID  = 3 in 11
+            gen long ix = _n
+            gen long Cum = sum(N)
+            gen double Pct = 100 * N / `r_N'
+            gen double PctCum = 100 * Cum / `r_N'
+            replace Pct       = 100 - PctCum[10] in 11
+            replace PctCum    = 100 in 11
+            replace N         = `r_N' - Cum[10] in 11
+            replace Cum       = `r_N' in 11
+        }
+        tempfile fg
+        qui save `fg'
+    restore
+
+    tempname gmat
+    preserve
+        qui {
+            `noisily' gtoplevelsof `anything' `if' `in', mat(`gmat')
+            clear
+            svmat `gmat', names(col)
+            gen long ix = _n
+        }
+        tempfile fc
+        qui save `fc'
+    restore
+
+    preserve
+    use `fc', clear
+        local bad_any = 0
+        local bad `anything'
+        local bad: subinstr local bad "-" "", all
+        local bad: subinstr local bad "+" "", all
+        foreach var in N Cum Pct PctCum {
+            rename `var' c_`var'
+        }
+        qui merge 1:1 ix using `fg', assert(3)
+        foreach var in N Cum Pct PctCum {
+            qui count if ( (abs(`var' - c_`var') > `tol') & (`var' != c_`var'))
+            if ( `r(N)' > 0 ) {
+                gen bad_`var' = abs(`var' - c_`var') * (`var' != c_`var')
+                local bad `bad' *`var'
+                di "    `var' has `:di r(N)' mismatches".
+                local bad_any = 1
+                order *`var'
+            }
+        }
+        if ( `bad_any' ) {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_gtoplevelsof_gcontract (failed): full range, `anything'"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_gtoplevelsof_gcontract (failed): [`if' `in'], `anything'"
+            }
+            order `bad'
+            egen bad_any = rowmax(bad_*)
+            l `bad' if bad_any
+            sum bad_*
+            desc
+            exit 9
+        }
+        else {
+            if ( "`if'`in'" == "" ) {
+                di "    compare_gtoplevelsof_gcontract (passed): full range, gcontract results equal to contract (tol = `tol')"
+            }
+            else if ( "`if'`in'" != "" ) {
+                di "    compare_gtoplevelsof_gcontract (passed): [`if' `in'], gcontract results equal to contract (tol = `tol')"
+            }
+        }
+    restore
+end
+
+***********************************************************************
+*                             Benchmarks                              *
+***********************************************************************
+
+capture program drop bench_toplevelsof
+program bench_toplevelsof
+    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+
+    qui gen_data, n(`n') random(1) double
+    qui expand `=100 * `bench''
+    qui hashsort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di as txt _n(1)
+    di as txt "Benchmark toplevelsof vs contract (unsorted), obs = `N', J = `J' (in seconds)"
+    di as txt "    gcontract | gtoplevelsof | ratio (c/t) | varlist"
+    di as txt "    --------- | ------------ | ----------- | -------"
+
+    versus_toplevelsof str_12,              `options'
+    versus_toplevelsof str_12 str_32,       `options'
+    versus_toplevelsof str_12 str_32 str_4, `options'
+
+    versus_toplevelsof double1,                 `options'
+    versus_toplevelsof double1 double2,         `options'
+    versus_toplevelsof double1 double2 double3, `options'
+
+    versus_toplevelsof int1,           `options'
+    versus_toplevelsof int1 int2,      `options'
+    versus_toplevelsof int1 int2 int3, `options'
+
+    versus_toplevelsof int1 str_32 double1,                                        `options'
+    versus_toplevelsof int1 str_32 double1 int2 str_12 double2,                    `options'
+    versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    di as txt _n(1)
+    di as txt "Benchmark toplevelsof vs contract (plus preserve, sort, keep, restore), obs = `N', J = `J' (in seconds)"
+    di as txt "    gcontract | gtoplevelsof | ratio (c/t) | varlist"
+    di as txt "    --------- | ------------ | ----------- | -------"
+
+    versus_toplevelsof str_12,              `options' sorted
+    versus_toplevelsof str_12 str_32,       `options' sorted
+    versus_toplevelsof str_12 str_32 str_4, `options' sorted
+
+    versus_toplevelsof double1,                 `options' sorted
+    versus_toplevelsof double1 double2,         `options' sorted
+    versus_toplevelsof double1 double2 double3, `options' sorted
+
+    versus_toplevelsof int1,           `options' sorted
+    versus_toplevelsof int1 int2,      `options' sorted
+    versus_toplevelsof int1 int2 int3, `options' sorted
+
+    versus_toplevelsof int1 str_32 double1,                                        `options' sorted
+    versus_toplevelsof int1 str_32 double1 int2 str_12 double2,                    `options' sorted
+    versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' sorted
+
+    di _n(1) "{hline 80}" _n(1) "bench_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
+end
+
+capture program drop versus_toplevelsof
+program versus_toplevelsof, rclass
+    syntax [anything], [sorted *]
+
+    local stats       ""
+    local percentiles ""
+
+    local opts freq(freq) cf(cf) p(p) cp(cp)
+
+    if ( "`sorted'" == "" ) {
+    preserve
+        timer clear
+        timer on 42
+        qui gcontract `anything' `if' `in', `opts'
+        timer off 42
+        qui timer list
+        local time_contract = r(t42)
+    restore
+    }
+    else {
+        timer clear
+        timer on 42
+        qui {
+            preserve
+            gcontract `anything' `if' `in', `opts'
+            hashsort -freq `anything'
+            keep in 1/10
+            restore
+        }
+        timer off 42
+        qui timer list
+        local time_contract = r(t42)
+    }
+
+    timer clear
+    timer on 43
+    qui gtoplevelsof `anything' `if' `in'
+    timer off 43
+    qui timer list
+    local time_gcontract = r(t43)
+
+    local rs = `time_contract'  / `time_gcontract'
+    di as txt "    `:di %9.3g `time_contract'' | `:di %12.3g `time_gcontract'' | `:di %11.3g `rs'' | `anything'"
+end
 capture program drop checks_isid
 program checks_isid
     syntax, [tol(real 1e-6) NOIsily *]
@@ -2095,17 +2783,35 @@ program compare_inner_isid
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `varlist'
+    cap gisid `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] `varlist')
+
     cap isid `ix' `varlist', missok
     local rc_isid = _rc
     cap gisid `ix' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
 
+    * make sure sorted check gives same result
+    hashsort `ix' `varlist'
+    cap gisid `ix' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] ix `varlist')
+
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
+
+    * make sure sorted check gives same result
+    hashsort `rsort' `varlist'
+    cap gisid `rsort' `varlist', missok `options'
+    local rc_gisid = _rc
+    check_rc `rc_isid' `rc_gisid' , by([sorted] rsort `varlist')
 
     * ---------------------------------------------------------------------
     * ---------------------------------------------------------------------
@@ -2437,7 +3143,8 @@ end
 
 capture program drop compare_sort
 program compare_sort, rclass
-    syntax varlist, [fsort *]
+    syntax varlist, [fsort benchmode *]
+    local rc = 0
 
     timer clear
     preserve
@@ -2455,10 +3162,66 @@ program compare_sort, rclass
         timer on 43
         qui hashsort `varlist', `options'
         timer off 43
-        cf * using `file_sort'
+        cap noi cf * using `file_sort'
+        if ( _rc ) {
+            qui ds *
+            local memvars `r(varlist)' 
+            local firstvar: word 1 of `varlist'
+            local compvars: list memvars - firstvar
+            if ( "`compvars'" != "" ) {
+                cf `compvars' using `file_sort'
+            }
+            keep `firstvar'
+            tempfile file_first
+            qui save `file_first'
+
+            use `firstvar' using `file_sort', clear
+            rename `firstvar' c_`firstvar'
+            qui merge 1:1 _n using `file_first'
+            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+            if ( _rc ) {
+                local rc = _rc
+                di as err "hashsort gave different sort order to sort"
+            }
+            else {
+                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+            }
+        }
+
+        * Make sure already sorted check is OK
+        qui gen byte one = 1
+        hashsort one `varlist', `options'
+        qui drop one
+        cap cf * using `file_sort'
+        if ( _rc ) {
+            qui ds *
+            local memvars `r(varlist)' 
+            local firstvar: word 1 of `varlist'
+            local compvars: list memvars - firstvar
+            if ( "`compvars'" != "" ) {
+                cf `compvars' using `file_sort'
+            }
+            keep `firstvar'
+            tempfile file_one
+            qui save `file_one'
+
+            use `firstvar' using `file_sort', clear
+            rename `firstvar' c_`firstvar'
+            qui merge 1:1 _n using `file_one'
+            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+            if ( _rc ) {
+                local rc = _rc
+                di as err "hashsort gave different sort order to sort"
+            }
+            else {
+                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+            }
+        }
     restore
     qui timer list
     local time_hashsort = r(t43)
+
+    if ( `rc' ) exit `rc'
 
     if ( "`fsort'" == "fsort" ) {
         timer clear
@@ -2482,7 +3245,7 @@ end
 
 capture program drop compare_gsort
 program compare_gsort, rclass
-    syntax anything, [*]
+    syntax anything, [benchmode *]
     tempvar ix
     gen long `ix' = _n
 
@@ -2514,4 +3277,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, checks bench_test
+main, dependencies basic_checks comparisons bench_test

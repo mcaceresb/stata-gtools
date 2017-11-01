@@ -1,6 +1,91 @@
 #include "gtools_hash.h"
 #include "gtools_sort.c"
 
+ST_retcode gf_hash (
+    uint64_t *h1,
+    uint64_t *h2,
+    struct StataInfo *st_info,
+    GT_size *ix,
+    clock_t stimer)
+{
+
+    ST_retcode rc = 0;
+
+    GT_size i;
+    uint64_t *h3;
+
+    GT_size N        = st_info->N;
+    GT_size rowbytes = st_info->rowbytes;
+    GT_size kvars    = st_info->kvars_by;
+    GT_size kstr     = st_info->kvars_by_str;
+
+    // Hash the variables or biject
+    // ----------------------------
+
+    if ( st_info->biject ) {
+        if ( (rc = gf_biject_varlist (h1, st_info)) ) goto exit;
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 2.3: Bijected integers to natural numbers");
+
+        // Sort hash with index
+        // --------------------
+
+        if ( (rc = gf_sort_hash (h1,
+                                 ix,
+                                 st_info->N,
+                                 st_info->verbose)) ) goto exit;
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+    }
+    else {
+
+        h3 = calloc(N, sizeof *h3);
+        if ( h3 == NULL ) sf_oom_error("sf_hash_byvars", "h3");
+        GTOOLS_GC_ALLOCATED("h3")
+
+        if ( kstr > 0 ) {
+            for (i = 0; i < N; i++)
+                spookyhash_128(st_info->st_charx + (i * rowbytes),
+                               rowbytes, h1 + i, h3 + i);
+        }
+        else {
+            for (i = 0; i < N; i++)
+                spookyhash_128(st_info->st_numx + i * kvars,
+                               sizeof(ST_double) * kvars, h1 + i, h3 + i);
+        }
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 2.3: Hashed variables (128-bit)");
+
+        // Sort hash with index
+        // --------------------
+
+        if ( (rc = gf_sort_hash (h1,
+                                 ix,
+                                 st_info->N,
+                                 st_info->verbose)) ) goto exit;
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+
+        // Copy back second part of the hash in correct order
+        // --------------------------------------------------
+
+        for (i = 0; i < st_info->N; i++) {
+            h2[i] = h3[ix[i]];
+        }
+
+        free (h3);
+        GTOOLS_GC_FREED("h3")
+    }
+
+exit:
+    return (rc);
+}
+
+
 /**
  * @brief Use the grouping variables as a hassh
  *
@@ -41,16 +126,16 @@
  * @return Store map to whole numbers in @h1
  *
  */
-int mf_biject_varlist (uint64_t *h1, struct StataInfo *st_info)
+ST_retcode gf_biject_varlist (uint64_t *h1, struct StataInfo *st_info)
 {
-    double z;
-    int i, k, l;
+    ST_double z;
+    GT_size i, k, l;
 
-    size_t N        = st_info->N;
-    size_t kvars    = st_info->kvars_by;
-    size_t offset   = 1;
-    size_t *offsets = calloc(kvars, sizeof *offsets);
-    if ( offsets == NULL ) sf_oom_error ("mf_biject_varlist", "offsets");
+    GT_size N        = st_info->N;
+    GT_size kvars    = st_info->kvars_by;
+    GT_size offset   = 1;
+    GT_size *offsets = calloc(kvars, sizeof *offsets);
+    if ( offsets == NULL ) sf_oom_error ("gf_biject_varlist", "offsets");
 
     offsets[0] = 0;
     for (k = 0; k < kvars - 1; k++) {
@@ -83,13 +168,13 @@ int mf_biject_varlist (uint64_t *h1, struct StataInfo *st_info)
             z = *(st_info->st_numx + (i * kvars + l));
             if ( z == SV_missval ) z = st_info->byvars_maxs[l];
             if ( st_info->invert[l] ) {
-                h1[i] += (st_info->byvars_maxs[l] - z) * offsets[k];
+                h1[i] += (st_info->byvars_maxs[l] - (GT_int) z) * offsets[k];
             }
             else {
-                h1[i] += (z - st_info->byvars_mins[l]) * offsets[k];
+                h1[i] += ((GT_int) z - st_info->byvars_mins[l]) * offsets[k];
             }
         }
-        // sf_printf ("\tObs %9d = %21lu\n", i, h1[i]);
+        // sf_printf ("\tObs %9d = "GT_size_cfmt"\n", i, h1[i]);
     }
 
     free (offsets);
@@ -108,31 +193,32 @@ int mf_biject_varlist (uint64_t *h1, struct StataInfo *st_info)
  * @param hash_level whether we used a bijection (0) or a 128-bit hash (1)
  * @return info arary with start and end positions of each group
  */
-int mf_panelsetup (
+ST_retcode gf_panelsetup (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
-    const size_t hash_level)
+    GT_size *ix,
+    const GT_bool hash_level)
 {
-    if (hash_level == 0) return (mf_panelsetup_bijection (h1, st_info));
+    if (hash_level == 0) return (gf_panelsetup_bijection (h1, st_info));
 
     ST_retcode rc = 0;
-    size_t collision64 = 0;
+    GT_size collision64 = 0;
     st_info->J = 1;
-    size_t i   = 0;
-    size_t i2  = 0;
-    size_t l   = 0;
-    size_t start_l;
-    size_t range_l;
+    GT_size i   = 0;
+    GT_size i2  = 0;
+    GT_size l   = 0;
+    GT_size start_l;
+    GT_size range_l;
 
     uint64_t el = h1[i++];
     uint64_t el2;
 
-    size_t   *ix_l;
+    GT_size   *ix_l;
     uint64_t *h2_l;
 
-    size_t *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
-    if ( info_largest == NULL ) return (sf_oom_error("mf_panelsetup", "info_largest"));
+    GT_size *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
+    if ( info_largest == NULL ) return (sf_oom_error("gf_panelsetup", "info_largest"));
 
     info_largest[l++] = 0;
     if ( st_info->N > 1 ) {
@@ -156,15 +242,15 @@ int mf_panelsetup (
                 //
                 // See burtleburtle.net/bob/hash/spooky.html for details.
 
-                if ( !mf_check_allequal(h2, info_largest[l - 1], i) ) {
+                if ( !gf_check_allequal(h2, info_largest[l - 1], i) ) {
                     collision64++;
                     start_l = info_largest[l - 1];
                     range_l = i - start_l;
 
-                    ix_l = st_info->ix + start_l;
+                    ix_l = ix + start_l;
                     h2_l = h2 + start_l;
 
-                    if ( (rc = mf_radix_sort16 (h2_l, ix_l, range_l)) ) goto exit;
+                    if ( (rc = gf_radix_sort16 (h2_l, ix_l, range_l)) ) goto exit;
 
                     // Now that the hash and index are sorted, add to
                     // info_largest based on h2_l
@@ -189,15 +275,17 @@ int mf_panelsetup (
 
     st_info->J = l;
     st_info->info = calloc(l + 1, sizeof st_info->info);
-    if ( st_info->info == NULL ) return (sf_oom_error("mf_panelsetup", "st_info->info"));
-    ST_GC_ALLOCATED("st_info->info")
+    if ( st_info->info == NULL ) return (sf_oom_error("gf_panelsetup", "st_info->info"));
+    GTOOLS_GC_ALLOCATED("st_info->info")
 
     for (i = 0; i < l + 1; i++) {
         st_info->info[i] = info_largest[i];
     }
 
     if ( (collision64 > 0) & (st_info->verbose) )
-        sf_printf("Found "FMT" 64-bit hash collision(s). Fell back on 128-bit hash.\n", collision64);
+        sf_printf("Found "
+                  GT_size_cfmt" 64-bit hash collision(s). Fell back on 128-bit hash.\n",
+                  collision64);
 
 exit:
     free (info_largest);
@@ -215,9 +303,9 @@ exit:
  * @param end End position of check
  * @return 1 if @hash is equal from @start to @end; 0 otherwise
  */
-int mf_check_allequal (uint64_t *hash, size_t start, size_t end)
+ST_retcode gf_check_allequal (uint64_t *hash, GT_size start, GT_size end)
 {
-    uint64_t first = hash[start]; size_t i;
+    uint64_t first = hash[start]; GT_size i;
     for (i = start + 1; i < end; i++)
         if ( hash[i] != first ) return (0);
     return (1);
@@ -235,15 +323,15 @@ int mf_check_allequal (uint64_t *hash, size_t start, size_t end)
  * @param st_info Meta structure with all the variables and data
  * @return info arary with start and end positions of each group
  */
-int mf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
+ST_retcode gf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
 {
     st_info->J = 1;
-    size_t i   = 0;
-    size_t l   = 0;
+    GT_size i   = 0;
+    GT_size l   = 0;
 
     uint64_t el = h1[i++];
-    size_t *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
-    if ( info_largest == NULL ) return (sf_oom_error("mf_panelsetup_bijection", "info_largest"));
+    GT_size *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
+    if ( info_largest == NULL ) return (sf_oom_error("gf_panelsetup_bijection", "info_largest"));
 
     info_largest[l++] = 0;
     if ( st_info->N > 1 ) {
@@ -259,8 +347,8 @@ int mf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
 
     st_info->J = l;
     st_info->info = calloc(l + 1, sizeof st_info->info);
-    if ( st_info->info == NULL ) return (sf_oom_error("mf_panelsetup_bijection", "st_info->info"));
-    ST_GC_ALLOCATED("st_info->info")
+    if ( st_info->info == NULL ) return (sf_oom_error("gf_panelsetup_bijection", "st_info->info"));
+    GTOOLS_GC_ALLOCATED("st_info->info")
 
     for (i = 0; i < l + 1; i++)
         st_info->info[i] = info_largest[i];
@@ -281,11 +369,12 @@ int mf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
  */
 int sf_check_hash (struct StataInfo *st_info, int level)
 {
-    int i, j, k;
-    size_t kvars  = st_info->kvars_by;
-    size_t kstr   = st_info->kvars_by_str;
-    ST_retcode rc = 0;
-    clock_t timer = clock();
+    GT_size i, j, k;
+    GT_size kvars   = st_info->kvars_by;
+    GT_size kstr    = st_info->kvars_by_str;
+    ST_retcode rc  = 0;
+    clock_t timer  = clock();
+    clock_t stimer = clock();
 
     if ( st_info->biject ) {
         goto bycopy;
@@ -295,10 +384,10 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *                               Setup                               *
      *********************************************************************/
 
-    size_t start, end, sel, selx, numpos, strpos, rowbytes, multisort;
-    size_t l_str  = 0;
-    size_t k_num  = 0;
-    MF_MAX (st_info->byvars_lens, kvars, kmax, k);
+    GT_size start, end, sel, selx, numpos, strpos, rowbytes, multisort;
+    GT_size l_str  = 0;
+    GT_size k_num  = 0;
+    GTOOLS_MAX (st_info->byvars_lens, kvars, kmax, k);
 
     // Figure out the number of numeric by variables and the combined string
     // length of string by variables.
@@ -314,9 +403,9 @@ int sf_check_hash (struct StataInfo *st_info, int level)
 
     // Will compare string in st_strbase to st_strcomp and number as are being
     // read to numbers in st_numbase and st_nummiss
-    double z;
+    ST_double z;
 
-    int klen = kmax > 0? (kmax + 1): 1;
+    GT_size klen = kmax > 0? (kmax + 1): 1;
     char *s  = malloc(klen * sizeof(char)); memset (s, '\0', klen);
     char *st_strbase = malloc(l_str * sizeof(char)); memset (st_strbase, '\0', l_str);
     char *st_strcomp = malloc(l_str * sizeof(char)); memset (st_strcomp, '\0', l_str);
@@ -324,14 +413,14 @@ int sf_check_hash (struct StataInfo *st_info, int level)
     if ( st_strbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strbase"));
     if ( st_strcomp == NULL ) return(sf_oom_error("sf_check_hash_index", "st_strcomp"));
 
-    double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
-    short  *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
+    ST_double *st_numbase = calloc(k_num > 0? k_num: 1, sizeof *st_numbase);
+    GT_bool   *st_nummiss = calloc(k_num > 0? k_num: 1, sizeof *st_nummiss);
 
     if ( st_numbase == NULL ) return(sf_oom_error("sf_check_hash_index", "st_numbase"));
     if ( st_nummiss == NULL ) return(sf_oom_error("sf_check_hash_index", "st_nummiss"));
 
-    size_t collisions_count = 0;
-    size_t collisions_row   = 0;
+    GT_size collisions_count = 0;
+    GT_size collisions_row   = 0;
 
     /*********************************************************************
      *             Allocate memory to final collapsed array              *
@@ -358,7 +447,7 @@ int sf_check_hash (struct StataInfo *st_info, int level)
                     strpos = strlen(st_strbase);
                 }
                 else {
-                    z = *((double *) (st_info->st_charx + sel));
+                    z = *((ST_double *) (st_info->st_charx + sel));
                     st_numbase[numpos] = z;
                     ++numpos;
                 }
@@ -403,7 +492,7 @@ int sf_check_hash (struct StataInfo *st_info, int level)
                     }
                     else {
                         // Compare each number individually
-                        z = *((double *) (st_info->st_charx + sel));
+                        z = *((ST_double *) (st_info->st_charx + sel));
                         if ( st_numbase[numpos] != z ) ++collisions_row;
                         ++numpos;
                     }
@@ -461,22 +550,30 @@ int sf_check_hash (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4: Checked for hash collisions");
+    if ( st_info->benchmark )
+        sf_running_timer (&stimer, "\t\tPlugin step 4.1: Checked for hash collisions");
 
     /*********************************************************************
      *                Prompt user if there are collisions                *
      *********************************************************************/
 
     if ( collisions_count > 0 ) {
-        sf_errprintf ("There may be "FMT" 128-bit hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
+        sf_errprintf ("There may be "
+                      GT_size_cfmt" 128-bit hash collisions: "
+                      GT_size_cfmt" variables, "
+                      GT_size_cfmt" obs, "
+                      GT_size_cfmt" groups\n",
                       collisions_count, st_info->kvars_by, st_info->N, st_info->J);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
-        rc = 42000; level = 0;
+        rc = 17000; level = 0;
     }
     else {
         if ( st_info->verbose )
-            sf_printf ("There were no hash collisions: "FMT" variables, "FMT" obs, "FMT" groups\n",
+            sf_printf ("There were no hash collisions: "
+                       GT_size_cfmt" variables, "
+                       GT_size_cfmt" obs, "
+                       GT_size_cfmt" groups\n",
                        st_info->kvars_by, st_info->N, st_info->J);
     }
 
@@ -491,22 +588,22 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *********************************************************************/
 
 bycopy:
-    rowbytes = st_info->rowbytes + sizeof(int);
+    rowbytes = st_info->rowbytes + sizeof(GT_size);
     if ( (level > 0) & (st_info->countonly == 0) ) {
         if ( kstr > 0 ) {
-            st_info->st_by_numx  = malloc(sizeof(double));
-            st_info->st_by_charx = calloc(st_info->J, rowbytes * sizeof(char));
+            st_info->st_by_numx  = malloc(sizeof(ST_double));
+            st_info->st_by_charx = calloc(st_info->J, rowbytes);
 
             if ( st_info->st_by_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
             if ( st_info->st_by_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
 
-            ST_GC_ALLOCATED("st_info->st_by_numx")
-            ST_GC_ALLOCATED("st_info->st_by_charx")
+            GTOOLS_GC_ALLOCATED("st_info->st_by_numx")
+            GTOOLS_GC_ALLOCATED("st_info->st_by_charx")
 
             for (j = 0; j < st_info->J; j++) {
                 memset (st_info->st_by_charx + j * rowbytes, '\0', rowbytes);
                 sel = j * rowbytes + st_info->positions[kvars];
-                memcpy (st_info->st_by_charx + sel, &j, sizeof(int));
+                memcpy (st_info->st_by_charx + sel, &j, sizeof(GT_size));
             }
 
             for (j = 0; j < st_info->J; j++) {
@@ -521,7 +618,7 @@ bycopy:
                     else {
                         memcpy (st_info->st_by_charx + selx,
                                 st_info->st_charx + sel,
-                                sizeof(double));
+                                sizeof(ST_double));
                     }
                 }
             }
@@ -533,8 +630,8 @@ bycopy:
             if ( st_info->st_by_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
             if ( st_info->st_by_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
 
-            ST_GC_ALLOCATED("st_info->st_by_numx")
-            ST_GC_ALLOCATED("st_info->st_by_charx")
+            GTOOLS_GC_ALLOCATED("st_info->st_by_numx")
+            GTOOLS_GC_ALLOCATED("st_info->st_by_charx")
 
             for (j = 0; j < st_info->J; j++) {
                 for (k = 0; k < kvars; k++) {
@@ -545,7 +642,10 @@ bycopy:
                 st_info->st_by_numx[j * (kvars + 1) + kvars] = j;
             }
         }
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4.1: Keep only one row per group");
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 4.2: Keep only one row per group");
+
         st_info->free = 6;
 
         // Skip if the user specifies the results need not be sorted
@@ -558,7 +658,7 @@ bycopy:
                                   st_info->J,
                                   0,
                                   kvars - 1,
-                                  rowbytes * sizeof(char),
+                                  rowbytes,
                                   st_info->byvars_lens,
                                   st_info->invert,
                                   st_info->positions);
@@ -568,11 +668,12 @@ bycopy:
                                   st_info->J,
                                   0,
                                   kvars - 1,
-                                  (kvars + 1) * sizeof(double),
+                                  (kvars + 1) * sizeof(ST_double),
                                   st_info->invert);
             }
         }
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 4.2: Sorted groups in memory");
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 4.3: Sorted groups in memory");
     }
     else {
         st_info->free = 8;
@@ -581,28 +682,28 @@ bycopy:
     free (st_info->st_numx);
     free (st_info->st_charx);
 
-    ST_GC_FREED("st_info->st_numx")
-    ST_GC_FREED("st_info->st_charx")
+    GTOOLS_GC_FREED("st_info->st_numx")
+    GTOOLS_GC_FREED("st_info->st_charx")
 
     if ( st_info->N < st_info->Nread ) {
         free (st_info->ix);
-        ST_GC_FREED("st_info->ix")
+        GTOOLS_GC_FREED("st_info->ix")
     }
 
     st_info->ix = calloc(st_info->J, sizeof(st_info->ix));
     if ( st_info->ix == NULL ) sf_oom_error ("sf_check_hash", "st_info->ix");
-    ST_GC_ALLOCATED("st_info->ix")
+    GTOOLS_GC_ALLOCATED("st_info->ix")
 
     if ( (level > 0) & (st_info->countonly == 0) ) {
         st_info->free = 7;
         if ( kstr > 0 ) {
             for (j = 0; j < st_info->J; j++) {
-                st_info->ix[j] = *((int *) (st_info->st_by_charx + j * rowbytes + st_info->positions[kvars]));
+                st_info->ix[j] = *((GT_size *) (st_info->st_by_charx + j * rowbytes + st_info->positions[kvars]));
             }
         }
         else {
             for (j = 0; j < st_info->J; j++) {
-                st_info->ix[j] = (int) st_info->st_by_numx[j * (kvars + 1) + kvars];
+                st_info->ix[j] = (GT_size) st_info->st_by_numx[j * (kvars + 1) + kvars];
             }
         }
     }
@@ -610,6 +711,9 @@ bycopy:
         for (j = 0; j < st_info->J; j++)
             st_info->ix[j] = j;
     }
+
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 4: Created indexed array with sorted by vars");
 
     return (rc);
 }

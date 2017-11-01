@@ -1,25 +1,32 @@
-v 0.8.1
+v 0.9.0
 d
 d 'GTOOLS': Faster group operations using C plugins
 d
 d This package provides a fast C-based implementations of Stata group
-d commands, such as collapse, egen, levelsof, isid, unique via gcollapse,
-d gegen, and so on. This package was inspired by Sergio Correia's ftools.
+d commands, such as collapse, contract, egen, isid, levelsof, top levelsof,
+d unique/distinct via gcollapse, gegen, and so on. This package was
+d inspired d by Sergio Correia's ftools.
 d
 d KW: plugin
 d KW: gtools
 d KW: collapse
+d KW: contract
 d KW: egen
 d KW: levelsof
+d KW: toplevelsof
 d KW: isid
 d KW: unique
+d KW: distinct
 d KW: sort
 d KW: gsort
 d KW: gegen
 d KW: gcollapse
+d KW: gcontract
 d KW: gisid
 d KW: glevelsof
+d KW: gtoplevelsof
 d KW: gunique
+d KW: gdistinct
 d KW: hashsort
 d
 d Requires: Stata version 13.1
@@ -27,20 +34,26 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20171026
+d Distribution-Date: 20171031
 d
 f _gtools_internal.ado
 f gcollapse.ado
+f gcontract.ado
 f gegen.ado
 f gunique.ado
+f gdistinct.ado
 f glevelsof.ado
+f gtoplevelsof.ado
 f gisid.ado
 f hashsort.ado
 f gtools.ado
 f gcollapse.sthlp
+f gcontract.sthlp
 f gegen.sthlp
 f gunique.sthlp
+f gdistinct.sthlp
 f glevelsof.sthlp
+f gtoplevelsof.sthlp
 f gisid.sthlp
 f hashsort.sthlp
 f gtools.sthlp
@@ -48,4 +61,6 @@ f gtools_windows.plugin
 f env_set_windows.plugin
 f gtools_unix.plugin
 f env_set_unix.plugin
+f gtools_macosx.plugin
+f env_set_macosx.plugin
 F spookyhash.dll

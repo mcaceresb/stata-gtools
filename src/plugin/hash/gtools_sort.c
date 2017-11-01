@@ -19,31 +19,33 @@
  * @param hash_level whether we used a bijection (0) or a 128-bit hash (1)
  * @return stable sorted @hash, with @index sorted as well
  */
-int mf_sort_hash (
+ST_retcode gf_sort_hash (
     uint64_t *hash,
-    size_t *index,
-    size_t N,
-    short verbose)
+    GT_size *index,
+    GT_size N,
+    GT_bool verbose)
 {
-    size_t i;
+    GT_size i;
     ST_retcode rc = 0;
 
-    MF_MIN (hash, N, min, i)
-    MF_MAX (hash, N, max, i)
+    GTOOLS_MIN (hash, N, min, i)
+    GTOOLS_MAX (hash, N, max, i)
 
     uint64_t range = max - min + 1;
     uint64_t ctol  = pow(2, 24);
 
     if ( range < ctol ) {
-        if ( (rc = mf_counting_sort (hash, index, N, min, max)) ) return(rc);
+        if ( (rc = gf_counting_sort (hash, index, N, min, max)) ) return(rc);
         if ( verbose ) {
-            sf_printf("Counting sort on hash; min = "FMT", max = "FMT"\n", min, max);
+            sf_printf("Counting sort on hash; min = "
+                      GT_size_cfmt", max = "
+                      GT_size_cfmt"\n", min, max);
         }
     }
     else {
-        if ( (rc = mf_radix_sort16 (hash, index, N)) ) return(rc);
+        if ( (rc = gf_radix_sort16 (hash, index, N)) ) return(rc);
         if ( verbose ) {
-            sf_printf("Radix sort on hash (16-bits)\n");
+            sf_printf("Radix sort on hash (16-bits at a time)\n");
         }
     }
 
@@ -60,15 +62,15 @@ int mf_sort_hash (
  * @param N number of elements
  * @return Radix sort on hash array.
  */
-int mf_radix_sort8 (
+ST_retcode gf_radix_sort8 (
     uint64_t *hash,
-    size_t *index,
-    size_t N)
+    GT_size *index,
+    GT_size N)
 {
 	radixCounts8 counts;
 	memset (&counts, 0, 256 * 8 * sizeof(uint32_t));
 
-    size_t i;
+    GT_size i;
 	uint64_t *hcopy  = (uint64_t *) calloc(N, sizeof(uint64_t));
 	uint64_t *ixcopy = (uint64_t *) calloc(N, sizeof(uint64_t));
 
@@ -223,17 +225,17 @@ int mf_radix_sort8 (
  * @param N number of elements
  * @return Radix sort on hash array.
  */
-int mf_radix_sort16 (
+ST_retcode gf_radix_sort16 (
     uint64_t *hash,
-    size_t *index,
-    size_t N)
+    GT_size *index,
+    GT_size N)
 {
-    size_t size = 65536;
+    GT_size size = 65536;
 
     // Allocate space for index and hash copies
     // ----------------------------------------
 
-    size_t i;
+    GT_size i;
 	uint64_t *hcopy  = (uint64_t *) calloc(N, sizeof(uint64_t));
 	uint64_t *ixcopy = (uint64_t *) calloc(N, sizeof(uint64_t));
 
@@ -356,25 +358,25 @@ int mf_radix_sort16 (
  * @param max Largest hash
  * @return Counting sort on hash array.
  */
-int mf_counting_sort (
+ST_retcode gf_counting_sort (
     uint64_t *hash,
-    size_t *index,
-    size_t N,
+    GT_size *index,
+    GT_size N,
     uint64_t min,
     uint64_t max)
 {
 
-    int i, s;
+    GT_size i, s;
     uint64_t range = max - min + 1;
 
     // Allocate space for x, index copies and x mod
     uint64_t *xcopy = calloc(N, sizeof *xcopy);
-    size_t   *icopy = calloc(N, sizeof *icopy);
-    int      *count = calloc(range + 1, sizeof *count);
+    GT_size  *icopy = calloc(N, sizeof *icopy);
+    GT_size  *count = calloc(range + 1, sizeof *count);
 
-    if ( xcopy == NULL ) return(sf_oom_error("mf_counting_sort_hash", "xcopy"));
-    if ( icopy == NULL ) return(sf_oom_error("mf_counting_sort_hash", "icopy"));
-    if ( count == NULL ) return(sf_oom_error("mf_counting_sort_hash", "count"));
+    if ( xcopy == NULL ) return(sf_oom_error("gf_counting_sort_hash", "xcopy"));
+    if ( icopy == NULL ) return(sf_oom_error("gf_counting_sort_hash", "icopy"));
+    if ( count == NULL ) return(sf_oom_error("gf_counting_sort_hash", "count"));
 
     // Initialize count as 0s
     for (i = 0; i < range + 1; i++)

@@ -1,9 +1,9 @@
-int sf_egen_bulk             (struct StataInfo *st_info, int level);
-int sf_write_output          (struct StataInfo *st_info, int level, size_t wtargets, char *fname);
-int sf_write_collapsed       (struct StataInfo *st_info, int level, size_t wtargets, char *fname);
-int sf_read_collapsed        (size_t J, size_t kextra, char *fname);
-int sf_egen_multiple_sources (struct StataInfo *st_info, int level);
-int sf_write_byvars          (struct StataInfo *st_info, int level);
+ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level);
+ST_retcode sf_egen_bulk             (struct StataInfo *st_info, int level);
+ST_retcode sf_write_output          (struct StataInfo *st_info, int level, GT_size wtargets, char *fname);
+ST_retcode sf_write_collapsed       (struct StataInfo *st_info, int level, GT_size wtargets, char *fname);
+ST_retcode sf_write_byvars          (struct StataInfo *st_info, int level);
+ST_retcode sf_read_collapsed        (GT_size J, GT_size kextra, char *fname);
 
 /**
  * @brief egen stata variables in bulk
@@ -11,16 +11,16 @@ int sf_write_byvars          (struct StataInfo *st_info, int level);
  * @param st_info Pointer to container structure for Stata info
  * @return Stores egen data in Stata
  */
-int sf_egen_bulk (struct StataInfo *st_info, int level)
+ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 {
 
     if ( st_info->kvars_targets < 1 ) {
         return (0);
     }
 
-    short multiple_sources = (st_info->kvars_sources > 1);
-    short one_target = (st_info->kvars_targets == 1)
-                  || ( (st_info->kvars_targets == 2) & (st_info->statcode[1] == -14) );
+    GT_bool multiple_sources = (st_info->kvars_sources > 1);
+    GT_bool one_target = (st_info->kvars_targets == 1)
+                      || ( (st_info->kvars_targets == 2) & (st_info->statcode[1] == -14) );
 
     if ( multiple_sources & one_target ) {
         return (sf_egen_multiple_sources (st_info, level));
@@ -33,28 +33,29 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
     ST_retcode rc = 0;
     ST_double z;
 
-    int i, j, k, l;
-    size_t nj, start, end, sel;
-    size_t offset_output,
+    GT_size i, j, k, l;
+    GT_size nj, start, end, sel;
+    GT_size offset_output,
            offset_source,
            offset_buffer;
 
-    clock_t timer = clock();
+    clock_t  timer = clock();
+    clock_t stimer = clock();
 
-    size_t N = st_info->N;
-    size_t J = st_info->J;
+    GT_size N = st_info->N;
+    GT_size J = st_info->J;
 
-    size_t kvars         = st_info->kvars_by;
-    size_t ksources      = st_info->kvars_sources;
-    size_t ktargets      = st_info->kvars_targets;
-    size_t start_sources = kvars + st_info->kvars_group + 1;
+    GT_size kvars         = st_info->kvars_by;
+    GT_size ksources      = st_info->kvars_sources;
+    GT_size ktargets      = st_info->kvars_targets;
+    GT_size start_sources = kvars + st_info->kvars_group + 1;
 
     /*********************************************************************
      *                     Step 2: Memory allocation                     *
      *********************************************************************/
 
-    size_t *pos_sources = calloc(ksources, sizeof *pos_sources);
-    double *statcode    = calloc(ktargets, sizeof *statcode);
+    GT_size *pos_sources = calloc(ksources, sizeof *pos_sources);
+    ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
 
@@ -67,17 +68,17 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
     st_info->output = calloc(J * ktargets, sizeof st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_egen_bulk", "st_info->output"));
 
-    ST_GC_ALLOCATED("st_info->output")
-    double *output  = st_info->output;
+    GTOOLS_GC_ALLOCATED("st_info->output")
+    ST_double *output = st_info->output;
     st_info->free = 9;
 
-    double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
-    short  *all_firstmiss  = calloc(J * ksources, sizeof *all_firstmiss);
-    short  *all_lastmiss   = calloc(J * ksources, sizeof *all_lastmiss);
-    size_t *all_nonmiss    = calloc(J * ksources, sizeof *all_nonmiss);
-    size_t *all_yesmiss    = calloc(J * ksources, sizeof *all_yesmiss);
-    size_t *offsets_buffer = calloc(J, sizeof *offsets_buffer);
-    size_t *nj_buffer      = calloc(J, sizeof *nj_buffer);
+    ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
+    GT_bool   *all_firstmiss  = calloc(J * ksources, sizeof *all_firstmiss);
+    GT_bool   *all_lastmiss   = calloc(J * ksources, sizeof *all_lastmiss);
+    GT_size   *all_nonmiss    = calloc(J * ksources, sizeof *all_nonmiss);
+    GT_size   *all_yesmiss    = calloc(J * ksources, sizeof *all_yesmiss);
+    GT_size   *offsets_buffer = calloc(J, sizeof *offsets_buffer);
+    GT_size   *nj_buffer      = calloc(J, sizeof *nj_buffer);
 
     if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_bulk", "output"));
     if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "all_firstmiss"));
@@ -89,18 +90,16 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
     for (j = 0; j < J * ksources; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = all_yesmiss[j] = 0;
 
-    size_t *nmfreq = calloc(ksources, sizeof *nmfreq);
+    GT_size *nmfreq = calloc(ksources, sizeof *nmfreq);
     if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_bulk", "nmfreq"));
 
     for (k = 0; k < ksources; k++)
         nmfreq[k] = 0;
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.0: Allocated memory");
-
-    double *firstmiss = calloc(ksources, sizeof *firstmiss);
-    double *lastmiss  = calloc(ksources, sizeof *lastmiss);
-    double *firstnm   = calloc(ksources, sizeof *firstnm);
-    double *lastnm    = calloc(ksources, sizeof *lastnm);
+    ST_double *firstmiss = calloc(ksources, sizeof *firstmiss);
+    ST_double *lastmiss  = calloc(ksources, sizeof *lastmiss);
+    ST_double *firstnm   = calloc(ksources, sizeof *firstnm);
+    ST_double *lastnm    = calloc(ksources, sizeof *lastnm);
 
     if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
     if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
@@ -119,7 +118,7 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
      * observations from Stata in order; this is only sometimes faster,
      */
 
-    size_t *index_st = calloc(st_info->Nread, sizeof *index_st);
+    GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
     if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
@@ -164,7 +163,8 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+    if ( st_info->benchmark )
+        sf_running_timer (&stimer, "\t\tPlugin step 5.1: Read source variables sequentially");
 
     /*********************************************************************
      *                Step 4: Collapse variables by gorup                *
@@ -231,7 +231,7 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
                     // of non-missing values of that variable in the entire
                     // data. This latter count is stored in nmfreq; we divide
                     // by this when writing to Stata.
-                    output[offset_output + k] = 100 * ((double) end / nmfreq[st_info->pos_targets[k]]);
+                    output[offset_output + k] = 100 * ((ST_double) end / nmfreq[st_info->pos_targets[k]]);
                 }
                 else if ( statcode[k] == -10 ) { // first
                     // If first obs is missing, get first missing value that
@@ -263,7 +263,7 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
                         // min/max handle missings b/c they only do comparisons
-                        output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + nj);
+                        output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + nj);
                     }
                     else {
                         output[offset_output + k] = SV_missval;
@@ -275,13 +275,17 @@ int sf_egen_bulk (struct StataInfo *st_info, int level)
                 }
                 else { // etc
                     // Otherwise compute the requested summary stat
-                    output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + end);
                 }
             }
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Computed summary stats");
+    if ( st_info->benchmark )
+        sf_running_timer (&stimer, "\t\tPlugin step 5.2: Computed summary stats");
+
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
 exit:
 
@@ -307,7 +311,7 @@ exit:
     return (rc);
 }
 
-int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
+ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
 {
 
     if ( st_info->kvars_targets < 1 ) {
@@ -325,27 +329,28 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_retcode rc = 0;
     ST_double z;
 
-    int i, j, k, l;
-    size_t nj, start, end;
-    size_t offset_output,
+    GT_size i, j, k, l;
+    GT_size nj, start, end;
+    GT_size offset_output,
            offset_buffer;
 
-    clock_t timer = clock();
+    clock_t  timer = clock();
+    clock_t stimer = clock();
 
-    size_t N = st_info->N;
-    size_t J = st_info->J;
+    GT_size N = st_info->N;
+    GT_size J = st_info->J;
 
-    size_t kvars         = st_info->kvars_by;
-    size_t ksources      = st_info->kvars_sources;
-    size_t ktargets      = st_info->kvars_targets;
-    size_t start_sources = kvars + st_info->kvars_group + 1;
+    GT_size kvars         = st_info->kvars_by;
+    GT_size ksources      = st_info->kvars_sources;
+    GT_size ktargets      = st_info->kvars_targets;
+    GT_size start_sources = kvars + st_info->kvars_group + 1;
 
     /*********************************************************************
      *                     Step 2: Memory allocation                     *
      *********************************************************************/
 
-    size_t *pos_sources = calloc(ksources, sizeof *pos_sources);
-    double *statcode    = calloc(ktargets, sizeof *statcode);
+    GT_size *pos_sources = calloc(ksources, sizeof *pos_sources);
+    ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
 
@@ -358,17 +363,17 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     st_info->output = calloc(J * ktargets, sizeof st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_egen_bulk", "st_info->output"));
 
-    ST_GC_ALLOCATED("st_info->output")
-    double *output  = st_info->output;
+    GTOOLS_GC_ALLOCATED("st_info->output")
+    ST_double *output = st_info->output;
     st_info->free = 9;
 
-    double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
-    short  *all_firstmiss  = calloc(J, sizeof *all_firstmiss);
-    short  *all_lastmiss   = calloc(J, sizeof *all_lastmiss);
-    size_t *all_nonmiss    = calloc(J, sizeof *all_nonmiss);
-    size_t *all_yesmiss    = calloc(J, sizeof *all_yesmiss);
-    size_t *offsets_buffer = calloc(J, sizeof *offsets_buffer);
-    size_t *nj_buffer      = calloc(J, sizeof *nj_buffer);
+    ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
+    GT_bool   *all_firstmiss  = calloc(J, sizeof *all_firstmiss);
+    GT_bool   *all_lastmiss   = calloc(J, sizeof *all_lastmiss);
+    GT_size   *all_nonmiss    = calloc(J, sizeof *all_nonmiss);
+    GT_size   *all_yesmiss    = calloc(J, sizeof *all_yesmiss);
+    GT_size   *offsets_buffer = calloc(J, sizeof *offsets_buffer);
+    GT_size   *nj_buffer      = calloc(J, sizeof *nj_buffer);
 
     if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_bulk", "output"));
     if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "all_firstmiss"));
@@ -381,17 +386,15 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     for (j = 0; j < J; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = all_yesmiss[j] = 0;
 
-    size_t *nmfreq    = calloc(1, sizeof *nmfreq);
-    if ( nmfreq    == NULL ) return(sf_oom_error("sf_egen_bulk", "nmfreq"));
+    GT_size *nmfreq = calloc(1, sizeof *nmfreq);
+    if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_bulk", "nmfreq"));
 
     nmfreq[0] = 0;
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.0: Allocated memory");
-
-    double *firstmiss = calloc(1, sizeof *firstmiss);
-    double *lastmiss  = calloc(1, sizeof *lastmiss);
-    double *firstnm   = calloc(1, sizeof *firstnm);
-    double *lastnm    = calloc(1, sizeof *lastnm);
+    ST_double *firstmiss = calloc(1, sizeof *firstmiss);
+    ST_double *lastmiss  = calloc(1, sizeof *lastmiss);
+    ST_double *firstnm   = calloc(1, sizeof *firstnm);
+    ST_double *lastnm    = calloc(1, sizeof *lastnm);
 
     if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
     if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
@@ -410,7 +413,7 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
      * observations from Stata in order; this is only sometimes faster,
      */
 
-    size_t *index_st = calloc(st_info->Nread, sizeof *index_st);
+    GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
     if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
@@ -451,7 +454,8 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.1: Read source variables sequentially");
+    if ( st_info->benchmark )
+        sf_running_timer (&stimer, "\t\tPlugin step 5.1: Read source variables sequentially");
 
     /*********************************************************************
      *                Step 4: Collapse variables by gorup                *
@@ -505,7 +509,7 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     // of non-missing values of that variable in the entire
                     // data. This latter count is stored in nmfreq; we divide
                     // by this when writing to Stata.
-                    output[offset_output + k] = 100 * ((double) end / nmfreq[0]);
+                    output[offset_output + k] = 100 * ((ST_double) end / nmfreq[0]);
                 }
                 else if ( statcode[k] == -10 ) { // first
                     // If first obs is missing, get first missing value that
@@ -538,7 +542,7 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
                         // min/max handle missings b/c they only do comparisons
-                        output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + nj * ksources);
+                        output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + nj * ksources);
                     }
                     else {
                         output[offset_output + k] = SV_missval;
@@ -550,13 +554,17 @@ int sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                 }
                 else { // etc
                     // Otherwise compute the requested summary stat
-                    output[offset_output + k] = mf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + end);
                 }
             }
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 5.2: Computed summary stats");
+    if ( st_info->benchmark )
+        sf_running_timer (&stimer, "\t\tPlugin step 5.2: Computed summary stats");
+
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
 exit:
 
@@ -580,10 +588,10 @@ exit:
     return (rc);
 }
 
-int sf_write_output (struct StataInfo *st_info, int level, size_t wtargets, char *fname)
+ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtargets, char *fname)
 {
 
-    if ( st_info->kvars_targets < 1 ) {
+    if ( (st_info->kvars_targets < 1) & (level != 8) ) {
         return (0);
     }
 
@@ -594,17 +602,17 @@ int sf_write_output (struct StataInfo *st_info, int level, size_t wtargets, char
     ST_retcode rc = 0;
     ST_double z;
 
-    int i, j, k, l;
-    size_t start, end, out, within, missval;
+    GT_size i, j, k, l;
+    GT_size start, end, out, within, missval;
     clock_t timer = clock();
 
-    size_t kvars         = st_info->kvars_by;
-    size_t ksources      = st_info->kvars_sources;
-    size_t ktargets      = st_info->kvars_targets;
-    size_t start_sources = kvars + st_info->kvars_group + 1;
-    size_t start_targets = start_sources + ksources;
+    GT_size kvars         = st_info->kvars_by;
+    GT_size ksources      = st_info->kvars_sources;
+    GT_size ktargets      = level == 8? wtargets: st_info->kvars_targets;
+    GT_size start_sources = kvars + st_info->kvars_group + 1;
+    GT_size start_targets = start_sources + ksources;
 
-    size_t *pos_targets = calloc(ktargets, sizeof *pos_targets);
+    GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
     if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
@@ -644,10 +652,11 @@ int sf_write_output (struct StataInfo *st_info, int level, size_t wtargets, char
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 6: Copied summary stats to stata");
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 6: Copied summary stats to stata");
 
     if ( (wtargets < ktargets) & (level == 2) & (within == 0) ) {
-        size_t kextra = ktargets - wtargets;
+        GT_size kextra = ktargets - wtargets;
         FILE *fhandle = fopen(fname, "wb");
 
         for (j = 0; j < st_info->J; j++) {
@@ -657,7 +666,8 @@ int sf_write_output (struct StataInfo *st_info, int level, size_t wtargets, char
 
         fclose (fhandle);
 
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
+        if ( st_info->benchmark )
+            sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
     }
 
 exit:
@@ -665,10 +675,9 @@ exit:
     return (rc);
 }
 
-int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, char *fname)
+ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wtargets, char *fname)
 {
-
-    if ( st_info->kvars_targets < 1 ) {
+    if ( (st_info->kvars_targets < 1) & (level != 8) ) {
         return (0);
     }
 
@@ -683,17 +692,17 @@ int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, c
     ST_retcode rc = 0;
     ST_double z;
 
-    int j, k;
-    size_t sel, rowbytes;
+    GT_size j, k;
+    GT_size sel, rowbytes;
     clock_t timer = clock();
 
-    size_t kvars         = st_info->kvars_by;
-    size_t ksources      = st_info->kvars_sources;
-    size_t ktargets      = st_info->kvars_targets;
-    size_t start_sources = kvars + st_info->kvars_group + 1;
-    size_t start_targets = start_sources + ksources;
+    GT_size kvars         = st_info->kvars_by;
+    GT_size ksources      = st_info->kvars_sources;
+    GT_size ktargets      = level == 8? wtargets: st_info->kvars_targets;
+    GT_size start_sources = kvars + st_info->kvars_group + 1;
+    GT_size start_targets = start_sources + ksources;
 
-    size_t *pos_targets = calloc(ktargets, sizeof *pos_targets);
+    GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
     if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
@@ -703,7 +712,7 @@ int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, c
      *                        Collapse to memory                         *
      *********************************************************************/
 
-    rowbytes = (st_info->rowbytes + sizeof(int));
+    rowbytes = (st_info->rowbytes + sizeof(GT_size));
     if ( st_info->kvars_by_str > 0 ) {
         for (j = 0; j < st_info->J; j++) {
             if ( level != 11 ) {
@@ -713,7 +722,7 @@ int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, c
                         if ( (rc = SF_sstore(k + 1, j + 1, st_info->st_by_charx + sel)) ) goto exit;
                     }
                     else {
-                        z = *((double *) (st_info->st_by_charx + sel));
+                        z = *((ST_double *) (st_info->st_by_charx + sel));
                         if ( (rc = SF_vstore(k + 1, j + 1, z)) ) goto exit;
                     }
                 }
@@ -744,14 +753,15 @@ int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, c
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 6: Copied collapsed data to stata");
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 6: Copied collapsed data to stata");
 
     /*********************************************************************
      *                         Collapse to disk                          *
      *********************************************************************/
 
     if ( (wtargets < ktargets) & (level == 2) ) {
-        size_t kextra = ktargets - wtargets;
+        GT_size kextra = ktargets - wtargets;
         FILE *fhandle = fopen(fname, "wb");
 
         for (j = 0; j < st_info->J; j++) {
@@ -761,7 +771,8 @@ int sf_write_collapsed (struct StataInfo *st_info, int level, size_t wtargets, c
 
         fclose (fhandle);
 
-        if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
+        if ( st_info->benchmark )
+            sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
     }
 
 
@@ -770,7 +781,7 @@ exit:
     return (rc);
 }
 
-int sf_write_byvars (struct StataInfo *st_info, int level)
+ST_retcode sf_write_byvars (struct StataInfo *st_info, int level)
 {
 
     if ( st_info->kvars_by == 0 ) {
@@ -784,16 +795,16 @@ int sf_write_byvars (struct StataInfo *st_info, int level)
     ST_retcode rc = 0;
     ST_double z;
 
-    int j, k;
-    size_t sel, rowbytes;
+    GT_size j, k;
+    GT_size sel, rowbytes;
     clock_t timer = clock();
-    size_t kvars  = st_info->kvars_by;
+    GT_size kvars  = st_info->kvars_by;
 
     /*********************************************************************
      *                        Collapse to memory                         *
      *********************************************************************/
 
-    rowbytes = (st_info->rowbytes + sizeof(int));
+    rowbytes = (st_info->rowbytes + sizeof(GT_size));
     if ( (st_info->kvars_by_str > 0) & (level != 11) ) {
         for (j = 0; j < st_info->J; j++) {
             for (k = 0; k < kvars; k++) {
@@ -802,7 +813,7 @@ int sf_write_byvars (struct StataInfo *st_info, int level)
                     if ( (rc = SF_sstore(k + 1, j + 1, st_info->st_by_charx + sel)) ) goto exit;
                 }
                 else {
-                    z = *((double *) (st_info->st_by_charx + sel));
+                    z = *((ST_double *) (st_info->st_by_charx + sel));
                     if ( (rc = SF_vstore(k + 1, j + 1, z)) ) goto exit;
                 }
             }
@@ -818,25 +829,26 @@ int sf_write_byvars (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) sf_running_timer (&timer, "\tPlugin step 6: Copied by variables back to stata");
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\tPlugin step 6: Copied by variables back to stata");
 
 exit:
     return (rc);
 }
 
-int sf_read_collapsed (size_t J, size_t kextra, char *fname)
+ST_retcode sf_read_collapsed (GT_size J, GT_size kextra, char *fname)
 {
     if ( kextra < 1 ) {
         return (0);
     }
 
-    int j, k;
+    GT_size j, k;
     ST_retcode rc = 0;
 
-    double *output = calloc(J * kextra, sizeof *output);
+    ST_double *output = calloc(J * kextra, sizeof *output);
     if ( output == NULL ) return(sf_oom_error("stata_call", "output"));
 
-    mf_read_collapsed (fname, output, kextra, J);
+    gf_read_collapsed (fname, output, kextra, J);
 
     for (j = 0; j < J; j++) {
         for (k = 0; k < kextra; k++) {

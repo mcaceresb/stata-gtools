@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sun Oct 15 10:26:39 EDT 2017
+# Updated: Tue Oct 31 14:48:08 EDT 2017
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -105,16 +105,22 @@ args = vars(parser.parse_args())
 gtools_ssc = [
     "_gtools_internal.ado",
     "gcollapse.ado",
+    "gcontract.ado",
     "gegen.ado",
     "gunique.ado",
+    "gdistinct.ado",
     "glevelsof.ado",
+    "gtoplevelsof.ado",
     "gisid.ado",
     "hashsort.ado",
     "gtools.ado",
     "gcollapse.sthlp",
+    "gcontract.sthlp",
     "gegen.sthlp",
     "gunique.sthlp",
+    "gdistinct.sthlp",
     "glevelsof.sthlp",
+    "gtoplevelsof.sthlp",
     "gisid.sthlp",
     "hashsort.sthlp",
     "gtools.sthlp",
@@ -207,9 +213,11 @@ print("")
 
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
+            path.join("src", "test", "test_gcontract.do"),
             path.join("src", "test", "test_gegen.do"),
             path.join("src", "test", "test_gunique.do"),
             path.join("src", "test", "test_glevelsof.do"),
+            path.join("src", "test", "test_gtoplevelsof.do"),
             path.join("src", "test", "test_gisid.do"),
             path.join("src", "test", "test_hashsort.do")]
 
@@ -229,21 +237,28 @@ with open(path.join("build", "gtools_tests.do"), 'a') as outfile:
 gdir = path.join("build", "gtools")
 copy2("changelog.md", gdir)
 
-copy2(path.join("src", "gtools.pkg"),      gdir)
-copy2(path.join("src", "stata.toc"),       gdir)
-copy2(path.join("doc", "gcollapse.sthlp"), gdir)
-copy2(path.join("doc", "gegen.sthlp"),     gdir)
-copy2(path.join("doc", "gunique.sthlp"),   gdir)
-copy2(path.join("doc", "glevelsof.sthlp"), gdir)
-copy2(path.join("doc", "gisid.sthlp"),     gdir)
-copy2(path.join("doc", "hashsort.sthlp"),  gdir)
-copy2(path.join("doc", "gtools.sthlp"),    gdir)
+copy2(path.join("src", "gtools.pkg"),         gdir)
+copy2(path.join("src", "stata.toc"),          gdir)
+
+copy2(path.join("docs", "stata", "gcollapse.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gcontract.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gegen.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gunique.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gdistinct.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
+copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "hashsort.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gtools.sthlp"),       gdir)
 
 copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)
+copy2(path.join("src", "ado", "gcontract.ado"),        gdir)
 copy2(path.join("src", "ado", "gegen.ado"),            gdir)
 copy2(path.join("src", "ado", "gunique.ado"),          gdir)
+copy2(path.join("src", "ado", "gdistinct.ado"),        gdir)
 copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
+copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
 copy2(path.join("src", "ado", "hashsort.ado"),         gdir)
 copy2(path.join("src", "ado", "gtools.ado"),           gdir)

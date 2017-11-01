@@ -21,6 +21,7 @@
 
 {phang}
 This is a fast option to the user written {opt unique}.
+It is 4 to 26 times faster in Stata/IC and 4-12 times faster in MP
 
 {p 8 13 2}
 {cmd:gunique}
@@ -77,9 +78,9 @@ manually here.
 {p 4 4 2}{cmd:. gunique make-headroom, d}{p_end}
 
 {pstd}
-Also see {help unique##examples} or the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/gunique/index.html#examples":online documentation}
+for more examples.
 
 {marker results}{...}
 {title:Stored results}

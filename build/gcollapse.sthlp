@@ -21,7 +21,8 @@ make dataset of summary statistics using C.{p_end}
 {title:Syntax}
 
 {phang}
-This is a fast option to Stata's {opt collapse}, with several additions.
+This is a fast option to Stata's {opt collapse} (9-300 times faster
+in IC and 4-120 times faster in MP), with several additions.
 
 {p 8 17 2}
 {cmd:gcollapse}
@@ -273,8 +274,8 @@ where it cannot allocate enough memory for {it:gcollapse}.
 
 {pstd}
 See {help collapse##examples} or the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+{browse "http://gtools.readthedocs.io/en/latest/usage/gcollapse/index.html#examples":online documentation}
+for examples.
 
 {marker results}{...}
 {title:Stored results}

@@ -13,9 +13,6 @@ Change Log
   modify the source data and saves a matrix with the results after its run.
 - `gdistinct` now saves its results to a matrix when there are multiple
   variables.
-
-### Features
-
 - Improved and normalized documentation
 
 ### Bug fixes

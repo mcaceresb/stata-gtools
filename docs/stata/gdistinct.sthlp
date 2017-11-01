@@ -22,6 +22,7 @@
 {phang}
 This is a fast option to the user command {help distinct},
 additionally storing the results in a matrix.
+It is 4 to 26 times faster in Stata/IC and 4-12 times faster in MP
 
 {p 8 17 2}{cmd:gdistinct} [{varlist}]
 {ifin}
@@ -102,8 +103,9 @@ manually here.
 {p 4 4 2}{cmd:. gdistinct foreign rep78, joint missing}
 
 {pstd}
-See {browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo for more examples.
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples":online documentation}
+for more examples.
 
 {marker results}{...}
 {title:Stored results}

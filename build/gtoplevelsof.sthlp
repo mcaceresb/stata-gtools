@@ -220,8 +220,8 @@ values or the largest values that match a pattern is very helpful.
 
 {pstd}
 See the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+{browse "http://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples":online documentation}
+for more examples.
 
 {phang}{cmd:. sysuse auto}{p_end}
 {phang}{cmd:. gtoplevelsof rep78}{p_end}

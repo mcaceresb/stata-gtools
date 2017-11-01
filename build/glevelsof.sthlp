@@ -25,6 +25,7 @@
 {phang}
 This is a fast option to Stata's {opt levelsof}. It can additionally take
 multiple variables.
+It is 3 to 13 times faster in Stata/IC and 2.5-7 times faster in MP
 
 {p 8 17 2}
 {cmd:glevelsof}
@@ -186,8 +187,8 @@ levels of a varlist by their frequency count.
 
 {pstd}
 See the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo for more examples.
+{browse "http://gtools.readthedocs.io/en/latest/usage/glevelsof/index.html#examples":online documentation}
+for more examples.
 
 
 {marker results}{...}

@@ -21,6 +21,7 @@
 
 {phang}
 This is a fast option to Stata's {opt isid}.
+It is 8 to 30 times faster in Stata/IC and 4-14 times faster in MP
 
 {p 8 13 2}
 {cmd:gisid}
@@ -61,11 +62,13 @@ user can do is run {opt gtools, dependencies} at the start of their Stata
 session, but if Stata cannot find the plugin the user can specify a path
 manually here.
 
+{marker examples}{...}
+{title:Examples}
 
 {pstd}
 See {help isid##examples} or the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+{browse "http://gtools.readthedocs.io/en/latest/usage/gisid/index.html#examples":online documentation}
+for examples.
 
 
 {marker author}{...}

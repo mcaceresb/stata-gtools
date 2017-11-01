@@ -102,8 +102,8 @@ manually here.
 
 {pstd}
 Also see the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+{browse "http://gtools.readthedocs.io/en/latest/usage/hashsort/index.html#examples":online documentation}
+for more examples.
 
     {hline}
     Setup

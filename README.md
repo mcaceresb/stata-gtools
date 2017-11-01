@@ -321,13 +321,12 @@ TODO
 
 Roadmap to 1.0
 
+- [ ] Write examples showcasing each command.
 - [ ] Add comments to all the code base
 - [ ] Improve coverage of debug checks.
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command
-- [ ] Point user to FAQs and online docs in sthlp files
-- [ ] Add links to Stata docs in online docs
-- [ ] Note speed improvements in each help file.
+    - [ ] Test errors (i.e. make sure commands fail as expected).
 
 These are options/features I would like to support, but I don't
 have an ETA for them:

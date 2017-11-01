@@ -19,8 +19,8 @@
 {marker syntax}{...}
 {title:Syntax}
 
-{phang}
-This is a fast option to Stata's {opt contract}.
+{phang} This is a fast option to Stata's {opt contract}.
+It is 5-7 times faster in Stata/IC and 2.5-4 times faster in MP
 
 {p 8 17 2}
 {cmd:gcontract}
@@ -159,9 +159,9 @@ manually here.
 {title:Examples}
 
 {pstd}
-See {help contract##examples} or the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/gcontract/index.html#examples":online documentation}
+for examples.
 
 {marker results}{...}
 {title:Stored results}

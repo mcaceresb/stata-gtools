@@ -206,9 +206,9 @@ task on segments of the data.
 {title:Examples}
 
 {pstd}
-See {help egen##examples} or the
-{browse "https://github.com/mcaceresb/stata-gtools/blob/master/README.md#installation":README.md}
-in the git repo.
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples":online documentation}
+for examples.
 
 
 {marker author}{...}

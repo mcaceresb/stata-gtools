@@ -12,6 +12,8 @@ Unlike contract, it does not modify the original data and instead prints the
 resulting table to the console. It also stores a matrix with the frequency
 counts and stores the levels in the macro r(levels).
 
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
+the start of your Stata session.
 
 Syntax
 ------
@@ -176,6 +178,9 @@ values or the largest values that match a pattern is very helpful.
 
 Examples
 --------
+
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gtoplevelsof.do)
 
 ```stata
 . sysuse auto, clear

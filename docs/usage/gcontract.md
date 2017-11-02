@@ -8,7 +8,7 @@ all combinations of varlist that exist in the data and a new variable
 that contains the frequency of each combination. The user can optionally
 request percentages and cumulative counts and percentages.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -99,6 +99,9 @@ gcontract stores the following in r():
 
 Examples
 --------
+
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gcontract.do)
 
 The options here are essentially the same as Stata's contract,
 save for the standard gtools options.

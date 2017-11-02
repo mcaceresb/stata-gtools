@@ -4,7 +4,7 @@ Faster Stata for big data. This packages provides a hash-based implementation
 of collapse, contract, egen, isid, levelsof, and unique/distinct using C
 plugins for a massive speed improvement.
 
-`version 0.9.0 31Oct2017`
+`version 0.9.2 02Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -26,11 +26,10 @@ __*Gtools commands with a stata equivalent*__
 | gisid        | isid          |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                       |
 | glevelsof    | levelsof      |  3 to 13  / 2 to 5-7     |                 | Multiple variables               |
 
-<small>Commands were benchmarked on a Linux laptop with Stata/IC; gains in Stata/MP are smaller.</small>
+<small>(+) The upper end of the speed improvements for gcollapse are for
+quantiles (e.g. median, iqr, p90) and few groups.</small>
 
-<small>(+) The upper end of the speed improvements are for quantiles (e.g. median, iqr, p90) and few groups.</small>
-
-<small>(.) Only egen group was benchmarked rigorously.</small>
+<small>(.) Only gegen group was benchmarked rigorously.</small>
 
 __*Gtools extras*__
 
@@ -197,7 +196,7 @@ technically does not support all of `egen`, but whenever a function that is
 not supported is requested, `gegen` hashes the data and calls `egen` grouping
 by the hash, which is often faster.
 
-Hence both shoul be able to replicate almost all of the functionality of their
+Hence both should be able to replicate almost all of the functionality of their
 Stata counterparts. The following are implemented internally in C:
 
 | Function    | gcollapse | gegen   |
@@ -246,7 +245,7 @@ gegen outvar = fcn(varlist) [if] [in], by(byvars)
 
 would be the same as
 ```stata
-hashsort byvars, group(id)
+hashsort byvars, group(id) sortgroup
 egen outvar = fcn(varlist) [if] [in], by(id)
 ```
 
@@ -254,7 +253,7 @@ but preserving the original sort order. In case an `egen` option might
 conflict with a gtools option, the user can pass `gtools_capture(fcn_options)`
 to `gegen`.
 
-__*Differences from Stata counterparts?*__
+__*Differences from Stata counterparts*__
 
 Differences from `collapse`
 
@@ -274,14 +273,15 @@ Differences from `egen`
   be double. All sums are double. `group` creates a `long` or a `double`. And
   so on. `egen` will default to the system type, which could cause a loss of
   precision on some functions.
+- For internally supported functions, you can specify a varlist as the source,
+  not just a single variable. Observations will be pooled by row in that case.
 - While `gegen` is much faster for `tag`, `group`, and summary stats, most
   egen function are not implemented internally, meaning for arbitrary `gegen`
   calls this is a wrapper for hashsort and egen.
-- You can specify a varlist as the source, not just a single variable. Observations
-  will be pooled by row in that case.
 
 Differences from `levelsof`
 
+- The user can specify a number format.
 - It can take a `varlist` and not just a `varname`; in that case it prints
   all unique combinations of the varlist. The user can specify column and row
   separators.
@@ -301,8 +301,8 @@ merely executing the plugin.
 
 There is at least one known instance where this can cause a confusion for
 the user: If the system runs out of RAM, the program will attempt to use the
-pagefile/swap space. In doing, so, Stata may appear frozen (it may show a
-"(Not Responding)" message on Windows or it may darken on *nix systems).
+pagefile/swap space. In doing, so, Stata may appear unresponsive (it may show
+a "(Not Responding)" message on Windows or it may darken on *nix systems).
 
 The program has not crashed; it is merely trying to swap memory.  To
 check this is the case, the user can monitor disk activity or monitor the
@@ -315,9 +315,7 @@ These are options/features I would like to support, but I don't
 have an ETA for them:
 
 - Add support for weights.
-- Add support for `by` in `gunique`
 - Minimize memory use.
-- Option `smart` to check if variables are sorted.
 - Option `greedy` to give user fine-grain control over gcollapse internals.
 
 These are mainly ideas for improvements to the plugin.  They may or not get

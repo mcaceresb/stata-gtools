@@ -3,7 +3,7 @@ gegen
 
 Efficient implementation of by-able egen functions using C.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -175,7 +175,8 @@ task on segments of the data.
 Examples
 --------
 
-The syntax is:
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gegen.do)
 
 ```stata
 . sysuse auto, clear

@@ -14,7 +14,7 @@ values.  Optionally, variables can be considered jointly so that the
 number of distinct groups defined by the values of variables in varlist
 is reported.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -86,11 +86,14 @@ gdistinct stores the following in r():
 Examples
 --------
 
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gdistinct.do)
+
 gdistinct can function as a drop-in replacement for distinct.
 
 ```stata
-sysuse auto, clear
-gdistinct
+. sysuse auto, clear
+. gdistinct
 
               |        Observations
               |      total   distinct
@@ -108,7 +111,7 @@ gdistinct
    gear_ratio |        74        36
       foreign |        74         2
 
-matrix list r(distinct)
+. matrix list r(distinct)
 
 r(distinct)[12,2]
                      N  Distinct
@@ -125,7 +128,7 @@ displacement        74        31
   gear_ratio        74        36
      foreign        74         2
    
-gdistinct, max(10)
+. gdistinct, max(10)
 
               |        Observations
               |      total   distinct
@@ -134,7 +137,7 @@ gdistinct, max(10)
      headroom |        74         8
       foreign |        74         2
 
-gdistinct make-headroom
+. gdistinct make-headroom
 
           |        Observations
           |      total   distinct
@@ -145,7 +148,7 @@ gdistinct make-headroom
     rep78 |        69         5
  headroom |        74         8
 
-gdistinct make-headroom, missing abbrev(6)
+. gdistinct make-headroom, missing abbrev(6)
 
         |        Observations
         |      total   distinct
@@ -156,13 +159,13 @@ gdistinct make-headroom, missing abbrev(6)
   rep78 |        74         6
  head~m |        74         8
 
-gdistinct foreign rep78, joint
+. gdistinct foreign rep78, joint
 
         Observations
       total   distinct
          69          8
 
-gdistinct foreign rep78, joint missing
+. gdistinct foreign rep78, joint missing
 
         Observations
       total   distinct

@@ -10,7 +10,7 @@ options. For example, this supports the `by(varlist)` option that also appears
 in the unique command, but does not support computing the number of unique
 values for variables individually.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -70,6 +70,9 @@ gunique stores the following in r():
 
 Examples
 --------
+
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gunique.do)
 
 ```stata
 . sysuse auto, clear

@@ -6,7 +6,7 @@ option to Stata's isid. It checks whether a set of variables uniquely
 identifies observations in a dataset. It can additionally take `if` and
 `in` but it cannot check an external data set or sort the data.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -40,6 +40,9 @@ Options
 
 Examples
 --------
+
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gisid.do)
 
 ```stata
 . sysuse auto, clear

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.1  01Nov2017}{...}
+{* *! version 0.3.2  02Nov2017}{...}
 {vieweralsosee "[P] gtoplevelsof" "mansection P gtoplevelsof"}{...}
 {viewerjumpto "Syntax" "gtoplevelsof##syntax"}{...}
 {viewerjumpto "Description" "gtoplevelsof##description"}{...}
@@ -55,7 +55,7 @@
 {syntab:Gtools}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt b:enchmark}}Benchmark various steps of the plugin.
+{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
@@ -183,7 +183,9 @@ The default is a space.  A useful alternative is a comma.
 
 {phang}
 {opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+take to execute. The user can also pass {opth bench(int)} for finer control.
+{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
+prints benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

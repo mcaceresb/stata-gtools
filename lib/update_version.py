@@ -67,7 +67,8 @@ main = [path.join("src", "gtools.pkg"),
         path.join("docs", "stata", "hashsort.sthlp"),
         path.join("docs", "stata", "gtools.sthlp"),
         path.join(".appveyor.yml"),
-        path.join("README.md")]
+        path.join("README.md"),
+        path.join("docs", "index.md")]
 test = [path.join("src", "test", "gtools_tests.do")]
 plug = [path.join("src", "plugin", "gtools.c")]
 

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.1  01Nov2017}{...}
+{* *! version 0.3.2  02Nov2017}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}
@@ -86,7 +86,9 @@ always produces a stable sort.
 
 {phang}
 {opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+take to execute. The user can also pass {opth bench(int)} for finer control.
+{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
+prints benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

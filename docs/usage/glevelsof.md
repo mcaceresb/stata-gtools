@@ -7,7 +7,7 @@ glevelsof displays a sorted list of the distinct values of varlist.  It is
 meant to be a fast replacement of levelsof. Unlike levelsof, it can take a
 single variable or multiple variables.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -112,6 +112,9 @@ their frequency count.
 Examples
 --------
 
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/glevelsof.do)
+
 ```stata
 . sysuse auto
 (1978 Automobile Data)
@@ -138,6 +141,9 @@ Examples
 . replace headroom = headroom + 0.1
 
 . glevelsof headroom
+1.600000023841858 2.099999904632568 2.599999904632568 3.099999904632568 3.599999904632568 4.099999904632568 4.599999904632568 5.099999904632568
+
+. levelsof headroom
 1.600000023841858 2.099999904632568 2.599999904632568 3.099999904632568 3.599999904632568 4.099999904632568 4.599999904632568 5.099999904632568
 ```
 

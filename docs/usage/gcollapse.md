@@ -8,7 +8,7 @@ medians, etc., similar to collapse. Unlike collapse, however, weights are
 currently not supported. Further, first, last, firstnm, lastnm for string
 variables are not supported.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -31,6 +31,7 @@ or any combination of the varlist or target_var forms, and stat is one of
 | ---------- | -----------
 | mean       | means (default)
 | median     | medians
+| p#.#       | arbitrary quantiles (#.# must be strictly between 0, 100)
 | p1         | 1st percentile
 | p2         | 2nd percentile
 | ...        | 3rd-49th percentiles
@@ -38,12 +39,11 @@ or any combination of the varlist or target_var forms, and stat is one of
 | ...        | 51st-97th percentiles
 | p98        | 98th percentile
 | p99        | 99th percentile
-| p1-99.#    | arbitrary quantiles
 | sum        | sums
 | sd         | standard deviation
 | semean     | standard error of the mean (sd/sqrt(n))
 | sebinomial | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
-| sepoisson  | standard error of the mean, Poisson (sqrt(mean / n)) (result rounded to nearest integer)
+| sepoisson  | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
 | count      | number of nonmissing observations
 | percent    | percentage of nonmissing observations
 | max        | maximums
@@ -184,6 +184,9 @@ gcollapse stores the following in r():
 
 Examples
 --------
+
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gcollapse.do)
 
 ### Basic usage
 

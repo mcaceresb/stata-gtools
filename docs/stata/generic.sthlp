@@ -63,7 +63,7 @@ final data.
 {syntab:Gtools}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt b:enchmark}}Benchmark various steps of the plugin.
+{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}

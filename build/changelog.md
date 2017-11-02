@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.9.1 (2017-11-01)
+
+- Stability improvements.
+- Commands should be faster when data is sorted (skips
+  hash sorting if data is already sorted).
+- Misc bug fixes.
+
 ## gtools-0.9.0 (2017-11-01)
 
 ### Features

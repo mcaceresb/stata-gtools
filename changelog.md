@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.9.3 (2017-11-02)
+
+### Bug fixes
+
+- Major bug in gisid: False positive when there was a duplicate row with
+  multiple variable levels but data was otherwise sorted.
+
 ## gtools-0.9.2 (2017-11-02)
 
 ### Bug fixes

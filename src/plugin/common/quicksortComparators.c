@@ -33,7 +33,7 @@ int AltCompareChar (const void *a, const void *b, void *thunk)
     GT_size kstart = *(GT_size *)thunk;
     char *aa = (char *)(a + kstart);
     char *bb = (char *)(b + kstart);
-// printf("%s vs %s\n", aa, bb);
+// printf("\tcmp(%s, %s) = %d\n", aa, bb, BaseCompareChar(aa, bb));
     return BaseCompareChar(aa, bb);
 }
 
@@ -43,7 +43,7 @@ int AltCompareCharInvert (const void *a, const void *b, void *thunk)
     GT_size kstart = *(GT_size *)thunk;
     char *aa = (char *)(a + kstart);
     char *bb = (char *)(b + kstart);
-// printf("\t%s vs %s\n", aa, bb);
+// printf("cmp(%s, %s) = %d\n", bb, aa, BaseCompareChar(bb, aa));
     return BaseCompareChar(bb, aa);
 }
 
@@ -53,7 +53,7 @@ int AltCompareNum (const void *a, const void *b, void *thunk)
     GT_size kstart = *(GT_size *)thunk;
     ST_double aa   = *(ST_double *)(a + kstart);
     ST_double bb   = *(ST_double *)(b + kstart);
-// printf("\t%.4f vs %.4f\n", aa, bb);
+// printf("\tcmp(%.4f, %.4f) = %d\n", aa, bb, BaseCompareNum(aa, bb));
     return BaseCompareNum(aa, bb);
 }
 
@@ -63,7 +63,7 @@ int AltCompareNumInvert (const void *a, const void *b, void *thunk)
     GT_size kstart = *(GT_size *)thunk;
     ST_double aa   = *(ST_double *)(a + kstart);
     ST_double bb   = *(ST_double *)(b + kstart);
-// printf("\t%.4f vs %.4f\n", aa, bb);
+// printf("\tcmp(%.4f, %.4f) = %d\n", bb, aa, BaseCompareNum(bb, aa));
     return BaseCompareNum(bb, aa);
 }
 

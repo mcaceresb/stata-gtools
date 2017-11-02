@@ -53,23 +53,35 @@ git submodule update --init --recursive
 
 cd lib/spookyhash/build
 sed -i.bak -e '37,40d' premake5.lua
+```
 
+On Linux and OSX, run
+```
 url=https://github.com/premake/premake-core/releases/download
 version=5.0.0.alpha4
 
-# OSX
-# wget ${url}/v${version}/premake-${version}-macosx.tar.gz
-# tar zxvf premake-${version}-macosx.tar.gz
-
 # Linux
-# wget ${url}/v${version}/premake-${version}-linux.tar.gz
-# tar zxvf premake-${version}-linux.tar.gz
+wget ${url}/v${version}/premake-${version}-macosx.tar.gz
+tar zxvf premake-${version}-macosx.tar.gz
 
+# OSX
+wget ${url}/v${version}/premake-${version}-macosx.tar.gz
+tar zxvf premake-${version}-macosx.tar.gz
+
+# Make spookyhash
 ./premake5 gmake
 make clean
 ALL_CFLAGS+=-fPIC make
 cd -
+```
 
+On Windows, run
+```
+make spooky
+```
+
+To finish, compile the plugin
+```
 make clean
 make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 ```

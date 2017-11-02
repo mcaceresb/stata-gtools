@@ -1,4 +1,4 @@
-*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.2 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -11,27 +11,30 @@ program gcontract, rclass
     }
 
     global GTOOLS_CALLER gcontract
-    syntax anything [if] [in],  /// [if condition] [in start / end]
-    [                           ///
-        Freq(string)            /// Name of frequency variable
-        CFreq(name)             /// Add cummulative frequency in cfreq
-        Percent(name)           /// Add percentages in percent
-        CPercent(name)          /// Add cummulative percentages in cpercent
-        FLOAT                   /// Store percentages in float variables
-        FORMat(string)          /// Format for percentage variables
-        Zero                    /// Include varlist combinations with 0 frequency
-        noMISS                  /// Exclude rows with missing values in varlist
-                                ///
-        fast                    /// Do not preserve and restore the original dataset. Saves speed
-                                /// but leaves data unusable if the user hits Break.
-        unsorted                /// Do not sort the data; faster
-                                ///
-        Verbose                 /// Print info during function execution
-        Benchmark               /// Benchmark various steps of the plugin
-        hashlib(passthru)       /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)   /// error|fallback: On collision, use native command or throw error
+    syntax anything [if] [in], /// [if condition] [in start / end]
+    [                          ///
+        Freq(string)           /// Name of frequency variable
+        CFreq(name)            /// Add cummulative frequency in cfreq
+        Percent(name)          /// Add percentages in percent
+        CPercent(name)         /// Add cummulative percentages in cpercent
+        FLOAT                  /// Store percentages in float variables
+        FORMat(string)         /// Format for percentage variables
+        Zero                   /// Include varlist combinations with 0 frequency
+        noMISS                 /// Exclude rows with missing values in varlist
+                               ///
+        fast                   /// Do not preserve and restore the original dataset. Saves speed
+                               /// but leaves data unusable if the user hits Break.
+        unsorted               /// Do not sort the data; faster
+                               ///
+        Verbose                /// Print info during function execution
+        BENCHmark              /// Benchmark function
+        BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
     ]
 
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
     local missing = cond("`miss'" == "nomiss", "", "missing")
 
 	* Set type and format for generated numeric variables
@@ -164,7 +167,7 @@ program gcontract, rclass
     * Call the plugin
     * ---------------
 
-    local opts      `missing' `verbose' `benchmark' `hashlib' `oncollision'
+    local opts      `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 
@@ -204,18 +207,18 @@ program gcontract, rclass
 
     qui keep in 1 / `:di %21.0g `r_J''
 	if ( "`zero'" != "" ) {
-		fillin `varlist'
+		qui fillin `varlist'
 		qui replace `freq' = 0 if `freq' >= .
 		qui drop _fillin
         cap confirm var `percent'
         if ( _rc == 0 ) {
-            replace `percent' = 0 if `percent' >= .
+            qui replace `percent' = 0 if `percent' >= .
         }
-        if ( "`percent'`cpercent'" != "" ) {
-            foreach var of varlist `percent' `cpercent' {
-                replace `var' = 0 in 1  if `var'[1] >= .
+        if ( "`cpercent'`cfreq'" != "" ) {
+            foreach var of varlist `cfreq' `cpercent' {
+                qui replace `var' = 0 in 1  if `var'[1] >= .
                 if ( `=_N' > 1 ) {
-                    replace `var' = `var'[_n - 1] in 2 / `=_N' if `var' >= .
+                    qui replace `var' = `var'[_n - 1] in 2 / `=_N' if `var' >= .
                 }
             }
         }

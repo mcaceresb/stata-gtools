@@ -3,7 +3,7 @@ gegen
 
 Efficient implementation of by-able egen functions using C.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -175,4 +175,30 @@ task on segments of the data.
 Examples
 --------
 
-Pending XX
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gegen.do)
+
+```stata
+. sysuse auto, clear
+. gegen id   = group(foreign)
+. gegen tag  = group(foreign)
+. gegen sum  = sum(mpg), by(foreign)
+. gegen sum2 = sum(mpg rep78), by(foreign)
+. gegen p5   = pctile(mpg rep78), p(5) by(foreign)
+```
+
+The function can be any of the supported functions above.
+It can also be any function supported by egen:
+
+```stata
+. webuse egenxmpl4, clear
+
+. gegen hsum = rowtotal(a b c)
+rowtotal() is not a gtools function and no by(); falling back on egen
+
+. sysuse auto, clear
+(1978 Automobile Data)
+
+. gegen seq = seq(), by(foreign)
+seq() is not a gtools function; will hash and use egen
+```

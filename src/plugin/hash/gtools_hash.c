@@ -14,6 +14,7 @@ ST_retcode gf_hash (
     GT_size i;
     uint64_t *h3;
 
+    GT_bool sorted   = 1;
     GT_size N        = st_info->N;
     GT_size rowbytes = st_info->rowbytes;
     GT_size kvars    = st_info->kvars_by;
@@ -28,16 +29,28 @@ ST_retcode gf_hash (
         if ( st_info->benchmark )
             sf_running_timer (&stimer, "\t\tPlugin step 2.3: Bijected integers to natural numbers");
 
+        for (i = 1; i < N; i++) {
+            if ( h1[i - 1] > h1[i] ) {
+                sorted = 0;
+                break;
+            }
+        }
+
         // Sort hash with index
         // --------------------
 
-        if ( (rc = gf_sort_hash (h1,
-                                 ix,
-                                 st_info->N,
-                                 st_info->verbose)) ) goto exit;
+        if ( !sorted ) {
+            if ( (rc = gf_sort_hash (h1,
+                                     ix,
+                                     st_info->N,
+                                     st_info->verbose)) ) goto exit;
 
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+        }
+        else if ( st_info->verbose ) {
+            sf_printf("(already sorted)\n");
+        }
     }
     else {
 
@@ -46,14 +59,32 @@ ST_retcode gf_hash (
         GTOOLS_GC_ALLOCATED("h3")
 
         if ( kstr > 0 ) {
-            for (i = 0; i < N; i++)
+            sorted = MultiSortCheckMC (st_info->st_charx,
+                                       st_info->N,
+                                       0,
+                                       st_info->kvars_by - 1,
+                                       st_info->rowbytes,
+                                       st_info->byvars_lens,
+                                       st_info->invert,
+                                       st_info->positions);
+
+            for (i = 0; i < N; i++) {
                 spookyhash_128(st_info->st_charx + (i * rowbytes),
                                rowbytes, h1 + i, h3 + i);
+            }
         }
         else {
-            for (i = 0; i < N; i++)
+            sorted = MultiSortCheckDbl(st_info->st_numx,
+                                       st_info->N,
+                                       0,
+                                       st_info->kvars_by - 1,
+                                       st_info->kvars_by * sizeof(ST_double),
+                                       st_info->invert);
+
+            for (i = 0; i < N; i++) {
                 spookyhash_128(st_info->st_numx + i * kvars,
                                sizeof(ST_double) * kvars, h1 + i, h3 + i);
+            }
         }
 
         if ( st_info->benchmark )
@@ -62,24 +93,35 @@ ST_retcode gf_hash (
         // Sort hash with index
         // --------------------
 
-        if ( (rc = gf_sort_hash (h1,
-                                 ix,
-                                 st_info->N,
-                                 st_info->verbose)) ) goto exit;
+        if ( !sorted ) {
+            if ( (rc = gf_sort_hash (h1,
+                                     ix,
+                                     st_info->N,
+                                     st_info->verbose)) ) goto exit;
 
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+            for (i = 0; i < st_info->N; i++) {
+                h2[i] = h3[ix[i]];
+            }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+        }
+        else if ( st_info->verbose ) {
+            sf_printf("(already sorted)\n");
+
+            for (i = 0; i < st_info->N; i++) {
+                h2[i] = h3[i];
+            }
+        }
 
         // Copy back second part of the hash in correct order
         // --------------------------------------------------
 
-        for (i = 0; i < st_info->N; i++) {
-            h2[i] = h3[ix[i]];
-        }
-
         free (h3);
         GTOOLS_GC_FREED("h3")
     }
+
+    st_info->sorted = sorted;
 
 exit:
     return (rc);
@@ -650,8 +692,15 @@ bycopy:
 
         // Skip if the user specifies the results need not be sorted
         // (unsorted, countonly). Also skip with the bijection, where
-        // you get the sorting for free.
-        multisort = (st_info->biject == 0) & (st_info->unsorted == 0);
+        // you get the sorting for free, or if we determined the data
+        // was already sorted.
+        // 
+        // Note here unsorted refers to the Stata option that tells
+        // the plugin to not sort the data, whereas sorted refers
+        // to the plugin's internal check that determined the data
+        // was already sorted.
+
+        multisort = (st_info->biject == 0) & (st_info->unsorted == 0) & (st_info->sorted == 0);
         if ( (level > 1) &  multisort ) {
             if ( kstr > 0 ) {
                 MultiQuicksortMC (st_info->st_by_charx,
@@ -671,9 +720,10 @@ bycopy:
                                   (kvars + 1) * sizeof(ST_double),
                                   st_info->invert);
             }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\tPlugin step 4.3: Sorted groups in memory");
         }
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\tPlugin step 4.3: Sorted groups in memory");
     }
     else {
         st_info->free = 8;

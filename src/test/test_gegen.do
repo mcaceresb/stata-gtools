@@ -77,15 +77,15 @@ program compare_egen
     compare_inner_egen, `options' tol(`tol')
 
     compare_inner_egen str_12,              `options' tol(`tol')
-    compare_inner_egen str_12 str_32,       `options' tol(`tol')
-    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol')
+    compare_inner_egen str_12 str_32,       `options' tol(`tol') sort
+    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol') shuffle
 
-    compare_inner_egen double1,                 `options' tol(`tol')
+    compare_inner_egen double1,                 `options' tol(`tol') shuffle
     compare_inner_egen double1 double2,         `options' tol(`tol')
-    compare_inner_egen double1 double2 double3, `options' tol(`tol')
+    compare_inner_egen double1 double2 double3, `options' tol(`tol') sort
 
-    compare_inner_egen int1,           `options' tol(`tol')
-    compare_inner_egen int1 int2,      `options' tol(`tol')
+    compare_inner_egen int1,           `options' tol(`tol') sort
+    compare_inner_egen int1 int2,      `options' tol(`tol') shuffle
     compare_inner_egen int1 int2 int3, `options' tol(`tol')
 
     compare_inner_egen int1 str_32 double1,                                        `options' tol(`tol')
@@ -95,7 +95,12 @@ end
 
 capture program drop compare_inner_egen
 program compare_inner_egen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 31 + length("`anything'") + length("`N'")

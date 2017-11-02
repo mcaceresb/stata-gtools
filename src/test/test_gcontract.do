@@ -16,7 +16,7 @@ program checks_gcontract
 
     checks_inner_contract -double1,                 `options' fast
     checks_inner_contract double1 -double2,         `options' unsorted
-    checks_inner_contract double1 -double2 double3, `options' v b
+    checks_inner_contract double1 -double2 double3, `options' v bench
 
     checks_inner_contract -int1,           `options'
     checks_inner_contract int1 -int2,      `options'
@@ -64,15 +64,15 @@ program compare_gcontract
     di as txt _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_contract str_12,              `options' tol(`tol') nomiss
-    compare_inner_contract str_12 str_32,       `options' tol(`tol')
-    compare_inner_contract str_12 str_32 str_4, `options' tol(`tol')
+    compare_inner_contract str_12 str_32,       `options' tol(`tol') sort
+    compare_inner_contract str_12 str_32 str_4, `options' tol(`tol') shuffle
 
-    compare_inner_contract double1,                 `options' tol(`tol')
+    compare_inner_contract double1,                 `options' tol(`tol') shuffle
     compare_inner_contract double1 double2,         `options' tol(`tol') nomiss
-    compare_inner_contract double1 double2 double3, `options' tol(`tol')
+    compare_inner_contract double1 double2 double3, `options' tol(`tol') sort
 
-    compare_inner_contract int1,           `options' tol(`tol')
-    compare_inner_contract int1 int2,      `options' tol(`tol')
+    compare_inner_contract int1,           `options' tol(`tol') sort
+    compare_inner_contract int1 int2,      `options' tol(`tol') shuffle
     compare_inner_contract int1 int2 int3, `options' tol(`tol') nomiss
 
     compare_inner_contract int1 str_32 double1,                                        `options' tol(`tol')
@@ -82,7 +82,12 @@ end
 
 capture program drop compare_inner_contract
 program compare_inner_contract
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 35 + length("`anything'") + length("`N'")

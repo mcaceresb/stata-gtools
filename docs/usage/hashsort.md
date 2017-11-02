@@ -4,12 +4,12 @@ hashsort
 sort and gsort using hashes and C-plugins
 
 _**Important:**_ Hashsort does not afford speed improvements over sort
-for Stata/MP users. Hence it is considered an experimental command, even
-though it is typically faster than gsort even in Stata/MP.
+when the resulting sort will be unique or when the user has access to
+Stata/MP. Hence it is considered an experimental command, even though it is
+generally faster than gsort even in Stata/MP.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
-
 
 Syntax
 ------
@@ -54,8 +54,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -67,4 +68,28 @@ Options
 Examples
 --------
 
-Pending XX
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/hashsort.do)
+
+```stata
+. sysuse auto, clear
+. hashsort price
+. hashsort +price
+. hashsort rep78 -price
+. hashsort make
+. hashsort foreign -make
+```
+
+One thing that is useful is that hashsort can encode a set of variables and
+set the encoded variable as the sorting variable:
+
+```stata
+. sysuse auto, clear
+(1978 Automobile Data)
+
+. hashsort foreign -make, group(id) sortgroup
+(note: missing values will be sorted last)
+
+. disp "`: sortedby'"
+id
+```

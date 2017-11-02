@@ -1,6 +1,15 @@
 Compiling
 =========
 
+Compiling the plugin yourself is advised if you are on Linux or OSX and you
+wish to speed up gtools. I ran the Stata/MP benchmarks on a server that used
+the plugin I compiled locally. This was because most people will have that
+experience (i.e. they will not compile the plugin themselves).
+
+However, if I compile the plugin on the server then gtools can be up to 2
+times faster. This is because the optimization flags of the compiler perform
+different optimizations in different hardware.
+
 ### Requirements
 
 If you want to compile the plugin yourself, you will need
@@ -36,13 +45,33 @@ Note that lines 37-40 in `lib/spookyhash/build/premake5.lua` cause the build
 to fail on some systems, so we delete them (they are meant to check the git
 executable exists).
 ```bash
+bash
+
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
-sed -i.bak -e '37,40d' ./lib/spookyhash/build/premake5.lua
-make spooky
+
+cd lib/spookyhash/build
+sed -i.bak -e '37,40d' premake5.lua
+
+url=https://github.com/premake/premake-core/releases/download
+version=5.0.0.alpha4
+
+# OSX
+# wget ${url}/v${version}/premake-${version}-macosx.tar.gz
+# tar zxvf premake-${version}-macosx.tar.gz
+
+# Linux
+# wget ${url}/v${version}/premake-${version}-linux.tar.gz
+# tar zxvf premake-${version}-linux.tar.gz
+
+./premake5 gmake
 make clean
-make
+ALL_CFLAGS+=-fPIC make
+cd -
+
+make clean
+make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 ```
 
 ### Unit tests

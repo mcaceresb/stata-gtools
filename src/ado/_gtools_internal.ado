@@ -1,4 +1,4 @@
-*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.2 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -42,7 +42,8 @@ program _gtools_internal, rclass
     syntax [anything] [if] [in] , ///
     [                             ///
         Verbose                   /// debugging
-        Benchmark                 /// print benchmark info
+        BENCHmark                 /// print function benchmark info
+        BENCHmarklevel(int 0)     /// print plugin benchmark info
         hashlib(str)              /// path to hash library (Windows only)
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
@@ -105,6 +106,7 @@ program _gtools_internal, rclass
         numfmt(str)               /// Columns sepparator
     ]
 
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local ifin `if' `in'
 
     * Check you will find the hash library (Windows only)
@@ -283,7 +285,7 @@ program _gtools_internal, rclass
             clean_all
             exit 198
         }
-        if ( !inlist("`gfunction'", "hash", "egen", "unique") ) {
+        if ( !inlist("`gfunction'", "hash", "egen", "unique", "sort") ) {
             di as err "cannot generate targets with -gfunction(`gfunction')-"
             clean_all
             exit 198
@@ -297,7 +299,7 @@ program _gtools_internal, rclass
     }
 
     if ( "`sources'`targets'`stats'" != "" ) {
-        if ( !inlist("`gfunction'", "hash", "egen", "collapse") ) {
+        if ( !inlist("`gfunction'", "hash", "egen", "collapse", "unique") ) {
             di as err "cannot generate targets with -gfunction(`gfunction')-"
             clean_all
             exit 198
@@ -328,14 +330,14 @@ program _gtools_internal, rclass
     * Parse options into scalars, etc. for C
     * --------------------------------------
 
-    local any_if    = ( "if'"        != "" )
+    local any_if    = ( "if'"         != "" )
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
     scalar __gtools_init_targ  = 0
     scalar __gtools_any_if     = `any_if'
     scalar __gtools_verbose    = `verbose'
-    scalar __gtools_benchmark  = `benchmark'
+    scalar __gtools_benchmark  = ( `benchmarklevel' > 1   )
     scalar __gtools_missing    = ( "`missing'"      != "" )
     scalar __gtools_unsorted   = ( "`unsorted'"     != "" )
     scalar __gtools_countonly  = ( "`countonly'"    != "" )
@@ -898,6 +900,7 @@ program _gtools_internal, rclass
             local gcall `gfunction'
             local contractvars `varlist'
             mata: st_matrix("__gtools_contract_which", strtoreal(tokens(`"`contractwhich'"')))
+            local runtxt " (internals)"
         }
         else if ( inlist("`gfunction'",  "top") ) {
             local 0, `gtop'
@@ -975,14 +978,14 @@ program _gtools_internal, rclass
     * levelsof
     if ( inlist("`gfunction'", "levelsof", "top") ) {
         return local levels `"`vals'"'
+        return local sep    `"`sep'"'
+        return local colsep `"`colsep'"'
     }
 
     * top matrix
     if ( inlist("`gfunction'", "top") ) {
         return matrix toplevels = __gtools_top_matrix
         return matrix numlevels = __gtools_top_num
-        return local sep    `"`sep'"'
-        return local colsep `"`colsep'"'
     }
 
     return matrix invert = __gtools_invert

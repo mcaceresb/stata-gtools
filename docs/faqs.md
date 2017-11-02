@@ -10,7 +10,7 @@ are implemented before adding that option to `gcollapse` and `gegen`.
 
 This uses 128-bit hashes split into 2 64-bit parts. As far as I know, it
 will not work with a 32-bit processor. If you try to force it to run,
-you will almost surely see integer overflows and pretty bad errors.
+you will see integer overflows and pretty bad errors.
 
 ### Why use platform-dependent plugins?
 
@@ -54,10 +54,13 @@ native commands:
    `ftools`, which uses a 32-bit hash and will run into collisions just
    with levels in the thousands, so he has to resolve collisions.
 
-2. Efficiency: It is possible that Stata's algorithms are not
-   particularly efficient (this is, for example, the explanation given
-   for why `ftools` is faster than Stata even though Mata should not be
-   faster than compiled C code).
+2. Efficiency: While Stata's buit-in commands are not necessarily inefficient,
+   the fact is many of its commands are ado files written in an add-hoc manner.
+   For instance, collapse loops through each statistic, computing them in
+   turn. This amounts to one individual call per statistic to `by`, which
+   is slow. Similar inefficiencies are found in egen, isid, levelsof, contract,
+   and so on. While they are fast enough for even modestly-sized data, when
+   there are several million rows they begin to falter.
 
 ### How does hashing work?
 
@@ -66,7 +69,7 @@ variable is much faster than sorting multiple variables with arbitrary
 data. In particular I use a counting sort, which asymptotically performs
 in `O(n)` time compared to `O(n log n)` for the fastest general-purpose
 sorting algorithms. (Note with a 128-bit algorithm using a counting sort is
-prohibitively expensive; `gcollapse` actually does 4 passes of a counting
+prohibitively expensive; gtools commands does 4 passes of a counting
 sort, each sorting 16 bits at a time; if the groups are not unique after
 sorting on the first 64 bits we sort on the full 128 bits.)
 
@@ -80,9 +83,12 @@ fixed size.
 In particular I use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)
 devised by Bob Jenkins, which is a 128-bit hash. Stata caps observations
 at 20 billion or so, meaning a 128-bit hash collision is _de facto_ impossible.
-on `collapse` and `egen` when it encounters a collision. An internal
-mechanism for resolving potential collisions is in the works. See [issue
-2](https://github.com/mcaceresb/stata-gtools/issues/2) for a discussion.
+Nevertheless, the code is written to fall back on native commands should
+it encounter a collision.
+
+An internal mechanism for resolving potential collisions is in the works. See
+[issue 2](https://github.com/mcaceresb/stata-gtools/issues/2) for a
+discussion.
 
 ### Memory management with gcollapse
 

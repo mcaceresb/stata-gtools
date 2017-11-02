@@ -12,6 +12,8 @@ Unlike contract, it does not modify the original data and instead prints the
 resulting table to the console. It also stores a matrix with the frequency
 counts and stores the levels in the macro r(levels).
 
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
+the start of your Stata session.
 
 Syntax
 ------
@@ -124,8 +126,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -176,10 +179,174 @@ values or the largest values that match a pattern is very helpful.
 Examples
 --------
 
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gtoplevelsof.do)
+
 ```stata
-. sysuse auto
+. sysuse auto, clear
+(1978 Automobile Data)
+
 . gtoplevelsof rep78
-. gtoplevelsof rep78, missrow local(toplevels)
-. gtoplevelsof rep78, colsep(", ")
-. gtoplevelsof foreign rep78, ntop(3) missrow
+
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------
+       3 |   30   30        41            41 
+       4 |   18   48        24            65 
+       5 |   11   59        15            80 
+       2 |    8   67        11            91 
+       . |    5   72       6.8            97 
+       1 |    2   74       2.7           100 
+
+
+. gtoplevelsof rep78,   missrow
+
+    rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ ---------------------------------------------
+        3 |   30   30        41            41 
+        4 |   18   48        24            65 
+        5 |   11   59        15            80 
+        2 |    8   67        11            91 
+        1 |    2   69       2.7            93 
+ ---------------------------------------------
+  Missing |    5   74       6.8           100 
+                                              
+
+
+. gtoplevelsof rep78,   colsep(", ")
+
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------
+       3 |   30   30        41            41 
+       4 |   18   48        24            65 
+       5 |   11   59        15            80 
+       2 |    8   67        11            91 
+       . |    5   72       6.8            97 
+       1 |    2   74       2.7           100 
+
+
+. gtoplevelsof rep78,   pctfmt(%7.3f)
+
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------
+       3 |   30   30    40.541        40.541 
+       4 |   18   48    24.324        64.865 
+       5 |   11   59    14.865        79.730 
+       2 |    8   67    10.811        90.541 
+       . |    5   72     6.757        97.297 
+       1 |    2   74     2.703       100.000 
+
+
+. gtoplevelsof mpg,     numfmt(%7.3f)
+
+     mpg |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------
+  18.000 |    9    9        12            12 
+  19.000 |    8   17        11            23 
+  14.000 |    6   23       8.1            31 
+  21.000 |    5   28       6.8            38 
+  22.000 |    5   33       6.8            45 
+  25.000 |    5   38       6.8            51 
+  16.000 |    4   42       5.4            57 
+  17.000 |    4   46       5.4            62 
+  24.000 |    4   50       5.4            68 
+  20.000 |    3   53       4.1            72 
+ --------------------------------------------
+   Other |   21   74        28           100 
+                                             
+
+
+. gtoplevelsof foreign
+
+   foreign |    N  Cum   Pct (%)   Cum Pct (%) 
+ ----------------------------------------------
+  Domestic |   52   52        70            70 
+   Foreign |   22   74        30           100 
+
+
+. gtoplevelsof foreign, colmax(3)
+
+  foreign |    N  Cum   Pct (%)   Cum Pct (%) 
+ ---------------------------------------------
+   Dom... |   52   52        70            70 
+   For... |   22   74        30           100 
+
+
+. gtoplevelsof foreign, novaluelab
+
+  foreign |    N  Cum   Pct (%)   Cum Pct (%) 
+ ---------------------------------------------
+        0 |   52   52        70            70 
+        1 |   22   74        30           100 
+
+
+. gtoplevelsof foreign rep78, ntop(4) missrow colstrmax(2)
+
+   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ ------------------------------------------------------
+  Domestic       3 |   27   27        36            36 
+  Domestic       4 |    9   36        12            49 
+   Foreign       4 |    9   45        12            61 
+   Foreign       5 |    9   54        12            73 
+ ------------------------------------------------------
+             Other |   20   74        27           100 
+                                                       
+
+
+. gtoplevelsof foreign rep78, ntop(4) missrow groupmiss
+
+   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ ------------------------------------------------------
+  Domestic       3 |   27   27        36            36 
+  Domestic       4 |    9   36        12            49 
+   Foreign       4 |    9   45        12            61 
+   Foreign       5 |    9   54        12            73 
+ ------------------------------------------------------
+     Missing (any) |    5   59       6.8            80 
+             Other |   15   74        20           100 
+                                                       
+
+
+. gtoplevelsof foreign rep78, ntop(4) missrow groupmiss noother
+
+   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ ------------------------------------------------------
+  Domestic       3 |    1    1         1             2 
+  Domestic       4 |    9    9         9             5 
+   Foreign       4 |    9   45        54            59 
+   Foreign       5 |    9   54        12           6.8 
+ ------------------------------------------------------
+     Missing (any) |    5   59       6.8            80 
+                                                       
+
+
+. gtoplevelsof foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
+
+   foreign<< rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ ------------------------------------------------------
+  Domestic<<     3 |   27   27        36            36 
+  Domestic<<     4 |    9   36        12            49 
+   Foreign<<     4 |    9   45        12            61 
+   Foreign<<     5 |    9   54        12            73 
+  Domestic<<     2 |    8   62        11            84 
+  Domestic<<     . |    4   66       5.4            89 
+   Foreign<<     3 |    3   69       4.1            93 
+  Domestic<<     1 |    2   71       2.7            96 
+  Domestic<<     5 |    2   73       2.7            99 
+   Foreign<<     . |    1   74       1.4           100 
+
+
+. matrix list lvl
+
+lvl[10,5]
+            ID          N        Cum        Pct     PctCum
+ r1          1         27         27  36.486486  36.486486
+ r2          1          9         36  12.162162  48.648649
+ r3          1          9         45  12.162162  60.810811
+ r4          1          9         54  12.162162  72.972973
+ r5          1          8         62  10.810811  83.783784
+ r6          1          4         66  5.4054054  89.189189
+ r7          1          3         69  4.0540541  93.243243
+ r8          1          2         71  2.7027027  95.945946
+ r9          1          2         73  2.7027027  98.648649
+r10          1          1         74  1.3513514        100
 ```

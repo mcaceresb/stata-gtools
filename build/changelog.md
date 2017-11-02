@@ -1,6 +1,33 @@
 Change Log
 ==========
 
+## gtools-0.9.2 (2017-11-02)
+
+### Bug fixes
+
+- Previous commit had a corrupted binary for the OSX plugin.
+
+### Backwards Incompatible
+
+- Option `benchmark` is no longer abbreviated with `b` and MUST be abbreviated
+  as `bench`.  This is to ensure consistency with options `bench(0)`,
+  `bench(1)` and `bench(2)`. `bench(1)` is the same as `benchmark`. `bench(2)`
+  additionally shows benchmarks for various internal plugin steps. `bench(0)`
+  is the same as not including `benchmark`.
+
+### Enhancements
+
+- Improved online docs: Now each example is available as raw code
+  (each example page points to it) and inline monospaced code should
+  be slightly bigger, improving readability.
+
+## gtools-0.9.1 (2017-11-01)
+
+- Stability improvements.
+- Commands should be faster when data is sorted (skips
+  hash sorting if data is already sorted).
+- Misc bug fixes.
+
 ## gtools-0.9.0 (2017-11-01)
 
 ### Features

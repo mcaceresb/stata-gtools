@@ -1,4 +1,4 @@
-*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.2 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -10,37 +10,67 @@ program gunique, rclass
         exit 2000
     }
 
-    global GTOOLS_CALLER gunique
     syntax varlist [if] [in] , ///
     [                          ///
         Detail                 /// Summary statistics for group counts
         MISSing                /// Include missing values
+        by(str)                /// by variabes: [+|-]varname [[+|-]varname ...]
+        GENerate(name)         /// Store uniques in generate (default _Unique)
+        replace                /// Replace variable specifyed by generate if it exists
+                               ///
         Verbose                /// Print info during function execution
-        Benchmark              /// Benchmark various steps of the plugin
+        BENCHmark              /// Benchmark function
+        BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
-                               ///
-                               /// Unused unique options
-                               /// -------------------
-        by(varname)            ///
-        GENerate(name)         ///
     ]
+    local seecount  seecount
+    local unsorted  unsorted
+    local countonly countonly
+
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
 
     if ( "`by'" != "" ) {
-        di as err "Option -by()- is not implemented"
-        exit 198
+        if ( "`generate'" == "" ) {
+            capture confirm new variable _Unique
+            if ( _rc ) {
+                if ( "`replace'" == "" ) {
+                    di as err "Variable _Unique already exists."
+                    di as err "Use the gen() option to specify a new variable."
+                    exit 110
+                }
+            }
+            local generate _Unique
+        }
+        else {
+            cap confirm new variable `generate'
+            if ( _rc ) {
+                if ( "`replace'" == "" ) {
+                    di as err "`generate' already exists."
+                    exit 110
+                }
+            }
+        }
+
+        local seecount  ""
+        * local unsorted  ""
+        local countonly ""
+
+        tempvar id
+        local gopts gen(`id')
+        if ( "`missing'" == "" ) local ifid if !mi(`id')
+
+        local type double
+        if ( `=_N' < 2^21 ) local type long
     }
 
-    if ( "`generate'" != "" ) {
-        di as err "Option -generate()- is not implemented"
-        exit 198
-    }
-
-    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision' seecount
+    global GTOOLS_CALLER gunique
+    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `seecount' `gopts'
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)
-        cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' `dopts'  gfunction(unique)
+        cap noi _gtools_internal `varlist' `if' `in', `unsorted' `opts' `dopts' gfunction(unique)
         local rc = _rc
         global GTOOLS_CALLER ""
 
@@ -58,11 +88,15 @@ program gunique, rclass
         return scalar unique = `r(J)'
         return scalar minJ   = `r(minJ)'
         return scalar maxJ   = `r(maxJ)'
+
+        local nunique = `r(J)'
+        local r_Ndisp = trim(`"`: di %21.0gc `r(N)''"')
+        local r_Jdisp = trim(`"`: di %21.0gc `r(J)''"')
 
         sum `count' in 1 / `=r(J)', d
     }
     else {
-        cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
+        cap noi _gtools_internal `varlist' `if' `in', `countonly' `unsorted' `opts' gfunction(unique)
         local rc = _rc
         global GTOOLS_CALLER ""
 
@@ -80,5 +114,28 @@ program gunique, rclass
         return scalar unique = `r(J)'
         return scalar minJ   = `r(minJ)'
         return scalar maxJ   = `r(maxJ)'
+
+        local nunique = `r(J)'
+        local r_Ndisp = trim(`"`: di %21.0gc `r(N)''"')
+        local r_Jdisp = trim(`"`: di %21.0gc `r(J)''"')
+    }
+
+    if ( "`by'" != "" ) {
+        gegen `type' `generate' = tag(`by' `id') `ifid', missing replace
+        gegen `generate' = sum(`generate'), by(`by') replace
+
+        di as txt ""
+        di as txt "'`varlist'' had `r_Jdisp' unique values in `r_Ndisp' observations."
+        di as txt "Variable `generate' has the number of unique values of '`varlist'' by '`by''."
+
+        if ( `=`nunique'' > 5 ) {
+            local header = `"The top 5 frequency counts of `generate' for the levels of '`by'' are"'
+        }
+        else {
+            local header = `"The frequency counts of `generate' for the levels of '`by'' are"'
+        }
+        di as txt `"`header'"'
+        gtoplevelsof `by' `generate' if `generate' > 0, ntop(5)
+
     }
 end

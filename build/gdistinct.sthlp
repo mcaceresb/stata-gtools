@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.0  31Oct2017}{...}
+{* *! version 0.2.2  02Nov2017}{...}
 {viewerdialog gdistinct "dialog gdistinct"}{...}
 {vieweralsosee "[D] gdistinct" "mansection D gdistinct"}{...}
 {viewerjumpto "Syntax" "gdistinct##syntax"}{...}
@@ -81,7 +81,9 @@ less than or equal to a specified maximum.
 
 {phang}
 {opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+take to execute. The user can also pass {opth bench(int)} for finer control.
+{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
+prints benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

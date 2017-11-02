@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.0  31Oct2017}{...}
+{* *! version 0.2.2  02Nov2017}{...}
 {viewerdialog gunique "dialog gunique"}{...}
 {vieweralsosee "[D] gunique" "mansection D gunique"}{...}
 {viewerjumpto "Syntax" "gunique##syntax"}{...}
@@ -38,15 +38,28 @@ It is 4 to 26 times faster in Stata/IC and 4-12 times faster in MP
 {opt gunique} is a faster alternative to {help unique}. It reports the number
 of unique values for the {it:varlist}. At the moment, its main difference from
 {opt distinct} is that it always considers the variables jointly. It also has
-slighly different options. A future release will include {opt by(varlist)} in
-order to compute the number of rows of {varlist} by the groups specified in
-{opt by}. This feature is not yeat available, however.
+slighly different options. For example, this supports the {opth by(varlist)}
+option that also appears in the {opt unique} command, but does not support
+computing the number of unique values for variables individually.
 
 {pstd}
 {opt gunique} is part of the {manhelp gtools R:gtools} project.
 
 {marker options}{...}
 {title:Options}
+
+{phang}
+{opth by(varlist)} counts unique values within levels of {it:varlist} and
+stores them in a new variable named {bf:_Unique}. The user can specify the
+name of the new variable via the option {opth gen:erate(varname)}.
+
+{phang}
+{opth gen:erate(varname)} supplies an alternative name for the new variable
+created by {bf:by}.
+
+{phang}
+{opt replace} replaces {bf:_Unique} or the variable specified via {opt
+generate}, if it exists.
 
 {phang}
 {opt detail} request summary statistics on the number of records which are
@@ -57,7 +70,9 @@ present for unique values of the varlist.
 
 {phang}
 {opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+take to execute. The user can also pass {opth bench(int)} for finer control.
+{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
+prints benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

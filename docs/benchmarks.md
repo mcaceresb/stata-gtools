@@ -47,7 +47,7 @@ be hundreds of times faster.
 
 The reason is that Stata's algorithm for computing percentiles
 sorts the source variables _every time_ a percentile is to
-be computed. `gcollapse` (and `gegen`), by contrast, uses
+be computed. `gcollapse` (and `gegen`), by contrast, use
 [quickselect](https://en.wikipedia.org/wiki/Quickselect), which is very
 efficient. While its average complexity is O(N log N), like quicksort, it
 can run in up to linear time, O(N).  In practice it is much faster than
@@ -795,7 +795,7 @@ Old Collapse Benchmarks
 -----------------------
 
 The data used here is different.  The grouping variable is an integer with
-missing values and no extended missing values. The Source variables are random
+missing values and no extended missing values. The source variables are random
 uniform variables with an offset. We can see that `gcollapse` (`0.9.0`) can be
 3-23 times faster than `fcollapse` undere some conditions.
 

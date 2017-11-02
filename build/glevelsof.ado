@@ -1,4 +1,4 @@
-*! version 0.3.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.2 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -24,15 +24,19 @@ program glevelsof, rclass
         numfmt(passthru)      /// Number format
                               ///
         Verbose               /// Print info during function execution
-        Benchmark             /// Benchmark various steps of the plugin
+        BENCHmark             /// Benchmark function
+        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
-                              /// 
+                              ///
         group(str)            ///
         tag(passthru)         ///
         counts(passthru)      ///
         replace               ///
     ]
+
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
 
     * Get varlist
     * -----------
@@ -54,7 +58,7 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean'
-    local sopts `colseparate' `verbose' `benchmark' `hashlib' `oncollision' `numfmt'
+    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt'
     local gopts gen(`group') `tag' `counts' `replace'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
@@ -101,6 +105,8 @@ program glevelsof, rclass
         return local levels `"`r(levels)'"'
     }
 
+    return local sep    `"`r(sep)'"'
+    return local colsep `"`r(colsep)'"'
     return scalar N      = `r(N)'
     return scalar J      = `r(J)'
     return scalar minJ   = `r(minJ)'

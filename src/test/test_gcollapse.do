@@ -89,8 +89,8 @@ program checks_corners
     qui {
         sysuse auto, clear
         gen price2 = price
-        gcollapse price = price2, by(make) v b `options'
-        gcollapse price in 1,     by(make) v b `options'
+        gcollapse price = price2, by(make) v bench `options'
+        gcollapse price in 1,     by(make) v bench `options'
     }
 
     qui {
@@ -168,20 +168,20 @@ program compare_gcollapse
     compare_inner_gcollapse_gegen, `options' tol(`tol')
 
     compare_inner_gcollapse_gegen -str_12,              `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol')
-    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol')
+    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -double1,                 `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol')
-    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -int1,           `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol')
-    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol')
-    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
     qui `noisily' gen_data, n(1000) random(2) binary(1)
     qui expand 50
@@ -190,17 +190,17 @@ program compare_gcollapse
 
     compare_inner_collapse, `options' tol(`tol')
 
-    compare_inner_collapse str_12,              `options' tol(`tol') forcemem
-    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio
+    compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
+    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
     compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
 
     compare_inner_collapse double1,                 `options' tol(`tol') forcemem
-    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio
-    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io'
+    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
+    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
 
-    compare_inner_collapse int1,           `options' tol(`tol') forcemem
+    compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
     compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
-    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io'
+    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
 
     compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
@@ -209,7 +209,12 @@ end
 
 capture program drop compare_inner_gcollapse_gegen
 program compare_inner_gcollapse_gegen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 45 + length("`anything'") + length("`N'")
@@ -218,6 +223,7 @@ program compare_inner_gcollapse_gegen
     preserve
         _compare_inner_gcollapse_gegen `anything', `options' tol(`tol')
     restore, preserve
+        if ( "`shuffle'" != "" ) sort `rsort'
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
@@ -300,7 +306,12 @@ end
 
 capture program drop compare_inner_collapse
 program compare_inner_collapse
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 35 + length("`anything'") + length("`N'")

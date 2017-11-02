@@ -1,4 +1,4 @@
-*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.2 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 cap program drop gtoplevelsof
@@ -11,45 +11,49 @@ program gtoplevelsof, rclass
     }
 
     global GTOOLS_CALLER gtoplevelsof
-    syntax anything [if] [in], ///
-    [                          ///
-        ntop(int 10)           /// Number of levels to display
-        freqabove(real 0)      /// Only include above this count
-        pctabove(real 0)       /// Only include above this pct
-                               ///
-        noOTHer                /// Do not add summary row with "other" group to table
-        missrow                /// Incldue missings as a sepparate row
-        GROUPMISSing           /// Count as missing if any variable is missing
-        noMISSing              /// Exclude missing values
-                               ///
-        OTHerlabel(str)        /// Label for "other" row
-        MISSROWlabel(str)      /// Count as missing if any variable is missing
-        pctfmt(str)            /// How to format percentages
-                               ///
-        noVALUELABels          /// Do (not) map value labels
-        HIDECONTlevels         /// Hide level name previous level is the same
-        VARABBrev(int -1)      /// Abbrev print of var names
-        colmax(numlist)        /// Maximum number of characters to print per column
-        colstrmax(numlist)     /// Maximum number of characters to print per column (strings)
-        numfmt(passthru)       /// How to format numbers
-                               ///
-        Separate(passthru)     /// Levels sepparator
-        COLSeparate(passthru)  /// Columns sepparator (only with 2+ vars)
-        LOCal(str)             /// Store variable levels in local
-        MATrix(str)            /// Store result in matrix
-                               ///
-        Verbose                /// debugging
-        Benchmark              /// print benchmark info
-        hashlib(passthru)      /// path to hash library (Windows)
-        oncollision(passthru)  /// On collision, fall back or error
-                               ///
-        group(str)             ///
-        tag(passthru)          ///
-        counts(passthru)       ///
-        replace                ///
+    syntax anything [if] [in],   ///
+    [                            ///
+        ntop(int 10)             /// Number of levels to display
+        freqabove(real 0)        /// Only include above this count
+        pctabove(real 0)         /// Only include above this pct
+                                 ///
+        noOTHer                  /// Do not add summary row with "other" group to table
+        missrow                  /// Incldue missings as a sepparate row
+        GROUPMISSing             /// Count as missing if any variable is missing
+        noMISSing                /// Exclude missing values
+                                 ///
+        OTHerlabel(str)          /// Label for "other" row
+        MISSROWlabel(str)        /// Count as missing if any variable is missing
+        pctfmt(str)              /// How to format percentages
+                                 ///
+        noVALUELABels            /// Do (not) map value labels
+        HIDECONTlevels           /// Hide level name previous level is the same
+        VARABBrev(int -1)        /// Abbrev print of var names
+        colmax(numlist)          /// Maximum number of characters to print per column
+        colstrmax(numlist)       /// Maximum number of characters to print per column (strings)
+        numfmt(passthru)         /// How to format numbers
+                                 ///
+        Separate(passthru)       /// Levels sepparator
+        COLSeparate(passthru)    /// Columns sepparator (only with 2+ vars)
+        LOCal(str)               /// Store variable levels in local
+        MATrix(str)              /// Store result in matrix
+                                 ///
+        Verbose                  /// debugging
+        BENCHmark                /// Benchmark function
+        BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        hashlib(passthru)        /// path to hash library (Windows)
+        oncollision(passthru)    /// On collision, fall back or error
+                                 ///
+        group(str)               ///
+        tag(passthru)            ///
+        counts(passthru)         ///
+        replace                  ///
     ]
 
-    if ( `"`colseparate'"' == "" ) local colseparate colseparate(`",  "')
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
+
+    if ( `"`colseparate'"' == "" ) local colseparate colseparate(`"  "')
     if ( `"`numfmt'"'      == "" ) local numfmt      numfmt(`"%.8g"')
     if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.1g"'
 
@@ -132,7 +136,7 @@ program gtoplevelsof, rclass
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `hashlib' `oncollision' 
+    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' 
     local gopts gen(`group') `tag' `counts' `replace'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 

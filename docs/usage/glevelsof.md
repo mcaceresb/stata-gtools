@@ -7,7 +7,7 @@ glevelsof displays a sorted list of the distinct values of varlist.  It is
 meant to be a fast replacement of levelsof. Unlike levelsof, it can take a
 single variable or multiple variables.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -84,6 +84,8 @@ glevelsof stores the following in r():
     Macros
 
         r(levels)    list of distinct values
+        r(sep)       Row separator
+        r(colsep)    Column sezparator
 
     Scalars
 
@@ -110,18 +112,108 @@ their frequency count.
 Examples
 --------
 
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/glevelsof.do)
+
 ```stata
 . sysuse auto
+(1978 Automobile Data)
 
 . glevelsof rep78
-. display `"`r(levels)'"'
+1 2 3 4 5
 
-. glevelsof rep78, miss local(mylevs)
-. display `"`mylevs'"'
+. glevelsof rep78, miss local(mylevs) silent
+
+. display "`mylevs'"
+1 2 3 4 5 .
 
 . glevelsof rep78, sep(,)
-. display `"`r(levels)'"'
-
-. glevelsof foreign rep78, sep(,)
-. display `"`r(levels)'"'
+1,2,3,4,5
 ```
+
+### Number format
+
+`levelsof` by default shows many significant digits for numerical variables.
+
+```stata
+. sysuse auto, clear
+
+. replace headroom = headroom + 0.1
+
+. glevelsof headroom
+1.600000023841858 2.099999904632568 2.599999904632568 3.099999904632568 3.599999904632568 4.099999904632568 4.599999904632568 5.099999904632568
+
+. levelsof headroom
+1.600000023841858 2.099999904632568 2.599999904632568 3.099999904632568 3.599999904632568 4.099999904632568 4.599999904632568 5.099999904632568
+```
+
+This is cumbersome. You can specify a number format to compress this:
+```stata
+. glevelsof headroom, numfmt(%.3g)
+1.6 2.1 2.6 3.1 3.6 4.1 4.6 5.1
+```
+
+### Multiple variables
+
+`glevelsof` can parse multiple variables:
+
+```
+. local varlist foreign rep78
+
+. glevelsof `varlist', sep("|") colsep(", ")
+`"0, 1"'|`"0, 2"'|`"0, 3"'|`"0, 4"'|`"0, 5"'|`"1, 3"'|`"1, 4"'|`"1, 5"'
+```
+
+If you know a bit of mata, you can parse this string!
+```stata
+mata:
+------------------------------------------------------------------------
+string scalar function unquote_str(string scalar quoted_str)
+{
+    if ( substr(quoted_str, 1, 1) == `"""' ) {
+        quoted_str = substr(quoted_str, 2, strlen(quoted_str) - 2)
+    }
+    else if (substr(quoted_str, 1, 2) == "`" + `"""') {
+        quoted_str = substr(quoted_str, 3, strlen(quoted_str) - 4)
+    }
+    return (quoted_str);
+}
+
+t = tokeninit(`"`r(sep)'"', (""), (`""""', `"`""'"'), 1)
+tokenset(t, `"`r(levels)'"')
+
+rows = tokengetall(t)
+for (i = 1; i <= cols(rows); i++) {
+    rows[i] = unquote_str(rows[i]);
+}
+
+levels = J(cols(rows), `:list sizeof varlist', "")
+
+t = tokeninit(`"`r(colsep)'"', (""), (`""""', `"`""'"'), 1)
+for (i = 1; i <= cols(rows); i++) {
+    tokenset(t, rows[i])
+    levels[i, .] = tokengetall(t)
+    for (k = 1; k <= `:list sizeof varlist'; k++) {
+        levels[i, k] = unquote_str(levels[i, k])
+    }
+}
+end
+------------------------------------------------------------------------
+
+. mata: levels
+
+       1   2
+    +---------+
+  1 |  0   1  |
+  2 |  0   2  |
+  3 |  0   3  |
+  4 |  0   4  |
+  5 |  0   5  |
+  6 |  1   3  |
+  7 |  1   4  |
+  8 |  1   5  |
+    +---------+
+```
+
+While this looks cumbersome, this mechanism is used internally by
+`gtoplevelsof` to display its results.

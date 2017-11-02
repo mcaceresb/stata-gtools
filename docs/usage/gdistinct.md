@@ -14,7 +14,7 @@ values.  Optionally, variables can be considered jointly so that the
 number of distinct groups defined by the values of variables in varlist
 is reported.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -53,8 +53,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -85,12 +86,88 @@ gdistinct stores the following in r():
 Examples
 --------
 
+You can download the raw code for the examples below
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gdistinct.do)
+
+gdistinct can function as a drop-in replacement for distinct.
+
 ```stata
-. sysuse auto
+. sysuse auto, clear
 . gdistinct
+
+              |        Observations
+              |      total   distinct
+--------------+----------------------
+         make |        74        74
+        price |        74        74
+          mpg |        74        21
+        rep78 |        69         5
+     headroom |        74         8
+        trunk |        74        18
+       weight |        74        64
+       length |        74        47
+         turn |        74        18
+ displacement |        74        31
+   gear_ratio |        74        36
+      foreign |        74         2
+
+. matrix list r(distinct)
+
+r(distinct)[12,2]
+                     N  Distinct
+        make        74        74
+       price        74        74
+         mpg        74        21
+       rep78        69         5
+    headroom        74         8
+       trunk        74        18
+      weight        74        64
+      length        74        47
+        turn        74        18
+displacement        74        31
+  gear_ratio        74        36
+     foreign        74         2
+   
 . gdistinct, max(10)
+
+              |        Observations
+              |      total   distinct
+--------------+----------------------
+        rep78 |        69         5
+     headroom |        74         8
+      foreign |        74         2
+
 . gdistinct make-headroom
+
+          |        Observations
+          |      total   distinct
+----------+----------------------
+     make |        74        74
+    price |        74        74
+      mpg |        74        21
+    rep78 |        69         5
+ headroom |        74         8
+
 . gdistinct make-headroom, missing abbrev(6)
+
+        |        Observations
+        |      total   distinct
+--------+----------------------
+   make |        74        74
+  price |        74        74
+    mpg |        74        21
+  rep78 |        74         6
+ head~m |        74         8
+
 . gdistinct foreign rep78, joint
+
+        Observations
+      total   distinct
+         69          8
+
 . gdistinct foreign rep78, joint missing
+
+        Observations
+      total   distinct
+         74         10
 ```

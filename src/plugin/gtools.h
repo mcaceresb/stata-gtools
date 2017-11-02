@@ -81,6 +81,7 @@ struct StataInfo {
     GT_size   top_lother;
     GT_size   top_lmiss;
     //
+    GT_bool   sorted;
     GT_bool   cleanstr;
     GT_bool   init_targ;
     GT_bool   any_if;

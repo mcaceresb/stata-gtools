@@ -2871,7 +2871,7 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
 
     * make sure sorted check gives same result
-    hashsort rsort `varlist'
+    hashsort `rsort' `varlist'
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'

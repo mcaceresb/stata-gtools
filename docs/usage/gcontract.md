@@ -76,8 +76,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -99,4 +100,112 @@ gcontract stores the following in r():
 Examples
 --------
 
-Pending XX
+The options here are essentially the same as Stata's contract,
+save for the standard gtools options.
+
+```stata
+sysuse auto, clear
+gen long id = _n * 1000
+expand id
+gcontract rep78, verbose
+```
+```
+Bijection OK with all integers (i.e. no extended miss val)? Yes.
+Counting sort on hash; min = 1, max = 6
+N = 2,775,000; 6 unbalanced groups of sizes 88,000 to 833,000
+```
+```
+l
+
+     +----------------+
+     | rep78    _freq |
+     |----------------|
+  1. |     1    88000 |
+  2. |     2   211000 |
+  3. |     3   833000 |
+  4. |     4   824000 |
+  5. |     5   649000 |
+     |----------------|
+  6. |     .   170000 |
+     +----------------+
+```
+
+You can add frequencies, percentages, and so on:
+```stata
+sysuse auto, clear
+gen long id = _n * 1000
+expand id
+gcontract rep78, freq(f) cfreq(cf) percent(p) cpercent(cp) bench
+```
+```
+Added target variables; .161 seconds
+Parsed by variables; .004 seconds
+Plugin runtime; .28 seconds
+Total runtime (internals); .285 seconds
+```
+```
+l
+
+     +-------------------------------------------+
+     | rep78        f        cf       p       cp |
+     |-------------------------------------------|
+  1. |     1    88000     88000    3.17     3.17 |
+  2. |     2   211000    299000    7.60    10.77 |
+  3. |     3   833000   1132000   30.02    40.79 |
+  4. |     4   824000   1956000   29.69    70.49 |
+  5. |     5   649000   2605000   23.39    93.87 |
+     |-------------------------------------------|
+  6. |     .   170000   2775000    6.13   100.00 |
+     +-------------------------------------------+
+```
+
+Last, with multiple variables you can "fill in" missing groups. This option
+has not been implemented internally and as such is very slow:
+
+```stata
+sysuse auto, clear
+gen long id = _n * 1000
+expand id
+gcontract foreign rep78, ///
+    freq(f) cfreq(cf) percent(p) cpercent(cp) bench(2) zero
+```
+```
+Added target variables; .137 seconds
+Parsed by variables; .002 seconds
+        Plugin step 1: Read in by variables; 0.116 seconds.
+                Plugin step 2.1: Determined hashing strategy; 0.036 seconds.
+                Plugin step 2.3: Bijected integers to natural numbers; 0.026 seconds.
+                Plugin step 2.4: Sorted integer-only hash; 0.057 seconds.
+        Plugin step 2: Hashed by variables; 0.120 seconds.
+        Plugin step 3: Set up panel; 0.013 seconds.
+                Plugin step 4.2: Keep only one row per group; 0.000 seconds.
+        Plugin step 4: Created indexed array with sorted by vars; 0.003 seconds.
+        Plugin step 5: Generated output array; 0.000 seconds.
+        Plugin step 6: Copied collapsed data to stata; 0.000 seconds.
+Plugin runtime; .262 seconds
+Total runtime (internals); .265 seconds
+
+l
+
+     +------------------------------------------------------+
+     | rep78    foreign        f        cf       p       cp |
+     |------------------------------------------------------|
+  1. |     1   Domestic    88000     88000    3.17     3.17 |
+  2. |     2   Domestic   211000    299000    7.60    10.77 |
+  3. |     3   Domestic   654000    953000   23.57    34.34 |
+  4. |     4   Domestic   256000   1209000    9.23    43.57 |
+  5. |     5   Domestic    63000   1272000    2.27    45.84 |
+     |------------------------------------------------------|
+  6. |     .   Domestic   106000   1378000    3.82    49.66 |
+  7. |     1    Foreign        0   1378000    0.00    49.66 |
+  8. |     2    Foreign        0   1378000    0.00    49.66 |
+  9. |     3    Foreign   179000   1557000    6.45    56.11 |
+ 10. |     4    Foreign   568000   2125000   20.47    76.58 |
+     |------------------------------------------------------|
+ 11. |     5    Foreign   586000   2711000   21.12    97.69 |
+ 12. |     .    Foreign    64000   2775000    2.31   100.00 |
+     +------------------------------------------------------+
+```
+
+You will note a few levels have 0 frequency, which means they did
+not appear in the full data.

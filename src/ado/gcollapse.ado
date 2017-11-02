@@ -1,4 +1,4 @@
-*! version 0.9.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.1 01Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -7,38 +7,41 @@ program gcollapse, rclass
     local 00 `0'
 
     global GTOOLS_CALLER gcollapse
-    syntax [anything(equalok)]       /// Main function call:
-                                     ///     [(stat)] varlist [ [(stat)] ... ]
-                                     ///     [(stat)] target = source [target = source ...] [ [(stat)] ...]
-        [if] [in] ,                  /// [if condition] [in start / end]
-    [                                ///
-        by(str)                      /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
-        cw                           /// Drop ocase-wise bservations where sources are missing.
-        fast                         /// Do not preserve and restore the original dataset. Saves speed
-                                     /// but leaves data unusable if the user hits Break.
-                                     ///
-        merge                        /// Merge statistics back to original data, replacing if applicable
-        replace                      /// Allow replacing existing variables with output with merge
-        freq(passthru)               /// Include frequency count with observations per group
-                                     ///
-        LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
-        LABELProgram(passthru)       /// Program to parse labelformat (see examples)
-                                     ///
-        unsorted                     /// Do not sort the data; faster
-        forceio                      /// Use disk temp drive for writing/reading collapsed data
-        forcemem                     /// Use memory for writing/reading collapsed data
-        double                       /// Generate all targets as doubles
-                                     ///
-        Verbose                      /// Print info during function execution
-        Benchmark                    /// Benchmark various steps of the plugin
-                                     ///
-        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
-                                     ///
-        debug_replaceby              /// (internal) Allow replacing by variables with output
-        debug_io_check(real 1e6)     /// (internal) Threshold to check for I/O speed gains
-        debug_io_threshold(real 10)  /// (internal) Threshold to switch to I/O instead of RAM
+    syntax [anything(equalok)]      /// Main function call:
+                                    /// [(stat)] varlist [ [(stat)] ... ]
+                                    /// [(stat)] target = source [target = source ...] [ [(stat)] ...]
+        [if] [in] ,                 /// [if condition] [in start / end]
+    [                               ///
+        by(str)                     /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
+        cw                          /// Drop ocase-wise bservations where sources are missing.
+        fast                        /// Do not preserve and restore the original dataset. Saves speed
+                                    /// but leaves data unusable if the user hits Break.
+                                    ///
+        merge                       /// Merge statistics back to original data, replacing if applicable
+        replace                     /// Allow replacing existing variables with output with merge
+        freq(passthru)              /// Include frequency count with observations per group
+                                    ///
+        LABELFormat(passthru)       /// Custom label engine: (#stat#) #sourcelabel# is the default
+        LABELProgram(passthru)      /// Program to parse labelformat (see examples)
+                                    ///
+        unsorted                    /// Do not sort the data; faster
+        forceio                     /// Use disk temp drive for writing/reading collapsed data
+        forcemem                    /// Use memory for writing/reading collapsed data
+        double                      /// Generate all targets as doubles
+                                    ///
+        Verbose                     /// Print info during function execution
+        BENCHmark                   /// print function benchmark info
+        BENCHmarklevel(int 0)       /// print plugin benchmark info
+                                    ///
+        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
+                                    ///
+        debug_replaceby             /// (internal) Allow replacing by variables with output
+        debug_io_check(real 1e6)    /// (internal) Threshold to check for I/O speed gains
+        debug_io_threshold(real 10) /// (internal) Threshold to switch to I/O instead of RAM
     ]
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
 
     local replaceby `debug_replaceby'
     local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'" == ""
@@ -237,7 +240,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_vars')
     local stats    stats(`__gtools_stats')
     local targets  targets(`__gtools_targets')
-    local opts     missing replace `verbose' `benchmark' `hashlib' `oncollision'
+    local opts     missing replace `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     local action  `sources' `targets' `stats'
 
     local switch = (`=scalar(__gtools_k_extra)' > 3) & (`debug_io_check' < `=_N')
@@ -583,7 +586,6 @@ program parse_vars
             }
         }
         else {
-
             if !regexm(`"`vl'"', "`ltxt_regex'") {
                 while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
                     local lfmt_k = regexs(1) + `"`vl'"' + regexs(3)

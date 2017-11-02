@@ -38,7 +38,7 @@ end
 capture program drop checks_inner_levelsof
 program checks_inner_levelsof
     syntax varlist, [*]
-    cap noi glevelsof `varlist', `options' v b clean silent
+    cap noi glevelsof `varlist', `options' v bench clean silent
     assert _rc == 0
 
     cap glevelsof `varlist' in 1, `options' silent miss
@@ -70,22 +70,27 @@ program compare_levelsof
     local hlen = 24 + length("`options'") + length("`N'")
     di _n(1) "{hline 80}" _n(1) "compare_levelsof, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_levelsof str_12, `options'
-    compare_inner_levelsof str_32, `options'
+    compare_inner_levelsof str_12, `options' sort
+    compare_inner_levelsof str_32, `options' shuffle
     compare_inner_levelsof str_4,  `options'
 
     compare_inner_levelsof double1, `options' round
-    compare_inner_levelsof double2, `options' round
-    compare_inner_levelsof double3, `options' round
+    compare_inner_levelsof double2, `options' round sort
+    compare_inner_levelsof double3, `options' round shuffle
 
-    compare_inner_levelsof int1, `options'
+    compare_inner_levelsof int1, `options' shuffle
     compare_inner_levelsof int2, `options'
-    compare_inner_levelsof int3, `options'
+    compare_inner_levelsof int3, `options' sort
 end
 
 capture program drop compare_inner_levelsof
 program compare_inner_levelsof
-    syntax varlist, [round *]
+    syntax varlist, [round shuffle sort *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     cap  levelsof `varlist', s(" | ") local(l_stata)
     cap glevelsof `varlist', s(" | ") local(l_gtools) `options'

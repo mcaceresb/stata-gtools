@@ -1,4 +1,4 @@
-*! version 0.3.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.1 01Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid
@@ -6,19 +6,23 @@ program gisid
     version 13
 
     global GTOOLS_CALLER gisid
-    syntax varlist              /// Variables to check
-        [if] [in] ,             /// [if condition] [in start / end]
-    [                           ///
-        Missok                  /// Missing values in varlist are OK
-        Verbose                 /// Print info during function execution
-        Benchmark               /// Benchmark various steps of the plugin
-        hashlib(passthru)       /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)   /// error|fallback: On collision, use native command or throw error
-                                ///
-                                /// Unsupported isid options
-                                /// ------------------------
-        Sort                    ///
+    syntax varlist            /// Variables to check
+        [if] [in] ,           /// [if condition] [in start / end]
+    [                         ///
+        Missok                /// Missing values in varlist are OK
+        Verbose               /// Print info during function execution
+        BENCHmark             /// Benchmark function
+        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
+        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru) /// error|fallback: On collision, use native command or throw error
+                              ///
+                              /// Unsupported isid options
+                              /// ------------------------
+        Sort                  ///
     ]
+
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
 
     if ( "`sort'" != "" ) {
         di as err "Option -sort- is not implemented"
@@ -32,7 +36,7 @@ program gisid
         local miss missing
     }
 
-    local opts `miss' `verbose' `benchmark' `hashlib' `oncollision'
+    local opts `miss' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)
     local rc = _rc
     global GTOOLS_CALLER ""

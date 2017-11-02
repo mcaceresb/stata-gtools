@@ -30,7 +30,7 @@ program checks_hashsort
     hashsort -foreign rep78,           `options'
     hashsort idx,                      `options'
     hashsort foreign rep78 mpg,        `options'
-    hashsort idx,                      `options' v b
+    hashsort idx,                      `options' v bench
 end
 
 capture program drop checks_inner_hashsort

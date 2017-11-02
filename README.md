@@ -12,8 +12,8 @@ Faster Stata for big data. This packages provides a hash-based implementation
 of collapse, contract, egen, isid, levelsof, and unique/distinct using C
 plugins for a massive speed improvement.
 
-`version 0.9.0 31Oct2017`
-Builds: Linux [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
+`version 0.9.1 01Nov2017`
+Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Group Operations
@@ -321,7 +321,8 @@ TODO
 
 Roadmap to 1.0
 
-- [ ] Write examples showcasing each command.
+- [X] Add support for `by` in `gunique`
+- [X] Write examples showcasing each command.
 - [ ] Add comments to all the code base
 - [ ] Improve coverage of debug checks.
     - [ ] Have corner cases for ALL commands
@@ -332,9 +333,7 @@ These are options/features I would like to support, but I don't
 have an ETA for them:
 
 - [ ] Add support for weights.
-- [ ] Add support for `by` in `gunique`
 - [ ] Minimize memory use.
-- [ ] Option `smart` to check if variables are sorted.
 - [ ] Option `greedy` to give user fine-grain control over gcollapse internals.
 
 These are mainly ideas for improvements to the plugin.  They may or not get

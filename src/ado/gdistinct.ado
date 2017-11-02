@@ -1,4 +1,4 @@
-*! version 0.2.0 31Oct2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.1 01Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -11,19 +11,23 @@ program gdistinct, rclass
     }
 
     global GTOOLS_CALLER gunique
-    syntax [varlist] [if] [in] ,  ///
-    [                             ///
-        MISSing                   /// Include missing values
-        Joint                     /// Report distinct values for varlist jointly
-        MINimum(int 0)            /// Report distinct only for groups with at least min
-        MAXimum(int -1)           /// Report distinct only for groups with at most max
-        Abbrev(int -1)            /// Abbrev print of var names
-                                  ///
-        Verbose                   /// Print info during function execution
-        Benchmark                 /// Benchmark various steps of the plugin
-        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
+    syntax [varlist] [if] [in] , ///
+    [                            ///
+        MISSing                  /// Include missing values
+        Joint                    /// Report distinct values for varlist jointly
+        MINimum(int 0)           /// Report distinct only for groups with at least min
+        MAXimum(int -1)          /// Report distinct only for groups with at most max
+        Abbrev(int -1)           /// Abbrev print of var names
+                                 ///
+        Verbose                  /// Print info during function execution
+        BENCHmark                /// Benchmark function
+        BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
     ]
+
+    if ( `benchmarklevel' > 0 ) local benchmark benchmark
+    local benchmarklevel benchmarklevel(`benchmarklevel')
 
 	if ( `maximum' == -1 ) local maximum .
 
@@ -34,9 +38,10 @@ program gdistinct, rclass
 		di as txt "min(`maximum') max(`minimum') interpreted as min(`minimum') max(`maximum')"
 	}
 
+    local keepvars ""
     tempname ndistinct
 
-    local opts `missing' `verbose' `benchmark' `hashlib' `oncollision'
+    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
         local r_N          = `r(N)'
@@ -103,6 +108,7 @@ program gdistinct, rclass
             }
 
             if ( (`r_J' >= `minimum') & (`r_J' <= `maximum') ) {
+                local keepvars `keepvars' `v'
                 local ++k
                 mata: __gtools_distinct[1, `k'] = `"" " as txt %`abbrev's abbrev("`v'", `abbrev')"'
                 mata: __gtools_distinct[2, `k'] = `"" {c |}  " as res %9.0g `r_N' "  " %9.0g `r_J'"'
@@ -123,8 +129,8 @@ program gdistinct, rclass
         cap mata: mata drop __gtools_distinct
     }
 
-	if ( "`joint'" == "" ) {
-        matrix rownames `ndistinct' = "`varlist'"
+	if ( ("`joint'" == "") & ("`keepvars'" != "") ) {
+        matrix rownames `ndistinct' = `keepvars'
     }
     matrix colnames `ndistinct' = N Distinct
 

@@ -54,8 +54,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -67,4 +68,25 @@ Options
 Examples
 --------
 
-Pending XX
+```stata
+. sysuse auto, clear
+. hashsort price
+. hashsort +price
+. hashsort rep78 -price
+. hashsort make
+. hashsort foreign -make
+```
+
+One thing that is useful is that hashsort can encode a set of variables and
+set the encoded variable as the sorting variable:
+
+```stata
+. sysuse auto, clear
+(1978 Automobile Data)
+
+. hashsort foreign -make, group(id) sortgroup
+(note: missing values will be sorted last)
+
+. disp "`: sortedby'"
+id
+```

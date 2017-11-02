@@ -53,8 +53,9 @@ Options
 
 - `verbose` prints some useful debugging info to the console.
 
-- `benchmark` prints how long in seconds various parts of the program take to
-            execute.
+- `benchmark` or `bench(level)` prints how long in seconds various parts of the
+            program take to execute. Level 1 is the same as `benchmark`. Level 2
+            additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -85,12 +86,85 @@ gdistinct stores the following in r():
 Examples
 --------
 
+gdistinct can function as a drop-in replacement for distinct.
+
 ```stata
-. sysuse auto
-. gdistinct
-. gdistinct, max(10)
-. gdistinct make-headroom
-. gdistinct make-headroom, missing abbrev(6)
-. gdistinct foreign rep78, joint
-. gdistinct foreign rep78, joint missing
+sysuse auto, clear
+gdistinct
+
+              |        Observations
+              |      total   distinct
+--------------+----------------------
+         make |        74        74
+        price |        74        74
+          mpg |        74        21
+        rep78 |        69         5
+     headroom |        74         8
+        trunk |        74        18
+       weight |        74        64
+       length |        74        47
+         turn |        74        18
+ displacement |        74        31
+   gear_ratio |        74        36
+      foreign |        74         2
+
+matrix list r(distinct)
+
+r(distinct)[12,2]
+                     N  Distinct
+        make        74        74
+       price        74        74
+         mpg        74        21
+       rep78        69         5
+    headroom        74         8
+       trunk        74        18
+      weight        74        64
+      length        74        47
+        turn        74        18
+displacement        74        31
+  gear_ratio        74        36
+     foreign        74         2
+   
+gdistinct, max(10)
+
+              |        Observations
+              |      total   distinct
+--------------+----------------------
+        rep78 |        69         5
+     headroom |        74         8
+      foreign |        74         2
+
+gdistinct make-headroom
+
+          |        Observations
+          |      total   distinct
+----------+----------------------
+     make |        74        74
+    price |        74        74
+      mpg |        74        21
+    rep78 |        69         5
+ headroom |        74         8
+
+gdistinct make-headroom, missing abbrev(6)
+
+        |        Observations
+        |      total   distinct
+--------+----------------------
+   make |        74        74
+  price |        74        74
+    mpg |        74        21
+  rep78 |        74         6
+ head~m |        74         8
+
+gdistinct foreign rep78, joint
+
+        Observations
+      total   distinct
+         69          8
+
+gdistinct foreign rep78, joint missing
+
+        Observations
+      total   distinct
+         74         10
 ```

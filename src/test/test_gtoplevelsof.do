@@ -41,7 +41,7 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything' in 1, `options' miss
     gtoplevelsof `anything' if _n == 1, `options' local(hi) miss
     gtoplevelsof `anything' if _n < 10 in 5, `options' s(" | ") cols(", ") miss
-    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' v bench
     gtoplevelsof `anything', `options' ntop(2)
     gtoplevelsof `anything', `options' ntop(0)
     gtoplevelsof `anything', `options' ntop(0) noother
@@ -65,7 +65,7 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything', `options' colstrmax(2)
     gtoplevelsof `anything', `options' numfmt(%9.4f)
     gtoplevelsof `anything', `options' s(", ") cols(" | ")
-    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' v bench
     gtoplevelsof `anything', `options' colstrmax(0) numfmt(%.5g) colmax(0) varabb(1) freqabove(100) nooth
     gtoplevelsof `anything', `options' missrow nooth groupmiss pctabove(2.5)
     gtoplevelsof `anything', `options' missrow groupmiss pctabove(2.5)

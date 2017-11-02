@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Wed Nov  1 07:16:28 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.9.0
+* Version: 0.9.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -482,8 +482,8 @@ program checks_corners
     qui {
         sysuse auto, clear
         gen price2 = price
-        gcollapse price = price2, by(make) v b `options'
-        gcollapse price in 1,     by(make) v b `options'
+        gcollapse price = price2, by(make) v bench `options'
+        gcollapse price in 1,     by(make) v bench `options'
     }
 
     qui {
@@ -561,20 +561,20 @@ program compare_gcollapse
     compare_inner_gcollapse_gegen, `options' tol(`tol')
 
     compare_inner_gcollapse_gegen -str_12,              `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol')
-    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol')
+    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -double1,                 `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol')
-    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -int1,           `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol')
-    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol') shuffle
 
     compare_inner_gcollapse_gegen -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol')
-    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
     qui `noisily' gen_data, n(1000) random(2) binary(1)
     qui expand 50
@@ -583,17 +583,17 @@ program compare_gcollapse
 
     compare_inner_collapse, `options' tol(`tol')
 
-    compare_inner_collapse str_12,              `options' tol(`tol') forcemem
-    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio
+    compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
+    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
     compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
 
     compare_inner_collapse double1,                 `options' tol(`tol') forcemem
-    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio
-    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io'
+    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
+    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
 
-    compare_inner_collapse int1,           `options' tol(`tol') forcemem
+    compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
     compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
-    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io'
+    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
 
     compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
@@ -602,7 +602,12 @@ end
 
 capture program drop compare_inner_gcollapse_gegen
 program compare_inner_gcollapse_gegen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 45 + length("`anything'") + length("`N'")
@@ -611,6 +616,7 @@ program compare_inner_gcollapse_gegen
     preserve
         _compare_inner_gcollapse_gegen `anything', `options' tol(`tol')
     restore, preserve
+        if ( "`shuffle'" != "" ) sort `rsort'
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
@@ -693,7 +699,12 @@ end
 
 capture program drop compare_inner_collapse
 program compare_inner_collapse
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 35 + length("`anything'") + length("`N'")
@@ -967,7 +978,7 @@ program checks_gcontract
 
     checks_inner_contract -double1,                 `options' fast
     checks_inner_contract double1 -double2,         `options' unsorted
-    checks_inner_contract double1 -double2 double3, `options' v b
+    checks_inner_contract double1 -double2 double3, `options' v bench
 
     checks_inner_contract -int1,           `options'
     checks_inner_contract int1 -int2,      `options'
@@ -1015,15 +1026,15 @@ program compare_gcontract
     di as txt _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_contract str_12,              `options' tol(`tol') nomiss
-    compare_inner_contract str_12 str_32,       `options' tol(`tol')
-    compare_inner_contract str_12 str_32 str_4, `options' tol(`tol')
+    compare_inner_contract str_12 str_32,       `options' tol(`tol') sort
+    compare_inner_contract str_12 str_32 str_4, `options' tol(`tol') shuffle
 
-    compare_inner_contract double1,                 `options' tol(`tol')
+    compare_inner_contract double1,                 `options' tol(`tol') shuffle
     compare_inner_contract double1 double2,         `options' tol(`tol') nomiss
-    compare_inner_contract double1 double2 double3, `options' tol(`tol')
+    compare_inner_contract double1 double2 double3, `options' tol(`tol') sort
 
-    compare_inner_contract int1,           `options' tol(`tol')
-    compare_inner_contract int1 int2,      `options' tol(`tol')
+    compare_inner_contract int1,           `options' tol(`tol') sort
+    compare_inner_contract int1 int2,      `options' tol(`tol') shuffle
     compare_inner_contract int1 int2 int3, `options' tol(`tol') nomiss
 
     compare_inner_contract int1 str_32 double1,                                        `options' tol(`tol')
@@ -1033,7 +1044,12 @@ end
 
 capture program drop compare_inner_contract
 program compare_inner_contract
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 35 + length("`anything'") + length("`N'")
@@ -1277,15 +1293,15 @@ program compare_egen
     compare_inner_egen, `options' tol(`tol')
 
     compare_inner_egen str_12,              `options' tol(`tol')
-    compare_inner_egen str_12 str_32,       `options' tol(`tol')
-    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol')
+    compare_inner_egen str_12 str_32,       `options' tol(`tol') sort
+    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol') shuffle
 
-    compare_inner_egen double1,                 `options' tol(`tol')
+    compare_inner_egen double1,                 `options' tol(`tol') shuffle
     compare_inner_egen double1 double2,         `options' tol(`tol')
-    compare_inner_egen double1 double2 double3, `options' tol(`tol')
+    compare_inner_egen double1 double2 double3, `options' tol(`tol') sort
 
-    compare_inner_egen int1,           `options' tol(`tol')
-    compare_inner_egen int1 int2,      `options' tol(`tol')
+    compare_inner_egen int1,           `options' tol(`tol') sort
+    compare_inner_egen int1 int2,      `options' tol(`tol') shuffle
     compare_inner_egen int1 int2 int3, `options' tol(`tol')
 
     compare_inner_egen int1 str_32 double1,                                        `options' tol(`tol')
@@ -1295,7 +1311,12 @@ end
 
 capture program drop compare_inner_egen
 program compare_inner_egen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 31 + length("`anything'") + length("`N'")
@@ -1550,19 +1571,19 @@ program checks_unique
     gen long ix = _n
 
     checks_inner_unique str_12,              `options'
-    checks_inner_unique str_12 str_32,       `options'
+    checks_inner_unique str_12 str_32,       `options' by(str_4) replace
     checks_inner_unique str_12 str_32 str_4, `options'
 
     checks_inner_unique double1,                 `options'
-    checks_inner_unique double1 double2,         `options'
+    checks_inner_unique double1 double2,         `options' by(double3) replace
     checks_inner_unique double1 double2 double3, `options'
 
     checks_inner_unique int1,           `options'
-    checks_inner_unique int1 int2,      `options'
+    checks_inner_unique int1 int2,      `options' by(int3) replace
     checks_inner_unique int1 int2 int3, `options'
 
     checks_inner_unique int1 str_32 double1,                                        `options'
-    checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
+    checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options' by(int3 str_4 double3) replace
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     clear
@@ -1580,7 +1601,7 @@ end
 capture program drop checks_inner_unique
 program checks_inner_unique
     syntax varlist, [*]
-    cap gunique `varlist', `options' v b miss
+    cap gunique `varlist', `options' v bench miss
     assert _rc == 0
 
     cap gunique `varlist' in 1, `options' miss d
@@ -1622,17 +1643,17 @@ program compare_unique
 
     local options `options' `distinct'`unique'
 
-    compare_inner_unique str_12,              `options'
-    compare_inner_unique str_12 str_32,       `options'
+    compare_inner_unique str_12,              `options' sort
+    compare_inner_unique str_12 str_32,       `options' shuffle
     compare_inner_unique str_12 str_32 str_4, `options'
 
     compare_inner_unique double1,                 `options'
-    compare_inner_unique double1 double2,         `options'
-    compare_inner_unique double1 double2 double3, `options'
+    compare_inner_unique double1 double2,         `options' sort
+    compare_inner_unique double1 double2 double3, `options' shuffle
 
-    compare_inner_unique int1,           `options'
+    compare_inner_unique int1,           `options' shuffle
     compare_inner_unique int1 int2,      `options'
-    compare_inner_unique int1 int2 int3, `options'
+    compare_inner_unique int1 int2 int3, `options' sort
 
     compare_inner_unique int1 str_32 double1,                                        `options'
     compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
@@ -1641,7 +1662,12 @@ end
 
 capture program drop compare_inner_unique
 program compare_inner_unique
-    syntax varlist, [distinct unique *]
+    syntax varlist, [distinct unique sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     if ( "`distinct'" != "" ) {
         local joint joint
@@ -1999,7 +2025,7 @@ end
 capture program drop checks_inner_levelsof
 program checks_inner_levelsof
     syntax varlist, [*]
-    cap noi glevelsof `varlist', `options' v b clean silent
+    cap noi glevelsof `varlist', `options' v bench clean silent
     assert _rc == 0
 
     cap glevelsof `varlist' in 1, `options' silent miss
@@ -2031,22 +2057,27 @@ program compare_levelsof
     local hlen = 24 + length("`options'") + length("`N'")
     di _n(1) "{hline 80}" _n(1) "compare_levelsof, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_levelsof str_12, `options'
-    compare_inner_levelsof str_32, `options'
+    compare_inner_levelsof str_12, `options' sort
+    compare_inner_levelsof str_32, `options' shuffle
     compare_inner_levelsof str_4,  `options'
 
     compare_inner_levelsof double1, `options' round
-    compare_inner_levelsof double2, `options' round
-    compare_inner_levelsof double3, `options' round
+    compare_inner_levelsof double2, `options' round sort
+    compare_inner_levelsof double3, `options' round shuffle
 
-    compare_inner_levelsof int1, `options'
+    compare_inner_levelsof int1, `options' shuffle
     compare_inner_levelsof int2, `options'
-    compare_inner_levelsof int3, `options'
+    compare_inner_levelsof int3, `options' sort
 end
 
 capture program drop compare_inner_levelsof
 program compare_inner_levelsof
-    syntax varlist, [round *]
+    syntax varlist, [round shuffle sort *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     cap  levelsof `varlist', s(" | ") local(l_stata)
     cap glevelsof `varlist', s(" | ") local(l_gtools) `options'
@@ -2408,7 +2439,7 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything' in 1, `options' miss
     gtoplevelsof `anything' if _n == 1, `options' local(hi) miss
     gtoplevelsof `anything' if _n < 10 in 5, `options' s(" | ") cols(", ") miss
-    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' v bench
     gtoplevelsof `anything', `options' ntop(2)
     gtoplevelsof `anything', `options' ntop(0)
     gtoplevelsof `anything', `options' ntop(0) noother
@@ -2432,7 +2463,7 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything', `options' colstrmax(2)
     gtoplevelsof `anything', `options' numfmt(%9.4f)
     gtoplevelsof `anything', `options' s(", ") cols(" | ")
-    gtoplevelsof `anything', `options' v b
+    gtoplevelsof `anything', `options' v bench
     gtoplevelsof `anything', `options' colstrmax(0) numfmt(%.5g) colmax(0) varabb(1) freqabove(100) nooth
     gtoplevelsof `anything', `options' missrow nooth groupmiss pctabove(2.5)
     gtoplevelsof `anything', `options' missrow groupmiss pctabove(2.5)
@@ -2725,7 +2756,7 @@ end
 capture program drop checks_inner_isid
 program checks_inner_isid
     syntax varlist, [*]
-    cap gisid `varlist', `options' v b missok
+    cap gisid `varlist', `options' v bench missok
     assert _rc == 459
 
     cap gisid `varlist' in 1, `options' missok
@@ -2773,8 +2804,10 @@ end
 capture program drop compare_inner_isid
 program compare_inner_isid
     syntax varlist, [*]
+
     tempvar rsort ix
     gen `rsort' = runiform()
+    sort `rsort'
     gen long `ix' = _n
 
     cap isid `varlist', missok
@@ -3064,7 +3097,7 @@ program checks_hashsort
     hashsort -foreign rep78,           `options'
     hashsort idx,                      `options'
     hashsort foreign rep78 mpg,        `options'
-    hashsort idx,                      `options' v b
+    hashsort idx,                      `options' v bench
 end
 
 capture program drop checks_inner_hashsort

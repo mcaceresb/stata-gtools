@@ -8,19 +8,19 @@ program checks_unique
     gen long ix = _n
 
     checks_inner_unique str_12,              `options'
-    checks_inner_unique str_12 str_32,       `options'
+    checks_inner_unique str_12 str_32,       `options' by(str_4) replace
     checks_inner_unique str_12 str_32 str_4, `options'
 
     checks_inner_unique double1,                 `options'
-    checks_inner_unique double1 double2,         `options'
+    checks_inner_unique double1 double2,         `options' by(double3) replace
     checks_inner_unique double1 double2 double3, `options'
 
     checks_inner_unique int1,           `options'
-    checks_inner_unique int1 int2,      `options'
+    checks_inner_unique int1 int2,      `options' by(int3) replace
     checks_inner_unique int1 int2 int3, `options'
 
     checks_inner_unique int1 str_32 double1,                                        `options'
-    checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
+    checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options' by(int3 str_4 double3) replace
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     clear
@@ -38,7 +38,7 @@ end
 capture program drop checks_inner_unique
 program checks_inner_unique
     syntax varlist, [*]
-    cap gunique `varlist', `options' v b miss
+    cap gunique `varlist', `options' v bench miss
     assert _rc == 0
 
     cap gunique `varlist' in 1, `options' miss d
@@ -80,17 +80,17 @@ program compare_unique
 
     local options `options' `distinct'`unique'
 
-    compare_inner_unique str_12,              `options'
-    compare_inner_unique str_12 str_32,       `options'
+    compare_inner_unique str_12,              `options' sort
+    compare_inner_unique str_12 str_32,       `options' shuffle
     compare_inner_unique str_12 str_32 str_4, `options'
 
     compare_inner_unique double1,                 `options'
-    compare_inner_unique double1 double2,         `options'
-    compare_inner_unique double1 double2 double3, `options'
+    compare_inner_unique double1 double2,         `options' sort
+    compare_inner_unique double1 double2 double3, `options' shuffle
 
-    compare_inner_unique int1,           `options'
+    compare_inner_unique int1,           `options' shuffle
     compare_inner_unique int1 int2,      `options'
-    compare_inner_unique int1 int2 int3, `options'
+    compare_inner_unique int1 int2 int3, `options' sort
 
     compare_inner_unique int1 str_32 double1,                                        `options'
     compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
@@ -99,7 +99,12 @@ end
 
 capture program drop compare_inner_unique
 program compare_inner_unique
-    syntax varlist, [distinct unique *]
+    syntax varlist, [distinct unique sort shuffle *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
 
     if ( "`distinct'" != "" ) {
         local joint joint

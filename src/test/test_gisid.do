@@ -32,7 +32,7 @@ end
 capture program drop checks_inner_isid
 program checks_inner_isid
     syntax varlist, [*]
-    cap gisid `varlist', `options' v b missok
+    cap gisid `varlist', `options' v bench missok
     assert _rc == 459
 
     cap gisid `varlist' in 1, `options' missok
@@ -80,8 +80,10 @@ end
 capture program drop compare_inner_isid
 program compare_inner_isid
     syntax varlist, [*]
+
     tempvar rsort ix
     gen `rsort' = runiform()
+    sort `rsort'
     gen long `ix' = _n
 
     cap isid `varlist', missok

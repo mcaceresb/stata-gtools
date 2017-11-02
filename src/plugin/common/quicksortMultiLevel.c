@@ -445,8 +445,13 @@ int MultiIsIDCheckMC (
 {
     int rc;
     GT_size j;
+    GT_bool checkok = 0;
     GT_bool ischar;
     void *i, *end;
+
+    // Check if range is sorted.  If it is not in weakly ascending order, it
+    // is not sorted.
+
 
     if ( (rc = gf_isid_sorted (
         start,
@@ -458,12 +463,35 @@ int MultiIsIDCheckMC (
         &(positions[kstart])
     )) < 0 ) return (rc);
 
+    // If it is sorted in strictly ascending order, then it is sorted.
+    //
+    //     1. If there are more levels but the highest level is strictly
+    //        ascending then this must ba an ID.
+    //     2. If this is a recursive call, then this will tell the outer
+    //        call that this level is sorted.
+
+    if ( rc > 0 )
+        return (rc);
+
+    // If this is weakly sorted, exit only if this is the deepest level.  If
+    // this is not the deepest level, there may be a deeper level that is
+    // sorted, so go to the loop to check.
+
     if ( kstart >= kend )
         return (rc);
 
     end = start + N * elsize;
 
 loop:
+
+    // The function should only enter the loop if this is not the deepest
+    // level and the level is weakly sorted. Hence there is at least one group
+    // defined by this level. If the loop does not find at least one group
+    // then something is off. Assume the data is not sorted in this case and
+    // resume execution normally.
+
+    // First, get the ending point for this grouping. We count the number
+    // of elements that are the same, so the end is simply start + j
 
     j = 1;
     if ( invert[kstart] ) {
@@ -495,7 +523,17 @@ loop:
         }
     }
 
+    // If this is a group for this level and not a unique observation,
+    // recursively check if everything from the next level onward is an ID
+    // within this group. Note that this code will be run at least once.
+
     if ( j > 1 ) {
+        checkok = 1;
+
+        // If everything is sorted strictly, then this is an ID and we can
+        // move on to checking the next group in this level, should any
+        // exist. However, if this is sorted weakly or not sorted then exit.
+
         if ( (rc = MultiIsIDCheckMC (
             start,
             j,
@@ -505,7 +543,24 @@ loop:
             ltypes,
             invert,
             positions
-        )) < 0) return (rc);
+        )) <= 0) return (rc);
+
+        // Note that in the recursive call we exit if the return code is <= 0,
+        // not just < 0 (i.e. if it is unsorted or weakly sorted). Why?
+        //
+        // There are two scenarios to consider:
+        //    1. Level k + 1 weakly sorted but a deeper level is strictly sorted
+        //    2. Every level deeper than k is weakly sortd
+        //
+        // We want the function to return 1 in the first case and 0 in the second.
+        // Note the recursive call will end if one of two things happens:
+        //
+        //    1. The data is is strictly sorted by some deeper level
+        //       or combination thereof.
+        //    2. The data is not strictly sorted for at least 2 rows.
+        //
+        // rc <= 0 means at least one deeper level was not strictly sorted,
+        // which makes this not sorted or not an ID.
     }
 
     if ( kstart < kend ) {
@@ -514,7 +569,14 @@ loop:
             goto loop;
     }
 
-    return (rc);
+    // For some reason the loop executed but no groups were found. This should
+    // never happen, so we exit as if the data was not sorted.
+
+    if ( checkok ) {
+        return (rc);
+    }
+
+    return (-1);
 }
 
 int MultiIsIDCheckDbl (
@@ -536,7 +598,11 @@ int MultiIsIDCheckDbl (
 {
     int rc;
     GT_size j;
+    GT_bool checkok = 0;
     void *i, *end;
+
+    // Check if range is sorted.  If it is not in weakly ascending order, it
+    // is not sorted.
 
     if ( (rc = gf_isid_sorted (
         start,
@@ -546,12 +612,36 @@ int MultiIsIDCheckDbl (
         &kstart
     )) < 0 ) return (rc);
 
+    // If it is sorted in strictly ascending order, then it is sorted.
+    //
+    //     1. If there are more levels but the highest level is strictly
+    //        ascending then this must ba an ID.
+    //     2. If this is a recursive call, then this will tell the outer
+    //        call that this level is sorted.
+
+    if ( rc > 0 )
+        return (rc);
+
+    // If this is weakly sorted, exit only if this is the deepest level.  If
+    // this is not the deepest level, there may be a deeper level that is
+    // sorted, so go to the loop to check.
+
     if ( kstart >= kend )
         return (rc);
 
     end = start + N * elsize;
 
 loop:
+
+    // The function should only enter the loop if this is not the deepest
+    // level and the level is weakly sorted. Hence there is at least one group
+    // defined by this level. If the loop does not find at least one group
+    // then something is off. Assume the data is not sorted in this case and
+    // resume execution normally.
+
+    // First, get the ending point for this grouping. We count the number
+    // of elements that are the same, so the end is simply start + j
+
     j = 1;
     if ( invert[kstart] ) {
         for (i = start + elsize; i < end; i += elsize) {
@@ -566,7 +656,18 @@ loop:
         }
     }
 
+    // If this is a group for this level and not a unique observation,
+    // recursively check if everything from the next level onward is an ID
+    // within this group. Note that this code will be run at least once.
+
     if ( j > 1 ) {
+        checkok = 1;
+
+        // If everything is sorted strictly, then this is an ID and we can
+        // move on to checking the next group in this level, should any
+        // exist. However, if this is sorted weakly or not sorted then it is
+        // not an ID.
+
         if ( (rc = MultiIsIDCheckDbl (
             start,
             j,
@@ -574,7 +675,24 @@ loop:
             kend,
             elsize,
             invert
-        )) < 0) return (rc);
+        )) <= 0) return (rc);
+
+        // Note that in the recursive call we exit if the return code is <= 0,
+        // not just < 0 (i.e. if it is unsorted or weakly sorted). Why?
+        //
+        // There are two scenarios to consider:
+        //    1. Level k + 1 weakly sorted but a deeper level is strictly sorted
+        //    2. Every level deeper than k is weakly sortd
+        //
+        // We want the function to return 1 in the first case and 0 in the second.
+        // Note the recursive call will end if one of two things happens:
+        //
+        //    1. The data is is strictly sorted by some deeper level
+        //       or combination thereof.
+        //    2. The data is not strictly sorted for at least 2 rows.
+        //
+        // rc <= 0 means at least one deeper level was not strictly sorted,
+        // which makes this not sorted or not an ID.
     }
 
     if ( kstart < kend ) {
@@ -583,5 +701,12 @@ loop:
             goto loop;
     }
 
-    return (rc);
+    // For some reason the loop executed but no groups were found. This should
+    // never happen, so we exit as if the data was not sorted.
+
+    if ( checkok ) {
+        return (rc);
+    }
+
+    return (-1);
 }

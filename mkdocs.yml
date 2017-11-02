@@ -3,6 +3,8 @@ pages:
     - Home: index.md
     - FAQs: faqs.md
     - Benchmarks: benchmarks.md
+    - Advanced:
+        - Compiling: compiling.md
     - Usage:
         - gcollapse:    usage/gcollapse.md
         - gcontract:    usage/gcontract.md
@@ -14,8 +16,6 @@ pages:
         - gtoplevelsof: usage/gtoplevelsof.md
         - gunique:      usage/gunique.md
         - hashsort:     usage/hashsort.md
-    - Advanced:
-        - Compiling: compiling.md
 
 theme: readthedocs
 

@@ -5,7 +5,8 @@ program checks_isid
 
     qui `noisily' gen_data, n(5000)
     qui expand 2
-    gen long ix = _n
+    gen long ix  = _n
+    gen byte ind = 0
 
     checks_inner_isid str_12,              `options'
     checks_inner_isid str_12 str_32,       `options'
@@ -27,6 +28,20 @@ program checks_isid
     gen x = 1
     cap gisid x
     assert _rc == 0
+
+    clear
+    set obs 4
+    gen x = 1
+    gen y = _n
+    gen z = _n
+    replace y = 1 in 1/2
+    replace x = 2 in 3/4
+    gisid x y z, v
+
+    replace y = x
+    replace z = 1 in 1/2
+    cap noi gisid x y z, v
+    assert _rc == 459
 end
 
 capture program drop checks_inner_isid
@@ -43,6 +58,21 @@ program checks_inner_isid
 
     cap gisid `varlist' if _n < 10 in 5, `options' missok
     assert _rc == 0
+
+    cap gisid ix `varlist', `options' v bench missok
+    assert _rc == 0
+
+    preserve
+    sort `varlist'
+    cap gisid `varlist' ix, `options' v bench missok
+    assert _rc == 0
+
+    qui replace ix  = _n
+    qui replace ix  = 1 in 1/2
+    qui replace ind = 1 in 3/4
+    cap gisid  ind ix `varlist', `options' v bench missok
+    assert _rc == 459
+    restore
 end
 
 ***********************************************************************
@@ -117,7 +147,9 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
 
     * make sure sorted check gives same result
-    hashsort `rsort' `varlist'
+    hashsort rsort `varlist'
+    cap isid `rsort' `varlist', missok
+    local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by([sorted] rsort `varlist')
@@ -210,12 +242,12 @@ program check_rc
 
     if ( `rc_isid' != `rc_gisid' ) {
         if ( `rc_isid' & (`rc_gisid' == 0) ) {
-            di as err "    compare_isid (failed): isid `by' was an id but gisid returned error r(`rc_isid')"
-            exit `rc_gisid'
+            di as err "    compare_isid (failed): gisid `by' was an id but isid returned error r(`rc_isid')"
+            exit `rc_isid'
         }
         else if ( (`rc_isid' == 0) & `rc_gisid' ) {
-            di as err "    compare_isid (failed): gisid `by' was an id but isid returned error r(`rc_gisid')"
-            exit `rc_isid'
+            di as err "    compare_isid (failed): isid `by' was an id but gisid returned error r(`rc_gisid')"
+            exit `rc_gisigd'
         }
         else {
             di as err "    compare_isid (failed): `by' was not an id but isid and gisid returned different errors r(`rc_isid') vs r(`rc_gisid')"

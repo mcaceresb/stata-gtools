@@ -57,9 +57,7 @@ git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
 make clean
-
-cd lib/spookyhash/build
-sed -i.bak -e '37,40d' premake5.lua
+sed -i.bak -e '37,40d' lib/spookyhash/build/premake5.lua
 ```
 
 If you are on Windows, of if `premake5` is installed and in your system's
@@ -72,25 +70,28 @@ make spooky
 If you are Linux and OSX and you don't know how to install `premake5`, run
 
 ```bash
+cd lib/spookyhash/build
+
 url=https://github.com/premake/premake-core/releases/download
 version=5.0.0.alpha4
 
 # Linux
-curl -O ${url}/v${version}/premake-${version}-linux.tar.gz
+curl -OL ${url}/v${version}/premake-${version}-linux.tar.gz
 tar zxvf premake-${version}-linux.tar.gz
 
 # OSX
-curl -O ${url}/v${version}/premake-${version}-macosx.tar.gz
+curl -OL ${url}/v${version}/premake-${version}-macosx.tar.gz
 tar zxvf premake-${version}-macosx.tar.gz
 
 # Make spookyhash
 ./premake5 gmake
 make clean
 ALL_CFLAGS+=-fPIC make
+
 cd -
 ```
 
-Now to finish, compile the plugin
+To finish, compile the plugin
 
 ```bash
 make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)

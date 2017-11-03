@@ -29,7 +29,7 @@ __*Gtools commands with a stata equivalent*__
 | Function     | Replaces      | Speedup (IC / MP)        | Unsupported     | Extras                           |
 | ------------ | ------------- | ------------------------ | --------------- | -------------------------------- |
 | gcollapse    | collapse      |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output |
-| gcontract    | contract      |  5 to 7   / 2 to 5-4     | Weights         |                                  |
+| gcontract    | contract      |  5 to 7   / 2.5-4        | Weights         |                                  |
 | gegen        | egen          |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                        |
 | gisid        | isid          |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                       |
 | glevelsof    | levelsof      |  3 to 13  / 2 to 5-7     |                 | Multiple variables               |
@@ -172,6 +172,10 @@ gisid price in 1
 * glevelsof varlist [if] [in], [options]
 glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
+
+* gtoplevelsof varlist [if] [in], [options]
+gtoplevelsof foreign rep78
+gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
 gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v

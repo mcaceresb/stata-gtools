@@ -4,7 +4,7 @@ Faster Stata for big data. This packages provides a hash-based implementation
 of collapse, contract, egen, isid, levelsof, and unique/distinct using C
 plugins for a massive speed improvement.
 
-`version 0.9.3 02Nov2017`
+`version 0.9.4 03Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -258,6 +258,8 @@ __*Differences from Stata counterparts*__
 Differences from `collapse`
 
 - No support for weights.
+- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
+  (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,

@@ -12,7 +12,7 @@ the start of your Stata session.
 Syntax
 ------
 
-```
+```stata
 gisid varlist [if] [in] [, missok]
 ```
 

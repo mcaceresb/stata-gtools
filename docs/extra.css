@@ -6,6 +6,11 @@ code {
     font-size: 14px
 }
 
+.codespan {
+    font-family: monospace;
+    font-size: 14px
+}
+
 li {
     font-size: 15px
 }

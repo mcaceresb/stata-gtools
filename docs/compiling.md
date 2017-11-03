@@ -12,24 +12,28 @@ different optimizations in different hardware.
 
 ### Requirements
 
-If you want to compile the plugin yourself, you will need
+If you want to compile the plugin yourself, you will, at a minimum, need
 
 - The GNU Compiler Collection (`gcc`)
+- `git`
+
+The plugin additionally requires:
+
+- v2.0 or above of the [Stata Plugin Interface](https://stata.com/plugins/version2) (SPI).
 - [`premake5`](https://premake.github.io)
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
-- v2.0 or above of the [Stata Plugin Interface](https://stata.com/plugins/version2) (SPI).
 
-I keep a copy of Stata's Plugin Interface in this repository, and I have added
-`centaurean`'s implementation of SpookyHash as a submodule.  However, you will
-have to make sure you have `gcc` and `premake5` installed and in your system's
-`PATH`.
+However, I keep a copy of Stata's Plugin Interface in this repository, and I
+have added `centaurean`'s implementation of SpookyHash as a submodule.  Hence
+as long as you have `gcc`, `make`, and `git`, you fill be able to compile the
+plugin following the instructions below.  
 
-On OSX, yu can get `gcc` and `make` from xcode. On windows, you will need
+On OSX, you can get `gcc` and `make` from xcode. On windows, you will need
 
-- [Cygwin](https://cygwin.com) with gcc, make, libgomp, x86_64-w64-mingw32-gcc-5.4.0.exe
+- [Cygwin](https://cygwin.com) with `gcc`, `make`, `x86_64-w64-mingw32-gcc-5.4.0.exe`
   (Cygwin is pretty massive by default; I would install only those packages).
 
-If you also want to compile SpookyHash on windows yourself, you will also need
+If you also want to compile SpookyHash on Windows yourself, you will also need
 
 - [Microsoft Visual Studio](https://www.visualstudio.com) with the
   Visual Studio Developer Command Prompt (again, this is pretty massive
@@ -37,35 +41,46 @@ If you also want to compile SpookyHash on windows yourself, you will also need
   Developer Prompt).
 
 I keep a copy of `spookyhash.dll` in `./lib/windows` so there is no need to
-re-compile SpookyHash.
+re-compile SpookyHash. In fact, I would advise **against** trying to recompile
+SpookyHash on Windows.
 
 ### Compilation
 
 Note that lines 37-40 in `lib/spookyhash/build/premake5.lua` cause the build
 to fail on some systems, so we delete them (they are meant to check the git
 executable exists).
+
 ```bash
 bash
 
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
+make clean
 
 cd lib/spookyhash/build
 sed -i.bak -e '37,40d' premake5.lua
 ```
 
-On Linux and OSX, run
+If you are on Windows, of if `premake5` is installed and in your system's
+`PATH`, run
+
+```bash
+make spooky
 ```
+
+If you are Linux and OSX and you don't know how to install `premake5`, run
+
+```bash
 url=https://github.com/premake/premake-core/releases/download
 version=5.0.0.alpha4
 
 # Linux
-wget ${url}/v${version}/premake-${version}-macosx.tar.gz
-tar zxvf premake-${version}-macosx.tar.gz
+curl -O ${url}/v${version}/premake-${version}-linux.tar.gz
+tar zxvf premake-${version}-linux.tar.gz
 
 # OSX
-wget ${url}/v${version}/premake-${version}-macosx.tar.gz
+curl -O ${url}/v${version}/premake-${version}-macosx.tar.gz
 tar zxvf premake-${version}-macosx.tar.gz
 
 # Make spookyhash
@@ -75,14 +90,9 @@ ALL_CFLAGS+=-fPIC make
 cd -
 ```
 
-On Windows, run
-```
-make spooky
-```
+Now to finish, compile the plugin
 
-To finish, compile the plugin
-```
-make clean
+```bash
 make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 ```
 

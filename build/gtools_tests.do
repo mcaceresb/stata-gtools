@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Wed Nov  1 07:16:28 EDT 2017
 * Purpose: Unit tests for gtools
-* Version: 0.9.3
+* Version: 0.9.4
 * Manual:  help gtools
 
 * Stata start-up options
@@ -3126,7 +3126,7 @@ program checks_hashsort
     gen idx = _n
     hashsort -foreign rep78 make -mpg, `options'
     hashsort idx,                      `options'
-    hashsort -foreign rep78,           `options'
+    hashsort -foreign -rep78,          `options'
     hashsort idx,                      `options'
     hashsort foreign rep78 mpg,        `options'
     hashsort idx,                      `options' v bench
@@ -3148,7 +3148,14 @@ end
 
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) benchmode *]
+    local options `options' `benchmode'
+    if ( "`benchmode'" == "" ) {
+        local benchcomp Comparison
+    }
+    else {
+        local benchcomp Benchmark
+    }
 
     cap gen_data, n(`n')
     qui expand 10 * `bench'
@@ -3159,7 +3166,7 @@ program compare_hashsort
     local J = trim("`: di %15.0gc `n''")
 
     di _n(1)
-    di "Benchmark vs gsort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
+    di "`benchcomp' vs gsort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
     di "    gsort | hashsort | ratio (g/h) | varlist"
     di "    ----- | -------- | ----------- | -------"
 
@@ -3183,7 +3190,7 @@ program compare_hashsort
     local N = trim("`: di %15.0gc _N'")
 
     di _n(1)
-    di "Benchmark vs sort, obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
+    di "`benchcomp' vs sort (stable), obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
     di "     sort | fsort | hashsort | ratio (s/h) | ratio (f/h) | varlist"
     di "     ---- | ----- | -------- | ----------- | ----------- | -------"
 
@@ -3313,11 +3320,12 @@ program compare_gsort, rclass
     syntax anything, [benchmode *]
     tempvar ix
     gen long `ix' = _n
+    if ( "`benchmode'" == "" ) local gstable `ix'
 
     timer clear
     preserve
         timer on 42
-        gsort `anything', mfirst
+        gsort `anything' `gstable', mfirst
         timer off 42
         tempfile file_sort
         qui save `file_sort'

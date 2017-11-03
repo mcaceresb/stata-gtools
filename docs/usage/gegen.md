@@ -10,9 +10,9 @@ Syntax
 ------
 
 <p>
-<span style="font-family:monospace">gegen [type] newvar = fcn(arguments) [if] [in] [, ///</spen>
+<span class="codespan">gegen [type] newvar = fcn(arguments) [if] [in] [, ///</spen>
 </br>
-<span style="font-family:monospace">&emsp;&emsp;&emsp; replace <a href="#compiled-functions">fcn_options</a> <a href="#gtools-options">gtools_options</a> ]
+<span class="codespan">&emsp;&emsp;&emsp; replace <a href="#compiled-functions">fcn_options</a> <a href="#gtools-options">gtools_options</a> ]
 </p>
 
 ### Gtools options

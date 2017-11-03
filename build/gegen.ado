@@ -1,4 +1,4 @@
-*! version 0.9.3 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -433,7 +433,7 @@ program egen_fallback, sortpreserve
     }
     else {
         tempvar byid
-        hashsort `_byvars', group(`byid') sortgroup skipcheck `kwargs'
+        hashsort `_byvars', gen(`byid') sortgen skipcheck `kwargs'
     }
 
     capture noisily `vv' _g`_fcn' `_type' `dummy' = (`_args') `if' `in', by(`byid') `options'

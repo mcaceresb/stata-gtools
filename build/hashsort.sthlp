@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.3  02Nov2017}{...}
+{* *! version 0.3.4  03Nov2017}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}
@@ -65,16 +65,13 @@ always produces a stable sort.
 {dlgtab:Options}
 
 {phang}
-{opth gen(varname)} Store sort oder in {opt gen}.
+{opth gen:enerate(varname)} Store group ID in {opt generate}.
 
 {phang}
-{opth group(varname)} Store group ID in {opt group}.
+{opt sortgen} Set data sortby variable to {opt generate}.
 
 {phang}
-{opt sortgroup} Set data sortby variable to {opt group}.
-
-{phang}
-{opt replace} If {opt group} exits, it is replaced.
+{opt replace} If {opt generate} exits, it is replaced.
 
 {phang}
 {opt skipcheck} Skip internal is sorted check.

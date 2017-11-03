@@ -22,7 +22,7 @@ the start of your Stata session.
 Syntax
 ------
 
-```
+```stata
 gtools [, options]
 ```
 

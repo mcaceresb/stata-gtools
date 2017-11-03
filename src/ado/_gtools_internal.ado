@@ -1,4 +1,4 @@
-*! version 0.2.3 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -80,7 +80,7 @@ program _gtools_internal, rclass
                                   /// -------------------
                                   ///
         tag(str)                  /// 1 for first obs of group in range, 0 otherwise
-        gen(str)                  /// variable where to store encoded index
+        GENerate(str)             /// variable where to store encoded index
         counts(str)               /// variable where to store group counts
         fill(str)                 /// for counts(); group fill order or value
                                   ///
@@ -94,7 +94,7 @@ program _gtools_internal, rclass
                                   ///
         invertinmata              /// invert sort index using mata
         sortindex(str)            /// keep sort index in memory
-        sortgroup                 /// set sort by group variable
+        sortgen                   /// sort by generated variable (hashsort only)
         skipcheck                 /// skip is sorted check
                                   ///
                                   /// glevelsof options
@@ -108,7 +108,8 @@ program _gtools_internal, rclass
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local ifin `if' `in'
-
+    local gen  `generate'
+ 
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
 
@@ -285,7 +286,7 @@ program _gtools_internal, rclass
             clean_all
             exit 198
         }
-        if ( !inlist("`gfunction'", "hash", "egen", "unique", "sort") ) {
+        if ( !inlist("`gfunction'", "hash", "egen", "unique", "sort", "levelsof") ) {
             di as err "cannot generate targets with -gfunction(`gfunction')-"
             clean_all
             exit 198
@@ -810,10 +811,24 @@ program _gtools_internal, rclass
             exit `rc'
         }
 
-        if ( ("`gen_name'" == "") | ("`sortgroup'" == "") ) {
-            if ( !`invert' ) sort `byvars'
+        if ( ("`gen_name'" == "") | ("`sortgen'" == "") ) {
+            if ( `invert' ) {
+                mata: st_numscalar("__gtools_first_inverted", ///
+                                   selectindex(st_matrix("__gtools_invert"))[1])
+                if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+                    local sortvars ""
+                    forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                        local sortvars `sortvars' `:word `i' of `byvars''
+                    }
+                    scalar drop __gtools_first_inverted
+                    sort `sortvars'
+                }
+            }
+            else {
+                sort `byvars'
+            }
         }
-        else if ( ("`gen_name'" != "") & ("`sortgroup'" != "") ) {
+        else if ( ("`gen_name'" != "") & ("`sortgen'" != "") ) {
             sort `gen_name'
         }
 

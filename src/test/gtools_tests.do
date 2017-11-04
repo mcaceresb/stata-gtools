@@ -24,6 +24,69 @@ set linesize 255
 program main
     syntax, [NOIsily *]
 
+use ~/1e7.dta, clear
+profiler on
+_gtools_internal, missing unsorted gquantiles(temp, xsources(v3) nq(10)) gfunction(quantiles) v bench(2)
+profiler report
+exit 17999
+
+* set obs 10
+* gen x = _n
+* _gtools_internal, missing unsorted gquantiles(ff,  xsources(x) nq(2)) gfunction(quantiles)
+* _gtools_internal, missing unsorted gquantiles(ff7, xsources(x) nq(7)) gfunction(quantiles)
+* l
+
+* clear
+* set obs 10
+* gen x = mod(_n, 7)
+* gen rsort = runiform()
+* sort rsort
+* xtile x2 = x, nq(5)
+* _gtools_internal, missing unsorted gquantiles(ff2, xsources(x) nq(5)) gfunction(quantiles)
+* l
+* sort x2 x
+* l
+
+* xtile temp = v3, n(10)
+* drop temp
+* fastxtile temp = v3, n(10)
+* drop temp
+* _gtools_internal, missing unsorted gquantiles(temp, xsources(v3) nq(10)) gfunction(quantiles) v bench(2)
+* drop temp
+* set rmsg on
+* clear
+* set obs 10000000
+* gen x = rnormal()
+*
+* _gtools_internal, missing unsorted gquantiles(ff2   , xsources(x) nq(2))   gfunction(quantiles) v bench(2)
+* _gtools_internal, missing unsorted gquantiles(ff10  , xsources(x) nq(10))  gfunction(quantiles) v bench(2)
+* _gtools_internal, missing unsorted gquantiles(ff1000, xsources(x) nq(100)) gfunction(quantiles) v bench(2)
+*
+* fastxtile f2    = x
+* fastxtile f10   = x, nq(10)
+* fastxtile f1000 = x, nq(100)
+*
+* xtile x2    = x
+* xtile x10   = x, nq(10)
+* xtile x1000 = x, nq(100)
+
+* set rmsg on
+* sysuse auto, clear
+* expand 10000
+* xtile x2    = mpg
+* xtile x10   = mpg, nq(10)
+* xtile x1000 = mpg, nq(100)
+*
+* fastxtile f2    = mpg
+* fastxtile f10   = mpg, nq(10)
+* fastxtile f1000 = mpg, nq(100)
+*
+* _gtools_internal, missing unsorted gquantiles(ff2   , xsources(mpg) nq(2))   gfunction(quantiles)
+* _gtools_internal, missing unsorted gquantiles(ff10  , xsources(mpg) nq(10))  gfunction(quantiles)
+* _gtools_internal, missing unsorted gquantiles(ff1000, xsources(mpg) nq(100)) gfunction(quantiles)
+
+exit 17999
+
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }

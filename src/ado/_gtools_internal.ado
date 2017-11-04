@@ -12,12 +12,13 @@ program _gtools_internal, rclass
     local GTOOLS_CALLER $GTOOLS_CALLER
     local GTOOLS_CALLERS gegen        ///
                          gcollapse    ///
-                         gisid        ///
-                         hashsort     ///
+                         gisid        /// 2
+                         hashsort     /// 3
                          glevelsof    ///
                          gunique      ///
                          gtoplevelsof ///
-                         gcontract
+                         gcontract    /// 8
+                         gquantiles
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
         di as err "_gtools_internal is not meant to be called directly. See {help gtools}"
@@ -71,6 +72,7 @@ program _gtools_internal, rclass
                                   /// Capture options
                                   /// ---------------
                                   ///
+        gquantiles(str)           /// options for gquantiles (to parse later)
         gcontract(str)            /// options for gcontract (to parse later)
         gcollapse(str)            /// options for gcollapse (to parse later)
         gtop(str)                 /// options for gtop (to parse later)
@@ -109,7 +111,7 @@ program _gtools_internal, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local ifin `if' `in'
     local gen  `generate'
- 
+
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
 
@@ -195,7 +197,7 @@ program _gtools_internal, rclass
     * What to do
     * ----------
 
-    local gfunction_list hash egen levelsof isid sort unique collapse top contract
+    local gfunction_list hash egen levelsof isid sort unique collapse top contract quantiles
     if ( "`gfunction'" == "" ) local gfunction hash
     if ( !(`:list gfunction in gfunction_list') ) {
         di as err "{opt gfunction()} was '`gfunction'' but expected one of: `gfunction_list'"
@@ -349,18 +351,31 @@ program _gtools_internal, rclass
     scalar __gtools_invertix   = ( "`invertinmata'" == "" )
     scalar __gtools_skipcheck  = ( "`skipcheck'"    != "" )
 
-    scalar __gtools_top_ntop       = 0
-    scalar __gtools_top_pct        = 0
-    scalar __gtools_top_freq       = 0
-    scalar __gtools_top_miss       = 0
-    scalar __gtools_top_groupmiss  = 0
-    scalar __gtools_top_other      = 0
-    scalar __gtools_top_lmiss      = 0
-    scalar __gtools_top_lother     = 0
-    matrix __gtools_top_matrix     = J(1, 5, .)
-    matrix __gtools_top_num        = J(1, 1, .)
-    matrix __gtools_contract_which = J(1, 4, 0)
-    matrix __gtools_invert         = 0
+    scalar __gtools_top_ntop        = 0
+    scalar __gtools_top_pct         = 0
+    scalar __gtools_top_freq        = 0
+    scalar __gtools_top_miss        = 0
+    scalar __gtools_top_groupmiss   = 0
+    scalar __gtools_top_other       = 0
+    scalar __gtools_top_lmiss       = 0
+    scalar __gtools_top_lother      = 0
+    matrix __gtools_top_matrix      = J(1, 5, .)
+    matrix __gtools_top_num         = J(1, 1, .)
+    matrix __gtools_contract_which  = J(1, 4, 0)
+    matrix __gtools_invert          = 0
+
+    scalar __gtools_xtile_xvars     = 0
+    scalar __gtools_xtile_nq        = 0
+    scalar __gtools_xtile_nq2       = 0
+    scalar __gtools_xtile_ncuts     = 0
+    scalar __gtools_xtile_cutvars   = 0
+    scalar __gtools_xtile_gen       = 0
+    scalar __gtools_xtile_pctile    = 0
+    scalar __gtools_xtile_pctpct    = 0
+    scalar __gtools_xtile_altdef    = 0
+    scalar __gtools_xtile_missing   = 0
+    matrix __gtools_xtile_quantiles = J(1, 1, .)
+    matrix __gtools_xtile_cutoffs   = J(1, 1, .)
 
     * Parse glevelsof options
     * -----------------------
@@ -419,7 +434,7 @@ program _gtools_internal, rclass
         local gen_type `gen_type'
         if ( "`gen_name'" == "" ) {
             local gen_name `gen_type'
-            if (`=_N' < 2^31) {
+            if ( `=_N < maxlong()' ) {
                 local gen_type long
             }
             else {
@@ -441,7 +456,7 @@ program _gtools_internal, rclass
             local counts_type `counts_type'
             if ( "`counts_name'" == "" ) {
                 local counts_name `counts_type'
-                if (`=_N' < 2^31) {
+                if ( `=_N < maxlong()' ) {
                     local counts_type long
                 }
                 else {
@@ -679,9 +694,6 @@ program _gtools_internal, rclass
         matrix __gtools_numpos = 0
     }
 
-    local msg "Parsed by variables"
-    gtools_timer info 98 `"`msg'"', prints(`benchmark')
-
     * Parse sources, targets, stats (sources and targets MUST exist!)
     * ---------------------------------------------------------------
 
@@ -738,6 +750,9 @@ program _gtools_internal, rclass
         local extravars `__gtools_sources' `__gtools_targets' `freq'
     }
     else local extravars ""
+
+    local msg "Parsed by variables"
+    gtools_timer info 98 `"`msg'"', prints(`benchmark')
 
     ***********************************************************************
     *                           Call the plugin                           *
@@ -835,7 +850,7 @@ program _gtools_internal, rclass
         local msg "Stata reshuffle"
         gtools_timer info 98 `"`msg'"', prints(`benchmark') off
 
-        if ( `=_N' < 2^31 ) {
+        if ( `=_N < maxlong()' ) {
             local stype long
         }
         else {
@@ -951,9 +966,138 @@ program _gtools_internal, rclass
                 matrix __gtools_top_num = J(max(`nrows', 1), `=scalar(__gtools_kvars_num)', .)
             }
         }
+        else if ( inlist("`gfunction'",  "quantiles") ) {
+            local 0 `gquantiles'
+            syntax [newvarname],              ///
+            [                                 ///
+                xsources(varlist numeric)     ///
+                                              ///
+                Nquantiles(real 0)            ///
+                quantiles(numlist)            ///
+                cutoffs(numlist)              ///
+                Cutpoints(varname numeric)    ///
+                Cutquantiles(varname numeric) ///
+                                              ///
+                pctile(name)                  ///
+                GENpctile(name)               ///
+                                              ///
+                XMISSing                      ///
+                ALTdef                        ///
+            ]
+            local gcall `gfunction'
+            local xvars `varlist' `pctile' `genpctile' `cutpoints' `xsources'
+
+            local xhow_nq      = ( `nquantiles' > 0 )
+            local xhow_nq2     = ( `:list sizeof quantiles' > 0 )
+            local xhow_cuts    = ( `:list sizeof cutoffs'   > 0 )
+            local xhow_cutvars = ( `:list sizeof cutpoints' > 0 )
+            local xhow_total   = `xhow_nq' + `xhow_nq2' + `xhow_cuts' + `xhow_cutvars'
+
+            if ( `xhow_total' != 1 ) {
+                di as err "Specify only one of cutpoints(), cutoffs(), nquantiles(), quantiles()"
+                exit 198
+            }
+
+            if ( `xhow_nq' & (`nquantiles' < 2) ) {
+                di as err "nquantiles() must be greater than or equal to 2"
+                exit 198
+            }
+
+            * TODO: Always save min/max // 2017-11-04 08:45 EDT
+            foreach quant of local quantiles {
+                if ( `quant' < 0 ) | ( `quant' > 100 ) {
+                    di as err "quantiles() must all be strictly between 0 and 100"
+                    exit 198
+                }
+                if ( `quant' == 0 ) | ( `quant' == 100 ) {
+                    di as err "quantiles() cannot be 0 or 100 (note: min and max are always computed)"
+                    exit 198
+                }
+            }
+
+            local xgen_ix  = ( "`varlist'"   != "" )
+            local xgen_p   = ( "`pctile'"    != "" )
+            local xgen_gp  = ( "`genpctile'" != "" )
+            local xgen_tot = `xgen_p' + `xgen_gp'
+
+            if ( (`nquantiles' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp') ) {
+                di as err "Please call nquantiles() with xtile or pctile"
+                exit 198
+            }
+
+            if ( (`nquantiles' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp') ) {
+                di as err "Please call nquantiles() with xtile or pctile"
+                exit 198
+            }
+
+            * if ( `xgen_tot' > 0 ) & ( `xgen_ix' > 0 ) {
+            *     di as err "Cannot request both xtile and pctile."
+            *     exit 198
+            * }
+
+            scalar __gtools_xtile_xvars   = `:list sizeof xsources'
+
+            scalar __gtools_xtile_nq      = `nquantiles'
+            scalar __gtools_xtile_nq2     = `:list sizeof quantiles'
+            scalar __gtools_xtile_ncuts   = `:list sizeof cutoffs'
+            scalar __gtools_xtile_cutvars = `:list sizeof cutpoints'
+
+            scalar __gtools_xtile_gen     = `xgen_ix'
+            scalar __gtools_xtile_pctile  = `xgen_p'
+            scalar __gtools_xtile_pctpct  = `xgen_gp'
+
+            scalar __gtools_xtile_altdef  = ( "`altdef'"   != "" )
+            scalar __gtools_xtile_missing = ( "`xmissing'" != "" )
+
+            mata: st_matrix("__gtools_xtile_quantiles", ///
+                            `xhow_nq2'? strtoreal(tokens(`"`quantiles'"')): 1)
+
+            mata: st_matrix("__gtools_xtile_cutoffs", ///
+                            `xhow_cuts'? strtoreal(tokens(`"`cutoffs'"')): 1)
+
+            if ( `xgen_ix' > 0 ) {
+                if ( `nquantiles' < maxbyte() ) {
+                    local qtype byte
+                }
+                else if ( `nquantiles' < maxint() ) {
+                    local qtype int
+                }
+                else if ( `nquantiles' < maxlong() ) {
+                }
+                else local qtype double
+
+                gettoken qvar xsources: varlist
+                if ( (`xgen_p' > 0) & (`xgen_p' > 0) ) {
+                    qui mata: st_addvar(("`qtype'", "double", "double"), ("`qvar'", "`pctile'", "`genpctile'"))
+                }
+                else if ( (`xgen_p' > 0) & (`xgen_p' == 0) ) {
+                    qui mata: st_addvar(("`qtype'", "double"), ("`qvar'", "`pctile'"))
+                }
+                else if ( (`xgen_p' == 0) & (`xgen_p' > 0) ) {
+                    qui mata: st_addvar(("`qtype'", "double"), ("`qvar'", "`genpctile'"))
+                }
+                else {
+                    qui mata: st_addvar(("`qtype'"), ("`qvar'"))
+                }
+            }
+            else if ( `xgen_tot' > 0 ) {
+                if ( (`xgen_p' > 0) & (`xgen_p' > 0) ) {
+                    qui mata: st_addvar(("double", "double"), ("`pctile'", "`genpctile'"))
+                }
+                else if ( (`xgen_p' > 0) & (`xgen_p' == 0) ) {
+                    qui mata: st_addvar(("double"), ("`pctile'"))
+                }
+                else if ( (`xgen_p' == 0) & (`xgen_p' > 0) ) {
+                    qui mata: st_addvar(("double"), ("`genpctile'"))
+                }
+            }
+        }
         else local gcall `gfunction'
 
-        local plugvars `byvars' `etargets' `extravars' `contractvars'
+        local msg "Parsed quantiles and added targets"
+        gtools_timer info 98 `"`msg'"', prints(`benchmark')
+
+        local plugvars `byvars' `etargets' `extravars' `contractvars' `xvars'
         cap noi plugin call gtools_plugin `plugvars' `ifin', `gcall'
         local rc = _rc
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
@@ -1069,6 +1213,19 @@ program clean_all
     cap matrix drop __gtools_top_matrix
     cap matrix drop __gtools_top_num
     cap matrix drop __gtools_contract_which
+
+    cap scalar drop __gtools_xtile_xvars
+    cap scalar drop __gtools_xtile_nq
+    cap scalar drop __gtools_xtile_nq2
+    cap scalar drop __gtools_xtile_ncuts
+    cap scalar drop __gtools_xtile_cutvars
+    cap scalar drop __gtools_xtile_gen
+    cap scalar drop __gtools_xtile_pctile
+    cap scalar drop __gtools_xtile_pctpct
+    cap scalar drop __gtools_xtile_altdef
+    cap scalar drop __gtools_xtile_missing
+    cap matrix drop __gtools_xtile_quantiles
+    cap matrix drop __gtools_xtile_cutoffs
 
     cap scalar drop __gtools_kvars
     cap scalar drop __gtools_kvars_num

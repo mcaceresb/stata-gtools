@@ -823,12 +823,12 @@ program parse_keep_drop, rclass
         else if ( "`double'" != "" ) {
             local targettype double
         }
-        else if ( inlist("`collstat'", "count", "freq") & (`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
             * Counts can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype long
         }
-        else if ( inlist("`collstat'", "count", "freq") & !(`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
             local targettype double
         }
         else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -890,13 +890,13 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & (`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
         * Counts can be long if we have fewer than 2^31 observations
         * (largest signed integer in long variables can be 2^31-1)
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & !(`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
         local targettype double
     }
     else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -925,7 +925,7 @@ end
 capture program drop benchmark_memvars
 program benchmark_memvars, rclass
     syntax, index(str) ix(str) info(str)
-    if ( `=_N' < 2^31 ) {
+    if ( `=_N < maxlong()' ) {
         local itype  long
         local factor = 2 / 3
         local bytes  = 12

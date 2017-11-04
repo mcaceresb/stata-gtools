@@ -112,6 +112,8 @@ gtools_ssc = [
     "glevelsof.ado",
     "gtoplevelsof.ado",
     "gisid.ado",
+    "gquantiles.ado",
+    "fasterxtile.ado",
     "hashsort.ado",
     "gtools.ado",
     "gcollapse.sthlp",
@@ -260,6 +262,8 @@ copy2(path.join("src", "ado", "gdistinct.ado"),        gdir)
 copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
+copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)
+copy2(path.join("src", "ado", "fasterxtile.ado"),      gdir)
 copy2(path.join("src", "ado", "hashsort.ado"),         gdir)
 copy2(path.join("src", "ado", "gtools.ado"),           gdir)
 

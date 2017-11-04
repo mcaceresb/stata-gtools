@@ -51,7 +51,7 @@ program gcontract, rclass
 		local numtype "float"
 	}
 
-    if ( `=_N' < 2^31 ) {
+    if ( `=_N < maxlong()' ) {
         local freqtype long
     }
     else {

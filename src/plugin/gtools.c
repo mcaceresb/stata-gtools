@@ -43,6 +43,7 @@
 #include "extra/hashsort.c"
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
+#include "extra/gquantiles.c"
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_utils.c"
@@ -215,6 +216,18 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
         if ( (rc = sf_hashsort    (st_info, 0)) ) goto exit;
     }
+    else if ( strcmp(todo, "quantiles") == 0 ) {
+        if ( (rc = sf_parse_info (st_info, 0)) ) goto exit;
+        if ( st_info->kvars_by == 0 ) {
+            if ( (rc = sf_xtile  (st_info, 0)) ) goto exit;
+        }
+        else {
+            if ( (rc = sf_hash_byvars (st_info, 3)) ) goto exit;
+            if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+            if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
+            if ( (rc = sf_xtile_by    (st_info, 0)) ) goto exit;
+        }
+    }
     else {
         sf_printf ("Nothing to do\n");
         rc = 198; goto exit;
@@ -263,6 +276,16 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             top_other,
             top_lmiss,
             top_lother,
+            xtile_xvars,
+            xtile_nq,
+            xtile_nq2,
+            xtile_ncuts,
+            xtile_cutvars,
+            xtile_gen,
+            xtile_pctile,
+            xtile_pctpct,
+            xtile_altdef,
+            xtile_missing,
             any_if,
             countmiss,
             replace,
@@ -362,6 +385,17 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_top_lmiss",     &top_lmiss)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lother",    &top_lother)    )) goto exit;
 
+    if ( (rc = sf_scalar_size("__gtools_xtile_xvars",   &xtile_xvars)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq",      &xtile_nq)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq2",     &xtile_nq2)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_ncuts",   &xtile_ncuts)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutvars", &xtile_cutvars) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_gen",     &xtile_gen)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctile",  &xtile_pctile)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctpct",  &xtile_pctpct)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_altdef",  &xtile_altdef)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_missing", &xtile_missing) )) goto exit;
+
     if ( (rc = sf_scalar_size("__gtools_encode",        &encode)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",    &group_data)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_fill",    &group_fill)    )) goto exit;
@@ -386,27 +420,31 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_kvars_str", &kvars_by_str) )) goto exit;
 
     // Parse variable lengths, positions, and sort order
-    st_info->byvars_lens    = calloc(kvars_by,     sizeof st_info->byvars_lens);
-    st_info->invert         = calloc(kvars_by,     sizeof st_info->invert);
-    st_info->pos_num_byvars = calloc(kvars_by_num, sizeof st_info->pos_num_byvars);
-    st_info->pos_str_byvars = calloc(kvars_by_str, sizeof st_info->pos_str_byvars);
-    st_info->group_targets  = calloc(3,            sizeof st_info->group_targets);
-    st_info->group_init     = calloc(3,            sizeof st_info->group_init);
+    st_info->byvars_lens     = calloc(kvars_by,     sizeof st_info->byvars_lens);
+    st_info->invert          = calloc(kvars_by,     sizeof st_info->invert);
+    st_info->pos_num_byvars  = calloc(kvars_by_num, sizeof st_info->pos_num_byvars);
+    st_info->pos_str_byvars  = calloc(kvars_by_str, sizeof st_info->pos_str_byvars);
+    st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
+    st_info->group_init      = calloc(3,            sizeof st_info->group_init);
 
-    st_info->pos_targets    = calloc((kvars_targets > 1)? kvars_targets : 1, sizeof st_info->pos_targets);
-    st_info->statcode       = calloc((kvars_stats   > 1)? kvars_stats   : 1, sizeof st_info->statcode);
-    st_info->contract_which = calloc(4, sizeof st_info->contract_which);
+    st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets  : 1, sizeof st_info->pos_targets);
+    st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats    : 1, sizeof st_info->statcode);
+    st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2      : 1, sizeof st_info->xtile_quantiles);
+    st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1: 1, sizeof st_info->xtile_cutoffs);
+    st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
-    if ( st_info->byvars_lens    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
-    if ( st_info->invert         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
-    if ( st_info->pos_num_byvars == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
-    if ( st_info->pos_str_byvars == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
-    if ( st_info->group_targets  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
-    if ( st_info->group_init     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->invert          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->pos_num_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+    if ( st_info->group_targets   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
+    if ( st_info->group_init      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
 
-    if ( st_info->pos_targets    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
-    if ( st_info->statcode       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
-    if ( st_info->contract_which == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
+    if ( st_info->pos_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
+    if ( st_info->statcode        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
+    if ( st_info->contract_which  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
+    if ( st_info->xtile_quantiles == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
+    if ( st_info->xtile_cutoffs   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
     GTOOLS_GC_ALLOCATED("st_info->invert")
@@ -417,13 +455,17 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
     GTOOLS_GC_ALLOCATED("st_info->contract_which")
+    GTOOLS_GC_ALLOCATED("st_info->xtile_quantiles")
+    GTOOLS_GC_ALLOCATED("st_info->xtile_cutoffs")
 
     if ( (rc = sf_get_vector_size ("__gtools_bylens", st_info->byvars_lens) )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_invert", st_info->invert)      )) goto exit;
 
-    if ( (rc = sf_get_vector      ("__gtools_stats",          st_info->statcode)       )) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_pos_targets",    st_info->pos_targets)    )) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_contract_which", st_info->contract_which) )) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_stats",           st_info->statcode)        )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_pos_targets",     st_info->pos_targets)     )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_contract_which",  st_info->contract_which)  )) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_xtile_quantiles", st_info->xtile_quantiles) )) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_xtile_cutoffs",   st_info->xtile_cutoffs)   )) goto exit;
 
     if ( kvars_by_num > 0 ) {
         if ( (rc = sf_get_vector_size ("__gtools_numpos", st_info->pos_num_byvars)) ) goto exit;
@@ -477,6 +519,17 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->top_other     = top_other;
     st_info->top_lmiss     = top_lmiss;
     st_info->top_lother    = top_lother;
+
+    st_info->xtile_xvars   = xtile_xvars;
+    st_info->xtile_nq      = xtile_nq;
+    st_info->xtile_nq2     = xtile_nq2;
+    st_info->xtile_ncuts   = xtile_ncuts;
+    st_info->xtile_cutvars = xtile_cutvars;
+    st_info->xtile_gen     = xtile_gen;
+    st_info->xtile_pctile  = xtile_pctile;
+    st_info->xtile_pctpct  = xtile_pctpct;
+    st_info->xtile_altdef  = xtile_altdef;
+    st_info->xtile_missing = xtile_missing;
 
     st_info->encode        = encode;
     st_info->group_data    = group_data;
@@ -1111,6 +1164,8 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->pos_targets);
         free (st_info->statcode);
         free (st_info->contract_which);
+        free (st_info->xtile_quantiles);
+        free (st_info->xtile_cutoffs);
 
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
@@ -1122,6 +1177,8 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->pos_targets")
         GTOOLS_GC_FREED("st_info->statcode")
         GTOOLS_GC_FREED("st_info->contract_which")
+        GTOOLS_GC_FREED("st_info->xtile_quantiles")
+        GTOOLS_GC_FREED("st_info->xtile_cutoffs")
     }
     if ( (st_info->free >= 2) & (level != 11) ) {
         free (st_info->positions);

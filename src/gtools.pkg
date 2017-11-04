@@ -12,6 +12,10 @@ d KW: gtools
 d KW: collapse
 d KW: contract
 d KW: egen
+d KW: xtile
+d KW: fastxtile
+d KW: pctile
+d KW: _pctile
 d KW: levelsof
 d KW: toplevelsof
 d KW: isid
@@ -20,6 +24,8 @@ d KW: distinct
 d KW: sort
 d KW: gsort
 d KW: gegen
+d KW: fasterxtile
+d KW: gquantiles
 d KW: gcollapse
 d KW: gcontract
 d KW: gisid
@@ -40,6 +46,8 @@ f _gtools_internal.ado
 f gcollapse.ado
 f gcontract.ado
 f gegen.ado
+f fasterxtile.ado
+f gquantiles.ado
 f gunique.ado
 f gdistinct.ado
 f glevelsof.ado

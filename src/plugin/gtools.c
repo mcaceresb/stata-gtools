@@ -279,13 +279,21 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile_xvars,
             xtile_nq,
             xtile_nq2,
-            xtile_ncuts,
             xtile_cutvars,
+            xtile_ncuts,
+            xtile_qvars,
             xtile_gen,
             xtile_pctile,
+            xtile_genpct,
             xtile_pctpct,
             xtile_altdef,
             xtile_missing,
+            xtile_strict,
+            xtile_minmax,
+            xtile_method,
+            xtile_bincount,
+            xtile__pctile,
+            xtile_dedup,
             any_if,
             countmiss,
             replace,
@@ -359,51 +367,59 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( N < 1 ) return (17001);
 
     // Parse switches
-    if ( (rc = sf_scalar_size("__gtools_verbose",       &verbose)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_benchmark",     &benchmark)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_any_if",        &any_if)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_init_targ",     &init_targ)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_invertix",      &invertix)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_skipcheck",     &skipcheck)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_verbose",        &verbose)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_benchmark",      &benchmark)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_any_if",         &any_if)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_init_targ",      &init_targ)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_invertix",       &invertix)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_seecount",      &seecount)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countonly",     &countonly)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_unsorted",      &unsorted)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_missing",       &missing)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_nomiss",        &nomiss)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_replace",       &replace)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countmiss",     &countmiss)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_unsorted",       &unsorted)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_missing",        &missing)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_nomiss",         &nomiss)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_replace",        &replace)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countmiss",      &countmiss)      )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_numfmt_max",    &numfmt_max)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_cleanstr",      &cleanstr)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_colsep_len",    &colsep_len)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_sep_len",       &sep_len)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_numfmt_max",     &numfmt_max)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_cleanstr",       &cleanstr)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_colsep_len",     &colsep_len)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_sep_len",        &sep_len)        )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_top_groupmiss", &top_groupmiss) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_miss",      &top_miss)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_other",     &top_other)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_lmiss",     &top_lmiss)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_lother",    &top_lother)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_groupmiss",  &top_groupmiss)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_miss",       &top_miss)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_other",      &top_other)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lmiss",      &top_lmiss)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lother",     &top_lother)     )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_xtile_xvars",   &xtile_xvars)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_nq",      &xtile_nq)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_nq2",     &xtile_nq2)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_ncuts",   &xtile_ncuts)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_cutvars", &xtile_cutvars) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_gen",     &xtile_gen)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_pctile",  &xtile_pctile)  )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_pctpct",  &xtile_pctpct)  )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_altdef",  &xtile_altdef)  )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_missing", &xtile_missing) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_xvars",    &xtile_xvars)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq",       &xtile_nq)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq2",      &xtile_nq2)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutvars",  &xtile_cutvars)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_ncuts",    &xtile_ncuts)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_qvars",    &xtile_qvars)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_gen",      &xtile_gen)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctile",   &xtile_pctile)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_genpct",   &xtile_genpct)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctpct",   &xtile_pctpct)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_altdef",   &xtile_altdef)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_missing",  &xtile_missing)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_strict",   &xtile_strict)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_min",      &xtile_minmax)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_method",   &xtile_method)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_bincount", &xtile_bincount) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile__pctile",  &xtile__pctile)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_dedup",    &xtile_dedup)    )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_encode",        &encode)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_data",    &group_data)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_fill",    &group_fill)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_fill",     &group_fill)     )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_k_stats",       &kvars_stats)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_vars",        &kvars_sources) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_targets",     &kvars_targets) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_group",       &kvars_group)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_stats",        &kvars_stats)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_vars",         &kvars_sources)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_targets",      &kvars_targets)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_group",        &kvars_group)    )) goto exit;
 
     // Value fill for group
     if ( (rc = SF_scal_use("__gtools_group_val", &(st_info->group_val) )) ) return (rc);
@@ -427,10 +443,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
     st_info->group_init      = calloc(3,            sizeof st_info->group_init);
 
-    st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets  : 1, sizeof st_info->pos_targets);
-    st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats    : 1, sizeof st_info->statcode);
-    st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2      : 1, sizeof st_info->xtile_quantiles);
-    st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1: 1, sizeof st_info->xtile_cutoffs);
+    st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets : 1, sizeof st_info->pos_targets);
+    st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats   : 1, sizeof st_info->statcode);
+    st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2     : 1, sizeof st_info->xtile_quantiles);
+    st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts   : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
     if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
@@ -464,7 +480,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_get_vector      ("__gtools_stats",           st_info->statcode)        )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_pos_targets",     st_info->pos_targets)     )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_contract_which",  st_info->contract_which)  )) goto exit;
-    if ( (rc = sf_get_vector      ("__gtools_xtile_quantiles", st_info->xtile_quantiles) )) goto exit;
+    if ( xtile_nq2 > 0 ) {
+        if ( (rc = sf_get_vector  ("__gtools_xtile_quantiles", st_info->xtile_quantiles) )) goto exit;
+    }
     if ( (rc = sf_get_vector      ("__gtools_xtile_cutoffs",   st_info->xtile_cutoffs)   )) goto exit;
 
     if ( kvars_by_num > 0 ) {
@@ -488,63 +506,71 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         st_info->contract_vars += st_info->contract_which[i];
     }
 
-    st_info->in1           = in1;
-    st_info->in2           = in2;
-    st_info->N             = N;
-    st_info->Nread         = N;
+    st_info->in1            = in1;
+    st_info->in2            = in2;
+    st_info->N              = N;
+    st_info->Nread          = N;
 
-    st_info->verbose       = verbose;
-    st_info->benchmark     = benchmark;
-    st_info->any_if        = any_if;
-    st_info->init_targ     = init_targ;
-    st_info->strmax        = strmax;
-    st_info->invertix      = invertix;
-    st_info->skipcheck     = skipcheck;
+    st_info->verbose        = verbose;
+    st_info->benchmark      = benchmark;
+    st_info->any_if         = any_if;
+    st_info->init_targ      = init_targ;
+    st_info->strmax         = strmax;
+    st_info->invertix       = invertix;
+    st_info->skipcheck      = skipcheck;
 
-    st_info->unsorted      = unsorted;
-    st_info->countonly     = countonly;
-    st_info->seecount      = seecount;
-    st_info->missing       = missing;
-    st_info->nomiss        = nomiss;
-    st_info->replace       = replace;
-    st_info->countmiss     = countmiss;
+    st_info->unsorted       = unsorted;
+    st_info->countonly      = countonly;
+    st_info->seecount       = seecount;
+    st_info->missing        = missing;
+    st_info->nomiss         = nomiss;
+    st_info->replace        = replace;
+    st_info->countmiss      = countmiss;
 
-    st_info->numfmt_max    = numfmt_max;
-    st_info->cleanstr      = cleanstr;
-    st_info->colsep_len    = colsep_len;
-    st_info->sep_len       = sep_len;
+    st_info->numfmt_max     = numfmt_max;
+    st_info->cleanstr       = cleanstr;
+    st_info->colsep_len     = colsep_len;
+    st_info->sep_len        = sep_len;
 
-    st_info->top_groupmiss = top_groupmiss;
-    st_info->top_miss      = top_miss;
-    st_info->top_other     = top_other;
-    st_info->top_lmiss     = top_lmiss;
-    st_info->top_lother    = top_lother;
+    st_info->top_groupmiss  = top_groupmiss;
+    st_info->top_miss       = top_miss;
+    st_info->top_other      = top_other;
+    st_info->top_lmiss      = top_lmiss;
+    st_info->top_lother     = top_lother;
 
-    st_info->xtile_xvars   = xtile_xvars;
-    st_info->xtile_nq      = xtile_nq;
-    st_info->xtile_nq2     = xtile_nq2;
-    st_info->xtile_ncuts   = xtile_ncuts;
-    st_info->xtile_cutvars = xtile_cutvars;
-    st_info->xtile_gen     = xtile_gen;
-    st_info->xtile_pctile  = xtile_pctile;
-    st_info->xtile_pctpct  = xtile_pctpct;
-    st_info->xtile_altdef  = xtile_altdef;
-    st_info->xtile_missing = xtile_missing;
+    st_info->xtile_xvars    = xtile_xvars;
+    st_info->xtile_nq       = xtile_nq;
+    st_info->xtile_nq2      = xtile_nq2;
+    st_info->xtile_cutvars  = xtile_cutvars;
+    st_info->xtile_ncuts    = xtile_ncuts;
+    st_info->xtile_qvars    = xtile_qvars;
+    st_info->xtile_gen      = xtile_gen;
+    st_info->xtile_pctile   = xtile_pctile;
+    st_info->xtile_genpct   = xtile_genpct;
+    st_info->xtile_pctpct   = xtile_pctpct;
+    st_info->xtile_altdef   = xtile_altdef;
+    st_info->xtile_missing  = xtile_missing;
+    st_info->xtile_strict   = xtile_strict;
+    st_info->xtile_minmax   = xtile_minmax;
+    st_info->xtile_method   = xtile_method;
+    st_info->xtile_bincount = xtile_bincount;
+    st_info->xtile__pctile  = xtile__pctile;
+    st_info->xtile_dedup    = xtile_dedup;
 
-    st_info->encode        = encode;
-    st_info->group_data    = group_data;
-    st_info->group_fill    = group_fill;
+    st_info->encode         = encode;
+    st_info->group_data     = group_data;
+    st_info->group_fill     = group_fill;
 
-    st_info->kvars_by      = kvars_by;
-    st_info->kvars_by_int  = kvars_by_int;
-    st_info->kvars_by_num  = kvars_by_num;
-    st_info->kvars_by_str  = kvars_by_str;
+    st_info->kvars_by       = kvars_by;
+    st_info->kvars_by_int   = kvars_by_int;
+    st_info->kvars_by_num   = kvars_by_num;
+    st_info->kvars_by_str   = kvars_by_str;
 
-    st_info->kvars_group   = kvars_group;
-    st_info->kvars_sources = kvars_sources;
-    st_info->kvars_targets = kvars_targets;
-    st_info->kvars_extra   = kvars_targets - kvars_sources;
-    st_info->kvars_stats   = kvars_stats;
+    st_info->kvars_group    = kvars_group;
+    st_info->kvars_sources  = kvars_sources;
+    st_info->kvars_targets  = kvars_targets;
+    st_info->kvars_extra    = kvars_targets - kvars_sources;
+    st_info->kvars_stats    = kvars_stats;
 
     /*********************************************************************
      *                              Cleanup                              *

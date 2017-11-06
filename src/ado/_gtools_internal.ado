@@ -1,4 +1,4 @@
-*! version 0.2.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version -1.2.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -367,15 +367,26 @@ program _gtools_internal, rclass
     scalar __gtools_xtile_xvars     = 0
     scalar __gtools_xtile_nq        = 0
     scalar __gtools_xtile_nq2       = 0
-    scalar __gtools_xtile_ncuts     = 0
     scalar __gtools_xtile_cutvars   = 0
+    scalar __gtools_xtile_ncuts     = 0
+    scalar __gtools_xtile_qvars     = 0
     scalar __gtools_xtile_gen       = 0
     scalar __gtools_xtile_pctile    = 0
+    scalar __gtools_xtile_genpct    = 0
     scalar __gtools_xtile_pctpct    = 0
     scalar __gtools_xtile_altdef    = 0
     scalar __gtools_xtile_missing   = 0
+    scalar __gtools_xtile_strict    = 0
+    scalar __gtools_xtile_min       = 0
+    scalar __gtools_xtile_max       = 0
+    scalar __gtools_xtile_method    = 0
+    scalar __gtools_xtile_bincount  = 0
+    scalar __gtools_xtile__pctile   = 0
+    scalar __gtools_xtile_dedup     = 0
     matrix __gtools_xtile_quantiles = J(1, 1, .)
     matrix __gtools_xtile_cutoffs   = J(1, 1, .)
+    matrix __gtools_xtile_quantbin  = J(1, 1, .)
+    matrix __gtools_xtile_cutbin    = J(1, 1, .)
 
     * Parse glevelsof options
     * -----------------------
@@ -968,86 +979,159 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "quantiles") ) {
             local 0 `gquantiles'
-            syntax [newvarname],              ///
+            syntax [name],                    ///
             [                                 ///
                 xsources(varlist numeric)     ///
                                               ///
                 Nquantiles(real 0)            ///
-                quantiles(numlist)            ///
+                Quantiles(numlist)            ///
                 cutoffs(numlist)              ///
                 Cutpoints(varname numeric)    ///
-                Cutquantiles(varname numeric) ///
+                cutquantiles(varname numeric) ///
                                               ///
                 pctile(name)                  ///
-                GENpctile(name)               ///
+                GENp(name)                    ///
+                BINFREQvar(name)              ///
+                replace                       ///
                                               ///
+                dedup                         ///
+                _pctile                       ///
+                binfreq                       ///
+                method(int 0)                 ///
                 XMISSing                      ///
                 ALTdef                        ///
+                strict                        ///
+                minmax                        ///
             ]
             local gcall `gfunction'
-            local xvars `varlist' `pctile' `genpctile' `cutpoints' `xsources'
+            local xvars `namelist' `pctile' `binfreqvar' `genp' `cutpoints' `cutquantiles' `xsources'
 
             local xhow_nq      = ( `nquantiles' > 0 )
-            local xhow_nq2     = ( `:list sizeof quantiles' > 0 )
-            local xhow_cuts    = ( `:list sizeof cutoffs'   > 0 )
-            local xhow_cutvars = ( `:list sizeof cutpoints' > 0 )
-            local xhow_total   = `xhow_nq' + `xhow_nq2' + `xhow_cuts' + `xhow_cutvars'
+            local xhow_nq2     = ( `:list sizeof quantiles'    > 0 )
+            local xhow_cuts    = ( `:list sizeof cutoffs'      > 0 )
+            local xhow_cutvars = ( `:list sizeof cutpoints'    > 0 )
+            local xhow_qvars   = ( `:list sizeof cutquantiles' > 0 )
+            local xhow_total   = `xhow_nq' + `xhow_nq2' + `xhow_cuts' + `xhow_cutvars' + `xhow_qvars'
 
-            if ( `xhow_total' != 1 ) {
-                di as err "Specify only one of cutpoints(), cutoffs(), nquantiles(), quantiles()"
+            local early_rc = 0
+            if ( "`_pctile'" != "" ) {
+                if ( `nquantiles' > 1001 ) {
+                    di as err "nquantiles() must be between 0 and 1001 with _pctile; try pctile"
+                    local early_rc = 198
+                }
+
+                if ( `:list sizeof quantiles' > 1001 ) {
+                    di as err "quantiles() must be between 0 and 1001 with _pctile; try pctile"
+                    local early_rc = 198
+                }
+
+                if ( `:list sizeof cutoffs' > 1001 ) {
+                    di as err "cutoffs() must be between 0 and 1001 with _pctile; try pctile"
+                    local early_rc = 198
+                }
+            }
+
+
+            if ( `xhow_total' == 0 ) {
+                local nquantiles = 2
+            }
+            else if (`xhow_total' > 1) {
+                if (  `nquantiles'    >  0  ) local olist "`olist' nquantiles(),"
+                if ( "`quantiles'"    != "" ) local olist "`olist' quantiles(),"
+                if ( "`cutpoints'"    != "" ) local olist "`olist' cutpoints(),"
+                if ( "`cutquantiles'" != "" ) local olist "`olist' cutquantiles(),"
+                if ( "`cutoffs'"      != "" ) local olist "`olist' cutoffs()."
+                di as err "Specify only one of `olist'"
+                local early_rc = 198
                 exit 198
             }
 
             if ( `xhow_nq' & (`nquantiles' < 2) ) {
                 di as err "nquantiles() must be greater than or equal to 2"
+                local early_rc = 198
                 exit 198
             }
 
-            * TODO: Always save min/max // 2017-11-04 08:45 EDT
             foreach quant of local quantiles {
                 if ( `quant' < 0 ) | ( `quant' > 100 ) {
                     di as err "quantiles() must all be strictly between 0 and 100"
+                    local early_rc = 198
                     exit 198
                 }
                 if ( `quant' == 0 ) | ( `quant' == 100 ) {
-                    di as err "quantiles() cannot be 0 or 100 (note: min and max are always computed)"
+                    di as err "quantiles() cannot be 0 or 100 (note: try passing option -minmax-)"
+                    local early_rc = 198
                     exit 198
                 }
             }
 
-            local xgen_ix  = ( "`varlist'"   != "" )
-            local xgen_p   = ( "`pctile'"    != "" )
-            local xgen_gp  = ( "`genpctile'" != "" )
-            local xgen_tot = `xgen_p' + `xgen_gp'
+            local xgen_ix  = ( "`namelist'"   != "" )
+            local xgen_p   = ( "`pctile'"     != "" )
+            local xgen_gp  = ( "`genp'"       != "" )
+            local xgen_bf  = ( "`binfreqvar'" != "" )
+            local xgen_tot = `xgen_p' + `xgen_gp' + `xgen_bf'
 
-            if ( (`nquantiles' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp') ) {
-                di as err "Please call nquantiles() with xtile or pctile"
+            local xgen_required = `xhow_cutvars' + `xhow_qvars'
+            if ( (`xgen_required' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp' | `xgen_bf') ) {
+                if ( "`cutpoints'"    != "" ) local olist "cutpoints()"
+                if ( "`cutquantiles'" != "" ) local olist "cutquantiles()"
+                di as err "Option `olist' requires xtile or pctile"
+                local early_rc = 198
                 exit 198
             }
 
-            if ( (`nquantiles' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp') ) {
-                di as err "Please call nquantiles() with xtile or pctile"
+            if ( ("`cutoffs'" != "") & ("`binfreq'" == "") & !(`xgen_ix' | `xgen_p' | `xgen_gp' | `xgen_bf') ) {
+                di as err "Nothing to do: Option cutoffs() requires binfreq, xtile, or pctile"
+                local early_rc = 198
                 exit 198
             }
 
-            * if ( `xgen_tot' > 0 ) & ( `xgen_ix' > 0 ) {
-            *     di as err "Cannot request both xtile and pctile."
-            *     exit 198
-            * }
+            * NOTE(mauricio): This check should be regardless in the wrappers
+            if ( (`nquantiles' > `=_N + 1') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
+                di as err "nquantiles() must be less than or equal to `=_N +1' (# obs + 1) with options pctile() or binfreq()"
+                local early_rc = 198
+                exit 198
+            }
 
-            scalar __gtools_xtile_xvars   = `:list sizeof xsources'
+            if ( (`:list sizeof quantiles' > `=_N') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
+                di as err "Number of quantiles() must be less than or equal to `=_N' (# obs) with options pctile() or binfreq()"
+                local early_rc = 198
+                exit 198
+            }
 
-            scalar __gtools_xtile_nq      = `nquantiles'
-            scalar __gtools_xtile_nq2     = `:list sizeof quantiles'
-            scalar __gtools_xtile_ncuts   = `:list sizeof cutoffs'
-            scalar __gtools_xtile_cutvars = `:list sizeof cutpoints'
+            if ( (`:list sizeof cutoffs' > `=_N') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
+                di as err "Number of cutoffs() must be less than or equal to `=_N' (# obs) with options pctile() or binfreq()"
+                local early_rc = 198
+                exit 198
+            }
 
-            scalar __gtools_xtile_gen     = `xgen_ix'
-            scalar __gtools_xtile_pctile  = `xgen_p'
-            scalar __gtools_xtile_pctpct  = `xgen_gp'
+            if ( `early_rc' ) {
+                clean_all
+                exit `early_rc'
+            }
 
-            scalar __gtools_xtile_altdef  = ( "`altdef'"   != "" )
-            scalar __gtools_xtile_missing = ( "`xmissing'" != "" )
+            scalar __gtools_xtile_xvars    = `:list sizeof xsources'
+
+            scalar __gtools_xtile_nq       = `nquantiles'
+            scalar __gtools_xtile_nq2      = `:list sizeof quantiles'
+            scalar __gtools_xtile_cutvars  = `:list sizeof cutpoints'
+            scalar __gtools_xtile_ncuts    = `:list sizeof cutoffs'
+            scalar __gtools_xtile_qvars    = `:list sizeof cutquantiles'
+
+            scalar __gtools_xtile_gen      = `xgen_ix'
+            scalar __gtools_xtile_pctile   = `xgen_p'
+            scalar __gtools_xtile_genpct   = `xgen_gp'
+            scalar __gtools_xtile_pctpct   = `xgen_bf'
+
+            scalar __gtools_xtile_altdef   = ( "`altdef'"   != "" )
+            scalar __gtools_xtile_missing  = ( "`xmissing'" != "" )
+            scalar __gtools_xtile_strict   = ( "`strict'"   != "" )
+            scalar __gtools_xtile_min      = ( "`minmax'"   != "" )
+            scalar __gtools_xtile_max      = ( "`minmax'"   != "" )
+            scalar __gtools_xtile_method   = `method'
+            scalar __gtools_xtile_bincount = ( "`binfreq'" != "" )
+            scalar __gtools_xtile__pctile  = ( "`_pctile'" != "" )
+            scalar __gtools_xtile_dedup    = ( "`dedup'"   != "" )
 
             mata: st_matrix("__gtools_xtile_quantiles", ///
                             `xhow_nq2'? strtoreal(tokens(`"`quantiles'"')): 1)
@@ -1055,47 +1139,111 @@ program _gtools_internal, rclass
             mata: st_matrix("__gtools_xtile_cutoffs", ///
                             `xhow_cuts'? strtoreal(tokens(`"`cutoffs'"')): 1)
 
-            if ( `xgen_ix' > 0 ) {
-                if ( `nquantiles' < maxbyte() ) {
-                    local qtype byte
-                }
-                else if ( `nquantiles' < maxint() ) {
-                    local qtype int
-                }
-                else if ( `nquantiles' < maxlong() ) {
-                }
-                else local qtype double
+            cap noi check_matsize, nvars(`=scalar(__gtools_xtile_nq2)')
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                di as err _n(1) "Note: You can bypass matsize and specify quantiles using a variable via cutquantiles()"
+                exit `rc'
+            }
 
-                gettoken qvar xsources: varlist
-                if ( (`xgen_p' > 0) & (`xgen_p' > 0) ) {
-                    qui mata: st_addvar(("`qtype'", "double", "double"), ("`qvar'", "`pctile'", "`genpctile'"))
+            cap noi check_matsize, nvars(`=scalar(__gtools_xtile_ncuts)')
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                di as err _n(1) "Note: You can bypass matsize and specify cutoffs using a variable via cutpoints()"
+                exit `rc'
+            }
+
+            matrix __gtools_xtile_quantbin = J(1, cond(`xhow_nq2',  `=scalar(__gtools_xtile_nq2)',   1), 0)
+            matrix __gtools_xtile_cutbin   = J(1, cond(`xhow_cuts', `=scalar(__gtools_xtile_ncuts)', 1), 0)
+
+            if ( (`nquantiles' > 0) & ("`binfreq'" != "") & ("`binfreqvar'" == "") ) {
+                cap noi check_matsize, nvars(`=`nquantiles' - 1')
+                if ( _rc ) {
+                    local rc = _rc
+                    clean_all
+                    di as err _n(1) "Note: You can bypass matsize and save binfreq to a variable via binfreq()"
+                    exit `rc'
                 }
-                else if ( (`xgen_p' > 0) & (`xgen_p' == 0) ) {
-                    qui mata: st_addvar(("`qtype'", "double"), ("`qvar'", "`pctile'"))
+                matrix __gtools_xtile_quantbin = J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
+                local __gtools_xtile_nq_extra bin
+            }
+
+            if ( (`nquantiles' > 0) & ("`_pctile'" != "") ) {
+                cap noi check_matsize, nvars(`=`nquantiles' - 1')
+                if ( _rc ) {
+                    local rc = _rc
+                    clean_all
+                    di as err _n(1) "Note: You can bypass matsize and save quantiles to a variable via pctile()"
+                    exit `rc'
                 }
-                else if ( (`xgen_p' == 0) & (`xgen_p' > 0) ) {
-                    qui mata: st_addvar(("`qtype'", "double"), ("`qvar'", "`genpctile'"))
-                }
-                else {
-                    qui mata: st_addvar(("`qtype'"), ("`qvar'"))
+                matrix __gtools_xtile_quantiles = J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
+                local __gtools_xtile_nq_extra `__gtools_xtile_nq_extra' quantiles
+            }
+
+            local toadd 0
+            qui mata: __gtools_xtile_addlab = J(1, 0, "")
+            qui mata: __gtools_xtile_addnam = J(1, 0, "")
+            foreach xgen in xgen_ix xgen_p xgen_gp xgen_bf {
+                if ( ``xgen'' > 0 ) {
+                    if ( "`xgen'" == "xgen_ix" ) {
+                        if ( `nquantiles' < maxbyte() ) {
+                            local qtype byte
+                        }
+                        else if ( `nquantiles' < maxint() ) {
+                            local qtype int
+                        }
+                        else if ( `nquantiles' < maxlong() ) {
+                            local qtype long
+                        }
+                        else local qtype double
+                        local qvar `namelist'
+                    }
+                    else {
+                        if ( "`:type `xsources''" == "double" ) local qtype double
+                        else local qtype: set type
+
+                        if ( "`xgen'" == "xgen_p"  ) local qvar `pctile'
+                        if ( "`xgen'" == "xgen_gp" ) local qvar `genp'
+                        if ( "`xgen'" == "xgen_bf" ) {
+                            if ( `=_N' < maxbyte() ) {
+                                local qtype byte
+                            }
+                            else if ( `=_N' < maxint() ) {
+                                local qtype int
+                            }
+                            else if ( `=_N' < maxlong() ) {
+                                local qtype long
+                            }
+                            else local qtype double
+                            local qvar `binfreqvar'
+                        }
+                    }
+                    cap confirm new var `qvar'
+                    if ( _rc & ("`replace'" == "") ) {
+                        di as err "Variable `qvar' exists with no replace."
+                        clean_all
+                        exit 198
+                    }
+                    else if ( _rc == 0 ) {
+                        local ++toadd
+                        mata: __gtools_xtile_addlab = __gtools_xtile_addlab, "`qtype'"
+                        mata: __gtools_xtile_addnam = __gtools_xtile_addnam, "`qvar'"
+                    }
                 }
             }
-            else if ( `xgen_tot' > 0 ) {
-                if ( (`xgen_p' > 0) & (`xgen_p' > 0) ) {
-                    qui mata: st_addvar(("double", "double"), ("`pctile'", "`genpctile'"))
-                }
-                else if ( (`xgen_p' > 0) & (`xgen_p' == 0) ) {
-                    qui mata: st_addvar(("double"), ("`pctile'"))
-                }
-                else if ( (`xgen_p' == 0) & (`xgen_p' > 0) ) {
-                    qui mata: st_addvar(("double"), ("`genpctile'"))
-                }
+
+            if ( `toadd' > 0 ) {
+                qui mata: st_addvar(__gtools_xtile_addlab, __gtools_xtile_addnam)
             }
+            cap mata: mata drop __gtools_xtile_addlab
+            cap mata: mata drop __gtools_xtile_addnam
+
+            local msg "Parsed quantiles and added targets"
+            gtools_timer info 98 `"`msg'"', prints(`benchmark')
         }
         else local gcall `gfunction'
-
-        local msg "Parsed quantiles and added targets"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark')
 
         local plugvars `byvars' `etargets' `extravars' `contractvars' `xvars'
         cap noi plugin call gtools_plugin `plugvars' `ifin', `gcall'
@@ -1145,6 +1293,28 @@ program _gtools_internal, rclass
     if ( inlist("`gfunction'", "top") ) {
         return matrix toplevels = __gtools_top_matrix
         return matrix numlevels = __gtools_top_num
+    }
+
+    * quantile info
+    if ( inlist("`gfunction'", "quantiles") ) {
+        return local  quantiles    = "`quantiles'"
+        return local  cutoffs      = "`cutoffs'"
+        return local  nqextra      = "`__gtools_xtile_nq_extra'"
+        return local  Nxvars       = scalar(__gtools_xtile_xvars)
+
+        return scalar min          = scalar(__gtools_xtile_min)
+        return scalar max          = scalar(__gtools_xtile_max)
+
+        return scalar nquantiles   = scalar(__gtools_xtile_nq)
+        return scalar nquantiles2  = scalar(__gtools_xtile_nq2)
+        return scalar ncutpoints   = scalar(__gtools_xtile_cutvars)
+        return scalar ncutoffs     = scalar(__gtools_xtile_ncuts)
+        return scalar nquantpoints = scalar(__gtools_xtile_qvars)
+
+        return matrix quantiles_used     = __gtools_xtile_quantiles
+        return matrix quantiles_bincount = __gtools_xtile_quantbin
+        return matrix cutoffs_used       = __gtools_xtile_cutoffs
+        return matrix cutoffs_bincount   = __gtools_xtile_cutbin
     }
 
     return matrix invert = __gtools_invert
@@ -1217,15 +1387,26 @@ program clean_all
     cap scalar drop __gtools_xtile_xvars
     cap scalar drop __gtools_xtile_nq
     cap scalar drop __gtools_xtile_nq2
-    cap scalar drop __gtools_xtile_ncuts
     cap scalar drop __gtools_xtile_cutvars
+    cap scalar drop __gtools_xtile_ncuts
+    cap scalar drop __gtools_xtile_qvars
     cap scalar drop __gtools_xtile_gen
     cap scalar drop __gtools_xtile_pctile
+    cap scalar drop __gtools_xtile_genpct
     cap scalar drop __gtools_xtile_pctpct
     cap scalar drop __gtools_xtile_altdef
     cap scalar drop __gtools_xtile_missing
+    cap scalar drop __gtools_xtile_strict
+    cap scalar drop __gtools_xtile_min
+    cap scalar drop __gtools_xtile_max
+    cap scalar drop __gtools_xtile_method
+    cap scalar drop __gtools_xtile_bincount
+    cap scalar drop __gtools_xtile__pctile
+    cap scalar drop __gtools_xtile_dedup
     cap matrix drop __gtools_xtile_quantiles
     cap matrix drop __gtools_xtile_cutoffs
+    cap matrix drop __gtools_xtile_quantbin
+    cap matrix drop __gtools_xtile_cutbin
 
     cap scalar drop __gtools_kvars
     cap scalar drop __gtools_kvars_num
@@ -1495,7 +1676,7 @@ program rc_dispatch
         exit 459
     }
     else {
-        error `rc'
+        * error `rc'
         exit `rc'
     }
 end

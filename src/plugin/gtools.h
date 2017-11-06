@@ -84,13 +84,21 @@ struct StataInfo {
     GT_size xtile_xvars;
     GT_size xtile_nq;
     GT_size xtile_nq2;
-    GT_size xtile_ncuts;
     GT_size xtile_cutvars;
+    GT_size xtile_ncuts;
+    GT_size xtile_qvars;
     GT_size xtile_gen;
     GT_size xtile_pctile;
+    GT_size xtile_genpct;
     GT_size xtile_pctpct;
     GT_bool xtile_altdef;
     GT_bool xtile_missing;
+    GT_bool xtile_strict;
+    GT_bool xtile_minmax;
+    GT_bool xtile_method;
+    GT_bool xtile_bincount;
+    GT_bool xtile__pctile;
+    GT_bool xtile_dedup;
     //
     GT_bool   sorted;
     GT_bool   cleanstr;

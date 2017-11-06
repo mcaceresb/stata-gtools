@@ -216,6 +216,7 @@ print("")
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_gcontract.do"),
+            path.join("src", "test", "test_gquantiles.do"),
             path.join("src", "test", "test_gegen.do"),
             path.join("src", "test", "test_gunique.do"),
             path.join("src", "test", "test_glevelsof.do"),

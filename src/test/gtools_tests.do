@@ -1,9 +1,9 @@
-* ---------------------------------------------------------------------
+* ----------------------------------------------------------------------------
 * Project: gtools
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  1 07:16:28 EDT 2017
+* Updated: Mon Nov  6 01:54:16 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.9.4
 * Manual:  help gtools
@@ -24,68 +24,8 @@ set linesize 255
 program main
     syntax, [NOIsily *]
 
-use ~/1e7.dta, clear
-profiler on
-_gtools_internal, missing unsorted gquantiles(temp, xsources(v3) nq(10)) gfunction(quantiles) v bench(2)
-profiler report
-exit 17999
-
-* set obs 10
-* gen x = _n
-* _gtools_internal, missing unsorted gquantiles(ff,  xsources(x) nq(2)) gfunction(quantiles)
-* _gtools_internal, missing unsorted gquantiles(ff7, xsources(x) nq(7)) gfunction(quantiles)
-* l
-
-* clear
-* set obs 10
-* gen x = mod(_n, 7)
-* gen rsort = runiform()
-* sort rsort
-* xtile x2 = x, nq(5)
-* _gtools_internal, missing unsorted gquantiles(ff2, xsources(x) nq(5)) gfunction(quantiles)
-* l
-* sort x2 x
-* l
-
-* xtile temp = v3, n(10)
-* drop temp
-* fastxtile temp = v3, n(10)
-* drop temp
-* _gtools_internal, missing unsorted gquantiles(temp, xsources(v3) nq(10)) gfunction(quantiles) v bench(2)
-* drop temp
-* set rmsg on
-* clear
-* set obs 10000000
-* gen x = rnormal()
-*
-* _gtools_internal, missing unsorted gquantiles(ff2   , xsources(x) nq(2))   gfunction(quantiles) v bench(2)
-* _gtools_internal, missing unsorted gquantiles(ff10  , xsources(x) nq(10))  gfunction(quantiles) v bench(2)
-* _gtools_internal, missing unsorted gquantiles(ff1000, xsources(x) nq(100)) gfunction(quantiles) v bench(2)
-*
-* fastxtile f2    = x
-* fastxtile f10   = x, nq(10)
-* fastxtile f1000 = x, nq(100)
-*
-* xtile x2    = x
-* xtile x10   = x, nq(10)
-* xtile x1000 = x, nq(100)
-
-* set rmsg on
-* sysuse auto, clear
-* expand 10000
-* xtile x2    = mpg
-* xtile x10   = mpg, nq(10)
-* xtile x1000 = mpg, nq(100)
-*
-* fastxtile f2    = mpg
-* fastxtile f10   = mpg, nq(10)
-* fastxtile f1000 = mpg, nq(100)
-*
-* _gtools_internal, missing unsorted gquantiles(ff2   , xsources(mpg) nq(2))   gfunction(quantiles)
-* _gtools_internal, missing unsorted gquantiles(ff10  , xsources(mpg) nq(10))  gfunction(quantiles)
-* _gtools_internal, missing unsorted gquantiles(ff1000, xsources(mpg) nq(100)) gfunction(quantiles)
-
-exit 17999
+    compare_gquantiles, `noisily' oncollision(error)
+    exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -184,6 +124,7 @@ exit 17999
             bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
             * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
             bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
+            bench_gquantiles,  n(1000) bench(1) `noisily' oncollision(error)
         }
 
         if ( `:list posof "bench_full" in options' ) {
@@ -195,15 +136,16 @@ exit 17999
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
 
-            bench_contract,    n(10000) bench(10)  `noisily' oncollision(error)
-            bench_egen,        n(10000) bench(10)  `noisily' oncollision(error)
-            bench_isid,        n(10000) bench(10)  `noisily' oncollision(error)
-            bench_levelsof,    n(100)   bench(100) `noisily' oncollision(error)
-            bench_toplevelsof, n(10000) bench(10) `noisily' oncollision(error)
-            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error)
-            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct
-            * bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct joint distunique
-            bench_hashsort,    n(10000) bench(10)  `noisily' oncollision(error) benchmode
+            bench_contract,    n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_egen,        n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_isid,        n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_levelsof,    n(100)     bench(100) `noisily' oncollision(error)
+            bench_toplevelsof, n(10000)   bench(10) `noisily' oncollision(error)
+            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct
+            * bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(10000)   bench(10)  `noisily' oncollision(error) benchmode
+            bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
         }
     }
     local rc = _rc
@@ -319,23 +261,27 @@ end
 
 capture program drop gen_data
 program gen_data
-    syntax, [n(int 100) random(int 0) binary(int 0) double]
+    syntax, [n(int 100) random(int 0) binary(int 0) double skipstr]
     clear
     set obs `n'
 
     * Random strings
     * --------------
 
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
+    if ( "`skipstr'" == "" ) {
+        qui ralpha str_long,  l(5)
+        qui ralpha str_mid,   l(3)
+        qui ralpha str_short, l(1)
+    }
 
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
+    if ( "`skipstr'" == "" ) {
+        gen str32 str_32   = str_long + "this is some string padding"
+        gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+        gen str4  str_4    = str_mid  + str_short
+    }
 
     gen long   int1  = floor(uniform() * 1000)
     gen long   int2  = floor(rnormal())
@@ -348,26 +294,32 @@ program gen_data
     * Mix up string lengths
     * ---------------------
 
-   replace str_32 = str_mid + str_short if mod(_n, 4) == 0
-   replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = str_mid + str_short if mod(_n, 4) == 0
+        replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+    }
 
     * Insert some blanks
     * ------------------
 
-    replace str_32 = "            " in 1 / 10
-    replace str_12 = "   "          in 1 / 10
-    replace str_4  = " "            in 1 / 10
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "            " in 1 / 10
+        replace str_12 = "   "          in 1 / 10
+        replace str_4  = " "            in 1 / 10
 
-    replace str_32 = "            " if mod(_n, 21) == 0
-    replace str_12 = "   "          if mod(_n, 34) == 0
-    replace str_4  = " "            if mod(_n, 55) == 0
+        replace str_32 = "            " if mod(_n, 21) == 0
+        replace str_12 = "   "          if mod(_n, 34) == 0
+        replace str_4  = " "            if mod(_n, 55) == 0
+    }
 
     * Missing values
     * --------------
 
-    replace str_32 = "" if mod(_n, 10) ==  0
-    replace str_12 = "" if mod(_n, 20) ==  0
-    replace str_4  = "" if mod(_n, 20) == 10
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "" if mod(_n, 10) ==  0
+        replace str_12 = "" if mod(_n, 20) ==  0
+        replace str_4  = "" if mod(_n, 20) == 10
+    }
 
     replace int2  = .   if mod(_n, 10) ==  0
     replace int3  = .a  if mod(_n, 20) ==  0
@@ -380,9 +332,11 @@ program gen_data
     * Singleton groups
     * ----------------
 
-    replace str_32 = "|singleton|" in `n'
-    replace str_12 = "|singleton|" in `n'
-    replace str_4  = "|singleton|" in `n'
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "|singleton|" in `n'
+        replace str_12 = "|singleton|" in `n'
+        replace str_4  = "|singleton|" in `n'
+    }
 
     replace int1    = 99999  in `n'
     replace double1 = 9999.9 in `n'

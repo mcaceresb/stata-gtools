@@ -18,18 +18,24 @@ details on the plugin.
 
 __*Gtools commands with a stata equivalent*__
 
-| Function     | Replaces      | Speedup (IC / MP)        | Unsupported     | Extras                           |
-| ------------ | ------------- | ------------------------ | --------------- | -------------------------------- |
-| gcollapse    | collapse      |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output |
-| gcontract    | contract      |  5 to 7   / 2.5 to 4     | Weights         |                                  |
-| gegen        | egen          |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                        |
-| gisid        | isid          |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                       |
-| glevelsof    | levelsof      |  3 to 13  / 2 to 5-7     |                 | Multiple variables               |
+| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
+| ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
+| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output  |
+| gcontract    | contract |  5 to 7   / 2.5 to 4     | Weights         |                                   |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
+| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
+| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
+| gquantiles   | pctile   |  x to xx / x to xx       | Weights         | Various (see [usage](usage/gquantiles#examples)) |
+|              | \_pctile |  x to xx / x to xx       | Ibid.           | Ibid.                             |
+|              | xtile    |  x to xx / x to xx       | Ibid.           | Ibid.                             |
+| fasterxtile  | xtile    |                          | Weights         | Alias for `gquantiles, xtile`     |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
+
+Note that `gquantiles` accepts `by`.
 
 __*Gtools extras*__
 

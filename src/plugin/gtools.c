@@ -443,10 +443,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
     st_info->group_init      = calloc(3,            sizeof st_info->group_init);
 
-    st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets : 1, sizeof st_info->pos_targets);
-    st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats   : 1, sizeof st_info->statcode);
-    st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2     : 1, sizeof st_info->xtile_quantiles);
-    st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts   : 1, sizeof st_info->xtile_cutoffs);
+    st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
+    st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
+    st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2       : 1, sizeof st_info->xtile_quantiles);
+    st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
     if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));

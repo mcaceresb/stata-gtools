@@ -25,22 +25,28 @@ __*Gtools commands with a stata equivalent*__
 | gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
 | gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
 | glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
-| gquantiles   | pctile   |  x to xx / x to xx       | Weights         | Various (see [usage](usage/gquantiles#examples)) |
+| gquantiles   | pctile   |  x to xx / x to xx (-)   | Weights         | Various (see [usage](usage/gquantiles#examples)) |
 |              | \_pctile |  x to xx / x to xx       | Ibid.           | Ibid.                             |
-|              | xtile    |  x to xx / x to xx       | Ibid.           | Ibid.                             |
-| fasterxtile  | xtile    |                          | Weights         | Alias for `gquantiles, xtile`     |
+|              | xtile    |  x to xx / x to xx (-)   | Ibid.           | Ibid.                             |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
 
-Note that `gquantiles` accepts `by`.
+<small>(-) Benchmarks computed 10 quantiles. When computing a large
+number of quantiles (thousands) `pctile` and `xtile` are prohibitively slow
+due to the way they are written; in that case gquantiles is hundreds (thousands)
+of times faster. This is not an exaggeration. See [the section on many quantiles](usage/gquantiles#many-quantiles)
+in the usage page.</small>
+
+`gquantiles` accepts `by`.
 
 __*Gtools extras*__
 
 | Function     | Similar (SSC)    | Speedup (IC / MP)   | Unsupported             |
 | ------------ | ---------------- | ------------------- | ----------------------- |
+| fasterxtile  | fastxtile        |                     | Weights                 |
 | gunique      | unique           |  4 to 26 / 4 to 12  | `by`                    |
 | gdistinct    | distinct         |  4 to 26 / 4 to 12  | Saves results in matrix |
 | gtoplevelsof | groups, select() | (+)                 | See table notes (+)     |

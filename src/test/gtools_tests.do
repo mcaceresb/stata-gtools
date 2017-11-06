@@ -24,9 +24,6 @@ set linesize 255
 program main
     syntax, [NOIsily *]
 
-    compare_gquantiles, `noisily' oncollision(error)
-    exit 17999
-
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }
@@ -51,6 +48,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
         * qui do test_gegen.do
@@ -79,6 +77,7 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
+            unit_test, `noisily' test(checks_gquantiles,  `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gcollapse,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gcontract,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gegen,       `noisily' oncollision(error))
@@ -96,6 +95,7 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
+            compare_gquantiles,  `noisily' oncollision(error)
             compare_gcollapse,   `noisily' oncollision(error) tol(1e-4)
             compare_gcontract,   `noisily' oncollision(error)
             compare_egen,        `noisily' oncollision(error)
@@ -107,14 +107,7 @@ program main
         }
 
         if ( `:list posof "bench_test" in options' ) {
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
-
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
-
+            bench_gquantiles,  n(1000) bench(1) `noisily' oncollision(error)
             bench_contract,    n(1000) bench(1) `noisily' oncollision(error)
             bench_egen,        n(1000) bench(1) `noisily' oncollision(error)
             bench_isid,        n(1000) bench(1) `noisily' oncollision(error)
@@ -124,18 +117,18 @@ program main
             bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
             * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
             bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
-            bench_gquantiles,  n(1000) bench(1) `noisily' oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
         }
 
         if ( `:list posof "bench_full" in options' ) {
-            bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(1000) n(100)    style(full)   vars(1)  oncollision(error)
-
-            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
-
+            bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
             bench_contract,    n(10000)   bench(10)  `noisily' oncollision(error)
             bench_egen,        n(10000)   bench(10)  `noisily' oncollision(error)
             bench_isid,        n(10000)   bench(10)  `noisily' oncollision(error)
@@ -145,7 +138,14 @@ program main
             bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct
             * bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct joint distunique
             bench_hashsort,    n(10000)   bench(10)  `noisily' oncollision(error) benchmode
-            bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(1000) n(100)    style(full)   vars(1)  oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
         }
     }
     local rc = _rc

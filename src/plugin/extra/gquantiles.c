@@ -5,7 +5,8 @@ GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool d
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
-    ST_double z, nqdbl, *xptr, *qptr, *optr, qdbl, qdiff, xmin, xmax;
+
+    ST_double z, nqdbl, *xptr, *qptr, *optr, *gptr, qdbl, qdiff, xmin, xmax, Ndbl;
     GT_bool failmiss;
     GT_size i, q, sel, obs, N, qtot;
     ST_retcode rc = 0;
@@ -69,7 +70,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size xmem_quant   = nout;
     GT_size xmem_points  = cutvars? SF_nobs() + 1: 1;
     GT_size xmem_quants  = qvars? SF_nobs() + 1: 1;
-    GT_size xmem_count   = (pctpct | bincount)? nout: 1;
+    GT_size xmem_count   = (pctpct | bincount)? ((cutvars | qvars)? SF_nobs() + 1: nout): 1;
     GT_size xmem_output  = kgen? Nread: 1;
 
     ST_double *xsources = calloc(xmem_sources, sizeof *xsources);
@@ -155,6 +156,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         rc = 17001;
         goto exit;
     }
+    Ndbl = (ST_double) N;
 
     // This limitation seems to have been misunderstood by fastxtile.  It seem
     // that it exists because the number of rows in the data is the limit to
@@ -179,20 +181,32 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     failmiss = (ncuts > 0) | (npoints > 0) | (nquants > 0);
-    nq2      = (nq2     == 0)? 0: gf_xtile_clean(st_info->xtile_quantiles, nq2,   1, 0);
-    ncuts    = (ncuts   == 0)? 0: gf_xtile_clean(st_info->xtile_cutoffs,   ncuts, 1, 0);
+    nq2      = (nq2     == 0)? 0: gf_xtile_clean(st_info->xtile_quantiles, nq2,   1, st_info->xtile_dedup);
+    ncuts    = (ncuts   == 0)? 0: gf_xtile_clean(st_info->xtile_cutoffs,   ncuts, 1, st_info->xtile_dedup);
     npoints  = (npoints == 0)? 0: gf_xtile_clean(xpoints, npoints, 1, st_info->xtile_dedup);
     nquants  = (nquants == 0)? 0: gf_xtile_clean(xquants, nquants, 1, st_info->xtile_dedup);
 
-    if ( failmiss & (ncuts == 0) & (npoints == 0) ) {
-        sf_errprintf("all cutoff values are missing\n");
-        rc = 198;
-        goto exit;
+    if ( failmiss & (ncuts == 0) & (npoints == 0) & (nquants == 0) ) {
+        if ( (ncuts == 0) & (npoints == 0) ) {
+            sf_errprintf("all cutoff values are missing\n");
+            rc = 198;
+            goto exit;
+        }
+        else if ( nquants == 0 ) {
+            sf_errprintf("all quantile values are missing\n");
+            rc = 198;
+            goto exit;
+        }
     }
-    else if ( failmiss & (nquants == 0) ) {
-        sf_errprintf("all quantile values are missing\n");
-        rc = 198;
-        goto exit;
+
+    if ( nquants > 0 ) {
+        for (gptr = xquants; gptr < xquants + nquants; gptr += 1) {
+            if ( (*gptr <= 0) || (*gptr >= 100) ) {
+                sf_errprintf("cutquantiles() requires a variable with values strictly between 0 and 100\n");
+                rc = 198;
+                goto exit;
+            }
+        }
     }
 
     if ( st_info->benchmark ) {
@@ -263,7 +277,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
-    qptr = xquant;
+    qptr = NULL;
     if ( ncuts > 0 ) {
         qptr = st_info->xtile_cutoffs;
         qptr[ncuts] = xsources[kx * N - kx];
@@ -275,12 +289,12 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     else if ( altdef ) {
         if ( nquants > 0 ) {
             for (i = 0; i < nquants; i++) {
-                q  = floor(qdbl = (xquants[i] * (N + 1) / 100));
+                q  = floor(qdbl = (xquants[i] * ((Ndbl + 1) / 100)));
                 if ( q > 0 ) {
                     if ( q < N ) {
                         q--;
                         xquants[i] = xsources[kx * q];
-                        if ( ((qdiff = qdbl - 1 - (ST_double) q) > 0) ) {
+                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
                             xquants[i] *= (1 - qdiff);
                             xquants[i] += qdiff * xsources[kx * q + kx];
                         }
@@ -298,12 +312,12 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
         else if ( nq2 > 0 ) {
             for (i = 0; i < nq2; i++) {
-                q  = floor(qdbl = (st_info->xtile_quantiles[i] * (N + 1) / 100));
+                q  = floor(qdbl = (st_info->xtile_quantiles[i] * ((Ndbl + 1) / 100)));
                 if ( q > 0 ) {
                     if ( q < N ) {
                         q--;
                         xquant[i] = xsources[kx * q];
-                        if ( ((qdiff = qdbl - 1 - (ST_double) q) > 0) ) {
+                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
                             xquant[i] *= (1 - qdiff);
                             xquant[i] += qdiff * xsources[kx * q + kx];
                         }
@@ -322,22 +336,22 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         else if ( nq > 0 ) {
             nqdbl = (ST_double) nq;
             for (i = 0; i < (nq - 1); i++) {
-                q = floor(qdbl = ((i + 1) * (N + 1) / nqdbl));
+                q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
                 if ( q > 0 ) {
                     if ( q < N ) {
                         q--;
                         xquant[i] = xsources[kx * q];
-                        if ( ((qdiff = qdbl - 1 - (ST_double) q) > 0) ) {
+                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
                             xquant[i] *= (1 - qdiff);
                             xquant[i] += qdiff * xsources[kx * q + kx];
                         }
                     }
                     else {
-                        xquant[nq - 1] = xsources[kx * N - kx];
+                        xquant[i] = xsources[kx * N - kx];
                     }
                 }
                 else {
-                    xquant[nq - 1] = xsources[0];
+                    xquant[i] = xsources[0];
                 }
             }
             xquant[nq - 1] = xsources[kx * N - kx];
@@ -347,7 +361,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     else {
         if ( nquants > 0 ) {
             for (i = 0; i < nquants; i++) {
-                q = ceil(qdbl = (xquants[i] * N / 100) - 1);
+                q = ceil(qdbl = (xquants[i] * (Ndbl / 100)) - 1);
                 xquants[i] = xsources[kx * q];
                 if ( (ST_double) q == qdbl ) {
                     xquants[i] += xsources[kx * q + kx];
@@ -359,7 +373,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
         else if ( nq2 > 0 ) {
             for (i = 0; i < nq2; i++) {
-                q = ceil(qdbl = (st_info->xtile_quantiles[i] * N / 100) - 1);
+                q = ceil(qdbl = st_info->xtile_quantiles[i] * (Ndbl / 100) - 1);
                 xquant[i] = xsources[kx * q];
                 if ( (ST_double) q == qdbl ) {
                     xquant[i] += xsources[kx * q + kx];
@@ -372,7 +386,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         else if ( nq > 0 ) {
             nqdbl = (ST_double) nq;
             for (i = 0; i < (nq - 1); i++) {
-                q = ceil(qdbl = ((i + 1) * N / nqdbl) - 1);
+                q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
                 xquant[i] = xsources[kx * q];
                 if ( (ST_double) q == qdbl ) {
                     xquant[i] += xsources[kx * q + kx];
@@ -471,7 +485,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     if ( pctile ) {
         if ( pctpct ) {
             for (q = 0; q < qtot; q++) {
-                if ( (rc = SF_vstore(start_xtile + kgen, q + 1, qptr[q])) ) goto exit;
+                if ( (rc = SF_vstore(start_xtile + kgen,     q + 1, qptr[q])) ) goto exit;
                 if ( (rc = SF_vstore(start_xtile + kgen + 1, q + 1, xcount[q])) ) goto exit;
             }
         }

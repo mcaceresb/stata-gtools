@@ -104,8 +104,11 @@ ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const G
  */
 ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT_size end, const ST_double quantile)
 {
-    GT_size N   = end - start;
-    GT_size qth = floor(quantile * N / 100);
+    ST_double N, Ndbl, qth, qdbl;
+
+    N    = end - start;
+    Ndbl = (ST_double) N;
+    qth  = floor(qdbl = quantile * (Ndbl / 100));
 
     // Special cases
     // -------------
@@ -137,7 +140,7 @@ ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT
     GT_size left = start, right = end;
     GT_bool dmax = ( qth == (N - 1) );
     ST_double q = dmax? gf_array_dmax_range(v, left, right): gf_qselect_range (v, left, right, qth);
-    if ( (ST_double) qth == (quantile * N / 100) ) {
+    if ( (ST_double) qth == qdbl ) {
         q += gf_qselect_range (v, left, right, qth - 1);
         q /= 2;
     }

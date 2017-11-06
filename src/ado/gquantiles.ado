@@ -51,28 +51,31 @@
 *
 * set rmsg on
 * clear
-* set obs 20000
+* set obs 1000000
 * gen x = runiform()
-* pctile z1 = x, nq(20000)
-* gquantiles z2 = x, pctile nq(20000)
+* gquantiles z2 = x, pctile nq(10000)
+* pctile z1 = x, nq(10000)
 * assert z1 == z2
+* gquantiles z3 = x, pctile nq(`=_N') genp(p3)
 *
-* set rmsg on
-* clear
-* set obs 20
-* gen x = _n
-* _pctile x, p(7) altdef
-* return list
-* _pctile x, p(7)
-* return list
+* We can check that this result is correct:
+* preserve
+*     sample 0.1
+*     sort p3
+*     cap matrix drop z3mat
+*     mkmat z3, mat(z3mat)
+*     qui glevelsof p3, numfmt(%.4f)
+* restore
+* _pctile x, p(`r(levels)')
+* gen diff = .
+* qui forvalues r = 1 / 1000 {
+*     replace diff = abs(z3mat[`r', 1] - r(r`r')) in `r'
+* }
+* qui sum diff in 1/1000
+* disp r(max)
 *
-* xtile x1 = x, nq(14)
-* xtile x2 = x, nq(14) altdef
-* pctile p1 = x, nq(14)
-* pctile p2 = x, nq(14) altdef
-* xtile xp1 = x, c(p1)
-* xtile xp2 = x, c(p2) altdef
-* l
+* Hence computing many quantiles, which was de facto impossible,
+* now runs at a very reasonable speed.
 
 * set rmsg on
 * clear
@@ -85,6 +88,52 @@
 * xtile xp1 = x, c(p1)
 * xtile xp2 = x, c(p2) altdef
 * l
+
+* set rmsg on
+* clear
+* set obs 10000
+* gen x = runiform()
+* pctile z1 = x, nq(10000)
+* gquantiles z2 = x, pctile nq(10000)
+* mata: pctile("z3", "x", 10000)
+* assert z1 == z2
+* assert z1 == z3
+*
+* set rmsg on
+* clear
+* set obs 1000000
+* gen x = runiform()
+* gquantiles z2 = x, pctile nq(10)
+* mata: pctile("z3", "x", 10)
+* assert z2 == z3
+*
+* cap mata: mata drop pctile()
+* mata:
+* void function pctile (string scalar newvar,
+*                       string scalar sourcevar,
+*                       real scalar nq)
+* {
+*     real scalar N
+*     real colvector X, quantiles, qpositions, qties, qtiesix, Q, Qties
+*
+*     X = st_data(., sourcevar)
+*     N = rows(X)
+*     _sort(X, 1)
+*     quantiles  = ((1::(nq - 1)) * N / nq)
+*     qpositions = ceil(quantiles)
+*     qties      = (qpositions :== quantiles)
+*     Q          = X[qpositions]
+*
+*     if ( any(qties) ) {
+*         qtiesix = selectindex(qties)
+*         Qties = X[qpositions[qtiesix] :+ 1]
+*         Q[qtiesix] = (Q[qtiesix] + Qties) / 2
+*     }
+*
+*     st_addvar("`:set type'", newvar)
+*     st_store((1::(nq - 1)), newvar, Q)
+* }
+* end
 
 capture program drop gquantiles
 program gquantiles, rclass
@@ -116,6 +165,7 @@ program gquantiles, rclass
                                         /// Augmented standard options
                                         /// --------------------------
                                         ///
+        returnlimit(real 1001)          /// Set to missing (.) to have no return limit; REALLY SLOW to tinker
         dedup                           /// Remove duplicates from quantiles() or cutquantiles()
         _pctile                         /// Set return values in the style of pctile
         pctile                          /// Call pctile
@@ -257,7 +307,7 @@ program gquantiles, rclass
 
     if ( ("`binfreqvar'" != "") | ("`binpctvar'" != "") ) {
         if ( "`binfreqvar'" != "" ) {
-            local binfreqvar binfreqvar(`binfreqvar')
+            local binaddvar binfreqvar(`binfreqvar')
             if ( "`binpctvar'" != "" ) {
                 cap confirm new variable `binpctvar'
                 if ( _rc & ("`replace'" == "") ) {
@@ -267,7 +317,7 @@ program gquantiles, rclass
             }
         }
         else {
-            local binfreqvar binfreqvar(`binpctvar')
+            local binaddvar binfreqvar(`binpctvar')
         }
     }
 
@@ -293,28 +343,59 @@ program gquantiles, rclass
     local 0 `anything'
     cap syntax newvarname =/exp
     if ( _rc ) {
-        cap confirm numeric var `anything'
+        cap syntax varname =/exp
         if ( _rc ) {
-            tempvar touse xsources
-            mark `touse' `ifin'
-            cap gen double `xsources' = `anything' if `touse'
+            cap confirm numeric var `anything'
             if ( _rc ) {
-                if ( ("`xtile'" != "") | ("`pctile'" != "") ) {
-                    CleanExit
-                    di as err "Invalid syntax. Requried: newvarname = exp"
-                    exit 198
+                tempvar touse xsources
+                mark `touse' `ifin'
+                cap gen double `xsources' = `anything' if `touse'
+                if ( _rc ) {
+                    if ( ("`xtile'" != "") | ("`pctile'" != "") ) {
+                        CleanExit
+                        di as err "Invalid syntax. Requried: newvarname = exp"
+                        exit 198
+                    }
+                    else {
+                        di as err "Invalid expression"
+                        CleanExit
+                        exit 198
+                    }
                 }
-                else {
-                    di as err "Invalid expression"
-                    CleanExit
-                    exit 198
-                }
+                local ifin if `touse' `in0'
             }
-            local ifin if `touse' `in0'
+            else {
+                local xsources `anything'
+                local ifin `ifin'
+            }
+        }
+        else if ( "`replace'" == "" ) {
+            di as err "Variable `varlist' already exists"
+            CleanExit
+            exit 110
+        }
+        else if ( ("`xtile'" == "") & ("`pctile'" == "") ) {
+            di as err "varname = exp requires option -xtile- or -pctile-"
+            CleanExit
+            exit 198
         }
         else {
-            local xsources `anything'
-            local ifin `ifin'
+            cap confirm numeric var `exp'
+            if ( _rc ) {
+                tempvar touse xsources
+                mark `touse' `ifin'
+                cap gen double `xsources' = `exp' if `touse'
+                if ( _rc ) {
+                    di as err "Invalid expression"
+                    CleanExit
+                    error 198
+                }
+                local ifin if `touse' `in0'
+            }
+            else {
+                local xsources `exp'
+                local ifin `ifin'
+            }
         }
     }
     else {
@@ -342,7 +423,7 @@ program gquantiles, rclass
     }
 
     if ( ("`binfreq'" != "") | ("`binpct'" != "") ) {
-        local binfreq binfreq
+        local binadd binfreq
     }
 
     if ( "`pctile'" != "" ) local pctilevar `varlist'
@@ -368,9 +449,9 @@ program gquantiles, rclass
 
     local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     local   opts `opts' `gen' `tag' `counts' `fill'
-    local gqopts `varlist', xsources(`xsources') `dedup' `_pctile' `pctile' `genp' `binfreq' `binfreqvar'
+    local gqopts `varlist', xsources(`xsources') `dedup' `_pctile' `pctile' `genp' `binadd' `binaddvar'
     local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `cutquantiles'
-    local gqopts `gqopts' `replace' `altdef' `method' `strict' `minmax'
+    local gqopts `gqopts' `replace' `altdef' `method' `strict' `minmax' returnlimit(`returnlimit')
     cap noi _gtools_internal `by' `ifin', missing unsorted `opts' gquantiles(`gqopts') gfunction(quantiles)
     local rc = _rc
 
@@ -384,6 +465,10 @@ program gquantiles, rclass
             disp as err "(note: cannot use fallback)"
             exit 17000
         }
+    }
+    else if ( `rc' == 17001 ) {
+        CleanExit
+        exit 2000
     }
     else if ( `rc' ) {
         CleanExit
@@ -431,23 +516,30 @@ program gquantiles, rclass
         if ( `: list posof "bin" in nqextra' ) {
             mata: st_matrix("__gtools_r_qbin", st_matrix("r(quantiles_bincount)")[1::`Nout']')
             if ( "`binpct'" != "" ) {
-                if ("`binfreq'" == "") matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-                if ("`binfreq'" != "") {
+                if ("`binfreq'" == "") {
+                    matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
+                    return matrix quantiles_binpct = __gtools_r_qbin
+                }
+                else if ("`binfreq'" != "") {
                     matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                    return matrix quantiles_binpct = __gtools_r_qpct
+                    return matrix quantiles_binfreq = __gtools_r_qbin
+                    return matrix quantiles_binpct  = __gtools_r_qpct
                 }
             }
-            return matrix quantiles_bin`bin' = __gtools_r_qbin
+            else if ("`binfreq'" != "") {
+                return matrix quantiles_binfreq = __gtools_r_qbin
+            }
         }
         if ( "`_pctile'" != "" ) {
+            local nreturn = cond(`returnlimit' > 0, min(`Nout', `returnlimit'), `Nout')
             if ( "`pctilevar'" != "" ) {
-                forvalues i = 1 / `Nout' {
+                forvalues i = 1 / `nreturn' {
                     return scalar r`i' = `pctilevar'[`i']
                 }
             }
             else if ( `: list posof "quantiles" in nqextra' ) {
                 mata: st_matrix("__gtools_r_qused", st_matrix("r(quantiles_used)")[1::`Nout']')
-                forvalues i = 1 / `Nout' {
+                forvalues i = 1 / `nreturn' {
                     return scalar r`i' = __gtools_r_qused[`i', 1]
                 }
                 cap scalar drop `rscalar'
@@ -467,16 +559,23 @@ program gquantiles, rclass
         mata: st_matrix("__gtools_r_qbin",  st_matrix("r(quantiles_bincount)")[1::`r(nquantiles2)']')
         return matrix quantiles_used = __gtools_r_qused
         if ( "`binpct'" != "" ) {
-            if ("`binfreq'" == "") matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-            if ("`binfreq'" != "") {
+            if ("`binfreq'" == "") {
+                matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
+                return matrix quantiles_binpct  = __gtools_r_qbin
+            }
+            else if ("`binfreq'" != "") {
                 matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                return matrix quantiles_binpct = __gtools_r_qpct
+                return matrix quantiles_binfreq = __gtools_r_qbin
+                return matrix quantiles_binpct  = __gtools_r_qpct
             }
         }
-        return matrix quantiles_bin`bin' = __gtools_r_qbin
+        else if ("`binfreq'" != "") {
+            return matrix quantiles_binfreq = __gtools_r_qbin
+        }
         if ( "`_pctile'" != "" ) {
             mata: st_matrix("__gtools_r_qused", st_matrix("r(quantiles_used)")[1::`Nout']')
-            forvalues i = 1 / `r(nquantiles2)' {
+            local nreturn = cond(`returnlimit' > 0, min(`r(nquantiles2)', `returnlimit'), `r(nquantiles2)')
+            forvalues i = 1 / `nreturn' {
                 return scalar r`i' = __gtools_r_qused[`i', 1]
             }
         }
@@ -494,27 +593,36 @@ program gquantiles, rclass
         mata: st_matrix("__gtools_r_qbin",  st_matrix("r(cutoffs_bincount)")[1::`r(ncutoffs)']')
         return matrix cutoffs_used = __gtools_r_qused
         if ( "`binpct'" != "" ) {
-            if ("`binfreq'" == "") matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-            if ("`binfreq'" != "") {
+            if ("`binfreq'" == "") {
+                matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
+                return matrix cutoffs_binpct  = __gtools_r_qbin
+            }
+            else if ("`binfreq'" != "") {
                 matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                return matrix cutoffs_binpct = __gtools_r_qpct
+                return matrix cutoffs_binfreq =  __gtools_r_qbin
+                return matrix cutoffs_binpct  = __gtools_r_qpct
             }
         }
-        return matrix cutoffs_bin`bin' =  __gtools_r_qbin
+        else if ("`binfreq'" != "") {
+            return matrix cutoffs_binfreq =  __gtools_r_qbin
+        }
     }
 
     if ( `r(nquantpoints)' > 0 ) {
         return scalar nquantpoints = `r(nquantpoints)'
         local Nout = `r(nquantpoints)'
-        if ( "`pctilevar'" != "" ) {
-            forvalues i = 1 / `r(nquantpoints)' {
-                return scalar r`i' = `pctilevar'[`i']
+        if ( "`_pctile'" != "" ) {
+            if ( "`pctilevar'" != "" ) {
+                local nreturn = cond(`returnlimit' > 0, min(`r(nquantpoints)', `returnlimit'), `r(nquantpoints)')
+                forvalues i = 1 / `nreturn' {
+                    return scalar r`i' = `pctilevar'[`i']
+                }
             }
-        }
-        else {
-            di as err "Cannot set _pctile return values with cutquantiles() but no pctile()"
-            CleanExit
-            exit 198
+            else {
+                di as err "Cannot set _pctile return values with cutquantiles() but no pctile()"
+                CleanExit
+                exit 198
+            }
         }
     }
 
@@ -523,7 +631,16 @@ program gquantiles, rclass
             qui replace `binpctvar' = `binpctvar'  / `Nx' in 1 / `Nout'
         }
         else {
-            qui gen `binpctvar' = `binfreqvar' / `Nx' in 1 / `Nout'
+            cap confirm new var `binpctvar'
+            if ( _rc ) {
+                qui replace `binpctvar' = `binfreqvar' / `Nx' in 1 / `Nout'
+                if ( `=`Nout'' < `=_N' ) {
+                    qui replace `binpctvar' = . in `=`Nout' + 1' / `=_N'
+                }
+            }
+            else {
+                qui gen `binpctvar' = `binfreqvar' / `Nx' in 1 / `Nout'
+            }
         }
     }
 

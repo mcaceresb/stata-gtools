@@ -3,10 +3,45 @@
 ST_retcode sf_xtile    (struct StataInfo *st_info, int level);
 GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup);
 
+void gf_quantiles_nq (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx
+);
+
+void gf_quantiles (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx
+);
+
+void gf_quantiles_nq_altdef (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx
+);
+
+void gf_quantiles_altdef (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx
+);
+
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
 
-    ST_double z, nqdbl, *xptr, *qptr, *optr, *gptr, qdbl, qdiff, xmin, xmax, Ndbl;
+    ST_double z, nqdbl, qdbl, qdiff, xmin, xmax, Ndbl;
+    ST_double *xptr, *qptr, *optr, *gptr;
     GT_bool failmiss;
     GT_size i, q, sel, obs, N, qtot;
     ST_retcode rc = 0;
@@ -17,7 +52,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                           Step 1: Setup                           *
      *********************************************************************/
 
-    // GT_bool method   = st_info->method;
+    // GT_bool method = st_info->method;
     // method = 0; // expected optimal
     // method = 1; // qsort, current
     // method = 2; // qselect
@@ -288,112 +323,118 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     else if ( altdef ) {
         if ( nquants > 0 ) {
-            for (i = 0; i < nquants; i++) {
-                q  = floor(qdbl = (xquants[i] * ((Ndbl + 1) / 100)));
-                if ( q > 0 ) {
-                    if ( q < N ) {
-                        q--;
-                        xquants[i] = xsources[kx * q];
-                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                            xquants[i] *= (1 - qdiff);
-                            xquants[i] += qdiff * xsources[kx * q + kx];
-                        }
-                    }
-                    else {
-                        xquants[i] = xsources[kx * N - kx];
-                    }
-                }
-                else {
-                    xquants[i] = xsources[0];
-                }
-            }
-            xquants[nquants] = xsources[kx * N - kx];
+            // for (i = 0; i < nquants; i++) {
+            //     q  = floor(qdbl = (xquants[i] * ((Ndbl + 1) / 100)));
+            //     if ( q > 0 ) {
+            //         if ( q < N ) {
+            //             q--;
+            //             xquants[i] = xsources[kx * q];
+            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+            //                 xquants[i] *= (1 - qdiff);
+            //                 xquants[i] += qdiff * xsources[kx * q + kx];
+            //             }
+            //         }
+            //         else {
+            //             xquants[i] = xsources[kx * N - kx];
+            //         }
+            //     }
+            //     else {
+            //         xquants[i] = xsources[0];
+            //     }
+            // }
+            // xquants[nquants] = xsources[kx * N - kx];
+            gf_quantiles_altdef (xquants, xsources, xquants, nquants, N, kx);
             qptr = xquants;
         }
         else if ( nq2 > 0 ) {
-            for (i = 0; i < nq2; i++) {
-                q  = floor(qdbl = (st_info->xtile_quantiles[i] * ((Ndbl + 1) / 100)));
-                if ( q > 0 ) {
-                    if ( q < N ) {
-                        q--;
-                        xquant[i] = xsources[kx * q];
-                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                            xquant[i] *= (1 - qdiff);
-                            xquant[i] += qdiff * xsources[kx * q + kx];
-                        }
-                    }
-                    else {
-                        xquant[i] = xsources[kx * N - kx];
-                    }
-                }
-                else {
-                    xquant[i] = xsources[0];
-                }
-            }
-            xquant[nq2] = xsources[kx * N - kx];
+            // for (i = 0; i < nq2; i++) {
+            //     q  = floor(qdbl = (st_info->xtile_quantiles[i] * ((Ndbl + 1) / 100)));
+            //     if ( q > 0 ) {
+            //         if ( q < N ) {
+            //             q--;
+            //             xquant[i] = xsources[kx * q];
+            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+            //                 xquant[i] *= (1 - qdiff);
+            //                 xquant[i] += qdiff * xsources[kx * q + kx];
+            //             }
+            //         }
+            //         else {
+            //             xquant[i] = xsources[kx * N - kx];
+            //         }
+            //     }
+            //     else {
+            //         xquant[i] = xsources[0];
+            //     }
+            // }
+            // xquant[nq2] = xsources[kx * N - kx];
+            gf_quantiles_altdef (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
             qptr = xquant;
         }
         else if ( nq > 0 ) {
-            nqdbl = (ST_double) nq;
-            for (i = 0; i < (nq - 1); i++) {
-                q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
-                if ( q > 0 ) {
-                    if ( q < N ) {
-                        q--;
-                        xquant[i] = xsources[kx * q];
-                        if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                            xquant[i] *= (1 - qdiff);
-                            xquant[i] += qdiff * xsources[kx * q + kx];
-                        }
-                    }
-                    else {
-                        xquant[i] = xsources[kx * N - kx];
-                    }
-                }
-                else {
-                    xquant[i] = xsources[0];
-                }
-            }
-            xquant[nq - 1] = xsources[kx * N - kx];
+            // nqdbl = (ST_double) nq;
+            // for (i = 0; i < (nq - 1); i++) {
+            //     q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
+            //     if ( q > 0 ) {
+            //         if ( q < N ) {
+            //             q--;
+            //             xquant[i] = xsources[kx * q];
+            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+            //                 xquant[i] *= (1 - qdiff);
+            //                 xquant[i] += qdiff * xsources[kx * q + kx];
+            //             }
+            //         }
+            //         else {
+            //             xquant[i] = xsources[kx * N - kx];
+            //         }
+            //     }
+            //     else {
+            //         xquant[i] = xsources[0];
+            //     }
+            // }
+            // xquant[nq - 1] = xsources[kx * N - kx];
+            gf_quantiles_nq_altdef (xquant, xsources, nq, N, kx);
             qptr = xquant;
         }
     }
     else {
         if ( nquants > 0 ) {
-            for (i = 0; i < nquants; i++) {
-                q = ceil(qdbl = (xquants[i] * (Ndbl / 100)) - 1);
-                xquants[i] = xsources[kx * q];
-                if ( (ST_double) q == qdbl ) {
-                    xquants[i] += xsources[kx * q + kx];
-                    xquants[i] /= 2;
-                }
-            }
-            xquants[nquants] = xsources[kx * N - kx];
+            // for (i = 0; i < nquants; i++) {
+            //     q = ceil(qdbl = (xquants[i] * (Ndbl / 100)) - 1);
+            //     xquants[i] = xsources[kx * q];
+            //     if ( (ST_double) q == qdbl ) {
+            //         xquants[i] += xsources[kx * q + kx];
+            //         xquants[i] /= 2;
+            //     }
+            // }
+            // xquants[nquants] = xsources[kx * N - kx];
+            gf_quantiles (xquants, xsources, xquants, nquants, N, kx);
             qptr = xquants;
         }
         else if ( nq2 > 0 ) {
-            for (i = 0; i < nq2; i++) {
-                q = ceil(qdbl = st_info->xtile_quantiles[i] * (Ndbl / 100) - 1);
-                xquant[i] = xsources[kx * q];
-                if ( (ST_double) q == qdbl ) {
-                    xquant[i] += xsources[kx * q + kx];
-                    xquant[i] /= 2;
-                }
-            }
-            xquant[nq2] = xsources[kx * N - kx];
+            // for (i = 0; i < nq2; i++) {
+            //     q = ceil(qdbl = st_info->xtile_quantiles[i] * (Ndbl / 100) - 1);
+            //     xquant[i] = xsources[kx * q];
+            //     if ( (ST_double) q == qdbl ) {
+            //         xquant[i] += xsources[kx * q + kx];
+            //         xquant[i] /= 2;
+            //     }
+            // }
+            // xquant[nq2] = xsources[kx * N - kx];
+            gf_quantiles (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
             qptr = xquant;
         }
         else if ( nq > 0 ) {
-            nqdbl = (ST_double) nq;
-            for (i = 0; i < (nq - 1); i++) {
-                q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
-                xquant[i] = xsources[kx * q];
-                if ( (ST_double) q == qdbl ) {
-                    xquant[i] += xsources[kx * q + kx];
-                    xquant[i] /= 2;
-                }
-            }
-            xquant[nq - 1] = xsources[kx * N - kx];
+            // nqdbl = (ST_double) nq;
+            // for (i = 0; i < (nq - 1); i++) {
+            //     q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
+            //     xquant[i] = xsources[kx * q];
+            //     if ( (ST_double) q == qdbl ) {
+            //         xquant[i] += xsources[kx * q + kx];
+            //         xquant[i] /= 2;
+            //     }
+            // }
+            // xquant[nq - 1] = xsources[kx * N - kx];
+            gf_quantiles_nq (xquant, xsources, nq, N, kx);
             qptr = xquant;
         }
     }
@@ -586,6 +627,9 @@ exit:
     return (rc);
 }
 
+/*********************************************************************
+ *                            Clean array                            *
+ *********************************************************************/
 
 GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup)
 {
@@ -652,6 +696,129 @@ GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool d
         return (lsize);
     }
 }
+
+/*********************************************************************
+ *                             Quantiles                             *
+ *********************************************************************/
+
+void gf_quantiles_nq (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx)
+{
+    GT_size i, q;
+    ST_double qdbl;
+    ST_double Ndbl  = (ST_double) N;
+    ST_double nqdbl = (ST_double) nquants;
+
+    for (i = 0; i < nquants; i++) {
+        q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
+        qout[i] = x[kx * q];
+        if ( (ST_double) q == qdbl ) {
+            qout[i] += x[kx * q + kx];
+            qout[i] /= 2;
+        }
+    }
+    qout[nquants] = x[kx * N - kx];
+}
+
+void gf_quantiles (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx)
+{
+    GT_size i, q;
+    ST_double qdbl;
+    ST_double Ndbl  = (ST_double) N;
+    ST_double nqdbl = (ST_double) nquants;
+
+    for (i = 0; i < nquants; i++) {
+        q = ceil(qdbl = (quants[i] * (Ndbl / 100)) - 1);
+        qout[i] = x[kx * q];
+        if ( (ST_double) q == qdbl ) {
+            qout[i] += x[kx * q + kx];
+            qout[i] /= 2;
+        }
+    }
+    qout[nquants] = x[kx * N - kx];
+}
+
+void gf_quantiles_nq_altdef (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx)
+{
+    GT_size i, q;
+    ST_double qdbl, qdiff;
+    ST_double Ndbl  = (ST_double) N;
+    ST_double nqdbl = (ST_double) nquants;
+
+    for (i = 0; i < nquants; i++) {
+        q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
+        if ( q > 0 ) {
+            if ( q < N ) {
+                q--;
+                qout[i] = x[kx * q];
+                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+                    qout[i] *= (1 - qdiff);
+                    qout[i] += qdiff * x[kx * q + kx];
+                }
+            }
+            else {
+                qout[i] = x[kx * N - kx];
+            }
+        }
+        else {
+            qout[i] = x[0];
+        }
+    }
+    qout[nquants] = x[kx * N - kx];
+}
+
+void gf_quantiles_altdef (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N,
+    GT_size kx)
+{
+    GT_size i, q;
+    ST_double qdbl, qdiff;
+    ST_double Ndbl = (ST_double) N;
+
+    for (i = 0; i < nquants; i++) {
+        q = floor(qdbl = (quants[i] * ((Ndbl + 1) / 100)));
+        if ( q > 0 ) {
+            if ( q < N ) {
+                q--;
+                qout[i] = x[kx * q];
+                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+                    qout[i] *= (1 - qdiff);
+                    qout[i] += qdiff * x[kx * q + kx];
+                }
+            }
+            else {
+                qout[i] = x[kx * N - kx];
+            }
+        }
+        else {
+            qout[i] = x[0];
+        }
+    }
+    qout[nquants] = x[kx * N - kx];
+}
+
+/*********************************************************************
+ *                              Scratch                              *
+ *********************************************************************/
 
 // A. with gen
 //     1. Read cutvars

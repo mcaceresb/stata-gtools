@@ -106,7 +106,7 @@
 * gquantiles z2 = x, pctile nq(10)
 * mata: pctile("z3", "x", 10)
 * assert z2 == z3
-*
+
 * cap mata: mata drop pctile()
 * mata:
 * void function pctile (string scalar newvar,

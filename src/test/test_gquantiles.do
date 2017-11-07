@@ -241,6 +241,7 @@ program compare_gquantiles
     qui sort random1
 
     _consistency_inner_gquantiles, `options'
+    _consistency_inner_gquantiles in 1 / 5, `options' corners
 
     local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
     local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
@@ -267,8 +268,9 @@ end
 
 capture program drop _consistency_inner_gquantiles
 program _consistency_inner_gquantiles
-    syntax [if] [in], [tol(real 1e-6) NOIsily *]
+    syntax [if] [in], [tol(real 1e-6) NOIsily corners *]
 
+    if ( "`corners'" == "" ) {
     _consistency_inner_full double1 `if' `in', `options'
     _consistency_inner_full double3 `if' `in', `options'
     _consistency_inner_full ru      `if' `in', `options'
@@ -280,6 +282,13 @@ program _consistency_inner_gquantiles
     _consistency_inner_full int1^2 + 3 * double1          `if' `in', `options'
     _consistency_inner_full 2 * int1 + log(double1)       `if' `in', `options'
     _consistency_inner_full int1 * double3 + exp(double3) `if' `in', `options'
+    }
+    else {
+    _consistency_inner_full double1 `if' `in', `options'
+    _consistency_inner_full ru      `if' `in', `options'
+    _consistency_inner_full int1    `if' `in', `options'
+    _consistency_inner_full ix      `if' `in', `options'
+    }
 end
 
 capture program drop _consistency_inner_full
@@ -537,7 +546,7 @@ program compare_inner_quantiles
     _compare_inner_gquantiles, `options'
 
     if ( "`benchmode'" == "" ) {
-        _compare_inner_gquantiles in 1 / 5, `options'
+        _compare_inner_gquantiles in 1 / 5, `options' corners
 
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
@@ -561,15 +570,14 @@ end
 
 capture program drop _compare_inner_gquantiles
 program _compare_inner_gquantiles
-    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) qwhich(str) benchmode table *]
+    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) qwhich(str) benchmode table corners *]
 
     if ( "`if'`in'" != "" ) {
         local ifinstr ""
         if ( "`if'" != "" ) local ifinstr `ifinstr' [`if']
         if ( "`in'" != "" ) local ifinstr `ifinstr' [`in']
 
-        qui count `if' `in'
-        if ( (`r(N)' < 10)  & ("`qwhich'" == "xtile")) {
+        if ( ("`corners'" != "")  & ("`qwhich'" == "xtile")) {
             disp as txt "(note: skipped `ifinstr' tests for xtile; this test is for pctile and _pctile only)"
             exit 0
         }
@@ -598,6 +606,7 @@ program _compare_inner_gquantiles
     }
     }
 
+    if ( "`corners'" == "" ) {
     _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
     _compare_inner_`qwhich' double3 `if' `in', `options' note("~ N(10, 5), many missings, groups of size 10")
     _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
@@ -609,6 +618,13 @@ program _compare_inner_gquantiles
     _compare_inner_`qwhich' int1^2 + 3 * double1          `if' `in', `options'
     _compare_inner_`qwhich' 2 * int1 + log(double1)       `if' `in', `options'
     _compare_inner_`qwhich' int1 * double3 + exp(double3) `if' `in', `options'
+    }
+    else {
+    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
+    _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
+    _compare_inner_`qwhich' int1    `if' `in', `options' note("discrete (no missings, many groups)")
+    _compare_inner_`qwhich' ix      `if' `in', `options' note("discrete (few missings, unique)")
+    }
 end
 
 ***********************************************************************

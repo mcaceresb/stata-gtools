@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Nov  6 01:54:16 EST 2017
+* Updated: Mon Nov  6 19:57:53 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.9.4
 * Manual:  help gtools
@@ -23,6 +23,15 @@ set linesize 255
 
 program main
     syntax, [NOIsily *]
+
+compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile) benchmode
+compare_inner_quantiles, qopts(altdef nq(10)) qwhich(ptile) benchmode
+* set obs 10000000
+* set obs 2000000
+* gen x = rnormal()
+* gquantiles zz = x, pctile nq(10) genp(xx) v bench(2) method(1)
+* l in 1/10
+exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -64,6 +73,7 @@ program main
             cap ssc install unique
             cap ssc install distinct
             cap ssc install moremata
+            cap ssc install fastxtile
         }
 
         if ( `:list posof "basic_checks" in options' ) {

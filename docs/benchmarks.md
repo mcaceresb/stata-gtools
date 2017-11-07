@@ -2,7 +2,7 @@ Benchmarks
 ==========
 
 Hardware
---------------
+--------
 
 Stata/IC benchmarks were run on a Linux laptop.
 
@@ -485,15 +485,15 @@ Benchmark with obs = 10,000,000, nquantiles = 10.
 
 | \_pctile | gquantiles | ratio (_/g) | varlist
 | -------- | ---------- | ----------- | -------
-|     23.9 |       1.18 |        20.2 | double1 (~ U(0,  1000), no missings, groups of size 10)
-|     21.3 |       1.03 |        20.7 | double3 (~ N(10, 5), many missings, groups of size 10)
-|     30.5 |       1.94 |        15.8 | ru (~ N(0, 100), few missings, unique)
-|     24.1 |       .563 |        42.8 | int1 (discrete (no missings, many groups))
-|       17 |       .293 |        58.2 | int3 (discrete (many missings, few groups))
-|     27.2 |       1.68 |        16.2 | ix (discrete (few missings, unique))
-|       26 |       1.24 |        20.9 | int1^2 + 3 * double1
-|     27.6 |       1.25 |        22.1 | 2 * int1 + log(double1)
-|     23.9 |       1.04 |          23 | int1 * double3 + exp(double3)
+|     23.2 |        .99 |        23.4 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|     23.4 |       .583 |        40.1 | double3 (~ N(10, 5), many missings, groups of size 10)
+|     40.9 |       .879 |        46.5 | ru (~ N(0, 100), few missings, unique)
+|     22.6 |       .807 |        28.1 | int1 (discrete (no missings, many groups))
+|     15.1 |       .451 |        33.5 | int3 (discrete (many missings, few groups))
+|     27.4 |       .844 |        32.5 | ix (discrete (few missings, unique))
+|     25.4 |       .718 |        35.4 | int1^2 + 3 * double1
+|     26.5 |       .723 |        36.7 | 2 * int1 + log(double1)
+|     21.4 |       .589 |        36.4 | int1 * double3 + exp(double3)
 
 | xtile | fastxtile | gquantiles | ratio (x/g) | ratio (f/g) | varlist
 | ----- | --------- | ---------- | ----------- | ----------- | -------

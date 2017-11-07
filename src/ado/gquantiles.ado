@@ -445,7 +445,7 @@ program gquantiles, rclass
 
     local bench = ( "`benchmark'" != "" )
     local msg "Parsed quantile call"
-    gtools_timer info 97 `"`msg'"', prints(`bench')
+    gtools_timer info 97 `"`msg'"', prints(`bench') off
 
     local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     local   opts `opts' `gen' `tag' `counts' `fill'
@@ -645,9 +645,7 @@ program gquantiles, rclass
     }
 
     return scalar nqused = `Nout'
-
-    local msg "Set return values and output"
-    gtools_timer info 97 `"`msg'"', prints(`bench') off
+    return scalar method_ratio = `r(method_ratio)'
 
     CleanExit
     exit 0

@@ -1315,6 +1315,7 @@ program _gtools_internal, rclass
 
         return scalar min          = scalar(__gtools_xtile_min)
         return scalar max          = scalar(__gtools_xtile_max)
+        return scalar method_ratio = scalar(__gtools_xtile_method)
 
         return scalar nquantiles   = scalar(__gtools_xtile_nq)
         return scalar nquantiles2  = scalar(__gtools_xtile_nq2)

@@ -38,16 +38,16 @@
 #    include "hash/gtools_hash.c"
 #endif
 
+#include "collapse/gtools_math.c"
+#include "collapse/gtools_utils.c"
+#include "collapse/gegen.c"
+
 #include "extra/gisid.c"
 #include "extra/glevelsof.c"
 #include "extra/hashsort.c"
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
 #include "extra/gquantiles.c"
-
-#include "collapse/gtools_math.c"
-#include "collapse/gtools_utils.c"
-#include "collapse/gegen.c"
 
 int main()
 {

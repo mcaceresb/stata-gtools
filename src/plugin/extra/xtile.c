@@ -298,3 +298,99 @@ exit:
 
     return (rc);
 }
+
+
+/*********************************************************************
+ *                           Counting sort                           *
+ *********************************************************************/
+
+void gf_xtile_csort_ix (
+    ST_double *x,
+    ST_double *ix,
+    GT_size N,
+    GT_size xrange,
+    ST_double xmin
+);
+
+void gf_xtile_csort (
+    ST_double *x,
+    GT_size N,
+    GT_size xrange,
+    ST_double xmin
+);
+
+void gf_xtile_csort_ix (
+    ST_double *x,
+    ST_double *ix,
+    GT_size N,
+    GT_size xrange,
+    ST_double xmin)
+{
+    GT_size   *count = calloc(xrange + 1, sizeof *count);
+    GT_size   *xcopy = calloc(N, sizeof *xcopy);
+    ST_double *icopy = calloc(N, sizeof *icopy);
+
+    GT_size   *xc_ptr = xcopy;
+    ST_double *ic_ptr = icopy;
+    ST_double *x_ptr  = x;
+    ST_double *i_ptr  = ix;
+
+    GT_size s, i;
+
+    for (i = 0; i < xrange + 1; i++)
+        count[i] = 0;
+
+    for (x_ptr = x;
+         x_ptr < x + N;
+         x_ptr  += 1,
+         i_ptr  += 1,
+         xc_ptr += 1,
+         ic_ptr += 1) {
+        count[ *xc_ptr = (GT_size) (*x_ptr + 1 - xmin) ]++;
+        *ic_ptr = *i_ptr;
+    }
+
+    for (i = 1; i < xrange; i++)
+        count[i] += count[i - 1];
+
+    for (i = 0; i < N; i++) {
+        ix[ s = count[xcopy[i] - 1]++ ] = icopy[i];
+        x[s] = xcopy[i] - 1 + xmin;
+    }
+
+    free (count);
+    free (xcopy);
+    free (icopy);
+}
+
+void gf_xtile_csort (
+    ST_double *x,
+    GT_size N,
+    GT_size xrange,
+    ST_double xmin)
+{
+    GT_size *xcopy  = calloc(N, sizeof *xcopy);
+    GT_size *count  = calloc(xrange + 1, sizeof *count);
+    GT_size *xc_ptr = xcopy;
+    ST_double *x_ptr  = x;
+    GT_size i;
+
+    for (i = 0; i < xrange + 1; i++)
+        count[i] = 0;
+
+    for (x_ptr = x;
+         x_ptr < x + N;
+         x_ptr  += 1,
+         xc_ptr += 1) {
+        count[ *xc_ptr = (GT_size) (*x_ptr + 1 - xmin) ]++;
+    }
+
+    for (i = 1; i < xrange; i++)
+        count[i] += count[i - 1];
+
+    for (i = 0; i < N; i++)
+        x[ count[xcopy[i] - 1]++ ] = xcopy[i] - 1 + xmin;
+
+    free (count);
+    free (xcopy);
+}

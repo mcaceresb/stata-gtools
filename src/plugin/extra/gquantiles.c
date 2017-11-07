@@ -37,13 +37,43 @@ void gf_quantiles_altdef (
     GT_size kx
 );
 
+void gf_quantiles_nq_qselect (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N
+);
+
+void gf_quantiles_qselect (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N
+);
+
+void gf_quantiles_nq_qselect_altdef (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N
+);
+
+void gf_quantiles_qselect_altdef (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N
+);
+
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
 
-    ST_double z, nqdbl, qdbl, qdiff, xmin, xmax, Ndbl;
-    ST_double *xptr, *qptr, *optr, *gptr;
-    GT_bool failmiss;
-    GT_size i, q, sel, obs, N, qtot;
+    ST_double z, nqdbl, xmin, xmax;
+    ST_double *xptr, *qptr, *optr, *gptr, *ixptr, *xptr2;
+    GT_bool failmiss = 0, sorted = 0;
+    GT_size i, q, sel, obs, N, qtot, xrange, xtol;
     ST_retcode rc = 0;
     clock_t  timer = clock();
     clock_t stimer = clock();
@@ -52,10 +82,8 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                           Step 1: Setup                           *
      *********************************************************************/
 
-    // GT_bool method = st_info->method;
-    // method = 0; // expected optimal
-    // method = 1; // qsort, current
-    // method = 2; // qselect
+    GT_bool method = st_info->xtile_method;
+    ST_double m1_etime, m2_etime, m_ratio;
 
     GT_size nq      = st_info->xtile_nq;
     GT_size nq2     = st_info->xtile_nq2;
@@ -105,74 +133,26 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size xmem_quant   = nout;
     GT_size xmem_points  = cutvars? SF_nobs() + 1: 1;
     GT_size xmem_quants  = qvars? SF_nobs() + 1: 1;
-    GT_size xmem_count   = (pctpct | bincount)? ((cutvars | qvars)? SF_nobs() + 1: nout): 1;
-    GT_size xmem_output  = kgen? Nread: 1;
 
     ST_double *xsources = calloc(xmem_sources, sizeof *xsources);
     ST_double *xquant   = calloc(xmem_quant,   sizeof *xquant);
     ST_double *xpoints  = calloc(xmem_points,  sizeof *xpoints);
     ST_double *xquants  = calloc(xmem_quants,  sizeof *xquants);
-    GT_size   *xcount   = calloc(xmem_count,   sizeof *xcount);
-    ST_double *xoutput  = calloc(xmem_output,  sizeof *xoutput);
 
     if ( xsources == NULL ) return(sf_oom_error("sf_quantiles", "xsources"));
     if ( xquant   == NULL ) return(sf_oom_error("sf_quantiles", "xquant"));
     if ( xpoints  == NULL ) return(sf_oom_error("sf_quantiles", "xpoints"));
     if ( xquants  == NULL ) return(sf_oom_error("sf_quantiles", "xquants"));
-    if ( xcount   == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
-    if ( xoutput  == NULL ) return(sf_oom_error("sf_quantiles", "xoutput"));
 
     /*********************************************************************
-     *                   Read in the source variables                    *
+     *                     Cutvars and cutquantiles                      *
      *********************************************************************/
-
-    for (i = 0; i < xmem_count; i++)
-        xcount[i] = 0;
-
-    // TODO: Benchmark vs 16 special cases // 2017-11-04 13:44 EDT
-    // NOTE: Very similar; need more info // 2017-11-04 13:44 EDT
-    obs = 0;
-    if ( st_info->any_if ) {
-        for (i = 0; i < Nread; i++) {
-            if ( SF_ifobs(i + in1) ) {
-                if ( (rc = SF_vdata(start_xsources,
-                                    i + in1,
-                                    &z)) ) goto exit;
-                if ( SF_is_missing(z) ) continue;
-                sel = kx * obs++;
-                xsources[sel] = z;
-                if ( kx > 1 ) {
-                    xsources[sel + 1] = i;
-                    if ( kx > 2 ) {
-                        xsources[sel + 2] = obs - 1;
-                    }
-                }
-            }
-        }
-    }
-    else {
-        for (i = 0; i < Nread; i++) {
-            if ( (rc = SF_vdata(start_xsources,
-                                i + in1,
-                                &z)) ) goto exit;
-            if ( SF_is_missing(z) ) continue;
-            sel = kx * obs++;
-            xsources[sel] = z;
-            if ( kx > 1 ) {
-                xsources[sel + 1] = i;
-                if ( kx > 2 ) {
-                    xsources[sel + 2] = obs - 1;
-                }
-            }
-        }
-    }
-    N = obs;
 
     if ( cutvars ) {
         for (i = 0; i < SF_nobs(); i++) {
             if ( (rc = SF_vdata(start_cutvars,
                                 i + 1,
-                                xpoints + i)) ) goto exit;
+                                xpoints + i)) ) goto error;
         }
         npoints = SF_nobs();
     }
@@ -181,35 +161,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         for (i = 0; i < SF_nobs(); i++) {
             if ( (rc = SF_vdata(start_qvars,
                                 i + 1,
-                                xquants + i)) ) goto exit;
+                                xquants + i)) ) goto error;
         }
         nquants = SF_nobs();
     }
-
-    if ( N == 0 ) {
-        sf_errprintf("no observations\n");
-        rc = 17001;
-        goto exit;
-    }
-    Ndbl = (ST_double) N;
-
-    // This limitation seems to have been misunderstood by fastxtile.  It seem
-    // that it exists because the number of rows in the data is the limit to
-    // how many quantiles Stata can save via pctile, not because you cannot
-    // compute percentiles when # non-missing > # quantiles.
-
-    if ( nq > (N + 1) ) {
-        if ( st_info->xtile_strict ) {
-            sf_errprintf("nquantiles() must be less than or equal to # non-missing ["GT_size_cfmt"] plus one\n", N);
-            rc = 198;
-            goto exit;
-        }
-    }
-
-    if ( st_info->benchmark )
-        sf_running_timer (&timer, "\txtile step 1: Read in source variable");
-
-    stimer = clock();
 
     /*********************************************************************
      *           Adjust percentiles or curoffs, if applicable            *
@@ -225,12 +180,12 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         if ( (ncuts == 0) & (npoints == 0) ) {
             sf_errprintf("all cutoff values are missing\n");
             rc = 198;
-            goto exit;
+            goto error;
         }
         else if ( nquants == 0 ) {
             sf_errprintf("all quantile values are missing\n");
             rc = 198;
-            goto exit;
+            goto error;
         }
     }
 
@@ -239,58 +194,294 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             if ( (*gptr <= 0) || (*gptr >= 100) ) {
                 sf_errprintf("cutquantiles() requires a variable with values strictly between 0 and 100\n");
                 rc = 198;
-                goto exit;
+                goto error;
             }
         }
     }
 
     if ( st_info->benchmark ) {
         if ( (ncuts > 0) || (npoints > 0) ) {
-            sf_running_timer (&timer, "\txtile step 2: De-duplicated cutoff list");
+            sf_running_timer (&timer, "\txtile step 1: De-duplicated cutoff list");
         }
         else if ( (nq2 > 0) || (nquants > 0) ) {
-            sf_running_timer (&timer, "\txtile step 2: De-duplicated quantile list");
+            sf_running_timer (&timer, "\txtile step 1: De-duplicated quantile list");
         }
     }
     stimer = clock();
 
     /*********************************************************************
+     *                      Select execution method                      *
+     *********************************************************************/
+
+    nout = GTOOLS_PWMAX(nout, (npoints + 1));
+    nout = GTOOLS_PWMAX(nout, (nquants + 1));
+
+    m_ratio = m1_etime = m2_etime = 0;
+    if ( (nq > 0) | (nq2 > 0) | (nquants > 0) ) {
+        // Expected operations (in 'N' units):
+        // - Method 1 (qsort): sort (log(N)) + 1 for xtile + 1 to rearrange + 1 counts
+        // - Method 2 (qselect): # of selections + time to compute xtile + 1 counts
+        if ( kgen ) {
+            m1_etime = 2 * log(Nread) + 3;
+            m2_etime = nout + 2;
+        }
+        else if ( pctpct | bincount ) {
+            // No xtile
+            m1_etime = log(Nread) + 2;
+            m2_etime = nout + 1;
+        }
+        else {
+            // No xtile, no counts
+            m1_etime = log(Nread) + 1;
+            m2_etime = nout;
+        }
+    }
+    else if ( (ncuts > 0) | (npoints > 0) ) {
+        if ( kgen ) {
+            // Expected operations (in 'N' units):
+            // - Method 1 (qsort): Ibid.
+            // - Method 2 (qselect): No selections, but no reason to expect
+            //                       cutoffs will define evenly spaced bins,
+            //                       so time to count is higher; however, those
+            //                       are just comparisons, not swaps!
+            m1_etime = 2 * log(Nread) + 3;
+            m2_etime = 0.05 * ((ST_double) nout) + 1;
+        }
+        else if ( pctpct | bincount ) {
+            // No xtile
+            m1_etime = log(Nread) + 2;
+            m2_etime = 0.05 * ((ST_double) nout) + 1;
+        }
+        else {
+            // No xtile, no counts. Here method 2 wins
+            // m1_etime = log(Nread) + 1;
+            // m2_etime = 0.05 * ((ST_double) nout);
+            m1_etime = log(Nread) + 1;
+            m2_etime = 1;
+        }
+    }
+
+    if ( (m1_etime > 0) & (m1_etime > 0) ) {
+        m_ratio = m1_etime / m2_etime;
+    }
+
+    if ( method == 0 ) {
+        if ( m_ratio > 0 ) {
+            method  = (m_ratio > 1)? 2: 1;
+            if ( st_info->verbose ) {
+                if ( (nq > 0) | (nq2 > 0) | (nquants > 0) ) {
+                    sf_printf("E(Method 1) ~ %.2f vs E(Method 2) ~ %.2f operations. ",
+                              m1_etime, m2_etime);
+                }
+                else if ( (ncuts > 0) | (npoints > 0) ) {
+                    sf_printf("Empirical decision rule (20 * Method 1 / Method 2): %.2f. ",
+                              m_ratio);
+                }
+                if ( m2_etime < m1_etime ) {
+                    sf_printf("Will use method 2\n");
+                }
+                else {
+                    sf_printf("Will use method 1\n");
+                }
+            }
+        }
+        else {
+            method = 1;
+        }
+    }
+    else if ( (method != 1) & (method != 2) ) {
+        method = 1;
+    }
+
+    // method = 0; // expected optimal
+    // method = 1; // qsort, default
+    // method = 2; // qselect
+
+    /*********************************************************************
+     *                   Read in the source variables                    *
+     *********************************************************************/
+
+    obs   = 0;
+    xptr2 = xsources;
+    ixptr = xsources;
+    if ( method == 2 ) {
+        xptr2 = kgen? xsources + 1 * Nread: xsources;
+        ixptr = kgen? xsources + 2 * Nread: xsources;
+        if ( st_info->any_if ) {
+            for (i = 0; i < Nread; i++) {
+                if ( SF_ifobs(i + in1) ) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+                    xsources[obs] = z;
+                    if ( kgen ) {
+                        xptr2[obs] = z;
+                        ixptr[obs] = i;
+                    }
+                    obs++;
+                }
+            }
+        }
+        else {
+            for (i = 0; i < Nread; i++) {
+                if ( (rc = SF_vdata(start_xsources,
+                                    i + in1,
+                                    &z)) ) goto error;
+                if ( SF_is_missing(z) ) continue;
+                xsources[obs] = z;
+                if ( kgen ) {
+                    xptr2[obs] = z;
+                    ixptr[obs] = i;
+                }
+                obs++;
+            }
+        }
+    }
+    else {
+        if ( st_info->any_if ) {
+            for (i = 0; i < Nread; i++) {
+                if ( SF_ifobs(i + in1) ) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+                    sel = kx * obs++;
+                    xsources[sel] = z;
+                    if ( kx > 1 ) {
+                        xsources[sel + 1] = i;
+                        xsources[sel + 2] = obs - 1;
+                    }
+                }
+            }
+        }
+        else {
+            for (i = 0; i < Nread; i++) {
+                if ( (rc = SF_vdata(start_xsources,
+                                    i + in1,
+                                    &z)) ) goto error;
+                if ( SF_is_missing(z) ) continue;
+                sel = kx * obs++;
+                xsources[sel] = z;
+                if ( kx > 1 ) {
+                    xsources[sel + 1] = i;
+                    xsources[sel + 2] = obs - 1;
+                }
+            }
+        }
+    }
+    N = obs;
+
+    if ( N == 0 ) {
+        sf_errprintf("no observations\n");
+        rc = 17001;
+        goto error;
+    }
+
+    // This limitation seems to have more to do with the number of rows in the
+    // data being the limit to how many quantiles Stata can save via pctile.
+
+    if ( nq > (N + 1) ) {
+        if ( st_info->xtile_strict ) {
+            sf_errprintf("nquantiles() must be less than or equal to # non-missing ["
+                         GT_size_cfmt"] plus one\n", N);
+            rc = 198;
+            goto error;
+        }
+    }
+
+    if ( st_info->benchmark )
+        sf_running_timer (&timer, "\txtile step 2: Read in source variable");
+
+    stimer = clock();
+
+    /*********************************************************************
+     *                         Memory allocation                         *
+     *********************************************************************/
+
+    GT_size xmem_count  = (pctpct | bincount)? nout: 1;
+    GT_size xmem_output = (kgen & (method != 2))? N: 1;
+
+    GT_size   *xcount   = calloc(xmem_count,   sizeof *xcount);
+    ST_double *xoutput  = calloc(xmem_output,  sizeof *xoutput);
+
+    if ( xcount   == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
+    if ( xoutput  == NULL ) return(sf_oom_error("sf_quantiles", "xoutput"));
+
+    for (i = 0; i < xmem_count; i++)
+        xcount[i] = 0;
+
+    /*********************************************************************
      *                               Sort!                               *
      *********************************************************************/
 
-    // TODO: Optimize to be straight up selection if nq is small // 2017-11-04 14:14 EDT
-    // That is, if I do
-    //     for (i = 0; i < N; i++, xptr += kx) {
-    //         q = 0;
-    //         while ( xptr[0] > qptr[q] ) q++;
-    //         xcount[q]++;
-    //         xptr[0] = q + 1;
-    //     }
-    // Without sorting, after a selection.
+    if ( method == 2 ) {
+        for (xptr = xsources;
+             xptr < xsources + (N - 1);
+             xptr += 1, i++) {
+            if ( *xptr > *(xptr + kx) ) break;
+        }
+        i++;
 
-    // Check if already sorted
-    xptr = xsources;
-    for (i = 0; i < (N - 1); i++, xptr += kx) {
-        if ( *xptr > *(xptr + kx) ) break;
+        if ( i >= N ) {
+            sorted = 2;
+        }
+        else if ( 0 ) {
+            i = 0;
+            for (xptr = xsources;
+                 xptr < xsources + N;
+                 xptr += 1, i++) {
+                if ( floor(*xptr) != ceil( *xptr) ) break;
+            }
+
+            // Counting sort?!
+            // ---------------
+
+            if ( i >= N ) {
+                xmin   = gf_array_dmin_range(xsources, 0, N);
+                xmax   = gf_array_dmax_range(xsources, 0, N);
+                xrange = (GT_size) xmax - xmin + 1;
+                xtol   = (GT_size) pow(2, 24);
+                if ( xrange < xtol ) {
+                    if ( kgen > 0 ) {
+                        gf_xtile_csort_ix (xsources + Nread, xsources + 2 * Nread, N, xrange, xmin);
+                    }
+                    else {
+                        gf_xtile_csort (xsources, N, xrange, xmin);
+                    }
+                    sorted = 1;
+                }
+            }
+        }
     }
+    else {
+        // Check if already sorted
+        i = 0;
+        for (xptr = xsources;
+             xptr < xsources + kx * (N - 1);
+             xptr += kx, i++) {
+            if ( *xptr > *(xptr + kx) ) break;
+        }
+        i++;
 
-    // Sort if not sorted
-    if ( i < N ) {
-        quicksort_bsd (
-            xsources,
-            N,
-            kx * sizeof(xsources),
-            xtileCompare,
-            NULL
-        );
+        // Sort if not sorted
+        if ( i < N ) {
+            quicksort_bsd (
+                xsources,
+                N,
+                kx * sizeof(xsources),
+                xtileCompare,
+                NULL
+            );
+            sorted = 1;
+        }
+        else {
+            sorted = 2;
+        }
     }
-
-    // Grab min and max from sorted list
-    xmin = xsources[0];
-    xmax = xsources[kx * N - kx];
 
     /*********************************************************************
-     *      Turn quantiles into cutoffs (or point qptr to cutoffs)       *
+     *                         Copy pct to data                          *
      *********************************************************************/
 
     if ( genpct ) {
@@ -312,139 +503,134 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
+    /*********************************************************************
+     *      Turn quantiles into cutoffs (or point qptr to cutoffs)       *
+     *********************************************************************/
+
     qptr = NULL;
     if ( ncuts > 0 ) {
         qptr = st_info->xtile_cutoffs;
-        qptr[ncuts] = xsources[kx * N - kx];
+        qptr[ncuts] = (method == 1)? xsources[kx * N - kx]: gf_array_dmax_range(xptr2, 0, N);
     }
     else if ( npoints > 0 ) {
         qptr = xpoints;
-        qptr[npoints] = xsources[kx * N - kx];
+        qptr[npoints] = (method == 1)? xsources[kx * N - kx]: gf_array_dmax_range(xptr2, 0, N);
     }
     else if ( altdef ) {
-        if ( nquants > 0 ) {
-            // for (i = 0; i < nquants; i++) {
-            //     q  = floor(qdbl = (xquants[i] * ((Ndbl + 1) / 100)));
-            //     if ( q > 0 ) {
-            //         if ( q < N ) {
-            //             q--;
-            //             xquants[i] = xsources[kx * q];
-            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-            //                 xquants[i] *= (1 - qdiff);
-            //                 xquants[i] += qdiff * xsources[kx * q + kx];
-            //             }
-            //         }
-            //         else {
-            //             xquants[i] = xsources[kx * N - kx];
-            //         }
-            //     }
-            //     else {
-            //         xquants[i] = xsources[0];
-            //     }
-            // }
-            // xquants[nquants] = xsources[kx * N - kx];
-            gf_quantiles_altdef (xquants, xsources, xquants, nquants, N, kx);
-            qptr = xquants;
+        if ( (method == 2) & (sorted < 2) ) {
+            if ( sorted == 1 ) {
+                if ( nquants > 0 ) {
+                    gf_quantiles_altdef (xquants, xptr2, xquants, nquants, N, 1);
+                    qptr = xquants;
+                }
+                else if ( nq2 > 0 ) {
+                    gf_quantiles_altdef (xquant, xptr2, st_info->xtile_quantiles, nq2, N, 1);
+                    qptr = xquant;
+                }
+                else if ( nq > 0 ) {
+                    gf_quantiles_nq_altdef (xquant, xptr2, nq, N, 1);
+                    qptr = xquant;
+                }
+            }
+            else {
+                if ( nquants > 0 ) {
+                    gf_quantiles_qselect_altdef (xquants, xptr2, xquants, nquants, N);
+                    qptr = xquants;
+                }
+                else if ( nq2 > 0 ) {
+                    gf_quantiles_qselect_altdef (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
+                    qptr = xquant;
+                }
+                else if ( nq > 0 ) {
+                    gf_quantiles_nq_qselect_altdef (xquant, xptr2, nq, N);
+                    qptr = xquant;
+                }
+            }
         }
-        else if ( nq2 > 0 ) {
-            // for (i = 0; i < nq2; i++) {
-            //     q  = floor(qdbl = (st_info->xtile_quantiles[i] * ((Ndbl + 1) / 100)));
-            //     if ( q > 0 ) {
-            //         if ( q < N ) {
-            //             q--;
-            //             xquant[i] = xsources[kx * q];
-            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-            //                 xquant[i] *= (1 - qdiff);
-            //                 xquant[i] += qdiff * xsources[kx * q + kx];
-            //             }
-            //         }
-            //         else {
-            //             xquant[i] = xsources[kx * N - kx];
-            //         }
-            //     }
-            //     else {
-            //         xquant[i] = xsources[0];
-            //     }
-            // }
-            // xquant[nq2] = xsources[kx * N - kx];
-            gf_quantiles_altdef (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
-            qptr = xquant;
-        }
-        else if ( nq > 0 ) {
-            // nqdbl = (ST_double) nq;
-            // for (i = 0; i < (nq - 1); i++) {
-            //     q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
-            //     if ( q > 0 ) {
-            //         if ( q < N ) {
-            //             q--;
-            //             xquant[i] = xsources[kx * q];
-            //             if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-            //                 xquant[i] *= (1 - qdiff);
-            //                 xquant[i] += qdiff * xsources[kx * q + kx];
-            //             }
-            //         }
-            //         else {
-            //             xquant[i] = xsources[kx * N - kx];
-            //         }
-            //     }
-            //     else {
-            //         xquant[i] = xsources[0];
-            //     }
-            // }
-            // xquant[nq - 1] = xsources[kx * N - kx];
-            gf_quantiles_nq_altdef (xquant, xsources, nq, N, kx);
-            qptr = xquant;
+        else {
+            if ( nquants > 0 ) {
+                gf_quantiles_altdef (xquants, xsources, xquants, nquants, N, kx);
+                qptr = xquants;
+            }
+            else if ( nq2 > 0 ) {
+                gf_quantiles_altdef (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
+                qptr = xquant;
+            }
+            else if ( nq > 0 ) {
+                gf_quantiles_nq_altdef (xquant, xsources, nq, N, kx);
+                qptr = xquant;
+            }
         }
     }
     else {
-        if ( nquants > 0 ) {
-            // for (i = 0; i < nquants; i++) {
-            //     q = ceil(qdbl = (xquants[i] * (Ndbl / 100)) - 1);
-            //     xquants[i] = xsources[kx * q];
-            //     if ( (ST_double) q == qdbl ) {
-            //         xquants[i] += xsources[kx * q + kx];
-            //         xquants[i] /= 2;
-            //     }
-            // }
-            // xquants[nquants] = xsources[kx * N - kx];
-            gf_quantiles (xquants, xsources, xquants, nquants, N, kx);
-            qptr = xquants;
+        if ( (method == 2) & (sorted < 2) ) {
+            if ( sorted == 1 ) {
+                if ( nquants > 0 ) {
+                    gf_quantiles (xquants, xptr2, xquants, nquants, N, 1);
+                    qptr = xquants;
+                }
+                else if ( nq2 > 0 ) {
+                    gf_quantiles (xquant, xptr2, st_info->xtile_quantiles, nq2, N, 1);
+                    qptr = xquant;
+                }
+                else if ( nq > 0 ) {
+                    gf_quantiles_nq (xquant, xptr2, nq, N, 1);
+                    qptr = xquant;
+                }
+            }
+            else {
+                if ( nquants > 0 ) {
+                    gf_quantiles_qselect (xquants, xptr2, xquants, nquants, N);
+                    qptr = xquants;
+                }
+                else if ( nq2 > 0 ) {
+                    gf_quantiles_qselect (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
+                    qptr = xquant;
+                }
+                else if ( nq > 0 ) {
+                    gf_quantiles_nq_qselect (xquant, xptr2, nq, N);
+                    qptr = xquant;
+                }
+            }
         }
-        else if ( nq2 > 0 ) {
-            // for (i = 0; i < nq2; i++) {
-            //     q = ceil(qdbl = st_info->xtile_quantiles[i] * (Ndbl / 100) - 1);
-            //     xquant[i] = xsources[kx * q];
-            //     if ( (ST_double) q == qdbl ) {
-            //         xquant[i] += xsources[kx * q + kx];
-            //         xquant[i] /= 2;
-            //     }
-            // }
-            // xquant[nq2] = xsources[kx * N - kx];
-            gf_quantiles (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
-            qptr = xquant;
-        }
-        else if ( nq > 0 ) {
-            // nqdbl = (ST_double) nq;
-            // for (i = 0; i < (nq - 1); i++) {
-            //     q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
-            //     xquant[i] = xsources[kx * q];
-            //     if ( (ST_double) q == qdbl ) {
-            //         xquant[i] += xsources[kx * q + kx];
-            //         xquant[i] /= 2;
-            //     }
-            // }
-            // xquant[nq - 1] = xsources[kx * N - kx];
-            gf_quantiles_nq (xquant, xsources, nq, N, kx);
-            qptr = xquant;
+        else {
+            if ( nquants > 0 ) {
+                gf_quantiles (xquants, xsources, xquants, nquants, N, kx);
+                qptr = xquants;
+            }
+            else if ( nq2 > 0 ) {
+                gf_quantiles (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
+                qptr = xquant;
+            }
+            else if ( nq > 0 ) {
+                gf_quantiles_nq (xquant, xsources, nq, N, kx);
+                qptr = xquant;
+            }
         }
     }
 
+    if ( method == 2 ) {
+        xmin = gf_array_dmin_range(xptr2, 0, N);
+        xmax = qptr[nout - 1];
+    }
+    else {
+        xmin = xsources[0];
+        xmax = qptr[nout - 1];
+    }
+
     if ( st_info->benchmark ) {
-        if ( (nq2 > 0) | (nq > 0) ) {
-            sf_running_timer (&timer, "\txtile step 3: Sorted source and computed quantiles");
+        if ( method == 2 ) {
+            if ( (nq2 > 0) | (nq > 0) | (nquants > 0) ) {
+                sf_running_timer (&timer, "\txtile step 3: Computed quantiles");
+            }
         }
         else {
-            sf_running_timer (&timer, "\txtile step 3: Sorted source variable");
+            if ( (nq2 > 0) | (nq > 0) | (nquants > 0) ) {
+                sf_running_timer (&timer, "\txtile step 3: Sorted source and computed quantiles");
+            }
+            else {
+                sf_running_timer (&timer, "\txtile step 3: Sorted source variable");
+            }
         }
     }
     stimer = clock();
@@ -455,62 +641,138 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     q = 0;
     if ( kgen ) {
-        if ( bincount | pctpct ) {
+        if ( method == 2 ) {
+            if ( sorted ) {
+                xptr2 = xsources + Nread;
+                ixptr = xsources + Nread * 2;
+                if ( bincount | pctpct ) {
+                    for (xptr = xsources;
+                         xptr < xsources + N;
+                         xptr += 1, xptr2 += 1, ixptr += 1) {
+                        while ( *xptr2 > qptr[q] ) q++;
+                        xcount[q]++;
+                        *xptr = q + 1;
+                    }
+                }
+                else {
+                    for (xptr = xsources;
+                         xptr < xsources + N;
+                         xptr += 1, xptr2 += 1, ixptr += 1) {
+                        while ( *xptr2 > qptr[q] ) q++;
+                        *xptr = q + 1;
+                    }
+                }
+                if ( sorted == 1) {
+                    gf_xtile_csort_ix (xsources + 2 * Nread, xsources, N, Nread, 0);
+                }
+            }
+            else {
+                if ( bincount | pctpct ) {
+                    for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+                        q = 0;
+                        while ( *xptr > qptr[q] ) q++;
+                        xcount[q]++;
+                        xptr[0] = q + 1;
+                    }
+                }
+                else {
+                    for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+                        q = 0;
+                        while ( *xptr > qptr[q] ) q++;
+                        xptr[0] = q + 1;
+                    }
+                }
+            }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
+
+            optr  = xsources;
+            ixptr = xsources + 2 * Nread;
+            if ( N < Nread ) {
+                for (optr = xsources; optr < xsources + N; optr += 1, ixptr += 1) {
+                    if ( (rc = SF_vstore(start_xtile, ((GT_size) *ixptr) + in1, *optr)) ) goto exit;
+                }
+            }
+            else {
+                for (i = 0; i < N; i++, optr += 1) {
+                    if ( (rc = SF_vstore(start_xtile, i + in1, *optr)) ) goto exit;
+                }
+            }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\txtile step 4.2: Copied xtile to Stata sequentially");
+
+            if ( st_info->benchmark )
+                sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
+
+        }
+        else {
+            if ( bincount | pctpct ) {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    while ( *xptr > qptr[q] ) q++;
+                    xcount[q]++;
+                    xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                    // xptr[0] = q + 1;
+                }
+            }
+            else {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    while ( *xptr > qptr[q] ) q++;
+                    xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                    // xptr[0] = q + 1;
+                }
+            }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
+
+            // for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+            //     xoutput[(GT_size) *(xptr + kx - 1)] = *xptr;
+            // }
+
+            if ( N < Nread ) {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
+                }
+
+                if ( st_info->benchmark )
+                    sf_running_timer (&stimer, "\t\txtile step 4.2: Arranged xtile in memory");
+            }
+
+            optr = xoutput;
+            xptr = xsources;
+            if ( N < Nread ) {
+                for (optr = xoutput; optr < xoutput + N; optr += 1, xptr += kx) {
+                    if ( (rc = SF_vstore(start_xtile, ((GT_size) *xptr) + in1, *optr)) ) goto exit;
+                }
+            }
+            else {
+                for (i = 0; i < N; i++, optr += 1) {
+                    if ( (rc = SF_vstore(start_xtile, i + in1, *optr)) ) goto exit;
+                }
+            }
+
+            if ( st_info->benchmark )
+                sf_running_timer (&stimer, "\t\txtile step 4.3: Copied xtile to Stata sequentially");
+
+            if ( st_info->benchmark )
+                sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
+        }
+    }
+    else if ( pctpct | bincount ) {
+        if ( sorted ) {
             for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
                 while ( *xptr > qptr[q] ) q++;
                 xcount[q]++;
-                xptr[0] = q + 1;
             }
         }
         else {
-            for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+            for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+                q = 0;
                 while ( *xptr > qptr[q] ) q++;
-                xptr[0] = q + 1;
+                xcount[q]++;
             }
-        }
-
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
-
-        // It is faster, though it uses more memory, to re-arrange the output
-        // in memory and then copy to stata sequentially
-
-        for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-            xoutput[(GT_size) *(xptr + kx - 1)] = *xptr;
-        }
-
-        if ( N < Nread ) {
-            for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
-            }
-        }
-
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\txtile step 4.2: Arranged xtile in memory");
-
-        optr = xoutput;
-        xptr = xsources;
-        if ( N < Nread ) {
-            for (optr = xoutput; optr < xoutput + N; optr += 1, xptr += kx) {
-                if ( (rc = SF_vstore(start_xtile, ((GT_size) *xptr) + in1, *optr)) ) goto exit;
-            }
-        }
-        else {
-            for (i = 0; i < N; i++, optr += 1) {
-                if ( (rc = SF_vstore(start_xtile, i + in1, *optr)) ) goto exit;
-            }
-        }
-
-        if ( st_info->benchmark )
-            sf_running_timer (&stimer, "\t\txtile step 4.3: Copied xtile to Stata sequentially");
-
-        if ( st_info->benchmark )
-            sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
-    }
-    else if ( pctpct | bincount ) {
-        for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-            while ( *xptr > qptr[q] ) q++;
-            xcount[q]++;
         }
     }
 
@@ -519,9 +781,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     // qtot = q + 1;
-    qtot = GTOOLS_PWMAX((nout - 1), npoints);
-    qtot = GTOOLS_PWMAX(qtot, nquants);
-    qtot = GTOOLS_PWMIN(qtot, SF_nobs());
+    qtot = GTOOLS_PWMIN((nout - 1), SF_nobs());
 
     if ( pctile ) {
         if ( pctpct ) {
@@ -599,6 +859,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         if ( (rc = SF_scal_save ("__gtools_xtile_min", xmin )) ) goto exit;
         if ( (rc = SF_scal_save ("__gtools_xtile_max", xmax )) ) goto exit;
     }
+    if ( (rc = SF_scal_save ("__gtools_xtile_method", m_ratio)) ) goto exit;
 
     if ( st_info->benchmark ) {
         if ( kgen ) {
@@ -618,11 +879,14 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
 
 exit:
+    free (xcount);
+    free (xoutput);
+
+error:
     free (xsources);
     free (xquant);
     free (xpoints);
     free (xquants);
-    free (xcount);
 
     return (rc);
 }
@@ -713,7 +977,7 @@ void gf_quantiles_nq (
     ST_double Ndbl  = (ST_double) N;
     ST_double nqdbl = (ST_double) nquants;
 
-    for (i = 0; i < nquants; i++) {
+    for (i = 0; i < (nquants - 1); i++) {
         q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
         qout[i] = x[kx * q];
         if ( (ST_double) q == qdbl ) {
@@ -721,7 +985,7 @@ void gf_quantiles_nq (
             qout[i] /= 2;
         }
     }
-    qout[nquants] = x[kx * N - kx];
+    qout[nquants - 1] = x[kx * N - kx];
 }
 
 void gf_quantiles (
@@ -735,7 +999,6 @@ void gf_quantiles (
     GT_size i, q;
     ST_double qdbl;
     ST_double Ndbl  = (ST_double) N;
-    ST_double nqdbl = (ST_double) nquants;
 
     for (i = 0; i < nquants; i++) {
         q = ceil(qdbl = (quants[i] * (Ndbl / 100)) - 1);
@@ -760,7 +1023,7 @@ void gf_quantiles_nq_altdef (
     ST_double Ndbl  = (ST_double) N;
     ST_double nqdbl = (ST_double) nquants;
 
-    for (i = 0; i < nquants; i++) {
+    for (i = 0; i < (nquants - 1); i++) {
         q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
         if ( q > 0 ) {
             if ( q < N ) {
@@ -779,7 +1042,7 @@ void gf_quantiles_nq_altdef (
             qout[i] = x[0];
         }
     }
-    qout[nquants] = x[kx * N - kx];
+    qout[nquants - 1] = x[kx * N - kx];
 }
 
 void gf_quantiles_altdef (
@@ -814,6 +1077,120 @@ void gf_quantiles_altdef (
         }
     }
     qout[nquants] = x[kx * N - kx];
+}
+
+/*********************************************************************
+ *                    Generic quantile selection                     *
+ *********************************************************************/
+
+void gf_quantiles_nq_qselect (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N)
+{
+    GT_size i, q;
+    ST_double qdbl;
+    ST_double Ndbl  = (ST_double) N;
+    ST_double nqdbl = (ST_double) nquants;
+
+    for (i = 0; i < (nquants - 1); i++) {
+        q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
+        qout[i] = gf_qselect_range (x, 0, N, q);
+        if ( (ST_double) q == qdbl ) {
+            qout[i] += gf_qselect_range (x, 0, N, q + 1);
+            qout[i] /= 2;
+        }
+    }
+    qout[nquants - 1] = gf_array_dmax_range(x, 0, N);
+}
+
+void gf_quantiles_qselect (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N)
+{
+    GT_size i, q;
+    ST_double qdbl;
+    ST_double Ndbl  = (ST_double) N;
+
+    for (i = 0; i < nquants; i++) {
+        q = ceil(qdbl = (quants[i] * (Ndbl / 100)) - 1);
+        qout[i] = gf_qselect_range (x, 0, N, q);
+        if ( (ST_double) q == qdbl ) {
+            qout[i] += gf_qselect_range (x, 0, N, q + 1);
+            qout[i] /= 2;
+        }
+    }
+    qout[nquants] = gf_array_dmax_range(x, 0, N);
+}
+
+void gf_quantiles_nq_qselect_altdef (
+    ST_double *qout,
+    ST_double *x,
+    GT_size nquants,
+    GT_size N)
+{
+    GT_size i, q;
+    ST_double qdbl, qdiff;
+    ST_double Ndbl  = (ST_double) N;
+    ST_double nqdbl = (ST_double) nquants;
+
+    for (i = 0; i < (nquants - 1); i++) {
+        q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
+        if ( q > 0 ) {
+            if ( q < N ) {
+                q--;
+                qout[i] = gf_qselect_range (x, 0, N, q);
+                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+                    qout[i] *= (1 - qdiff);
+                    qout[i] += qdiff * gf_qselect_range (x, 0, N, q + 1);
+                }
+            }
+            else {
+                qout[i] = gf_array_dmax_range(x, 0, N);
+            }
+        }
+        else {
+            qout[i] = gf_array_dmin_range(x, 0, N);
+        }
+    }
+    qout[nquants - 1] = gf_array_dmax_range(x, 0, N);
+}
+
+void gf_quantiles_qselect_altdef (
+    ST_double *qout,
+    ST_double *x,
+    ST_double *quants,
+    GT_size nquants,
+    GT_size N)
+{
+    GT_size i, q;
+    ST_double qdbl, qdiff;
+    ST_double Ndbl  = (ST_double) N;
+
+    for (i = 0; i < nquants; i++) {
+        q = floor(qdbl = (quants[i] * ((Ndbl + 1) / 100)));
+        if ( q > 0 ) {
+            if ( q < N ) {
+                q--;
+                qout[i] = gf_qselect_range (x, 0, N, q);
+                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
+                    qout[i] *= (1 - qdiff);
+                    qout[i] += qdiff * gf_qselect_range (x, 0, N, q + 1);
+                }
+            }
+            else {
+                qout[i] = gf_array_dmax_range(x, 0, N);
+            }
+        }
+        else {
+            qout[i] = gf_array_dmin_range(x, 0, N);
+        }
+    }
+    qout[nquants] = gf_array_dmax_range(x, 0, N);
 }
 
 /*********************************************************************

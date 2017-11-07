@@ -24,13 +24,18 @@ set linesize 255
 program main
     syntax, [NOIsily *]
 
-compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile) benchmode
-compare_inner_quantiles, qopts(altdef nq(10)) qwhich(ptile) benchmode
-* set obs 10000000
-* set obs 2000000
-* gen x = rnormal()
-* gquantiles zz = x, pctile nq(10) genp(xx) v bench(2) method(1)
-* l in 1/10
+local n 10000000
+clear
+set obs `n'
+gen x  = int(rnormal() * 100)
+gquantiles __x1 = x, xtile binfreq(bf1) nq(10) v bench(2) method(1)
+gquantiles __x2 = x, xtile binfreq(bf2) nq(10) v bench(2) method(2)
+l in 1/10
+
+* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode
+* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode sorted
+* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode
+* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode sorted
 exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
@@ -114,6 +119,10 @@ exit 17999
             compare_toplevelsof, `noisily' oncollision(error) tol(1e-4)
             compare_unique,      `noisily' oncollision(error) distinct
             compare_hashsort,    `noisily' oncollision(error)
+        }
+
+        if ( `:list posof "switches" in options' ) {
+            gquantiles_switch_sanity
         }
 
         if ( `:list posof "bench_test" in options' ) {
@@ -421,4 +430,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, dependencies basic_checks comparisons bench_test
+main, dependencies basic_checks comparisons switches bench_test

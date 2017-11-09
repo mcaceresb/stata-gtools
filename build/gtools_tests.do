@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  8 08:47:01 EST 2017
+* Updated: Wed Nov  8 21:02:35 EST 2017
 * Purpose: Unit tests for gtools
-* Version: 0.9.4
+* Version: 0.10.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -23,8 +23,6 @@ set linesize 255
 
 program main
     syntax, [NOIsily *]
-bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
-exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

@@ -1,4 +1,4 @@
-*! version 0.2.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 cap program drop gtoplevelsof

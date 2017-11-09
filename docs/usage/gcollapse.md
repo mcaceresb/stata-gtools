@@ -16,7 +16,7 @@ Syntax
 
 This is a fast option to Stata's collapse, with several additions.
 
-<p><span style="font-family:monospace">gcollapse clist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gcollapse clist [if] [in] [, <a href="#options">options</a> ] </p>
 
 where clist is either
 

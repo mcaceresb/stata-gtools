@@ -18,7 +18,7 @@ the start of your Stata session.
 Syntax
 ------
 
-<p><span style="font-family:monospace">gtoplevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gtoplevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 

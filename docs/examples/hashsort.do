@@ -10,6 +10,8 @@ hashsort foreign -make
 
 sysuse auto, clear
 
-hashsort foreign -make, group(id) sortgroup
+hashsort foreign -rep78, gen(id) sortgen
 
-id
+disp "`: sortedby'"
+
+tab id

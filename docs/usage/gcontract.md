@@ -16,7 +16,7 @@ Syntax
 
 This is a fast option to Stata's contract.
 
-<p><span style="font-family:monospace">gcontract varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gcontract varlist [if] [in] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 

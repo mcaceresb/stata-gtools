@@ -14,7 +14,7 @@ the start of your Stata session.
 Syntax
 ------
 
-<p><span style="font-family:monospace">gcontract [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">hashsort [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
 
 Description
 -----------
@@ -38,13 +38,11 @@ produces a stable sort.
 Options
 -------
 
-- `gen(varname)` Store sort oder in gen.
+- `generate(varname)` or `gen(varname)`  Store group ID in generate.
 
-- `group(varname)` Store group ID in group.
+- `sortgen` Set data sortby variable to `generate`.
 
-- `sortgroup` Set data sortby variable to group.
-
-- `replace` If group exits, it is replaced.
+- `replace` If `generate` exits, it is replaced.
 
 - `skipcheck` Skip internal is sorted check.
 
@@ -87,9 +85,26 @@ set the encoded variable as the sorting variable:
 . sysuse auto, clear
 (1978 Automobile Data)
 
-. hashsort foreign -make, group(id) sortgroup
+. hashsort foreign -rep78, gen(id) sortgen
 (note: missing values will be sorted last)
 
 . disp "`: sortedby'"
 id
+
+. tab id
+
+         id |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |          4        5.41        5.41
+          2 |          2        2.70        8.11
+          3 |          9       12.16       20.27
+          4 |         27       36.49       56.76
+          5 |          8       10.81       67.57
+          6 |          2        2.70       70.27
+          7 |          1        1.35       71.62
+          8 |          9       12.16       83.78
+          9 |          9       12.16       95.95
+         10 |          3        4.05      100.00
+------------+-----------------------------------
+      Total |         74      100.00
 ```

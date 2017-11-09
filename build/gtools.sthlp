@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.9.3 02Nov2017}{...}
+{* *! version 0.10.1 08Nov2017}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -23,6 +23,10 @@ traditional stata commands. The following are available as part of gtools:
 
 {p 8 17 2}
 {manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
+
+{p 8 17 2}
+{manhelp gquantiles R:gquantiles}  as {opt pctile}, {opt xtile}, and {opt _pctile} replacements. {manhelp fasterxtile R:fasterxtile} is also provided as an alias
+{p_end}
 
 {p 8 17 2}
 {manhelp gegen R:gegen} {opt egen} alternative. {p_end}

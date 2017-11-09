@@ -16,7 +16,7 @@ the start of your Stata session.
 Syntax
 ------
 
-```
+```stata
 gunique varlist [if] [in] [, detail]
 ```
 

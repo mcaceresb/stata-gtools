@@ -1,6 +1,34 @@
 Change Log
 ==========
 
+## gtools-0.10.1 (2017-11-08)
+
+### Features
+
+- `gquantiles` is a fast alternative to `_pctile`, `pctile`, and
+  `xtile` with several additional features.
+- `fasterxtile` is an alias for `gquantiles, xtile`
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/27
+- Fixed numerical precision issue with quantiles.
+  Now ((ST_double) N / 100) is computed first.
+
+## gtools-0.9.4 (2017-11-03)
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/26
+  so that hashsort sets `sortedby` to the outermost levels that
+  are positive (e.g. `foreign -rep78` sets `sortedby` to `foreign`).
+
+### Backwards Incompatible
+
+- Apparentlly `gen` in `gsort` was intuitively specified, so I have
+  now made `gen` mirror that in `hashsort`. Previous versions offered
+  this functionality via `group`.
+
 ## gtools-0.9.3 (2017-11-02)
 
 ### Bug fixes

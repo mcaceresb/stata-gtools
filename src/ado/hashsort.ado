@@ -1,4 +1,4 @@
-*! version 0.3.3 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -8,11 +8,9 @@ program define hashsort
     global GTOOLS_CALLER hashsort
     syntax anything,           /// Variables to sort by: [+|-]varname [[+|-]varname ...]
     [                          ///
-        GENerate(str)          /// Generate variable with sort order
-                               ///
-        group(str)             /// Generate group variable with sort groups
-        replace                /// Replace group variable, if it exists
-        sortgroup              /// Sort by group variable, if applicable
+        GENerate(passthru)     /// Generate variable with sort order
+        replace                /// Replace generated variable, if it exists
+        sortgen                /// Sort by generated variable, if applicable
         skipcheck              /// Turn off internal is sorted check
                                ///
         Verbose                /// Print info during function execution
@@ -43,16 +41,18 @@ program define hashsort
         di as txt "(note: missing values will be sorted last)"
     }
 
+    if ( "`generate'" != "" ) local skipcheck skipcheck
+
     local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
-    local eopts `invertinmata' `sortgroup' `skipcheck'
-    local gopts sortindex(`generate') gen(`group') `tag' `counts' `replace'
+    local eopts `invertinmata' `sortgen' `skipcheck'
+    local gopts `generate' `tag' `counts' `replace'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)
     global GTOOLS_CALLER ""
     local rc = _rc
 
     if ( `rc' == 17999 ) {
         if regexm("`anything'", "[\+\-]") {
-            gsort `anything', gen(`generate') mfirst
+            gsort `anything', `generate' mfirst
             exit 0
         }
         else {

@@ -13,7 +13,7 @@ the start of your Stata session.
 Syntax
 ------
 
-<p><span style="font-family:monospace">glevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">glevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 
@@ -167,7 +167,6 @@ This is cumbersome. You can specify a number format to compress this:
 If you know a bit of mata, you can parse this string!
 ```stata
 mata:
-------------------------------------------------------------------------
 string scalar function unquote_str(string scalar quoted_str)
 {
     if ( substr(quoted_str, 1, 1) == `"""' ) {
@@ -197,11 +196,13 @@ for (i = 1; i <= cols(rows); i++) {
         levels[i, k] = unquote_str(levels[i, k])
     }
 }
+
+levels
 end
-------------------------------------------------------------------------
+```
 
-. mata: levels
-
+And now we have the leves in a mata matrix:
+```
        1   2
     +---------+
   1 |  0   1  |

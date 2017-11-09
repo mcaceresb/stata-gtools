@@ -9,43 +9,55 @@
 | [License](#license)
 
 Faster Stata for big data. This packages provides a hash-based implementation
-of collapse, contract, egen, isid, levelsof, and unique/distinct using C
-plugins for a massive speed improvement.
+of collapse, pctile, xtile, contract, egen, isid, levelsof, and
+unique/distinct using C plugins for a massive speed improvement.
 
-`version 0.9.3 02Nov2017`
+`version 0.10.1 08Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Group Operations
 ---------------------------------
 
-This package's aim is to provide a fast implementation of group commands in
-Stata using hashes and C plugins.  If you plan to use the plugin extensively,
-check out the [remarks](#remarks) below and the [FAQs](faqs) for caveats and
-details on the plugin.
+This package's aim is to provide a fast implementation of various Stata
+commands using hashes and C plugins.  If you plan to use the plugin
+extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
+caveats and details on the plugin.
 
 __*Gtools commands with a stata equivalent*__
 
-| Function     | Replaces      | Speedup (IC / MP)        | Unsupported     | Extras                           |
-| ------------ | ------------- | ------------------------ | --------------- | -------------------------------- |
-| gcollapse    | collapse      |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output |
-| gcontract    | contract      |  5 to 7   / 2 to 5-4     | Weights         |                                  |
-| gegen        | egen          |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                        |
-| gisid        | isid          |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                       |
-| glevelsof    | levelsof      |  3 to 13  / 2 to 5-7     |                 | Multiple variables               |
+| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
+| ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
+| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output  |
+| gcontract    | contract |  5 to 7   / 2.5 to 4     | Weights         |                                   |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
+| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
+| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
+| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | Various (see [usage](usage/gquantiles)) |
+|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                             |
+|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                             |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
 
+<small>(-) Benchmarks computed 10 quantiles. When computing a large
+number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
+slow due to the way they are written; in that case gquantiles is hundreds
+or thousands of times faster.</small>
+
+Note that `gquantiles` does __not__ yet support `by()`. This is planned for
+the next release.
+
 __*Gtools extras*__
 
-| Function     | Similar (SSC)    | Speedup (IC / MP)   | Unsupported             |
-| ------------ | ---------------- | ------------------- | ----------------------- |
-| gunique      | unique           |  4 to 26 / 4 to 12  | `by`                    |
-| gdistinct    | distinct         |  4 to 26 / 4 to 12  | Saves results in matrix |
-| gtoplevelsof | groups, select() | (+)                 | See table notes (+)     |
+| Function     | Similar (SSC)    | Speedup (IC / MP)       | Unsupported             |
+| ------------ | ---------------- | ----------------------- | ----------------------- |
+| fasterxtile  | fastxtile        |  20 to 30 / 2.5 to 3.5  | Weights                 |
+| gunique      | unique           |  4 to 26 / 4 to 12      | `by`                    |
+| gdistinct    | distinct         |  4 to 26 / 4 to 12      | Saves results in matrix |
+| gtoplevelsof | groups, select() | (+)                     | See table notes (+)     |
 
 <small>(+) While similar to the user command 'groups' with the 'select'
 option, gtoplevelsof does not really have an equivalent. It is several
@@ -156,6 +168,12 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
+* gquantiles [newvarname =] exp, {_pctile|xtile|pctile} [options]
+gquantiles 2 * price, _pctile nq(10)
+gquantiles p10 = 2 * price, pctile nq(10)
+gquantiles x10 = 2 * price, xtile nq(10)
+fasterxtile xx = log(price), cutpoints(p10)
+
 * hashsort varlist, [options]
 hashsort -make
 hashsort foreign -rep78, benchmark verbose
@@ -173,6 +191,10 @@ gisid price in 1
 glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
 
+* gtoplevelsof varlist [if] [in], [options]
+gtoplevelsof foreign rep78
+gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
+
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
 gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v
 gcollapse (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
@@ -189,6 +211,7 @@ not all. To compensate, they also offer several features on top the massive
 speedup. In particulat, see:
 
 - [gcollapse](http://gtools.readthedocs.io/en/latest/usage/gcollapse/index.html#examples)
+- [gquantiles](http://gtools.readthedocs.io/en/latest/usage/gquantiles/index.html#examples)
 - [gtoplevelsof](http://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples)
 - [gegen](http://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples)
 - [glevelsof](http://gtools.readthedocs.io/en/latest/usage/glevelsof/index.html#examples)
@@ -266,12 +289,28 @@ __*Differences from Stata counterparts*__
 Differences from `collapse`
 
 - No support for weights.
+- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
+  (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
+
+Differences from `xtile`, `pctile`, and `_pctile`
+
+- No support for weights.
+- There is no limit to `nquantiles()` for `xtile`
+- Quantiles can be requested via `percentiles()` (or `quantiles()`)
+  and `cutquantiles()` for `xtile` as well as `pctile`.
+- Cutoffs can be requested via `cutquantiles()` and `cutoffs()`
+  for `xtile` as well as `pctile`.
+- `cutpoints()` and `cutquantiles()` can be made to obey `if` `in`
+  statements and automatically deduplicated via `cutifin`and `dedup`.
+- Category frequencies can also be requested via `binfreq[()]`.
+- `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
+  `pctile(newvar)`
 
 Differences from `egen`
 
@@ -322,7 +361,13 @@ Roadmap to 1.0
 
 - [X] Add support for `by` in `gunique`
 - [X] Write examples showcasing each command.
+- [X] Optimize gquantiles
+    - [X] If few quentiles, don't sort and do selection.
+- [ ] Add `by` to gquantiles.
 - [ ] Add comments to all the code base
+- [ ] Copying the second index from the multi-sorted array
+      (Plugin Step 4.3) is actually a pretty big bottleneck.
+      Benchmark whether it is better to use pointers.
 - [ ] Improve coverage of debug checks.
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command

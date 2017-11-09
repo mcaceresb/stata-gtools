@@ -1,4 +1,4 @@
-*! version 0.9.3 02Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.10.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -343,7 +343,7 @@ program define gegen, byable(onecall) rclass
         gettoken ftype fname: counts
         if ( "`fname'" == "" ) {
             local fname `ftype'
-            if ( `=_N' < 2^31 ) local ftype long
+            if ( `=_N < maxlong()' ) local ftype long
             else local ftype double
         }
 
@@ -433,7 +433,7 @@ program egen_fallback, sortpreserve
     }
     else {
         tempvar byid
-        hashsort `_byvars', group(`byid') sortgroup skipcheck `kwargs'
+        hashsort `_byvars', gen(`byid') sortgen skipcheck `kwargs'
     }
 
     capture noisily `vv' _g`_fcn' `_type' `dummy' = (`_args') `if' `in', by(`byid') `options'
@@ -506,7 +506,7 @@ program parse_target_type, rclass
     if ( "`maxtype'" == "double" ) local retype_B double
     else local retype_B: set type
 
-    if ( `=_N' < 2^31 ) local retype_C long
+    if ( `=_N < maxlong()' ) local retype_C long
     else local retype_C double
 
     if ( "`fcn'" == "tag"        ) return local retype = "byte"

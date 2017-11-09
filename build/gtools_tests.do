@@ -1484,6 +1484,11 @@ program compare_gquantiles
     syntax, [NOIsily *]
     local options `options' `noisily'
 
+    compare_gquantiles_stata, n(10000) bench(10) `options'
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
     qui `noisily' gen_data, n(10000) random(2) double skipstr
     qui expand 10
     gen long   ix = _n
@@ -1511,11 +1516,6 @@ program compare_gquantiles
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_internals, N = `N', `options'" _n(1) "{hline 80}" _n(1)
-
-    compare_gquantiles_stata, n(10000) bench(10) `options'
-
-    local N = trim("`: di %15.0gc _N'")
-    di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 end
 
 capture program drop _consistency_inner_gquantiles
@@ -1747,7 +1747,7 @@ end
 
 capture program drop compare_gquantiles_stata
 program compare_gquantiles_stata
-    syntax, [bench(int 10) n(int 10000) *]
+    syntax, [bench(int 10) n(int 10000) noaltdef *]
 
     compare_inner_quantiles, n(`n') bench(`bench') qopts(p(0.1 5 10 30 50 70 90 95 99.9)) qwhich(_pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(801)) qwhich(_pctile) `options'
@@ -1766,10 +1766,12 @@ program compare_gquantiles_stata
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))   qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))    qwhich(xtile) `options'
 
+    if ( "`altdef'" != "noaltdef" ) {
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(xtile) `options'
+    }
 
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(500))  qwhich(pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100))  qwhich(pctile) `options'
@@ -1944,7 +1946,7 @@ program _compare_inner_xtile
                      _n(1) "However, gquantiles xtile = `anything' without altdef was the same.  On some systems," ///
                      _n(1) "xtile.ado has a typo in line 135 that explains this. Please go to:"                    ///
                      _n(2) `"    {stata doedit `"`r(fn)'"'}"'                                                      ///
-                     _n(2) "and change 'altdev' to 'altdef' and re-run the tests."
+                     _n(2) "and change 'altdev' to 'altdef' (or add option -noaltdef- to compare_gquantiles)."
             }
             exit 198
         }

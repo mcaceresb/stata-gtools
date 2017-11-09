@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  8 21:02:35 EST 2017
+* Updated: Wed Nov  8 22:12:16 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.10.1
 * Manual:  help gtools
@@ -1339,6 +1339,13 @@ program checks_inner_gquantiles
         assert _rc == 198
         gquantiles __p5 = `anything', pctile `options' cutquantiles(ru)
 
+
+        fasterxtile __fx1 = `anything', `options' nq(10)
+        fasterxtile __fx2 = `anything', `options' cutpoints(__p1)
+        fasterxtile __fx3 = `anything', `options' cutpoints(__p1) altdef
+        fasterxtile __fx4 = `anything', `options' nq(10) altdef
+
+
         gquantiles __x1 = `anything', xtile `options' nq(10)
         gquantiles __x2 = `anything', xtile `options' cutpoints(__p1)
         gquantiles __x3 = `anything', xtile `options' quantiles(10 30 50 70 90)
@@ -1348,6 +1355,7 @@ program checks_inner_gquantiles
         gquantiles __x5 = `anything', xtile `options' cutquantiles(ru)
 
         gquantiles `anything', _pctile `options' nq(10)
+
 
         cap gquantiles `anything', _pctile `options' cutpoints(__p1)
         assert _rc == 198
@@ -1382,15 +1390,27 @@ program checks_inner_gquantiles
         gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1)
         cap gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1)
         assert _rc == 198
+
+        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace
+        assert inlist(_rc, 0, 2000)
+        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace cutifin
+        assert inlist(_rc, 198, 2000)
+        cap gquantiles __p2_ii = `anything' if inlist(_n, 1, 3, 7), pctile altdef `options' cutifin cutpoints(__p1)
+        * assert __p2_ii[1] == __p1[1]
+        * assert __p2_ii[2] == __p1[3]
+        * assert __p2_ii[3] == __p1[7]
         gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace
+
 
         gquantiles __p3 = `anything', pctile altdef binfreq binpct `options' quantiles(10 30 50 70 90)
         matrix list r(quantiles_binfreq) 
         matrix list r(quantiles_binpct) 
 
+
         gquantiles __p4 = `anything', pctile altdef binfreq binpct `options' cutoffs(10 30 50 70 90)
         matrix list r(cutoffs_binfreq) 
         matrix list r(cutoffs_binpct) 
+
 
         cap gquantiles __p5 = `anything', pctile altdef binpct `options' cutquantiles(ru)
         assert _rc == 198
@@ -1749,6 +1769,18 @@ capture program drop compare_gquantiles_stata
 program compare_gquantiles_stata
     syntax, [bench(int 10) n(int 10000) noaltdef *]
 
+    if ( "`altdef'" != "noaltdef" ) {
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(xtile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(xtile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(xtile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(xtile) `options'
+    }
+
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(500))  qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100))  qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))   qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))    qwhich(pctile) `options'
+
     compare_inner_quantiles, n(`n') bench(`bench') qopts(p(0.1 5 10 30 50 70 90 95 99.9)) qwhich(_pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(801)) qwhich(_pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100)) qwhich(_pctile) `options'
@@ -1765,18 +1797,6 @@ program compare_gquantiles_stata
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))   qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))    qwhich(xtile) `options'
-
-    if ( "`altdef'" != "noaltdef" ) {
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(xtile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(xtile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(xtile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(xtile) `options'
-    }
-
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(500))  qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100))  qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))   qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))    qwhich(pctile) `options'
 
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(pctile) `options'

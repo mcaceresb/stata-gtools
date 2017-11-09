@@ -17,6 +17,7 @@ program define fasterxtile
         Cutpoints(varname numeric)  /// Use cutpoints instead of percentiles of `exp'
         ALTdef                      /// Alternative definition
                                     ///
+        method(passthru)            /// Method to compute quantiles: (1) qsort, (2) qselect
         strict                      /// Exit if nquantiles > # non-missing obs
         Verbose                     /// Print info during function execution
         BENCHmark                   /// Benchmark function
@@ -50,6 +51,7 @@ program define fasterxtile
 	}
 
     local cutpoints cutpoints(`cutpoints')
-    local opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
-    gquantiles `varlist' = `exp' `if' `in', xtile `nquantiles' `cutpoints' `altdef' `strict' `opts'
+    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local gqopts `nquantiles' `cutpoints' `altdef' `strict' `opts' `method'
+    gquantiles `varlist' = `exp' `if' `in', xtile `gqopts'
 end

@@ -383,6 +383,7 @@ program _gtools_internal, rclass
     scalar __gtools_xtile_bincount  = 0
     scalar __gtools_xtile__pctile   = 0
     scalar __gtools_xtile_dedup     = 0
+    scalar __gtools_xtile_cutifin   = 0
     matrix __gtools_xtile_quantiles = J(1, 1, .)
     matrix __gtools_xtile_cutoffs   = J(1, 1, .)
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
@@ -992,6 +993,7 @@ program _gtools_internal, rclass
                                               ///
                 returnlimit(real 1001)        ///
                 dedup                         ///
+                cutifin                       ///
                 _pctile                       ///
                 binfreq                       ///
                 method(int 0)                 ///
@@ -1142,6 +1144,7 @@ program _gtools_internal, rclass
             scalar __gtools_xtile_bincount = ( "`binfreq'" != "" )
             scalar __gtools_xtile__pctile  = ( "`_pctile'" != "" )
             scalar __gtools_xtile_dedup    = ( "`dedup'"   != "" )
+            scalar __gtools_xtile_cutifin  = ( "`cutifin'" != "" )
 
             cap noi check_matsize, nvars(`=scalar(__gtools_xtile_nq2)')
             if ( _rc ) {
@@ -1418,6 +1421,7 @@ program clean_all
     cap scalar drop __gtools_xtile_bincount
     cap scalar drop __gtools_xtile__pctile
     cap scalar drop __gtools_xtile_dedup
+    cap scalar drop __gtools_xtile_cutifin
     cap matrix drop __gtools_xtile_quantiles
     cap matrix drop __gtools_xtile_cutoffs
     cap matrix drop __gtools_xtile_quantbin
@@ -1459,10 +1463,17 @@ program clean_all
     cap matrix drop __gtools_stats
     cap matrix drop __gtools_pos_targets
 
+    * NOTE(mauricio): You had the urge to make sure you were dropping
+    * variables at one point. Don't. This is file for gquantiles but not so
+    * with gegen or gcollapse.  In the case of gcollapse, if the user ran w/o
+    * fast then they were willing to leave the data in a bad stata in case
+    * there was an error. In the casae of gegen, the main variable is a dummy
+    * that is renamed later on.
+
     if ( `rc' ) {
-        cap mata: st_dropvar(__gtools_togen_names[__gtools_togen_s])
         cap mata: st_dropvar(__gtools_xtile_addnam)
-        cap mata: st_dropvar(__gtools_addvars)
+        * cap mata: st_dropvar(__gtools_togen_names[__gtools_togen_s])
+        * cap mata: st_dropvar(__gtools_addvars)
     }
 
     cap mata: mata drop __gtools_togen_k

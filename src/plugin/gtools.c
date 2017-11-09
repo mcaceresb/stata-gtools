@@ -222,6 +222,9 @@ STDLL stata_call(int argc, char *argv[])
             if ( (rc = sf_xtile  (st_info, 0)) ) goto exit;
         }
         else {
+            sf_errprintf("by() support is planned for a future version.");
+            sf_errprintf("Try again when 0.11.0 or above is released.\n");
+            rc = 17777; goto exit;
             if ( (rc = sf_hash_byvars (st_info, 3)) ) goto exit;
             if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
             if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
@@ -294,6 +297,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile_bincount,
             xtile__pctile,
             xtile_dedup,
+            xtile_cutifin,
             any_if,
             countmiss,
             replace,
@@ -411,6 +415,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_xtile_bincount", &xtile_bincount) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile__pctile",  &xtile__pctile)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_dedup",    &xtile_dedup)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",  &xtile_cutifin)  )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
@@ -556,6 +561,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_bincount = xtile_bincount;
     st_info->xtile__pctile  = xtile__pctile;
     st_info->xtile_dedup    = xtile_dedup;
+    st_info->xtile_cutifin  = xtile_cutifin;
 
     st_info->encode         = encode;
     st_info->group_data     = group_data;

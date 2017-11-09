@@ -99,6 +99,7 @@ struct StataInfo {
     GT_bool xtile_bincount;
     GT_bool xtile__pctile;
     GT_bool xtile_dedup;
+    GT_bool xtile_cutifin;
     //
     GT_bool   sorted;
     GT_bool   cleanstr;

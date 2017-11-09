@@ -1,3 +1,6 @@
+/*
+ * UNTESTED! Planned for 0.11.0 or 1.0.0
+ */
 ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
 
 ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)

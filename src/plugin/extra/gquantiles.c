@@ -1,71 +1,8 @@
-#include "xtile.c"
+#include "gquantiles_by.c"
+#include "gquantiles_math.c"
 
 ST_retcode sf_xtile    (struct StataInfo *st_info, int level);
 GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup);
-
-void gf_quantiles_nq (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx
-);
-
-void gf_quantiles (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx
-);
-
-void gf_quantiles_nq_altdef (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx
-);
-
-void gf_quantiles_altdef (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx
-);
-
-void gf_quantiles_nq_qselect (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N
-);
-
-void gf_quantiles_qselect (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N
-);
-
-void gf_quantiles_nq_qselect_altdef (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N
-);
-
-void gf_quantiles_qselect_altdef (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N
-);
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
@@ -73,7 +10,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     ST_double z, nqdbl, xmin, xmax;
     ST_double *xptr, *qptr, *optr, *gptr, *ixptr, *xptr2;
     GT_bool failmiss = 0, sorted = 0;
-    GT_size i, q, sel, obs, N, qtot, xrange, xtol;
+    GT_size i, q, sel, obs, N, qtot;
     ST_retcode rc = 0;
     clock_t  timer = clock();
     clock_t stimer = clock();
@@ -131,8 +68,8 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size kx = kgen? 3: 1;
     GT_size xmem_sources = kx * Nread;
     GT_size xmem_quant   = nout;
-    GT_size xmem_points  = cutvars? SF_nobs() + 1: 1;
-    GT_size xmem_quants  = qvars? SF_nobs() + 1: 1;
+    GT_size xmem_points  = cutvars? (st_info->xtile_cutifin? Nread + 1: SF_nobs() + 1): 1;
+    GT_size xmem_quants  = qvars? (st_info->xtile_cutifin? Nread + 1: SF_nobs() + 1): 1;
 
     ST_double *xsources = calloc(xmem_sources, sizeof *xsources);
     ST_double *xquant   = calloc(xmem_quant,   sizeof *xquant);
@@ -148,22 +85,70 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                     Cutvars and cutquantiles                      *
      *********************************************************************/
 
-    if ( cutvars ) {
-        for (i = 0; i < SF_nobs(); i++) {
-            if ( (rc = SF_vdata(start_cutvars,
-                                i + 1,
-                                xpoints + i)) ) goto error;
-        }
-        npoints = SF_nobs();
-    }
+    if ( st_info->xtile_cutifin ) {
+        if ( st_info->any_if ) {
+            if ( cutvars ) {
+                obs = 0;
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_cutvars,
+                                            i + in1,
+                                            xpoints + obs++)) ) goto error;
+                    }
+                }
+                npoints = obs;
+            }
 
-    if ( qvars ) {
-        for (i = 0; i < SF_nobs(); i++) {
-            if ( (rc = SF_vdata(start_qvars,
-                                i + 1,
-                                xquants + i)) ) goto error;
+            if ( qvars ) {
+                obs = 0;
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_qvars,
+                                            i + in1,
+                                            xquants + obs++)) ) goto error;
+                    }
+                }
+                nquants = obs;
+            }
         }
-        nquants = SF_nobs();
+        else {
+            if ( cutvars ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_cutvars,
+                                        i + in1,
+                                        xpoints + i)) ) goto error;
+                }
+                npoints = Nread;
+            }
+
+            if ( qvars ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_qvars,
+                                        i + in1,
+                                        xquants + i)) ) goto error;
+                }
+                nquants = Nread;
+            }
+        }
+    }
+    else {
+        if ( cutvars ) {
+            for (i = 0; i < SF_nobs(); i++) {
+                if ( (rc = SF_vdata(start_cutvars,
+                                    i + 1,
+                                    xpoints + i)) ) goto error;
+            }
+            npoints = SF_nobs();
+        }
+
+        if ( qvars ) {
+            for (i = 0; i < SF_nobs(); i++) {
+                if ( (rc = SF_vdata(start_qvars,
+                                    i + 1,
+                                    xquants + i)) ) goto error;
+            }
+            nquants = SF_nobs();
+        }
     }
 
     /*********************************************************************
@@ -245,12 +230,12 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             //                       so time to count is higher; however, those
             //                       are just comparisons, not swaps!
             m1_etime = 2 * log(Nread) + 3;
-            m2_etime = 0.05 * ((ST_double) nout) + 1;
+            m2_etime = 0.1 * ((ST_double) nout) + 1;
         }
         else if ( pctpct | bincount ) {
             // No xtile
             m1_etime = log(Nread) + 2;
-            m2_etime = 0.05 * ((ST_double) nout) + 1;
+            m2_etime = 0.1 * ((ST_double) nout) + 1;
         }
         else {
             // No xtile, no counts. Here method 2 wins
@@ -274,7 +259,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                               m1_etime, m2_etime);
                 }
                 else if ( (ncuts > 0) | (npoints > 0) ) {
-                    sf_printf("Empirical decision rule (20 * Method 1 / Method 2): %.2f. ",
+                    sf_printf("Empirical decision rule (10 * Method 1 / Method 2): %.2f. ",
                               m_ratio);
                 }
                 if ( m2_etime < m1_etime ) {
@@ -415,56 +400,23 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                               Sort!                               *
      *********************************************************************/
 
-    if ( method == 2 ) {
-        for (xptr = xsources;
-             xptr < xsources + (N - 1);
-             xptr += 1, i++) {
-            if ( *xptr > *(xptr + kx) ) break;
-        }
-        i++;
+    if ( method == 2 ) kx = 1;
 
+    // Check if already sorted
+    i = 0;
+    for (xptr = xsources;
+         xptr < xsources + kx * (N - 1);
+         xptr += kx, i++) {
+        if ( *xptr > *(xptr + kx) ) break;
+    }
+    i++;
+
+    if ( method == 2 ) {
         if ( i >= N ) {
             sorted = 2;
         }
-        else if ( 0 ) {
-            i = 0;
-            for (xptr = xsources;
-                 xptr < xsources + N;
-                 xptr += 1, i++) {
-                if ( floor(*xptr) != ceil( *xptr) ) break;
-            }
-
-            // Counting sort?!
-            // ---------------
-
-            if ( i >= N ) {
-                xmin   = gf_array_dmin_range(xsources, 0, N);
-                xmax   = gf_array_dmax_range(xsources, 0, N);
-                xrange = (GT_size) xmax - xmin + 1;
-                xtol   = (GT_size) pow(2, 24);
-                if ( xrange < xtol ) {
-                    if ( kgen > 0 ) {
-                        gf_xtile_csort_ix (xsources + Nread, xsources + 2 * Nread, N, xrange, xmin);
-                    }
-                    else {
-                        gf_xtile_csort (xsources, N, xrange, xmin);
-                    }
-                    sorted = 1;
-                }
-            }
-        }
     }
     else {
-        // Check if already sorted
-        i = 0;
-        for (xptr = xsources;
-             xptr < xsources + kx * (N - 1);
-             xptr += kx, i++) {
-            if ( *xptr > *(xptr + kx) ) break;
-        }
-        i++;
-
-        // Sort if not sorted
         if ( i < N ) {
             quicksort_bsd (
                 xsources,
@@ -518,33 +470,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     else if ( altdef ) {
         if ( (method == 2) & (sorted < 2) ) {
-            if ( sorted == 1 ) {
-                if ( nquants > 0 ) {
-                    gf_quantiles_altdef (xquants, xptr2, xquants, nquants, N, 1);
-                    qptr = xquants;
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_altdef (xquant, xptr2, st_info->xtile_quantiles, nq2, N, 1);
-                    qptr = xquant;
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_altdef (xquant, xptr2, nq, N, 1);
-                    qptr = xquant;
-                }
+            if ( nquants > 0 ) {
+                gf_quantiles_qselect_altdef (xquants, xptr2, xquants, nquants, N);
+                qptr = xquants;
             }
-            else {
-                if ( nquants > 0 ) {
-                    gf_quantiles_qselect_altdef (xquants, xptr2, xquants, nquants, N);
-                    qptr = xquants;
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_qselect_altdef (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
-                    qptr = xquant;
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_qselect_altdef (xquant, xptr2, nq, N);
-                    qptr = xquant;
-                }
+            else if ( nq2 > 0 ) {
+                gf_quantiles_qselect_altdef (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
+                qptr = xquant;
+            }
+            else if ( nq > 0 ) {
+                gf_quantiles_nq_qselect_altdef (xquant, xptr2, nq, N);
+                qptr = xquant;
             }
         }
         else {
@@ -564,33 +500,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     else {
         if ( (method == 2) & (sorted < 2) ) {
-            if ( sorted == 1 ) {
-                if ( nquants > 0 ) {
-                    gf_quantiles (xquants, xptr2, xquants, nquants, N, 1);
-                    qptr = xquants;
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles (xquant, xptr2, st_info->xtile_quantiles, nq2, N, 1);
-                    qptr = xquant;
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq (xquant, xptr2, nq, N, 1);
-                    qptr = xquant;
-                }
+            if ( nquants > 0 ) {
+                gf_quantiles_qselect (xquants, xptr2, xquants, nquants, N);
+                qptr = xquants;
             }
-            else {
-                if ( nquants > 0 ) {
-                    gf_quantiles_qselect (xquants, xptr2, xquants, nquants, N);
-                    qptr = xquants;
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_qselect (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
-                    qptr = xquant;
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_qselect (xquant, xptr2, nq, N);
-                    qptr = xquant;
-                }
+            else if ( nq2 > 0 ) {
+                gf_quantiles_qselect (xquant, xptr2, st_info->xtile_quantiles, nq2, N);
+                qptr = xquant;
+            }
+            else if ( nq > 0 ) {
+                gf_quantiles_nq_qselect (xquant, xptr2, nq, N);
+                qptr = xquant;
             }
         }
         else {
@@ -643,27 +563,18 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     if ( kgen ) {
         if ( method == 2 ) {
             if ( sorted ) {
-                xptr2 = xsources + Nread;
-                ixptr = xsources + Nread * 2;
                 if ( bincount | pctpct ) {
-                    for (xptr = xsources;
-                         xptr < xsources + N;
-                         xptr += 1, xptr2 += 1, ixptr += 1) {
-                        while ( *xptr2 > qptr[q] ) q++;
+                    for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+                        while ( *xptr > qptr[q] ) q++;
                         xcount[q]++;
-                        *xptr = q + 1;
+                        xptr[0] = q + 1;
                     }
                 }
                 else {
-                    for (xptr = xsources;
-                         xptr < xsources + N;
-                         xptr += 1, xptr2 += 1, ixptr += 1) {
-                        while ( *xptr2 > qptr[q] ) q++;
-                        *xptr = q + 1;
+                    for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+                        while ( *xptr > qptr[q] ) q++;
+                        xptr[0] = q + 1;
                     }
-                }
-                if ( sorted == 1) {
-                    gf_xtile_csort_ix (xsources + 2 * Nread, xsources, N, Nread, 0);
                 }
             }
             else {
@@ -768,7 +679,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
         }
         else {
-            for (xptr = xsources; xptr < xsources + N; xptr += 1) {
+            for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
                 q = 0;
                 while ( *xptr > qptr[q] ) q++;
                 xcount[q]++;
@@ -959,238 +870,6 @@ GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool d
     else {
         return (lsize);
     }
-}
-
-/*********************************************************************
- *                             Quantiles                             *
- *********************************************************************/
-
-void gf_quantiles_nq (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx)
-{
-    GT_size i, q;
-    ST_double qdbl;
-    ST_double Ndbl  = (ST_double) N;
-    ST_double nqdbl = (ST_double) nquants;
-
-    for (i = 0; i < (nquants - 1); i++) {
-        q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
-        qout[i] = x[kx * q];
-        if ( (ST_double) q == qdbl ) {
-            qout[i] += x[kx * q + kx];
-            qout[i] /= 2;
-        }
-    }
-    qout[nquants - 1] = x[kx * N - kx];
-}
-
-void gf_quantiles (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx)
-{
-    GT_size i, q;
-    ST_double qdbl;
-    ST_double Ndbl  = (ST_double) N;
-
-    for (i = 0; i < nquants; i++) {
-        q = ceil(qdbl = (quants[i] * (Ndbl / 100)) - 1);
-        qout[i] = x[kx * q];
-        if ( (ST_double) q == qdbl ) {
-            qout[i] += x[kx * q + kx];
-            qout[i] /= 2;
-        }
-    }
-    qout[nquants] = x[kx * N - kx];
-}
-
-void gf_quantiles_nq_altdef (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx)
-{
-    GT_size i, q;
-    ST_double qdbl, qdiff;
-    ST_double Ndbl  = (ST_double) N;
-    ST_double nqdbl = (ST_double) nquants;
-
-    for (i = 0; i < (nquants - 1); i++) {
-        q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
-        if ( q > 0 ) {
-            if ( q < N ) {
-                q--;
-                qout[i] = x[kx * q];
-                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                    qout[i] *= (1 - qdiff);
-                    qout[i] += qdiff * x[kx * q + kx];
-                }
-            }
-            else {
-                qout[i] = x[kx * N - kx];
-            }
-        }
-        else {
-            qout[i] = x[0];
-        }
-    }
-    qout[nquants - 1] = x[kx * N - kx];
-}
-
-void gf_quantiles_altdef (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N,
-    GT_size kx)
-{
-    GT_size i, q;
-    ST_double qdbl, qdiff;
-    ST_double Ndbl = (ST_double) N;
-
-    for (i = 0; i < nquants; i++) {
-        q = floor(qdbl = (quants[i] * ((Ndbl + 1) / 100)));
-        if ( q > 0 ) {
-            if ( q < N ) {
-                q--;
-                qout[i] = x[kx * q];
-                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                    qout[i] *= (1 - qdiff);
-                    qout[i] += qdiff * x[kx * q + kx];
-                }
-            }
-            else {
-                qout[i] = x[kx * N - kx];
-            }
-        }
-        else {
-            qout[i] = x[0];
-        }
-    }
-    qout[nquants] = x[kx * N - kx];
-}
-
-/*********************************************************************
- *                    Generic quantile selection                     *
- *********************************************************************/
-
-void gf_quantiles_nq_qselect (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N)
-{
-    GT_size i, q;
-    ST_double qdbl;
-    ST_double Ndbl  = (ST_double) N;
-    ST_double nqdbl = (ST_double) nquants;
-
-    for (i = 0; i < (nquants - 1); i++) {
-        q = ceil(qdbl = ((i + 1) * Ndbl / nqdbl) - 1);
-        qout[i] = gf_qselect_range (x, 0, N, q);
-        if ( (ST_double) q == qdbl ) {
-            qout[i] += gf_qselect_range (x, 0, N, q + 1);
-            qout[i] /= 2;
-        }
-    }
-    qout[nquants - 1] = gf_array_dmax_range(x, 0, N);
-}
-
-void gf_quantiles_qselect (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N)
-{
-    GT_size i, q;
-    ST_double qdbl;
-    ST_double Ndbl  = (ST_double) N;
-
-    for (i = 0; i < nquants; i++) {
-        q = ceil(qdbl = (quants[i] * (Ndbl / 100)) - 1);
-        qout[i] = gf_qselect_range (x, 0, N, q);
-        if ( (ST_double) q == qdbl ) {
-            qout[i] += gf_qselect_range (x, 0, N, q + 1);
-            qout[i] /= 2;
-        }
-    }
-    qout[nquants] = gf_array_dmax_range(x, 0, N);
-}
-
-void gf_quantiles_nq_qselect_altdef (
-    ST_double *qout,
-    ST_double *x,
-    GT_size nquants,
-    GT_size N)
-{
-    GT_size i, q;
-    ST_double qdbl, qdiff;
-    ST_double Ndbl  = (ST_double) N;
-    ST_double nqdbl = (ST_double) nquants;
-
-    for (i = 0; i < (nquants - 1); i++) {
-        q = floor(qdbl = ((i + 1) * (Ndbl + 1) / nqdbl));
-        if ( q > 0 ) {
-            if ( q < N ) {
-                q--;
-                qout[i] = gf_qselect_range (x, 0, N, q);
-                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                    qout[i] *= (1 - qdiff);
-                    qout[i] += qdiff * gf_qselect_range (x, 0, N, q + 1);
-                }
-            }
-            else {
-                qout[i] = gf_array_dmax_range(x, 0, N);
-            }
-        }
-        else {
-            qout[i] = gf_array_dmin_range(x, 0, N);
-        }
-    }
-    qout[nquants - 1] = gf_array_dmax_range(x, 0, N);
-}
-
-void gf_quantiles_qselect_altdef (
-    ST_double *qout,
-    ST_double *x,
-    ST_double *quants,
-    GT_size nquants,
-    GT_size N)
-{
-    GT_size i, q;
-    ST_double qdbl, qdiff;
-    ST_double Ndbl  = (ST_double) N;
-
-    for (i = 0; i < nquants; i++) {
-        q = floor(qdbl = (quants[i] * ((Ndbl + 1) / 100)));
-        if ( q > 0 ) {
-            if ( q < N ) {
-                q--;
-                qout[i] = gf_qselect_range (x, 0, N, q);
-                if ( ((qdiff = (qdbl - 1 - (ST_double) q)) > 0) ) {
-                    qout[i] *= (1 - qdiff);
-                    qout[i] += qdiff * gf_qselect_range (x, 0, N, q + 1);
-                }
-            }
-            else {
-                qout[i] = gf_array_dmax_range(x, 0, N);
-            }
-        }
-        else {
-            qout[i] = gf_array_dmin_range(x, 0, N);
-        }
-    }
-    qout[nquants] = gf_array_dmax_range(x, 0, N);
 }
 
 /*********************************************************************

@@ -1,8 +1,8 @@
 <img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
 Faster Stata for big data. This packages provides a hash-based implementation
-of collapse, contract, egen, isid, levelsof, and unique/distinct using C
-plugins for a massive speed improvement.
+of collapse, pctile, xtile, contract, egen, isid, levelsof, and
+unique/distinct using C plugins for a massive speed improvement.
 
 `version 0.9.4 03Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
@@ -11,10 +11,10 @@ Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/
 Overview
 --------
 
-This package's aim is to provide a fast implementation of group commands in
-Stata using hashes and C plugins.  If you plan to use the plugin extensively,
-check out the [remarks](#remarks) below and the [FAQs](faqs) for caveats and
-details on the plugin.
+This package's aim is to provide a fast implementation of various Stata
+commands using hashes and C plugins.  If you plan to use the plugin
+extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
+caveats and details on the plugin.
 
 __*Gtools commands with a stata equivalent*__
 
@@ -25,9 +25,9 @@ __*Gtools commands with a stata equivalent*__
 | gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
 | gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
 | glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
-| gquantiles   | pctile   |  x to xx / x to xx (-)   | Weights         | Various (see [usage](usage/gquantiles#examples)) |
-|              | \_pctile |  x to xx / x to xx       | Ibid.           | Ibid.                             |
-|              | xtile    |  x to xx / x to xx (-)   | Ibid.           | Ibid.                             |
+| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | Various (see [usage](usage/gquantiles)) |
+|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                             |
+|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                             |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups.</small>
@@ -35,21 +35,21 @@ quantiles (e.g. median, iqr, p90) and few groups.</small>
 <small>(.) Only gegen group was benchmarked rigorously.</small>
 
 <small>(-) Benchmarks computed 10 quantiles. When computing a large
-number of quantiles (thousands) `pctile` and `xtile` are prohibitively slow
-due to the way they are written; in that case gquantiles is hundreds (thousands)
-of times faster. This is not an exaggeration. See [the section on many quantiles](usage/gquantiles#many-quantiles)
-in the usage page.</small>
+number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
+slow due to the way they are written; in that case gquantiles is hundreds
+or thousands of times faster.</small>
 
-`gquantiles` accepts `by`.
+Note that `gquantiles` does __not__ yet support `by()`. This is planned for
+the next release.
 
 __*Gtools extras*__
 
-| Function     | Similar (SSC)    | Speedup (IC / MP)   | Unsupported             |
-| ------------ | ---------------- | ------------------- | ----------------------- |
-| fasterxtile  | fastxtile        |                     | Weights                 |
-| gunique      | unique           |  4 to 26 / 4 to 12  | `by`                    |
-| gdistinct    | distinct         |  4 to 26 / 4 to 12  | Saves results in matrix |
-| gtoplevelsof | groups, select() | (+)                 | See table notes (+)     |
+| Function     | Similar (SSC)    | Speedup (IC / MP)       | Unsupported             |
+| ------------ | ---------------- | ----------------------- | ----------------------- |
+| fasterxtile  | fastxtile        |  20 to 30 / 2.5 to 3.5  | Weights                 |
+| gunique      | unique           |  4 to 26 / 4 to 12      | `by`                    |
+| gdistinct    | distinct         |  4 to 26 / 4 to 12      | Saves results in matrix |
+| gtoplevelsof | groups, select() | (+)                     | See table notes (+)     |
 
 <small>(+) While similar to the user command 'groups' with the 'select'
 option, gtoplevelsof does not really have an equivalent. It is several
@@ -160,6 +160,12 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
+* gquantiles [newvarname =] exp, {_pctile|xtile|pctile} [options]
+gquantiles 2 * price, _pctile nq(10)
+gquantiles p10 = 2 * price, pctile nq(10)
+gquantiles x10 = 2 * price, xtile nq(10)
+fasterxtile xx = log(price), cutpoints(p10)
+
 * hashsort varlist, [options]
 hashsort -make
 hashsort foreign -rep78, benchmark verbose
@@ -197,6 +203,7 @@ not all. To compensate, they also offer several features on top the massive
 speedup. In particulat, see:
 
 - [gcollapse](usage/gcollapse#examples)
+- [gquantiles](usage/gquantiles#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
@@ -282,6 +289,20 @@ Differences from `collapse`
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
+
+Differences from `xtile`, `pctile`, and `_pctile`
+
+- No support for weights.
+- There is no limit to `nquantiles()` for `xtile`
+- Quantiles can be requested via `percentiles()` (or `quantiles()`)
+  and `cutquantiles()` for `xtile` as well as `pctile`.
+- Cutoffs can be requested via `cutquantiles()` and `cutoffs()`
+  for `xtile` as well as `pctile`.
+- `cutpoints()` and `cutquantiles()` can be made to obey `if` `in`
+  statements and automatically deduplicated via `cutifin`and `dedup`.
+- Category frequencies can also be requested via `binfreq[()]`.
+- `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
+  `pctile(newvar)`
 
 Differences from `egen`
 

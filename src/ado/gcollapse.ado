@@ -1,9 +1,15 @@
 *! version 0.9.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
+capture program drop sva
+program sva
+    set varabbrev off
+end
+
 capture program drop gcollapse
 program gcollapse, rclass
     version 13
+    global GTOOLS_USER_VARABBREV `c(varabbrev)'
     local 00 `0'
 
     global GTOOLS_CALLER gcollapse
@@ -40,6 +46,8 @@ program gcollapse, rclass
         debug_io_check(real 1e6)    /// (internal) Threshold to check for I/O speed gains
         debug_io_threshold(real 10) /// (internal) Threshold to switch to I/O instead of RAM
     ]
+    set varabbrev off
+
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
@@ -1055,6 +1063,10 @@ end
 
 capture program drop CleanExit
 program CleanExit
+    set varabbrev ${GTOOLS_USER_VARABBREV}
+    global GTOOLS_USER_VARABBREV
+    global GTOOLS_CALLER
+
     cap mata: mata drop __gtools_formats
     cap mata: mata drop __gtools_labels
 
@@ -1089,8 +1101,6 @@ program CleanExit
 
     cap timer off   97
     cap timer clear 97
-
-    global GTOOLS_CALLER ""
 end
 
 capture program drop CheckMatsize

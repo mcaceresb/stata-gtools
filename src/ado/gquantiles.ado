@@ -1,140 +1,6 @@
 *! version 0.1.0 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
-* gquantiles gives various options to compute quantiles (and percentiles).
-* One of its main features is to function as a fast repacement for xtile,
-* pctile, and _pctile (the only feature it does not support are weights).
-*
-* Equivaent to pctile:
-*
-*     gquantiles newvar = exp [if] [in], pctile [nquantiles(#) genp(newvarname) altdef]
-*
-* Equivaent to xtile:
-*
-*     gquantiles newvar = exp [if] [in], xtile [nquantiles(#) cutpoints(numlist) altdef]
-*     fasterxtile newvar = exp [if] [in], [nquantiles(#) cutpoints(numlist) altdef]
-*
-* Equivaent to _pctile:
-*
-*     gquantiles varname [if] [in], _pctile [nquantiles(#) percentiles(numlist) altdef]
-*
-* The alias fasterxtile is provided because I'm annoyed at the user-written
-* fastxtile, mainly because I have found it to be slower than xtile under some
-* circumstances (but also because its behavior does not actually mimic xtile
-* in some places, despite claims to the contrary, and it will on occassion fail
-* when xtile will succeed).
-*
-* Hence I could not resist providing fasterxtile as an alias
-* (actuallyfastxtile seemed too long). Note that while gquantiles produces the
-* same results as _pctile, xtile, and pctile, it may not have the same limits.
-* This is by design, as I intend the command to have more features.  However,
-* if you ever find a place where fasterxtile is not the same as xtile
-* (excluding weights, but including error checks) please let me know.
-*
-* As noted, gquantiles offers many options beyond the above. The full syntax is:
-*
-*     gquantiles [newvar =] exp [if] [in], quantiles_method [gquantiles_options]
-*
-* quantiles_method is one of nq, p, cutp, cutoffs, cutq.
-* quantiles_options are the options available.
-*
-*     - nquantiles
-*     - cutpoints (xtile or pctile required)
-*     - quantiles
-*     - cutoffs (xtile, pctile, or bincount required)
-*     - cutquantiles (xtile or pctile required)
-*
-* Stata is woefully inefficient at computing many quantiles. xtile sits atop
-* pctile, which sits atop _pctile, which can only process 1001 quantiles at a
-* time. Hence pctile is looping over individual return values from _pctile, and
-* only 1001 quantiles per loop. The double loop is VERY slow.
-*
-* set rmsg on
-* clear
-* set obs 1000000
-* gen x = runiform()
-* gquantiles z2 = x, pctile nq(10000)
-* pctile z1 = x, nq(10000)
-* assert z1 == z2
-* gquantiles z3 = x, pctile nq(`=_N') genp(p3)
-*
-* We can check that this result is correct:
-* preserve
-*     sample 0.1
-*     sort p3
-*     cap matrix drop z3mat
-*     mkmat z3, mat(z3mat)
-*     qui glevelsof p3, numfmt(%.4f)
-* restore
-* _pctile x, p(`r(levels)')
-* gen diff = .
-* qui forvalues r = 1 / 1000 {
-*     replace diff = abs(z3mat[`r', 1] - r(r`r')) in `r'
-* }
-* qui sum diff in 1/1000
-* disp r(max)
-*
-* Hence computing many quantiles, which was de facto impossible,
-* now runs at a very reasonable speed.
-
-* set rmsg on
-* clear
-* set obs 10
-* gen x = _n
-* xtile x1 = x, nq(7)
-* xtile x2 = x, nq(7) altdef
-* pctile p1 = x, nq(7)
-* pctile p2 = x, nq(7) altdef
-* xtile xp1 = x, c(p1)
-* xtile xp2 = x, c(p2) altdef
-* l
-
-* set rmsg on
-* clear
-* set obs 10000
-* gen x = runiform()
-* pctile z1 = x, nq(10000)
-* gquantiles z2 = x, pctile nq(10000)
-* mata: pctile("z3", "x", 10000)
-* assert z1 == z2
-* assert z1 == z3
-*
-* set rmsg on
-* clear
-* set obs 1000000
-* gen x = runiform()
-* gquantiles z2 = x, pctile nq(10)
-* mata: pctile("z3", "x", 10)
-* assert z2 == z3
-
-* cap mata: mata drop pctile()
-* mata:
-* void function pctile (string scalar newvar,
-*                       string scalar sourcevar,
-*                       real scalar nq)
-* {
-*     real scalar N
-*     real colvector X, quantiles, qpositions, qties, qtiesix, Q, Qties
-*
-*     X = st_data(., sourcevar)
-*     N = rows(X)
-*     _sort(X, 1)
-*     quantiles  = ((1::(nq - 1)) * N / nq)
-*     qpositions = ceil(quantiles)
-*     qties      = (qpositions :== quantiles)
-*     Q          = X[qpositions]
-*
-*     if ( any(qties) ) {
-*         qtiesix = selectindex(qties)
-*         Qties = X[qpositions[qtiesix] :+ 1]
-*         Q[qtiesix] = (Q[qtiesix] + Qties) / 2
-*     }
-*
-*     st_addvar("`:set type'", newvar)
-*     st_store((1::(nq - 1)), newvar, Q)
-* }
-* end
-
 capture program drop gquantiles
 program gquantiles, rclass
     if ( `=_N < 1' ) {
@@ -166,6 +32,7 @@ program gquantiles, rclass
                                         /// --------------------------
                                         ///
         returnlimit(real 1001)          /// Set to missing (.) to have no return limit; REALLY SLOW to tinker
+        cutifin                         /// Read quantiles() or cutquantiles() within [if] [in]
         dedup                           /// Remove duplicates from quantiles() or cutquantiles()
         _pctile                         /// Set return values in the style of pctile
         pctile                          /// Call pctile
@@ -237,6 +104,9 @@ program gquantiles, rclass
     }
 
     if ( "`by'" != "" ) {
+        di as err "by() is not yet supported. This feature is planned for the next release."
+        exit 198
+
         if ( `gen_pctile' & ("`strict'" != "strict") ) {
             di as err "by() with -pctile- requires option -strict-"
             local early_rc = 198
@@ -324,7 +194,7 @@ program gquantiles, rclass
     * Parse number of quantiles
     * -------------------------
 
-    if ( `nquantiles' > `=_N + 1' ) {
+    if ( (`nquantiles' > `=_N + 1') & ("`strict'" != "") ) {
         di in red "nquantiles() must be less than or equal to " /*
         */ "number of observations plus one"
         local early_rc = 198
@@ -449,8 +319,8 @@ program gquantiles, rclass
 
     local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
     local   opts `opts' `gen' `tag' `counts' `fill'
-    local gqopts `varlist', xsources(`xsources') `dedup' `_pctile' `pctile' `genp' `binadd' `binaddvar'
-    local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `cutquantiles'
+    local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
+    local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `cutquantiles' `cutifin' `dedup'
     local gqopts `gqopts' `replace' `altdef' `method' `strict' `minmax' returnlimit(`returnlimit')
     cap noi _gtools_internal `by' `ifin', missing unsorted `opts' gquantiles(`gqopts') gfunction(quantiles)
     local rc = _rc
@@ -511,7 +381,7 @@ program gquantiles, rclass
         local nqextra = "`r(nqextra)'"
         if ( `: list posof "quantiles" in nqextra' ) {
             mata: st_matrix("__gtools_r_qused", st_matrix("r(quantiles_used)")[1::`Nout']')
-            return matrix quantiles = __gtools_r_qused
+            return matrix quantiles_used = __gtools_r_qused
         }
         if ( `: list posof "bin" in nqextra' ) {
             mata: st_matrix("__gtools_r_qbin", st_matrix("r(quantiles_bincount)")[1::`Nout']')

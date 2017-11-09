@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Nov  6 19:57:53 EST 2017
+* Updated: Wed Nov  8 08:47:01 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.9.4
 * Manual:  help gtools
@@ -23,19 +23,7 @@ set linesize 255
 
 program main
     syntax, [NOIsily *]
-
-local n 10000000
-clear
-set obs `n'
-gen x  = int(rnormal() * 100)
-gquantiles __x1 = x, xtile binfreq(bf1) nq(10) v bench(2) method(1)
-gquantiles __x2 = x, xtile binfreq(bf2) nq(10) v bench(2) method(2)
-l in 1/10
-
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode sorted
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode sorted
+bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
 exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
@@ -122,7 +110,9 @@ exit 17999
         }
 
         if ( `:list posof "switches" in options' ) {
-            gquantiles_switch_sanity
+            gquantiles_switch_sanity v1
+            gquantiles_switch_sanity v2
+            gquantiles_switch_sanity v3
         }
 
         if ( `:list posof "bench_test" in options' ) {
@@ -501,6 +491,18 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * https://github.com/mcaceresb/stata-gtools/issues/27
+    qui {
+        clear
+        set obs 10
+        gen xxx = 1
+        set varabbrev on
+        cap confirm xx
+        gcollapse xx = xxx
+        cap confirm x
+        set varabbrev off
+    }
 
     qui {
         sysuse auto, clear
@@ -1484,12 +1486,12 @@ program compare_gquantiles
     syntax, [NOIsily *]
     local options `options' `noisily'
 
-    qui `noisily' gen_data, n(100000) random(2) double skipstr
-    qui expand 5
+    qui `noisily' gen_data, n(10000) random(2) double skipstr
+    qui expand 10
     gen long   ix = _n
     gen double ru = runiform() * 100
-    qui replace ix = . if mod(_n, 100000) == 0
-    qui replace ru = . if mod(_n, 100000) == 0
+    qui replace ix = . if mod(_n, 10000) == 0
+    qui replace ru = . if mod(_n, 10000) == 0
     qui sort random1
 
     _consistency_inner_gquantiles, `options'
@@ -1577,23 +1579,23 @@ program _consistency_inner_nq
 
     qui {
     gquantiles __p1 = `anything' `if' `in', pctile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) xtile(__x1)
-    gquantiles __p2 = `anything' `if' `in', pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) xtile(__x2) method(1)
+    gquantiles __p2 = `anything' `if' `in', pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) xtile(__x2)
     if ( `nq' <= 801 ) {
         glevelsof __g1, silent
-        gquantiles __p3 = `anything' `if' `in', pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) xtile(__x3) method(2)
+        gquantiles __p3 = `anything' `if' `in', pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) xtile(__x3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
         matrix ___mfp3 = r(quantiles_binpct)
 
         glevelsof __p1, silent
-        gquantiles __p4 = `anything' `if' `in', pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) xtile(__x4) method(1)
+        gquantiles __p4 = `anything' `if' `in', pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) xtile(__x4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
         matrix ___mfp4 = r(cutoffs_binpct)
     }
-    gquantiles __p5 = `anything' `if' `in', pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) xtile(__x5) method(2)
+    gquantiles __p5 = `anything' `if' `in', pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) xtile(__x5)
     }
 
     cap _compare_inner_nqvars `tol'
@@ -1605,23 +1607,23 @@ program _consistency_inner_nq
     qui {
     cap drop __*
     gquantiles __x1 = `anything' `if' `in', xtile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) pctile(__p1)
-    gquantiles __x2 = `anything' `if' `in', xtile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2) method(1)
+    gquantiles __x2 = `anything' `if' `in', xtile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2)
     if ( `nq' <= 801 ) {
         glevelsof __g1, silent
-        gquantiles __x3 = `anything' `if' `in', xtile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3) method(2)
+        gquantiles __x3 = `anything' `if' `in', xtile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
         matrix ___mfp3 = r(quantiles_binpct)
 
         glevelsof __p1, silent
-        gquantiles __x4 = `anything' `if' `in', xtile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4) method(1)
+        gquantiles __x4 = `anything' `if' `in', xtile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
         matrix ___mfp4 = r(cutoffs_binpct)
     }
-    gquantiles __x5 = `anything' `if' `in', xtile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5) method(2)
+    gquantiles __x5 = `anything' `if' `in', xtile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5)
     }
 
     cap _compare_inner_nqvars `tol'
@@ -1633,23 +1635,23 @@ program _consistency_inner_nq
     qui if ( `nq' <= 801 ) {
         local options `options' returnlimit(1)
         gquantiles `anything' `if' `in', _pctile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) pctile(__p1) xtile(__x1) replace
-        gquantiles `anything' `if' `in', _pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2) xtile(__x2) replace method(1)
+        gquantiles `anything' `if' `in', _pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2) xtile(__x2) replace
 
         glevelsof __g1, silent
-        gquantiles `anything' `if' `in', _pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3) xtile(__x3) replace method(2)
+        gquantiles `anything' `if' `in', _pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3) xtile(__x3) replace
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
         matrix ___mfp3 = r(quantiles_binpct)
 
         glevelsof __p1, silent
-        gquantiles `anything' `if' `in', _pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4) xtile(__x4) replace method(1)
+        gquantiles `anything' `if' `in', _pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4) xtile(__x4) replace
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
         matrix ___mfp4 = r(cutoffs_binpct)
 
-        gquantiles `anything' `if' `in', _pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5) xtile(__x5) replace method(2)
+        gquantiles `anything' `if' `in', _pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5) xtile(__x5) replace
     }
 
     cap _compare_inner_nqvars `tol'
@@ -1892,14 +1894,14 @@ program _compare_inner_xtile
         cap sort `anything'
         if ( _rc ) {
             tempvar sort
-            gen double `sort' = `anything'
+            qui gen double `sort' = `anything'
             sort `sort'
         }
     }
 
     timer clear
     timer on 43
-    qui gquantiles `gxtile' = `anything' `if' `in', xtile `qopts'
+    qui gquantiles `gxtile' = `anything' `if' `in', xtile `qopts' `options'
     timer off 43
     qui timer list
     local time_gxtile = r(t43)
@@ -1925,12 +1927,17 @@ program _compare_inner_xtile
 
     cap assert `xtile' == `gxtile'
     if ( _rc ) {
+        tempvar diff
+        gen `diff' = `xtile' - `gxtile'
+        gtoplevelsof `diff'
         if ( strpos("`qopts'", "altdef") ) {
             local qopts: subinstr local qopts "altdef" " ", all
             qui gquantiles `anything' `if' `in', xtile(`gxtile') `qopts' replace
             cap assert `xtile' == `gxtile'
             if ( _rc ) {
                 di as err "    compare_xtile (failed): gquantiles xtile = `anything' gave different levels to xtile"
+                sum `xtile' `gxtile' `diff'
+                l `xtile' `gxtile' `diff' in 1/20
             }
             else {
                 qui findfile xtile.ado
@@ -1938,7 +1945,7 @@ program _compare_inner_xtile
                      _n(2) "Note: gquantiles xtile = `anything', altdef gave different levels to xtile, altdef."   ///
                      _n(1) "However, gquantiles xtile = `anything' without altdef was the same.  On some systems," ///
                      _n(1) "xtile.ado has a typo in line 135 that explains this. Please go to:"                    ///
-                     _n(2) `"    `r(fn)'"'                                                                         ///
+                     _n(2) `"    {stata doedit `"`r(fn)'"'}"'                                                      ///
                      _n(2) "and change 'altdev' to 'altdef' and re-run the tests."
             }
             exit 198
@@ -1949,6 +1956,8 @@ program _compare_inner_xtile
             if ( _rc & (`rc_f' == 0) ) {
                 di as txt "    (note: fastxtile also gave different levels)"
             }
+            sum `xtile' `gxtile' `diff'
+            l `xtile' `gxtile' `diff' in 1/20
             exit 198
         }
     }
@@ -1979,7 +1988,7 @@ program _compare_inner_pctile
         cap sort `anything'
         if ( _rc ) {
             tempvar sort
-            gen double `sort' = `anything'
+            qui gen double `sort' = `anything'
             sort `sort'
         }
     }
@@ -1995,7 +2004,7 @@ program _compare_inner_pctile
 
     timer clear
     timer on 43
-    qui gquantiles `gpctile' = `anything' `if' `in', pctile `gqopts'
+    qui gquantiles `gpctile' = `anything' `if' `in', pctile `gqopts' `options'
     timer off 43
     qui timer list
     local time_gpctile = r(t43)
@@ -2018,6 +2027,8 @@ program _compare_inner_pctile
         if ( _rc ) {
             di as err "    compare_pctile (failed): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `reltol')"
             exit 198
+            sum `pctile' `gpctile' `comp'
+            l `pctile' `gpctile' in 1/20
         }
     }
 
@@ -2031,6 +2042,8 @@ program _compare_inner_pctile
             cap assert abs(`pctpct' - `gpctpct2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
             if ( _rc ) {
                 di as err "    compare_pctile (failed): gquantiles pctile = `anything', genp() gave different percentages to pctile, genp()"
+                sum `pctpct' `gpctpct' `comp'
+                l `pctpct' `gpctpct' in 1/20
                 exit 198
             }
             else {
@@ -2060,13 +2073,13 @@ program _compare_inner__pctile
 
     timer clear
     timer on 43
-    qui gquantiles `exp' `if' `in', _pctile `qopts' v bench(2)
+    qui gquantiles `exp' `if' `in', _pctile `qopts' `options'
     timer off 43
     qui timer list
     local time_gpctile = r(t43)
     local nq = `r(nqused)'
     forvalues q = 1 / `nq' {
-        local qr_`q' = `r(r`q')'
+        scalar qr_`q' = `r(r`q')'
     }
 
     timer clear
@@ -2076,22 +2089,33 @@ program _compare_inner__pctile
     qui timer list
     local time_pctile = r(t42)
     forvalues q = 1 / `nq' {
-        local r_`q' = `r(r`q')'
+        scalar r_`q' = `r(r`q')'
     }
 
     forvalues q = 1 / `nq' {
-        if ( abs(`qr_`q'' - `r_`q'') > `tol' ) {
-            local comp = `r_`q'' * `reltol'
-            local comp = cond(`comp' < `tol', `tol', `comp')
-            if ( abs(`qr_`q'' - `r_`q'') > `comp' ) {
+        if ( abs(scalar(qr_`q') - scalar(r_`q')) > `tol' ) {
+            scalar comp = `=scalar(r_`q')' * `reltol'
+            scalar comp = cond(scalar(comp) < `tol', `tol', scalar(comp))
+            if ( abs(scalar(qr_`q') - scalar(r_`q')) > `comp' ) {
                 di as err "    compare__pctile (failed): gquantiles `anything', _pctile gave different percentiles to _pctile (reltol = `reltol')"
+                qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(1)
+                local q1r_`q' = `r(r`q')'
+                qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(2)
+                local q2r_`q' = `r(r`q')'
+                disp "_pctile r(`q') = `=scalar(r_`q')'"
+                disp "gquantiles r(`q') = `=scalar(qr_`q')'"
+                disp "gquantiles, method(1) r(`q') = `q1r_`q''"
+                disp "gquantiles, method(2) r(`q') = `q2r_`q''"
                 exit 198
             }
         }
+        cap scalar drop qr_`q'
+        cap scalar drop r_`q'
+        cap scalar drop comp
     }
 
     if ( "`benchmode'" == "" ) {
-        di as txt "    compare_pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `reltol', tol = `tol')"
+        di as txt "    compare__pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `reltol', tol = `tol')"
     }
 
     if ( ("`table'" != "") | ("`benchmode'" != "") ) {
@@ -2106,8 +2130,20 @@ end
 
 capture program drop gquantiles_switch_sanity
 program gquantiles_switch_sanity
+    args ver
 
-    di _n(1) "{hline 80}" _n(1) "gquantiles_switch_sanity" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" 
+    if ( "`ver'" == "v1" ) {
+        di "gquantiles_switch_sanity (many duplicates)"
+    }
+    else if ( "`ver'" == "v2" ) {
+        di "gquantiles_switch_sanity (some duplicates)"
+    }
+    else {
+        di "gquantiles_switch_sanity (no duplicates)"
+    }
+    di "{hline 80}" _n(1)
+
 
     di as txt ""
     di as txt "Testing whether gquantiles method switch code is sane for quantiles."
@@ -2123,26 +2159,26 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N |   nq |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq 100000 2
-    _gquantiles_switch_nq 100000 5
-    _gquantiles_switch_nq 100000 10
-    _gquantiles_switch_nq 100000 20
-    _gquantiles_switch_nq 100000 30
-    _gquantiles_switch_nq 100000 40
+    _gquantiles_switch_nq   100000  2 `ver'
+    _gquantiles_switch_nq   100000  5 `ver'
+    _gquantiles_switch_nq   100000 10 `ver'
+    _gquantiles_switch_nq   100000 20 `ver'
+    _gquantiles_switch_nq   100000 30 `ver'
+    _gquantiles_switch_nq   100000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq 1000000 2
-    _gquantiles_switch_nq 1000000 5
-    _gquantiles_switch_nq 1000000 10
-    _gquantiles_switch_nq 1000000 20
-    _gquantiles_switch_nq 1000000 30
-    _gquantiles_switch_nq 1000000 40
+    _gquantiles_switch_nq  1000000  2 `ver'
+    _gquantiles_switch_nq  1000000  5 `ver'
+    _gquantiles_switch_nq  1000000 10 `ver'
+    _gquantiles_switch_nq  1000000 20 `ver'
+    _gquantiles_switch_nq  1000000 30 `ver'
+    _gquantiles_switch_nq  1000000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq 10000000 2
-    _gquantiles_switch_nq 10000000 5
-    _gquantiles_switch_nq 10000000 10
-    _gquantiles_switch_nq 10000000 20
-    _gquantiles_switch_nq 10000000 30
-    _gquantiles_switch_nq 10000000 40
+    _gquantiles_switch_nq 10000000  2 `ver'
+    _gquantiles_switch_nq 10000000  5 `ver'
+    _gquantiles_switch_nq 10000000 10 `ver'
+    _gquantiles_switch_nq 10000000 20 `ver'
+    _gquantiles_switch_nq 10000000 30 `ver'
+    _gquantiles_switch_nq 10000000 40 `ver'
 
     di as txt ""
     di as txt "Testing whether gquantiles method switch code is sane for cutoffs."
@@ -2159,41 +2195,52 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N | cutoffs |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs 100000    2
-    _gquantiles_switch_cutoffs 100000   50
-    _gquantiles_switch_cutoffs 100000  100
-    _gquantiles_switch_cutoffs 100000  200
-    _gquantiles_switch_cutoffs 100000  500
-    _gquantiles_switch_cutoffs 100000 1000
+    _gquantiles_switch_cutoffs   100000    2 `ver'
+    _gquantiles_switch_cutoffs   100000   50 `ver'
+    _gquantiles_switch_cutoffs   100000  100 `ver'
+    _gquantiles_switch_cutoffs   100000  200 `ver'
+    _gquantiles_switch_cutoffs   100000  500 `ver'
+    _gquantiles_switch_cutoffs   100000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs 1000000    2
-    _gquantiles_switch_cutoffs 1000000   50
-    _gquantiles_switch_cutoffs 1000000  100
-    _gquantiles_switch_cutoffs 1000000  200
-    _gquantiles_switch_cutoffs 1000000  500
-    _gquantiles_switch_cutoffs 1000000 1000
+    _gquantiles_switch_cutoffs  1000000    2 `ver'
+    _gquantiles_switch_cutoffs  1000000   50 `ver'
+    _gquantiles_switch_cutoffs  1000000  100 `ver'
+    _gquantiles_switch_cutoffs  1000000  200 `ver'
+    _gquantiles_switch_cutoffs  1000000  500 `ver'
+    _gquantiles_switch_cutoffs  1000000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs 10000000    2
-    _gquantiles_switch_cutoffs 10000000   50
-    _gquantiles_switch_cutoffs 10000000  100
-    _gquantiles_switch_cutoffs 10000000  200
-    _gquantiles_switch_cutoffs 10000000  500
-    _gquantiles_switch_cutoffs 10000000 1000
+    _gquantiles_switch_cutoffs 10000000    2 `ver'
+    _gquantiles_switch_cutoffs 10000000   50 `ver'
+    _gquantiles_switch_cutoffs 10000000  100 `ver'
+    _gquantiles_switch_cutoffs 10000000  200 `ver'
+    _gquantiles_switch_cutoffs 10000000  500 `ver'
+    _gquantiles_switch_cutoffs 10000000 1000 `ver'
 end
 
 capture program drop _gquantiles_switch_cutoffs
 program _gquantiles_switch_cutoffs
-    args n nq
+    args n nq ver
 
     qui {
         clear
-        set obs `n'
-        gen x = rnormal()
+        if ( "`ver'" == "v1" ) {
+            set obs `=`n' / 10000'
+            gen x = rnormal() * 100
+            expand 10000
+        }
+        else if ( "`ver'" == "v2" ) {
+            set obs `n'
+            gen x = int(rnormal() * 100)
+        }
+        else {
+            set obs `n'
+            gen x = rnormal() * 100
+        }
         gen c = rnormal() in 1 / `nq'
 
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile c(c) v bench(2) method(1)
+        gquantiles __p1 = x, pctile c(c) v bench(2) method(1)
         local est_ratio_1 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2201,7 +2248,7 @@ program _gquantiles_switch_cutoffs
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile c(c) v bench(2) method(2)
+        gquantiles __p2 = x, pctile c(c) v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_1 = r(t42)
@@ -2209,7 +2256,7 @@ program _gquantiles_switch_cutoffs
         drop __*
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile binfreq(__bf1) c(c) v bench(2) method(1)
+        gquantiles __p1 = x, pctile binfreq(__bf1) c(c) v bench(2) method(1)
         local est_ratio_2 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2217,7 +2264,7 @@ program _gquantiles_switch_cutoffs
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile binfreq(__bf2) c(c) v bench(2) method(2)
+        gquantiles __p2 = x, pctile binfreq(__bf2) c(c) v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_2 = r(t42)
@@ -2225,7 +2272,7 @@ program _gquantiles_switch_cutoffs
         drop __*
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile xtile(__x1) binfreq(__bf1) c(c) v bench(2) method(1)
+        gquantiles __p1 = x, pctile xtile(__x1) binfreq(__bf1) c(c) v bench(2) method(1)
         local est_ratio_3 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2233,7 +2280,7 @@ program _gquantiles_switch_cutoffs
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile xtile(__x2) binfreq(__bf2) c(c) v bench(2) method(2)
+        gquantiles __p2 = x, pctile xtile(__x2) binfreq(__bf2) c(c) v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_3 = r(t42)
@@ -2249,16 +2296,27 @@ end
 
 capture program drop _gquantiles_switch_nq
 program _gquantiles_switch_nq
-    args n nq
+    args n nq ver
 
     qui {
         clear
-        set obs `n'
-        gen x = rnormal()
+        if ( "`ver'" == "v1" ) {
+            set obs `=`n' / 10000'
+            gen x = rnormal() * 100
+            expand 10000
+        }
+        else if ( "`ver'" == "v2" ) {
+            set obs `n'
+            gen x = int(rnormal() * 100)
+        }
+        else {
+            set obs `n'
+            gen x = rnormal() * 100
+        }
 
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile nq(`nq') v bench(2) method(1)
+        gquantiles __p1 = x, pctile nq(`nq') v bench(2) method(1)
         local est_ratio_1 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2266,7 +2324,7 @@ program _gquantiles_switch_nq
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile nq(`nq') v bench(2) method(2)
+        gquantiles __p2 = x, pctile nq(`nq') v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_1 = r(t42)
@@ -2274,7 +2332,7 @@ program _gquantiles_switch_nq
         drop __*
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile binfreq(__bf1) nq(`nq') v bench(2) method(1)
+        gquantiles __p1 = x, pctile binfreq(__bf1) nq(`nq') v bench(2) method(1)
         local est_ratio_2 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2282,7 +2340,7 @@ program _gquantiles_switch_nq
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile binfreq(__bf2) nq(`nq') v bench(2) method(2)
+        gquantiles __p2 = x, pctile binfreq(__bf2) nq(`nq') v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_2 = r(t42)
@@ -2290,7 +2348,7 @@ program _gquantiles_switch_nq
         drop __*
         timer clear
         timer on 42
-        qui gquantiles __p1 = x, pctile xtile(__x1) binfreq(__bf1) nq(`nq') v bench(2) method(1)
+        gquantiles __p1 = x, pctile xtile(__x1) binfreq(__bf1) nq(`nq') v bench(2) method(1)
         local est_ratio_3 = r(method_ratio)
         timer off 42
         qui timer list
@@ -2298,7 +2356,7 @@ program _gquantiles_switch_nq
 
         timer clear
         timer on 42
-        qui gquantiles __p2 = x, pctile xtile(__x2) binfreq(__bf2) nq(`nq') v bench(2) method(2)
+        gquantiles __p2 = x, pctile xtile(__x2) binfreq(__bf2) nq(`nq') v bench(2) method(2)
         timer off 42
         qui timer list
         local time_m2_3 = r(t42)

@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Nov  6 19:57:53 EST 2017
+* Updated: Wed Nov  8 08:47:01 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.9.4
 * Manual:  help gtools
@@ -23,19 +23,7 @@ set linesize 255
 
 program main
     syntax, [NOIsily *]
-
-local n 10000000
-clear
-set obs `n'
-gen x  = int(rnormal() * 100)
-gquantiles __x1 = x, xtile binfreq(bf1) nq(10) v bench(2) method(1)
-gquantiles __x2 = x, xtile binfreq(bf2) nq(10) v bench(2) method(2)
-l in 1/10
-
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(xtile)  benchmode sorted
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode
-* compare_inner_quantiles, qopts(altdef nq(10)) qwhich(pctile) benchmode sorted
+bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
 exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
@@ -122,7 +110,9 @@ exit 17999
         }
 
         if ( `:list posof "switches" in options' ) {
-            gquantiles_switch_sanity
+            gquantiles_switch_sanity v1
+            gquantiles_switch_sanity v2
+            gquantiles_switch_sanity v3
         }
 
         if ( `:list posof "bench_test" in options' ) {

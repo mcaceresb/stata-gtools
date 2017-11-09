@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## gtools-0.10.1 (2017-11-06)
+## gtools-0.10.1 (2017-11-08)
 
 ### Features
 
@@ -11,6 +11,7 @@ Change Log
 
 ### Bug fixes
 
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/27
 - Fixed numerical precision issue with quantiles.
   Now ((ST_double) N / 100) is computed first.
 

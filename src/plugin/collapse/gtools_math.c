@@ -104,11 +104,16 @@ ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const G
  */
 ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT_size end, const ST_double quantile)
 {
-    ST_double N, Ndbl, qth, qdbl;
+    GT_bool precision_foo = (end - start) % 100;
+    ST_double N, qth, qdbl;
 
-    N    = end - start;
-    Ndbl = (ST_double) N;
-    qth  = floor(qdbl = quantile * (Ndbl / 100));
+    N = end - start;
+    if ( precision_foo ) { // Numerical precision foo
+        qth = floor(qdbl = quantile * N / 100);
+    }
+    else {
+        qth = floor(qdbl = quantile * (N / 100));
+    }
 
     // Special cases
     // -------------

@@ -1,9 +1,15 @@
 *! version 0.9.4 03Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
+capture program drop sva
+program sva
+    set varabbrev off
+end
+
 capture program drop gcollapse
 program gcollapse, rclass
     version 13
+    global GTOOLS_USER_VARABBREV `c(varabbrev)'
     local 00 `0'
 
     global GTOOLS_CALLER gcollapse
@@ -40,6 +46,8 @@ program gcollapse, rclass
         debug_io_check(real 1e6)    /// (internal) Threshold to check for I/O speed gains
         debug_io_threshold(real 10) /// (internal) Threshold to switch to I/O instead of RAM
     ]
+    set varabbrev off
+
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
@@ -823,12 +831,12 @@ program parse_keep_drop, rclass
         else if ( "`double'" != "" ) {
             local targettype double
         }
-        else if ( inlist("`collstat'", "count", "freq") & (`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
             * Counts can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype long
         }
-        else if ( inlist("`collstat'", "count", "freq") & !(`=_N' < 2^31) ) {
+        else if ( inlist("`collstat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
             local targettype double
         }
         else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -890,13 +898,13 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & (`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
         * Counts can be long if we have fewer than 2^31 observations
         * (largest signed integer in long variables can be 2^31-1)
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & !(`=_N' < 2^31) ) {
+    else if ( inlist("`stat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
         local targettype double
     }
     else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -925,7 +933,7 @@ end
 capture program drop benchmark_memvars
 program benchmark_memvars, rclass
     syntax, index(str) ix(str) info(str)
-    if ( `=_N' < 2^31 ) {
+    if ( `=_N < maxlong()' ) {
         local itype  long
         local factor = 2 / 3
         local bytes  = 12
@@ -1055,6 +1063,10 @@ end
 
 capture program drop CleanExit
 program CleanExit
+    set varabbrev ${GTOOLS_USER_VARABBREV}
+    global GTOOLS_USER_VARABBREV
+    global GTOOLS_CALLER
+
     cap mata: mata drop __gtools_formats
     cap mata: mata drop __gtools_labels
 
@@ -1089,8 +1101,6 @@ program CleanExit
 
     cap timer off   97
     cap timer clear 97
-
-    global GTOOLS_CALLER ""
 end
 
 capture program drop CheckMatsize

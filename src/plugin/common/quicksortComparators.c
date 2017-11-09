@@ -80,3 +80,23 @@ int CompareSpooky (const void *a, const void *b, void *thunk)
     return BaseCompareNum(aa, bb);
     // return BaseCompareNum(*(uint64_t *)a, *(uint64_t *)b);
 }
+
+/*********************************************************************
+ *                               xtile                               *
+ *********************************************************************/
+
+int xtileCompare (const void *a, const void *b, void *thunk);
+int xtileCompare (const void *a, const void *b, void *thunk)
+{
+    ST_double aa = *((ST_double *)a);
+    ST_double bb = *((ST_double *)b);
+    return BaseCompareNum(aa, bb);
+}
+
+int xtileCompareIndex (const void *a, const void *b, void *thunk);
+int xtileCompareIndex (const void *a, const void *b, void *thunk)
+{
+    ST_double aa = *((ST_double *)a + 1);
+    ST_double bb = *((ST_double *)b + 1);
+    return BaseCompareNum(aa, bb);
+}

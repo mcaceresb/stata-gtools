@@ -112,6 +112,8 @@ gtools_ssc = [
     "glevelsof.ado",
     "gtoplevelsof.ado",
     "gisid.ado",
+    "gquantiles.ado",
+    "fasterxtile.ado",
     "hashsort.ado",
     "gtools.ado",
     "gcollapse.sthlp",
@@ -122,6 +124,8 @@ gtools_ssc = [
     "glevelsof.sthlp",
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
+    "gquantiles.sthlp",
+    "fasterxtile.sthlp",
     "hashsort.sthlp",
     "gtools.sthlp",
 ]
@@ -214,6 +218,7 @@ print("")
 testfile = open(path.join("src", "test", "gtools_tests.do")).readlines()
 files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_gcontract.do"),
+            path.join("src", "test", "test_gquantiles.do"),
             path.join("src", "test", "test_gegen.do"),
             path.join("src", "test", "test_gunique.do"),
             path.join("src", "test", "test_glevelsof.do"),
@@ -248,6 +253,8 @@ copy2(path.join("docs", "stata", "gdistinct.sthlp"),    gdir)
 copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
 copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
 copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gquantiles.sthlp"),   gdir)
+copy2(path.join("docs", "stata", "fasterxtile.sthlp"),  gdir)
 copy2(path.join("docs", "stata", "hashsort.sthlp"),     gdir)
 copy2(path.join("docs", "stata", "gtools.sthlp"),       gdir)
 
@@ -260,6 +267,8 @@ copy2(path.join("src", "ado", "gdistinct.ado"),        gdir)
 copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
+copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)
+copy2(path.join("src", "ado", "fasterxtile.ado"),      gdir)
 copy2(path.join("src", "ado", "hashsort.ado"),         gdir)
 copy2(path.join("src", "ado", "gtools.ado"),           gdir)
 

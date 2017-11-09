@@ -2,7 +2,7 @@ Benchmarks
 ==========
 
 Hardware
---------------
+--------
 
 Stata/IC benchmarks were run on a Linux laptop.
 
@@ -31,15 +31,23 @@ Summary
 
 ### Versus native equivalents
 
-| Function     | Versus        | Speedup (IC)    | Speedup (MP)    |
-| ------------ | ------------- | --------------- | --------------- |
-| gcollapse    | collapse      |  9 to 300       |  4 to 120       |
-| gcontract    | contract      |  5 to 7         |  2.5 to 4       |
-| gegen        | egen          |  9 to 26 (+)    |  4 to 9 (+)     |
-| gisid        | isid          |  8 to 30        |  4 to 14        |
-| glevelsof    | levelsof      |  3 to 13        |  2.5 to 7       |
+| Function     | Versus        | Speedup (IC)    | Speedup (MP) |
+| ------------ | ------------- | --------------- | ------------ |
+| gcollapse    | collapse      |  9 to 300       |  4 to 120    |
+| gcontract    | contract      |  5 to 7         |  2.5 to 4    |
+| gegen        | egen          |  9 to 26 (+)    |  4 to 9 (+)  |
+| gisid        | isid          |  8 to 30        |  4 to 14     |
+| glevelsof    | levelsof      |  3 to 13        |  2.5 to 7    |
+| gquantiles   | xtile         |  10 to 30 (-)   | 13 to 25     |
+|              | pctile        |  13 to 38 (-)   | 2.5 to 5.5   |
+|              | \_pctile      |  25 to 40       | 3 to 5       |
 
 <small>(+) Only 'egen group' was benchmarked.</small>
+
+<small>(-) Benchmarks computed 10 quantiles. When computing a large
+number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
+slow due to the way they are written; in that case gquantiles is hundreds
+or thousands of times faster.</small>
 
 In the case of gcollapse, the upper end of the speed improvements are for
 quantiles (e.g. median, iqr, p90) and few groups. There `gcollapse` really can
@@ -58,6 +66,7 @@ percentiles run much faster.
 
 | Function     | Versus             | Speedup (IC)    | Speedup (MP)    |
 | ------------ | ------------------ | --------------- | --------------- |
+| fasterxtile  | fastxtile (SSC)    |  20 to 30       |  2.5 to 3.5     |
 | gunique      | unique (SSC)       |  4 to 26        |  4 to 12        |
 | gdistinct    | distinct (SSC)     |  4 to 26        |  4 to 12        |
 | gtoplevelsof | gcontract (Gtools) |  1.5 to 6       |  2 to 6.5       |
@@ -68,6 +77,8 @@ then `gtoplevelsof` when the data is large (millions of rows). This seems to
 be mainly because `groups` is not written as a way to quickly see the top
 groups of a data set, and it offers relatively different functionality (and
 more options).  Hence I felt the comparison might be unfair.
+
+Note that `fasterxtile` is merely an alias for `gquantiles`.
 
 ### Versus ftools
 
@@ -128,9 +139,9 @@ non-missing entries are integers. The output from desc is:
 . desc
 
 Contains data
-  obs:       100,000
+  obs:    10,000,000
  vars:            12
- size:    10,600,000
+ size:   560,000,000
 ------------------------------------------------------------
               storage   display    value
 variable name   type    format     label      variable label
@@ -475,6 +486,50 @@ compared via cf)
 | 22.9 |     . |     6.36 |         3.6 |           . | int1 str_32 double1 int2 str_12 double2
 | 29.6 |     . |     8.56 |        3.46 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
+### gquantiles
+
+Benchmark with obs = 10,000,000, nquantiles = 10. Note this uses method(2)
+in all cases because the way gquantiles determines which method to use is
+based off the number of observations and the number of quantiles only. The
+user can speed up the benchmarks when there are many duplicates by specifying
+method(1).
+
+| \_pctile | gquantiles | ratio (_/g) | varlist
+| -------- | ---------- | ----------- | -------
+|     31.9 |       1.14 |        27.9 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|     27.3 |       .909 |        30.1 | double3 (~ N(10, 5), many missings, groups of size 10)
+|     41.1 |        1.3 |        31.5 | ru (~ N(0, 100), few missings, unique)
+|     28.5 |       .712 |          40 | int1 (discrete (no missings, many groups))
+|     20.8 |       .535 |        38.9 | int3 (discrete (many missings, few groups))
+|       33 |       1.19 |        27.7 | ix (discrete (few missings, unique))
+|       32 |          1 |          32 | int1^2 + 3 * double1
+|     31.8 |       1.03 |        30.8 | 2 * int1 + log(double1)
+|     29.4 |       1.14 |        25.8 | int1 * double3 + exp(double3)
+
+| xtile | fastxtile | gquantiles | ratio (x/g) | ratio (f/g) | varlist
+| ----- | --------- | ---------- | ----------- | ----------- | -------
+|  28.8 |      35.1 |       1.37 |        21.1 |        25.7 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|  27.7 |      29.7 |       1.25 |        22.3 |        23.8 | double3 (~ N(10, 5), many missings, groups of size 10)
+|    30 |      46.4 |       1.59 |        18.9 |        29.3 | ru (~ N(0, 100), few missings, unique)
+|  24.2 |      29.2 |       1.06 |        22.8 |        27.4 | int1 (discrete (no missings, many groups))
+|  23.1 |      22.3 |       .753 |        30.7 |        29.6 | int3 (discrete (many missings, few groups))
+|  29.7 |        36 |       1.59 |        18.7 |        22.7 | ix (discrete (few missings, unique))
+|  30.1 |         . |       2.19 |        13.7 |           . | int1^2 + 3 * double1
+|  28.5 |         . |       2.83 |        10.1 |           . | 2 * int1 + log(double1)
+|    31 |         . |       2.39 |          13 |           . | int1 * double3 + exp(double3)
+
+| pctile | gquantiles | ratio (p/g) | varlist
+| ------ | ---------- | ----------- | -------
+|     33 |       .946 |        34.9 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|   29.7 |       .919 |        32.3 | double3 (~ N(10, 5), many missings, groups of size 10)
+|   42.7 |       1.35 |        31.5 | ru (~ N(0, 100), few missings, unique)
+|     30 |       .798 |        37.6 | int1 (discrete (no missings, many groups))
+|   20.9 |       .581 |          36 | int3 (discrete (many missings, few groups))
+|     36 |       1.17 |        30.7 | ix (discrete (few missings, unique))
+|   31.5 |        2.1 |          15 | int1^2 + 3 * double1
+|     38 |       2.66 |        14.3 | 2 * int1 + log(double1)
+|   33.2 |       2.47 |        13.5 | int1 * double3 + exp(double3)
+
 Stata/MP Benchmarks
 -------------------
 
@@ -790,6 +845,50 @@ Benchmark vs sort, obs = 10,000,000, J = 10,000 (in seconds; datasets are compar
 The above speed gains only hold when sorting groups. `hashsort` ~2-18 times
 faster than `gsort`, 2.5-4 times faster than `sdort`, and ~1.5-2.5 times
 faster than `fsort`.
+
+### gquantiles
+
+Benchmark with obs = 10,000,000, nquantiles = 10. Note this uses method(2)
+in all cases because the way gquantiles determines which method to use is
+based off the number of observations and the number of quantiles only. The
+user can speed up the benchmarks when there are many duplicates by specifying
+method(1).
+
+| \_pctile | gquantiles | ratio (_/g) | varlist
+| -------- | ---------- | ----------- | -------
+|     5.62 |       1.77 |        3.17 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|     5.16 |       1.69 |        3.05 | double3 (~ N(10, 5), many missings, groups of size 10)
+|      5.8 |       1.99 |        2.92 | ru (~ N(0, 100), few missings, unique)
+|     5.48 |       1.22 |         4.5 | int1 (discrete (no missings, many groups))
+|      4.5 |       .841 |        5.35 | int3 (discrete (many missings, few groups))
+|     6.43 |       2.08 |         3.1 | ix (discrete (few missings, unique))
+|     5.85 |       1.79 |        3.26 | int1^2 + 3 * double1
+|     5.77 |       1.69 |        3.41 | 2 * int1 + log(double1)
+|      5.1 |        1.7 |        3.01 | int1 * double3 + exp(double3)
+
+| xtile | fastxtile | gquantiles | ratio (x/g) | ratio (f/g) | varlist
+| ----- | --------- | ---------- | ----------- | ----------- | -------
+|  48.3 |      7.33 |       2.44 |        19.7 |           3 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|  47.8 |      6.53 |       2.26 |        21.1 |        2.89 | double3 (~ N(10, 5), many missings, groups of size 10)
+|  48.4 |      7.69 |       3.02 |          16 |        2.55 | ru (~ N(0, 100), few missings, unique)
+|  43.4 |      6.75 |       2.04 |        21.2 |         3.3 | int1 (discrete (no missings, many groups))
+|  39.6 |      5.77 |       1.58 |          25 |        3.64 | int3 (discrete (many missings, few groups))
+|  49.7 |      7.64 |       2.68 |        18.6 |        2.85 | ix (discrete (few missings, unique))
+|  48.1 |         . |       3.51 |        13.7 |           . | int1^2 + 3 * double1
+|    49 |         . |       3.58 |        13.7 |           . | 2 * int1 + log(double1)
+|  47.1 |         . |       3.36 |          14 |           . | int1 * double3 + exp(double3)
+
+| pctile | gquantiles | ratio (p/g) | varlist
+| ------ | ---------- | ----------- | -------
+|   8.02 |       2.02 |        3.97 | double1 (~ U(0,  1000), no missings, groups of size 10)
+|   7.29 |       1.82 |           4 | double3 (~ N(10, 5), many missings, groups of size 10)
+|   8.65 |       2.29 |        3.78 | ru (~ N(0, 100), few missings, unique)
+|   7.16 |       1.54 |        4.65 | int1 (discrete (no missings, many groups))
+|   6.08 |       1.11 |        5.48 | int3 (discrete (many missings, few groups))
+|   7.75 |       2.25 |        3.45 | ix (discrete (few missings, unique))
+|   8.62 |       3.07 |         2.8 | int1^2 + 3 * double1
+|    8.1 |       3.15 |        2.57 | 2 * int1 + log(double1)
+|   7.75 |       3.07 |        2.52 | int1 * double3 + exp(double3)
 
 Old Collapse Benchmarks
 -----------------------

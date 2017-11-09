@@ -343,7 +343,7 @@ program define gegen, byable(onecall) rclass
         gettoken ftype fname: counts
         if ( "`fname'" == "" ) {
             local fname `ftype'
-            if ( `=_N' < 2^31 ) local ftype long
+            if ( `=_N < maxlong()' ) local ftype long
             else local ftype double
         }
 
@@ -506,7 +506,7 @@ program parse_target_type, rclass
     if ( "`maxtype'" == "double" ) local retype_B double
     else local retype_B: set type
 
-    if ( `=_N' < 2^31 ) local retype_C long
+    if ( `=_N < maxlong()' ) local retype_C long
     else local retype_C double
 
     if ( "`fcn'" == "tag"        ) return local retype = "byte"

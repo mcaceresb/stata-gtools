@@ -25,6 +25,10 @@ traditional stata commands. The following are available as part of gtools:
 {manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
 
 {p 8 17 2}
+{manhelp gquantiles R:gquantiles}  as {opt pctile}, {opt xtile}, and {opt _pctile} replacements. {manhelp fasterxtile R:fasterxtile} is also provided as an alias
+{p_end}
+
+{p 8 17 2}
 {manhelp gegen R:gegen} {opt egen} alternative. {p_end}
 
 {p 8 17 2}

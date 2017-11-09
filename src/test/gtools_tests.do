@@ -1,9 +1,9 @@
-* ---------------------------------------------------------------------
+* ----------------------------------------------------------------------------
 * Project: gtools
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  1 07:16:28 EDT 2017
+* Updated: Wed Nov  8 08:47:01 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.9.4
 * Manual:  help gtools
@@ -23,6 +23,8 @@ set linesize 255
 
 program main
     syntax, [NOIsily *]
+bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
+exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -48,6 +50,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
         * qui do test_gegen.do
@@ -63,6 +66,7 @@ program main
             cap ssc install unique
             cap ssc install distinct
             cap ssc install moremata
+            cap ssc install fastxtile
         }
 
         if ( `:list posof "basic_checks" in options' ) {
@@ -76,6 +80,7 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
+            unit_test, `noisily' test(checks_gquantiles,  `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gcollapse,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gcontract,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gegen,       `noisily' oncollision(error))
@@ -93,6 +98,7 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
+            compare_gquantiles,  `noisily' oncollision(error)
             compare_gcollapse,   `noisily' oncollision(error) tol(1e-4)
             compare_gcontract,   `noisily' oncollision(error)
             compare_egen,        `noisily' oncollision(error)
@@ -103,15 +109,14 @@ program main
             compare_hashsort,    `noisily' oncollision(error)
         }
 
+        if ( `:list posof "switches" in options' ) {
+            gquantiles_switch_sanity v1
+            gquantiles_switch_sanity v2
+            gquantiles_switch_sanity v3
+        }
+
         if ( `:list posof "bench_test" in options' ) {
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
-
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
-            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
-
+            bench_gquantiles,  n(1000) bench(1) `noisily' oncollision(error)
             bench_contract,    n(1000) bench(1) `noisily' oncollision(error)
             bench_egen,        n(1000) bench(1) `noisily' oncollision(error)
             bench_isid,        n(1000) bench(1) `noisily' oncollision(error)
@@ -121,9 +126,28 @@ program main
             bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
             * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
             bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
+
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(10)  n(100)    style(full)   vars(1)  oncollision(error)
+
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(sum)    vars(15) oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(ftools) vars(6)  oncollision(error)
+            bench_collapse, collapse fcollapse bench(0.05) n(10000) style(full)   vars(1)  oncollision(error)
         }
 
         if ( `:list posof "bench_full" in options' ) {
+            bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
+            bench_contract,    n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_egen,        n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_isid,        n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_levelsof,    n(100)     bench(100) `noisily' oncollision(error)
+            bench_toplevelsof, n(10000)   bench(10) `noisily' oncollision(error)
+            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error)
+            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct
+            * bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct joint distunique
+            bench_hashsort,    n(10000)   bench(10)  `noisily' oncollision(error) benchmode
+
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(full)   vars(1)  oncollision(error)
@@ -131,16 +155,6 @@ program main
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(ftools) vars(6)  oncollision(error)
             bench_collapse, collapse fcollapse bench(0.1)  n(1000000) style(full)   vars(1)  oncollision(error)
-
-            bench_contract,    n(10000) bench(10)  `noisily' oncollision(error)
-            bench_egen,        n(10000) bench(10)  `noisily' oncollision(error)
-            bench_isid,        n(10000) bench(10)  `noisily' oncollision(error)
-            bench_levelsof,    n(100)   bench(100) `noisily' oncollision(error)
-            bench_toplevelsof, n(10000) bench(10) `noisily' oncollision(error)
-            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error)
-            bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct
-            * bench_unique,      n(10000) bench(10)  `noisily' oncollision(error) distinct joint distunique
-            bench_hashsort,    n(10000) bench(10)  `noisily' oncollision(error) benchmode
         }
     }
     local rc = _rc
@@ -256,23 +270,27 @@ end
 
 capture program drop gen_data
 program gen_data
-    syntax, [n(int 100) random(int 0) binary(int 0) double]
+    syntax, [n(int 100) random(int 0) binary(int 0) double skipstr]
     clear
     set obs `n'
 
     * Random strings
     * --------------
 
-    qui ralpha str_long,  l(5)
-    qui ralpha str_mid,   l(3)
-    qui ralpha str_short, l(1)
+    if ( "`skipstr'" == "" ) {
+        qui ralpha str_long,  l(5)
+        qui ralpha str_mid,   l(3)
+        qui ralpha str_short, l(1)
+    }
 
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
-    gen str32 str_32   = str_long + "this is some string padding"
-    gen str12 str_12   = str_mid  + "padding" + str_short + str_short
-    gen str4  str_4    = str_mid  + str_short
+    if ( "`skipstr'" == "" ) {
+        gen str32 str_32   = str_long + "this is some string padding"
+        gen str12 str_12   = str_mid  + "padding" + str_short + str_short
+        gen str4  str_4    = str_mid  + str_short
+    }
 
     gen long   int1  = floor(uniform() * 1000)
     gen long   int2  = floor(rnormal())
@@ -285,26 +303,32 @@ program gen_data
     * Mix up string lengths
     * ---------------------
 
-   replace str_32 = str_mid + str_short if mod(_n, 4) == 0
-   replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = str_mid + str_short if mod(_n, 4) == 0
+        replace str_12 = str_short + str_mid if mod(_n, 4) == 2
+    }
 
     * Insert some blanks
     * ------------------
 
-    replace str_32 = "            " in 1 / 10
-    replace str_12 = "   "          in 1 / 10
-    replace str_4  = " "            in 1 / 10
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "            " in 1 / 10
+        replace str_12 = "   "          in 1 / 10
+        replace str_4  = " "            in 1 / 10
 
-    replace str_32 = "            " if mod(_n, 21) == 0
-    replace str_12 = "   "          if mod(_n, 34) == 0
-    replace str_4  = " "            if mod(_n, 55) == 0
+        replace str_32 = "            " if mod(_n, 21) == 0
+        replace str_12 = "   "          if mod(_n, 34) == 0
+        replace str_4  = " "            if mod(_n, 55) == 0
+    }
 
     * Missing values
     * --------------
 
-    replace str_32 = "" if mod(_n, 10) ==  0
-    replace str_12 = "" if mod(_n, 20) ==  0
-    replace str_4  = "" if mod(_n, 20) == 10
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "" if mod(_n, 10) ==  0
+        replace str_12 = "" if mod(_n, 20) ==  0
+        replace str_4  = "" if mod(_n, 20) == 10
+    }
 
     replace int2  = .   if mod(_n, 10) ==  0
     replace int3  = .a  if mod(_n, 20) ==  0
@@ -317,9 +341,11 @@ program gen_data
     * Singleton groups
     * ----------------
 
-    replace str_32 = "|singleton|" in `n'
-    replace str_12 = "|singleton|" in `n'
-    replace str_4  = "|singleton|" in `n'
+    if ( "`skipstr'" == "" ) {
+        replace str_32 = "|singleton|" in `n'
+        replace str_12 = "|singleton|" in `n'
+        replace str_4  = "|singleton|" in `n'
+    }
 
     replace int1    = 99999  in `n'
     replace double1 = 9999.9 in `n'
@@ -394,4 +420,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, dependencies basic_checks comparisons bench_test
+main, dependencies basic_checks comparisons switches bench_test

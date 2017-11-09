@@ -7,6 +7,7 @@ pages:
         - Compiling: compiling.md
     - Usage:
         - gcollapse:    usage/gcollapse.md
+        - gquantiles:   usage/gquantiles.md
         - gcontract:    usage/gcontract.md
         - gdistinct:    usage/gdistinct.md
         - gegen:        usage/gegen.md

@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-0.10.1 (2017-11-08)
+
+### Features
+
+- `gquantiles` is a fast alternative to `_pctile`, `pctile`, and
+  `xtile` with several additional features.
+- `fasterxtile` is an alias for `gquantiles, xtile`
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/27
+- Fixed numerical precision issue with quantiles.
+  Now ((ST_double) N / 100) is computed first.
+
 ## gtools-0.9.4 (2017-11-03)
 
 ### Bug fixes

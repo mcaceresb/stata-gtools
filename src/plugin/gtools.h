@@ -64,7 +64,7 @@ struct StataInfo {
     GT_size   sep_len;
     GT_size   colsep_len;
     GT_size   numfmt_max;
-    //        
+    //
     GT_size   biject;
     GT_size   encode;
     GT_size   group_data;
@@ -80,6 +80,26 @@ struct StataInfo {
     GT_bool   top_groupmiss;
     GT_size   top_lother;
     GT_size   top_lmiss;
+    //
+    GT_size xtile_xvars;
+    GT_size xtile_nq;
+    GT_size xtile_nq2;
+    GT_size xtile_cutvars;
+    GT_size xtile_ncuts;
+    GT_size xtile_qvars;
+    GT_size xtile_gen;
+    GT_size xtile_pctile;
+    GT_size xtile_genpct;
+    GT_size xtile_pctpct;
+    GT_bool xtile_altdef;
+    GT_bool xtile_missing;
+    GT_bool xtile_strict;
+    GT_bool xtile_minmax;
+    GT_bool xtile_method;
+    GT_bool xtile_bincount;
+    GT_bool xtile__pctile;
+    GT_bool xtile_dedup;
+    GT_bool xtile_cutifin;
     //
     GT_bool   sorted;
     GT_bool   cleanstr;
@@ -97,7 +117,7 @@ struct StataInfo {
     GT_bool   replace;
     GT_bool   countmiss;
     GT_bool   used_io;
-    //        
+    //
     GT_size   kvars_group;
     GT_size   kvars_sources;
     GT_size   kvars_targets;
@@ -111,6 +131,8 @@ struct StataInfo {
     GT_size   *pos_targets;
     ST_double *statcode;
     GT_size   *contract_which;
+    ST_double *xtile_quantiles;
+    ST_double *xtile_cutoffs;
     //
     GT_int    *byvars_mins;
     GT_int    *byvars_maxs;
@@ -160,6 +182,9 @@ struct StataInfo {
         if (min > *(x + _i)) min = *(x + _i); \
         if (max < *(x + _i)) max = *(x + _i); \
     }                                         \
+
+#define GTOOLS_PWMAX(a, b) ( (a) > (b) ? (a) : (b) )
+#define GTOOLS_PWMIN(a, b) ( (a) > (b) ? (b) : (a) )
 
 // Check if you're actually cleaning up after yourself
 #define GTOOLS_GC_INIT                              \

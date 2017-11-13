@@ -44,12 +44,12 @@ the next release.
 
 __*Gtools extras*__
 
-| Function     | Similar (SSC)    | Speedup (IC / MP)       | Unsupported             |
-| ------------ | ---------------- | ----------------------- | ----------------------- |
-| fasterxtile  | fastxtile        |  20 to 30 / 2.5 to 3.5  | Weights                 |
-| gunique      | unique           |  4 to 26 / 4 to 12      | `by`                    |
-| gdistinct    | distinct         |  4 to 26 / 4 to 12      | Saves results in matrix |
-| gtoplevelsof | groups, select() | (+)                     | See table notes (+)     |
+| Function            | Similar (SSC)    | Speedup (IC / MP)       | Unsupported             |
+| ------------------- | ---------------- | ----------------------- | ----------------------- |
+| fasterxtile         | fastxtile        |  20 to 30 / 2.5 to 3.5  | Weights                 |
+| gunique             | unique           |  4 to 26 / 4 to 12      | `by`                    |
+| gdistinct           | distinct         |  4 to 26 / 4 to 12      | Saves results in matrix |
+| gtop (gtoplevelsof) | groups, select() | (+)                     | See table notes (+)     |
 
 <small>(+) While similar to the user command 'groups' with the 'select'
 option, gtoplevelsof does not really have an equivalent. It is several
@@ -72,7 +72,7 @@ Commands that take this type of input include:
 - gcontract
 - gegen
 - glevelsof
-- gtoplevelsof
+- gtop (gtoplevelsof)
 
 __*Hashing*__
 
@@ -184,7 +184,7 @@ glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
 
 * gtoplevelsof varlist [if] [in], [options]
-gtoplevelsof foreign rep78
+gtop foreign rep78
 gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]

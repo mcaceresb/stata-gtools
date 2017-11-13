@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  8 22:12:16 EST 2017
+* Updated: Sun Nov 12 21:57:19 EST 2017
 * Purpose: Unit tests for gtools
-* Version: 0.10.1
+* Version: 0.10.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -406,7 +406,7 @@ program gen_data
 
     if ( `random' > 0 ) {
         forvalues i = 1 / `random' {
-            gen `double' random`i' = rnormal() * 10
+            gen `double' random`i' = rnormal() * `i' * 5
             replace random`i' = . if mod(_n, 20) == 0
             if ( `binary' ) {
                 replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'

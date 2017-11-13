@@ -20,7 +20,7 @@ C is fast! When optimizing stata, there are three options:
 - Java plugins (I don't like Java)
 - C and C++ plugins
 
-Sergio Correa's `ftools` tests the limits of mata and achieves excellent
+Sergio Correia's `ftools` tests the limits of mata and achieves excellent
 results, but Mata cannot compare to the raw speed a low level language like
 C would afford. The only question is whether the overhead reading and writing
 data to and from C compensates the speed gain, and in this case it does.

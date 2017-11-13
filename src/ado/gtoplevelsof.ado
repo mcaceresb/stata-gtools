@@ -1,5 +1,7 @@
-*! version 0.3.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
+
+* TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
 
 cap program drop gtoplevelsof
 program gtoplevelsof, rclass
@@ -222,10 +224,10 @@ void function __gtools_parse_topmat(real scalar kvars,
     real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, nmap, knum, kstr, valabbrev
     real scalar pctlen, wlen, dlen
     real matrix gmat, nmat
-    real colvector si, si_miss, si_other
+    real colvector si, si_miss, si_other, fmtix
     real rowvector gstrmax, gnummax, colstrmax, colnummax, colmax
     string matrix grows, gparse
-    string colvector _grows, gprint
+    string colvector _grows, gprint, fmtbak
     string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
     string scalar sepfmt, ghead, headfmt, mlab, olab, pctfmt, ppctfmt, cpctfmt, numvar, strvar
     transmorphic t
@@ -293,7 +295,12 @@ void function __gtools_parse_topmat(real scalar kvars,
                     numvar = bynum[k]
                     l = selectindex(byvars :== numvar)
                     if ( st_varvaluelabel(numvar) != "" ) {
+                        fmtbak = grows[1::ntop, l]
                         grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
+                        fmtix  = selectindex(grows[1::ntop, l] :== "")
+                        if ( rows(fmtix) > 0 ) {
+                            grows[fmtix, l] = fmtbak[fmtix]
+                        }
                     }
                 }
             }

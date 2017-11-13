@@ -104,7 +104,7 @@ From a stata session, run
 do build/gtools_tests.do
 ```
 
-If successful, all tests should report to be passinga and the exit message
+If successful, all tests should report to be passing and the exit message
 should be "tests finished running" followed by the start and end time.
 
 ### Troubleshooting

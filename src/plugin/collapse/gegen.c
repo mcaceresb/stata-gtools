@@ -198,8 +198,8 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     lastmiss[k]  = lastnm[k]  = all_buffer[start];
                 }
                 else if ( end < nj ) { // some are missing; invert first/last bc missings were read in reverse
-                    firstnm[k]  = all_buffer[start];
-                    lastnm[k]   = all_buffer[start + end - 1];
+                    firstnm[k]   = all_buffer[start];
+                    lastnm[k]    = all_buffer[start + end - 1];
                     firstmiss[k] = all_buffer[start + nj - 1];
                     lastmiss[k]  = all_buffer[start + end];
                 }

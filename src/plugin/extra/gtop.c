@@ -57,8 +57,8 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
             toptop[j * 5 + k] = (ST_double) 0;
     }
 
-    GT_size min   = invert? st_info->nj_max: st_info->N - st_info->nj_max;
-    GT_size max   = invert? st_info->nj_min: st_info->N - st_info->nj_min;
+    GT_size min   = invert? st_info->nj_min: st_info->N - st_info->nj_max;
+    GT_size max   = invert? st_info->nj_max: st_info->N - st_info->nj_min;
     GT_size range = (st_info->nj_max - st_info->nj_min);
     GT_size ctol  = pow(2, 24);
 

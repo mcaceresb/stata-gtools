@@ -1,10 +1,5 @@
-*! version 0.10.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.10.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
-
-capture program drop sva
-program sva
-    set varabbrev off
-end
 
 capture program drop gcollapse
 program gcollapse, rclass
@@ -42,12 +37,16 @@ program gcollapse, rclass
         hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
                                     ///
+        debug                       /// (internal) Allow replacing by variables with output
+        DEBUG_level(int 0)          /// (internal) Allow replacing by variables with output
         debug_replaceby             /// (internal) Allow replacing by variables with output
+        debug_io_read(int 1)        /// (internal) Read IO data using mata or C
         debug_io_check(real 1e6)    /// (internal) Threshold to check for I/O speed gains
         debug_io_threshold(real 10) /// (internal) Threshold to switch to I/O instead of RAM
     ]
     set varabbrev off
 
+    if ( "`debug'" != "" ) local debug_level 9
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
@@ -68,6 +67,42 @@ program gcollapse, rclass
             exit 111
         }
         local clean_by `r(varlist)'
+    }
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "Running {cmd:gcollapse} with debug level `debug_level'"
+        disp as txt "{hline 72}"
+        disp as txt `""'
+        disp as txt `"    anything:           `anything'"'
+        disp as txt `"    [if] [in]:          `if' `in'"'
+        disp as txt `""'
+        disp as txt `"    by:                 `by'"'
+        disp as txt `"    cw:                 `cw'"'
+        disp as txt `"    fast:               `fast'"'
+        disp as txt `""'
+        disp as txt `"    merge:              `merge'"'
+        disp as txt `"    replace:            `replace'"'
+        disp as txt `"    freq:               `freq'"'
+        disp as txt `"    labelformat:        `labelformat'"'
+        disp as txt `"    labelprogram:       `labelprogram'"'
+        disp as txt `"    unsorted:           `unsorted'"'
+        disp as txt `"    forceio:            `forceio'"'
+        disp as txt `"    forcemem:           `forcemem'"'
+        disp as txt `"    double:             `double'"'
+        disp as txt `""'
+        disp as txt `"    verbose:            `verbose'"'
+        disp as txt `"    benchmark:          `benchmark'"'
+        disp as txt `"    benchmarklevel:     `benchmarklevel'"'
+        disp as txt `"    hashlib:            `hashlib'"'
+        disp as txt `"    oncollision:        `oncollision'"'
+        disp as txt `""'
+        disp as txt `"    debug_replaceby:    `debug_replaceby'"'
+        disp as txt `"    debug_io_read:      `debug_io_read'"'
+        disp as txt `"    debug_io_check:     `debug_io_check'"'
+        disp as txt `"    debug_io_threshold: `debug_io_threshold'"'
+        disp as txt "{hline 72}"
+        disp as txt `""'
     }
 
     * Parse options
@@ -107,6 +142,31 @@ program gcollapse, rclass
         di as err "Repeat targets not allowed: `:list uniq nonunique'"
         CleanExit
         exit 198
+    }
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:gcollapse} debug level `debug_level'"
+        disp as txt "{hline 72}"
+        disp as txt `"parse_vars"'
+        disp as txt `"    anything:           `anything'"'
+        disp as txt `"    [if] [in]:          `if' `in'"'
+        disp as txt `""'
+        disp as txt `"    cw:                 `cw'"'
+        disp as txt `"    fast:               `fast'"'
+        disp as txt `""'
+        disp as txt `"    freq:               `freq'"'
+        disp as txt `"    labelformat:        `labelformat'"'
+        disp as txt `"    labelprogram:       `labelprogram'"'
+        disp as txt `""'
+        disp as txt "    __gtools_targets:    `__gtools_targets'"
+        disp as txt "    __gtools_vars:       `__gtools_vars'"
+        disp as txt "    __gtools_stats:      `__gtools_stats'"
+        disp as txt "    __gtools_uniq_vars:  `__gtools_uniq_vars'"
+        disp as txt "    __gtools_uniq_stats: `__gtools_uniq_stats'"
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
     }
 
     * Subset if requested
@@ -169,9 +229,6 @@ program gcollapse, rclass
     mata: gtools_targets  = tokens(`"`__gtools_targets'"')
     mata: gtools_stats    = tokens(`"`__gtools_stats'"')
 
-    mata: gtools_pos      = gtools_vars :== gtools_targets
-    mata: gtools_io_order = selectindex(gtools_pos), selectindex(!gtools_pos)
-
     cap noi CheckMatsize `clean_by'
     if ( _rc ) {
         local rc = _rc
@@ -198,6 +255,42 @@ program gcollapse, rclass
         local rc = _rc
         CleanExit
         exit `rc'
+    }
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:gcollapse} debug level `debug_level'"
+        disp as txt "{hline 72}"
+        disp as txt `"parse_keep_drop"'
+        disp as txt `""'
+        disp as txt `"    by:                 `by'"'
+        disp as txt `"    clean_by:           `clean_by'"'
+        disp as txt `""'
+        disp as txt `"    merge:              `merge'"'
+        disp as txt `"    double:             `double'"'
+        disp as txt `"    replace:            `replace'"'
+        disp as txt `"    replaceby:          `replaceby'"'
+        disp as txt `""'
+        disp as txt `"    __gtools_targets:    `__gtools_targets'"'
+        disp as txt `"    __gtools_vars:       `__gtools_vars'"'
+        disp as txt `"    __gtools_stats:      `__gtools_stats'"'
+        disp as txt `"    __gtools_uniq_vars:  `__gtools_uniq_vars'"'
+        disp as txt `"    __gtools_uniq_stats: `__gtools_uniq_stats'"'
+        disp as txt `""'
+        disp as txt `"    dropme:              `dropme'"'
+        disp as txt `"    keepvars:            `keepvars'"'
+        disp as txt `"    added:               `added'"'
+        disp as txt `"    memvars:             `memvars'"'
+        disp as txt `"    check_recast:        `check_recast'"'
+        disp as txt `""'
+        disp as txt `"    scalar __gtools_k_targets    = `=scalar(__gtools_k_targets)'"'
+        disp as txt `"    scalar __gtools_k_vars       = `=scalar(__gtools_k_vars)'"'
+        disp as txt `"    scalar __gtools_k_stats      = `=scalar(__gtools_k_stats)'"'
+        disp as txt `"    scalar __gtools_k_uniq_vars  = `=scalar(__gtools_k_uniq_vars)'"'
+        disp as txt `"    scalar __gtools_k_uniq_stats = `=scalar(__gtools_k_uniq_stats)'"'
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
     }
 
     * Timers!
@@ -238,6 +331,70 @@ program gcollapse, rclass
         gtools_timer info 97 `"`msg'"', prints(`bench')
     }
 
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:gcollapse} debug level `debug_level'"
+        disp as txt "{hline 72}"
+        disp as txt `"recast"'
+        disp as txt `""'
+        disp as txt `"    gtools_recastvars   `gtools_recastvars'"'
+        disp as txt `"    gtools_recastsrc    `gtools_recastsrc'"'
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
+    }
+
+    ***********************************************************************
+    *                               Reorder                               *
+    ***********************************************************************
+
+    local _: list memvars - __gtools_uniq_vars
+    local memorder: list memvars - _
+
+    mata: gtools_vars_mem = tokens("`memorder'")
+    mata: gtools_pos      = gtools_vars :== gtools_targets
+    mata: gtools_io_order = selectindex(gtools_pos), selectindex(!gtools_pos)
+
+    * First, make sure that the sources used as targets appear first
+    mata: gtools_vars      = gtools_vars      [gtools_io_order]
+    mata: gtools_targets   = gtools_targets   [gtools_io_order]
+    mata: gtools_stats     = gtools_stats     [gtools_io_order]
+    mata: __gtools_labels  = __gtools_labels  [gtools_io_order]
+    mata: __gtools_formats = __gtools_formats [gtools_io_order]
+
+    * Now make sure that the sources are in memory order
+    tempname k1 k2 ord
+    mata: `k1'  =  cols(gtools_vars_mem)
+    mata: `k2'  =  cols(gtools_vars)
+    mata: `ord' = gtools_vars[1::`k1']
+    mata: gtools_mem_order = J(1, 0, .)
+    mata: for(k = 1; k <= `k1'; k++) gtools_mem_order = gtools_mem_order, selectindex(gtools_vars_mem[k] :== `ord')
+    mata: gtools_mem_order = (`k2' > `k1')? gtools_mem_order, ((`k1' + 1)::`k2')': gtools_mem_order
+    cap mata: mata drop `k'
+    cap mata: mata drop `ord'
+
+    mata: gtools_vars      = gtools_vars      [gtools_mem_order]
+    mata: gtools_targets   = gtools_targets   [gtools_mem_order]
+    mata: gtools_stats     = gtools_stats     [gtools_mem_order]
+    mata: __gtools_labels  = __gtools_labels  [gtools_mem_order]
+    mata: __gtools_formats = __gtools_formats [gtools_mem_order]
+
+    * At each step we reordered stats, soruces, and targets!
+    local __gtools_order   `__gtools_targets'
+    local __gtools_vars    ""
+    local __gtools_targets ""
+    local __gtools_stats   ""
+    forvalues k = 1 / `=scalar(__gtools_k_targets)' {
+        mata: st_local("var",  gtools_vars   [`k'])
+        mata: st_local("targ", gtools_targets[`k'])
+        mata: st_local("stat", gtools_stats  [`k'])
+        local __gtools_vars     `__gtools_vars'    `var'
+        local __gtools_targets  `__gtools_targets' `targ'
+        local __gtools_stats    `__gtools_stats'   `stat'
+    }
+    local __gtools_uniq_stats: list uniq __gtools_stats
+    local __gtools_uniq_vars:  list uniq __gtools_stats
+
     ***********************************************************************
     *                             I/O switch                              *
     ***********************************************************************
@@ -256,16 +413,6 @@ program gcollapse, rclass
     local io     = ("`forceio'"  != "") & (`=scalar(__gtools_k_extra)' > 0)
 
     if ( `io' ) {
-        * Re-order statistics (we try to use sources as targets; if the
-        * source was used as a target for any statistic other than the
-        * first, then we need to re-order the summary stats).
-        local gtools_stats ""
-        forvalues k = 1 / `=scalar(__gtools_k_targets)' {
-            mata: st_local("stat", gtools_stats[gtools_io_order[`k']])
-            local gtools_stats `gtools_stats' `stat'
-        }
-        local gtools_uniq_stats: list uniq gtools_stats
-
         * Drop rest of vars
         local plugvars `clean_by' `__gtools_uniq_vars'
         local dropme `dropme' `:list memvars - keepvars'
@@ -274,18 +421,8 @@ program gcollapse, rclass
 
         local gcollapse gcollapse(forceio, fname(`__gtools_file'))
         local action    `action' fill(data) `unsorted'
-        local stats     stats(`gtools_stats')
     }
     else if ( !`mem' & `switch' ) {
-        * Re-order statistics (we try to use sources as targets; if the
-        * source was used as a target for any statistic other than the
-        * first, then we need to re-order the summary stats).
-        local gtools_stats ""
-        forvalues k = 1 / `=scalar(__gtools_k_targets)' {
-            mata: st_local("stat", gtools_stats[gtools_io_order[`k']])
-            local gtools_stats `gtools_stats' `stat'
-        }
-        local gtools_uniq_stats: list uniq gtools_stats
 
         * Replace source vars in memory, since they already exist
         local plugvars `clean_by' `__gtools_uniq_vars'
@@ -321,7 +458,6 @@ program gcollapse, rclass
             local ixinfo    ixinfo(`__gtools_index' `__gtools_ix' `__gtools_info')
             local gcollapse gcollapse(switch, `st_time' fname(`__gtools_file') `ixinfo')
             local action    `action' fill(data) `unsorted'
-            local stats     stats(`gtools_stats')
         }
         else {
 
@@ -356,6 +492,37 @@ program gcollapse, rclass
 
         local gcollapse gcollapse(memory, `merge')
         local action    `action' `:di cond("`merge'" == "", "fill(data)", "unsorted")'
+    }
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:gcollapse} debug level `debug_level'"
+        disp as txt "{hline 72}"
+        disp as txt `"recast"'
+        disp as txt `""'
+        disp as txt `"    scalar __gtools_k_extra = `=scalar(__gtools_k_extra)'"'
+        disp as txt `""'
+        disp as txt `"    plugvars:      `plugvars'"'
+        disp as txt `"    dropme:        `dropme'"'
+        disp as txt `"    memvars:       `memvars'"'
+        disp as txt `""'
+        disp as txt `"    sources:       `sources'"'
+        disp as txt `"    stats:         `stats'"'
+        disp as txt `"    targets:       `targets'"'
+        disp as txt `"    unsorted:      `unsorted'"'
+        disp as txt `"    opts:          `opts'"'
+        disp as txt `""'
+        disp as txt `"    switch:        `switch'"'
+        disp as txt `"    mem:           `mem'"'
+        disp as txt `"    io:            `io'"'
+        disp as txt `""'
+        disp as txt `"    gtools_stats:  `gtools_stats'"'
+        disp as txt `""'
+        disp as txt `"    action:        `action'"'
+        disp as txt `"    gcollapse:     `gcollapse'"'
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
     }
 
     cap noi _gtools_internal `by' `ifin', `opts' `action' `gcollapse' gfunction(collapse)
@@ -432,11 +599,20 @@ program gcollapse, rclass
 
             local __gtools_iovars: list __gtools_targets - __gtools_uniq_vars
             local gcollapse gcollapse(read, fname(`__gtools_file'))
-            cap noi _gtools_internal, `gcollapse' `action' gfunction(collapse)
-            if ( _rc ) {
-                local rc = _rc
-                CleanExit
-                exit `rc'
+            if ( `debug_io_read' ) {
+                cap noi _gtools_internal, `gcollapse' `action' gfunction(collapse)
+                if ( _rc ) {
+                    local rc = _rc
+                    CleanExit
+                    exit `rc'
+                }
+            }
+            else {
+                local nrow = `=_N'
+                local ncol = `=scalar(__gtools_k_extra)'
+                mata: __gtools_data = gtools_get_collapsed (`"`__gtools_file'"', `nrow', `ncol')
+                mata: st_store(., tokens(`"`__gtools_iovars'"'), __gtools_data)
+                cap mata: mata drop __gtools_data
             }
 
             gtools_timer info 97 `"Read extra targets from disk"', prints(`bench')
@@ -448,12 +624,12 @@ program gcollapse, rclass
         local order = 0
         qui ds *
         local varorder `r(varlist)'
-        local varsort  `clean_by' `__gtools_targets'
+        local varsort  `clean_by' `__gtools_order'
         foreach varo in `varorder' {
             gettoken svar varsort: varsort
             if ("`varo'" != "`vars'") local order = 1
         }
-        if ( `order' ) order `clean_by' `__gtools_targets'
+        if ( `order' ) order `clean_by' `__gtools_order'
 
         * Label the things in the style of collapse
         * -----------------------------------------
@@ -523,6 +699,21 @@ end
 ***********************************************************************
 *                          Gcollapse helpers                          *
 ***********************************************************************
+
+cap mata: mata drop gtools_get_collapsed()
+mata
+real matrix function gtools_get_collapsed(string scalar fname, real scalar nrow, real scalar ncol)
+{
+    real scalar fh
+    real matrix X
+    colvector C
+    fh = fopen(fname, "r")
+    C = bufio()
+    X = fbufget(C, fh, "%8z", nrow, ncol)
+    fclose(fh)
+    return (X)
+}
+end
 
 capture program drop parse_vars
 program parse_vars
@@ -1080,7 +1271,9 @@ program CleanExit
     cap mata: mata drop gtools_stats
 
     cap mata: mata drop gtools_pos
+    cap mata: mata drop gtools_vars_mem
     cap mata: mata drop gtools_io_order
+    cap mata: mata drop gtools_mem_order
 
     cap mata: mata drop __gtools_asfloat
     cap mata: mata drop __gtools_checkrecast

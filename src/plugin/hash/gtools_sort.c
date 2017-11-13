@@ -366,7 +366,8 @@ ST_retcode gf_counting_sort (
     uint64_t max)
 {
 
-    GT_size i, s;
+    // GT_size i;
+    GT_size s;
     uint64_t range = max - min + 1;
 
     // Allocate space for x, index copies and x mod
@@ -378,25 +379,48 @@ ST_retcode gf_counting_sort (
     if ( icopy == NULL ) return(sf_oom_error("gf_counting_sort_hash", "icopy"));
     if ( count == NULL ) return(sf_oom_error("gf_counting_sort_hash", "count"));
 
+    uint64_t *xptr;
+    uint64_t *hptr;
+    GT_size  *iptr;
+    GT_size  *ixptr;
+    GT_size  *cptr;
+
     // Initialize count as 0s
-    for (i = 0; i < range + 1; i++)
-        count[i] = 0;
+    // for (i = 0; i < range + 1; i++)
+    //     count[i] = 0;
+    for (cptr = count; cptr < count + range + 1; cptr++)
+        *cptr = 0;
 
     // Freq count of hash
-    for (i = 0; i < N; i++) {
-        count[ xcopy[i] = (hash[i] + 1 - min) ]++;
-        icopy[i] = index[i];
+    // for (i = 0; i < N; i++) {
+    //     count[ xcopy[i] = (hash[i] + 1 - min) ]++;
+    //     icopy[i] = index[i];
+    // }
+    xptr  = xcopy;
+    iptr  = icopy;
+    ixptr = index;
+    for (hptr  = hash; hptr < hash + N; hptr++, xptr++, iptr++, ixptr++) {
+        count[ *xptr = (*hptr + 1 - min) ]++;
+        *iptr = *ixptr;
     }
 
     // Cummulative freq count (position in output)
-    for (i = 1; i < range; i++)
-        count[i] += count[i - 1];
+    // for (i = 1; i < range; i++)
+    //     count[i] += count[i - 1];
+    for (cptr = count + 1; cptr < count + range; cptr++)
+        *cptr += *(cptr - 1);
 
     // Copy back in stable sorted order
     // for (i = N - 1; i >= 0; i--) {
-    for (i = 0; i < N; i++) {
-        index[ s = count[xcopy[i] - 1]++ ] = icopy[i];
-        hash[s] = xcopy[i] - 1 + min;
+    // for (i = 0; i < N; i++) {
+    //     index[ s = count[xcopy[i] - 1]++ ] = icopy[i];
+    //     hash[s] = xcopy[i] - 1 + min;
+    // }
+    xptr = xcopy;
+    iptr = icopy;
+    for (hptr  = hash; hptr < hash + N; hptr++, xptr++, iptr++) {
+        index[ s = count[*xptr - 1]++ ] = *iptr;
+        hash[s]  = *xptr - 1 + min;
     }
 
     // Free space

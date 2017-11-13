@@ -368,8 +368,8 @@ ST_retcode gf_check_allequal (uint64_t *hash, GT_size start, GT_size end)
 ST_retcode gf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
 {
     st_info->J = 1;
-    GT_size i   = 0;
-    GT_size l   = 0;
+    GT_size i  = 0;
+    GT_size l  = 0;
 
     uint64_t el = h1[i++];
     GT_size *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
@@ -426,7 +426,8 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *                               Setup                               *
      *********************************************************************/
 
-    GT_size start, end, sel, selx, numpos, strpos, rowbytes, multisort;
+    GT_bool multisort, skipbycopy;
+    GT_size start, end, sel, selx, numpos, strpos, rowbytes;
     GT_size l_str  = 0;
     GT_size k_num  = 0;
     GTOOLS_MAX (st_info->byvars_lens, kvars, kmax, k);
@@ -629,9 +630,28 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *              Read in copy of variables, if requested              *
      *********************************************************************/
 
+    // Create a de-duplicated copy of the by variables. In some cases it is
+    // useful to keep the copy in memory, but most of the time you just want
+    // the sort. Hence we skip the step if the data is already sorted and we
+    // won't use the by copy later.
+
 bycopy:
-    rowbytes = st_info->rowbytes + sizeof(GT_size);
-    if ( (level > 0) & (st_info->countonly == 0) ) {
+
+    multisort  = (st_info->biject == 0) & (st_info->unsorted == 0) & (st_info->sorted == 0);
+    rowbytes   = st_info->rowbytes + sizeof(GT_size);
+    skipbycopy = ( (multisort == 0) & (level == 22) ) | st_info->countonly;
+
+    // debug
+    // -----
+    // printf("debug 1: multisort = %u, skipby = %u\n", multisort, skipbycopy);
+    // printf("\tdebug 2: biject    = %lu\n", st_info->biject);
+    // printf("\tdebug 2: unsorted  = %d\n", st_info->unsorted);
+    // printf("\tdebug 2: sorted    = %d\n", st_info->sorted);
+    // printf("\tdebug 3: multisort = %d\n", multisort);
+    // printf("\tdebug 3: level     = %d\n", level);
+    // printf("\tdebug 3: countonly = %d\n", st_info->countonly);
+
+    if ( (level > 0) & (skipbycopy == 0) ) {
         if ( kstr > 0 ) {
             st_info->st_by_numx  = malloc(sizeof(ST_double));
             st_info->st_by_charx = calloc(st_info->J, rowbytes);
@@ -694,13 +714,12 @@ bycopy:
         // (unsorted, countonly). Also skip with the bijection, where
         // you get the sorting for free, or if we determined the data
         // was already sorted.
-        // 
+        //
         // Note here unsorted refers to the Stata option that tells
         // the plugin to not sort the data, whereas sorted refers
         // to the plugin's internal check that determined the data
         // was already sorted.
 
-        multisort = (st_info->biject == 0) & (st_info->unsorted == 0) & (st_info->sorted == 0);
         if ( (level > 1) &  multisort ) {
             if ( kstr > 0 ) {
                 MultiQuicksortMC (st_info->st_by_charx,
@@ -744,7 +763,7 @@ bycopy:
     if ( st_info->ix == NULL ) sf_oom_error ("sf_check_hash", "st_info->ix");
     GTOOLS_GC_ALLOCATED("st_info->ix")
 
-    if ( (level > 0) & (st_info->countonly == 0) ) {
+    if ( (level > 0) & (skipbycopy == 0) ) {
         st_info->free = 7;
         if ( kstr > 0 ) {
             for (j = 0; j < st_info->J; j++) {
@@ -757,7 +776,9 @@ bycopy:
             }
         }
     }
-    else if ( st_info->kvars_by == 0 ) {
+    else {
+        // This should also apply if the data is already sorted, bijection, etc.
+        // else if ( st_info->kvars_by == 0 ) {
         for (j = 0; j < st_info->J; j++)
             st_info->ix[j] = j;
     }

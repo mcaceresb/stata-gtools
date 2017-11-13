@@ -249,10 +249,10 @@ end
 
 capture program drop compare_gquantiles
 program compare_gquantiles
-    syntax, [NOIsily *]
+    syntax, [NOIsily noaltdef *]
     local options `options' `noisily'
 
-    compare_gquantiles_stata, n(10000) bench(10) `options'
+    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options'
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)

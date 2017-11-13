@@ -110,6 +110,7 @@ gtools_ssc = [
     "gunique.ado",
     "gdistinct.ado",
     "glevelsof.ado",
+    "gtop.ado",
     "gtoplevelsof.ado",
     "gisid.ado",
     "gquantiles.ado",
@@ -122,6 +123,7 @@ gtools_ssc = [
     "gunique.sthlp",
     "gdistinct.sthlp",
     "glevelsof.sthlp",
+    "gtop.sthlp",
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
     "gquantiles.sthlp",
@@ -251,6 +253,7 @@ copy2(path.join("docs", "stata", "gegen.sthlp"),        gdir)
 copy2(path.join("docs", "stata", "gunique.sthlp"),      gdir)
 copy2(path.join("docs", "stata", "gdistinct.sthlp"),    gdir)
 copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gtop.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
 copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
 copy2(path.join("docs", "stata", "gquantiles.sthlp"),   gdir)
@@ -265,6 +268,7 @@ copy2(path.join("src", "ado", "gegen.ado"),            gdir)
 copy2(path.join("src", "ado", "gunique.ado"),          gdir)
 copy2(path.join("src", "ado", "gdistinct.ado"),        gdir)
 copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
+copy2(path.join("src", "ado", "gtop.ado"),             gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
 copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.1 08Nov2017}{...}
+{* *! version 0.2.3 12Nov2017}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -20,9 +20,10 @@
 {title:Syntax}
 
 {phang}
-gquantiles can function as a fast alternative to {cmd:xtile}, {cmd:pctile},
-and {cmd:_pctile}, though ultimately it offers more functionality that those
-Stata commands.
+gquantiles can function as a fast alternative to {cmd:xtile},
+{cmd:pctile}, and {cmd:_pctile}, though it offers more functionality
+that those Stata commands (e.g. arbitrary quantiles and an arbitrary
+number in a reasonable amount of time, frequencies, and more).
 
 {phang}
 Create variable containing percentiles (equivalent to {cmd:pctile})

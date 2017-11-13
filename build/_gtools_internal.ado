@@ -1,4 +1,4 @@
-*! version -1.3.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version -1.3.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -790,36 +790,51 @@ program _gtools_internal, rclass
             else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
                 * If the first k sorted variables equal byvars, just call sort
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                sort `byvars'
+                sort `byvars' // , stable
                 clean_all
                 exit 0
             }
             else if ( "`sortvar'" != "" ) {
                 * Andrew Maurer's trick to clear `: sortedby'
+                qui set obs `=_N + 1'
                 loc sortvar : word 1 of `sortvar'
-                scalar __gtools_sort_val = `sortvar'[1]
-                cap replace `sortvar' = 0         in 1
-                cap replace `sortvar' = .         in 1
-                cap replace `sortvar' = ""        in 1
-                cap replace `sortvar' = "."       in 1
-                cap replace `sortvar' = `=scalar(__gtools_sort_val)'     in 1
-                cap replace `sortvar' = `"`=scalar(__gtools_sort_val)'"' in 1
-                assert "`: sortedby'" == ""
-                scalar drop __gtools_sort_val
+                loc sortvar_type : type `sortvar'
+                loc sortvar_is_str = strpos("`sortvar_type'", "str") == 1
+
+                * loc val = `sortvar'[1]
+                if ( `sortvar_is_str' ) {
+                    qui replace `sortvar' = `"."' in `=_N'
+                    * qui replace `sortvar' = cond(mi(`"`val'"'), ".", "") in `=_N'
+                    * qui replace `sortvar' = `"`val'"' in `=_N'
+                }
+                else {
+                    qui replace `sortvar' = 0 in `=_N'
+                    * qui replace `sortvar' = cond(mi(`val'), 0, .) in `=_N'
+                    * qui replace `sortvar' = `val' in `=_N'
+                }
+                qui drop in `=_N'
             }
         }
         else {
             if ( "`sortvar'" != "" ) {
                 * Andrew Maurer's trick to clear `: sortedby'
+                qui set obs `=_N + 1'
                 loc sortvar : word 1 of `sortvar'
-                loc val = `sortvar'[1]
-                cap replace `sortvar' = 0         in 1
-                cap replace `sortvar' = .         in 1
-                cap replace `sortvar' = ""        in 1
-                cap replace `sortvar' = "."       in 1
-                cap replace `sortvar' = `val'     in 1
-                cap replace `sortvar' = `"`val'"' in 1
-                assert "`: sortedby'" == ""
+                loc sortvar_type : type `sortvar'
+                loc sortvar_is_str = strpos("`sortvar_type'", "str") == 1
+
+                * loc val = `sortvar'[1]
+                if ( `sortvar_is_str' ) {
+                    qui replace `sortvar' = `"."' in `=_N'
+                    * qui replace `sortvar' = cond(mi(`"`val'"'), ".", "") in `=_N'
+                    * qui replace `sortvar' = `"`val'"' in `=_N'
+                }
+                else {
+                    qui replace `sortvar' = 0 in `=_N'
+                    * qui replace `sortvar' = cond(mi(`val'), 0, .) in `=_N'
+                    * qui replace `sortvar' = `val' in `=_N'
+                }
+                qui drop in `=_N'
             }
         }
 
@@ -844,15 +859,15 @@ program _gtools_internal, rclass
                         local sortvars `sortvars' `:word `i' of `byvars''
                     }
                     scalar drop __gtools_first_inverted
-                    sort `sortvars'
+                    sort `sortvars' // , stable
                 }
             }
             else {
-                sort `byvars'
+                sort `byvars' // , stable
             }
         }
         else if ( ("`gen_name'" != "") & ("`sortgen'" != "") ) {
-            sort `gen_name'
+            sort `gen_name' // , stable
         }
 
         local msg "Stata reshuffle"
@@ -954,7 +969,7 @@ program _gtools_internal, rclass
             scalar __gtools_top_lmiss     = length(`"`misslab'"')
             scalar __gtools_top_lother    = length(`"`otherlab'"')
 
-            local nrows = `ntop' + scalar(__gtools_top_miss) + scalar(__gtools_top_other)
+            local nrows = abs(`ntop') + scalar(__gtools_top_miss) + scalar(__gtools_top_other)
             cap noi check_matsize, nvars(`nrows')
             if ( _rc ) {
                 local rc = _rc

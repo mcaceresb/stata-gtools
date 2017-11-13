@@ -55,6 +55,8 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     GT_size in1   = st_info->in1;
     GT_size Nread = st_info->Nread;
+    GT_size N     = st_info->N;
+    GT_size J     = st_info->J;
 
     GT_size nout;
     nout = GTOOLS_PWMAX(nq,   (nq2 + 1));
@@ -65,11 +67,11 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                         Memory Allocation                         *
      *********************************************************************/
 
-    GT_size kx = kgen? 3: 1;
-    GT_size xmem_sources = kx * Nread;
+    GT_size kx = kgen? 2: 1;
+    GT_size xmem_sources = kx * N;
     GT_size xmem_quant   = nout;
-    GT_size xmem_points  = cutvars? (st_info->xtile_cutifin? Nread + 1: SF_nobs() + 1): 1;
-    GT_size xmem_quants  = qvars? (st_info->xtile_cutifin? Nread + 1: SF_nobs() + 1): 1;
+    GT_size xmem_points  = cutvars? (st_info->xtile_cutifin? (N + J): SF_nobs() + 1): 1;
+    GT_size xmem_quants  = qvars? (st_info->xtile_cutifin? (N + J): SF_nobs() + 1): 1;
 
     ST_double *xsources = calloc(xmem_sources, sizeof *xsources);
     ST_double *xquant   = calloc(xmem_quant,   sizeof *xquant);
@@ -81,55 +83,23 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     if ( xpoints  == NULL ) return(sf_oom_error("sf_quantiles", "xpoints"));
     if ( xquants  == NULL ) return(sf_oom_error("sf_quantiles", "xquants"));
 
+    GT_size *index_st       = calloc(Nread, sizeof *index_st);
+    GT_size *offsets_buffer = calloc(J,     sizeof *offsets_buffer);
+    GT_size *all_nonmiss    = calloc(J,     sizeof *all_nonmiss);
+    GT_size *points_nonmiss = calloc(J,     sizeof *points_nonmiss);
+
+    if ( index_st       == NULL ) return(sf_oom_error("sf_quantiles_by", "index_st"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_quantiles_by", "offsets_buffer"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_quantiles_by", "all_nonmiss"));
+    if ( points_nonmiss == NULL ) return(sf_oom_error("sf_quantiles_by", "points_nonmiss"));
+
     /*********************************************************************
      *                     Cutvars and cutquantiles                      *
      *********************************************************************/
 
     if ( st_info->xtile_cutifin ) {
-        if ( st_info->any_if ) {
-            if ( cutvars ) {
-                obs = 0;
-                for (i = 0; i < Nread; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        if ( (rc = SF_vdata(start_cutvars,
-                                            i + in1,
-                                            xpoints + obs++)) ) goto error;
-                    }
-                }
-                npoints = obs;
-            }
-
-            if ( qvars ) {
-                obs = 0;
-                for (i = 0; i < Nread; i++) {
-                    if ( SF_ifobs(i + in1) ) {
-                        if ( (rc = SF_vdata(start_qvars,
-                                            i + in1,
-                                            xquants + obs++)) ) goto error;
-                    }
-                }
-                nquants = obs;
-            }
-        }
-        else {
-            if ( cutvars ) {
-                for (i = 0; i < Nread; i++) {
-                    if ( (rc = SF_vdata(start_cutvars,
-                                        i + in1,
-                                        xpoints + i)) ) goto error;
-                }
-                npoints = Nread;
-            }
-
-            if ( qvars ) {
-                for (i = 0; i < Nread; i++) {
-                    if ( (rc = SF_vdata(start_qvars,
-                                        i + in1,
-                                        xquants + i)) ) goto error;
-                }
-                nquants = Nread;
-            }
-        }
+        npoints = 0;
+        nquants = 0;
     }
     else {
         if ( cutvars ) {
@@ -155,11 +125,16 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *           Adjust percentiles or curoffs, if applicable            *
      *********************************************************************/
 
-    failmiss = (ncuts > 0) | (npoints > 0) | (nquants > 0);
-    nq2      = (nq2     == 0)? 0: gf_xtile_clean(st_info->xtile_quantiles, nq2,   1, st_info->xtile_dedup);
-    ncuts    = (ncuts   == 0)? 0: gf_xtile_clean(st_info->xtile_cutoffs,   ncuts, 1, st_info->xtile_dedup);
-    npoints  = (npoints == 0)? 0: gf_xtile_clean(xpoints, npoints, 1, st_info->xtile_dedup);
-    nquants  = (nquants == 0)? 0: gf_xtile_clean(xquants, nquants, 1, st_info->xtile_dedup);
+    if ( st_info->xtile_cutifin ) {
+        failmiss = (ncuts > 0);
+    }
+    else {
+        failmiss = (ncuts > 0) | (npoints > 0) | (nquants > 0);
+        npoints  = (npoints == 0)? 0: gf_xtile_clean(xpoints, npoints, 1, st_info->xtile_dedup);
+        nquants  = (nquants == 0)? 0: gf_xtile_clean(xquants, nquants, 1, st_info->xtile_dedup);
+    }
+    nq2   = (nq2   == 0)? 0: gf_xtile_clean(st_info->xtile_quantiles, nq2,   1, st_info->xtile_dedup);
+    ncuts = (ncuts == 0)? 0: gf_xtile_clean(st_info->xtile_cutoffs,   ncuts, 1, st_info->xtile_dedup);
 
     if ( failmiss & (ncuts == 0) & (npoints == 0) & (nquants == 0) ) {
         if ( (ncuts == 0) & (npoints == 0) ) {

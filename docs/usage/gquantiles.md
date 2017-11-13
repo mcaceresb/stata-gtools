@@ -3,10 +3,14 @@ gquantiles
 
 Efficiently compute percentiles, quantiles, categories, and frequency counts.
 
-gquantiles replaces xtile, pctile, and \_pctile. While weights are not yet
-supported, gquantiles offers several additional options above the three
-built-in Stata commands. gquantiles is also faster than the user-written
-fastxtile, so an alias, fasterxtile, is also provided.
+gquantiles replaces xtile, pctile, and \_pctile and offers several additional
+features, like computing arbitrary quantiles (and an arbitrary number),
+frequency counts, and more (see the [examples](#examples) below).
+
+While weights are not yet supported, gquantiles offers several
+additional options above the three built-in Stata commands. gquantiles
+is also faster than the user-written fastxtile, so an alias,
+fasterxtile, is also provided.
 
 _Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.

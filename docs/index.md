@@ -4,7 +4,7 @@ Faster Stata for big data. This packages provides a hash-based implementation
 of collapse, pctile, xtile, contract, egen, isid, levelsof, and
 unique/distinct using C plugins for a massive speed improvement.
 
-`version 0.10.1 08Nov2017`
+`version 0.10.3 12Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -16,7 +16,7 @@ commands using hashes and C plugins.  If you plan to use the plugin
 extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
 caveats and details on the plugin.
 
-__*Gtools commands with a stata equivalent*__
+__*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
 | ------------ | -------- | ------------------------ | --------------- | --------------------------------- |

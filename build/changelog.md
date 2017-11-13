@@ -1,6 +1,37 @@
 Change Log
 ==========
 
+## gtools-0.10.3 (2017-11-12)
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/29; if the
+  sources appear out of order relative to the targets (e.g. sources are
+  'a b' but targets use sources 'a a b b' instead of 'a b a b') then
+  gcollapse produced the wrong results with option `forceio` or with the
+  swtich code. The code now reorders the sources, targets, and statistics
+  so the source variables always appear first and the extra targets last.
+- Fixes bug in `gtop` where requesting negative levels caused an overflow.
+
+### Enhancements
+
+- Counting sort now uses pointers, which is hopefully faster.
+- Added special cases for `gquantiles` to hopefully accelerate reading
+  source variables from Stata.
+- Added special case for `gegen, group` so the code orders the groups
+  back to Stata order before copying. It runs faster because it writes
+  to Stata sequentially, but it uses more memory.
+- The code no longer keeps a copy of the by variables when it is not
+  needed (gcollapse, glevelsof, gtop, and gcontract need a copy;
+  gegen, hashsort, gquantiles, etc. do not).
+
+## gtools-0.10.2 (2017-11-08)
+
+### Bug fixes
+
+- Fixes bug where integer overflows if `gtoplevelsof, ntop(-#)`
+  is requested.
+
 ## gtools-0.10.1 (2017-11-08)
 
 ### Features

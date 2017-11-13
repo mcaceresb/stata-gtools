@@ -5,7 +5,7 @@
  * Updated: Tue Oct 31 06:01:11 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.10.1
+ * Version: 0.10.3
  *********************************************************************/
 
 /**
@@ -27,7 +27,6 @@
 #include "common/fixes.c"
 #include "common/quicksortMultiLevel.c"
 #include "common/readWrite.c"
-#include "common/encode.c"
 
 #if GMULTI
 #    define GTOOLS_THREADS 4
@@ -37,6 +36,8 @@
 #else
 #    include "hash/gtools_hash.c"
 #endif
+
+#include "common/encode.c"
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_utils.c"
@@ -95,7 +96,7 @@ STDLL stata_call(int argc, char *argv[])
 
         goto exit;
     }
-    else if ( strcmp(todo, "collapse") == 0 ) {
+    else if ( strcmp(todo, "collapse") == 0 ) { // (Note: keeps by copy; always)
         if ( argc < 2 ) {
             sf_errprintf ("collapse requires a subcommand\n");
             rc = 198; goto exit;
@@ -177,11 +178,11 @@ STDLL stata_call(int argc, char *argv[])
         }
     }
     else if ( strcmp(todo, "hash") == 0 ) {
-        if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
-        if ( (rc = sf_hash_byvars  (st_info, 0)) ) goto exit;
-        if ( (rc = sf_check_hash   (st_info, 2)) ) goto exit;
-        if ( (rc = sf_encode       (st_info, 0)) ) goto exit;
-        if ( (rc = sf_egen_bulk    (st_info, 0)) ) goto exit;
+        if ( (rc = sf_parse_info   (st_info, 0))  ) goto exit;
+        if ( (rc = sf_hash_byvars  (st_info, 0))  ) goto exit;
+        if ( (rc = sf_check_hash   (st_info, 22)) ) goto exit; // (Note: discards by copy)
+        if ( (rc = sf_encode       (st_info, 0))  ) goto exit;
+        if ( (rc = sf_egen_bulk    (st_info, 0))  ) goto exit;
         if ( (rc = sf_write_output (st_info, 0, st_info->kvars_targets, "")) ) goto exit;
     }
     else if ( strcmp(todo, "isid") == 0 ) {
@@ -191,30 +192,30 @@ STDLL stata_call(int argc, char *argv[])
     else if ( strcmp(todo, "levelsof") == 0 ) {
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
-        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit; // (Note: keeps by copy)
         if ( (rc = sf_levelsof    (st_info, 0)) ) goto exit;
         if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
     }
     else if ( strcmp(todo, "top") == 0 ) {
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
-        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit; // (Note: keeps by copy)
         if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
         if ( (rc = sf_top         (st_info, 0)) ) goto exit;
     }
     else if ( strcmp(todo, "contract") == 0 ) {
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
-        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit; // (Note: keeps by copy)
         if ( (rc = sf_contract    (st_info, 0)) ) goto exit;
         if ( (rc = sf_write_collapsed (st_info, 8, st_info->contract_vars, "")) ) goto exit;
     }
     else if ( strcmp(todo, "hashsort") == 0 ) {
-        if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
-        if ( (rc = sf_hash_byvars (st_info, 3)) ) goto exit;
-        if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
-        if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
-        if ( (rc = sf_hashsort    (st_info, 0)) ) goto exit;
+        if ( (rc = sf_parse_info  (st_info, 0))  ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 3))  ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 22)) ) goto exit; // (Note: discards by copy)
+        if ( (rc = sf_encode      (st_info, 0))  ) goto exit;
+        if ( (rc = sf_hashsort    (st_info, 0))  ) goto exit;
     }
     else if ( strcmp(todo, "quantiles") == 0 ) {
         if ( (rc = sf_parse_info (st_info, 0)) ) goto exit;
@@ -225,10 +226,10 @@ STDLL stata_call(int argc, char *argv[])
             sf_errprintf("by() support is planned for a future version.");
             sf_errprintf("Try again when 0.11.0 or above is released.\n");
             rc = 17777; goto exit;
-            if ( (rc = sf_hash_byvars (st_info, 3)) ) goto exit;
-            if ( (rc = sf_check_hash  (st_info, 2)) ) goto exit;
-            if ( (rc = sf_encode      (st_info, 0)) ) goto exit;
-            if ( (rc = sf_xtile_by    (st_info, 0)) ) goto exit;
+            if ( (rc = sf_hash_byvars (st_info, 0))  ) goto exit;
+            if ( (rc = sf_check_hash  (st_info, 22)) ) goto exit; // (Note: discards by copy)
+            if ( (rc = sf_encode      (st_info, 0))  ) goto exit;
+            if ( (rc = sf_xtile_by    (st_info, 0))  ) goto exit;
         }
     }
     else {
@@ -938,6 +939,9 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                                   ix,
                                   !(st_info->biject))) ) goto error;
 
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 3.1: Created group index");
+
         st_info->free = 4;
 
         info   = st_info->info;
@@ -992,6 +996,9 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
             st_info->ix = st_info->index;
         }
+
+        if ( st_info->benchmark )
+            sf_running_timer (&stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
 
         st_info->free = 5;
 

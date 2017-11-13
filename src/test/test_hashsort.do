@@ -89,6 +89,9 @@ program compare_hashsort
 
     qui expand 10
     local N = trim("`: di %15.0gc _N'")
+    cap drop rsort
+    qui gen rsort = rnormal()
+    qui sort rsort
 
     di _n(1)
     di "`benchcomp' vs sort (stable), obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
@@ -135,61 +138,61 @@ program compare_sort, rclass
         timer on 43
         qui hashsort `varlist', `options'
         timer off 43
-        cap noi cf * using `file_sort'
-        if ( _rc ) {
-            qui ds *
-            local memvars `r(varlist)' 
-            local firstvar: word 1 of `varlist'
-            local compvars: list memvars - firstvar
-            if ( "`compvars'" != "" ) {
-                cf `compvars' using `file_sort'
-            }
-            keep `firstvar'
-            tempfile file_first
-            qui save `file_first'
-
-            use `firstvar' using `file_sort', clear
-            rename `firstvar' c_`firstvar'
-            qui merge 1:1 _n using `file_first'
-            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
-            if ( _rc ) {
-                local rc = _rc
-                di as err "hashsort gave different sort order to sort"
-            }
-            else {
-                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
-            }
-        }
+        cf * using `file_sort'
+        * if ( _rc ) {
+        *     qui ds *
+        *     local memvars `r(varlist)' 
+        *     local firstvar: word 1 of `varlist'
+        *     local compvars: list memvars - firstvar
+        *     if ( "`compvars'" != "" ) {
+        *         cf `compvars' using `file_sort'
+        *     }
+        *     keep `firstvar'
+        *     tempfile file_first
+        *     qui save `file_first'
+        *
+        *     use `firstvar' using `file_sort', clear
+        *     rename `firstvar' c_`firstvar'
+        *     qui merge 1:1 _n using `file_first'
+        *     cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+        *     if ( _rc ) {
+        *         local rc = _rc
+        *         di as err "hashsort gave different sort order to sort"
+        *     }
+        *     else {
+        *         if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+        *     }
+        * }
 
         * Make sure already sorted check is OK
         qui gen byte one = 1
         hashsort one `varlist', `options'
         qui drop one
-        cap cf * using `file_sort'
-        if ( _rc ) {
-            qui ds *
-            local memvars `r(varlist)' 
-            local firstvar: word 1 of `varlist'
-            local compvars: list memvars - firstvar
-            if ( "`compvars'" != "" ) {
-                cf `compvars' using `file_sort'
-            }
-            keep `firstvar'
-            tempfile file_one
-            qui save `file_one'
-
-            use `firstvar' using `file_sort', clear
-            rename `firstvar' c_`firstvar'
-            qui merge 1:1 _n using `file_one'
-            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
-            if ( _rc ) {
-                local rc = _rc
-                di as err "hashsort gave different sort order to sort"
-            }
-            else {
-                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
-            }
-        }
+        cf * using `file_sort'
+        * if ( _rc ) {
+        *     qui ds *
+        *     local memvars `r(varlist)' 
+        *     local firstvar: word 1 of `varlist'
+        *     local compvars: list memvars - firstvar
+        *     if ( "`compvars'" != "" ) {
+        *         cf `compvars' using `file_sort'
+        *     }
+        *     keep `firstvar'
+        *     tempfile file_one
+        *     qui save `file_one'
+        *
+        *     use `firstvar' using `file_sort', clear
+        *     rename `firstvar' c_`firstvar'
+        *     qui merge 1:1 _n using `file_one'
+        *     cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+        *     if ( _rc ) {
+        *         local rc = _rc
+        *         di as err "hashsort gave different sort order to sort"
+        *     }
+        *     else {
+        *         if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+        *     }
+        * }
     restore
     qui timer list
     local time_hashsort = r(t43)

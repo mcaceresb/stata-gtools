@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov  8 22:12:16 EST 2017
+* Updated: Sun Nov 12 21:57:19 EST 2017
 * Purpose: Unit tests for gtools
-* Version: 0.10.1
+* Version: 0.10.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -406,7 +406,7 @@ program gen_data
 
     if ( `random' > 0 ) {
         forvalues i = 1 / `random' {
-            gen `double' random`i' = rnormal() * 10
+            gen `double' random`i' = rnormal() * `i' * 5
             replace random`i' = . if mod(_n, 20) == 0
             if ( `binary' ) {
                 replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'
@@ -453,10 +453,14 @@ program checks_inner_collapse
     local collapse_str ""
     foreach stat of local stats {
         local collapse_str `collapse_str' (`stat') r1_`stat' = random1
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
+    }
+    foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
     }
 
@@ -772,13 +776,17 @@ program _compare_inner_collapse
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr semean sebinomial sepoisson
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
-    foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
-    }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`pct' = random1
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+    }
+    foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`pct' = random2
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
 
     preserve
@@ -1501,10 +1509,10 @@ end
 
 capture program drop compare_gquantiles
 program compare_gquantiles
-    syntax, [NOIsily *]
+    syntax, [NOIsily noaltdef *]
     local options `options' `noisily'
 
-    compare_gquantiles_stata, n(10000) bench(10) `options'
+    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options'
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
@@ -4363,6 +4371,9 @@ program compare_hashsort
 
     qui expand 10
     local N = trim("`: di %15.0gc _N'")
+    cap drop rsort
+    qui gen rsort = rnormal()
+    qui sort rsort
 
     di _n(1)
     di "`benchcomp' vs sort (stable), obs = `N', J = `J' (in seconds; datasets are compared via {opt cf})"
@@ -4409,61 +4420,61 @@ program compare_sort, rclass
         timer on 43
         qui hashsort `varlist', `options'
         timer off 43
-        cap noi cf * using `file_sort'
-        if ( _rc ) {
-            qui ds *
-            local memvars `r(varlist)' 
-            local firstvar: word 1 of `varlist'
-            local compvars: list memvars - firstvar
-            if ( "`compvars'" != "" ) {
-                cf `compvars' using `file_sort'
-            }
-            keep `firstvar'
-            tempfile file_first
-            qui save `file_first'
-
-            use `firstvar' using `file_sort', clear
-            rename `firstvar' c_`firstvar'
-            qui merge 1:1 _n using `file_first'
-            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
-            if ( _rc ) {
-                local rc = _rc
-                di as err "hashsort gave different sort order to sort"
-            }
-            else {
-                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
-            }
-        }
+        cf * using `file_sort'
+        * if ( _rc ) {
+        *     qui ds *
+        *     local memvars `r(varlist)' 
+        *     local firstvar: word 1 of `varlist'
+        *     local compvars: list memvars - firstvar
+        *     if ( "`compvars'" != "" ) {
+        *         cf `compvars' using `file_sort'
+        *     }
+        *     keep `firstvar'
+        *     tempfile file_first
+        *     qui save `file_first'
+        *
+        *     use `firstvar' using `file_sort', clear
+        *     rename `firstvar' c_`firstvar'
+        *     qui merge 1:1 _n using `file_first'
+        *     cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+        *     if ( _rc ) {
+        *         local rc = _rc
+        *         di as err "hashsort gave different sort order to sort"
+        *     }
+        *     else {
+        *         if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+        *     }
+        * }
 
         * Make sure already sorted check is OK
         qui gen byte one = 1
         hashsort one `varlist', `options'
         qui drop one
-        cap cf * using `file_sort'
-        if ( _rc ) {
-            qui ds *
-            local memvars `r(varlist)' 
-            local firstvar: word 1 of `varlist'
-            local compvars: list memvars - firstvar
-            if ( "`compvars'" != "" ) {
-                cf `compvars' using `file_sort'
-            }
-            keep `firstvar'
-            tempfile file_one
-            qui save `file_one'
-
-            use `firstvar' using `file_sort', clear
-            rename `firstvar' c_`firstvar'
-            qui merge 1:1 _n using `file_one'
-            cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
-            if ( _rc ) {
-                local rc = _rc
-                di as err "hashsort gave different sort order to sort"
-            }
-            else {
-                if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
-            }
-        }
+        cf * using `file_sort'
+        * if ( _rc ) {
+        *     qui ds *
+        *     local memvars `r(varlist)' 
+        *     local firstvar: word 1 of `varlist'
+        *     local compvars: list memvars - firstvar
+        *     if ( "`compvars'" != "" ) {
+        *         cf `compvars' using `file_sort'
+        *     }
+        *     keep `firstvar'
+        *     tempfile file_one
+        *     qui save `file_one'
+        *
+        *     use `firstvar' using `file_sort', clear
+        *     rename `firstvar' c_`firstvar'
+        *     qui merge 1:1 _n using `file_one'
+        *     cap noi assert (`firstvar' == c_`firstvar') | (abs(`firstvar' - c_`firstvar') < 1e-15)
+        *     if ( _rc ) {
+        *         local rc = _rc
+        *         di as err "hashsort gave different sort order to sort"
+        *     }
+        *     else {
+        *         if ("`benchmode'" == "") di as txt "    hashsort same as sort but sortpreserve trick caused some loss of precision (< 1e-15)"
+        *     }
+        * }
     restore
     qui timer list
     local time_hashsort = r(t43)

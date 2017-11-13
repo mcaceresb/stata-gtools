@@ -1,14 +1,20 @@
-#include "gquantiles_by.c"
+// #include "gquantiles_by.c"
 #include "gquantiles_math.c"
 
 ST_retcode sf_xtile    (struct StataInfo *st_info, int level);
+ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
 GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup);
+
+ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
+{
+    return (0);
+}
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
 
     ST_double z, nqdbl, xmin, xmax;
-    ST_double *xptr, *qptr, *optr, *gptr, *ixptr, *xptr2, *stptr;
+    ST_double *xptr, *qptr, *optr, *gptr, *ixptr, *xptr2;
     GT_bool failmiss = 0, sorted = 0;
     GT_size i, q, sel, obs, N, qtot;
     ST_retcode rc = 0;

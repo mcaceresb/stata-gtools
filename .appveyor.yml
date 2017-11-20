@@ -9,5 +9,5 @@ environment:
 
 build_script:
   - git submodule update --init --recursive
-  - find -name "*x86_64-w64-mingw32-gcc*" /bin/
+  - find /bin/ -name "*x86_64-w64-mingw32-gcc*"
   - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make spooky; make'"

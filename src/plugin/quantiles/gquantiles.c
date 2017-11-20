@@ -1,13 +1,6 @@
-#include "gquantiles_math.c"
 #include "gquantiles_by.c"
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level);
-
-// ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
-// ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
-// {
-//     return (0);
-// }
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {

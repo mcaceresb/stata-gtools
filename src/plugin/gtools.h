@@ -64,6 +64,7 @@ struct StataInfo {
     GT_size   sep_len;
     GT_size   colsep_len;
     GT_size   numfmt_max;
+    GT_size   numfmt_len;
     //
     GT_size   biject;
     GT_size   encode;

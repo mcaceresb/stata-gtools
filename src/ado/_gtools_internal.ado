@@ -4,6 +4,8 @@
 capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13
+    global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
+    set varabbrev off
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
@@ -23,11 +25,13 @@ program _gtools_internal, rclass
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
         di as err "_gtools_internal is not meant to be called directly." ///
                   " See {help gtools}"
+        clean_all 198
         exit 198
     }
 
     if ( `=_N < 1' ) {
         di as err "no observations"
+        clean_all 17001
         exit 17001
     }
 
@@ -126,6 +130,7 @@ program _gtools_internal, rclass
     if ( !`:list hashmethod_list in hashmethod_list' ) {
         di as err `"hash method '`hashmethod'' not known;"' ///
                    " specify 0 (default), 1 (biject), or 2 (spooky)"
+        clean_all 198
         exit 198
     }
 
@@ -154,7 +159,7 @@ program _gtools_internal, rclass
                     di as err `"'`hashlib'' not found."'
                     di as err `"Download {browse "`url'":here}"' ///
                               `" or run {opt gtools, dependencies}"'
-                    clean_all
+                    clean_all 198
                     exit 198
                 }
             }
@@ -188,7 +193,7 @@ program _gtools_internal, rclass
             if ( _rc ) {
                 local rc = _rc
                 di as err "Unable to add '`__gtools_hashpath'' to system PATH."
-                clean_all
+                clean_all `rc'
                 exit `rc'
             }
         }
@@ -204,12 +209,14 @@ program _gtools_internal, rclass
         syntax, sources(varlist) targets(varlist)
         if ( `:list sizeof sources' != `:list sizeof targets' ) {
             di as err "Must specify the same number of sources and targets"
+            clean_all 198
             exit 198
         }
         scalar __gtools_k_recast = `:list sizeof sources'
         cap noi plugin call gtools_plugin `targets' `sources', recast
         local rc = _rc
         cap scalar drop __gtools_k_recast
+        clean_all `rc'
         exit `rc'
     }
 
@@ -235,7 +242,7 @@ program _gtools_internal, rclass
     if ( !(`:list gfunction in gfunction_list') ) {
         di as err "{opt gfunction()} was '`gfunction''; expected one of:" ///
                   " `gfunction_list'"
-        clean_all
+        clean_all 198
         exit 198
     }
 
@@ -248,7 +255,7 @@ program _gtools_internal, rclass
     if ( "`oncollision'" == "" ) local oncollision fallback
     if ( !inlist("`oncollision'", "fallback", "error") ) {
         di as err "option {opt oncollision()} must be 'fallback' or 'error'"
-        clean_all
+        clean_all 198
         exit 198
     }
 
@@ -267,7 +274,7 @@ program _gtools_internal, rclass
         if ( "`exitmissing'`missing'" == "" ) {
             di as err "{opt gfunction(`gfunction')} must set either" ///
                       " {opt exitmissing} or {opt missing}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -275,13 +282,13 @@ program _gtools_internal, rclass
     if ( inlist("`gfunction'", "sort") ) {
         if ( "`if'" != "" ) {
             di as err "Cannot sort data with if condition"
-            clean_all
+            clean_all 198
             exit 198
         }
         if ( "`exitmissing'" != "" ) {
             di as err "Cannot specify {opt exitmissing} with" ///
                       " {opt gfunction(sort)}"
-            clean_all
+            clean_all 198
             exit 198
         }
         if ( "`missing'" == "" ) {
@@ -291,21 +298,21 @@ program _gtools_internal, rclass
         }
         if ( "`unsorted'" != "" ) {
             di as err "Cannot specify {opt unsorted} with {opt gfunction(sort)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
 
     if ( ("`exitmissing'" != "") & ("`missing'" != "") ) {
         di as err "Cannot specify {opt exitmissing} with option {opt missing}"
-        clean_all
+        clean_all 198
         exit 198
     }
 
     if ( "`sortindex'" != "" ) {
         if ( !inlist("`gfunction'", "sort") ) {
             di as err "sort index only allowed with {opt gfunction(sort)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -313,7 +320,7 @@ program _gtools_internal, rclass
     if ( "`counts'`gen'`tag'" != "" ) {
         if ( "`countonly'" != "" ) {
             di as err "cannot generate targets with option {opt countonly}"
-            clean_all
+            clean_all 198
             exit 198
         }
 
@@ -321,7 +328,7 @@ program _gtools_internal, rclass
         if ( !`:list gfunction in gen_list' ) {
             di as err "cannot generate targets with" ///
                       " {opt gfunction(`gfunction')}"
-            clean_all
+            clean_all 198
             exit 198
         }
 
@@ -337,7 +344,7 @@ program _gtools_internal, rclass
     if ( "`sources'`targets'`stats'" != "" ) {
         if ( !inlist("`gfunction'", "hash", "egen", "collapse", "unique") ) {
             di as err "cannot generate targets with {opt gfunction(`gfunction')}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -345,7 +352,7 @@ program _gtools_internal, rclass
     if ( "`fill'" != "" ) {
         if ( "`counts'`targets'" == "" ) {
             di as err "{opt fill()} only allowed with {opth counts(newvarname)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -358,7 +365,7 @@ program _gtools_internal, rclass
         if ( "`numfmt'"      != "" ) local errmsg "`errmsg' -numfmt()-, "
         if ( !inlist("`gfunction'", "levelsof", "top") ) {
             di as err "`errmsg' only allowed with {opt gfunction(levelsof)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -442,16 +449,15 @@ program _gtools_internal, rclass
     }
 
     if regexm(`"`numfmt'"', "%([0-9]+)\.([0-9]+)([gf])") {
-        local numlen = max(`:di regexs(1)', `:di regexs(2)' + 4) ///
-                     + cond(regexs(3) == "f", 23, 0)
+        local numlen = max(`:di regexs(1)', `:di regexs(2)' + 5) + cond(regexs(3) == "f", 23, 0)
     }
     else if regexm(`"`numfmt'"', "%\.([0-9]+)([gf])") {
-        local numlen = `:di regexs(1)' + 4 + cond(regexs(2) == "f", 23, 0)
+        local numlen = `:di regexs(1)' + 5 + cond(regexs(2) == "f", 23, 0)
     }
     else {
         di as err "Number format must be %(width).(digits)(f|g);" ///
                   " e.g. %.16g (default), %20.5f"
-        clean_all
+        clean_all 198
         exit 198
     }
 
@@ -477,7 +483,11 @@ program _gtools_internal, rclass
             local tag_type byte
         }
         cap noi confirm_var `tag_name', `replace'
-        if ( _rc ) exit _rc
+        if ( _rc ) {
+            local rc = _rc
+            clean_all `rc'
+            exit `rc'
+        }
         local new_tag = `r(newvar)'
     }
 
@@ -495,7 +505,11 @@ program _gtools_internal, rclass
             }
         }
         cap noi confirm_var `gen_name', `replace'
-        if ( _rc ) exit _rc
+        if ( _rc ) {
+            local rc = _rc
+            clean_all `rc'
+            exit `rc'
+        }
         local new_gen = `r(newvar)'
     }
 
@@ -517,7 +531,11 @@ program _gtools_internal, rclass
                 }
             }
             cap noi confirm_var `counts_name', `replace'
-            if ( _rc ) exit _rc
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                exit `rc'
+            }
             local new_counts = `r(newvar)'
         }
         if ( "`fill'" != "" ) {
@@ -535,6 +553,7 @@ program _gtools_internal, rclass
                 cap local fill_value = `fill'
                 if ( _rc ) {
                     di as error "'`fill'' found where number expected"
+                    clean_all 7
                     exit 7
                 }
                 * local 0 , fill(`fill')
@@ -559,7 +578,7 @@ program _gtools_internal, rclass
     }
     else if ( "`fill'" != "" ) {
         di as err "{opt fill} only allowed with option {opt count()} or {opt targets()}"
-        clean_all
+        clean_all 198
         exit 198
     }
 
@@ -776,12 +795,14 @@ program _gtools_internal, rclass
             cap confirm variable `freq'
             if ( _rc ) {
                 di as err "Target `freq' has to exist."
+                clean_all 198
                 exit 198
             }
 
             cap confirm numeric variable `freq'
             if ( _rc ) {
                 di as err "Target `freq' must be numeric."
+                clean_all 198
                 exit 198
             }
 
@@ -811,11 +832,13 @@ program _gtools_internal, rclass
 
     if ( "`anymissing'" != "" ) {
         di as err "anymissing() is planned for a future release."
+        clean_all 198
         exit 198
     }
 
     if ( "`allmissing'" != "" ) {
         di as err "allmissing() is planned for a future release."
+        clean_all 198
         exit 198
     }
 
@@ -843,14 +866,14 @@ program _gtools_internal, rclass
         if ( "`skipcheck'" == "" ) {
             if ( !`invert' & ("`sortvar'" == "`byvars'") ) {
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                clean_all
+                clean_all 0
                 exit 0
             }
             else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
                 * If the first k sorted variables equal byvars, just call sort
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
                 sort `byvars' // , stable
-                clean_all
+                clean_all 0
                 exit 0
             }
             else if ( "`sortvar'" != "" ) {
@@ -1016,11 +1039,13 @@ program _gtools_internal, rclass
 
             if ( "`store'" != "" ) {
                 di as err "store() is planned for a future release."
+                clean_all 198
                 exit 198
             }
 
             if ( "`freq'" != "" ) {
                 di as err "freq() is planned for a future release."
+                clean_all 198
                 exit 198
             }
 
@@ -1138,6 +1163,7 @@ program _gtools_internal, rclass
             if ( "`quantmatrix'" != "" ) {
                 if ( "`quantiles'" != "" ) {
                     disp as err "Specify only one of quantiles() or quantmatrix()"
+                    clean_all 198
                     exit 198
                 }
 
@@ -1148,6 +1174,7 @@ program _gtools_internal, rclass
                 cap mata: assert(min((`c', `r')) == 1)
                 if ( _rc ) {
                     disp as err "quantmatrix() must be a N by 1 or 1 by N matrix."
+                    clean_all 198
                     exit 198
                 }
 
@@ -1155,6 +1182,7 @@ program _gtools_internal, rclass
                 if ( _rc ) {
                     disp as err "quantmatrix() must contain all values" ///
                                 " strictly between 0 and 100"
+                    clean_all 198
                     exit 198
                 }
                 mata: st_local("xhow_nq2", strofreal(max((`c', `r')) > 0))
@@ -1169,6 +1197,7 @@ program _gtools_internal, rclass
             if ( "`cutmatrix'" != "" ) {
                 if ( "`cutoffs'" != "" ) {
                     disp as err "Specify only one of cutoffs() or cutmatrix()"
+                    clean_all 198
                     exit 198
                 }
 
@@ -1179,6 +1208,7 @@ program _gtools_internal, rclass
                 cap mata: assert(min((`c', `r')) == 1)
                 if ( _rc ) {
                     disp as err "cutmatrix() must be a N by 1 or 1 by N matrix."
+                    clean_all 198
                     exit 198
                 }
                 mata: st_local("xhow_cuts", strofreal(max((`c', `r')) > 0))
@@ -1251,13 +1281,11 @@ program _gtools_internal, rclass
                 if ( "`cutoffs'"      != "" ) local olist "`olist', cutoffs()"
                 di as err "Specify only one of: `olist'"
                 local early_rc = 198
-                exit 198
             }
 
             if ( `xhow_nq' & (`nquantiles' < 2) ) {
                 di as err "{opt nquantiles()} must be greater than or equal to 2"
                 local early_rc = 198
-                exit 198
             }
 
             foreach quant of local quantiles {
@@ -1265,13 +1293,11 @@ program _gtools_internal, rclass
                     di as err "{opt quantiles()} must all be strictly" ///
                               " between 0 and 100"
                     local early_rc = 198
-                    exit 198
                 }
                 if ( `quant' == 0 ) | ( `quant' == 100 ) {
                     di as err "{opt quantiles()} cannot be 0 or 100" ///
                               " (note: try passing option {opt minmax})"
                     local early_rc = 198
-                    exit 198
                 }
             }
 
@@ -1288,7 +1314,6 @@ program _gtools_internal, rclass
                 if ( "`cutquantiles'" != "" ) local olist "cutquantiles()"
                 di as err "Option {opt `olist'} requires xtile or pctile"
                 local early_rc = 198
-                exit 198
             }
 
             local xbin_any = ("`binfreq'" != "") & ("`binfreqvar'" == "")
@@ -1298,14 +1323,12 @@ program _gtools_internal, rclass
                 di as err "{opt binfreq} not allowed with {opt `olist'};" ///
                           " try {opth binfreq(newvarname)}"
                 local early_rc = 198
-                exit 198
             }
 
             if ( ("`cutoffs'" != "") & ("`binfreq'" == "") & !(`xgen_any') ) {
                 di as err "Nothing to do: Option {opt cutoffs()} requires" ///
                           " {opt binfreq}, {opt xtile}, or {opt pctile}"
                 local early_rc = 198
-                exit 198
             }
 
             local xgen_maxdata = `xgen_p' | `xgen_gp' | `xgen_bf'
@@ -1313,7 +1336,6 @@ program _gtools_internal, rclass
                 di as err "{opt nquantiles()} must be less than or equal to" ///
                           " `=_N +1' (# obs + 1) with {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
             if ( (`=scalar(__gtools_xtile_nq2)' > `=_N') & `xgen_maxdata' ) {
@@ -1321,7 +1343,6 @@ program _gtools_internal, rclass
                           " less than or equal to `=_N' (# obs)" ///
                           " with options {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
             if ( (`=scalar(__gtools_xtile_ncuts)' > `=_N') & `xgen_maxdata' ) {
@@ -1329,7 +1350,6 @@ program _gtools_internal, rclass
                           " less than or equal to `=_N' (# obs)" ///
                           " with options {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
             if ( `early_rc' ) {
@@ -1363,18 +1383,18 @@ program _gtools_internal, rclass
             cap noi check_matsize, nvars(`=scalar(__gtools_xtile_nq2)')
             if ( _rc ) {
                 local rc = _rc
-                clean_all `rc'
                 di as err _n(1) "Note: bypass matsize and specify quantiles" ///
                                 " using a variable via {opt cutquantiles()}"
+                clean_all `rc'
                 exit `rc'
             }
 
             cap noi check_matsize, nvars(`=scalar(__gtools_xtile_ncuts)')
             if ( _rc ) {
                 local rc = _rc
-                clean_all `rc'
                 di as err _n(1) "Note: bypass matsize and specify cutoffs" ///
                                 " using a variable via {opt cutpoints()}"
+                clean_all `rc'
                 exit `rc'
             }
 
@@ -1449,9 +1469,9 @@ program _gtools_internal, rclass
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
                 if ( _rc ) {
                     local rc = _rc
-                    clean_all `rc'
                     di as err _n(1) "Note: You can bypass matsize and" ///
                                     " save binfreq to a variable via binfreq()"
+                    clean_all `rc'
                     exit `rc'
                 }
                 matrix __gtools_xtile_quantbin = ///
@@ -1463,9 +1483,9 @@ program _gtools_internal, rclass
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
                 if ( _rc ) {
                     local rc = _rc
-                    clean_all `rc'
                     di as err _n(1) "Note: You can bypass matsize and" ///
                                     " save quantiles to a variable via pctile()"
+                    clean_all `rc'
                     exit `rc'
                 }
                 matrix __gtools_xtile_quantiles = ///
@@ -1622,7 +1642,7 @@ program _gtools_internal, rclass
     }
 
     return matrix invert = __gtools_invert
-    clean_all
+    clean_all 0
     exit 0
 end
 
@@ -1636,7 +1656,7 @@ program hashsort_inner, sortpreserve
     cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
     if ( _rc ) {
         local rc = _rc
-        clean_all
+        clean_all `rc'
         exit `rc'
     }
     if ( "`invertinmata'" != "" ) {
@@ -1663,6 +1683,9 @@ capture program drop clean_all
 program clean_all
     args rc
     if ( "`rc'" == "" ) local rc = 0
+
+    set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
+    global GTOOLS_USER_INTERNAL_VARABBREV
 
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if

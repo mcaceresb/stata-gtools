@@ -11,7 +11,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     ST_double z;
     GT_size j, k;
     GT_size sel;
-    GT_size numwidth = st_info->numfmt_max > 18? st_info->numfmt_max + 4: 22;
+    GT_size numwidth = st_info->numfmt_max > 18? st_info->numfmt_max + 5: 23;
     GT_size kvars = st_info->kvars_by;
     clock_t timer = clock();
 
@@ -55,7 +55,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
 
     char *colsep = malloc((st_info->colsep_len + 1) * sizeof(char));
     char *sep    = malloc((st_info->sep_len    + 1) * sizeof(char));
-    char *numfmt = malloc((st_info->numfmt_max + 1) * sizeof(char));
+    char *numfmt = malloc((st_info->numfmt_len + 1) * sizeof(char));
 
     if ( colsep == NULL ) return (sf_oom_error("sf_levelsof", "colsep"));
     if ( sep    == NULL ) return (sf_oom_error("sf_levelsof", "sep"));
@@ -63,11 +63,11 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
 
     memset (colsep, '\0', (st_info->colsep_len + 1) * sizeof(char));
     memset (sep,    '\0', (st_info->sep_len    + 1) * sizeof(char));
-    memset (numfmt, '\0', (st_info->numfmt_max + 1) * sizeof(char));
+    memset (numfmt, '\0', (st_info->numfmt_len + 1) * sizeof(char));
 
     if ( (rc = SF_macro_use("_colsep", colsep, (st_info->colsep_len + 1) * sizeof(char))) ) goto exit;
     if ( (rc = SF_macro_use("_sep",    sep,    (st_info->sep_len    + 1) * sizeof(char))) ) goto exit;
-    if ( (rc = SF_macro_use("_numfmt", numfmt, (st_info->numfmt_max + 1) * sizeof(char))) ) goto exit;
+    if ( (rc = SF_macro_use("_numfmt", numfmt, (st_info->numfmt_len + 1) * sizeof(char))) ) goto exit;
 
     if ( kvars > 1 ) {
         if ( st_info->kvars_by_str > 0 ) {
@@ -131,7 +131,6 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                     else {
                         strpos += sprintf(strpos, numfmt, z);
                     }
-                    // printf("%.16G\n", z);
                 }
             }
         }
@@ -147,7 +146,6 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                 else {
                     strpos += sprintf(strpos, numfmt, z);
                 }
-                // printf("%.16G\n", z);
             }
         }
     }

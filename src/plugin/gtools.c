@@ -48,7 +48,10 @@
 #include "extra/hashsort.c"
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
-#include "extra/gquantiles.c"
+
+#include "quantiles/gquantiles_math.c"
+#include "quantiles/gquantiles_utils.c"
+#include "quantiles/gquantiles.c"
 
 int main()
 {
@@ -268,6 +271,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             encode,
             cleanstr,
             numfmt_max,
+            numfmt_len,
             colsep_len,
             sep_len,
             init_targ,
@@ -390,6 +394,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_countmiss",      &countmiss)      )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_numfmt_max",     &numfmt_max)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_numfmt_len",     &numfmt_len)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_cleanstr",       &cleanstr)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_colsep_len",     &colsep_len)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_sep_len",        &sep_len)        )) goto exit;
@@ -539,6 +544,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->countmiss      = countmiss;
 
     st_info->numfmt_max     = numfmt_max;
+    st_info->numfmt_len     = numfmt_len;
     st_info->cleanstr       = cleanstr;
     st_info->colsep_len     = colsep_len;
     st_info->sep_len        = sep_len;

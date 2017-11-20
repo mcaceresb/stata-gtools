@@ -29,6 +29,12 @@ Change Log
 - `bench(2)` and `bench(3)` offer the user more control over what
   benchmark steps are displayed.
 
+### Bug fixes
+
+- Fixes possible bug with levelsof where the plugin tries to read
+  more characters than contained in the numfmt local macro. This
+  could cause problems on some systems.
+
 ## gtools-0.10.3 (2017-11-12)
 
 ### Bug fixes

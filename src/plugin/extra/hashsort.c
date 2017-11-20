@@ -85,7 +85,7 @@ error:
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote back _sortindex");
 
 exit:

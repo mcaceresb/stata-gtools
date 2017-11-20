@@ -93,7 +93,7 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 5.1: Generated encoding in Stata order");
 
             eptr = encoding;
@@ -103,7 +103,7 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 5.2: Copied back encoding to Stata");
         }
         else {
@@ -116,7 +116,7 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 5.1: Generated encoding in Stata order");
 
             eptr = encoding;
@@ -124,7 +124,7 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
                 if ( (rc = SF_vstore(group_targets[0], i + st_info->in1, *eptr)) ) return (rc);
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 5.2: Copied back encoding to Stata");
         }
 
@@ -171,7 +171,7 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Copied back encoding to Stata");
 
     return (0);

@@ -18,7 +18,7 @@ program gquantiles, rclass
                                         ///
         Nquantiles(int 0)               /// Number of quantiles
         Cutpoints(passthru)             /// Use cutpoints instead of percentiles of `exp'
-        Percentiles(numlist)            /// Percentiles to compute
+        Percentiles(str)                /// Percentiles to compute
         ALTdef                          /// Alternative definition
                                         ///
                                         /// Extras (ways to specify cutoffs)
@@ -26,6 +26,8 @@ program gquantiles, rclass
                                         ///
         Quantiles(passthru)             /// Alias for percentiles
         cutoffs(passthru)               /// Use specified cutoffs instead of quantiles
+        quantmatrix(passthru)           /// Name of matrix with quantiles
+        cutmatrix(passthru)             /// Name of matrix with cutoffs
         CUTQuantiles(passthru)          /// Use percentiles specified in cutquantiles
                                         ///
                                         /// Augmented standard options
@@ -33,6 +35,7 @@ program gquantiles, rclass
                                         ///
         returnlimit(real 1001)          /// Set to missing (.) to have no return limit; REALLY SLOW to tinker
         cutifin                         /// Read quantiles() or cutquantiles() within [if] [in]
+        cutby                           /// Read quantiles() or cutquantiles() within [if] [in]
         dedup                           /// Remove duplicates from quantiles() or cutquantiles()
         _pctile                         /// Set return values in the style of pctile
         pctile                          /// Call pctile
@@ -45,9 +48,7 @@ program gquantiles, rclass
                                         /// --------------
                                         ///
         binfreq                         /// Return bin frequencies
-        binpct                          /// Return bin frequencies in variable
         BINFREQvar(name)                /// Return bin count with options quantiles or cutoffs
-        BINPCTvar(name)                 /// Return bin count with options quantiles or cutoffs
                                         ///
         by(str)                         /// By variabes: [+|-]varname [[+|-]varname ...]
         replace                         /// Replace newvar, if it exists
@@ -58,13 +59,15 @@ program gquantiles, rclass
                                         /// Standard gtools options
                                         /// -----------------------
                                         ///
+        debug(passthru)                 /// Print debugging info to console
         Verbose                         /// Print info during function execution
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
+        HASHmethod(passthru)            /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)               /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)           /// error|fallback: On collision, use native command or throw error
                                         ///
-        gen(passthru)                   ///
+        GROUPid(str)                    ///
         tag(passthru)                   ///
         counts(passthru)                ///
         fill(passthru)                  ///
@@ -77,7 +80,7 @@ program gquantiles, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
-    local gfallbackmaybe = "`replace'`by'`pctilevar'`xtilevar'`minmax'`cutoffs'`cutquantiles'`binfreq'`binpct'`binfreqvar'`binpctvar'" == ""
+    local gfallbackmaybe = "`replace'`by'`pctilevar'`xtilevar'`minmax'`cutoffs'`quantmatrix'`cutmatrix'`cutquantiles'`binfreq'`binfreqvar'" == ""
 
     local gen_pctile = ("`pctile'" != "") | ("`pctilevar'" != "")
     local gen_xtile  = ("`xtile'"  != "") | ("`xtilevar'"  != "")
@@ -104,16 +107,13 @@ program gquantiles, rclass
     }
 
     if ( "`by'" != "" ) {
-        di as err "by() is not yet supported. This feature is planned for the next release."
-        exit 198
-
         if ( `gen_pctile' & ("`strict'" != "strict") ) {
             di as err "by() with -pctile- requires option -strict-"
             local early_rc = 198
         }
 
         if ( !(`gen_xtile') & !(`gen_pctile') ) {
-            di as err "by() requires -xtile- (or -pctile- with option -strict-)"
+            di as err "by() requires -xtile- or -pctile-"
             local early_rc = 198
         }
 
@@ -123,19 +123,27 @@ program gquantiles, rclass
             local early_rc = 198
         }
 
-        if ( "`binfreq'" != "" ) {
-            di as err "by() does not allow -binfreq- or -binpct-"
+        if ( "`_pctile'" != "" ) {
+            di as err "by() does not allow _pctile; try pctile[()]"
             local early_rc = 198
         }
 
-        if ( ("`binpct'" != "") | ("`binpctvar'" != "") ) {
-            di as err "by() does not allow -binpct- or -binpct()-"
+        if ( "`binfreq'" != "" ) {
+            di as err "by() does not allow -binfreq-"
             local early_rc = 198
         }
 
         if ( ("`binfreqvar'" != "") & ("`strict'" != "strict") ) {
             di as err "by() with -binfreq()- requires option -strict-"
             local early_rc = 198
+        }
+
+        if ( `gen_pctile' & ("`groupid'" == "") ) {
+            disp as txt "Suggestion: by() with pctile() is more useful with groupid()"
+        }
+
+        if ( ("`binfreqvar'" != "") & ("`groupid'" == "") ) {
+            disp as txt "Suggestion: by() with binfreq() is more useful with groupid()"
         }
     }
 
@@ -175,20 +183,8 @@ program gquantiles, rclass
         }
     }
 
-    if ( ("`binfreqvar'" != "") | ("`binpctvar'" != "") ) {
-        if ( "`binfreqvar'" != "" ) {
-            local binaddvar binfreqvar(`binfreqvar')
-            if ( "`binpctvar'" != "" ) {
-                cap confirm new variable `binpctvar'
-                if ( _rc & ("`replace'" == "") ) {
-                    di as err "Option binpct() invalid; `binpctvar' already exists."
-                    local early_rc = 198
-                }
-            }
-        }
-        else {
-            local binaddvar binfreqvar(`binpctvar')
-        }
+    if ( "`binfreqvar'" != "" ) {
+        local binaddvar binfreqvar(`binfreqvar')
     }
 
     * Parse number of quantiles
@@ -292,7 +288,7 @@ program gquantiles, rclass
         }
     }
 
-    if ( ("`binfreq'" != "") | ("`binpct'" != "") ) {
+    if ( "`binfreq'" != "" ) {
         local binadd binfreq
     }
 
@@ -317,11 +313,12 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
-    local   opts `opts' `gen' `tag' `counts' `fill'
+    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug'
+    local   opts `opts' gen(`groupid') `tag' `counts' `fill'
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
-    local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `cutquantiles' `cutifin' `dedup'
-    local gqopts `gqopts' `replace' `altdef' `method' `strict' `minmax' returnlimit(`returnlimit')
+    local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'
+    local gqopts `gqopts' `cutifin' `cutby' `dedup' `replace' `altdef' `method' `strict' `minmax'
+    local gqopts `gqopts' returnlimit(`returnlimit')
     cap noi _gtools_internal `by' `ifin', missing unsorted `opts' gquantiles(`gqopts') gfunction(quantiles)
     local rc = _rc
 
@@ -353,9 +350,12 @@ program gquantiles, rclass
 
     if ( "`by'" != "" ) {
         return scalar N      = `r(N)'
+        return scalar Nx     = `r(Nxvars)'
         return scalar J      = `r(J)'
         return scalar minJ   = `r(minJ)'
         return scalar maxJ   = `r(maxJ)'
+        CleanExit
+        exit 0
     }
     else {
         return scalar N = `r(Nxvars)'
@@ -385,18 +385,7 @@ program gquantiles, rclass
         }
         if ( `: list posof "bin" in nqextra' ) {
             mata: st_matrix("__gtools_r_qbin", st_matrix("r(quantiles_bincount)")[1::`Nout']')
-            if ( "`binpct'" != "" ) {
-                if ("`binfreq'" == "") {
-                    matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-                    return matrix quantiles_binpct = __gtools_r_qbin
-                }
-                else if ("`binfreq'" != "") {
-                    matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                    return matrix quantiles_binfreq = __gtools_r_qbin
-                    return matrix quantiles_binpct  = __gtools_r_qpct
-                }
-            }
-            else if ("`binfreq'" != "") {
+            if ("`binfreq'" != "") {
                 return matrix quantiles_binfreq = __gtools_r_qbin
             }
         }
@@ -428,18 +417,7 @@ program gquantiles, rclass
         mata: st_matrix("__gtools_r_qused", st_matrix("r(quantiles_used)")[1::`r(nquantiles2)']')
         mata: st_matrix("__gtools_r_qbin",  st_matrix("r(quantiles_bincount)")[1::`r(nquantiles2)']')
         return matrix quantiles_used = __gtools_r_qused
-        if ( "`binpct'" != "" ) {
-            if ("`binfreq'" == "") {
-                matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-                return matrix quantiles_binpct  = __gtools_r_qbin
-            }
-            else if ("`binfreq'" != "") {
-                matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                return matrix quantiles_binfreq = __gtools_r_qbin
-                return matrix quantiles_binpct  = __gtools_r_qpct
-            }
-        }
-        else if ("`binfreq'" != "") {
+        if ("`binfreq'" != "") {
             return matrix quantiles_binfreq = __gtools_r_qbin
         }
         if ( "`_pctile'" != "" ) {
@@ -462,18 +440,7 @@ program gquantiles, rclass
         mata: st_matrix("__gtools_r_qused", st_matrix("r(cutoffs_used)")[1::`r(ncutoffs)']')
         mata: st_matrix("__gtools_r_qbin",  st_matrix("r(cutoffs_bincount)")[1::`r(ncutoffs)']')
         return matrix cutoffs_used = __gtools_r_qused
-        if ( "`binpct'" != "" ) {
-            if ("`binfreq'" == "") {
-                matrix __gtools_r_qbin = __gtools_r_qbin / `Nx'
-                return matrix cutoffs_binpct  = __gtools_r_qbin
-            }
-            else if ("`binfreq'" != "") {
-                matrix __gtools_r_qpct = __gtools_r_qbin / `Nx'
-                return matrix cutoffs_binfreq =  __gtools_r_qbin
-                return matrix cutoffs_binpct  = __gtools_r_qpct
-            }
-        }
-        else if ("`binfreq'" != "") {
+        if ("`binfreq'" != "") {
             return matrix cutoffs_binfreq =  __gtools_r_qbin
         }
     }
@@ -492,24 +459,6 @@ program gquantiles, rclass
                 di as err "Cannot set _pctile return values with cutquantiles() but no pctile()"
                 CleanExit
                 exit 198
-            }
-        }
-    }
-
-    if ( "`binpctvar'" != "" ) {
-        if ( "`binfreqvar'" == "" ) {
-            qui replace `binpctvar' = `binpctvar'  / `Nx' in 1 / `Nout'
-        }
-        else {
-            cap confirm new var `binpctvar'
-            if ( _rc ) {
-                qui replace `binpctvar' = `binfreqvar' / `Nx' in 1 / `Nout'
-                if ( `=`Nout'' < `=_N' ) {
-                    qui replace `binpctvar' = . in `=`Nout' + 1' / `=_N'
-                }
-            }
-            else {
-                qui gen `binpctvar' = `binfreqvar' / `Nx' in 1 / `Nout'
             }
         }
     }

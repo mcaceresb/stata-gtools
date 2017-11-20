@@ -1,6 +1,34 @@
 Change Log
 ==========
 
+## gtools-0.11.0 (2017-11-17)
+
+### Backwards Incompatible
+
+- `gquantiles` no longer supports option "binpct[()]"
+- `glevelsof` no longer supports option "silent"
+
+### Features
+
+- `gquantiles` supports `by()`
+
+- Option `hash()` gives user control over hashing mechanics.  0 is
+  default (internals choose what it thinks will be fastest), 1 tries to
+  biject, 2 always calls spookyhash.
+
+### Enhancements
+
+- Improved internal handling of numerical precision issues when
+  computing quantiles (gquantiles, gcollapse, and gegen).
+
+- When the data is sorted, groups are indexed directly instead of using
+  the hash. This was 2x faster in testing for an overall ~33% or so speedup.
+
+- `gtop` is a shortcut for `gtoplevelsof`
+
+- `bench(2)` and `bench(3)` offer the user more control over what
+  benchmark steps are displayed.
+
 ## gtools-0.10.3 (2017-11-12)
 
 ### Bug fixes

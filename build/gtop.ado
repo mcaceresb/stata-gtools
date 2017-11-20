@@ -6,7 +6,7 @@ program gtop, rclass
     local 00 `0'
     gtoplevelsof `0'
     local 0 `00'
-    syntax [anything], [LOCal(str) MATrix(str) *]
+    syntax [anything] [if] [in], [LOCal(str) MATrix(str) *]
     tempname gmat
     matrix `gmat' = r(toplevels)
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'

@@ -1,4 +1,4 @@
-*! version 0.10.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.11.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -25,6 +25,10 @@ program gcollapse, rclass
         LABELFormat(passthru)       /// Custom label engine: (#stat#) #sourcelabel# is the default
         LABELProgram(passthru)      /// Program to parse labelformat (see examples)
                                     ///
+        ANYMISSing(passthru)        /// Custom handling if any missing values per stat per group
+        ALLMISSing(passthru)        /// Custom handling if all missing values per stat per group
+                                    ///
+                                    ///
         unsorted                    /// Do not sort the data; faster
         forceio                     /// Use disk temp drive for writing/reading collapsed data
         forcemem                    /// Use memory for writing/reading collapsed data
@@ -34,6 +38,7 @@ program gcollapse, rclass
         BENCHmark                   /// print function benchmark info
         BENCHmarklevel(int 0)       /// print plugin benchmark info
                                     ///
+        HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
                                     ///
@@ -50,8 +55,8 @@ program gcollapse, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
-    local replaceby `debug_replaceby'
-    local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'" == ""
+    local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
+    local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
 
     if ( "`by'" != "" ) {
         local clean_by `by'
@@ -94,6 +99,7 @@ program gcollapse, rclass
         disp as txt `"    verbose:            `verbose'"'
         disp as txt `"    benchmark:          `benchmark'"'
         disp as txt `"    benchmarklevel:     `benchmarklevel'"'
+        disp as txt `"    hashmethod:         `hashmethod'"'
         disp as txt `"    hashlib:            `hashlib'"'
         disp as txt `"    oncollision:        `oncollision'"'
         disp as txt `""'
@@ -405,8 +411,10 @@ program gcollapse, rclass
     local sources  sources(`__gtools_vars')
     local stats    stats(`__gtools_stats')
     local targets  targets(`__gtools_targets')
-    local opts     missing replace `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
-    local action  `sources' `targets' `stats'
+    local opts     missing replace
+    local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local opts     `opts' `anymissing' `allmissing'
+    local action   `sources' `targets' `stats'
 
     local switch = (`=scalar(__gtools_k_extra)' > 3) & (`debug_io_check' < `=_N')
     local mem    = ("`forcemem'" != "") | ("`merge'" != "") | (`=scalar(__gtools_k_extra)' == 0)

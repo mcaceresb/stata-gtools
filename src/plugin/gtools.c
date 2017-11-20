@@ -5,7 +5,7 @@
  * Updated: Tue Oct 31 06:01:11 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.10.3
+ * Version: 0.11.0
  *********************************************************************/
 
 /**
@@ -223,9 +223,6 @@ STDLL stata_call(int argc, char *argv[])
             if ( (rc = sf_xtile  (st_info, 0)) ) goto exit;
         }
         else {
-            sf_errprintf("by() support is planned for a future version.");
-            sf_errprintf("Try again when 0.11.0 or above is released.\n");
-            rc = 17777; goto exit;
             if ( (rc = sf_hash_byvars (st_info, 0))  ) goto exit;
             if ( (rc = sf_check_hash  (st_info, 22)) ) goto exit; // (Note: discards by copy)
             if ( (rc = sf_encode      (st_info, 0))  ) goto exit;
@@ -260,7 +257,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 {
     ST_retcode rc = 0;
     GT_size i, start, in1, in2, N;
-    GT_size verbose,
+    GT_size debug,
+            verbose,
             benchmark,
             countonly,
             seecount,
@@ -299,6 +297,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile__pctile,
             xtile_dedup,
             xtile_cutifin,
+            xtile_cutby,
+            hash_method,
             any_if,
             countmiss,
             replace,
@@ -372,12 +372,14 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( N < 1 ) return (17001);
 
     // Parse switches
+    if ( (rc = sf_scalar_size("__gtools_debug",          &debug)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_verbose",        &verbose)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_benchmark",      &benchmark)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_any_if",         &any_if)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_init_targ",      &init_targ)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_invertix",       &invertix)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
@@ -417,6 +419,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_xtile__pctile",  &xtile__pctile)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_dedup",    &xtile_dedup)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",  &xtile_cutifin)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutby",    &xtile_cutby)    )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
@@ -517,6 +520,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->N              = N;
     st_info->Nread          = N;
 
+    st_info->debug          = debug;
     st_info->verbose        = verbose;
     st_info->benchmark      = benchmark;
     st_info->any_if         = any_if;
@@ -524,6 +528,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->strmax         = strmax;
     st_info->invertix       = invertix;
     st_info->skipcheck      = skipcheck;
+    st_info->hash_method    = hash_method;
 
     st_info->unsorted       = unsorted;
     st_info->countonly      = countonly;
@@ -563,6 +568,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile__pctile  = xtile__pctile;
     st_info->xtile_dedup    = xtile_dedup;
     st_info->xtile_cutifin  = xtile_cutifin;
+    st_info->xtile_cutby    = xtile_cutby;
 
     st_info->encode         = encode;
     st_info->group_data     = group_data;
@@ -604,6 +610,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     clock_t stimer = clock();
 
     GT_size *info, *index, *ix;
+    GT_bool checksorted;
     GT_size i,
             j,
             k,
@@ -747,7 +754,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         ix = index;
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 1: Read in by variables");
 
     stimer = clock();
@@ -825,53 +832,110 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     }
 
     /*********************************************************************
-     *                  Check if sorted (hashsort only)                  *
+     *                          Check if sorted                          *
      *********************************************************************/
 
-    if ( (level == 3) & (st_info->skipcheck == 0) ) {
+    // With hashsort, only check if skipcheck is not specified; if
+    // sorted simply exit. With isid, we have already checked and we
+    // need to skip this part. With all others, check if it is sorted
+    // and if so set up the panel recursively.
+
+    checksorted = (level != 2) & (level != 3);
+    if ( ((level == 3) & (st_info->skipcheck == 0)) | checksorted ) {
         if ( st_info->kvars_by_str > 0 ) {
-            if ( MultiSortCheckMC (st_info->st_charx,
-                                   st_info->N,
-                                   0,
-                                   st_info->kvars_by - 1,
-                                   st_info->rowbytes,
-                                   st_info->byvars_lens,
-                                   st_info->invert,
-                                   st_info->positions) ) {
-                if ( st_info->verbose )
-                    sf_printf("(already sorted)\n");
-                rc = 17013;
-                goto exit;
-            }
+            st_info->sorted = MultiSortCheckMC (
+                st_info->st_charx,
+                st_info->N,
+                0,
+                st_info->kvars_by - 1,
+                st_info->rowbytes,
+                st_info->byvars_lens,
+                st_info->invert,
+                st_info->positions
+            );
         }
         else {
-            if ( MultiSortCheckDbl(st_info->st_numx,
-                                   st_info->N,
-                                   0,
-                                   st_info->kvars_by - 1,
-                                   st_info->kvars_by * sizeof(ST_double),
-                                   st_info->invert) ) {
-                if ( st_info->verbose )
-                    sf_printf("(already sorted)\n");
-                rc = 17013;
-                goto exit;
-            }
+            st_info->sorted = MultiSortCheckDbl(
+                st_info->st_numx,
+                st_info->N,
+                0,
+                st_info->kvars_by - 1,
+                st_info->kvars_by * sizeof(ST_double),
+                st_info->invert
+            );
         }
+        if ( st_info->verbose & st_info->sorted )
+            sf_printf("(already sorted)\n");
+    }
+    else {
+        st_info->sorted = 0;
+    }
+
+    if ( (level == 3) & (st_info->skipcheck == 0) & st_info->sorted ) {
+        rc = 17013;
+        goto exit;
+    }
+
+    checksorted = checksorted & (st_info->hash_method == 0);
+    if ( checksorted & st_info->sorted ) {
+        GT_size *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
+        if ( info_largest == NULL ) return (sf_oom_error("sf_hash_byvars", "info_largest"));
+
+        if ( st_info->kvars_by_str > 0 ) {
+            st_info->J = MultiSortPanelSetupMC (
+                st_info->st_charx,
+                st_info->N,
+                0,
+                st_info->kvars_by - 1,
+                st_info->rowbytes,
+                st_info->byvars_lens,
+                st_info->invert,
+                st_info->positions,
+                info_largest,
+                0
+            );
+        }
+        else {
+            st_info->J = MultiSortPanelSetupDbl (
+                st_info->st_numx,
+                st_info->N,
+                0,
+                st_info->kvars_by - 1,
+                st_info->kvars_by * sizeof(ST_double),
+                st_info->invert,
+                info_largest,
+                0
+            );
+        }
+
+        info_largest[st_info->J] = st_info->N;
+
+        st_info->info = calloc(st_info->J + 1, sizeof st_info->info);
+        if ( st_info->info == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->info"));
+        GTOOLS_GC_ALLOCATED("st_info->info")
+        st_info->free = 4;
+
+        for (i = 0; i < st_info->J + 1; i++)
+            st_info->info[i] = info_largest[i];
+
+        free(info_largest);
     }
 
     /*********************************************************************
      *            Check whether to hash or to use a bijection            *
      *********************************************************************/
 
-    if ( kstr > 0 ) {
+    if ( checksorted & st_info->sorted ) {
+        st_info->biject = 1;
+    }
+    else if ( (kstr > 0) | (st_info->hash_method == 2) ) {
         st_info->biject = 0;
     }
     else {
         if ( (rc = gf_bijection_limits (st_info, level)) ) goto exit;
+        if ( st_info->benchmark > 2 )
+            sf_running_timer (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
     }
-
-    if ( st_info->benchmark )
-        sf_running_timer (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
 
     /*********************************************************************
      *                       Panel setup and info                        *
@@ -883,9 +947,13 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     uint64_t *ghash1;
     uint64_t *ghash2;
 
-    if ( st_info->biject ) {
+    if ( checksorted & st_info->sorted ) {
+        ghash1 = malloc(sizeof(uint64_t));
+        ghash2 = malloc(sizeof(uint64_t));
+    }
+    else if ( st_info->biject ) {
         ghash1 = calloc(N, sizeof *ghash1);
-        ghash2  = malloc(sizeof(uint64_t));
+        ghash2 = malloc(sizeof(uint64_t));
 
         if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
         if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
@@ -901,12 +969,16 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("ghash1")
     GTOOLS_GC_ALLOCATED("ghash2")
 
-    if ( (rc = gf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
+    if ( checksorted & st_info->sorted ) {
+    }
+    else {
+        if ( (rc = gf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
+        if ( st_info->benchmark > 1 )
+            sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 
-    if ( st_info->benchmark )
-        sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
+        stimer = clock();
+    }
 
-    stimer = clock();
 
     // Level 2 is code for isid
     // ------------------------
@@ -915,7 +987,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         rc_isid = gf_isid (ghash1, ghash2, st_info, ix, !(st_info->biject));
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 1 )
             sf_running_timer (&timer, "\tPlugin step 3: Checked if group is id");
 
         stimer = clock();
@@ -933,13 +1005,17 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         // Otherwise, set up panel normally
         // --------------------------------
 
-        if ( (rc = gf_panelsetup (ghash1,
-                                  ghash2,
-                                  st_info,
-                                  ix,
-                                  !(st_info->biject))) ) goto error;
+        if ( checksorted & st_info->sorted ) {
+        }
+        else {
+            if ( (rc = gf_panelsetup (ghash1,
+                                      ghash2,
+                                      st_info,
+                                      ix,
+                                      !(st_info->biject))) ) goto error;
+        }
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 3.1: Created group index");
 
         st_info->free = 4;
@@ -954,10 +1030,17 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         if ( st_info->verbose || (st_info->countonly & st_info->seecount) ) {
             if ( nj_min == nj_max )
-                sf_printf ("N = "GT_size_cfmt"; "GT_size_cfmt" balanced groups of size "GT_size_cfmt"\n",
+                sf_printf ("N = "
+                           GT_size_cfmt"; "
+                           GT_size_cfmt" balanced groups of size "
+                           GT_size_cfmt"\n",
                            st_info->N, st_info->J, nj_min);
             else
-                sf_printf ("N = "GT_size_cfmt"; "GT_size_cfmt" unbalanced groups of sizes "GT_size_cfmt" to "GT_size_cfmt"\n",
+                sf_printf ("N = "
+                           GT_size_cfmt"; "
+                           GT_size_cfmt" unbalanced groups of sizes "
+                           GT_size_cfmt" to "
+                           GT_size_cfmt"\n",
                            st_info->N, st_info->J, nj_min, nj_max);
         }
 
@@ -997,12 +1080,12 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             st_info->ix = st_info->index;
         }
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
 
         st_info->free = 5;
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 1 )
             sf_running_timer (&timer, "\tPlugin step 3: Set up panel");
 
         stimer = clock();
@@ -1133,7 +1216,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
         st_info->used_io = 0;
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: C vs Stata benchmark");
 
 exit:
@@ -1177,7 +1260,7 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     if ( (rc = SF_vdata(ipos + 2, j + st_info->in1, &z)) ) goto exit;
     st_info->info[j] = (GT_size) z;
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 4: Read info, index from Stata");
 
 exit:

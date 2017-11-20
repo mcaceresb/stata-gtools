@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.3 12Nov2017}{...}
+{* *! version 0.3.0 19Nov2017}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -19,11 +19,13 @@
 {marker syntax}{...}
 {title:Syntax}
 
-{phang}
-gquantiles can function as a fast alternative to {cmd:xtile},
+{pstd}
+gquantiles can function as a fast, by-able, alternative to {cmd:xtile},
 {cmd:pctile}, and {cmd:_pctile}, though it offers more functionality
-that those Stata commands (e.g. arbitrary quantiles and an arbitrary
-number in a reasonable amount of time, frequencies, and more).
+that those Stata commands (e.g. this function accepts {opth by(varlist)}
+with {cmd:xtile[()]} and {cmd:pctile[()]}, it can compute arbitrary
+quantiles and an arbitrary number in a reasonable amount of time, 
+it computes frequencies, and more).
 
 {phang}
 Create variable containing percentiles (equivalent to {cmd:pctile})
@@ -89,7 +91,7 @@ The full syntax, however, is
 {marker quantiles_method}{...}
 {synopthdr}
 {synoptline}
-{syntab :Quantiles method}
+{syntab :Quantiles method (choose only one)}
 
 {synopt :{opt n:quantiles(#)}}number of quantiles; default is {cmd:nquantiles(2)}
 {p_end}
@@ -100,6 +102,10 @@ The full syntax, however, is
 {synopt :{opth cutoffs(numlist)}}use values of {it:numlist} as cutpoints
 {p_end}
 {synopt :{opth cutquantiles(numlist)}}calculate percentiles corresponding to the values of {it:varname}
+{p_end}
+{synopt :{opth quantmatrix(matrix)}}use values of {it:matrix} as quantiles
+{p_end}
+{synopt :{opth cutmatrix(matrix)}}use values of {it:matrix} as cutpoints
 {p_end}
 
 {synoptset 18 tabbed}{...}
@@ -114,31 +120,35 @@ The full syntax, however, is
 {p_end}
 
 {syntab:Extras}
-{synopt :{opt _pctile}} Do the computation in the style of {cmd:_pctile}
+{synopt :{opth by(varlist)}}Compute quantiles by groups ({cmd:pctile} and {cmd:xtile} only).
 {p_end}
-{synopt :{cmd:pctile}[{cmd:(}{newvar}{cmd:)}]} Store percentiles in {it:newvar}. If {it:newvar} is not specified, then this indicates to do the computations in the style of {cmd:pctile}.
+{synopt :{opth groupid(varname)}}Store group ID in {it:varname}.
 {p_end}
-{synopt :{cmd:xtile}[{cmd:(}{newvar}{cmd:)}]} Store quantile categories in {it:newvar}. If {it:newvar} is not specified, then this indicates to do the computations in the style of {cmd:xtile}.
+{synopt :{opt _pctile}}(Not with by.) Do the computation in the style of {cmd:_pctile}
 {p_end}
-{synopt :{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}]} Store the frequency counts of the source variable in the quantile categories in {it:newvar}. If {it:newvar} is not specified, this is stored in {hi:r(quantiles_bincount)} or {hi:r(cutoffs_bincount)}
+{synopt :{cmd:pctile}[{cmd:(}{newvar}{cmd:)}]}Store percentiles in {it:newvar}. If {it:newvar} is not specified, then this indicates to do the computations in the style of {cmd:pctile}.
 {p_end}
-{synopt :{cmd:binpct}[{cmd:(}{newvar}{cmd:)}]} Same as {it:binfreq} but it computes percentages. If {it:newvar} is not specified, this is stored in {hi:r(quantiles_binpct)} or {hi:r(cutoffs_binpct)}
+{synopt :{cmd:xtile}[{cmd:(}{newvar}{cmd:)}]}Store quantile categories in {it:newvar}. If {it:newvar} is not specified, then this indicates to do the computations in the style of {cmd:xtile}.
+{p_end}
+{synopt :{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}]}Store the frequency counts of the source variable in the quantile categories in {it:newvar}. If {it:newvar} is not specified (not with by), this is stored in {hi:r(quantiles_bincount)} or {hi:r(cutoffs_bincount)}
 {p_end}
 
 {syntab:Switches}
-{synopt :{opt method(#)}} Algorithm to use to compute quantiles.
+{synopt :{opt method(#)}}(Not with by.) Algorithm to use to compute quantiles.
 {p_end}
-{synopt :{opt dedup}} Drop duplicate values of variables specified via {opth cutpoints} or {opth cutquantiles}
+{synopt :{opt dedup}}Drop duplicate values of variables specified via {opth cutpoints} or {opth cutquantiles}
 {p_end}
-{synopt :{opt cutifin}} Exclude values outside {ifin} of variables specified via {opth cutpoints} or {opth cutquantiles}
+{synopt :{opt cutifin}}Exclude values outside {ifin} of variables specified via {opth cutpoints} or {opth cutquantiles}
 {p_end}
-{synopt :{opt returnlimit(#)}} Maximum return values that can be set via {opt _pctile}
+{synopt :{opt cutby}}Use {opth cutquantiles()} or {opth cutpoints()} by group.
 {p_end}
-{synopt :{opt strict}} Exit with error if the number of quantiles requested via {opt nquantiles(#)} is greater than the number of non-missing observations plus one.
+{synopt :{opt returnlimit(#)}}Maximum return values that can be set via {opt _pctile}
 {p_end}
-{synopt :{opt minmax}} Additionally store the min and max in {hi:r(min)} and {hi:r(max)}
+{synopt :{opt strict}}Without by, exit with error when the number of quantiles requested exceeds the number non-missing. With by, skip groups where this happens.
 {p_end}
-{synopt :{opt replace}} Replace targets, should they exist.
+{synopt :{opt minmax}}(Not with by.) Additionally store the min and max in {hi:r(min)} and {hi:r(max)}
+{p_end}
+{synopt :{opt replace}}Replace targets, should they exist.
 {p_end}
 
 {syntab:Gtools}
@@ -208,6 +218,20 @@ restrictions and {opt dedup} to exclude duplicates.
 {opth cutquantiles(numlist)} Calculate percentiles corresponding to the values of
 {it:varname}. This is an alternative to {opth percentiles()}.
 
+{phang}
+{opth quantmatrix(matrix)}
+Requests percentiles (quantiles) corresponding to the entries of the
+matrix. This must be a column vector or a row vector. The behavior of
+gquantiles using this option is otherwise equivalent to its behavior
+when passing {opth quantiles()}.
+
+{phang}
+{opth cutmatrix(matrix)}
+Requests cutoffs corresponding to the entries of the matrix. This must
+be a column vector or a row vector. The behavior of gquantiles using
+this option is otherwise equivalent to its behavior when passing
+{opth cutoffs()}.
+
 {dlgtab:Standard Options}
 
 {phang}{opth genp(newvar)}
@@ -225,7 +249,19 @@ The alternative formula uses an interpolation method.  See
 {dlgtab:Extras}
 
 {phang}
-{opt _pctile} Do the computation in the style of {cmd:_pctile}. It
+{opth by(varlist)}
+Compute quantiles by group. {cmd:pctile[()]} requires option
+{cmd:strict}, which has the effect of ignoring groups where the number
+of quantiles requested is larger than the number of non-missing
+observations within the group. {opth by()} is most useful with option
+{opth groupid(varname)}.
+
+{phang}
+{opth groupid(varname)} Store group ID in {it:varname}. This
+is equivalent to {cmd:gegen, group}
+
+{phang}
+{opt _pctile} (Not with by.) Do the computation in the style of {cmd:_pctile}. It
 stores return values in r(1), r(2), and so on, as wll as a matrix called
 {hi:r(quantiles_used)} or {hi:r(cutoffs_used)} in case quantiles or cutoffs
 are requested. This can be combined with other options listed in this section.
@@ -249,16 +285,10 @@ is not specified, this is stored in {hi:r(quantiles_bincount)} or
 {hi:r(cutoffs_bincount)}. This can be combined with other
 options listed in this section.
 
-{phang}
-{cmd:binpct}[{cmd:(}{newvar}{cmd:)}] Same as {it:binfreq} but it
-computes percentages. If {it:newvar} is not specified, this is stored in
-{hi:r(quantiles_binpct)} or {hi:r(cutoffs_binpct)}. This can be combined with
-other options listed in this section.
-
 {dlgtab:Switches}
 
 {phang}
-{opt method(#)} Algorithm to use to compute quantiles.  If you have many
+{opt method(#)} (Not with by.) Algorithm to use to compute quantiles.  If you have many
 duplicates or are computing many quantiles, you should specify {opt
 method(1)}. If you have few duplicates or are computing few quantiles you
 should specify {opt method(2)}. By default, {cmd:gquantiles} tries to guess
@@ -277,6 +307,11 @@ values are used is artificial (the option was originally written to
 allow {cmd:xtile} to use {cmd:pctile} internally).
 
 {phang}
+{opt cutby} By default all values of the variable requested via {opth cutpoints()}
+or {opth cutquantiles()} are used. With this option, each group uses a different
+set of quantiles or cutoffs (note this automatically sets option {cmd:cutifin})
+
+{phang}
 {opt returnlimit(#)} Maximum return values that can be set via {opt _pctile}.
 Since {cmd:gquantiles} can compute a large number of quantiles very quickly,
 the function allows the user to request an arbitrary number. But setting
@@ -284,14 +319,14 @@ the function allows the user to request an arbitrary number. But setting
 in this case.
 
 {phang}
-{opt strict} Exit with error if the number of quantiles requested via 
-{opt nquantiles(#)} is greater than the number of non-missing observations
-plus one. This restriction for {opt pctile} is automatic, but for {opt xtile}
-it is artificial. It exists because it uses {opt pctile} internally, but
-{cmd:gquantiles} does not have this issue.
+{opt strict} Without {opth by()}, exit with error if the number of quantiles
+is greater than the number of non-missing observations plus one.  With 
+{opth by()}, skip groups where this  happens. This restriction for {opt pctile}
+is sensible, but for {opt xtile} it is artificial. It exists because it uses
+{opt pctile} internally, but {cmd:gquantiles} does not have this issue.
 
 {phang}
-{opt minmax} Additionally store the min and max in {hi:r(min)} and {hi:r(max)}
+{opt minmax} (Not with by.) Additionally store the min and max in {hi:r(min)} and {hi:r(max)}
 
 {phang}
 {opt replace} Replace targets, should they exist.
@@ -354,11 +389,9 @@ for examples.
 {p2col 5 20 24 2: Matrices}{p_end}
 {synopt:{cmd:r(quantiles_used)   }}With _pctile or with quantiles()               {p_end}
 {synopt:{cmd:r(quantiles_binfreq)}}With option binfreq and any quantiles requested{p_end}
-{synopt:{cmd:r(quantiles_binpct) }}With option binpct and any quantiles requested {p_end}
 
 {synopt:{cmd:r(cutoffs_used)   }}With _pctile or with cutoffs()               {p_end}
 {synopt:{cmd:r(cutoffs_binfreq)}}With option binfreq and any cutoffs requested{p_end}
-{synopt:{cmd:r(cutoffs_binpct) }}With option binpct and any cutoffs requested {p_end}
 {p2colreset}{...}
 
 

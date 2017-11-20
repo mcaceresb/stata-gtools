@@ -205,7 +205,10 @@ program compare_sort, rclass
             timer on 44
             qui fsort `varlist'
             timer off 44
-            cf * using `file_sort'
+            cap noi cf * using `file_sort'
+            if ( _rc ) {
+                disp as txt "(note: ftools `varlist' returned different data vs sort, stable)"
+            }
         restore
         qui timer list
         local time_fsort = r(t44)

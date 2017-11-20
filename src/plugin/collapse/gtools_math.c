@@ -104,16 +104,10 @@ ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const G
  */
 ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT_size end, const ST_double quantile)
 {
-    GT_bool precision_foo = (end - start) % 100;
-    ST_double N, qth, qdbl;
-
-    N = end - start;
-    if ( precision_foo ) { // Numerical precision foo
-        qth = floor(qdbl = quantile * N / 100);
-    }
-    else {
-        qth = floor(qdbl = quantile * (N / 100));
-    }
+    ST_double q, qdbl, qfoo, Ndbl;
+    GT_size   Ndiv, qth;
+    GT_bool   rfoo, Nmod;
+    GT_size   N  = (end - start);
 
     // Special cases
     // -------------
@@ -134,8 +128,27 @@ ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT
             return ( (v[start] + v[end - 1]) / 2 );
         }
     }
-    else if ( qth == 0 ) {
-        // 0th quantile is not a thing, so we can just take the min
+
+    // Get position of quantile
+    // ------------------------
+
+    Nmod = N % 100;
+    Ndbl = (ST_double) N;
+
+    if ( Nmod ) { // Numerical precision foo
+        qth  = floor(qdbl = quantile * Ndbl / 100);
+        qfoo = round(qdbl);
+        rfoo = ((qfoo * 100 / Ndbl) == quantile);
+    }
+    else {
+        Ndiv = N / 100;
+        qth  = floor(qdbl = quantile * Ndiv);
+        qfoo = round(qdbl);
+        rfoo = ((qfoo / Ndiv) == quantile);
+    }
+
+    // 0th quantile is not a thing, so we can just take the min
+    if ( qth == 0 ) {
         return (gf_array_dmin_range(v, start, end));
     }
 
@@ -143,12 +156,31 @@ ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT
     // ------------------------
 
     GT_size left = start, right = end;
-    GT_bool dmax = ( qth == (N - 1) );
-    ST_double q = dmax? gf_array_dmax_range(v, left, right): gf_qselect_range (v, left, right, qth);
-    if ( (ST_double) qth == qdbl ) {
-        q += gf_qselect_range (v, left, right, qth - 1);
-        q /= 2;
+    GT_bool dmax = (qth == (N - 1)) | (qfoo == (N - 1));
+
+    if ( rfoo ) {
+        if ( dmax ) {
+            q = (
+                gf_array_dmax_range(v, left, right) +
+                gf_qselect_range (v, left, right, qfoo - 1)
+            ) / 2;
+        }
+        else {
+            q = (
+                gf_qselect_range (v, left, right, qfoo) +
+                gf_qselect_range (v, left, right, qfoo - 1)
+            ) / 2;
+        }
     }
+    else {
+        if ( dmax ) {
+            q = gf_array_dmax_range(v, left, right);
+        }
+        else{
+            q = gf_qselect_range (v, left, right, qth);
+        }
+    }
+
     return (q);
 }
 

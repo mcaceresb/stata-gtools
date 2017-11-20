@@ -20,16 +20,19 @@ program glevelsof, rclass
         LOCal(str)            /// Store results in local
         Clean                 /// Clean strings
                               ///
-        silent                /// Do not print levels
+        noLOCALvar            /// Do not store levels in a local macro (or in r(levels))
         numfmt(passthru)      /// Number format
+        freq(passthru)        /// compute frequency counts
+        store(passthru)       /// Number format
                               ///
         Verbose               /// Print info during function execution
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
+        HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
                               ///
-        group(str)            ///
+        GROUPid(str)          ///
         tag(passthru)         ///
         counts(passthru)      ///
         replace               ///
@@ -58,8 +61,8 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt'
-    local gopts gen(`group') `tag' `counts' `replace'
+    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt' `hashmethod'
+    local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store')
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
     global GTOOLS_CALLER ""

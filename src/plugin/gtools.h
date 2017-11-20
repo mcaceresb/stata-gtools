@@ -100,7 +100,9 @@ struct StataInfo {
     GT_bool xtile__pctile;
     GT_bool xtile_dedup;
     GT_bool xtile_cutifin;
+    GT_bool xtile_cutby;
     //
+    GT_bool   hash_method;
     GT_bool   sorted;
     GT_bool   cleanstr;
     GT_bool   init_targ;
@@ -108,6 +110,7 @@ struct StataInfo {
     GT_bool   invertix;
     GT_bool   skipcheck;
     GT_bool   verbose;
+    GT_bool   debug;
     GT_bool   benchmark;
     GT_bool   countonly;
     GT_bool   seecount;

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Nov 12 21:57:19 EST 2017
+* Updated: Fri Nov 17 22:29:00 EST 2017
 * Purpose: Unit tests for gtools
-* Version: 0.10.3
+* Version: 0.11.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -17,6 +17,7 @@ set more off
 set varabbrev off
 set seed 1729
 set linesize 255
+set type double
 
 * Main program wrapper
 * --------------------
@@ -48,6 +49,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do test_gquantiles_by.do
         * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
@@ -65,6 +67,7 @@ program main
             cap ssc install distinct
             cap ssc install moremata
             cap ssc install fastxtile
+            cap ssc install egenmisc
         }
 
         if ( `:list posof "basic_checks" in options' ) {
@@ -78,15 +81,16 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gquantiles,  `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gcollapse,   `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gcontract,   `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gegen,       `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_isid,        `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_toplevelsof, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_unique,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_hashsort,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
         }
 
         if ( `:list posof "comparisons" in options' ) {
@@ -96,15 +100,16 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            compare_gquantiles,  `noisily' oncollision(error)
-            compare_gcollapse,   `noisily' oncollision(error) tol(1e-4)
-            compare_gcontract,   `noisily' oncollision(error)
-            compare_egen,        `noisily' oncollision(error)
-            compare_isid,        `noisily' oncollision(error)
-            compare_levelsof,    `noisily' oncollision(error)
-            compare_toplevelsof, `noisily' oncollision(error) tol(1e-4)
-            compare_unique,      `noisily' oncollision(error) distinct
-            compare_hashsort,    `noisily' oncollision(error)
+            compare_gquantiles_by, `noisily' oncollision(error)
+            compare_gquantiles,    `noisily' oncollision(error) noaltdef
+            compare_gcollapse,     `noisily' oncollision(error)
+            compare_gcontract,     `noisily' oncollision(error)
+            compare_egen,          `noisily' oncollision(error)
+            compare_isid,          `noisily' oncollision(error)
+            compare_levelsof,      `noisily' oncollision(error)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
+            compare_unique,        `noisily' oncollision(error) distinct
+            compare_hashsort,      `noisily' oncollision(error)
         }
 
         if ( `:list posof "switches" in options' ) {
@@ -114,16 +119,16 @@ program main
         }
 
         if ( `:list posof "bench_test" in options' ) {
-            bench_gquantiles,  n(1000) bench(1) `noisily' oncollision(error)
-            bench_contract,    n(1000) bench(1) `noisily' oncollision(error)
-            bench_egen,        n(1000) bench(1) `noisily' oncollision(error)
-            bench_isid,        n(1000) bench(1) `noisily' oncollision(error)
-            bench_levelsof,    n(100)  bench(1) `noisily' oncollision(error)
-            bench_toplevelsof, n(1000) bench(1) `noisily' oncollision(error)
-            bench_unique,      n(1000) bench(1) `noisily' oncollision(error)
-            bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct
-            * bench_unique,      n(1000) bench(1) `noisily' oncollision(error) distinct joint distunique
-            bench_hashsort,    n(1000) bench(1) `noisily' oncollision(error) benchmode
+            bench_gquantiles_by, n(100)  bench(100) `noisily' oncollision(error)
+            bench_gquantiles,    n(1000) bench(1)   `noisily' oncollision(error)
+            bench_contract,      n(1000) bench(1)   `noisily' oncollision(error)
+            bench_egen,          n(1000) bench(1)   `noisily' oncollision(error)
+            bench_isid,          n(1000) bench(1)   `noisily' oncollision(error)
+            bench_levelsof,      n(100)  bench(1)   `noisily' oncollision(error)
+            bench_toplevelsof,   n(1000) bench(1)   `noisily' oncollision(error)
+            bench_unique,        n(1000) bench(1)   `noisily' oncollision(error)
+            bench_unique,        n(1000) bench(1)   `noisily' oncollision(error) distinct
+            bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -135,16 +140,16 @@ program main
         }
 
         if ( `:list posof "bench_full" in options' ) {
-            bench_gquantiles,  n(1000000) bench(10)  `noisily' oncollision(error)
-            bench_contract,    n(10000)   bench(10)  `noisily' oncollision(error)
-            bench_egen,        n(10000)   bench(10)  `noisily' oncollision(error)
-            bench_isid,        n(10000)   bench(10)  `noisily' oncollision(error)
-            bench_levelsof,    n(100)     bench(100) `noisily' oncollision(error)
-            bench_toplevelsof, n(10000)   bench(10) `noisily' oncollision(error)
-            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error)
-            bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct
-            * bench_unique,      n(10000)   bench(10)  `noisily' oncollision(error) distinct joint distunique
-            bench_hashsort,    n(10000)   bench(10)  `noisily' oncollision(error) benchmode
+            bench_gquantiles_by, n(10000)   bench(1000) `noisily' oncollision(error)
+            bench_gquantiles,    n(1000000) bench(10)   `noisily' oncollision(error)
+            bench_contract,      n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_egen,          n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_isid,          n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_levelsof,      n(100)     bench(100)  `noisily' oncollision(error)
+            bench_toplevelsof,   n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error) distinct
+            bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)

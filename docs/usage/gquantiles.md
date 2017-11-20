@@ -3,9 +3,10 @@ gquantiles
 
 Efficiently compute percentiles, quantiles, categories, and frequency counts.
 
-gquantiles replaces xtile, pctile, and \_pctile and offers several additional
-features, like computing arbitrary quantiles (and an arbitrary number),
-frequency counts, and more (see the [examples](#examples) below).
+gquantiles is a by-able replacement for xtile, pctile, and \_pctile
+that offers several additional features, like computing arbitrary
+quantiles (and an arbitrary number), frequency counts, and more (see the
+[examples](#examples) below).
 
 While weights are not yet supported, gquantiles offers several
 additional options above the three built-in Stata commands. gquantiles
@@ -27,7 +28,8 @@ pctile}</span>
 <span class="codespan">&emsp;&emsp;&emsp;<a href="#quantiles-method">quantiles_method</a> [ <a href="#gquantiles-options">gquantiles_options</a> ]</span>
 </p>
 
-However, you can simply use it as a replacement for native Stata commands.
+This function accepts `by()` with `xtile` and `pctile`.  However, you
+can simply use it as a replacement for native Stata commands.
 
 __*Equivaent to pctile*__ (store the quantiles of `exp` in `newvar`):
 ```stata
@@ -58,7 +60,7 @@ Options
 
 ### Quantiles method
 
-gquantiles offers 3 ways of specifying quantiles and 2 ways of specifying
+gquantiles offers 4 ways of specifying quantiles and 3 ways of specifying
 cutoffs. The behavior of each differs slightly when specifying `pctile`,
 `xtile`, and `_pctile` (see [stored results](stored-results) for details).
 
@@ -73,7 +75,8 @@ cutoffs. The behavior of each differs slightly when specifying `pctile`,
   Requests that the values of `varname` be used instead of the quantiles
   of the source variable. Like the native equivalent, all values of varname
   are used, regardless of any `if` or `in` restriction (the user can pass
-  the option `cutifin` to restrict `cutpoints` to the `if in` range).
+  the option `cutifin` to restrict `cutpoints` to the `if in` range or option
+  `cutby` to use different cutpoints in each group).
   <br><br>
   Note that without any additional options, in the case of `pctile` all this
   does is sort `varname` and store it in the target variable.  Further, unlike
@@ -97,12 +100,19 @@ cutoffs. The behavior of each differs slightly when specifying `pctile`,
   below.
 <br><br>
 
+- `quantmatrix(matrix)`. Requests percentiles (quantiles) corresponding to the
+  entries of the matrix. This must be a column vector or a row vector. The
+  behavior of gquantiles using this option is otherwise equivalent to its
+  behavior when passing `quantiles()`.
+<br><br>
+
 - `cutquantiles(varname)` (`xtile` or `pctile` only).
   Requests that the values of `varname` be used as the percentiles (quantiles)
   to compute. `varname` must have all its values between 0 and 100. By default
   all values are read, regardless of `if in` restrictions (use option
-  `cutifin` to restrict the range). Missing values are dropped and duplicates
-  are allowed (use option `dedup` to drop duplicate quantiles).<br><br>
+  `cutifin` to restrict the range or `cutby` to use different cut quantiles
+  per group). Missing values are dropped and duplicates are allowed
+  (use option `dedup` to drop duplicate quantiles).<br><br>
   This option is included to allow the user to compute an arbitrary number
   of quantiles in a reasonable amount of time. While the user can force more
   than 1001 return values with the `_pctile` option, this is ill-advised
@@ -115,6 +125,12 @@ cutoffs. The behavior of each differs slightly when specifying `pctile`,
   With option `_pctile` this option is only allowed with `bincount`, which
   requests a count of the number of instances of the source variable within
   the bins defined by the cutoffs.
+<br><br>
+
+- `cutmatrix(matrix)`. Requests cutoffs corresponding to the entries of the matrix.
+  This must be a column vector or a row vector. The behavior of gquantiles using
+  this option is otherwise equivalent to its behavior when passing `cutoffs()`.
+<br><br>
 
 ### gquantiles options
 
@@ -137,7 +153,14 @@ __*Standard Options*__
 
 __*Extras*__
 
-- `_pctile` does the computation in the style of the native command `_pctile`. It stores
+- `by(varlist)` Compute quantiles by group (pctile or xtile only). `pctile[()]` requires option
+  `strict`, which has the effect of ignoring groups where the number of quantiles requested is
+  larger than the number of non-missing observations within the group. `by()` is most useful
+  with option `groupid(varname)`.
+
+- `groupid(varname)` Store group ID in `varname`.
+
+- `_pctile` (Not with by.) does the computation in the style of the native command `_pctile`. It stores
   return values in r(1), r(2), and so on, as wll as a matrix called `r(quantiles_used)`
   or `r(cutoffs_used)` in case quantiles or cutoffs are requested. See [stored results](stored-results)
   for details.
@@ -154,19 +177,15 @@ __*Extras*__
   with other options. See [examples](#multiple-subcommands).
 <br><br>
 
-- `binfreq` or `binfreq(newvar)` Stores the frequency counts of the source variable
+- `binfreq` (Not with by.) or `binfreq(newvar)` Stores the frequency counts of the source variable
   within the bins defined by the quantiles or the cuoffs. If `newvar` is passed then
   the frequency counts are stored in `newvar`; otherwise they are stored in the matrix
   `r(quantiles_bincount)` or `r(cutoffs_bincount)`.
 <br><br>
 
-- `binpct` or `binpct(newvar)` Similar to `binfreq` but stores percentages instead of
-  frequencies.
-<br><br>
-
 __*Switches*__
 
-- `method(#)` If you have many duplicates or are computing many quantiles,
+- `method(#)` (Not with by.) If you have many duplicates or are computing many quantiles,
   you should specify `method(1)`. If you have few duplicates or are computing
   few quantiles you should specify `method(2)`. By default, `gquantiles` tries
   to guess which method will run faster. See [computation methods](#computation-methods)
@@ -186,6 +205,11 @@ __*Switches*__
   generic options, so the user can read all values or just values `if in`.
 <br><br>
 
+- `cutby` By default all values of the variable requested via `cutpoints`
+  or `cutquantiles` are used. With this option, each group uses a different
+  set of quantiles or cutoffs (note this automatically sets option `cutifin`).
+<br><br>
+
 - `returnlimit(#)` Default is 1001. When the user runs gquantiles in the style of `_pctile`
   return values r(1), r(2), and so on are set. The limit of quantiles that can be computed
   is the number of observations in the data, which can be millions or billions. Setting
@@ -194,18 +218,20 @@ __*Switches*__
   that many quantiles it is better to use `pctile`.
 <br><br>
 
-- `strict` Exit with error if the number of quantiles requested via `nquantiles()`
+- `strict` Without `by()`, exit with error if the number of quantiles requested
   is above the number of non-missing values. In the case of xtile, this also
   restricts the number of quantiles to the number of observations in the data.
-  Note that Stata limits `nquantiles()` with `xtile` because it creates a temporary
-  variable with the quantiles. Hence from the point of view of gquantiles this
-  is an artificial limitation.
+  With `by()`, skip groups where this happens.  Note that Stata limits
+  `nquantiles()` with `xtile` because it creates a temporary variable
+  with the quantiles. Hence from the point of view of gquantiles this is
+  an artificial limitation.
 <br><br>
 
-- `minmax` Additionally store `r(min)` and `r(max)`. Percentiles (quantiles) are
-  required to be strictly between 0 and 100. However, the min and max are
-  relatively trivial to compute given the internals of the command, so the
-  user can request them here.
+- `minmax` (Not with by.) Additionally store `r(min)` and `r(max)`. Percentiles
+  (quantiles) are required to be strictly between 0 and 100. However,
+  the min and max are relatively trivial to compute given the internals
+  of the command, so the user can request them here.
+
 <br><br>
 
 - `replace` Replace targets, should they exist.
@@ -258,11 +284,9 @@ All calls store the following results
 
         r(quantiles_used)     With _pctile or with quantiles()
         r(quantiles_binfreq)  With option binfreq and any quantiles requested
-        r(quantiles_binpct)   With option binpct and any quantiles requested
 
         r(cutoffs_used)       With _pctile or with cutoffs()
         r(cutoffs_binfreq)    With option binfreq and any cutoffs requested
-        r(cutoffs_binpct)     With option binpct and any cutoffs requested
 
 Methods and Formulas
 --------------------
@@ -304,6 +328,37 @@ Examples
 
 You can download the raw code for the examples below
 [here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gquantiles.do)
+
+### Using by
+
+One major feature that gquantile adds is `by()`. It should be
+internally consistent if the user specifies the option `strict`.
+For example,
+
+```stata
+clear
+set obs 1000000
+gen group = int(runiform() * 100)
+gen x = runiform()
+
+local popts pctile strict by(group) cutby
+gquantiles pctile = x, `popts' nq(10) genp(perc) groupid(id)
+
+local xopts xtile strict by(group) cutby
+gquantiles xtile  = x, `xopts' nq(10)
+gquantiles xtile2 = x, `xopts' cutpoints(pctile)
+gquantiles xtile3 = x, `xopts' cutquantiles(perc)
+
+assert xtile == xtile2
+assert xtile == xtile3
+```
+
+However, there is no requirement for the user to do so:
+
+```stata
+sysuse auto, clear
+gquantiles xtile = price, xtile by(foreign) nq(50)
+```
 
 ### Computing many quantiles
 

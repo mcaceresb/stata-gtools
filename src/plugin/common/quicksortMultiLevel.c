@@ -710,3 +710,252 @@ loop:
 
     return (-1);
 }
+
+/*********************************************************************
+ *                 Get info, index from sorted panel                 *
+ *********************************************************************/
+
+/* NOTE(mauricio): With J = 1, make sure info is [0, 1] // 2017-11-13 21:19 EST */
+
+GT_size MultiSortPanelSetupMC (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions,
+    GT_size *info_max,
+    GT_size info_start
+);
+
+GT_size MultiSortPanelSetupMC (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *ltypes,
+    GT_size *invert,
+    GT_size *positions,
+    GT_size *info_max,
+    GT_size info_start)
+{
+    GT_bool ischar = (ltypes[kstart] > 0);
+    GT_size j, *info, nj, J = 0;
+    void *i, *end;
+
+    end = start + N * elsize;
+    if ( kstart >= kend ) {
+        j     = info_start;
+        info  = info_max;
+        *info = j;
+        info++; J++; j++;
+
+        if ( invert[kstart] ) {
+            if ( ischar ) {
+                for (i = start + elsize; i < end; i += elsize) {
+                    if ( AltCompareCharInvert(i - elsize, i, &(positions[kstart])) ) {
+                        *info = j;
+                        info++; J++;
+                    }
+                    j++;
+                }
+            }
+            else {
+                for (i = start + elsize; i < end; i += elsize) {
+                    if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) {
+                        *info = j;
+                        info++; J++;
+                    }
+                    j++;
+                }
+            }
+        }
+        else {
+            if ( ischar ) {
+                for (i = start + elsize; i < end; i += elsize) {
+                    if ( AltCompareChar(i - elsize, i, &(positions[kstart])) ) {
+                        *info = j;
+                        info++; J++;
+                    }
+                    j++;
+                }
+            }
+            else {
+                for (i = start + elsize; i < end; i += elsize) {
+                    if ( AltCompareNum(i - elsize, i, &(positions[kstart])) ) {
+                        *info = j;
+                        info++; J++;
+                    }
+                    j++;
+                }
+            }
+        }
+
+        return (J);
+    }
+
+    j     = info_start;
+    info  = info_max;
+
+loop:
+
+    if ( invert[kstart] ) {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareCharInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+    else {
+        if ( ischar ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareChar(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( AltCompareNum(i - elsize, i, &(positions[kstart])) ) break;
+                j++;
+            }
+        }
+    }
+
+    if ( j > info_start ) {
+        j++;
+        nj = MultiSortPanelSetupMC (
+            start,
+            j - info_start,
+            kstart + 1,
+            kend,
+            elsize,
+            ltypes,
+            invert,
+            positions,
+            info,
+            info_start
+        );
+        info_start = j;
+        info += nj; J += nj;
+    }
+    else {
+        *info = j;
+        info++; J++; j++;
+        info_start = j;
+    }
+
+    start = i;
+    if ( start < end )
+        goto loop;
+
+    return (J);
+}
+
+GT_size MultiSortPanelSetupDbl (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert,
+    GT_size *info_max,
+    GT_size info_start
+);
+
+GT_size MultiSortPanelSetupDbl (
+    void *start,
+    GT_size N,
+    GT_size kstart,
+    GT_size kend,
+    GT_size elsize,
+    GT_size *invert,
+    GT_size *info_max,
+    GT_size info_start)
+{
+    GT_size j, *info, nj, J = 0;
+    void *i, *end;
+
+    end = start + N * elsize;
+    if ( kstart >= kend ) {
+        j     = info_start;
+        info  = info_max;
+        *info = j;
+        info++; J++; j++;
+
+        if ( invert[kstart] ) {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) {
+                    *info = j;
+                    info++; J++;
+                }
+                j++;
+            }
+        }
+        else {
+            for (i = start + elsize; i < end; i += elsize) {
+                if ( MultiCompareNum2(i - elsize, i, &kstart) ) {
+                    *info = j;
+                    info++; J++;
+                }
+                j++;
+            }
+        }
+
+        return (J);
+    }
+
+    j     = info_start;
+    info  = info_max;
+
+loop:
+
+    if ( invert[kstart] ) {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+    else {
+        for (i = start + elsize; i < end; i += elsize) {
+            if ( MultiCompareNum2(i - elsize, i, &kstart) ) break;
+            j++;
+        }
+    }
+
+    if ( j > info_start ) {
+        j++;
+        nj = MultiSortPanelSetupDbl (
+            start,
+            j - info_start,
+            kstart + 1,
+            kend,
+            elsize,
+            invert,
+            info,
+            info_start
+        );
+        info_start = j;
+        info += nj; J += nj;
+    }
+    else {
+        *info = j;
+        info++; J++; j++;
+        info_start = j;
+    }
+
+    start = i;
+    if ( start < end )
+        goto loop;
+
+    return (J);
+}

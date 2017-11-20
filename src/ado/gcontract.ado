@@ -1,4 +1,4 @@
-*! version 0.3.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -29,6 +29,7 @@ program gcontract, rclass
         Verbose                /// Print info during function execution
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
     ]
@@ -167,7 +168,7 @@ program gcontract, rclass
     * Call the plugin
     * ---------------
 
-    local opts      `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local opts      `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 

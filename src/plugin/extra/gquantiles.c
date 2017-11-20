@@ -1,14 +1,13 @@
-// #include "gquantiles_by.c"
 #include "gquantiles_math.c"
+#include "gquantiles_by.c"
 
-ST_retcode sf_xtile    (struct StataInfo *st_info, int level);
-ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
-GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup);
+ST_retcode sf_xtile (struct StataInfo *st_info, int level);
 
-ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
-{
-    return (0);
-}
+// ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
+// ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
+// {
+//     return (0);
+// }
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
@@ -190,7 +189,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) {
+    if ( nq2 > 0 ) {
+        for (gptr = st_info->xtile_quantiles; gptr < st_info->xtile_quantiles + nq2; gptr += 1) {
+            if ( (*gptr <= 0) || (*gptr >= 100) ) {
+                sf_errprintf("quantiles() requires a numlist with values strictly between 0 and 100\n");
+                rc = 198;
+                goto error;
+            }
+        }
+    }
+
+    if ( st_info->benchmark > 1 ) {
         if ( (ncuts > 0) || (npoints > 0) ) {
             sf_running_timer (&timer, "\txtile step 1: De-duplicated cutoff list");
         }
@@ -291,7 +300,6 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     /*********************************************************************
      *                   Read in the source variables                    *
      *********************************************************************/
-
 
     // Special cases! Should be faster.
 
@@ -426,7 +434,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\txtile step 2: Read in source variable");
 
     stimer = clock();
@@ -589,7 +597,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         xmax = qptr[nout - 1];
     }
 
-    if ( st_info->benchmark ) {
+    if ( st_info->benchmark > 1 ) {
         if ( method == 2 ) {
             if ( (nq2 > 0) | (nq > 0) | (nquants > 0) ) {
                 sf_running_timer (&timer, "\txtile step 3: Computed quantiles");
@@ -646,7 +654,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
 
             optr  = xsources;
@@ -662,10 +670,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.2: Copied xtile to Stata sequentially");
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
 
         }
@@ -686,7 +694,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
 
             // for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
@@ -698,7 +706,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                     xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
                 }
 
-                if ( st_info->benchmark )
+                if ( st_info->benchmark > 2 )
                     sf_running_timer (&stimer, "\t\txtile step 4.2: Arranged xtile in memory");
             }
 
@@ -715,10 +723,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.3: Copied xtile to Stata sequentially");
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
         }
     }
@@ -823,7 +831,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     if ( (rc = SF_scal_save ("__gtools_xtile_method", m_ratio)) ) goto exit;
 
-    if ( st_info->benchmark ) {
+    if ( st_info->benchmark > 1 ) {
         if ( kgen ) {
             if ( pctile | (nq2 > 0) ) {
                 sf_running_timer (&timer, "\txtile step 5: Copied quantiles to Stata");
@@ -851,76 +859,6 @@ error:
     free (xquants);
 
     return (rc);
-}
-
-/*********************************************************************
- *                            Clean array                            *
- *********************************************************************/
-
-GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup)
-{
-    GT_size i, _lsize;
-    GT_bool sortme, dedupcheck;
-
-    if ( lsize > 1 ) {
-        _lsize = lsize;
-        sortme = 0;
-
-        for (i = 1; i < lsize; i++) {
-            if ( x[i] < x[i - 1] ) {
-                sortme = 1;
-                break;
-            }
-            else if ( x[i] == x[i - 1] ) {
-                dedupcheck = 1;
-            }
-        }
-
-        if ( sortme ) {
-            quicksort_bsd (
-                x,
-                lsize,
-                sizeof(x),
-                xtileCompare,
-                NULL
-            );
-            dedupcheck = 1;
-            sortme     = 0;
-        }
-
-        if ( dedup & dedupcheck ) {
-            _lsize = 0;
-            if ( dropmiss ) {
-                if ( SF_is_missing(x[0]) ) return (0);
-                for (i = 1; i < lsize; i++) {
-                    if ( SF_is_missing(x[i]) ) break;
-                    else if ( x[_lsize] == x[i] ) continue;
-                    x[++_lsize] = x[i];
-                }
-            }
-            else {
-                for (i = 1; i < lsize; i++) {
-                    if ( x[_lsize] == x[i] ) continue;
-                    x[++_lsize] = x[i];
-                }
-            }
-            _lsize++;
-        }
-        else if ( dropmiss ) {
-            for (i = 0; i < lsize; i++) {
-                if ( SF_is_missing(x[i]) ) return (i);
-            }
-        }
-
-        return (_lsize);
-    }
-    else if ( (lsize == 1) & dropmiss ) {
-        if ( SF_is_missing(x[0]) ) return (0);
-        return (lsize);
-    }
-    else {
-        return (lsize);
-    }
 }
 
 /*********************************************************************

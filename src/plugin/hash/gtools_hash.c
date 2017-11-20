@@ -14,7 +14,7 @@ ST_retcode gf_hash (
     GT_size i;
     uint64_t *h3;
 
-    GT_bool sorted   = 1;
+    GT_bool sorted   = st_info->sorted;
     GT_size N        = st_info->N;
     GT_size rowbytes = st_info->rowbytes;
     GT_size kvars    = st_info->kvars_by;
@@ -26,15 +26,15 @@ ST_retcode gf_hash (
     if ( st_info->biject ) {
         if ( (rc = gf_biject_varlist (h1, st_info)) ) goto exit;
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 2.3: Bijected integers to natural numbers");
 
-        for (i = 1; i < N; i++) {
-            if ( h1[i - 1] > h1[i] ) {
-                sorted = 0;
-                break;
-            }
-        }
+        // for (i = 1; i < N; i++) {
+        //     if ( h1[i - 1] > h1[i] ) {
+        //         sorted = 0;
+        //         break;
+        //     }
+        // }
 
         // Sort hash with index
         // --------------------
@@ -45,12 +45,12 @@ ST_retcode gf_hash (
                                      st_info->N,
                                      st_info->verbose)) ) goto exit;
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
         }
-        else if ( st_info->verbose ) {
-            sf_printf("(already sorted)\n");
-        }
+        // else if ( st_info->verbose ) {
+        //     sf_printf("(already sorted)\n");
+        // }
     }
     else {
 
@@ -59,14 +59,14 @@ ST_retcode gf_hash (
         GTOOLS_GC_ALLOCATED("h3")
 
         if ( kstr > 0 ) {
-            sorted = MultiSortCheckMC (st_info->st_charx,
-                                       st_info->N,
-                                       0,
-                                       st_info->kvars_by - 1,
-                                       st_info->rowbytes,
-                                       st_info->byvars_lens,
-                                       st_info->invert,
-                                       st_info->positions);
+            // sorted = MultiSortCheckMC (st_info->st_charx,
+            //                            st_info->N,
+            //                            0,
+            //                            st_info->kvars_by - 1,
+            //                            st_info->rowbytes,
+            //                            st_info->byvars_lens,
+            //                            st_info->invert,
+            //                            st_info->positions);
 
             for (i = 0; i < N; i++) {
                 spookyhash_128(st_info->st_charx + (i * rowbytes),
@@ -74,12 +74,12 @@ ST_retcode gf_hash (
             }
         }
         else {
-            sorted = MultiSortCheckDbl(st_info->st_numx,
-                                       st_info->N,
-                                       0,
-                                       st_info->kvars_by - 1,
-                                       st_info->kvars_by * sizeof(ST_double),
-                                       st_info->invert);
+            // sorted = MultiSortCheckDbl(st_info->st_numx,
+            //                            st_info->N,
+            //                            0,
+            //                            st_info->kvars_by - 1,
+            //                            st_info->kvars_by * sizeof(ST_double),
+            //                            st_info->invert);
 
             for (i = 0; i < N; i++) {
                 spookyhash_128(st_info->st_numx + i * kvars,
@@ -87,7 +87,7 @@ ST_retcode gf_hash (
             }
         }
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 2.3: Hashed variables (128-bit)");
 
         // Sort hash with index
@@ -103,11 +103,12 @@ ST_retcode gf_hash (
                 h2[i] = h3[ix[i]];
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
         }
-        else if ( st_info->verbose ) {
-            sf_printf("(already sorted)\n");
+        else {
+            // if ( st_info->verbose )
+            //     sf_printf("(already sorted)\n");
 
             for (i = 0; i < st_info->N; i++) {
                 h2[i] = h3[i];
@@ -120,8 +121,6 @@ ST_retcode gf_hash (
         free (h3);
         GTOOLS_GC_FREED("h3")
     }
-
-    st_info->sorted = sorted;
 
 exit:
     return (rc);
@@ -593,7 +592,7 @@ int sf_check_hash (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&stimer, "\t\tPlugin step 4.1: Checked for hash collisions");
 
     /*********************************************************************
@@ -705,7 +704,7 @@ bycopy:
             }
         }
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 4.2: Keep only one row per group");
 
         st_info->free = 6;
@@ -740,7 +739,7 @@ bycopy:
                                   st_info->invert);
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 4.3: Sorted groups in memory");
         }
     }
@@ -783,7 +782,7 @@ bycopy:
             st_info->ix[j] = j;
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 4: Created indexed array with sorted by vars");
 
     return (rc);

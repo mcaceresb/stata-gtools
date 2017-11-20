@@ -345,7 +345,7 @@ ST_retcode gf_bijection_limits (
         for (i = 0; i < N; i++) {
             for (k = 0; k < kvars; k++) {
                 z = *(st_info->st_numx + (i * kvars + k));
-                if ( !((ceilf(z) == z) || (z == SV_missval)) ) {
+                if ( (ceil(z) != z) || (z > SV_missval) ) {
                     st_info->biject = 0;
                     if ( st_info->verbose ) sf_printf("No; using hash.\n");
                     goto exit;

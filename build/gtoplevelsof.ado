@@ -43,6 +43,7 @@ program gtoplevelsof, rclass
         Verbose                  /// debugging
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)        /// path to hash library (Windows)
         oncollision(passthru)    /// On collision, fall back or error
                                  ///
@@ -57,7 +58,7 @@ program gtoplevelsof, rclass
 
     if ( `"`colseparate'"' == "" ) local colseparate colseparate(`"  "')
     if ( `"`numfmt'"'      == "" ) local numfmt      numfmt(`"%.8g"')
-    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.1g"'
+    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.2g"'
 
     if !regexm(`"`pctfmt'"', "%[0-9]+\.[0-9]+(gc?|fc?|e)") {
         di as err "Percent format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
@@ -138,7 +139,7 @@ program gtoplevelsof, rclass
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' 
+    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local gopts gen(`group') `tag' `counts' `replace'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 

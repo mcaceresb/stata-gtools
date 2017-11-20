@@ -16,6 +16,7 @@ program define hashsort
         Verbose                /// Print info during function execution
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
                                ///
@@ -43,7 +44,7 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local eopts `invertinmata' `sortgen' `skipcheck'
     local gopts `generate' `tag' `counts' `replace'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)

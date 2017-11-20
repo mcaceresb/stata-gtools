@@ -153,7 +153,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     }
 
     if ( (rc = SF_macro_save("_vals", macrobuffer)) ) goto exit;
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote levels to Stata macro");
 
 exit:

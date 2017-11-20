@@ -58,7 +58,7 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
     return (rc);

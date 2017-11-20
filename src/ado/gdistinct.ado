@@ -1,4 +1,4 @@
-*! version 0.3.3 12Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -22,6 +22,7 @@ program gdistinct, rclass
         Verbose                  /// Print info during function execution
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
     ]
@@ -41,7 +42,7 @@ program gdistinct, rclass
     local keepvars ""
     tempname ndistinct
 
-    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
         local r_N          = `r(N)'

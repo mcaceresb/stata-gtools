@@ -56,10 +56,6 @@ Options
             here. Only "%.#g|f" and "%#.#g|f" are accepted since this is formated
             internally in C.
 
-- `silent` Do not print levels. If there are many levels and the user still
-            wishes to see debugging or benchmark information, this option is
-            useful.
-
 ### Gtools options
 
 (Note: These are common to every gtools command.)
@@ -122,7 +118,7 @@ You can download the raw code for the examples below
 . glevelsof rep78
 1 2 3 4 5
 
-. glevelsof rep78, miss local(mylevs) silent
+. qui glevelsof rep78, miss local(mylevs)
 
 . display "`mylevs'"
 1 2 3 4 5 .

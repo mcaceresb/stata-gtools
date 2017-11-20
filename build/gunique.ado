@@ -21,6 +21,7 @@ program gunique, rclass
         Verbose                /// Print info during function execution
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
     ]
@@ -66,7 +67,7 @@ program gunique, rclass
     }
 
     global GTOOLS_CALLER gunique
-    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `seecount' `gopts'
+    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `seecount' `gopts'
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Nov 17 22:29:00 EST 2017
+* Updated: Sun Nov 19 22:18:19 EST 2017
 * Purpose: Unit tests for gtools
-* Version: 0.10.3
+* Version: 0.11.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -72,10 +72,6 @@ program main
 
         if ( `:list posof "basic_checks" in options' ) {
 
-            di _n(1)
-
-            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
-
             di ""
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
@@ -91,6 +87,10 @@ program main
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+
+            di _n(1)
+
+            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
         }
 
         if ( `:list posof "comparisons" in options' ) {
@@ -100,9 +100,9 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            * compare_gquantiles_by, `noisily' oncollision(error)
-            * compare_gquantiles,    `noisily' oncollision(error) noaltdef
-            * compare_gcollapse,     `noisily' oncollision(error)
+            compare_gquantiles_by, `noisily' oncollision(error)
+            compare_gquantiles,    `noisily' oncollision(error) noaltdef
+            compare_gcollapse,     `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)
             compare_egen,          `noisily' oncollision(error)
             compare_isid,          `noisily' oncollision(error)
@@ -2934,7 +2934,7 @@ program _compare_inner_gquantiles_by
         }
 
         local options `options' `benchmode' `table'
-        forvalues i = 1(`step')`exp' {
+        forvalues i = `step'(`step')`exp' {
         preserve
             qui expand `i'
             gen double rn = rnormal() * 100
@@ -5121,7 +5121,10 @@ program compare_sort, rclass
             timer on 44
             qui fsort `varlist'
             timer off 44
-            cf * using `file_sort'
+            cap noi cf * using `file_sort'
+            if ( _rc ) {
+                disp as txt "(note: ftools `varlist' returned different data vs sort, stable)"
+            }
         restore
         qui timer list
         local time_fsort = r(t44)

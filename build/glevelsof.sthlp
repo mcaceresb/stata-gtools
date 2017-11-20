@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.3  12Nov2017}{...}
+{* *! version 0.5.0  19Nov2017}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -53,12 +53,10 @@ To change the sort order of the results.
 {synopt:{opt c:lean}}display string values without compound double quotes{p_end}
 {synopt:{opt l:ocal(macname)}}insert the list of values in the local macro {it:macname}{p_end}
 {synopt:{opt miss:ing}}include missing values of {varlist} in calculation{p_end}
-{synopt:{opt silent}}Do not print the levels (useful when there are many levels){p_end}
 {synopt:{opt s:eparate(separator)}}separator to serve as punctuation for the values of returned list; default is a space{p_end}
 
 {syntab:Extras}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
-{synopt:{opt silent}}Do not print levels. Useful if {opt verbose} or {opt benchmark} are on and there are many levels.{p_end}
 {synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
 
 {syntab:Gtools}
@@ -125,11 +123,6 @@ The default is a pipe.  Specifying a {varlist} instead of a
 are printed to 16 digits of precision, but the user can specify
 the number format here. Only "%.#g|f" and "%#.#g|f" are accepted
 since this is formated internally in C.
-
-{phang}
-{opt silent} Do not print levels. If there are many levels and
-the user still wishes to see debugging or benchmark information,
-this option is useful.
 
 {dlgtab:Gtools}
 

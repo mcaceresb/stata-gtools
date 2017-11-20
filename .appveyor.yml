@@ -5,7 +5,7 @@ environment:
     - ARCH: x86_64
       CYGWIN: C:\Cygwin64
       CHOST: x86_64-w64-mingw32
-      CC: x86_64-w64-mingw32-gcc
+      CC: x86_64-w64-mingw32-gcc-5.4.0.exe
 
 build_script:
   - git submodule update --init --recursive

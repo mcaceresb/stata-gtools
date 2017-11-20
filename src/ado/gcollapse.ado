@@ -115,13 +115,15 @@ program gcollapse, rclass
     * -------------
 
     if ( ("`forceio'" != "") & ("`merge'" != "") ) {
-        di as err "-merge- with -forceio- is inefficient and hence not allowed."
+        di as err "{opt merge} with {opt forceio} is" ///
+                  " inefficient and hence not allowed."
         CleanExit
         exit 198
     }
 
     if ( ("`forceio'" != "") & ("`forcemem'" != "") ) {
-        di as err "only specify one of -forceio- and -forcemem-; cannot do both at the same time."
+        di as err "only specify one of {opt forceio} and {opt forcemem};" ///
+                  " cannot do both at the same time."
         CleanExit
         exit 198
     }
@@ -135,7 +137,9 @@ program gcollapse, rclass
     * -----------------------------------------------------------
 
     gtools_timer on 97
-    cap noi parse_vars `anything' `if' `in', `cw' `labelformat' `labelprogram' `freq'
+    cap noi parse_vars `anything' `if' `in', ///
+        `cw' `labelformat' `labelprogram' `freq'
+
     if ( _rc ) {
         local rc = _rc
         CleanExit
@@ -206,12 +210,13 @@ program gcollapse, rclass
     * Also parse which source variables to recast (see below; we try to use
     * source variables as their first target to save memory)
 
-    cap noi parse_keep_drop, by(`clean_by') `merge' `double' `replace' `replaceby' ///
-        __gtools_targets(`__gtools_targets')                                       ///
-        __gtools_vars(`__gtools_vars')                                             ///
-        __gtools_stats(`__gtools_stats')                                           ///
-        __gtools_uniq_vars(`__gtools_uniq_vars')                                   ///
-        __gtools_uniq_stats(`__gtools_uniq_stats')                                  //
+    cap noi parse_keep_drop,                                  ///
+        by(`clean_by') `merge' `double' `replace' `replaceby' ///
+        __gtools_targets(`__gtools_targets')                  ///
+        __gtools_vars(`__gtools_vars')                        ///
+        __gtools_stats(`__gtools_stats')                      ///
+        __gtools_uniq_vars(`__gtools_uniq_vars')              ///
+        __gtools_uniq_stats(`__gtools_uniq_stats')
 
     if ( _rc ) {
         local rc = _rc

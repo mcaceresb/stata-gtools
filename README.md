@@ -375,7 +375,7 @@ Roadmap to 1.0
       (Plugin Step 4.3) is actually a pretty big bottleneck.
       Benchmark whether it is better to use pointers.
 - [X] Reconcile numerical precision issues in `gquantiles`
-- [X] Add comments to all the code base
+- [ ] Add comments to all the code base
 - [ ] Improve coverage of debug checks.
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command

@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Nov 17 22:29:00 EST 2017
+* Updated: Sun Nov 19 22:18:19 EST 2017
 * Purpose: Unit tests for gtools
 * Version: 0.11.0
 * Manual:  help gtools
@@ -72,10 +72,6 @@ program main
 
         if ( `:list posof "basic_checks" in options' ) {
 
-            di _n(1)
-
-            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
-
             di ""
             di "-------------------------------------"
             di "Basic unit-tests $S_TIME $S_DATE"
@@ -91,6 +87,10 @@ program main
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+
+            di _n(1)
+
+            unit_test, `noisily' test(checks_corners, `noisily' oncollision(error))
         }
 
         if ( `:list posof "comparisons" in options' ) {

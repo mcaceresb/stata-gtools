@@ -86,6 +86,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_nonmiss"));
     if ( all_yesmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_yesmiss"));
     if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen_bulk", "offsets_buffer"));
+    if ( nj_buffer      == NULL ) return(sf_oom_error("sf_egen_bulk", "nj_buffer"));
 
     for (j = 0; j < J * ksources; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = all_yesmiss[j] = 0;
@@ -163,7 +164,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&stimer, "\t\tPlugin step 5.1: Read source variables sequentially");
 
     /*********************************************************************
@@ -198,8 +199,8 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     lastmiss[k]  = lastnm[k]  = all_buffer[start];
                 }
                 else if ( end < nj ) { // some are missing; invert first/last bc missings were read in reverse
-                    firstnm[k]  = all_buffer[start];
-                    lastnm[k]   = all_buffer[start + end - 1];
+                    firstnm[k]   = all_buffer[start];
+                    lastnm[k]    = all_buffer[start + end - 1];
                     firstmiss[k] = all_buffer[start + nj - 1];
                     lastmiss[k]  = all_buffer[start + end];
                 }
@@ -281,10 +282,10 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&stimer, "\t\tPlugin step 5.2: Computed summary stats");
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
 exit:
@@ -454,7 +455,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&stimer, "\t\tPlugin step 5.1: Read source variables sequentially");
 
     /*********************************************************************
@@ -560,10 +561,10 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&stimer, "\t\tPlugin step 5.2: Computed summary stats");
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
 exit:
@@ -652,7 +653,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 6: Copied summary stats to stata");
 
     if ( (wtargets < ktargets) & (level == 2) & (within == 0) ) {
@@ -666,7 +667,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
 
         fclose (fhandle);
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 1 )
             sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
     }
 
@@ -753,7 +754,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 6: Copied collapsed data to stata");
 
     /*********************************************************************
@@ -771,7 +772,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
 
         fclose (fhandle);
 
-        if ( st_info->benchmark )
+        if ( st_info->benchmark > 1 )
             sf_running_timer (&timer, "\tPlugin step 7: Copied some targets to disk");
     }
 
@@ -829,7 +830,7 @@ ST_retcode sf_write_byvars (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 6: Copied by variables back to stata");
 
 exit:

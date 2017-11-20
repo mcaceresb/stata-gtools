@@ -36,10 +36,14 @@ program checks_inner_collapse
     local collapse_str ""
     foreach stat of local stats {
         local collapse_str `collapse_str' (`stat') r1_`stat' = random1
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
+    }
+    foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
     }
 
@@ -355,13 +359,17 @@ program _compare_inner_collapse
     local stats sum mean sd max min count percent first last firstnm lastnm median iqr semean sebinomial sepoisson
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
-    foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
-    }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`pct' = random1
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+    }
+    foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`pct' = random2
+    }
+    foreach stat of local stats {
+        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
 
     preserve

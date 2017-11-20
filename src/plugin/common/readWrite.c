@@ -345,7 +345,7 @@ ST_retcode gf_bijection_limits (
         for (i = 0; i < N; i++) {
             for (k = 0; k < kvars; k++) {
                 z = *(st_info->st_numx + (i * kvars + k));
-                if ( !((ceilf(z) == z) || (z == SV_missval)) ) {
+                if ( (ceil(z) != z) || (z > SV_missval) ) {
                     st_info->biject = 0;
                     if ( st_info->verbose ) sf_printf("No; using hash.\n");
                     goto exit;
@@ -375,8 +375,8 @@ ST_retcode gf_bijection_limits (
             st_info->byvars_maxs[k] = (GT_int) (double_maxs[k]) + any_missing[k];
         }
         worst = st_info->byvars_maxs[0] - st_info->byvars_mins[0] + 1;
-        range = st_info->byvars_maxs[1] - st_info->byvars_mins[1] + 1;
-        for (k = 1; k < kvars; k++) {
+        range = 1;
+        for (k = 0; k < (kvars - 1); k++) {
             if ( worst > (GTOOLS_BIJECTION_LIMIT / range)  ) {
                 if ( st_info->verbose ) {
                     sf_printf("No.\n");
@@ -390,8 +390,19 @@ ST_retcode gf_bijection_limits (
             }
             else {
                 worst *= range;
-                range  = st_info->byvars_maxs[k] - st_info->byvars_mins[k] + (k < (kvars - 1));
+                range  = st_info->byvars_maxs[k + 1] - st_info->byvars_mins[k + 1] + 1;
             }
+        }
+        if ( worst > (GTOOLS_BIJECTION_LIMIT / range)  ) {
+            if ( st_info->verbose ) {
+                sf_printf("No.\n");
+                sf_printf("Values OK but range ("
+                          GT_size_cfmt" * "
+                          GT_size_cfmt") too large; falling back on hash.\n",
+                          worst, range);
+            }
+            st_info->biject = 0;
+            goto exit;
         }
         if ( st_info->verbose ) sf_printf("Yes.\n");
     }

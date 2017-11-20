@@ -1,5 +1,7 @@
-*! version 0.3.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
+
+* TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
 
 cap program drop gtoplevelsof
 program gtoplevelsof, rclass
@@ -41,6 +43,7 @@ program gtoplevelsof, rclass
         Verbose                  /// debugging
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)        /// path to hash library (Windows)
         oncollision(passthru)    /// On collision, fall back or error
                                  ///
@@ -55,7 +58,7 @@ program gtoplevelsof, rclass
 
     if ( `"`colseparate'"' == "" ) local colseparate colseparate(`"  "')
     if ( `"`numfmt'"'      == "" ) local numfmt      numfmt(`"%.8g"')
-    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.1g"'
+    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.2g"'
 
     if !regexm(`"`pctfmt'"', "%[0-9]+\.[0-9]+(gc?|fc?|e)") {
         di as err "Percent format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
@@ -136,7 +139,7 @@ program gtoplevelsof, rclass
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' 
+    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local gopts gen(`group') `tag' `counts' `replace'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 
@@ -222,10 +225,10 @@ void function __gtools_parse_topmat(real scalar kvars,
     real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, nmap, knum, kstr, valabbrev
     real scalar pctlen, wlen, dlen
     real matrix gmat, nmat
-    real colvector si, si_miss, si_other
+    real colvector si, si_miss, si_other, fmtix
     real rowvector gstrmax, gnummax, colstrmax, colnummax, colmax
     string matrix grows, gparse
-    string colvector _grows, gprint
+    string colvector _grows, gprint, fmtbak
     string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
     string scalar sepfmt, ghead, headfmt, mlab, olab, pctfmt, ppctfmt, cpctfmt, numvar, strvar
     transmorphic t
@@ -293,7 +296,12 @@ void function __gtools_parse_topmat(real scalar kvars,
                     numvar = bynum[k]
                     l = selectindex(byvars :== numvar)
                     if ( st_varvaluelabel(numvar) != "" ) {
+                        fmtbak = grows[1::ntop, l]
                         grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
+                        fmtix  = selectindex(grows[1::ntop, l] :== "")
+                        if ( rows(fmtix) > 0 ) {
+                            grows[fmtix, l] = fmtbak[fmtix]
+                        }
                     }
                 }
             }

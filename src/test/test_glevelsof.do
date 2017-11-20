@@ -38,10 +38,7 @@ end
 capture program drop checks_inner_levelsof
 program checks_inner_levelsof
     syntax varlist, [*]
-    cap noi glevelsof `varlist', `options' v bench clean silent
-    assert _rc == 0
-
-    cap glevelsof `varlist' in 1, `options' silent miss
+    cap noi glevelsof `varlist', `options' v bench clean
     assert _rc == 0
 
     cap glevelsof `varlist' in 1, `options' miss

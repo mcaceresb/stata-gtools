@@ -1,4 +1,4 @@
-*! version 0.10.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.11.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -116,7 +116,13 @@ program define gegen, byable(onecall) rclass
             unab args : _all
         }
 
-        local gtools_args hashlib(passthru) oncollision(passthru) Verbose BENCHmark BENCHmarklevel(passthru) gtools_capture(str)
+        local gtools_args hashlib(passthru)        ///
+                          HASHmethod(passthru)     ///
+                          oncollision(passthru)    ///
+                          Verbose                  ///
+                          BENCHmark                ///
+                          BENCHmarklevel(passthru) ///
+                          gtools_capture(str)
         syntax [if] [in] [, `gtools_args' *]
 
         if ( "`byvars'" == "" ) {
@@ -126,7 +132,7 @@ program define gegen, byable(onecall) rclass
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts kwargs(`hashlib' `oncollision' `verbose' `benchmark' `benchmarklevel')
+            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `benchmark' `benchmarklevel')
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
             cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
             exit _rc
@@ -139,7 +145,7 @@ program define gegen, byable(onecall) rclass
     * Parse syntax call if function is known
     * --------------------------------------
 
- *     gegen [type] varname = fun(args) [if] [in], [options]
+    * gegen [type] varname = fun(args) [if] [in], [options]
 
     syntax                       /// Main call was parsed manually
         [if] [in] ,              /// [if condition] [in start / end]
@@ -157,6 +163,7 @@ program define gegen, byable(onecall) rclass
         Verbose                  /// Print info during function execution
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
         gtools_capture(passthru) /// Ignored (captures fcn options if fcn is not known)
@@ -236,7 +243,7 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -278,7 +285,13 @@ program define gegen, byable(onecall) rclass
         global GTOOLS_CALLER ""
 
         if ( `rc' == 17999 ) {
-            local gtools_args `hashlib' `oncollision' `verbose' `benchmark' `benchmarklevel' `gtools_capture'
+            local gtools_args `hashmethod'     ///
+                              `hashlib'        ///
+                              `oncollision'    ///
+                              `verbose'        ///
+                              `benchmark'      ///
+                              `benchmarklevel' ///
+                              `gtools_capture'
             local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
             collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
             exit 0
@@ -386,7 +399,13 @@ program define gegen, byable(onecall) rclass
     global GTOOLS_CALLER ""
 
     if ( `rc' == 17999 ) {
-        local gtools_args `hashlib' `oncollision' `verbose' `benchmark' `benchmarklevel' `gtools_capture'
+        local gtools_args `hashmethod'     ///
+                          `hashlib'        ///
+                          `oncollision'    ///
+                          `verbose'        ///
+                          `benchmark'      ///
+                          `benchmarklevel' ///
+                          `gtools_capture'
         local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
         collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
         exit 0
@@ -544,7 +563,14 @@ end
 
 capture program drop collision_fallback
 program collision_fallback
-    local gtools_args hashlib(passthru) oncollision(passthru) Verbose BENCHmark BENCHmarklevel(passthru) gtools_capture(str)
+    local gtools_args hashlib(passthru)        ///
+                      HASHmethod(passthru)     ///
+                      oncollision(passthru)    ///
+                      Verbose                  ///
+                      BENCHmark                ///
+                      BENCHmarklevel(passthru) ///
+                      gtools_capture(str)
+
     syntax, [`gtools_args' gtools_call(str) counts(str) fill(str) replace *]
     foreach opt in counts fill replace {
         if ( `"``opt''"' != "" ) {

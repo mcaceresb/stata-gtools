@@ -1,4 +1,4 @@
-*! version 0.2.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -13,17 +13,24 @@ program define fasterxtile
     syntax newvarname =/exp         /// newvar = exp
         [if] [in] ,                 /// [if condition] [in start / end]
     [                               ///
+        by(passthru)                /// By variabes: [+|-]varname [[+|-]varname ...]
         Nquantiles(str)             /// Number of quantiles
-        Cutpoints(varname numeric)  /// Use cutpoints instead of percentiles of `exp'
+        Cutpoints(varname numeric)  /// Use cutpoints instead of percentiles
         ALTdef                      /// Alternative definition
                                     ///
-        method(passthru)            /// Method to compute quantiles: (1) qsort, (2) qselect
+        method(passthru)            /// Quantile method: (1) qsort, (2) qselect
         strict                      /// Exit if nquantiles > # non-missing obs
         Verbose                     /// Print info during function execution
         BENCHmark                   /// Benchmark function
         BENCHmarklevel(passthru)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)        /// Hashing method: 1 (biject), 2 (spooky)
         hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
+                                    ///
+        GROUPid(passthru)           ///
+        tag(passthru)               ///
+        counts(passthru)            ///
+        fill(passthru)              ///
     ]
 
 	if ( "`nquantiles'" != "" ) {
@@ -51,7 +58,17 @@ program define fasterxtile
 	}
 
     local cutpoints cutpoints(`cutpoints')
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision'
+    local   opts `verbose'        ///
+                 `benchmark'      ///
+                 `benchmarklevel' ///
+                 `hashlib'        ///
+                 `oncollision'    ///
+                 `hashmethod'     ///
+                 `groupid'        ///
+                 `tag'            ///
+                 `counts'         ///
+                 `fill'
+
     local gqopts `nquantiles' `cutpoints' `altdef' `strict' `opts' `method'
-    gquantiles `varlist' = `exp' `if' `in', xtile `gqopts'
+    gquantiles `varlist' = `exp' `if' `in', xtile `gqopts' `by'
 end

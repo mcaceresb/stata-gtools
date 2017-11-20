@@ -14,7 +14,6 @@
 *     - [X] altdef
 *     - [X] genp()
 *     - [X] binfreq
-*     - [X] binpct
 *     - [X] pctile() with xtile
 *     - [X] xtile() with pctile
 * consistency, xtile:
@@ -132,42 +131,32 @@ program checks_inner_gquantiles
         gquantiles __p1 = `anything', pctile altdef binfreq `options' nq(10) replace
 
         cap gquantiles __p2 = `anything', pctile altdef binfreq `options' cutpoints(__p1)
-        assert _rc == 198
-        cap gquantiles __p2 = `anything', pctile altdef binpct `options' cutpoints(__p1)
-        assert _rc == 198
-        gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1)
-        cap gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1)
-        assert _rc == 198
+        assert inlist(_rc, 198, 110)
+        gquantiles __p2 = `anything', pctile altdef binfreq(__f2) `options' cutpoints(__p1)
 
-        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace
+        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) `options' cutpoints(__p1) replace
         assert inlist(_rc, 0, 2000)
-        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace cutifin
+        cap gquantiles __p2 = `anything' in 10 / 20, pctile altdef binfreq(__f2) `options' cutpoints(__p1) replace cutifin
         assert inlist(_rc, 198, 2000)
         cap gquantiles __p2_ii = `anything' if inlist(_n, 1, 3, 7), pctile altdef `options' cutifin cutpoints(__p1)
         * assert __p2_ii[1] == __p1[1]
         * assert __p2_ii[2] == __p1[3]
         * assert __p2_ii[3] == __p1[7]
-        gquantiles __p2 = `anything', pctile altdef binfreq(__f2) binpct(__fp2) `options' cutpoints(__p1) replace
+        gquantiles __p2 = `anything', pctile altdef binfreq(__f2) `options' cutpoints(__p1) replace
 
 
-        gquantiles __p3 = `anything', pctile altdef binfreq binpct `options' quantiles(10 30 50 70 90)
+        gquantiles __p3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
         matrix list r(quantiles_binfreq) 
-        matrix list r(quantiles_binpct) 
 
 
-        gquantiles __p4 = `anything', pctile altdef binfreq binpct `options' cutoffs(10 30 50 70 90)
+        gquantiles __p4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
         matrix list r(cutoffs_binfreq) 
-        matrix list r(cutoffs_binpct) 
 
 
-        cap gquantiles __p5 = `anything', pctile altdef binpct `options' cutquantiles(ru)
-        assert _rc == 198
         cap gquantiles __p5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
-        assert _rc == 198
-        gquantiles __p5 = `anything', pctile altdef binfreq(__f5) binpct(__fp5)  `options' cutquantiles(ru)
-        cap gquantiles __p5 = `anything', pctile altdef binfreq(__f5) binpct(__fp5)  `options' cutquantiles(ru)
-        assert _rc == 198
-        gquantiles __p5 = `anything', pctile altdef binfreq(__f5) binpct(__fp5)  `options' cutquantiles(ru) replace
+        assert inlist(_rc, 198, 110)
+        gquantiles __p5 = `anything', pctile altdef binfreq(__f5) `options' cutquantiles(ru)
+        gquantiles __p5 = `anything', pctile altdef binfreq(__f5) `options' cutquantiles(ru) replace
 
         gquantiles __x1 = `anything', pctile altdef binfreq `options' nq(10) replace
         matrix list r(quantiles_binfreq) 
@@ -182,29 +171,19 @@ program checks_inner_gquantiles
 
         cap gquantiles __x2 = `anything', pctile altdef binfreq `options' cutpoints(__p1)
         assert _rc == 198
-        cap gquantiles __x2 = `anything', pctile altdef binpct `options' cutpoints(__p1)
-        assert _rc == 198
-        gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) binpct(__fx2) `options' cutpoints(__p1)
-        cap gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) binpct(__fx2) `options' cutpoints(__p1)
-        assert _rc == 198
-        gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) binpct(__fx2) `options' cutpoints(__p1) replace
+        gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) `options' cutpoints(__p1)
+        gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) `options' cutpoints(__p1) replace
 
-        gquantiles __x3 = `anything', pctile altdef binfreq binpct `options' quantiles(10 30 50 70 90)
+        gquantiles __x3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
         matrix list r(quantiles_binfreq) 
-        matrix list r(quantiles_binpct) 
 
-        gquantiles __x4 = `anything', pctile altdef binfreq binpct `options' cutoffs(10 30 50 70 90)
+        gquantiles __x4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
         matrix list r(cutoffs_binfreq) 
-        matrix list r(cutoffs_binpct) 
 
-        cap gquantiles __x5 = `anything', pctile altdef binpct `options' cutquantiles(ru)
-        assert _rc == 198
         cap gquantiles __x5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
         assert _rc == 198
-        gquantiles __x5 = `anything', pctile altdef binfreq(__xf5) binpct(__fx5)  `options' cutquantiles(ru)
-        cap gquantiles __x5 = `anything', pctile altdef binfreq(__xf5) binpct(__fx5)  `options' cutquantiles(ru)
-        assert _rc == 198
-        gquantiles __x5 = `anything', pctile altdef binfreq(__xf5) binpct(__fp5)  `options' cutquantiles(ru) replace
+        gquantiles __x5 = `anything', pctile altdef binfreq(__xf5) `options' cutquantiles(ru)
+        gquantiles __x5 = `anything', pctile altdef binfreq(__xf5) `options' cutquantiles(ru) replace
 
 
 
@@ -249,10 +228,10 @@ end
 
 capture program drop compare_gquantiles
 program compare_gquantiles
-    syntax, [NOIsily *]
+    syntax, [NOIsily noaltdef *]
     local options `options' `noisily'
 
-    compare_gquantiles_stata, n(10000) bench(10) `options'
+    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options'
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
@@ -288,7 +267,7 @@ end
 
 capture program drop _consistency_inner_gquantiles
 program _consistency_inner_gquantiles
-    syntax [if] [in], [tol(real 1e-6) NOIsily corners *]
+    syntax [if] [in], [tol(real 1e-15) tolmat(real 1e-6) NOIsily corners *]
 
     if ( "`corners'" == "" ) {
     _consistency_inner_full double1 `if' `in', `options'
@@ -339,154 +318,212 @@ end
 
 capture program drop _consistency_inner_nq
 program _consistency_inner_nq
-    syntax anything [if] [in], [tol(real 1e-10) nq(real 2) *]
+    syntax anything [if] [in], [tol(real 1e-15) tolmat(real 1e-6) nq(real 2) *]
     cap drop __*
     local rc = 0
 
     qui {
-    gquantiles __p1 = `anything' `if' `in', pctile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) xtile(__x1)
-    gquantiles __p2 = `anything' `if' `in', pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) xtile(__x2)
+    gquantiles __p1 = `anything' `if' `in', pctile `options' nq(`nq') genp(__g1) binfreq(__f1) xtile(__x1)
+    gquantiles __p2 = `anything' `if' `in', pctile `options' cutpoints(__p1) binfreq(__f2) xtile(__x2)
     if ( `nq' <= 801 ) {
-        glevelsof __g1, silent
-        gquantiles __p3 = `anything' `if' `in', pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) xtile(__x3)
+        if ( `nq' > 10 ) set matsize `=`nq' - 1'
+        mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
+        mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
+
+        gquantiles __p3 = `anything' `if' `in', pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) xtile(__x3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
-        matrix ___mfp3 = r(quantiles_binpct)
 
-        glevelsof __p1, silent
-        gquantiles __p4 = `anything' `if' `in', pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) xtile(__x4)
+        gquantiles __p4 = `anything' `if' `in', pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) xtile(__x4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
-        matrix ___mfp4 = r(cutoffs_binpct)
     }
-    gquantiles __p5 = `anything' `if' `in', pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) xtile(__x5)
+    gquantiles __p5 = `anything' `if' `in', pctile `options' cutquantiles(__g1) binfreq(__f5) xtile(__x5)
     }
 
-    cap _compare_inner_nqvars `tol'
+    * NOTE(mauricio): At one point I do exp(X) which blows this up.
+    * xtile and binfreq are still good, but the pctile discrepancy
+    * is relatively large because of it. Hence I also do relative
+    * comparisons here. // 2017-11-19 13:04 EST
+
+    _compare_inner_nqvars `tol' `tolmat' `nq'
     if ( `rc' ) {
-        di as err "    consistency_internal_gquantiles (failed): pctile via nq(`nq') `options' not all equal"
-        exit `rc'
+        tempvar relcmp
+        qui gen double `relcmp' = __p1 * `tolmat' in 1/`=`nq'-1'
+        qui replace `relcmp'    = cond(`relcmp' < `tolmat', `tolmat', `relcmp') in 1/`=`nq'-1'
+        local rc = 0
+        foreach perc of varlist __p? {
+            cap assert (abs(__p1 - `perc') < `relcmp') | mi(__p1)
+            local rc = max(`rc', _rc)
+        }
+        if ( `rc' ) {
+            di as err "    consistency_internal_gquantiles (failed): pctile via nq(`nq') `options' not all equal"
+            exit `rc'
+        }
+        else {
+            qui su `relcmp'
+            _compare_inner_nqvars `tol' `=r(max)' `nq'
+            if ( `rc' ) {
+                di as err "    consistency_internal_gquantiles (failed): pctile via nq(`nq') `options' not all equal"
+                exit `rc'
+            }
+        }
     }
 
     qui {
     cap drop __*
-    gquantiles __x1 = `anything' `if' `in', xtile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) pctile(__p1)
-    gquantiles __x2 = `anything' `if' `in', xtile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2)
+    gquantiles __x1 = `anything' `if' `in', xtile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1)
+    gquantiles __x2 = `anything' `if' `in', xtile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2)
     if ( `nq' <= 801 ) {
-        glevelsof __g1, silent
-        gquantiles __x3 = `anything' `if' `in', xtile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3)
+        if ( `nq' > 10 ) set matsize `=`nq' - 1'
+        mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
+        mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
+
+        gquantiles __x3 = `anything' `if' `in', xtile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
-        matrix ___mfp3 = r(quantiles_binpct)
 
-        glevelsof __p1, silent
-        gquantiles __x4 = `anything' `if' `in', xtile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4)
+        gquantiles __x4 = `anything' `if' `in', xtile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
-        matrix ___mfp4 = r(cutoffs_binpct)
     }
-    gquantiles __x5 = `anything' `if' `in', xtile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5)
+    gquantiles __x5 = `anything' `if' `in', xtile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5)
     }
 
-    cap _compare_inner_nqvars `tol'
+    _compare_inner_nqvars `tol' `tolmat' `nq'
     if ( `rc' ) {
-        di as err "    consistency_internal_gquantiles (failed): xtile via nq(`nq') `options' not all equal"
-        exit `rc'
+        tempvar relcmp
+        qui gen double `relcmp' = __p1 * `tolmat' in 1/`=`nq'-1'
+        qui replace `relcmp'    = cond(`relcmp' < `tolmat', `tolmat', `relcmp') in 1/`=`nq'-1'
+        local rc = 0
+        foreach perc of varlist __p? {
+            cap assert (abs(__p1 - `perc') < `relcmp') | mi(__p1)
+            local rc = max(`rc', _rc)
+        }
+        if ( `rc' ) {
+            di as err "    consistency_internal_gquantiles (failed): xtile via nq(`nq') `options' not all equal"
+            exit `rc'
+        }
+        else {
+            qui su `relcmp'
+            _compare_inner_nqvars `tol' `=r(max)' `nq'
+            if ( `rc' ) {
+                di as err "    consistency_internal_gquantiles (failed): xtile via nq(`nq') `options' not all equal"
+                exit `rc'
+            }
+        }
     }
 
     qui if ( `nq' <= 801 ) {
-        local options `options' returnlimit(1)
-        gquantiles `anything' `if' `in', _pctile `options' nq(`nq') genp(__g1) binfreq(__f1) binpct(__fp1) pctile(__p1) xtile(__x1) replace
-        gquantiles `anything' `if' `in', _pctile `options' cutpoints(__p1) binfreq(__f2) binpct(__fp2) pctile(__p2) xtile(__x2) replace
+        if ( `nq' > 10 ) set matsize `=`nq' - 1'
+        mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
+        mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
 
-        glevelsof __g1, silent
-        gquantiles `anything' `if' `in', _pctile `options' quantiles(`r(levels)') binfreq binpct binfreq(__f3) binpct(__fp3) pctile(__p3) xtile(__x3) replace
+        gquantiles `anything' `if' `in', _pctile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1) xtile(__x1) replace
+        gquantiles `anything' `if' `in', _pctile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2) xtile(__x2) replace
+
+        gquantiles `anything' `if' `in', _pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3) xtile(__x3) replace
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
-        matrix ___mfp3 = r(quantiles_binpct)
 
-        glevelsof __p1, silent
-        gquantiles `anything' `if' `in', _pctile `options' cutoffs(`r(levels)') binfreq binpct binfreq(__f4) binpct(__fp4) pctile(__p4) xtile(__x4) replace
+        gquantiles `anything' `if' `in', _pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4) xtile(__x4) replace
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
-        matrix ___mfp4 = r(cutoffs_binpct)
 
-        gquantiles `anything' `if' `in', _pctile `options' cutquantiles(__g1) binfreq(__f5) binpct(__fp5) pctile(__p5) xtile(__x5) replace
+        gquantiles `anything' `if' `in', _pctile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5) xtile(__x5) replace
+
+        _compare_inner_nqvars `tol' `tolmat' `nq'
+        if ( `rc' ) {
+            tempvar relcmp
+            qui gen double `relcmp' = __p1 * `tolmat' in 1/`=`nq'-1'
+            qui replace `relcmp'    = cond(`relcmp' < `tolmat', `tolmat', `relcmp') in 1/`=`nq'-1'
+            local rc = 0
+            foreach perc of varlist __p? {
+                cap assert (abs(__p1 - `perc') < `relcmp') | mi(__p1)
+                local rc = max(`rc', _rc)
+            }
+            if ( `rc' ) {
+                di as err "    consistency_internal_gquantiles (failed): __pctile via nq(`nq') `options' not all equal"
+                exit `rc'
+            }
+            else {
+                qui su `relcmp'
+                _compare_inner_nqvars `tol' `=r(max)' `nq'
+                if ( `rc' ) {
+                    di as err "    consistency_internal_gquantiles (failed): __pctile via nq(`nq') `options' not all equal"
+                    exit `rc'
+                }
+            }
+        }
     }
 
-    cap _compare_inner_nqvars `tol'
-    if ( `rc' ) {
-        di as err "    consistency_internal_gquantiles (failed): xtile via nq(`nq') `options' not all equal"
-        exit `rc'
-    }
-
-    di as txt "    consistency_internal_gquantiles (passed): xtile, pctile, and _pctile via nq(`nq') `options' (tol = `tol')"
+    di as txt "    consistency_internal_gquantiles (passed): xtile, pctile, and _pctile via nq(`nq') `options'" ///
+              "(tol = `:di %6.2g `tol'', tolmat = `:di %6.2g `tolmat'')"
 end
 
 capture program drop _compare_inner_nqvars
 program _compare_inner_nqvars, rclass
-    args tol
+    args tol tolmat nq
     local rc = 0
 
-    _compare_inner_nqvars_rc __p1 __p2 `tol'
+    * NOTE(mauricio): Percentiles need not be super precise. The
+    * important property is that they preserve xtile and binfreq, which
+    * is why that tolerance is super small whereas the tolerance for
+    * percentiles is larger. // 2017-11-19 12:33 EST
+
+    _compare_inner_nqvars_rc __p1 __p2 `tolmat'
     local rc = max(`rc', `r(rc)')
     _compare_inner_nqvars_rc __f1 __f2 `tol'
-    local rc = max(`rc', `r(rc)')
-    _compare_inner_nqvars_rc __fp1 __fp2 `tol'
     local rc = max(`rc', `r(rc)')
     _compare_inner_nqvars_rc __x1 __x2 `tol'
     local rc = max(`rc', `r(rc)')
 
     if ( `nq' <= 801 ) {
-        _compare_inner_nqvars_rc __p1 __p3 `tol'
+        _compare_inner_nqvars_rc __p1 __p3 `tolmat'
         local rc = max(`rc', `r(rc)')
         _compare_inner_nqvars_rc __f1 __f3 `tol'
-        local rc = max(`rc', `r(rc)')
-        _compare_inner_nqvars_rc __fp1 __fp3 `tol'
         local rc = max(`rc', `r(rc)')
         _compare_inner_nqvars_rc __x1 __x3 `tol'
         local rc = max(`rc', `r(rc)')
 
-        _compare_inner_nqvars_rc __p1 __p4 `tol'
+        _compare_inner_nqvars_rc __p1 __p4 `tolmat'
         local rc = max(`rc', `r(rc)')
         _compare_inner_nqvars_rc __f1 __f4 `tol'
-        local rc = max(`rc', `r(rc)')
-        _compare_inner_nqvars_rc __fp1 __fp4 `tol'
         local rc = max(`rc', `r(rc)')
         _compare_inner_nqvars_rc __x1 __x4 `tol'
         local rc = max(`rc', `r(rc)')
 
         assert scalar(___s3) == scalar(___s4)
-        mata: assert(all(abs(st_matrix("___mp3")  :- st_matrix("___mp4"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mf3")  :- st_matrix("___mf4"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mfp3") :- st_matrix("___mfp4")) :< `tol'))
+        cap mata: assert(all(abs(st_matrix("___mp3")  :- st_matrix("___mp4"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
+        cap mata: assert(all(abs(st_matrix("___mf3")  :- st_matrix("___mf4"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
 
-        mata: assert(all(abs(st_matrix("___mp3")  :- st_data(1::st_numscalar("___s3"), "__p1"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mf3")  :- st_data(1::st_numscalar("___s3"), "__f3"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mfp3") :- st_data(1::st_numscalar("___s3"), "__fp3")) :< `tol'))
+        cap mata: assert(all(abs(st_matrix("___mp3")  :- st_data(1::st_numscalar("___s3"), "__p1"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
+        cap mata: assert(all(abs(st_matrix("___mf3")  :- st_data(1::st_numscalar("___s3"), "__f3"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
 
-        mata: assert(all(abs(st_matrix("___mp4")  :- st_data(1::st_numscalar("___s4"), "__p1"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mf4")  :- st_data(1::st_numscalar("___s4"), "__f4"))  :< `tol'))
-        mata: assert(all(abs(st_matrix("___mfp4") :- st_data(1::st_numscalar("___s4"), "__fp4")) :< `tol'))
+        cap mata: assert(all(abs(st_matrix("___mp4")  :- st_data(1::st_numscalar("___s4"), "__p1"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
+        cap mata: assert(all(abs(st_matrix("___mf4")  :- st_data(1::st_numscalar("___s4"), "__f4"))  :< `tolmat'))
+        local rc = max(`rc', _rc)
     }
 
-    local rc = 0
-    _compare_inner_nqvars_rc __p1 __p5 `tol'
+    _compare_inner_nqvars_rc __p1 __p5 `tolmat'
     local rc = max(`rc', `r(rc)')
     _compare_inner_nqvars_rc __f1 __f5 `tol'
-    local rc = max(`rc', `r(rc)')
-    _compare_inner_nqvars_rc __fp1 __fp5 `tol'
     local rc = max(`rc', `r(rc)')
     _compare_inner_nqvars_rc __x1 __x5 `tol'
     local rc = max(`rc', `r(rc)')
 
-    return rc = `rc'
+    c_local rc `rc'
 end
 
 capture program drop _compare_inner_nqvars_rc
@@ -522,6 +559,17 @@ program compare_gquantiles_stata
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(xtile) `options'
+
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef p(0.1 5 10 30 50 70 90 95 99.9)) qwhich(_pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(801)) qwhich(_pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100)) qwhich(_pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))  qwhich(_pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))   qwhich(_pctile) `options'
+
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(pctile) `options'
+    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(pctile) `options'
     }
 
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(500))  qwhich(pctile) `options'
@@ -535,21 +583,10 @@ program compare_gquantiles_stata
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))  qwhich(_pctile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))   qwhich(_pctile) `options'
 
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef p(0.1 5 10 30 50 70 90 95 99.9)) qwhich(_pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(801)) qwhich(_pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100)) qwhich(_pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))  qwhich(_pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))   qwhich(_pctile) `options'
-
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(500))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(100))  qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(10))   qwhich(xtile) `options'
     compare_inner_quantiles, n(`n') bench(`bench') qopts(nq(2))    qwhich(xtile) `options'
-
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(100))  qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(10))   qwhich(pctile) `options'
-    compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(2))    qwhich(pctile) `options'
 end
 
 capture program drop compare_inner_quantiles
@@ -704,6 +741,12 @@ program _compare_inner_xtile
             cap assert `xtile' == `gxtile'
             if ( _rc ) {
                 di as err "    compare_xtile (failed): gquantiles xtile = `anything' gave different levels to xtile"
+                di as err ""
+                di as err `"Stata's built-in xtile, altdef can sometimes be imprecise. See"'
+                di as err ""
+                di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
+                di as err ""
+                di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
                 sum `xtile' `gxtile' `diff'
                 l `xtile' `gxtile' `diff' in 1/20
             }
@@ -714,7 +757,7 @@ program _compare_inner_xtile
                      _n(1) "However, gquantiles xtile = `anything' without altdef was the same.  On some systems," ///
                      _n(1) "xtile.ado has a typo in line 135 that explains this. Please go to:"                    ///
                      _n(2) `"    {stata doedit `"`r(fn)'"'}"'                                                      ///
-                     _n(2) "and change 'altdev' to 'altdef' (or add option -noaltdef- to compare_gquantiles)."
+                     _n(2) "and change 'altdev' to 'altdef' (or add option {cmd:noaltdef} to compare_gquantiles)."
             }
             exit 198
         }
@@ -789,14 +832,24 @@ program _compare_inner_pctile
     qui replace `comp'    = cond(`comp' < `tol', `tol', `comp') if !mi(`pctile')
     cap assert abs(`pctile' - `gpctile') < `tol' | ( mi(`pctile') & mi(`gpctile'))
     if ( _rc ) {
+        di as err "    compare_pctile (warning): gquantiles pctile = `anything' gave different percentiles to pctile (tol = `:di %6.2g `tol'')"
+        if ( strpos("`qopts'", "altdef") ) {
+                di as err ""
+                di as err `"Stata's built-in pctile, altdef can sometimes be imprecise. See"'
+                di as err ""
+                di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
+                di as err ""
+                di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
+        }
+
         tempvar gpctile2
         qui gen `:type `pctile'' `gpctile2' = `gpctile'
         cap assert abs(`pctile' - `gpctile2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
         if ( _rc ) {
-            di as err "    compare_pctile (failed): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `reltol')"
-            exit 198
+            di as err "    compare_pctile (failed): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `:di %6.2g `reltol'')"
             sum `pctile' `gpctile' `comp'
             l `pctile' `gpctile' in 1/20
+            exit 198
         }
     }
 
@@ -815,11 +868,11 @@ program _compare_inner_pctile
                 exit 198
             }
             else {
-                di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `reltol', tol = `tol')"
+                di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
             }
         }
         else {
-            di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `reltol', tol = `tol')"
+            di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
         }
     }
 
@@ -862,10 +915,20 @@ program _compare_inner__pctile
 
     forvalues q = 1 / `nq' {
         if ( abs(scalar(qr_`q') - scalar(r_`q')) > `tol' ) {
+            di as err "    compare__pctile (warning): gquantiles `anything', _pctile gave different percentiles to _pctile (tol = `:di %6.2g `tol'')"
+            if ( strpos("`qopts'", "altdef") ) {
+                di as err ""
+                di as err `"Stata's built-in _pctile, altdef can sometimes be imprecise. See"'
+                di as err ""
+                di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
+                di as err ""
+                di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
+            }
+
             scalar comp = `=scalar(r_`q')' * `reltol'
             scalar comp = cond(scalar(comp) < `tol', `tol', scalar(comp))
             if ( abs(scalar(qr_`q') - scalar(r_`q')) > `comp' ) {
-                di as err "    compare__pctile (failed): gquantiles `anything', _pctile gave different percentiles to _pctile (reltol = `reltol')"
+                di as err "    compare__pctile (failed): gquantiles `anything', _pctile gave different percentiles to _pctile (reltol = `:di %6.2g `reltol'')"
                 qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(1)
                 local q1r_`q' = `r(r`q')'
                 qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(2)
@@ -883,7 +946,7 @@ program _compare_inner__pctile
     }
 
     if ( "`benchmode'" == "" ) {
-        di as txt "    compare__pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `reltol', tol = `tol')"
+        di as txt "    compare__pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
     }
 
     if ( ("`table'" != "") | ("`benchmode'" != "") ) {
@@ -1134,6 +1197,6 @@ program _gquantiles_switch_nq
     local ratio_2 = `time_m1_2' / `time_m2_2'
     local ratio_3 = `time_m1_3' / `time_m2_3'
 
-        local est_ratio_3 = r(method_ratio)
+    local est_ratio_3 = r(method_ratio)
     di as txt "| `:di %12.0gc `=_N'' | `:di %4.0g `nq'' | `:di %5.3g `ratio_1'' (`:di %5.3g `est_ratio_1'') | `:di %7.3g `ratio_2'' (`:di %5.3g `est_ratio_2'') | `:di %13.3g `ratio_3'' (`:di %6.3g `est_ratio_3'') |
 end

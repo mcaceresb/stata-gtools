@@ -1,9 +1,11 @@
-*! version -1.3.1 08Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13
+    global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
+    set varabbrev off
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
@@ -21,12 +23,15 @@ program _gtools_internal, rclass
                          gquantiles
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
-        di as err "_gtools_internal is not meant to be called directly. See {help gtools}"
+        di as err "_gtools_internal is not meant to be called directly." ///
+                  " See {help gtools}"
+        clean_all 198
         exit 198
     }
 
     if ( `=_N < 1' ) {
         di as err "no observations"
+        clean_all 17001
         exit 17001
     }
 
@@ -42,14 +47,15 @@ program _gtools_internal, rclass
 
     syntax [anything] [if] [in] , ///
     [                             ///
-        Verbose                   /// debugging
+        DEBUG_level(int 0)        /// debugging
+        Verbose                   /// info
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
+        HASHmethod(str)           /// hashing method
         hashlib(str)              /// path to hash library (Windows only)
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
-        replace                   /// When writing to a variable directly from C,
-                                  /// specify the variable can exist
+        replace                   /// Replace variables, if they exist
                                   ///
                                   /// General options
                                   /// ---------------
@@ -58,16 +64,19 @@ program _gtools_internal, rclass
         COUNTonly                 /// report group info and exit
         MISSing                   /// Include missing values
         unsorted                  /// Do not sort hash values; faster
-        countmiss                 /// count # missing in output (only w/certain targets)
+        countmiss                 /// count # missing in output
+                                  /// (only w/certain targets)
                                   ///
                                   /// Generic stats options
                                   /// ---------------------
                                   ///
         sources(str)              /// varlist must exist
         targets(str)              /// varlist must exist
-        stats(str)                /// stats (one per target; if multiple targets
+        stats(str)                /// stats, 1 per target. w/multiple targets,
+                                  /// # targets must = # sources
         freq(str)                 /// also collapse frequencies to variable
-                                  /// then # targets must = # sources)
+        ANYMISSing(str)           /// Value if any missing per stat per group
+        ALLMISSing(str)           /// Value if all missing per stat per group
                                   ///
                                   /// Capture options
                                   /// ---------------
@@ -89,7 +98,7 @@ program _gtools_internal, rclass
                                   /// gisid options
                                   /// -------------
                                   ///
-        EXITMissing               /// Throw error if there are any missing values.
+        EXITMissing               /// Throw error if any missing values (by row).
                                   ///
                                   /// hashsort options
                                   /// ----------------
@@ -102,6 +111,7 @@ program _gtools_internal, rclass
                                   /// glevelsof options
                                   /// -----------------
                                   ///
+        glevelsof(str)            /// extra options for glevelsof (parse later)
         Separate(str)             /// Levels sepparator
         COLSeparate(str)          /// Columns sepparator
         Clean                     /// Clean strings
@@ -112,8 +122,27 @@ program _gtools_internal, rclass
     local ifin `if' `in'
     local gen  `generate'
 
+    local hashmethod `hashmethod'
+    if ( `"`hashmethod'"' == "" ) local hashmethod 0
+
+
+    local hashmethod_list 0 1 2 default biject spooky
+    if ( !`:list hashmethod_list in hashmethod_list' ) {
+        di as err `"hash method '`hashmethod'' not known;"' ///
+                   " specify 0 (default), 1 (biject), or 2 (spooky)"
+        clean_all 198
+        exit 198
+    }
+
+    if ( "`hashmethod'" == "default" ) local hashmethod 0
+    if ( "`hashmethod'" == "biject"  ) local hashmethod 1
+    if ( "`hashmethod'" == "spooky"  ) local hashmethod 2
+
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
+
+    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
+    local url `url'/master/spookyhash.dll
 
     if ( "`hashlib'" == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
@@ -127,11 +156,10 @@ program _gtools_internal, rclass
             if ( _rc | `hashusr' ) {
                 cap confirm file `"`hashlib'"'
                 if ( _rc ) {
-                    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-                    local url `url'/master/spookyhash.dll
                     di as err `"'`hashlib'' not found."'
-                    di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
-                    clean_all
+                    di as err `"Download {browse "`url'":here}"' ///
+                              `" or run {opt gtools, dependencies}"'
+                    clean_all 198
                     exit 198
                 }
             }
@@ -165,7 +193,7 @@ program _gtools_internal, rclass
             if ( _rc ) {
                 local rc = _rc
                 di as err "Unable to add '`__gtools_hashpath'' to system PATH."
-                clean_all
+                clean_all `rc'
                 exit `rc'
             }
         }
@@ -181,12 +209,14 @@ program _gtools_internal, rclass
         syntax, sources(varlist) targets(varlist)
         if ( `:list sizeof sources' != `:list sizeof targets' ) {
             di as err "Must specify the same number of sources and targets"
+            clean_all 198
             exit 198
         }
         scalar __gtools_k_recast = `:list sizeof sources'
         cap noi plugin call gtools_plugin `targets' `sources', recast
         local rc = _rc
         cap scalar drop __gtools_k_recast
+        clean_all `rc'
         exit `rc'
     }
 
@@ -197,11 +227,22 @@ program _gtools_internal, rclass
     * What to do
     * ----------
 
-    local gfunction_list hash egen levelsof isid sort unique collapse top contract quantiles
+    local gfunction_list hash     ///
+                         egen     ///
+                         levelsof ///
+                         isid     ///
+                         sort     ///
+                         unique   ///
+                         collapse ///
+                         top      ///
+                         contract ///
+                         quantiles
+
     if ( "`gfunction'" == "" ) local gfunction hash
     if ( !(`:list gfunction in gfunction_list') ) {
-        di as err "{opt gfunction()} was '`gfunction'' but expected one of: `gfunction_list'"
-        clean_all
+        di as err "{opt gfunction()} was '`gfunction''; expected one of:" ///
+                  " `gfunction_list'"
+        clean_all 198
         exit 198
     }
 
@@ -214,34 +255,26 @@ program _gtools_internal, rclass
     if ( "`oncollision'" == "" ) local oncollision fallback
     if ( !inlist("`oncollision'", "fallback", "error") ) {
         di as err "option {opt oncollision()} must be 'fallback' or 'error'"
-        clean_all
+        clean_all 198
         exit 198
     }
 
     * Check options compatibility
     * ---------------------------
 
-    * Not true; need not be set with option -detail-.  This option is only for
-    * speed so it's fine to rely on gunique.
-
-    * if ( inlist("`gfunction'", "unique") ) {
-    *     if ( "`countonly'" == "" ) {
-    *         di as txt "(-gfunction(unique)- sets option -countonly- automatically)"
-    *         local countonly countonly
-    *     }
-    * }
-
     if ( inlist("`gfunction'", "isid", "unique") ) {
         if ( "`unsorted'" == "" ) {
-            di as txt "(-gfunction(`gfunction')- sets option -unsorted- automatically)"
+            di as txt "({opt gfunction(`gfunction')} sets option" ///
+                      " {opt unsorted} automatically)"
             local unsorted unsorted
         }
     }
 
     if ( inlist("`gfunction'", "isid") ) {
         if ( "`exitmissing'`missing'" == "" ) {
-            di as err "{opt gfunction(`gfunction')} must set either {opt exitmissing} or {opt missing}"
-            clean_all
+            di as err "{opt gfunction(`gfunction')} must set either" ///
+                      " {opt exitmissing} or {opt missing}"
+            clean_all 198
             exit 198
         }
     }
@@ -249,35 +282,37 @@ program _gtools_internal, rclass
     if ( inlist("`gfunction'", "sort") ) {
         if ( "`if'" != "" ) {
             di as err "Cannot sort data with if condition"
-            clean_all
+            clean_all 198
             exit 198
         }
         if ( "`exitmissing'" != "" ) {
-            di as err "Cannot specify {opt exitmissing} with {opt gfunction(sort)}"
-            clean_all
+            di as err "Cannot specify {opt exitmissing} with" ///
+                      " {opt gfunction(sort)}"
+            clean_all 198
             exit 198
         }
         if ( "`missing'" == "" ) {
-            di as txt "({opt gfunction(`gfunction')} sets option {opt missing} automatically)"
+            di as txt "({opt gfunction(`gfunction')} sets option" ///
+                      " {opt missing} automatically)"
             local missing missing
         }
         if ( "`unsorted'" != "" ) {
             di as err "Cannot specify {opt unsorted} with {opt gfunction(sort)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
 
     if ( ("`exitmissing'" != "") & ("`missing'" != "") ) {
         di as err "Cannot specify {opt exitmissing} with option {opt missing}"
-        clean_all
+        clean_all 198
         exit 198
     }
 
     if ( "`sortindex'" != "" ) {
         if ( !inlist("`gfunction'", "sort") ) {
             di as err "sort index only allowed with {opt gfunction(sort)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -285,17 +320,22 @@ program _gtools_internal, rclass
     if ( "`counts'`gen'`tag'" != "" ) {
         if ( "`countonly'" != "" ) {
             di as err "cannot generate targets with option {opt countonly}"
-            clean_all
+            clean_all 198
             exit 198
         }
-        if ( !inlist("`gfunction'", "hash", "egen", "unique", "sort", "levelsof") ) {
-            di as err "cannot generate targets with {opt gfunction(`gfunction')}"
-            clean_all
+
+        local gen_list hash egen unique sort levelsof quantiles
+        if ( !`:list gfunction in gen_list' ) {
+            di as err "cannot generate targets with" ///
+                      " {opt gfunction(`gfunction')}"
+            clean_all 198
             exit 198
         }
+
         if ( ("`gen'" == "") & !inlist("`gfunction'", "sort", "levelsof") ) {
             if ( "`unsorted'" == "" ) {
-                di as txt "(-tag- and -counts- without -gen- sets option -unsorted- automatically)"
+                di as txt "({opt tag} and {opt counts} without {opt gen}" ///
+                           " sets option {opt unsorted} automatically)"
                 local unsorted unsorted
             }
         }
@@ -304,7 +344,7 @@ program _gtools_internal, rclass
     if ( "`sources'`targets'`stats'" != "" ) {
         if ( !inlist("`gfunction'", "hash", "egen", "collapse", "unique") ) {
             di as err "cannot generate targets with {opt gfunction(`gfunction')}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -312,7 +352,7 @@ program _gtools_internal, rclass
     if ( "`fill'" != "" ) {
         if ( "`counts'`targets'" == "" ) {
             di as err "{opt fill()} only allowed with {opth counts(newvarname)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -325,7 +365,7 @@ program _gtools_internal, rclass
         if ( "`numfmt'"      != "" ) local errmsg "`errmsg' -numfmt()-, "
         if ( !inlist("`gfunction'", "levelsof", "top") ) {
             di as err "`errmsg' only allowed with {opt gfunction(levelsof)}"
-            clean_all
+            clean_all 198
             exit 198
         }
     }
@@ -337,19 +377,21 @@ program _gtools_internal, rclass
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
-    scalar __gtools_init_targ  = 0
-    scalar __gtools_any_if     = `any_if'
-    scalar __gtools_verbose    = `verbose'
-    scalar __gtools_benchmark  = ( `benchmarklevel' > 1   )
-    scalar __gtools_missing    = ( "`missing'"      != "" )
-    scalar __gtools_unsorted   = ( "`unsorted'"     != "" )
-    scalar __gtools_countonly  = ( "`countonly'"    != "" )
-    scalar __gtools_seecount   = ( "`seecount'"     != "" )
-    scalar __gtools_nomiss     = ( "`exitmissing'"  != "" )
-    scalar __gtools_replace    = ( "`replace'"      != "" )
-    scalar __gtools_countmiss  = ( "`countmiss'"    != "" )
-    scalar __gtools_invertix   = ( "`invertinmata'" == "" )
-    scalar __gtools_skipcheck  = ( "`skipcheck'"    != "" )
+    scalar __gtools_init_targ   = 0
+    scalar __gtools_any_if      = `any_if'
+    scalar __gtools_verbose     = `verbose'
+    scalar __gtools_debug       = `debug_level'
+    scalar __gtools_benchmark   = cond(`benchmarklevel' > 0, `benchmarklevel', 0)
+    scalar __gtools_missing     = ( "`missing'"      != "" )
+    scalar __gtools_unsorted    = ( "`unsorted'"     != "" )
+    scalar __gtools_countonly   = ( "`countonly'"    != "" )
+    scalar __gtools_seecount    = ( "`seecount'"     != "" )
+    scalar __gtools_nomiss      = ( "`exitmissing'"  != "" )
+    scalar __gtools_replace     = ( "`replace'"      != "" )
+    scalar __gtools_countmiss   = ( "`countmiss'"    != "" )
+    scalar __gtools_invertix    = ( "`invertinmata'" == "" )
+    scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
+    scalar __gtools_hash_method = `hashmethod'
 
     scalar __gtools_top_ntop        = 0
     scalar __gtools_top_pct         = 0
@@ -363,6 +405,8 @@ program _gtools_internal, rclass
     matrix __gtools_top_num         = J(1, 1, .)
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
+
+    scalar __gtools_levels_return   = 1
 
     scalar __gtools_xtile_xvars     = 0
     scalar __gtools_xtile_nq        = 0
@@ -384,6 +428,8 @@ program _gtools_internal, rclass
     scalar __gtools_xtile__pctile   = 0
     scalar __gtools_xtile_dedup     = 0
     scalar __gtools_xtile_cutifin   = 0
+    scalar __gtools_xtile_cutby     = 0
+    scalar __gtools_xtile_imprecise = 0
     matrix __gtools_xtile_quantiles = J(1, 1, .)
     matrix __gtools_xtile_cutoffs   = J(1, 1, .)
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
@@ -403,14 +449,15 @@ program _gtools_internal, rclass
     }
 
     if regexm(`"`numfmt'"', "%([0-9]+)\.([0-9]+)([gf])") {
-        local numlen = max(`:di regexs(1)', `:di regexs(2)' + 4) + cond(regexs(3) == "f", 23, 0)
+        local numlen = max(`:di regexs(1)', `:di regexs(2)' + 5) + cond(regexs(3) == "f", 23, 0)
     }
     else if regexm(`"`numfmt'"', "%\.([0-9]+)([gf])") {
-        local numlen = `:di regexs(1)' + 4 + cond(regexs(2) == "f", 23, 0)
+        local numlen = `:di regexs(1)' + 5 + cond(regexs(2) == "f", 23, 0)
     }
     else {
-        di as err "Number format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
-        clean_all
+        di as err "Number format must be %(width).(digits)(f|g);" ///
+                  " e.g. %.16g (default), %20.5f"
+        clean_all 198
         exit 198
     }
 
@@ -436,7 +483,11 @@ program _gtools_internal, rclass
             local tag_type byte
         }
         cap noi confirm_var `tag_name', `replace'
-        if ( _rc ) exit _rc
+        if ( _rc ) {
+            local rc = _rc
+            clean_all `rc'
+            exit `rc'
+        }
         local new_tag = `r(newvar)'
     }
 
@@ -454,7 +505,11 @@ program _gtools_internal, rclass
             }
         }
         cap noi confirm_var `gen_name', `replace'
-        if ( _rc ) exit _rc
+        if ( _rc ) {
+            local rc = _rc
+            clean_all `rc'
+            exit `rc'
+        }
         local new_gen = `r(newvar)'
     }
 
@@ -476,7 +531,11 @@ program _gtools_internal, rclass
                 }
             }
             cap noi confirm_var `counts_name', `replace'
-            if ( _rc ) exit _rc
+            if ( _rc ) {
+                local rc = _rc
+                clean_all
+                exit `rc'
+            }
             local new_counts = `r(newvar)'
         }
         if ( "`fill'" != "" ) {
@@ -494,6 +553,7 @@ program _gtools_internal, rclass
                 cap local fill_value = `fill'
                 if ( _rc ) {
                     di as error "'`fill'' found where number expected"
+                    clean_all 7
                     exit 7
                 }
                 * local 0 , fill(`fill')
@@ -518,7 +578,7 @@ program _gtools_internal, rclass
     }
     else if ( "`fill'" != "" ) {
         di as err "{opt fill} only allowed with option {opt count()} or {opt targets()}"
-        clean_all
+        clean_all 198
         exit 198
     }
 
@@ -622,7 +682,7 @@ program _gtools_internal, rclass
         if ( _rc | ("`clean_anything'" == "") ) {
             local rc = _rc
             di as err "Malformed call: '`anything''"
-            di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
             clean_all 111
             exit 111
         }
@@ -721,7 +781,10 @@ program _gtools_internal, rclass
             }
         }
 
-        parse_targets, sources(`sources') targets(`targets') stats(`stats') `k_exist'
+        parse_targets, sources(`sources') ///
+                       targets(`targets') ///
+                       stats(`stats') `k_exist'
+
         if ( _rc ) {
             local rc = _rc
             clean_all `rc'
@@ -732,12 +795,14 @@ program _gtools_internal, rclass
             cap confirm variable `freq'
             if ( _rc ) {
                 di as err "Target `freq' has to exist."
+                clean_all 198
                 exit 198
             }
 
             cap confirm numeric variable `freq'
             if ( _rc ) {
                 di as err "Target `freq' must be numeric."
+                clean_all 198
                 exit 198
             }
 
@@ -762,6 +827,21 @@ program _gtools_internal, rclass
     local msg "Parsed by variables"
     gtools_timer info 98 `"`msg'"', prints(`benchmark')
 
+    * Custom handle any missing or all missing values
+    * -----------------------------------------------
+
+    if ( "`anymissing'" != "" ) {
+        di as err "anymissing() is planned for a future release."
+        clean_all 198
+        exit 198
+    }
+
+    if ( "`allmissing'" != "" ) {
+        di as err "allmissing() is planned for a future release."
+        clean_all 198
+        exit 198
+    }
+
     ***********************************************************************
     *                           Call the plugin                           *
     ***********************************************************************
@@ -776,7 +856,9 @@ program _gtools_internal, rclass
         local contained 0
         local sortvar : sortedby
         forvalues k = 1 / `:list sizeof byvars' {
-            if ( "`:word `k' of `byvars''" == "`:word `k' of `sortvar''" ) local ++contained
+            if ( "`:word `k' of `byvars''" == "`:word `k' of `sortvar''" ) {
+                local ++contained
+            }
         }
         * di "`contained'"
 
@@ -784,49 +866,55 @@ program _gtools_internal, rclass
         if ( "`skipcheck'" == "" ) {
             if ( !`invert' & ("`sortvar'" == "`byvars'") ) {
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                clean_all
+                clean_all 0
                 exit 0
             }
             else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
                 * If the first k sorted variables equal byvars, just call sort
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                sort `byvars'
-                clean_all
+                sort `byvars' // , stable
+                clean_all 0
                 exit 0
             }
             else if ( "`sortvar'" != "" ) {
                 * Andrew Maurer's trick to clear `: sortedby'
+                qui set obs `=_N + 1'
                 loc sortvar : word 1 of `sortvar'
-                scalar __gtools_sort_val = `sortvar'[1]
-                cap replace `sortvar' = 0         in 1
-                cap replace `sortvar' = .         in 1
-                cap replace `sortvar' = ""        in 1
-                cap replace `sortvar' = "."       in 1
-                cap replace `sortvar' = `=scalar(__gtools_sort_val)'     in 1
-                cap replace `sortvar' = `"`=scalar(__gtools_sort_val)'"' in 1
-                assert "`: sortedby'" == ""
-                scalar drop __gtools_sort_val
+                loc sortvar_type : type `sortvar'
+                loc sortvar_is_str = strpos("`sortvar_type'", "str") == 1
+
+                if ( `sortvar_is_str' ) {
+                    qui replace `sortvar' = `"."' in `=_N'
+                }
+                else {
+                    qui replace `sortvar' = 0 in `=_N'
+                }
+                qui drop in `=_N'
             }
         }
         else {
             if ( "`sortvar'" != "" ) {
                 * Andrew Maurer's trick to clear `: sortedby'
+                qui set obs `=_N + 1'
                 loc sortvar : word 1 of `sortvar'
-                loc val = `sortvar'[1]
-                cap replace `sortvar' = 0         in 1
-                cap replace `sortvar' = .         in 1
-                cap replace `sortvar' = ""        in 1
-                cap replace `sortvar' = "."       in 1
-                cap replace `sortvar' = `val'     in 1
-                cap replace `sortvar' = `"`val'"' in 1
-                assert "`: sortedby'" == ""
+                loc sortvar_type : type `sortvar'
+                loc sortvar_is_str = strpos("`sortvar_type'", "str") == 1
+
+                if ( `sortvar_is_str' ) {
+                    qui replace `sortvar' = `"."' in `=_N'
+                }
+                else {
+                    qui replace `sortvar' = 0 in `=_N'
+                }
+                qui drop in `=_N'
             }
         }
 
         * Use sortindex for the shuffle
         * -----------------------------
 
-        cap noi hashsort_inner `byvars' `etargets', benchmark(`benchmark') `invertinmata'
+        local hopts benchmark(`benchmark') `invertinmata'
+        cap noi hashsort_inner `byvars' `etargets', `hopts'
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -844,15 +932,15 @@ program _gtools_internal, rclass
                         local sortvars `sortvars' `:word `i' of `byvars''
                     }
                     scalar drop __gtools_first_inverted
-                    sort `sortvars'
+                    sort `sortvars' // , stable
                 }
             }
             else {
-                sort `byvars'
+                sort `byvars' // , stable
             }
         }
         else if ( ("`gen_name'" != "") & ("`sortgen'" != "") ) {
-            sort `gen_name'
+            sort `gen_name' // , stable
         }
 
         local msg "Stata reshuffle"
@@ -883,7 +971,8 @@ program _gtools_internal, rclass
         }
 
         local plugvars `byvars' `etargets' `extravars' `ixinfo'
-        cap noi plugin call gtools_plugin `plugvars' `ifin', collapse `anything' `"`fname'"'
+        cap noi plugin call gtools_plugin `plugvars' `ifin', ///
+            collapse `anything' `"`fname'"'
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -910,7 +999,8 @@ program _gtools_internal, rclass
 
             local extravars `__gtools_sources' `__gtools_targets' `freq'
             local plugvars `byvars' `etargets' `extravars' `ixinfo'
-            cap noi plugin call gtools_plugin `plugvars' `ifin', collapse ixfinish `"`fname'"'
+            cap noi plugin call gtools_plugin `plugvars' `ifin', ///
+                collapse ixfinish `"`fname'"'
             if ( _rc ) {
                 local rc = _rc
                 clean_all `rc'
@@ -937,12 +1027,53 @@ program _gtools_internal, rclass
             syntax varlist, contractwhich(numlist)
             local gcall `gfunction'
             local contractvars `varlist'
-            mata: st_matrix("__gtools_contract_which", strtoreal(tokens(`"`contractwhich'"')))
+            mata: st_matrix("__gtools_contract_which", ///
+                            strtoreal(tokens(`"`contractwhich'"')))
             local runtxt " (internals)"
+        }
+        else if ( inlist("`gfunction'",  "levelsof") ) {
+            local 0, `glevelsof'
+            syntax, [noLOCALvar freq(str) store(str)]
+            local gcall `gfunction'
+            scalar __gtools_levels_return = ( "`localvar'" == "" )
+
+            if ( "`store'" != "" ) {
+                di as err "store() is planned for a future release."
+                clean_all 198
+                exit 198
+            }
+
+            if ( "`freq'" != "" ) {
+                di as err "freq() is planned for a future release."
+                clean_all 198
+                exit 198
+            }
+
+            local 0, `store'
+            syntax, [GENerate(str) genpre(str) MATrix(str) replace(str)]
+
+            local 0, `freq'
+            syntax, [GENerate(str) MATrix(str) replace(str)]
+
+            * Check which exist (w/replace) and create empty vars
+            * Pass to plugin call
+
+            * store(matrix(name)) <- only numeric
+            * store(data(varlist)) <- any type; must be same length as by vars
+            * store(data prefix(prefix) [truncate]) <- prefix; must be valid stata names
+            * freq(matrix(name))
+            * freq(mata(name))
         }
         else if ( inlist("`gfunction'",  "top") ) {
             local 0, `gtop'
-            syntax, ntop(real) pct(real) freq(real) [misslab(str) otherlab(str) groupmiss]
+            syntax, ntop(real)    ///
+                    pct(real)     ///
+                    freq(real)    ///
+                [                 ///
+                    misslab(str)  ///
+                    otherlab(str) ///
+                    groupmiss     ///
+                ]
             local gcall `gfunction'
 
             scalar __gtools_top_ntop      = `ntop'
@@ -954,7 +1085,10 @@ program _gtools_internal, rclass
             scalar __gtools_top_lmiss     = length(`"`misslab'"')
             scalar __gtools_top_lother    = length(`"`otherlab'"')
 
-            local nrows = `ntop' + scalar(__gtools_top_miss) + scalar(__gtools_top_other)
+            local nrows = abs(`ntop')               ///
+                        + scalar(__gtools_top_miss) ///
+                        + scalar(__gtools_top_other)
+
             cap noi check_matsize, nvars(`nrows')
             if ( _rc ) {
                 local rc = _rc
@@ -971,7 +1105,8 @@ program _gtools_internal, rclass
 
             matrix __gtools_top_matrix = J(max(`nrows', 1), 5, 0)
             if ( `=scalar(__gtools_kvars_num)' > 0 ) {
-                matrix __gtools_top_num = J(max(`nrows', 1), `=scalar(__gtools_kvars_num)', .)
+                matrix __gtools_top_num = ///
+                    J(max(`nrows', 1), `=scalar(__gtools_kvars_num)', .)
             }
         }
         else if ( inlist("`gfunction'",  "quantiles") ) {
@@ -981,8 +1116,13 @@ program _gtools_internal, rclass
                 xsources(varlist numeric)     ///
                                               ///
                 Nquantiles(real 0)            ///
+                                              ///
                 Quantiles(numlist)            ///
                 cutoffs(numlist)              ///
+                                              ///
+                quantmatrix(str)              ///
+                cutmatrix(str)                ///
+                                              ///
                 Cutpoints(varname numeric)    ///
                 cutquantiles(varname numeric) ///
                                               ///
@@ -994,6 +1134,7 @@ program _gtools_internal, rclass
                 returnlimit(real 1001)        ///
                 dedup                         ///
                 cutifin                       ///
+                cutby                         ///
                 _pctile                       ///
                 binfreq                       ///
                 method(int 0)                 ///
@@ -1002,37 +1143,128 @@ program _gtools_internal, rclass
                 strict                        ///
                 minmax                        ///
             ]
+
             local gcall `gfunction'
-            local xvars `namelist' `pctile' `binfreqvar' `genp' `cutpoints' `cutquantiles' `xsources'
+            local xvars `namelist'     ///
+                        `pctile'       ///
+                        `binfreqvar'   ///
+                        `genp'         ///
+                        `cutpoints'    ///
+                        `cutquantiles' ///
+                        `xsources'
+
+            ***************************
+            *  quantiles and cutoffs  *
+            ***************************
+
+            * First we need to parse quantmatrix and cutmatrix to find
+            * out how many quantiles or cutoffs we may have.
+
+            if ( "`quantmatrix'" != "" ) {
+                if ( "`quantiles'" != "" ) {
+                    disp as err "Specify only one of quantiles() or quantmatrix()"
+                    clean_all 198
+                    exit 198
+                }
+
+                tempname m c r
+                mata: `m' = st_matrix("`quantmatrix'")
+                mata: `c' = cols(`m')
+                mata: `r' = rows(`m')
+                cap mata: assert(min((`c', `r')) == 1)
+                if ( _rc ) {
+                    disp as err "quantmatrix() must be a N by 1 or 1 by N matrix."
+                    clean_all 198
+                    exit 198
+                }
+
+                cap mata: assert(all(`m' :> 0) & all(`m' :< 100))
+                if ( _rc ) {
+                    disp as err "quantmatrix() must contain all values" ///
+                                " strictly between 0 and 100"
+                    clean_all 198
+                    exit 198
+                }
+                mata: st_local("xhow_nq2", strofreal(max((`c', `r')) > 0))
+                mata: st_matrix("__gtools_xtile_quantiles", rowshape(`m', 1))
+                mata: st_numscalar("__gtools_xtile_nq2", max((`c', `r')))
+            }
+            else {
+                local xhow_nq2 = ( `:list sizeof quantiles' > 0 )
+                scalar __gtools_xtile_nq2 = `:list sizeof quantiles'
+            }
+
+            if ( "`cutmatrix'" != "" ) {
+                if ( "`cutoffs'" != "" ) {
+                    disp as err "Specify only one of cutoffs() or cutmatrix()"
+                    clean_all 198
+                    exit 198
+                }
+
+                tempname m c r
+                mata: `m' = st_matrix("`cutmatrix'")
+                mata: `c' = cols(`m')
+                mata: `r' = rows(`m')
+                cap mata: assert(min((`c', `r')) == 1)
+                if ( _rc ) {
+                    disp as err "cutmatrix() must be a N by 1 or 1 by N matrix."
+                    clean_all 198
+                    exit 198
+                }
+                mata: st_local("xhow_cuts", strofreal(max((`c', `r')) > 0))
+                mata: st_matrix("__gtools_xtile_cutoffs", rowshape(`m', 1))
+                mata: st_numscalar("__gtools_xtile_ncuts", max((`c', `r')))
+            }
+            else {
+                local xhow_cuts = ( `:list sizeof cutoffs' > 0 )
+                scalar __gtools_xtile_ncuts = `:list sizeof cutoffs'
+            }
+
+            ******************************
+            *  Rest of quantile parsing  *
+            ******************************
+
+            * Make sure cutoffs/quantiles are correctly requested (can
+            * only specify 1 method!)
 
             local xhow_nq      = ( `nquantiles' > 0 )
-            local xhow_nq2     = ( `:list sizeof quantiles'    > 0 )
-            local xhow_cuts    = ( `:list sizeof cutoffs'      > 0 )
             local xhow_cutvars = ( `:list sizeof cutpoints'    > 0 )
             local xhow_qvars   = ( `:list sizeof cutquantiles' > 0 )
-            local xhow_total   = `xhow_nq' + `xhow_nq2' + `xhow_cuts' + `xhow_cutvars' + `xhow_qvars'
+            local xhow_total   = `xhow_nq'      ///
+                               + `xhow_nq2'     ///
+                               + `xhow_cuts'    ///
+                               + `xhow_cutvars' ///
+                               + `xhow_qvars'
 
             local early_rc = 0
             if ( "`_pctile'" != "" ) {
                 if ( `nquantiles' > `returnlimit' ) {
-                    di as txt "Warning: {opt nquantiles()} > returnlimit (`nquantiles' > `returnlimit')."
-                    di as txt "Will not store return values beyond `returnlimit'. Try {opt pctile()}"
-                    di as txt "(Note: you can also pass {opt returnlimit(.)} but that is very slow.)"
-                    * local early_rc = 198
+                    di as txt "Warning: {opt nquantiles()} > returnlimit"     ///
+                              " (`nquantiles' > `returnlimit')."              ///
+                        _n(1) "Will not store return values beyond"           ///
+                              " `returnlimit'. Try {opt pctile()}"            ///
+                        _n(1) "(Note: you can also pass {opt returnlimit(.)}" ///
+                              " but that is very slow.)"
                 }
 
                 if ( `:list sizeof quantiles' > `returnlimit' ) {
-                    di as txt "Warning: # quantiles in {opt quantiles()} > returnlimit (`:list sizeof quantiles' > `returnlimit')."
-                    di as txt "Will not store return values beyond `returnlimit'. Try {opt pctile()}"
-                    di as txt "(Note: you can also pass {opt returnlimit(.)} but that is very slow.)"
-                    * local early_rc = 198
+                    di as txt "Warning: # quantiles in"                       ///
+                              " {opt quantiles()} > returnlimit"              ///
+                              " (`:list sizeof quantiles' > `returnlimit')."  ///
+                        _n(1) "Will not store return values beyond"           ///
+                              " `returnlimit'. Try {opt pctile()}"            ///
+                        _n(1) "(Note: you can also pass {opt returnlimit(.)}" ///
+                              " but that is very slow.)"
                 }
 
                 if ( `:list sizeof cutoffs' > `returnlimit' ) {
-                    di as txt "Warning: # of cutoffs in {opt cutoffs()} > returnlimit (`:list sizeof cutoffs' > `returnlimit')."
-                    di as txt "Will not store return values beyond `returnlimit'. Try {opt pctile()}"
-                    di as txt "(Note: you can also pass {opt returnlimit(.)} but that is very slow.)"
-                    * local early_rc = 198
+                    di as txt "Warning: # of cutoffs in"                      ///
+                              " {opt cutoffs()} > returnlimit"                ///
+                              " (`:list sizeof cutoffs' > `returnlimit')."    ///
+                        _n(1) "Will not store return values beyond"           ///
+                              " `returnlimit'. Try {opt pctile()}"            ///
+                        _n(1) "(Note: you can also pass {opt returnlimit(.)}" ///
+                              " but that is very slow.)"
                 }
             }
 
@@ -1040,32 +1272,32 @@ program _gtools_internal, rclass
                 local nquantiles = 2
             }
             else if (`xhow_total' > 1) {
-                if (  `nquantiles'    >  0  ) local olist "`olist' {opt nquantiles()},"
-                if ( "`quantiles'"    != "" ) local olist "`olist' {opt quantiles()},"
-                if ( "`cutpoints'"    != "" ) local olist "`olist' {opt cutpoints()},"
-                if ( "`cutquantiles'" != "" ) local olist "`olist' {opt cutquantiles()},"
-                if ( "`cutoffs'"      != "" ) local olist "`olist' {opt cutoffs()}."
-                di as err "Specify only one of `olist'"
+                if (  `nquantiles'    >  0  ) local olist "`olist' nquantiles()"
+                if ( "`quantiles'"    != "" ) local olist "`olist', quantiles()"
+                if ( "`quantmatrix'"  != "" ) local olist "`olist', quantmatrix()"
+                if ( "`cutpoints'"    != "" ) local olist "`olist', cutpoints()"
+                if ( "`cutmatrix'"    != "" ) local olist "`olist', cutmatrix()"
+                if ( "`cutquantiles'" != "" ) local olist "`olist', cutquantiles()"
+                if ( "`cutoffs'"      != "" ) local olist "`olist', cutoffs()"
+                di as err "Specify only one of: `olist'"
                 local early_rc = 198
-                exit 198
             }
 
             if ( `xhow_nq' & (`nquantiles' < 2) ) {
                 di as err "{opt nquantiles()} must be greater than or equal to 2"
                 local early_rc = 198
-                exit 198
             }
 
             foreach quant of local quantiles {
                 if ( `quant' < 0 ) | ( `quant' > 100 ) {
-                    di as err "{opt quantiles()} must all be strictly between 0 and 100"
+                    di as err "{opt quantiles()} must all be strictly" ///
+                              " between 0 and 100"
                     local early_rc = 198
-                    exit 198
                 }
                 if ( `quant' == 0 ) | ( `quant' == 100 ) {
-                    di as err "{opt quantiles()} cannot be 0 or 100 (note: try passing option {opt minmax})"
+                    di as err "{opt quantiles()} cannot be 0 or 100" ///
+                              " (note: try passing option {opt minmax})"
                     local early_rc = 198
-                    exit 198
                 }
             }
 
@@ -1076,45 +1308,48 @@ program _gtools_internal, rclass
             local xgen_tot = `xgen_p' + `xgen_gp' + `xgen_bf'
 
             local xgen_required = `xhow_cutvars' + `xhow_qvars'
-            if ( (`xgen_required' > 0) & !(`xgen_ix' | `xgen_p' | `xgen_gp' | `xgen_bf') ) {
+            local xgen_any      = `xgen_ix' | `xgen_p' | `xgen_gp' | `xgen_bf'
+            if ( (`xgen_required' > 0) & !(`xgen_any') ) {
                 if ( "`cutpoints'"    != "" ) local olist "cutpoints()"
                 if ( "`cutquantiles'" != "" ) local olist "cutquantiles()"
                 di as err "Option {opt `olist'} requires xtile or pctile"
                 local early_rc = 198
-                exit 198
             }
 
-            if ( (`xgen_required' > 0) & ("`binfreq'" != "") & ("`binfreqvar'" == "") ) {
+            local xbin_any = ("`binfreq'" != "") & ("`binfreqvar'" == "")
+            if ( (`xgen_required' > 0) & `xbin_any' ) {
                 if ( "`cutpoints'"    != "" ) local olist "cutpoints()"
                 if ( "`cutquantiles'" != "" ) local olist "cutquantiles()"
-                di as err "{opt binfreq} and {opt binpct} not allowed with {opt `olist'}; try {opth binfreq(newvarname)} or {opth binpct(newvarname)}"
+                di as err "{opt binfreq} not allowed with {opt `olist'};" ///
+                          " try {opth binfreq(newvarname)}"
                 local early_rc = 198
-                exit 198
             }
 
-            if ( ("`cutoffs'" != "") & ("`binfreq'" == "") & !(`xgen_ix' | `xgen_p' | `xgen_gp' | `xgen_bf') ) {
-                di as err "Nothing to do: Option {opt cutoffs()} requires {opt binfreq}, {opt xtile}, or {opt pctile}"
+            if ( ("`cutoffs'" != "") & ("`binfreq'" == "") & !(`xgen_any') ) {
+                di as err "Nothing to do: Option {opt cutoffs()} requires" ///
+                          " {opt binfreq}, {opt xtile}, or {opt pctile}"
                 local early_rc = 198
-                exit 198
             }
 
-            * NOTE(mauricio): This check should be regardless in the wrappers
-            if ( (`nquantiles' > `=_N + 1') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
-                di as err "{opt nquantiles()} must be less than or equal to `=_N +1' (# obs + 1) with options {opt pctile()} or {opt binfreq()}"
+            local xgen_maxdata = `xgen_p' | `xgen_gp' | `xgen_bf'
+            if ( (`nquantiles' > `=_N + 1') & `xgen_maxdata' ) {
+                di as err "{opt nquantiles()} must be less than or equal to" ///
+                          " `=_N +1' (# obs + 1) with {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
-            if ( (`:list sizeof quantiles' > `=_N') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
-                di as err "Number of {opt quantiles()} must be less than or equal to `=_N' (# obs) with options {opt pctile()} or {opt binfreq()}"
+            if ( (`=scalar(__gtools_xtile_nq2)' > `=_N') & `xgen_maxdata' ) {
+                di as err "Number of {opt quantiles()} must be"  ///
+                          " less than or equal to `=_N' (# obs)" ///
+                          " with options {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
-            if ( (`:list sizeof cutoffs' > `=_N') & (`xgen_p' | `xgen_gp' | `xgen_bf') ) {
-                di as err "Number of {opt cutoffs()} must be less than or equal to `=_N' (# obs) with options {opt pctile()} or {opt binfreq()}"
+            if ( (`=scalar(__gtools_xtile_ncuts)' > `=_N') & `xgen_maxdata' ) {
+                di as err "Number of {opt cutoffs()} must be "   ///
+                          " less than or equal to `=_N' (# obs)" ///
+                          " with options {opt pctile()} or {opt binfreq()}"
                 local early_rc = 198
-                exit 198
             }
 
             if ( `early_rc' ) {
@@ -1125,9 +1360,7 @@ program _gtools_internal, rclass
             scalar __gtools_xtile_xvars    = `:list sizeof xsources'
 
             scalar __gtools_xtile_nq       = `nquantiles'
-            scalar __gtools_xtile_nq2      = `:list sizeof quantiles'
             scalar __gtools_xtile_cutvars  = `:list sizeof cutpoints'
-            scalar __gtools_xtile_ncuts    = `:list sizeof cutoffs'
             scalar __gtools_xtile_qvars    = `:list sizeof cutquantiles'
 
             scalar __gtools_xtile_gen      = `xgen_ix'
@@ -1145,41 +1378,104 @@ program _gtools_internal, rclass
             scalar __gtools_xtile__pctile  = ( "`_pctile'" != "" )
             scalar __gtools_xtile_dedup    = ( "`dedup'"   != "" )
             scalar __gtools_xtile_cutifin  = ( "`cutifin'" != "" )
+            scalar __gtools_xtile_cutby    = ( "`cutby'"   != "" )
 
             cap noi check_matsize, nvars(`=scalar(__gtools_xtile_nq2)')
             if ( _rc ) {
                 local rc = _rc
+                di as err _n(1) "Note: bypass matsize and specify quantiles" ///
+                                " using a variable via {opt cutquantiles()}"
                 clean_all `rc'
-                di as err _n(1) "Note: You can bypass matsize and specify quantiles using a variable via {opt cutquantiles()}"
                 exit `rc'
             }
 
             cap noi check_matsize, nvars(`=scalar(__gtools_xtile_ncuts)')
             if ( _rc ) {
                 local rc = _rc
+                di as err _n(1) "Note: bypass matsize and specify cutoffs" ///
+                                " using a variable via {opt cutpoints()}"
                 clean_all `rc'
-                di as err _n(1) "Note: You can bypass matsize and specify cutoffs using a variable via {opt cutpoints()}"
                 exit `rc'
             }
 
-            mata: st_matrix("__gtools_xtile_quantiles", ///
-                            `xhow_nq2'? strtoreal(tokens(`"`quantiles'"')): 1)
+            * I don't think it's possible to preserve numerical precision
+            * with numlist. And I asked...
+            *
+            * https://stackoverflow.com/questions/47336278
+            * https://www.statalist.org/forums/forum/general-stata-discussion/general/1418513
+            *
+            * Hance I should have added other ways to request quantiles:
+            *
+            *     - cutquantiles
+            *     - quantmatrix
+            *
+            * and other ways to request cut points:
+            *
+            *     - cutoffs
+            *     - cutmatrix
 
-            mata: st_matrix("__gtools_xtile_cutoffs", ///
-                            `xhow_cuts'? strtoreal(tokens(`"`cutoffs'"')): 1)
+            scalar __gtools_xtile_imprecise = 0
+            matrix __gtools_xtile_quantbin  = ///
+                J(1, cond(`xhow_nq2',  `=scalar(__gtools_xtile_nq2)',   1), 0)
+            matrix __gtools_xtile_cutbin    = ///
+                J(1, cond(`xhow_cuts', `=scalar(__gtools_xtile_ncuts)', 1), 0)
 
-            matrix __gtools_xtile_quantbin = J(1, cond(`xhow_nq2',  `=scalar(__gtools_xtile_nq2)',   1), 0)
-            matrix __gtools_xtile_cutbin   = J(1, cond(`xhow_cuts', `=scalar(__gtools_xtile_ncuts)', 1), 0)
+            if ( `xhow_nq2' & ("`quantiles'" != "") & ("`quantmatrix'" == "") ) {
+                matrix __gtools_xtile_quantiles = ///
+                    J(1, cond(`xhow_nq2',  `=scalar(__gtools_xtile_nq2)',   1), 0)
 
-            if ( (`nquantiles' > 0) & ("`binfreq'" != "") & ("`binfreqvar'" == "") ) {
+                local k = 0
+                foreach quant of numlist `quantiles' {
+                    local ++k
+                    matrix __gtools_xtile_quantiles[1, `k'] = `quant'
+                    if ( strpos("`quant'", ".") & (length("`quant'") >= 13) & ("`altdef'" == "") ) {
+                        scalar __gtools_xtile_imprecise = 1
+                    }
+                }
+                if ( `=scalar(__gtools_xtile_imprecise)' ) {
+                    disp as err "Warning: Loss of numerical precision"    ///
+                                " with option {opth quantiles(numlist)}." ///
+                          _n(1) "Stata's numlist truncates decimals with" ///
+                                " more than 13 significant digits."       ///
+                          _n(1) "Consider using {cmd:altdef} or "         ///
+                                " {opth quantmatrix(name)}."
+                }
+            }
+
+            if ( `xhow_cuts'  & ("`cutoffs'" != "") & ("`cutmatrix'" == "") ) {
+                matrix __gtools_xtile_cutoffs = ///
+                    J(1, cond(`xhow_cuts', `=scalar(__gtools_xtile_ncuts)', 1), 0)
+
+                local k = 0
+                foreach cut of numlist `cutoffs' {
+                    local ++k
+                    matrix __gtools_xtile_cutoffs[1, `k'] = `cut'
+                    if ( strpos("`cut'", ".") & (length("`cut'") >= 13) ) {
+                        scalar __gtools_xtile_imprecise = 1
+                    }
+                }
+                if ( `=scalar(__gtools_xtile_imprecise)' ) {
+                    disp as err "Warning: Loss of numerical precision"    ///
+                                " with option {opth cutoffs(numlist)}."   ///
+                          _n(1) "Stata's numlist truncates decimals with" ///
+                                " more than 13 significant digits."       ///
+                          _n(1) "Consider using {cmd:altdef} or "         ///
+                                " {opth cutmatrix(name)}."
+                }
+            }
+
+            local xbin_any = ("`binfreq'" != "") & ("`binfreqvar'" == "")
+            if ( (`nquantiles' > 0) & `xbin_any' ) {
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
                 if ( _rc ) {
                     local rc = _rc
+                    di as err _n(1) "Note: You can bypass matsize and" ///
+                                    " save binfreq to a variable via binfreq()"
                     clean_all `rc'
-                    di as err _n(1) "Note: You can bypass matsize and save binfreq to a variable via binfreq()"
                     exit `rc'
                 }
-                matrix __gtools_xtile_quantbin = J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
+                matrix __gtools_xtile_quantbin = ///
+                    J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
                 local __gtools_xtile_nq_extra bin
             }
 
@@ -1187,13 +1483,25 @@ program _gtools_internal, rclass
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
                 if ( _rc ) {
                     local rc = _rc
+                    di as err _n(1) "Note: You can bypass matsize and" ///
+                                    " save quantiles to a variable via pctile()"
                     clean_all `rc'
-                    di as err _n(1) "Note: You can bypass matsize and save quantiles to a variable via {opt pctile()}"
                     exit `rc'
                 }
-                matrix __gtools_xtile_quantiles = J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
+                matrix __gtools_xtile_quantiles = ///
+                    J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
                 local __gtools_xtile_nq_extra `__gtools_xtile_nq_extra' quantiles
             }
+
+            scalar __gtools_xtile_size = `nquantiles'
+            scalar __gtools_xtile_size = ///
+                max(__gtools_xtile_size, __gtools_xtile_nq2 + 1)
+            scalar __gtools_xtile_size = ///
+                max(__gtools_xtile_size, __gtools_xtile_ncuts + 1)
+            scalar __gtools_xtile_size = ///
+                max(__gtools_xtile_size, cond(__gtools_xtile_cutvars, `=_N+1', 1))
+            scalar __gtools_xtile_size = ///
+                max(__gtools_xtile_size, cond(__gtools_xtile_qvars,   `=_N+1', 1))
 
             local toadd 0
             qui mata: __gtools_xtile_addlab = J(1, 0, "")
@@ -1201,13 +1509,13 @@ program _gtools_internal, rclass
             foreach xgen in xgen_ix xgen_p xgen_gp xgen_bf {
                 if ( ``xgen'' > 0 ) {
                     if ( "`xgen'" == "xgen_ix" ) {
-                        if ( `nquantiles' < maxbyte() ) {
+                        if ( `=scalar(__gtools_xtile_size)' < maxbyte() ) {
                             local qtype byte
                         }
-                        else if ( `nquantiles' < maxint() ) {
+                        else if ( `=scalar(__gtools_xtile_size)' < maxint() ) {
                             local qtype int
                         }
-                        else if ( `nquantiles' < maxlong() ) {
+                        else if ( `=scalar(__gtools_xtile_size)' < maxlong() ) {
                             local qtype long
                         }
                         else local qtype double
@@ -1297,7 +1605,7 @@ program _gtools_internal, rclass
     return local bystr  = "`bystr'"
 
     * levelsof
-    if ( inlist("`gfunction'", "levelsof", "top") ) {
+    if ( inlist("`gfunction'", "levelsof", "top") & `=scalar(__gtools_levels_return)' ) {
         return local levels `"`vals'"'
         return local sep    `"`sep'"'
         return local colsep `"`colsep'"'
@@ -1319,6 +1627,7 @@ program _gtools_internal, rclass
         return scalar min          = scalar(__gtools_xtile_min)
         return scalar max          = scalar(__gtools_xtile_max)
         return scalar method_ratio = scalar(__gtools_xtile_method)
+        return scalar imprecise    = scalar(__gtools_xtile_imprecise)
 
         return scalar nquantiles   = scalar(__gtools_xtile_nq)
         return scalar nquantiles2  = scalar(__gtools_xtile_nq2)
@@ -1333,7 +1642,7 @@ program _gtools_internal, rclass
     }
 
     return matrix invert = __gtools_invert
-    clean_all
+    clean_all 0
     exit 0
 end
 
@@ -1347,7 +1656,7 @@ program hashsort_inner, sortpreserve
     cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
     if ( _rc ) {
         local rc = _rc
-        clean_all
+        clean_all `rc'
         exit `rc'
     }
     if ( "`invertinmata'" != "" ) {
@@ -1375,9 +1684,13 @@ program clean_all
     args rc
     if ( "`rc'" == "" ) local rc = 0
 
+    set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
+    global GTOOLS_USER_INTERNAL_VARABBREV
+
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
+    cap scalar drop __gtools_debug
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_countonly
     cap scalar drop __gtools_seecount
@@ -1402,6 +1715,8 @@ program clean_all
     cap matrix drop __gtools_top_num
     cap matrix drop __gtools_contract_which
 
+    cap scalar drop __gtools_levels_return
+
     cap scalar drop __gtools_xtile_xvars
     cap scalar drop __gtools_xtile_nq
     cap scalar drop __gtools_xtile_nq2
@@ -1422,10 +1737,13 @@ program clean_all
     cap scalar drop __gtools_xtile__pctile
     cap scalar drop __gtools_xtile_dedup
     cap scalar drop __gtools_xtile_cutifin
+    cap scalar drop __gtools_xtile_cutby
+    cap scalar drop __gtools_xtile_imprecise
     cap matrix drop __gtools_xtile_quantiles
     cap matrix drop __gtools_xtile_cutoffs
     cap matrix drop __gtools_xtile_quantbin
     cap matrix drop __gtools_xtile_cutbin
+    cap scalar drop __gtools_xtile_size
 
     cap scalar drop __gtools_kvars
     cap scalar drop __gtools_kvars_num
@@ -1546,7 +1864,8 @@ program parse_by_types, rclass
                 if ( `skip' ) {
                     local skip = 0
                     foreach var in `r(varlist)' {
-                        matrix __gtools_invert = nullmat(__gtools_invert), `invert'
+                        matrix __gtools_invert = nullmat(__gtools_invert), ///
+                                                 `invert'
                     }
                 }
                 else {
@@ -1604,14 +1923,17 @@ program parse_by_types, rclass
                         tempvar strlen
                         gen long `strlen' = length(`byvar')
                         qui sum `strlen', meanonly
-                        matrix __gtools_bylens = nullmat(__gtools_bylens), `r(max)'
+                        matrix __gtools_bylens = nullmat(__gtools_bylens), ///
+                                                 `r(max)'
                     }
                     else {
-                        matrix __gtools_bylens = nullmat(__gtools_bylens), `:di regexs(1)'
+                        matrix __gtools_bylens = nullmat(__gtools_bylens), ///
+                                                 `:di regexs(1)'
                     }
                 }
                 else {
-                    di as err "variable `byvar' has unknown type '`:type `byvar'''"
+                    di as err "variable `byvar' has unknown type" ///
+                              " '`:type `byvar'''"
                     exit 198
                 }
             }
@@ -1619,7 +1941,8 @@ program parse_by_types, rclass
 
         cap assert `kvars' == `:list sizeof varlist'
         if ( _rc ) {
-            di as err "Error parsing syntax call; variable list was:" _n(1) "`anything'"
+            di as err "Error parsing syntax call; variable list was:" ///
+                _n(1) "`anything'"
             exit 198
         }
     }
@@ -1673,7 +1996,8 @@ program confirm_var, rclass
                 exit `rc'
             }
             else {
-                di as err "Variable `anything' exists; try a different name or run with -replace-"
+                di as err "Variable `anything' exists;" ///
+                          " try a different name or run with -replace-"
                 exit `rc'
             }
         }
@@ -1691,7 +2015,8 @@ program rc_dispatch
 
     if ( `rc' == 17000 ) {
         di as err "There may be 128-bit hash collisions!"
-        di as err `"This is a bug. Please report to {browse "`website_url'":`website_disp'}"'
+        di as err `"This is a bug. Please report to"' ///
+                  `" {browse "`website_url'":`website_disp'}"'
         if ( "`oncollision'" == "fallback" ) {
             exit 17999
         }
@@ -1713,7 +2038,8 @@ program rc_dispatch
 		local kvars : word count `varlist'
 		local var  = cond(`kvars'==1, "variable", "variables")
 		local does = cond(`kvars'==1, "does", "do")
-		di as err "`var' `varlist' `does' not uniquely identify the observations"
+		di as err "`var' `varlist' `does' not uniquely" ///
+                  " identify the observations"
         exit 459
     }
     else {
@@ -1759,9 +2085,10 @@ program check_matsize
     if ( `nvars' > `c(matsize)' ) {
         cap set matsize `=`nvars''
         if ( _rc ) {
-            di as err _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)'). Tried to run}" ///
-                      _n(2) "    {stata set matsize `=`nvars''}"                                ///
-                      _n(2) "{bf:but the command failed. Try setting matsize manually.}"
+            di as err                                                        ///
+                _n(1) "{bf:# variables > matsize (`nvars' > `c(matsize)').}" ///
+                _n(2) "    {stata set matsize `=`nvars''}"                   ///
+                _n(2) "{bf:failed. Try setting matsize manually.}"
             exit 908
         }
     }
@@ -1779,14 +2106,16 @@ program parse_targets
 
     cap assert `k_targets' == `k_stats'
     if ( _rc ) {
-        di as err " `k_targets' target(s) require(s) `k_targets' stat(s), but user passed `k_stats'"
+        di as err " `k_targets' target(s) require(s) `k_targets' stat(s)," ///
+                  " but user passed `k_stats'"
         exit 198
     }
 
     if ( `k_targets' > 1 ) {
         cap assert `k_targets' == `k_vars'
         if ( _rc ) {
-            di as err " `k_targets' targets require `k_targets' sources, but user passed `k_vars'"
+            di as err " `k_targets' targets require `k_targets' sources," ///
+                      " but user passed `k_vars'"
             exit 198
         }
     }
@@ -1950,8 +2279,9 @@ if ( "`c_os_'" == "windows" ) {
             local rc = _rc
             local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
             local url `url'/master/spookyhash.dll
-            di as err `"gtools: `hashlib' not found."' _n(1) ///
-                      `"gtools: download {browse "`url'":here} or run {opt gtools, dependencies}"'
+            di as err `"gtools: `hashlib' not found."' _n(1)     ///
+                      `"gtools: download {browse "`url'":here}"' ///
+                      `" or run {opt gtools, dependencies}"'
             exit `rc'
         }
         mata: __gtools_hashpath = ""
@@ -1986,8 +2316,10 @@ if ( "`c_os_'" == "windows" ) {
                 cap plugin call env_set, PATH `"`__gtools_hashpath'"'
                 if ( _rc ) {
                     local rc = _rc
-                    di as err `"gtools: Unable to add '`__gtools_hashpath'' to system PATH."' _n(1) ///
-                              `"gtools: download {browse "`url'":here} or run {opt gtools, dependencies}"'
+                    di as err `"gtools: Unable to add '`__gtools_hashpath''"' ///
+                              `"to system PATH."'                             ///
+                        _n(1) `"gtools: download {browse "`url'":here}"'      ///
+                              `" or run {opt gtools, dependencies}"'
                     exit `rc'
                 }
             }

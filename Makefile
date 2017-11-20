@@ -9,7 +9,8 @@ ifeq ($(OS),Windows_NT)
 	SPOOKYPATH = lib/spookyhash/build/bin/Release
 	SPOOKY = -L./$(SPOOKYPATH) -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	OSFLAGS = -shared
-	GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
+	# GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
+	GCC = x86_64-w64-mingw32-gcc.exe
 	PREMAKE = premake5.exe
 	OUT = build/gtools_windows$(LEGACY).plugin
 	OUTM = build/gtools_windows_multi$(LEGACY).plugin

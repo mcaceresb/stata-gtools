@@ -67,9 +67,14 @@ percentiles run much faster.
 | Function     | Versus             | Speedup (IC)    | Speedup (MP)    |
 | ------------ | ------------------ | --------------- | --------------- |
 | fasterxtile  | fastxtile (SSC)    |  20 to 30       |  2.5 to 3.5     |
+|              | egenmisc (SSC) (-) |  8 to 25        |  2.5 to 6       |
+|              | astile (SSC) (-)   |  8 to 12        |  3.5 to 6       |
 | gunique      | unique (SSC)       |  4 to 26        |  4 to 12        |
 | gdistinct    | distinct (SSC)     |  4 to 26        |  4 to 12        |
 | gtoplevelsof | gcontract (Gtools) |  1.5 to 6       |  2 to 6.5       |
+
+<small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
+`gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
 
 `gtoplevelsof` does not quite have an equivalent in SSC. The command `groups`
 with the `select` option is very similar, but it is dozens of times slower
@@ -78,7 +83,7 @@ be mainly because `groups` is not written as a way to quickly see the top
 groups of a data set, and it offers relatively different functionality (and
 more options).  Hence I felt the comparison might be unfair.
 
-Note that `fasterxtile` is merely an alias for `gquantiles`.
+Note that `fasterxtile` is merely an alias for `gquantiles, xtile`.
 
 ### Versus ftools
 
@@ -121,10 +126,10 @@ considered an experimental command.
 Random data used
 ----------------
 
-We create a data observations and expand it to 10M (10,000,000) observations.
-Each benchmark indicates how many groups J there are. This means that we
-created a dataset with J observations and `extend` with 10M / J as the
-argument.
+We create a data set with the number of groups we want and expand it to
+10M (10,000,000) observations.  Each benchmark indicates how many groups
+J there are. (This means that we created a dataset with J observations
+and used `extend` with 10M / J as the argument.)
 
 This ensures there are J groups for any given sorting arrangement. Variables
 are self-descriptive, so "str_32" is a string with 32 characters. "double2" is
@@ -530,6 +535,53 @@ method(1).
 |     38 |       2.66 |        14.3 | 2 * int1 + log(double1)
 |   33.2 |       2.47 |        13.5 | int1 * double3 + exp(double3)
 
+### gquantiles, by
+
+Benchmark with obs = 10,000,000, nquantiles = 10, and 10,000 groups.
+
+| astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g) | varlist
+| ------ | --------- | ---------- | ----------- | ----------- | -------
+|   26.5 |      54.6 |       2.78 |        9.56 |        19.6 | str_12
+|   34.7 |      70.6 |       3.81 |        9.11 |        18.5 | str_12 str_32
+|   26.9 |      60.6 |       2.63 |        10.2 |        23.1 | double1
+|     26 |      61.8 |        2.4 |        10.9 |        25.8 | double1 double2
+|   26.2 |      53.5 |       2.58 |        10.2 |        20.7 | int1
+|     27 |      56.6 |       2.26 |          12 |        25.1 | int1 int2
+
+We additionally benchmark increasing the number of quantiles. The grouping
+variable was `int1`:
+
+|        |        | egenmisc  |            |             |
+|     nq | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
+| ------ | ------ | --------- | ---------- | ----------- | -----------
+|      2 |   23.1 |      44.9 |       2.39 |        9.67 |        18.8
+|      4 |     24 |      48.2 |       2.47 |        9.71 |        19.5
+|      6 |   24.2 |      45.4 |       2.49 |        9.71 |        18.2
+|      8 |   24.3 |      46.1 |       2.49 |        9.75 |        18.5
+|     10 |     25 |      48.5 |        2.5 |          10 |        19.4
+|     12 |   24.1 |        51 |       2.47 |        9.77 |        20.7
+|     14 |   25.9 |      53.8 |       2.58 |          10 |        20.9
+|     16 |   24.3 |      50.9 |        2.6 |        9.35 |        19.6
+|     18 |   28.3 |      51.9 |        3.1 |        9.14 |        16.7
+
+Last, we benchmark increasing the sample size. For this that for this
+data set we dropped the string variables, and we can see that this
+speeds up the commands (because the sorts involved run faster due to the
+smaller memory requirements):
+
+|              |        | egenmisc  |            |             |
+|            N | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
+| ------------ | ------ | --------- | ---------- | ----------- | -----------
+|    1,000,000 |   2.05 |       1.9 |       .223 |        9.21 |        8.52
+|    2,000,000 |   4.31 |      4.07 |       .434 |        9.92 |        9.38
+|    3,000,000 |   6.76 |      6.26 |       .665 |        10.2 |        9.41
+|    4,000,000 |   9.63 |      7.51 |       .886 |        10.9 |        8.48
+|    5,000,000 |   9.38 |      9.32 |       .883 |        10.6 |        10.6
+|    6,000,000 |   11.3 |      11.2 |       1.06 |        10.6 |        10.6
+|    7,000,000 |   13.3 |      13.1 |       1.26 |        10.6 |        10.4
+|    8,000,000 |   15.3 |      15.6 |       1.46 |        10.4 |        10.7
+|    9,000,000 |     17 |      17.3 |       1.64 |        10.4 |        10.6
+
 Stata/MP Benchmarks
 -------------------
 
@@ -889,6 +941,53 @@ method(1).
 |   8.62 |       3.07 |         2.8 | int1^2 + 3 * double1
 |    8.1 |       3.15 |        2.57 | 2 * int1 + log(double1)
 |   7.75 |       3.07 |        2.52 | int1 * double3 + exp(double3)
+
+### gquantiles, by
+
+Benchmark with obs = 10,000,000, nquantiles = 10, and 10,000 groups.
+
+| astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g) | varlist
+| ------ | --------- | ---------- | ----------- | ----------- | -------
+|   19.5 |      19.8 |       5.46 |        3.56 |        3.63 | str_12
+|     20 |      21.8 |        6.2 |        3.23 |        3.52 | str_12 str_32
+|     19 |      20.3 |       4.89 |        3.88 |        4.16 | double1
+|   18.6 |      20.9 |       5.62 |         3.3 |        3.71 | double1 double2
+|     19 |      19.4 |       5.01 |         3.8 |        3.87 | int1
+|   19.6 |      20.1 |       5.34 |        3.68 |        3.77 | int1 int2
+
+We additionally benchmark increasing the number of quantiles. The grouping
+variable was `int1`:
+
+|        |        | egenmisc  |            |             |
+|     nq | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
+| ------ | ------ | --------- | ---------- | ----------- | -----------
+|      2 |   17.6 |      17.3 |       5.09 |        3.46 |        3.41
+|      4 |   18.8 |      17.9 |       4.85 |        3.88 |        3.69
+|      6 |   17.7 |      17.7 |       4.92 |        3.59 |         3.6
+|      8 |   18.2 |      17.7 |       4.89 |        3.72 |        3.62
+|     10 |   17.6 |      18.2 |       4.91 |        3.58 |         3.7
+|     12 |   18.6 |      18.5 |       4.91 |        3.78 |        3.77
+|     14 |   17.9 |      18.2 |       4.93 |        3.63 |        3.68
+|     16 |   17.9 |      18.3 |       4.91 |        3.63 |        3.74
+|     18 |   17.8 |      18.7 |       4.92 |        3.61 |         3.8
+
+Last, we benchmark increasing the sample size. For this that for this
+data set we dropped the string variables, and we can see that this
+speeds up the commands (because the sorts involved run faster due to the
+smaller memory requirements):
+
+|              |        | egenmisc  |            |             |
+|            N | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
+| ------------ | ------ | --------- | ---------- | ----------- | -----------
+|    1,000,000 |    1.2 |      1.14 |       .299 |           4 |        3.81
+|    2,000,000 |   2.42 |      2.38 |       .695 |        3.48 |        3.42
+|    3,000,000 |   3.91 |      3.81 |       1.06 |         3.7 |         3.6
+|    4,000,000 |   6.41 |      5.37 |       1.55 |        4.13 |        3.46
+|    5,000,000 |   6.73 |      7.37 |        1.8 |        3.75 |         4.1
+|    6,000,000 |   8.24 |      7.79 |       2.15 |        3.82 |        3.61
+|    7,000,000 |   8.54 |      8.76 |       1.53 |        5.59 |        5.73
+|    8,000,000 |     10 |      9.33 |       1.72 |        5.84 |        5.43
+|    9,000,000 |   11.3 |      11.4 |       2.02 |        5.59 |        5.67
 
 Old Collapse Benchmarks
 -----------------------

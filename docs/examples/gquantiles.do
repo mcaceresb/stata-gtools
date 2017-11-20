@@ -1,3 +1,31 @@
+* Using by
+* --------
+
+* One major feature that gquantile adds is `by()`. It should be
+* internally consistent if the user specifies the option `strict`.
+* For example,
+
+clear
+set obs 1000000
+gen group = int(runiform() * 100)
+gen x = runiform()
+
+local popts pctile strict by(group) cutby
+gquantiles pctile = x, `popts' nq(10) genp(perc) groupid(id)
+
+local xopts xtile strict by(group) cutby
+gquantiles xtile  = x, `xopts' nq(10)
+gquantiles xtile2 = x, `xopts' cutpoints(pctile)
+gquantiles xtile3 = x, `xopts' cutquantiles(perc)
+
+assert xtile == xtile2
+assert xtile == xtile3
+
+* However, there is no requirement for the user to do so:
+
+sysuse auto, clear
+gquantiles xtile = price, xtile by(foreign) nq(50)
+
 * Computing many quantiles
 * ------------------------
 

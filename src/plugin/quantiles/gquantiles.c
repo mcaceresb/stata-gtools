@@ -1,8 +1,6 @@
 #include "gquantiles_by.c"
-#include "gquantiles_math.c"
 
-ST_retcode sf_xtile    (struct StataInfo *st_info, int level);
-GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup);
+ST_retcode sf_xtile (struct StataInfo *st_info, int level);
 
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
@@ -184,7 +182,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark ) {
+    if ( nq2 > 0 ) {
+        for (gptr = st_info->xtile_quantiles; gptr < st_info->xtile_quantiles + nq2; gptr += 1) {
+            if ( (*gptr <= 0) || (*gptr >= 100) ) {
+                sf_errprintf("quantiles() requires a numlist with values strictly between 0 and 100\n");
+                rc = 198;
+                goto error;
+            }
+        }
+    }
+
+    if ( st_info->benchmark > 1 ) {
         if ( (ncuts > 0) || (npoints > 0) ) {
             sf_running_timer (&timer, "\txtile step 1: De-duplicated cutoff list");
         }
@@ -286,6 +294,8 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                   Read in the source variables                    *
      *********************************************************************/
 
+    // Special cases! Should be faster.
+
     obs   = 0;
     xptr2 = xsources;
     ixptr = xsources;
@@ -293,64 +303,106 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         xptr2 = kgen? xsources + 1 * Nread: xsources;
         ixptr = kgen? xsources + 2 * Nread: xsources;
         if ( st_info->any_if ) {
-            for (i = 0; i < Nread; i++) {
-                if ( SF_ifobs(i + in1) ) {
+            if ( kgen ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        xptr2[obs] = xsources[obs] = z;
+                        ixptr[obs] = i;
+                        obs++;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        xsources[obs] = z;
+                        obs++;
+                    }
+                }
+            }
+        }
+        else {
+            if ( kgen ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+                    xptr2[obs] = xsources[obs] = z;
+                    ixptr[obs] = i;
+                    obs++;
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
                     if ( (rc = SF_vdata(start_xsources,
                                         i + in1,
                                         &z)) ) goto error;
                     if ( SF_is_missing(z) ) continue;
                     xsources[obs] = z;
-                    if ( kgen ) {
-                        xptr2[obs] = z;
-                        ixptr[obs] = i;
-                    }
                     obs++;
                 }
-            }
-        }
-        else {
-            for (i = 0; i < Nread; i++) {
-                if ( (rc = SF_vdata(start_xsources,
-                                    i + in1,
-                                    &z)) ) goto error;
-                if ( SF_is_missing(z) ) continue;
-                xsources[obs] = z;
-                if ( kgen ) {
-                    xptr2[obs] = z;
-                    ixptr[obs] = i;
-                }
-                obs++;
             }
         }
     }
     else {
         if ( st_info->any_if ) {
-            for (i = 0; i < Nread; i++) {
-                if ( SF_ifobs(i + in1) ) {
+            if ( kgen ) { 
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        sel = kx * obs++;
+                        xsources[sel] = z;
+                        xsources[sel + 1] = i;
+                        xsources[sel + 2] = obs - 1;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        sel = kx * obs++;
+                        xsources[sel] = z;
+                    }
+                }
+            }
+        }
+        else {
+            if ( kgen ) {
+                for (i = 0; i < Nread; i++) {
                     if ( (rc = SF_vdata(start_xsources,
                                         i + in1,
                                         &z)) ) goto error;
                     if ( SF_is_missing(z) ) continue;
                     sel = kx * obs++;
                     xsources[sel] = z;
-                    if ( kx > 1 ) {
-                        xsources[sel + 1] = i;
-                        xsources[sel + 2] = obs - 1;
-                    }
-                }
-            }
-        }
-        else {
-            for (i = 0; i < Nread; i++) {
-                if ( (rc = SF_vdata(start_xsources,
-                                    i + in1,
-                                    &z)) ) goto error;
-                if ( SF_is_missing(z) ) continue;
-                sel = kx * obs++;
-                xsources[sel] = z;
-                if ( kx > 1 ) {
                     xsources[sel + 1] = i;
                     xsources[sel + 2] = obs - 1;
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+                    sel = kx * obs++;
+                    xsources[sel] = z;
                 }
             }
         }
@@ -375,7 +427,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( st_info->benchmark )
+    if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\txtile step 2: Read in source variable");
 
     stimer = clock();
@@ -538,7 +590,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         xmax = qptr[nout - 1];
     }
 
-    if ( st_info->benchmark ) {
+    if ( st_info->benchmark > 1 ) {
         if ( method == 2 ) {
             if ( (nq2 > 0) | (nq > 0) | (nquants > 0) ) {
                 sf_running_timer (&timer, "\txtile step 3: Computed quantiles");
@@ -595,7 +647,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
 
             optr  = xsources;
@@ -611,10 +663,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.2: Copied xtile to Stata sequentially");
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
 
         }
@@ -635,7 +687,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.1: Computed xtile");
 
             // for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
@@ -647,7 +699,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                     xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
                 }
 
-                if ( st_info->benchmark )
+                if ( st_info->benchmark > 2 )
                     sf_running_timer (&stimer, "\t\txtile step 4.2: Arranged xtile in memory");
             }
 
@@ -664,10 +716,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 }
             }
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\txtile step 4.3: Copied xtile to Stata sequentially");
 
-            if ( st_info->benchmark )
+            if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\txtile step 4: Computed xtile and copied to Stata");
         }
     }
@@ -772,7 +824,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     if ( (rc = SF_scal_save ("__gtools_xtile_method", m_ratio)) ) goto exit;
 
-    if ( st_info->benchmark ) {
+    if ( st_info->benchmark > 1 ) {
         if ( kgen ) {
             if ( pctile | (nq2 > 0) ) {
                 sf_running_timer (&timer, "\txtile step 5: Copied quantiles to Stata");
@@ -800,76 +852,6 @@ error:
     free (xquants);
 
     return (rc);
-}
-
-/*********************************************************************
- *                            Clean array                            *
- *********************************************************************/
-
-GT_size gf_xtile_clean (ST_double *x, GT_size lsize, GT_bool dropmiss, GT_bool dedup)
-{
-    GT_size i, _lsize;
-    GT_bool sortme, dedupcheck;
-
-    if ( lsize > 1 ) {
-        _lsize = lsize;
-        sortme = 0;
-
-        for (i = 1; i < lsize; i++) {
-            if ( x[i] < x[i - 1] ) {
-                sortme = 1;
-                break;
-            }
-            else if ( x[i] == x[i - 1] ) {
-                dedupcheck = 1;
-            }
-        }
-
-        if ( sortme ) {
-            quicksort_bsd (
-                x,
-                lsize,
-                sizeof(x),
-                xtileCompare,
-                NULL
-            );
-            dedupcheck = 1;
-            sortme     = 0;
-        }
-
-        if ( dedup & dedupcheck ) {
-            _lsize = 0;
-            if ( dropmiss ) {
-                if ( SF_is_missing(x[0]) ) return (0);
-                for (i = 1; i < lsize; i++) {
-                    if ( SF_is_missing(x[i]) ) break;
-                    else if ( x[_lsize] == x[i] ) continue;
-                    x[++_lsize] = x[i];
-                }
-            }
-            else {
-                for (i = 1; i < lsize; i++) {
-                    if ( x[_lsize] == x[i] ) continue;
-                    x[++_lsize] = x[i];
-                }
-            }
-            _lsize++;
-        }
-        else if ( dropmiss ) {
-            for (i = 0; i < lsize; i++) {
-                if ( SF_is_missing(x[i]) ) return (i);
-            }
-        }
-
-        return (_lsize);
-    }
-    else if ( (lsize == 1) & dropmiss ) {
-        if ( SF_is_missing(x[0]) ) return (0);
-        return (lsize);
-    }
-    else {
-        return (lsize);
-    }
 }
 
 /*********************************************************************

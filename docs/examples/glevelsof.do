@@ -1,6 +1,6 @@
 sysuse auto
 glevelsof rep78
-glevelsof rep78, miss local(mylevs) silent
+qui glevelsof rep78, miss local(mylevs)
 display "`mylevs'"
 glevelsof rep78, sep(,)
 

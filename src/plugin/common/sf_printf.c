@@ -5,6 +5,17 @@
 
 #define BUF_MAX 4096
 
+void sf_printf_debug (const char *fmt, ...)
+{
+    va_list args;
+    va_start (args, fmt);
+    char buf[BUF_MAX];
+    vsprintf (buf, fmt, args);
+    SF_display (buf);
+    printf ("%s", buf);
+    va_end (args);
+}
+
 /**
  * @brief Short wrapper to print to Stata
  *

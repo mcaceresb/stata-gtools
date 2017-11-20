@@ -1,10 +1,11 @@
 <img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
-Faster Stata for big data. This packages provides a hash-based implementation
-of collapse, pctile, xtile, contract, egen, isid, levelsof, and
-unique/distinct using C plugins for a massive speed improvement.
+Faster Stata for big data. This packages provides a hash-based
+implementation of collapse, pctile, xtile, contract, egen, isid,
+levelsof, and unique/distinct using C plugins for a massive speed
+improvement.
 
-`version 0.10.1 08Nov2017`
+`version 0.11.0 19Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -16,7 +17,7 @@ commands using hashes and C plugins.  If you plan to use the plugin
 extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
 caveats and details on the plugin.
 
-__*Gtools commands with a stata equivalent*__
+__*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
 | ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
@@ -25,7 +26,7 @@ __*Gtools commands with a stata equivalent*__
 | gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
 | gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
 | glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
-| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | Various (see [usage](usage/gquantiles)) |
+| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](usage/gquantiles)) |
 |              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                             |
 |              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                             |
 
@@ -39,17 +40,19 @@ number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
 slow due to the way they are written; in that case gquantiles is hundreds
 or thousands of times faster.</small>
 
-Note that `gquantiles` does __not__ yet support `by()`. This is planned for
-the next release.
-
 __*Gtools extras*__
 
-| Function     | Similar (SSC)    | Speedup (IC / MP)       | Unsupported             |
-| ------------ | ---------------- | ----------------------- | ----------------------- |
-| fasterxtile  | fastxtile        |  20 to 30 / 2.5 to 3.5  | Weights                 |
-| gunique      | unique           |  4 to 26 / 4 to 12      | `by`                    |
-| gdistinct    | distinct         |  4 to 26 / 4 to 12      | Saves results in matrix |
-| gtoplevelsof | groups, select() | (+)                     | See table notes (+)     |
+| Function            | Similar (SSC)      | Speedup (IC / MP)       | Notes                                 |
+| ------------------- | ------------------ | ----------------------- | ------------------------------------- |
+| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`; weights not supported |
+|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                                       |
+|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                                       |
+| gunique             | unique             |  4 to 26 / 4 to 12      |                                       |
+| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix          |
+| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)                   |
+
+<small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
+`gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
 
 <small>(+) While similar to the user command 'groups' with the 'select'
 option, gtoplevelsof does not really have an equivalent. It is several
@@ -72,7 +75,7 @@ Commands that take this type of input include:
 - gcontract
 - gegen
 - glevelsof
-- gtoplevelsof
+- gtop (gtoplevelsof)
 
 __*Hashing*__
 
@@ -163,8 +166,8 @@ sysuse auto, clear
 * gquantiles [newvarname =] exp, {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
-gquantiles x10 = 2 * price, xtile nq(10)
-fasterxtile xx = log(price), cutpoints(p10)
+gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
+fasterxtile xx = log(price), cutpoints(p10) by(foreign)
 
 * hashsort varlist, [options]
 hashsort -make
@@ -184,7 +187,7 @@ glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
 
 * gtoplevelsof varlist [if] [in], [options]
-gtoplevelsof foreign rep78
+gtop foreign rep78
 gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
@@ -293,16 +296,20 @@ Differences from `collapse`
 Differences from `xtile`, `pctile`, and `_pctile`
 
 - No support for weights.
-- There is no limit to `nquantiles()` for `xtile`
-- Quantiles can be requested via `percentiles()` (or `quantiles()`)
-  and `cutquantiles()` for `xtile` as well as `pctile`.
-- Cutoffs can be requested via `cutquantiles()` and `cutoffs()`
-  for `xtile` as well as `pctile`.
-- `cutpoints()` and `cutquantiles()` can be made to obey `if` `in`
-  statements and automatically deduplicated via `cutifin`and `dedup`.
+- Adds support for `by()`
+- Does not ignore `altdef` with `xtile` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1417198-typo-in-xtile-ado-with-option-altdef))
+- Fixes numerical precision issues with `pctile, altdef` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se))
 - Category frequencies can also be requested via `binfreq[()]`.
 - `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
   `pctile(newvar)`
+- There is no limit to `nquantiles()` for `xtile`
+- Quantiles can be requested via `percentiles()` (or `quantiles()`),
+  `cutquantiles()`, or `quantmatrix()` for `xtile` as well as `pctile`.
+- Cutoffs can be requested via `cutquantiles()`, `cutoffs()`,
+  or `cutmatrix()` for `xtile` as well as `pctile`.
+- The user has control over the behavior of `cutpoints()` and `cutquantiles()`.
+  They obey `if` `in` with option `cutifin`, they can be group-specific with
+  option `cutby`, and they can be de-duplicated via `dedup`.
 
 Differences from `egen`
 
@@ -341,7 +348,7 @@ merely executing the plugin.
 There is at least one known instance where this can cause a confusion for
 the user: If the system runs out of RAM, the program will attempt to use the
 pagefile/swap space. In doing, so, Stata may appear unresponsive (it may show
-a "(Not Responding)" message on Windows or it may darken on *nix systems).
+a "(Not Responding)" message on Windows or it may darken on \*nix systems).
 
 The program has not crashed; it is merely trying to swap memory.  To
 check this is the case, the user can monitor disk activity or monitor the
@@ -350,17 +357,25 @@ pagefile/swap space directly.
 TODO
 ----
 
-These are options/features I would like to support, but I don't
-have an ETA for them:
+Features that might make it to 1.0 (but I make no promises)
+
+- Add option to save glevelsof in a variable/matrix (incl freq).
+- Add option to control how to treat missing values in gcollapse
+    - anymissing()
+    - allmissing()
+- Minimize memory use.
+
+These are options/features I would like to support, but I don't have an
+ETA for them (and they almost surely won't make it to the 1.0 release):
 
 - Add support for weights.
-- Minimize memory use.
-- Option `greedy` to give user fine-grain control over gcollapse internals.
-
-These are mainly ideas for improvements to the plugin.  They may or not get
-implemented in a future release.
-
-- Provide `sumup` and `sum` alternative, `gsum`.
+- Add memory(greedy|lean) to give user fine-grained control over internals.
+- Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
+- Create a Stata C hashing API with thin wrappers around core functions.
+    - This will be a C library that other users can import.
+    - Some functionality will be available from Stata via gtooos, api()
+- `gcollapse (mean) pre_* (count) count_* = pre_*, by(byvars)`
+- Have some type of coding standard for the base (coding style)
 - Add `Var`, `kurtosis`, `skewness`
 
 License

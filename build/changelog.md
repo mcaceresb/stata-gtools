@@ -1,6 +1,75 @@
 Change Log
 ==========
 
+## gtools-0.11.0 (2017-11-17)
+
+### Backwards Incompatible
+
+- `gquantiles` no longer supports option "binpct[()]"
+- `glevelsof` no longer supports option "silent"
+
+### Features
+
+- `gquantiles` supports `by()`
+
+- Option `hash()` gives user control over hashing mechanics.  0 is
+  default (internals choose what it thinks will be fastest), 1 tries to
+  biject, 2 always calls spookyhash.
+
+### Enhancements
+
+- Improved internal handling of numerical precision issues when
+  computing quantiles (gquantiles, gcollapse, and gegen).
+
+- When the data is sorted, groups are indexed directly instead of using
+  the hash. This was 2x faster in testing for an overall ~33% or so speedup.
+
+- `gtop` is a shortcut for `gtoplevelsof`
+
+- `bench(2)` and `bench(3)` offer the user more control over what
+  benchmark steps are displayed.
+
+### Bug fixes
+
+- Fixes possible bug with levelsof where the plugin tries to read
+  more characters than contained in the numfmt local macro. This
+  could cause problems on some systems.
+
+## gtools-0.10.3 (2017-11-12)
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/29; if the
+  sources appear out of order relative to the targets (e.g. sources are
+  'a b' but targets use sources 'a a b b' instead of 'a b a b') then
+  gcollapse produced the wrong results with option `forceio` or with the
+  swtich code. The code now reorders the sources, targets, and statistics
+  so the source variables always appear first and the extra targets last.
+- Fixes bug in `gtop` where requesting negative levels caused an overflow.
+- Fixes bug in `hashsort` where there may be a loss in numerical
+  precision when clearing the sort var. It now adds one observation to the
+  source data, changes the dummy observation, and drops it. This should
+  have the same effect without modifying the original dataset.
+
+### Enhancements
+
+- Counting sort now uses pointers, which is hopefully faster.
+- Added special cases for `gquantiles` to hopefully accelerate reading
+  source variables from Stata.
+- Added special case for `gegen, group` so the code orders the groups
+  back to Stata order before copying. It runs faster because it writes
+  to Stata sequentially, but it uses more memory.
+- The code no longer keeps a copy of the by variables when it is not
+  needed (gcollapse, glevelsof, gtop, and gcontract need a copy;
+  gegen, hashsort, gquantiles, etc. do not).
+
+## gtools-0.10.2 (2017-11-08)
+
+### Bug fixes
+
+- Fixes bug where integer overflows if `gtoplevelsof, ntop(-#)`
+  is requested.
+
 ## gtools-0.10.1 (2017-11-08)
 
 ### Features

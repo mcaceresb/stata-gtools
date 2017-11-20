@@ -9,17 +9,17 @@ program checks_gegen
 
     checks_inner_egen, `options'
 
-    checks_inner_egen -str_12,              `options'
-    checks_inner_egen str_12 -str_32,       `options'
-    checks_inner_egen str_12 -str_32 str_4, `options'
+    checks_inner_egen -str_12,              `options' hash(0)
+    checks_inner_egen str_12 -str_32,       `options' hash(1)
+    checks_inner_egen str_12 -str_32 str_4, `options' hash(2)
 
-    checks_inner_egen -double1,                 `options'
-    checks_inner_egen double1 -double2,         `options'
-    checks_inner_egen double1 -double2 double3, `options'
+    checks_inner_egen -double1,                 `options' hash(2)
+    checks_inner_egen double1 -double2,         `options' hash(0)
+    checks_inner_egen double1 -double2 double3, `options' hash(1)
 
-    checks_inner_egen -int1,           `options'
-    checks_inner_egen int1 -int2,      `options'
-    checks_inner_egen int1 -int2 int3, `options'
+    checks_inner_egen -int1,           `options' hash(1)
+    checks_inner_egen int1 -int2,      `options' hash(2)
+    checks_inner_egen int1 -int2 int3, `options' hash(0)
 
     checks_inner_egen -int1 -str_32 -double1,                                         `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
@@ -76,17 +76,17 @@ program compare_egen
 
     compare_inner_egen, `options' tol(`tol')
 
-    compare_inner_egen str_12,              `options' tol(`tol')
-    compare_inner_egen str_12 str_32,       `options' tol(`tol') sort
-    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol') shuffle
+    compare_inner_egen str_12,              `options' tol(`tol') hash(1)
+    compare_inner_egen str_12 str_32,       `options' tol(`tol') hash(0) sort
+    compare_inner_egen str_12 str_32 str_4, `options' tol(`tol') hash(2) shuffle
 
-    compare_inner_egen double1,                 `options' tol(`tol') shuffle
-    compare_inner_egen double1 double2,         `options' tol(`tol')
-    compare_inner_egen double1 double2 double3, `options' tol(`tol') sort
+    compare_inner_egen double1,                 `options' tol(`tol') hash(2) shuffle
+    compare_inner_egen double1 double2,         `options' tol(`tol') hash(1)
+    compare_inner_egen double1 double2 double3, `options' tol(`tol') hash(0) sort
 
-    compare_inner_egen int1,           `options' tol(`tol') sort
-    compare_inner_egen int1 int2,      `options' tol(`tol') shuffle
-    compare_inner_egen int1 int2 int3, `options' tol(`tol')
+    compare_inner_egen int1,           `options' tol(`tol') hash(0) sort
+    compare_inner_egen int1 int2,      `options' tol(`tol') hash(2) shuffle
+    compare_inner_egen int1 int2 int3, `options' tol(`tol') hash(1)
 
     compare_inner_egen int1 str_32 double1,                                        `options' tol(`tol')
     compare_inner_egen int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')

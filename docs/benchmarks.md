@@ -551,7 +551,6 @@ Benchmark with obs = 10,000,000, nquantiles = 10, and 10,000 groups.
 We additionally benchmark increasing the number of quantiles. The grouping
 variable was `int1`:
 
-|        |        | egenmisc  |            |             |
 |     nq | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
 | ------ | ------ | --------- | ---------- | ----------- | -----------
 |      2 |   23.1 |      44.9 |       2.39 |        9.67 |        18.8
@@ -564,12 +563,13 @@ variable was `int1`:
 |     16 |   24.3 |      50.9 |        2.6 |        9.35 |        19.6
 |     18 |   28.3 |      51.9 |        3.1 |        9.14 |        16.7
 
+(Note: fastxtile here is from egenmisc)
+
 Last, we benchmark increasing the sample size. For this that for this
 data set we dropped the string variables, and we can see that this
 speeds up the commands (because the sorts involved run faster due to the
 smaller memory requirements):
 
-|              |        | egenmisc  |            |             |
 |            N | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
 | ------------ | ------ | --------- | ---------- | ----------- | -----------
 |    1,000,000 |   2.05 |       1.9 |       .223 |        9.21 |        8.52
@@ -581,6 +581,8 @@ smaller memory requirements):
 |    7,000,000 |   13.3 |      13.1 |       1.26 |        10.6 |        10.4
 |    8,000,000 |   15.3 |      15.6 |       1.46 |        10.4 |        10.7
 |    9,000,000 |     17 |      17.3 |       1.64 |        10.4 |        10.6
+
+(Note: fastxtile here is from egenmisc)
 
 Stata/MP Benchmarks
 -------------------
@@ -958,7 +960,6 @@ Benchmark with obs = 10,000,000, nquantiles = 10, and 10,000 groups.
 We additionally benchmark increasing the number of quantiles. The grouping
 variable was `int1`:
 
-|        |        | egenmisc  |            |             |
 |     nq | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
 | ------ | ------ | --------- | ---------- | ----------- | -----------
 |      2 |   17.6 |      17.3 |       5.09 |        3.46 |        3.41
@@ -971,12 +972,13 @@ variable was `int1`:
 |     16 |   17.9 |      18.3 |       4.91 |        3.63 |        3.74
 |     18 |   17.8 |      18.7 |       4.92 |        3.61 |         3.8
 
+(Note: fastxtile here is from egenmisc)
+
 Last, we benchmark increasing the sample size. For this that for this
 data set we dropped the string variables, and we can see that this
 speeds up the commands (because the sorts involved run faster due to the
 smaller memory requirements):
 
-|              |        | egenmisc  |            |             |
 |            N | astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g)
 | ------------ | ------ | --------- | ---------- | ----------- | -----------
 |    1,000,000 |    1.2 |      1.14 |       .299 |           4 |        3.81
@@ -988,6 +990,8 @@ smaller memory requirements):
 |    7,000,000 |   8.54 |      8.76 |       1.53 |        5.59 |        5.73
 |    8,000,000 |     10 |      9.33 |       1.72 |        5.84 |        5.43
 |    9,000,000 |   11.3 |      11.4 |       2.02 |        5.59 |        5.67
+
+(Note: fastxtile here is from egenmisc)
 
 Old Collapse Benchmarks
 -----------------------

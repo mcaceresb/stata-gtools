@@ -1,4 +1,4 @@
-*! version 0.4.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.1 20Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -993,7 +993,7 @@ program _gtools_internal, rclass
             local msg "Switch code runtime"
             gtools_timer info 98 `"`msg'"', prints(`benchmark')
 
-            qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+            qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             local msg "Added targets"
             gtools_timer info 98 `"`msg'"', prints(`benchmark')
 
@@ -1791,7 +1791,7 @@ program clean_all
     if ( `rc' ) {
         cap mata: st_dropvar(__gtools_xtile_addnam)
         * cap mata: st_dropvar(__gtools_togen_names[__gtools_togen_s])
-        * cap mata: st_dropvar(__gtools_addvars)
+        * cap mata: st_dropvar(__gtools_gc_addvars)
     }
 
     cap mata: mata drop __gtools_togen_k

@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+## gtools-0.11.1 (2017-11-20)
+
+- Fixed bug with naming conflicts between internals and gcollapse.
+
 ## gtools-0.11.0 (2017-11-17)
 
 ### Backwards Incompatible

@@ -39,7 +39,7 @@ program define hashsort
     }
 
     if ( ("`mfirst'" == "") & (strpos("`anything'", "-") > 0) ) {
-        di as txt "(note: missing values will be sorted last)"
+        di as txt "(note: missing values will be sorted first)"
     }
 
     if ( "`generate'" != "" ) local skipcheck skipcheck

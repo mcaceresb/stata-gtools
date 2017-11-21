@@ -1,4 +1,4 @@
-*! version 0.5.1 20Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -39,7 +39,7 @@ program define hashsort
     }
 
     if ( ("`mfirst'" == "") & (strpos("`anything'", "-") > 0) ) {
-        di as txt "(note: missing values will be sorted last)"
+        di as txt "(note: missing values will be sorted first)"
     }
 
     if ( "`generate'" != "" ) local skipcheck skipcheck

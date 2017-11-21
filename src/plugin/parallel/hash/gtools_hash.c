@@ -439,6 +439,7 @@ int sf_check_hash (struct StataInfo *st_info, int level)
     clock_t timer  = clock();
     clock_t stimer = clock();
 
+    st_info->strbuffer = 0;
     if ( st_info->biject ) {
         goto bycopy;
     }
@@ -489,7 +490,6 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *             Allocate memory to final collapsed array              *
      *********************************************************************/
 
-    st_info->strbuffer = 0;
     if ( kstr > 0 ) {
         for (j = 0; j < st_info->J; j++) {
             memset (st_strbase, '\0', l_str);
@@ -515,7 +515,6 @@ int sf_check_hash (struct StataInfo *st_info, int level)
                     ++numpos;
                 }
             }
-            st_info->strbuffer += strpos;
 
             /***************
              *  debugging  *
@@ -677,6 +676,7 @@ bycopy:
                         memcpy (st_info->st_by_charx + selx,
                                 st_info->st_charx + sel,
                                 strlen(st_info->st_charx + sel));
+                        st_info->strbuffer += strlen(st_info->st_charx + sel);
                     }
                     else {
                         memcpy (st_info->st_by_charx + selx,

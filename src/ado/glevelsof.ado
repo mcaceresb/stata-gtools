@@ -1,4 +1,4 @@
-*! version 0.5.1 20Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -25,6 +25,7 @@ program glevelsof, rclass
         freq(passthru)        /// compute frequency counts
         store(passthru)       /// Number format
                               ///
+        debug(passthru)       /// Print debugging info to console
         Verbose               /// Print info during function execution
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
@@ -61,7 +62,7 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt' `hashmethod'
+    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
     local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store')
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc

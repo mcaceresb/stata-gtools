@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.5.1  20Nov2017}{...}
+{* *! version 0.5.2  21Nov2017}{...}
 {viewerdialog gisid "dialog gisid"}{...}
 {vieweralsosee "[D] gisid" "mansection D gisid"}{...}
 {viewerjumpto "Syntax" "gisid##syntax"}{...}

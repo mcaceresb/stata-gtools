@@ -141,7 +141,6 @@ ST_retcode gf_check_isid_collision (struct StataInfo *st_info, GT_size obs1, GT_
      *             Allocate memory to final collapsed array              *
      *********************************************************************/
 
-    st_info->strbuffer = 0;
     if ( kstr > 0 ) {
 
         // Read obs 1

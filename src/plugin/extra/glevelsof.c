@@ -13,6 +13,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     GT_size sel;
     GT_size numwidth = st_info->numfmt_max > 18? st_info->numfmt_max + 5: 23;
     GT_size kvars = st_info->kvars_by;
+    GT_bool debug = st_info->debug;
     clock_t timer = clock();
 
     /*********************************************************************
@@ -31,6 +32,28 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     GT_size sprintextra = st_info->cleanstr? 0: 4;
     GT_size totalseplen = (st_info->J - 1) * st_info->sep_len +
                           st_info->J * st_info->colsep_len * (kvars - 1);
+
+    if ( debug ) {
+        sf_printf_debug("debug 1: read in meta info\n");
+        sf_printf_debug("\t"GT_size_cfmt" obs, "GT_size_cfmt" read, "GT_size_cfmt" groups.\n",
+                        st_info->N, st_info->Nread, st_info->J);
+        sf_printf_debug("\tin1 / in2: "GT_size_cfmt" / "GT_size_cfmt"\n", st_info->in1, st_info->in2);
+        sf_printf_debug("\tkvars_by_str: "GT_size_cfmt"\n", st_info->kvars_by_str);
+        sf_printf_debug("\tkvars_by_num: "GT_size_cfmt"\n", st_info->kvars_by_num);
+        sf_printf_debug("\tnumfmt_max:   "GT_size_cfmt"\n", st_info->numfmt_max);
+        sf_printf_debug("\tkvars:        "GT_size_cfmt"\n", kvars);
+        sf_printf_debug("\n");
+        sf_printf_debug("\tnumwidth:     "GT_size_cfmt"\n", numwidth);
+        sf_printf_debug("\tsprintfmt:    %s\n",             sprintfmt);
+        sf_printf_debug("\tsprintextra:  "GT_size_cfmt"\n", sprintextra);
+        sf_printf_debug("\ttotalseplen:  "GT_size_cfmt"\n", totalseplen);
+        sf_printf_debug("\n");
+        sf_printf_debug("\tcleanstr:     "GT_size_cfmt"\n", st_info->cleanstr);
+        sf_printf_debug("\tsep_len:      "GT_size_cfmt"\n", st_info->sep_len);
+        sf_printf_debug("\tcolsep_len:   "GT_size_cfmt"\n", st_info->colsep_len);
+        sf_printf_debug("\tnumfmt_len:   "GT_size_cfmt"\n", st_info->numfmt_len);
+        sf_printf_debug("\tstrbuffer:    "GT_size_cfmt"\n", st_info->strbuffer);
+    }
 
     if ( st_info->kvars_by_str > 0 ) {
         bufferlen   = sizeof(char) * totalseplen + 1;

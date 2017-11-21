@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-0.11.2 (2017-11-20)
+
+- Fixed bug in glevelsof where if string data is already sorted the
+  system does not compute the length of the de-duplicated string
+  data. This caused malloc to attempt to assign the length of an
+  unassigned but declared variable. This treated an object's address as a
+  length and caused malloc to request dozens or hundreds of GiB and crash
+  on some systems.
+
 ## gtools-0.11.1 (2017-11-20)
 
 - Fixed bug with naming conflicts between internals and gcollapse.

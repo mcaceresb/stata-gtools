@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.1 20Nov2017}{...}
+{* *! version 0.4.2 21Nov2017}{...}
 {viewerdialog gcontract "dialog gcontract"}{...}
 {vieweralsosee "[R] gcontract" "mansection R gcontract"}{...}
 {viewerjumpto "Syntax" "gcontract##syntax"}{...}

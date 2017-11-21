@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.11.0 19Nov2017`
+`version 0.11.1 20Nov2017`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -376,6 +376,7 @@ Roadmap to 1.0
       Benchmark whether it is better to use pointers.
 - [X] Reconcile numerical precision issues in `gquantiles`
 - [ ] Add comments to all the code base
+- [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command

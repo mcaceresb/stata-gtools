@@ -1,4 +1,4 @@
-*! version 0.11.0 19Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.11.1 20Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -146,8 +146,8 @@ program gcollapse, rclass
         exit `rc'
     }
 
-    local __gtools_uniq_targets : list uniq __gtools_targets
-    local nonunique: list __gtools_targets - __gtools_uniq_targets
+    local __gtools_gc_uniq_targets : list uniq __gtools_gc_targets
+    local nonunique: list __gtools_gc_targets - __gtools_gc_uniq_targets
     if ( `:list sizeof nonunique' != 0 ) {
         di as err "Repeat targets not allowed: `:list uniq nonunique'"
         CleanExit
@@ -169,11 +169,11 @@ program gcollapse, rclass
         disp as txt `"    labelformat:        `labelformat'"'
         disp as txt `"    labelprogram:       `labelprogram'"'
         disp as txt `""'
-        disp as txt "    __gtools_targets:    `__gtools_targets'"
-        disp as txt "    __gtools_vars:       `__gtools_vars'"
-        disp as txt "    __gtools_stats:      `__gtools_stats'"
-        disp as txt "    __gtools_uniq_vars:  `__gtools_uniq_vars'"
-        disp as txt "    __gtools_uniq_stats: `__gtools_uniq_stats'"
+        disp as txt "    __gtools_gc_targets:    `__gtools_gc_targets'"
+        disp as txt "    __gtools_gc_vars:       `__gtools_gc_vars'"
+        disp as txt "    __gtools_gc_stats:      `__gtools_gc_stats'"
+        disp as txt "    __gtools_gc_uniq_vars:  `__gtools_gc_uniq_vars'"
+        disp as txt "    __gtools_gc_uniq_stats: `__gtools_gc_uniq_stats'"
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
@@ -212,11 +212,11 @@ program gcollapse, rclass
 
     cap noi parse_keep_drop,                                  ///
         by(`clean_by') `merge' `double' `replace' `replaceby' ///
-        __gtools_targets(`__gtools_targets')                  ///
-        __gtools_vars(`__gtools_vars')                        ///
-        __gtools_stats(`__gtools_stats')                      ///
-        __gtools_uniq_vars(`__gtools_uniq_vars')              ///
-        __gtools_uniq_stats(`__gtools_uniq_stats')
+        __gtools_gc_targets(`__gtools_gc_targets')                  ///
+        __gtools_gc_vars(`__gtools_gc_vars')                        ///
+        __gtools_gc_stats(`__gtools_gc_stats')                      ///
+        __gtools_gc_uniq_vars(`__gtools_gc_uniq_vars')              ///
+        __gtools_gc_uniq_stats(`__gtools_gc_uniq_stats')
 
     if ( _rc ) {
         local rc = _rc
@@ -230,15 +230,15 @@ program gcollapse, rclass
     local memvars      "`r(memvars)'"
     local check_recast "`r(check_recast)'"
 
-    scalar __gtools_k_targets    = `:list sizeof __gtools_targets'
-    scalar __gtools_k_vars       = `:list sizeof __gtools_vars'
-    scalar __gtools_k_stats      = `:list sizeof __gtools_stats'
-    scalar __gtools_k_uniq_vars  = `:list sizeof __gtools_uniq_vars'
-    scalar __gtools_k_uniq_stats = `:list sizeof __gtools_uniq_stats'
+    scalar __gtools_gc_k_targets    = `:list sizeof __gtools_gc_targets'
+    scalar __gtools_gc_k_vars       = `:list sizeof __gtools_gc_vars'
+    scalar __gtools_gc_k_stats      = `:list sizeof __gtools_gc_stats'
+    scalar __gtools_gc_k_uniq_vars  = `:list sizeof __gtools_gc_uniq_vars'
+    scalar __gtools_gc_k_uniq_stats = `:list sizeof __gtools_gc_uniq_stats'
 
-    mata: gtools_vars     = tokens(`"`__gtools_vars'"')
-    mata: gtools_targets  = tokens(`"`__gtools_targets'"')
-    mata: gtools_stats    = tokens(`"`__gtools_stats'"')
+    mata: gtools_vars     = tokens(`"`__gtools_gc_vars'"')
+    mata: gtools_targets  = tokens(`"`__gtools_gc_targets'"')
+    mata: gtools_stats    = tokens(`"`__gtools_gc_stats'"')
 
     cap noi CheckMatsize `clean_by'
     if ( _rc ) {
@@ -247,21 +247,21 @@ program gcollapse, rclass
         exit `rc'
     }
 
-    cap noi CheckMatsize `__gtools_vars'
+    cap noi CheckMatsize `__gtools_gc_vars'
     if ( _rc ) {
         local rc = _rc
         CleanExit
         exit `rc'
     }
 
-    cap noi CheckMatsize `__gtools_targets'
+    cap noi CheckMatsize `__gtools_gc_targets'
     if ( _rc ) {
         local rc = _rc
         CleanExit
         exit `rc'
     }
 
-    cap noi CheckMatsize `__gtools_stats'
+    cap noi CheckMatsize `__gtools_gc_stats'
     if ( _rc ) {
         local rc = _rc
         CleanExit
@@ -282,11 +282,11 @@ program gcollapse, rclass
         disp as txt `"    replace:            `replace'"'
         disp as txt `"    replaceby:          `replaceby'"'
         disp as txt `""'
-        disp as txt `"    __gtools_targets:    `__gtools_targets'"'
-        disp as txt `"    __gtools_vars:       `__gtools_vars'"'
-        disp as txt `"    __gtools_stats:      `__gtools_stats'"'
-        disp as txt `"    __gtools_uniq_vars:  `__gtools_uniq_vars'"'
-        disp as txt `"    __gtools_uniq_stats: `__gtools_uniq_stats'"'
+        disp as txt `"    __gtools_gc_targets:    `__gtools_gc_targets'"'
+        disp as txt `"    __gtools_gc_vars:       `__gtools_gc_vars'"'
+        disp as txt `"    __gtools_gc_stats:      `__gtools_gc_stats'"'
+        disp as txt `"    __gtools_gc_uniq_vars:  `__gtools_gc_uniq_vars'"'
+        disp as txt `"    __gtools_gc_uniq_stats: `__gtools_gc_uniq_stats'"'
         disp as txt `""'
         disp as txt `"    dropme:              `dropme'"'
         disp as txt `"    keepvars:            `keepvars'"'
@@ -294,11 +294,11 @@ program gcollapse, rclass
         disp as txt `"    memvars:             `memvars'"'
         disp as txt `"    check_recast:        `check_recast'"'
         disp as txt `""'
-        disp as txt `"    scalar __gtools_k_targets    = `=scalar(__gtools_k_targets)'"'
-        disp as txt `"    scalar __gtools_k_vars       = `=scalar(__gtools_k_vars)'"'
-        disp as txt `"    scalar __gtools_k_stats      = `=scalar(__gtools_k_stats)'"'
-        disp as txt `"    scalar __gtools_k_uniq_vars  = `=scalar(__gtools_k_uniq_vars)'"'
-        disp as txt `"    scalar __gtools_k_uniq_stats = `=scalar(__gtools_k_uniq_stats)'"'
+        disp as txt `"    scalar __gtools_gc_k_targets    = `=scalar(__gtools_gc_k_targets)'"'
+        disp as txt `"    scalar __gtools_gc_k_vars       = `=scalar(__gtools_gc_k_vars)'"'
+        disp as txt `"    scalar __gtools_gc_k_stats      = `=scalar(__gtools_gc_k_stats)'"'
+        disp as txt `"    scalar __gtools_gc_k_uniq_vars  = `=scalar(__gtools_gc_k_uniq_vars)'"'
+        disp as txt `"    scalar __gtools_gc_k_uniq_stats = `=scalar(__gtools_gc_k_uniq_stats)'"'
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
@@ -315,12 +315,12 @@ program gcollapse, rclass
     ***********************************************************************
 
     * Recast sources, if applicable
-    mata: st_numscalar("__gtools_k_recast", cols(__gtools_recastvars))
-    if ( `=scalar(__gtools_k_recast)' > 0 ) {
+    mata: st_numscalar("__gtools_gc_k_recast", cols(__gtools_gc_recastvars))
+    if ( `=scalar(__gtools_gc_k_recast)' > 0 ) {
         local gtools_recastvars ""
         local gtools_recastsrc  ""
-        forvalues k = 1 / `=scalar(__gtools_k_recast)' {
-            mata: st_local("var", __gtools_recastvars[`k'])
+        forvalues k = 1 / `=scalar(__gtools_gc_k_recast)' {
+            mata: st_local("var", __gtools_gc_recastvars[`k'])
             tempvar dropvar
             rename `var' `dropvar'
             local dropme `dropme' `dropvar'
@@ -328,7 +328,7 @@ program gcollapse, rclass
             local gtools_recastsrc  `gtools_recastsrc'  `dropvar'
         }
 
-        qui mata: st_addvar(__gtools_recasttypes, __gtools_recastvars, 1)
+        qui mata: st_addvar(__gtools_gc_recasttypes, __gtools_gc_recastvars, 1)
         if ( `=_N > 0' ) {
             cap noi _gtools_internal, recast(targets(`gtools_recastvars') sources(`gtools_recastsrc'))
             if ( _rc ) {
@@ -359,7 +359,7 @@ program gcollapse, rclass
     *                               Reorder                               *
     ***********************************************************************
 
-    local _: list memvars - __gtools_uniq_vars
+    local _: list memvars - __gtools_gc_uniq_vars
     local memorder: list memvars - _
 
     mata: gtools_vars_mem = tokens("`memorder'")
@@ -370,8 +370,8 @@ program gcollapse, rclass
     mata: gtools_vars      = gtools_vars      [gtools_io_order]
     mata: gtools_targets   = gtools_targets   [gtools_io_order]
     mata: gtools_stats     = gtools_stats     [gtools_io_order]
-    mata: __gtools_labels  = __gtools_labels  [gtools_io_order]
-    mata: __gtools_formats = __gtools_formats [gtools_io_order]
+    mata: __gtools_gc_labels  = __gtools_gc_labels  [gtools_io_order]
+    mata: __gtools_gc_formats = __gtools_gc_formats [gtools_io_order]
 
     * Now make sure that the sources are in memory order
     tempname k1 k2 ord
@@ -387,58 +387,58 @@ program gcollapse, rclass
     mata: gtools_vars      = gtools_vars      [gtools_mem_order]
     mata: gtools_targets   = gtools_targets   [gtools_mem_order]
     mata: gtools_stats     = gtools_stats     [gtools_mem_order]
-    mata: __gtools_labels  = __gtools_labels  [gtools_mem_order]
-    mata: __gtools_formats = __gtools_formats [gtools_mem_order]
+    mata: __gtools_gc_labels  = __gtools_gc_labels  [gtools_mem_order]
+    mata: __gtools_gc_formats = __gtools_gc_formats [gtools_mem_order]
 
     * At each step we reordered stats, soruces, and targets!
-    local __gtools_order   `__gtools_targets'
-    local __gtools_vars    ""
-    local __gtools_targets ""
-    local __gtools_stats   ""
-    forvalues k = 1 / `=scalar(__gtools_k_targets)' {
+    local __gtools_gc_order   `__gtools_gc_targets'
+    local __gtools_gc_vars    ""
+    local __gtools_gc_targets ""
+    local __gtools_gc_stats   ""
+    forvalues k = 1 / `=scalar(__gtools_gc_k_targets)' {
         mata: st_local("var",  gtools_vars   [`k'])
         mata: st_local("targ", gtools_targets[`k'])
         mata: st_local("stat", gtools_stats  [`k'])
-        local __gtools_vars     `__gtools_vars'    `var'
-        local __gtools_targets  `__gtools_targets' `targ'
-        local __gtools_stats    `__gtools_stats'   `stat'
+        local __gtools_gc_vars     `__gtools_gc_vars'    `var'
+        local __gtools_gc_targets  `__gtools_gc_targets' `targ'
+        local __gtools_gc_stats    `__gtools_gc_stats'   `stat'
     }
-    local __gtools_uniq_stats: list uniq __gtools_stats
-    local __gtools_uniq_vars:  list uniq __gtools_stats
+    local __gtools_gc_uniq_stats: list uniq __gtools_gc_stats
+    local __gtools_gc_uniq_vars:  list uniq __gtools_gc_stats
 
     ***********************************************************************
     *                             I/O switch                              *
     ***********************************************************************
 
-    tempfile __gtools_file
-    scalar __gtools_k_extra = __gtools_k_targets - __gtools_k_uniq_vars
+    tempfile __gtools_gc_file
+    scalar __gtools_gc_k_extra = __gtools_gc_k_targets - __gtools_gc_k_uniq_vars
 
-    local sources  sources(`__gtools_vars')
-    local stats    stats(`__gtools_stats')
-    local targets  targets(`__gtools_targets')
+    local sources  sources(`__gtools_gc_vars')
+    local stats    stats(`__gtools_gc_stats')
+    local targets  targets(`__gtools_gc_targets')
     local opts     missing replace
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local opts     `opts' `anymissing' `allmissing'
     local action   `sources' `targets' `stats'
 
-    local switch = (`=scalar(__gtools_k_extra)' > 3) & (`debug_io_check' < `=_N')
-    local mem    = ("`forcemem'" != "") | ("`merge'" != "") | (`=scalar(__gtools_k_extra)' == 0)
-    local io     = ("`forceio'"  != "") & (`=scalar(__gtools_k_extra)' > 0)
+    local switch = (`=scalar(__gtools_gc_k_extra)' > 3) & (`debug_io_check' < `=_N')
+    local mem    = ("`forcemem'" != "") | ("`merge'" != "") | (`=scalar(__gtools_gc_k_extra)' == 0)
+    local io     = ("`forceio'"  != "") & (`=scalar(__gtools_gc_k_extra)' > 0)
 
     if ( `io' ) {
         * Drop rest of vars
-        local plugvars `clean_by' `__gtools_uniq_vars'
+        local plugvars `clean_by' `__gtools_gc_uniq_vars'
         local dropme `dropme' `:list memvars - keepvars'
         local dropme `:list dropme - plugvars'
         if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
-        local gcollapse gcollapse(forceio, fname(`__gtools_file'))
+        local gcollapse gcollapse(forceio, fname(`__gtools_gc_file'))
         local action    `action' fill(data) `unsorted'
     }
     else if ( !`mem' & `switch' ) {
 
         * Replace source vars in memory, since they already exist
-        local plugvars `clean_by' `__gtools_uniq_vars'
+        local plugvars `clean_by' `__gtools_gc_uniq_vars'
 
         * It will be faster to add targets with fewer variables in
         * memory. Dropping superfluous variables also saves memory.
@@ -451,9 +451,9 @@ program gcollapse, rclass
         gtools_timer info 97 `"`msg'"', prints(`bench')
 
         * Benchmark adding 2 variables to gauge how long it might take to
-        * add __gtools_k_extra variables.
-        tempvar __gtools_index __gtools_ix __gtools_info
-        cap noi benchmark_memvars, index(`__gtools_index') ix(`__gtools_ix') info(`__gtools_info')
+        * add __gtools_gc_k_extra variables.
+        tempvar __gtools_gc_index __gtools_gc_ix __gtools_gc_info
+        cap noi benchmark_memvars, index(`__gtools_gc_index') ix(`__gtools_gc_ix') info(`__gtools_gc_info')
         if ( _rc ) {
             local rc = _rc
             CleanExit
@@ -468,8 +468,8 @@ program gcollapse, rclass
             * ----------------------------------
 
             local st_time   st_time(`=`st_time' / `debug_io_threshold'')
-            local ixinfo    ixinfo(`__gtools_index' `__gtools_ix' `__gtools_info')
-            local gcollapse gcollapse(switch, `st_time' fname(`__gtools_file') `ixinfo')
+            local ixinfo    ixinfo(`__gtools_gc_index' `__gtools_gc_ix' `__gtools_gc_info')
+            local gcollapse gcollapse(switch, `st_time' fname(`__gtools_gc_file') `ixinfo')
             local action    `action' fill(data) `unsorted'
         }
         else {
@@ -477,7 +477,7 @@ program gcollapse, rclass
             * If benchmark was 0, add the vars right now
             * ------------------------------------------
 
-            qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+            qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             local msg "Generated additional targets"
             gtools_timer info 97 `"`msg'"', prints(`bench')
 
@@ -487,7 +487,7 @@ program gcollapse, rclass
     }
     else {
 
-        local plugvars `clean_by' `__gtools_uniq_vars'
+        local plugvars `clean_by' `__gtools_gc_uniq_vars'
         if ( "`merge'" == "" ) local dropme `dropme' `:list memvars - keepvars'
         local dropme `:list dropme - plugvars'
 
@@ -495,11 +495,11 @@ program gcollapse, rclass
         local msg `"Dropped superfluous variables"'
         gtools_timer info 97 `"`msg'"', prints(`bench')
 
-        if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_k_extra)' == 0) ) {
+        if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_gc_k_extra)' == 0) ) {
             if ( `verb' ) di as text "(ignored -forceio- because sources are being used as targets)"
         }
 
-        if ( "`added'" != "" ) qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+        if ( "`added'" != "" ) qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
         local msg "Generated additional targets"
         gtools_timer info 97 `"`msg'"', prints(`bench')
 
@@ -513,7 +513,7 @@ program gcollapse, rclass
         disp as txt "{hline 72}"
         disp as txt `"recast"'
         disp as txt `""'
-        disp as txt `"    scalar __gtools_k_extra = `=scalar(__gtools_k_extra)'"'
+        disp as txt `"    scalar __gtools_gc_k_extra = `=scalar(__gtools_gc_k_extra)'"'
         disp as txt `""'
         disp as txt `"    plugvars:      `plugvars'"'
         disp as txt `"    dropme:        `dropme'"'
@@ -597,21 +597,21 @@ program gcollapse, rclass
         * ----------------------------------------
 
         local memvars  `r(varlist)'
-        local keepvars `clean_by' `__gtools_targets'
+        local keepvars `clean_by' `__gtools_gc_targets'
         local dropme   `:list memvars - keepvars'
         if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
 
         * If we collapsed to disk, read back the data
         * -------------------------------------------
 
-        if ( (`=_N > 0') & (`=scalar(__gtools_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
+        if ( (`=_N > 0') & (`=scalar(__gtools_gc_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
             gtools_timer on 97
 
-            qui mata: st_addvar(__gtools_addtypes, __gtools_addvars, 1)
+            qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             gtools_timer info 97 `"Added extra targets after collapse"', prints(`bench')
 
-            local __gtools_iovars: list __gtools_targets - __gtools_uniq_vars
-            local gcollapse gcollapse(read, fname(`__gtools_file'))
+            local __gtools_gc_iovars: list __gtools_gc_targets - __gtools_gc_uniq_vars
+            local gcollapse gcollapse(read, fname(`__gtools_gc_file'))
             if ( `debug_io_read' ) {
                 cap noi _gtools_internal, `gcollapse' `action' gfunction(collapse)
                 if ( _rc ) {
@@ -622,10 +622,10 @@ program gcollapse, rclass
             }
             else {
                 local nrow = `=_N'
-                local ncol = `=scalar(__gtools_k_extra)'
-                mata: __gtools_data = gtools_get_collapsed (`"`__gtools_file'"', `nrow', `ncol')
-                mata: st_store(., tokens(`"`__gtools_iovars'"'), __gtools_data)
-                cap mata: mata drop __gtools_data
+                local ncol = `=scalar(__gtools_gc_k_extra)'
+                mata: __gtools_gc_data = gtools_get_collapsed (`"`__gtools_gc_file'"', `nrow', `ncol')
+                mata: st_store(., tokens(`"`__gtools_gc_iovars'"'), __gtools_gc_data)
+                cap mata: mata drop __gtools_gc_data
             }
 
             gtools_timer info 97 `"Read extra targets from disk"', prints(`bench')
@@ -637,27 +637,27 @@ program gcollapse, rclass
         local order = 0
         qui ds *
         local varorder `r(varlist)'
-        local varsort  `clean_by' `__gtools_order'
+        local varsort  `clean_by' `__gtools_gc_order'
         foreach varo in `varorder' {
             gettoken svar varsort: varsort
             if ("`varo'" != "`vars'") local order = 1
         }
-        if ( `order' ) order `clean_by' `__gtools_order'
+        if ( `order' ) order `clean_by' `__gtools_gc_order'
 
         * Label the things in the style of collapse
         * -----------------------------------------
 
-        forvalues k = 1 / `:list sizeof __gtools_targets' {
-            mata: st_varlabel(gtools_targets[`k'], __gtools_labels[`k'])
-            mata: st_varformat(gtools_targets[`k'], __gtools_formats[`k'])
+        forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
+            mata: st_varlabel(gtools_targets[`k'], __gtools_gc_labels[`k'])
+            mata: st_varformat(gtools_targets[`k'], __gtools_gc_formats[`k'])
         }
     }
     else {
-        forvalues k = 1 / `:list sizeof __gtools_targets' {
-            mata: st_varlabel(gtools_targets[`k'], __gtools_labels[`k'])
+        forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
+            mata: st_varlabel(gtools_targets[`k'], __gtools_gc_labels[`k'])
         }
-        forvalues k = 1 / `:list sizeof __gtools_targets' {
-            mata: st_varformat(gtools_targets[`k'], __gtools_formats[`k'])
+        forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
+            mata: st_varformat(gtools_targets[`k'], __gtools_gc_formats[`k'])
         }
     }
 
@@ -751,9 +751,9 @@ program parse_vars
     }
 
     if ( "`freq'" != "" ) {
-        local __gtools_targets `__gtools_targets' `freq'
-        local __gtools_stats   `__gtools_stats' freq
-        local __gtools_vars    `__gtools_vars' `:word 1 of `__gtools_vars''
+        local __gtools_gc_targets `__gtools_gc_targets' `freq'
+        local __gtools_gc_stats   `__gtools_gc_stats' freq
+        local __gtools_gc_vars    `__gtools_gc_vars' `:word 1 of `__gtools_gc_vars''
     }
 
     * Get format and labels from sources
@@ -767,12 +767,12 @@ program parse_vars
     local ltxt_regex  "(.*)(#sourcelabel#)(.*)"
     local lsub_regex  "(.*)#sourcelabel:([0-9]+):([.0-9]+)#(.*)"
 
-    mata: __gtools_formats = J(1, `:list sizeof __gtools_targets', "")
-    mata: __gtools_labels  = J(1, `:list sizeof __gtools_targets', "")
-    forvalues k = 1 / `:list sizeof __gtools_targets' {
-        local vl = `"`:variable label `:word `k' of `__gtools_vars'''"'
-        local vl = cond(`"`vl'"' == "", `"`:word `k' of `__gtools_vars''"', `"`vl'"')
-        local vp = `"`:word `k' of `__gtools_stats''"'
+    mata: __gtools_gc_formats = J(1, `:list sizeof __gtools_gc_targets', "")
+    mata: __gtools_gc_labels  = J(1, `:list sizeof __gtools_gc_targets', "")
+    forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
+        local vl = `"`:variable label `:word `k' of `__gtools_gc_vars'''"'
+        local vl = cond(`"`vl'"' == "", `"`:word `k' of `__gtools_gc_vars''"', `"`vl'"')
+        local vp = `"`:word `k' of `__gtools_gc_stats''"'
 
         if ( "`labelprogram'" == "" ) GtoolsPrettyStat `vp'
         else `labelprogram' `vp'
@@ -830,11 +830,11 @@ program parse_vars
                 local lfmt_k = regexs(1) + upper(`"`vp'"') + regexs(3)
             }
         }
-        mata: __gtools_labels[`k'] = `"`lfmt_k'"'
+        mata: __gtools_gc_labels[`k'] = `"`lfmt_k'"'
 
-        local vf = "`:format `:word `k' of `__gtools_vars'''"
-        local vf = cond(inlist("`:word `k' of `__gtools_stats''", "count", "freq"), "%8.0g", "`vf'")
-        mata: __gtools_formats[`k'] = "`vf'"
+        local vf = "`:format `:word `k' of `__gtools_gc_vars'''"
+        local vf = cond(inlist("`:word `k' of `__gtools_gc_stats''", "count", "freq"), "%8.0g", "`vf'")
+        mata: __gtools_gc_formats[`k'] = "`vf'"
     }
 
     * Available Stats
@@ -859,7 +859,7 @@ program parse_vars
 
     * Parse quantiles
     local anyquant  = 0
-    local quantiles : list __gtools_uniq_stats - stats
+    local quantiles : list __gtools_gc_uniq_stats - stats
     foreach quantile of local quantiles {
         local quantbad = !regexm("`quantile'", "^p([0-9][0-9]?(\.[0-9]+)?)$")
         if ( `quantbad' ) {
@@ -877,50 +877,50 @@ program parse_vars
     }
 
     if ( "`freq'" != "" ) {
-        local __gtools_uniq_stats `__gtools_uniq_stats' freq
+        local __gtools_gc_uniq_stats `__gtools_gc_uniq_stats' freq
     }
 
     * Locals one level up
     * -------------------
 
-    c_local __gtools_targets    `__gtools_targets'
-    c_local __gtools_vars       `__gtools_vars'
-    c_local __gtools_stats      `__gtools_stats'
-    c_local __gtools_uniq_vars  `__gtools_uniq_vars'
-    c_local __gtools_uniq_stats `__gtools_uniq_stats'
+    c_local __gtools_gc_targets    `__gtools_gc_targets'
+    c_local __gtools_gc_vars       `__gtools_gc_vars'
+    c_local __gtools_gc_stats      `__gtools_gc_stats'
+    c_local __gtools_gc_uniq_vars  `__gtools_gc_uniq_vars'
+    c_local __gtools_gc_uniq_stats `__gtools_gc_uniq_stats'
 end
 
 capture program drop parse_keep_drop
 program parse_keep_drop, rclass
-    syntax,                      ///
-    [                            ///
-        replace                  ///
-        replaceby                ///
-        merge                    ///
-        double                   ///
-        by(varlist)              ///
-        __gtools_targets(str)    ///
-        __gtools_vars(str)       ///
-        __gtools_stats(str)      ///
-        __gtools_uniq_vars(str)  ///
-        __gtools_uniq_stats(str) ///
+    syntax,                         ///
+    [                               ///
+        replace                     ///
+        replaceby                   ///
+        merge                       ///
+        double                      ///
+        by(varlist)                 ///
+        __gtools_gc_targets(str)    ///
+        __gtools_gc_vars(str)       ///
+        __gtools_gc_stats(str)      ///
+        __gtools_gc_uniq_vars(str)  ///
+        __gtools_gc_uniq_stats(str) ///
     ]
 
     * The code assumes targets either do not exist or are named the same as
     * the source variable. If a target exists in memory but is not one of the
     * sources, rename the target to a dummy
 
-    local __gtools_i = 0
+    local __gtools_gc_i = 0
     if ( "`merge'" == "" ) {
-        foreach var in `__gtools_targets' {
+        foreach var in `__gtools_gc_targets' {
             cap confirm variable `var'
-            if ( (_rc == 0) & !`:list var in __gtools_vars' ) {
-                cap confirm variable __gtools`__gtools_i'
+            if ( (_rc == 0) & !`:list var in __gtools_gc_vars' ) {
+                cap confirm variable __gtools_gc`__gtools_gc_i'
                 while ( _rc == 0 ) {
-                    local ++__gtools_i
-                    cap confirm variable __gtools`__gtools_i'
+                    local ++__gtools_gc_i
+                    cap confirm variable __gtools_gc`__gtools_gc_i'
                 }
-                rename `var' __gtools`__gtools_i'
+                rename `var' __gtools_gc`__gtools_gc_i'
             }
         }
     }
@@ -928,66 +928,66 @@ program parse_keep_drop, rclass
     * Try to be smart about creating target variables
     * -----------------------------------------------
 
-    local __gtools_keepvars `__gtools_uniq_vars'
+    local __gtools_gc_keepvars `__gtools_gc_uniq_vars'
 
     * If not merging, then be smart about creating new variable columns
     if ( "`merge'" == "" ) {
-        scalar __gtools_merge = 0
+        scalar __gtools_gc_merge = 0
 
-        local __gtools_vars      " `__gtools_vars' "
-        local __gtools_uniq_vars " `__gtools_uniq_vars' "
-        local __gtools_keepvars  " `__gtools_keepvars' "
+        local __gtools_gc_vars      " `__gtools_gc_vars' "
+        local __gtools_gc_uniq_vars " `__gtools_gc_uniq_vars' "
+        local __gtools_gc_keepvars  " `__gtools_gc_keepvars' "
 
-        local __gtools_vars:      subinstr local __gtools_vars      " "  "  ", all
-        local __gtools_uniq_vars: subinstr local __gtools_uniq_vars " "  "  ", all
-        local __gtools_keepvars:  subinstr local __gtools_keepvars  " "  "  ", all
+        local __gtools_gc_vars:      subinstr local __gtools_gc_vars      " "  "  ", all
+        local __gtools_gc_uniq_vars: subinstr local __gtools_gc_uniq_vars " "  "  ", all
+        local __gtools_gc_keepvars:  subinstr local __gtools_gc_keepvars  " "  "  ", all
 
-        local K: list sizeof __gtools_targets
+        local K: list sizeof __gtools_gc_targets
         forvalues k = 1 / `K' {
             qui ds *
             local memvars `r(varlist)'
 
-            local k_target: word `k' of `__gtools_targets'
-            local k_var:    word `k' of `__gtools_vars'
-            local k_stat:   word `k' of `__gtools_stats'
+            local k_target: word `k' of `__gtools_gc_targets'
+            local k_var:    word `k' of `__gtools_gc_vars'
+            local k_stat:   word `k' of `__gtools_gc_stats'
 
             * Only use as target if the type matches
             * parse_ok_astarget, sourcevar(`k_var') targetvar(`k_target') stat(`k_stat') `double'
-            * if ( `:list k_var in __gtools_uniq_vars' & `r(ok_astarget)' ) {
+            * if ( `:list k_var in __gtools_gc_uniq_vars' & `r(ok_astarget)' ) {
 
             * Always try to use as target; will recast if necessary
-            if ( `:list k_var in __gtools_uniq_vars' ) {
-                local __gtools_uniq_vars: list __gtools_uniq_vars - k_var
-                if ( !`:list k_var in __gtools_targets' & !`:list k_target in memvars' ) {
-                    local __gtools_vars      " `__gtools_vars' "
-                    local __gtools_uniq_vars " `__gtools_uniq_vars' "
-                    local __gtools_keepvars  " `__gtools_keepvars' "
-                    local __gtools_vars:      subinstr local __gtools_vars      " `k_var' " " `k_target' ", all
-                    local __gtools_uniq_vars: subinstr local __gtools_uniq_vars " `k_var' " " `k_target' ", all
-                    local __gtools_keepvars:  subinstr local __gtools_keepvars  " `k_var' " " `k_target' ", all
-                    local __gtools_vars      `__gtools_vars'
-                    local __gtools_uniq_vars `__gtools_uniq_vars'
-                    local __gtools_keepvars  `__gtools_keepvars'
+            if ( `:list k_var in __gtools_gc_uniq_vars' ) {
+                local __gtools_gc_uniq_vars: list __gtools_gc_uniq_vars - k_var
+                if ( !`:list k_var in __gtools_gc_targets' & !`:list k_target in memvars' ) {
+                    local __gtools_gc_vars      " `__gtools_gc_vars' "
+                    local __gtools_gc_uniq_vars " `__gtools_gc_uniq_vars' "
+                    local __gtools_gc_keepvars  " `__gtools_gc_keepvars' "
+                    local __gtools_gc_vars:      subinstr local __gtools_gc_vars      " `k_var' " " `k_target' ", all
+                    local __gtools_gc_uniq_vars: subinstr local __gtools_gc_uniq_vars " `k_var' " " `k_target' ", all
+                    local __gtools_gc_keepvars:  subinstr local __gtools_gc_keepvars  " `k_var' " " `k_target' ", all
+                    local __gtools_gc_vars      `__gtools_gc_vars'
+                    local __gtools_gc_uniq_vars `__gtools_gc_uniq_vars'
+                    local __gtools_gc_keepvars  `__gtools_gc_keepvars'
                     rename `k_var' `k_target'
                 }
             }
         }
-        local __gtools_vars      " `__gtools_vars' "
-        local __gtools_uniq_vars " `__gtools_uniq_vars' "
-        local __gtools_keepvars  " `__gtools_keepvars' "
-        local __gtools_vars:      subinstr local __gtools_vars      "  " " ", all
-        local __gtools_uniq_vars: subinstr local __gtools_uniq_vars "  " " ", all
-        local __gtools_keepvars:  subinstr local __gtools_keepvars  "  " " ", all
-        local __gtools_vars      `__gtools_vars'
-        local __gtools_uniq_vars `__gtools_uniq_vars'
-        local __gtools_keepvars  `__gtools_keepvars'
+        local __gtools_gc_vars      " `__gtools_gc_vars' "
+        local __gtools_gc_uniq_vars " `__gtools_gc_uniq_vars' "
+        local __gtools_gc_keepvars  " `__gtools_gc_keepvars' "
+        local __gtools_gc_vars:      subinstr local __gtools_gc_vars      "  " " ", all
+        local __gtools_gc_uniq_vars: subinstr local __gtools_gc_uniq_vars "  " " ", all
+        local __gtools_gc_keepvars:  subinstr local __gtools_gc_keepvars  "  " " ", all
+        local __gtools_gc_vars      `__gtools_gc_vars'
+        local __gtools_gc_uniq_vars `__gtools_gc_uniq_vars'
+        local __gtools_gc_keepvars  `__gtools_gc_keepvars'
 
-        local keepvars `by' `__gtools_keepvars'
+        local keepvars `by' `__gtools_gc_keepvars'
     }
     else {
-        scalar __gtools_merge = 1
+        scalar __gtools_gc_merge = 1
         if ( "`replace'" == "" ) {
-            local intersection: list __gtools_targets & __gtools_vars
+            local intersection: list __gtools_gc_targets & __gtools_gc_vars
             if ( "`intersection'" != "" ) {
                 di as error "targets also sources with no replace: `intersection'"
                 error 110
@@ -995,7 +995,7 @@ program parse_keep_drop, rclass
         }
     }
 
-    local intersection: list __gtools_targets & by
+    local intersection: list __gtools_gc_targets & by
     if ( "`intersection'" != "" ) {
         if ( "`replaceby'" == "" ) {
             di as error "targets also in by() with no replaceby: `intersection'"
@@ -1014,18 +1014,18 @@ program parse_keep_drop, rclass
     local memvars `r(varlist)'
     local added  ""
 
-    mata: __gtools_addvars     = J(1, 0, "")
-    mata: __gtools_addtypes    = J(1, 0, "")
-    mata: __gtools_recastvars  = J(1, 0, "")
-    mata: __gtools_recasttypes = J(1, 0, "")
+    mata: __gtools_gc_addvars     = J(1, 0, "")
+    mata: __gtools_gc_addtypes    = J(1, 0, "")
+    mata: __gtools_gc_recastvars  = J(1, 0, "")
+    mata: __gtools_gc_recasttypes = J(1, 0, "")
 
-    c_local __gtools_vars      `__gtools_vars'
-    c_local __gtools_uniq_vars `__gtools_keepvars'
+    c_local __gtools_gc_vars      `__gtools_gc_vars'
+    c_local __gtools_gc_uniq_vars `__gtools_gc_keepvars'
 
     local check_recast ""
-    foreach var of local __gtools_targets {
-        gettoken sourcevar __gtools_vars:  __gtools_vars
-        gettoken collstat  __gtools_stats: __gtools_stats
+    foreach var of local __gtools_gc_targets {
+        gettoken sourcevar __gtools_gc_vars:  __gtools_gc_vars
+        gettoken collstat  __gtools_gc_stats: __gtools_gc_stats
 
         * I try to match Stata's types when possible
         if regexm("`collstat'", "first|last|min|max") {
@@ -1063,8 +1063,8 @@ program parse_keep_drop, rclass
 
         cap confirm variable `var'
         if ( _rc ) {
-            mata: __gtools_addvars  = __gtools_addvars,  "`var'"
-            mata: __gtools_addtypes = __gtools_addtypes, "`targettype'"
+            mata: __gtools_gc_addvars  = __gtools_gc_addvars,  "`var'"
+            mata: __gtools_gc_addtypes = __gtools_gc_addtypes, "`targettype'"
             local added `added' `var'
         }
         else {
@@ -1074,8 +1074,8 @@ program parse_keep_drop, rclass
             local recast = !(`r(ok_astarget)')
 
             if ( `recast' ) {
-                mata: __gtools_recastvars  = __gtools_recastvars,  "`var'"
-                mata: __gtools_recasttypes = __gtools_recasttypes, "`targettype'"
+                mata: __gtools_gc_recastvars  = __gtools_gc_recastvars,  "`var'"
+                mata: __gtools_gc_recasttypes = __gtools_gc_recasttypes, "`targettype'"
             }
         }
     }
@@ -1182,8 +1182,8 @@ program benchmark_memvars, rclass
     local mib_str = trim("`:di %15.2gc 2 * `mib''")
     local n_str   = trim("`:di %15.0gc `=_N''")
     return local st_str  = `"Added index and info (`n_str' obs; approx `mib_str'MiB)"'
-    return local st_time = max(`total_time', 0.001) * scalar(__gtools_k_extra) * `factor'
-    * return local st_time = `total_time' * scalar(__gtools_k_extra) * `factor'
+    return local st_time = max(`total_time', 0.001) * scalar(__gtools_gc_k_extra) * `factor'
+    * return local st_time = `total_time' * scalar(__gtools_gc_k_extra) * `factor'
 end
 
 ***********************************************************************
@@ -1228,11 +1228,11 @@ program define ParseList
         error 110
     }
 
-    c_local __gtools_targets    `full_targets'
-    c_local __gtools_stats      `full_stats'
-    c_local __gtools_vars       `full_vars'
-    c_local __gtools_uniq_stats : list uniq full_stats
-    c_local __gtools_uniq_vars  : list uniq full_vars
+    c_local __gtools_gc_targets    `full_targets'
+    c_local __gtools_gc_stats      `full_stats'
+    c_local __gtools_gc_vars       `full_vars'
+    c_local __gtools_gc_uniq_stats : list uniq full_stats
+    c_local __gtools_gc_uniq_vars  : list uniq full_vars
 end
 
 capture program drop GetStat
@@ -1271,13 +1271,13 @@ program CleanExit
     global GTOOLS_USER_VARABBREV
     global GTOOLS_CALLER
 
-    cap mata: mata drop __gtools_formats
-    cap mata: mata drop __gtools_labels
+    cap mata: mata drop __gtools_gc_formats
+    cap mata: mata drop __gtools_gc_labels
 
-    cap mata: mata drop __gtools_addvars
-    cap mata: mata drop __gtools_addtypes
-    cap mata: mata drop __gtools_recastvars
-    cap mata: mata drop __gtools_recasttypes
+    cap mata: mata drop __gtools_gc_addvars
+    cap mata: mata drop __gtools_gc_addtypes
+    cap mata: mata drop __gtools_gc_recastvars
+    cap mata: mata drop __gtools_gc_recasttypes
 
     cap mata: mata drop gtools_vars
     cap mata: mata drop gtools_targets
@@ -1288,22 +1288,22 @@ program CleanExit
     cap mata: mata drop gtools_io_order
     cap mata: mata drop gtools_mem_order
 
-    cap mata: mata drop __gtools_asfloat
-    cap mata: mata drop __gtools_checkrecast
-    cap mata: mata drop __gtools_norecast
-    cap mata: mata drop __gtools_keeprecast
+    cap mata: mata drop __gtools_gc_asfloat
+    cap mata: mata drop __gtools_gc_checkrecast
+    cap mata: mata drop __gtools_gc_norecast
+    cap mata: mata drop __gtools_gc_keeprecast
 
-    cap mata: mata drop __gtools_iovars
+    cap mata: mata drop __gtools_gc_iovars
 
-    cap scalar drop __gtools_k_recast
-    cap scalar drop __gtools_merge
+    cap scalar drop __gtools_gc_k_recast
+    cap scalar drop __gtools_gc_merge
 
-    cap scalar drop __gtools_k_extra
-    cap scalar drop __gtools_k_targets
-    cap scalar drop __gtools_k_vars
-    cap scalar drop __gtools_k_stats
-    cap scalar drop __gtools_k_uniq_vars
-    cap scalar drop __gtools_k_uniq_stats
+    cap scalar drop __gtools_gc_k_extra
+    cap scalar drop __gtools_gc_k_targets
+    cap scalar drop __gtools_gc_k_vars
+    cap scalar drop __gtools_gc_k_stats
+    cap scalar drop __gtools_gc_k_uniq_vars
+    cap scalar drop __gtools_gc_k_uniq_stats
 
     cap timer off   97
     cap timer clear 97

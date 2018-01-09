@@ -1,4 +1,4 @@
-*! version 0.5.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -20,6 +20,7 @@ program glevelsof, rclass
         LOCal(str)            /// Store results in local
         Clean                 /// Clean strings
                               ///
+        unsorted              /// Do not sort levels (faster)
         noLOCALvar            /// Do not store levels in a local macro (or in r(levels))
         numfmt(passthru)      /// Number format
         freq(passthru)        /// compute frequency counts
@@ -53,7 +54,7 @@ program glevelsof, rclass
         if ( _rc | ("`varlist'" == "") ) {
             local rc = _rc
             di as err "Malformed call: '`anything''"
-            di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
             exit 111
         }
     }
@@ -61,8 +62,9 @@ program glevelsof, rclass
     * Run levelsof
     * ------------
 
-    local opts  `separate' `missing' `clean'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
+    local opts  `separate' `missing' `clean' `unsorted'
+    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel'
+    local sopts `sopts' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
     local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store')
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
@@ -83,6 +85,7 @@ program glevelsof, rclass
         }
     }
     else if ( `rc' == 17001 ) {
+        di as txt "(no observations)"
         exit 0
     }
     else if ( `rc' ) exit `rc'

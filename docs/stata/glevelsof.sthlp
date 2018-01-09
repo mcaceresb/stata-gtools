@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.5.2  21Nov2017}{...}
+{* *! version 0.5.4  08Jan2018}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -58,6 +58,7 @@ To change the sort order of the results.
 {syntab:Extras}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
 {synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
+{synopt:{opt unsorted}}do not sort levels{p_end}
 
 {syntab:Gtools}
 {synopt :{opt v:erbose}}Print info during function execution.
@@ -123,6 +124,13 @@ The default is a pipe.  Specifying a {varlist} instead of a
 are printed to 16 digits of precision, but the user can specify
 the number format here. Only "%.#g|f" and "%#.#g|f" are accepted
 since this is formated internally in C.
+
+{phang}
+{opth unsorted} Do not sort levels. This option is experimental and only
+affects the output when the input is not an integer (for integers, the
+levels are sorted internally regardless). While not sorting the levels
+is faster, {cmd:glevelsof} is typically used when the number of levels
+is small (10s, 100s, 1000s) and thus speed savings will be minimal.
 
 {dlgtab:Gtools}
 

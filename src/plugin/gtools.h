@@ -115,6 +115,7 @@ struct StataInfo {
     GT_bool   benchmark;
     GT_bool   countonly;
     GT_bool   seecount;
+    GT_bool   keepmiss;
     GT_bool   missing;
     GT_bool   unsorted;
     GT_bool   nomiss;

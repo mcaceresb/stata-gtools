@@ -1,4 +1,4 @@
-*! version 0.3.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -57,7 +57,11 @@ program define fasterxtile
         local nquantiles nquantiles(2)
 	}
 
-    local cutpoints cutpoints(`cutpoints')
+    if ( "`cutpoints'" != "" ) {
+        unab cutpoints: `cutpoints'
+        local cutpoints cutpoints(`cutpoints')
+    }
+
     local   opts `verbose'        ///
                  `benchmark'      ///
                  `benchmarklevel' ///

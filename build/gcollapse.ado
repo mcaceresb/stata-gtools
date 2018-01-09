@@ -1,4 +1,4 @@
-*! version 0.11.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.11.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -8,52 +8,53 @@ program gcollapse, rclass
     local 00 `0'
 
     global GTOOLS_CALLER gcollapse
-    syntax [anything(equalok)]      /// Main function call:
-                                    /// [(stat)] varlist [ [(stat)] ... ]
-                                    /// [(stat)] target = source [target = source ...] [ [(stat)] ...]
-        [if] [in] ,                 /// [if condition] [in start / end]
-    [                               ///
-        by(str)                     /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
-        cw                          /// Drop ocase-wise bservations where sources are missing.
-        fast                        /// Do not preserve and restore the original dataset. Saves speed
-                                    /// but leaves data unusable if the user hits Break.
-                                    ///
-        merge                       /// Merge statistics back to original data, replacing if applicable
-        replace                     /// Allow replacing existing variables with output with merge
-        freq(passthru)              /// Include frequency count with observations per group
-                                    ///
-        LABELFormat(passthru)       /// Custom label engine: (#stat#) #sourcelabel# is the default
-        LABELProgram(passthru)      /// Program to parse labelformat (see examples)
-                                    ///
-        ANYMISSing(passthru)        /// Custom handling if any missing values per stat per group
-        ALLMISSing(passthru)        /// Custom handling if all missing values per stat per group
-                                    ///
-                                    ///
-        unsorted                    /// Do not sort the data; faster
-        forceio                     /// Use disk temp drive for writing/reading collapsed data
-        forcemem                    /// Use memory for writing/reading collapsed data
-        double                      /// Generate all targets as doubles
-                                    ///
-        Verbose                     /// Print info during function execution
-        BENCHmark                   /// print function benchmark info
-        BENCHmarklevel(int 0)       /// print plugin benchmark info
-                                    ///
-        HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
-                                    ///
-        debug                       /// (internal) Allow replacing by variables with output
-        DEBUG_level(int 0)          /// (internal) Allow replacing by variables with output
-        debug_replaceby             /// (internal) Allow replacing by variables with output
-        debug_io_read(int 1)        /// (internal) Read IO data using mata or C
-        debug_io_check(real 1e6)    /// (internal) Threshold to check for I/O speed gains
-        debug_io_threshold(real 10) /// (internal) Threshold to switch to I/O instead of RAM
+    syntax [anything(equalok)]       /// Main function call:
+                                     /// [(stat)] varlist [ [(stat)] ... ]
+                                     /// [(stat)] target = source [target = source ...] [ [(stat)] ...]
+        [if] [in] ,                  /// [if condition] [in start / end]
+    [                                ///
+        by(str)                      /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
+        cw                           /// Drop ocase-wise bservations where sources are missing.
+        fast                         /// Do not preserve and restore the original dataset. Saves speed
+                                     /// but leaves data unusable if the user hits Break.
+                                     ///
+        merge                        /// Merge statistics back to original data, replacing if applicable
+        replace                      /// Allow replacing existing variables with output with merge
+        freq(passthru)               /// Include frequency count with observations per group
+                                     ///
+        LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
+        LABELProgram(passthru)       /// Program to parse labelformat (see examples)
+                                     ///
+        missing                      /// Preserve missing values for sums
+        ANYMISSing(passthru)         /// Custom handling if any missing values per stat per group
+        ALLMISSing(passthru)         /// Custom handling if all missing values per stat per group
+                                     ///
+                                     ///
+        unsorted                     /// Do not sort the data; faster
+        forceio                      /// Use disk temp drive for writing/reading collapsed data
+        forcemem                     /// Use memory for writing/reading collapsed data
+        double                       /// Generate all targets as doubles
+                                     ///
+        Verbose                      /// Print info during function execution
+        BENCHmark                    /// print function benchmark info
+        BENCHmarklevel(int 0)        /// print plugin benchmark info
+                                     ///
+        HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
+                                     ///
+        debug                        /// (internal) Allow replacing by variables with output
+        DEBUG_level(int 0)           /// (internal) Allow replacing by variables with output
+        debug_replaceby              /// (internal) Allow replacing by variables with output
+        debug_io_read(int 1)         /// (internal) Read IO data using mata or C
+        debug_io_check(real 1e6)     /// (internal) Threshold to check for I/O speed gains
+        debug_io_threshold(real 10)  /// (internal) Threshold to switch to I/O instead of RAM
     ]
-    set varabbrev off
 
     if ( "`debug'" != "" ) local debug_level 9
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
+    local keepmissing = cond("`missing'" == "", "", "keepmissing")
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
     local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
@@ -67,7 +68,7 @@ program gcollapse, rclass
         if ( _rc | ("`clean_by'" == "") ) {
             local rc = _rc
             di as err "Malformed call: by(`by')"
-            di as err "Syntas: by([+|-]varname [[+|-]varname ...])"
+            di as err "Syntax: by([+|-]varname [[+|-]varname ...])"
             CleanExit
             exit 111
         }
@@ -210,14 +211,16 @@ program gcollapse, rclass
     * Also parse which source variables to recast (see below; we try to use
     * source variables as their first target to save memory)
 
+    set varabbrev off
     cap noi parse_keep_drop,                                  ///
         by(`clean_by') `merge' `double' `replace' `replaceby' ///
-        __gtools_gc_targets(`__gtools_gc_targets')                  ///
-        __gtools_gc_vars(`__gtools_gc_vars')                        ///
-        __gtools_gc_stats(`__gtools_gc_stats')                      ///
-        __gtools_gc_uniq_vars(`__gtools_gc_uniq_vars')              ///
+        __gtools_gc_targets(`__gtools_gc_targets')            ///
+        __gtools_gc_vars(`__gtools_gc_vars')                  ///
+        __gtools_gc_stats(`__gtools_gc_stats')                ///
+        __gtools_gc_uniq_vars(`__gtools_gc_uniq_vars')        ///
         __gtools_gc_uniq_stats(`__gtools_gc_uniq_stats')
 
+    set varabbrev ${GTOOLS_USER_VARABBREV}
     if ( _rc ) {
         local rc = _rc
         CleanExit
@@ -375,8 +378,8 @@ program gcollapse, rclass
 
     * Now make sure that the sources are in memory order
     tempname k1 k2 ord
-    mata: `k1'  =  cols(gtools_vars_mem)
-    mata: `k2'  =  cols(gtools_vars)
+    mata: `k1'  = cols(gtools_vars_mem)
+    mata: `k2'  = cols(gtools_vars)
     mata: `ord' = gtools_vars[1::`k1']
     mata: gtools_mem_order = J(1, 0, .)
     mata: for(k = 1; k <= `k1'; k++) gtools_mem_order = gtools_mem_order, selectindex(gtools_vars_mem[k] :== `ord')
@@ -416,7 +419,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace
+    local opts     missing replace `keepmissing'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local opts     `opts' `anymissing' `allmissing'
     local action   `sources' `targets' `stats'
@@ -559,6 +562,7 @@ program gcollapse, rclass
     local r_J     = `r(J)'
     local r_minJ  = `r(minJ)'
     local r_maxJ  = `r(maxJ)'
+    matrix __gtools_invert = r(invert)
 
     * Return values
     * -------------
@@ -664,6 +668,24 @@ program gcollapse, rclass
     ***********************************************************************
     *                            Program Exit                             *
     ***********************************************************************
+
+    if ( "`unsorted'" == "" ) {
+        mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
+        if ( `invert' ) {
+            mata: st_numscalar("__gtools_first_inverted", ///
+                               selectindex(st_matrix("__gtools_invert"))[1])
+            if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+                local sortvars ""
+                forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                    local sortvars `sortvars' `:word `i' of `clean_by''
+                }
+                sort `sortvars'
+            }
+        }
+        else if ( "`clean_by'" != "" ) {
+            sort `clean_by'
+        }
+    }
 
     gtools_timer on 97
     if ( "`fast'" == "" ) restore, not
@@ -883,6 +905,10 @@ program parse_vars
     * Locals one level up
     * -------------------
 
+    * unab __gtools_gc_targets:   `__gtools_gc_targets'
+    unab __gtools_gc_vars:      `__gtools_gc_vars'
+    unab __gtools_gc_uniq_vars: `__gtools_gc_uniq_vars'
+
     c_local __gtools_gc_targets    `__gtools_gc_targets'
     c_local __gtools_gc_vars       `__gtools_gc_vars'
     c_local __gtools_gc_stats      `__gtools_gc_stats'
@@ -944,8 +970,7 @@ program parse_keep_drop, rclass
 
         local K: list sizeof __gtools_gc_targets
         forvalues k = 1 / `K' {
-            qui ds *
-            local memvars `r(varlist)'
+            unab memvars : _all
 
             local k_target: word `k' of `__gtools_gc_targets'
             local k_var:    word `k' of `__gtools_gc_vars'
@@ -1006,12 +1031,11 @@ program parse_keep_drop, rclass
     * Variables in memory; will compare to keepvars
     * ---------------------------------------------
 
-    * Unfortunately, this is necessary for C. We cannot create variables from
-    * C, and we cannot halt the C execution, create the final data in Stata,
-    * and then go back to C.
+    * Unfortunately, this is necessary for C. We cannot create variables
+    * from C, and we cannot halt the C execution, create the final data
+    * in Stata, and then go back to C.
 
-    qui ds *
-    local memvars `r(varlist)'
+    unab memvars : _all
     local added  ""
 
     mata: __gtools_gc_addvars     = J(1, 0, "")
@@ -1304,6 +1328,9 @@ program CleanExit
     cap scalar drop __gtools_gc_k_stats
     cap scalar drop __gtools_gc_k_uniq_vars
     cap scalar drop __gtools_gc_k_uniq_stats
+
+    cap scalar drop __gtools_first_inverted
+    cap matrix drop __gtools_invert
 
     cap timer off   97
     cap timer clear 97

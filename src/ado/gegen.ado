@@ -1,4 +1,4 @@
-*! version 0.11.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.11.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -178,6 +178,7 @@ program define gegen, byable(onecall) rclass
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
+    local keepmissing = cond("`missing'" == "", "", "keepmissing")
 
     foreach opt in label lname truncate {
         if ( "``opt''" != "" ) {
@@ -318,8 +319,7 @@ program define gegen, byable(onecall) rclass
         local sources `r(varlist)'
         cap confirm numeric v `sources'
         if ( _rc ) {
-            global GTOOLS_CALLER ""
-            di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+            global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
             exit _rc
         }
     }
@@ -394,7 +394,7 @@ program define gegen, byable(onecall) rclass
 
     `addvar'
     local action sources(`sources') `targets' `stats' fill(`fill') `counts' countmiss
-    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' missing `replace'
+    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' missing `keepmissing' `replace'
     local rc = _rc
     global GTOOLS_CALLER ""
 
@@ -411,6 +411,7 @@ program define gegen, byable(onecall) rclass
         exit 0
     }
     else if ( `rc' == 17001 ) {
+        `rename'
         exit 0
     }
     else if ( `rc' ) exit `rc'

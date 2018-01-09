@@ -1,11 +1,11 @@
-*! version 0.4.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
-    set varabbrev off
+    * set varabbrev off
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
@@ -63,6 +63,7 @@ program _gtools_internal, rclass
         seecount                  /// print group info to console
         COUNTonly                 /// report group info and exit
         MISSing                   /// Include missing values
+        KEEPMISSing               /// Summary stats are . if all inputs are .
         unsorted                  /// Do not sort hash values; faster
         countmiss                 /// count # missing in output
                                   /// (only w/certain targets)
@@ -118,13 +119,18 @@ program _gtools_internal, rclass
         numfmt(str)               /// Columns sepparator
     ]
 
+    * if ( ("`replace'" != "") & ("${GTOOLS_USER_INTERNAL_VARABBREV}" == "on") ) {
+    *     disp as err "Option {opt replace} not allowed with varabbrev on."
+    *     disp as err "Run {stata set varabbrev off} to use this feature."
+    *     exit 198
+    * }
+
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local ifin `if' `in'
     local gen  `generate'
 
     local hashmethod `hashmethod'
     if ( `"`hashmethod'"' == "" ) local hashmethod 0
-
 
     local hashmethod_list 0 1 2 default biject spooky
     if ( !`:list hashmethod_list in hashmethod_list' ) {
@@ -149,6 +155,7 @@ program _gtools_internal, rclass
         local hashusr 0
     }
     else local hashusr 1
+
     if ( ("`c_os_'" == "windows") & `hashusr' ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
@@ -207,11 +214,13 @@ program _gtools_internal, rclass
     if ( "`recast'" != "" ) {
         local 0  , `recast'
         syntax, sources(varlist) targets(varlist)
+
         if ( `:list sizeof sources' != `:list sizeof targets' ) {
             di as err "Must specify the same number of sources and targets"
             clean_all 198
             exit 198
         }
+
         scalar __gtools_k_recast = `:list sizeof sources'
         cap noi plugin call gtools_plugin `targets' `sources', recast
         local rc = _rc
@@ -382,6 +391,7 @@ program _gtools_internal, rclass
     scalar __gtools_verbose     = `verbose'
     scalar __gtools_debug       = `debug_level'
     scalar __gtools_benchmark   = cond(`benchmarklevel' > 0, `benchmarklevel', 0)
+    scalar __gtools_keepmiss    = ( "`keepmissing'"  != "" )
     scalar __gtools_missing     = ( "`missing'"      != "" )
     scalar __gtools_unsorted    = ( "`unsorted'"     != "" )
     scalar __gtools_countonly   = ( "`countonly'"    != "" )
@@ -681,8 +691,8 @@ program _gtools_internal, rclass
         cap ds `clean_anything'
         if ( _rc | ("`clean_anything'" == "") ) {
             local rc = _rc
-            di as err "Malformed call: '`anything''"
-            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+            di as err "Invalid call/varlist: '`anything''"
+            di as err "Syntax: {+|-}varname [{+|-}varname ...]"
             clean_all 111
             exit 111
         }
@@ -1696,6 +1706,7 @@ program clean_all
     cap scalar drop __gtools_seecount
     cap matrix drop __gtools_unsorted
     cap scalar drop __gtools_nomiss
+    cap scalar drop __gtools_keepmiss
     cap scalar drop __gtools_missing
     cap scalar drop __gtools_hash
     cap scalar drop __gtools_encode
@@ -1782,7 +1793,7 @@ program clean_all
     cap matrix drop __gtools_pos_targets
 
     * NOTE(mauricio): You had the urge to make sure you were dropping
-    * variables at one point. Don't. This is file for gquantiles but not so
+    * variables at one point. Don't. This is fine for gquantiles but not so
     * with gegen or gcollapse.  In the case of gcollapse, if the user ran w/o
     * fast then they were willing to leave the data in a bad stata in case
     * there was an error. In the casae of gegen, the main variable is a dummy
@@ -1845,7 +1856,7 @@ program parse_by_types, rclass
     local varlist  ""
     local skip   = 0
     local invert = 0
-    if strpos("`anything'", "-") {
+    if ( strpos("`anything'", "-") ) {
         while ( trim("`parse'") != "" ) {
             gettoken var parse: parse, p(" -+")
             if inlist("`var'", "-", "+") {
@@ -1857,8 +1868,8 @@ program parse_by_types, rclass
                 if ( _rc ) {
                     local rc = _rc
                     di as err "Variable '`var'' does not exist."
-                    di as err "Syntas: [+|-]varname [[+|-]varname ...]"
-                    clean_all
+                    di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                    clean_all `rc'
                     exit `rc'
                 }
                 if ( `skip' ) {
@@ -1958,10 +1969,10 @@ program parse_by_types, rclass
     * Return hash info
     * ----------------
 
-    return local invert     = `invert'
-    return local varlist    = "`varlist'"
-    return local varnum     = "`varnum'"
-    return local varstr     = "`varstr'"
+    return local invert  = `invert'
+    return local varlist = "`varlist'"
+    return local varnum  = "`varnum'"
+    return local varstr  = "`varstr'"
 end
 
 ***********************************************************************
@@ -2025,7 +2036,6 @@ program rc_dispatch
         }
     }
     else if ( `rc' == 17001 ) {
-        di as txt "(no observations)"
         exit 17001
     }
     else if ( `rc' == 459 ) {

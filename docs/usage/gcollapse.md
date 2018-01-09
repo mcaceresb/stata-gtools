@@ -68,6 +68,9 @@ Options
 
 ### Extras
 
+- `missing` Sums are set to missing (instead of 0) when all input values within
+          a group are also missing.
+
 - `merge` merges the collapsed data back to the original data set.  Note that
           if you want to replace the source variable(s) then you need to
           specify replace.
@@ -248,7 +251,7 @@ l
 
 ### Label outputs
 
-The default label for collapsed stats is "(stat) source label"..  I find this
+The default label for collapsed stats is "(stat) source label".  I find this
 format ugly, so I have implemented a very basic engine to label outputs:
 
 ```stata

@@ -1,7 +1,37 @@
 Change Log
 ==========
 
+## gtools-0.11.4 (2018-01-08)
+
+### Features
+
+- `gcollapse, missing` output missing for sums if all inputs are missing.
+- `glevelsof` adds option `unsorted` which is faster and does not sort results
+- The resulting data from `gcollapse` and `gcontract` are now sorted
+
+### Bug fixes
+
+- `gegen` now imitates `egen` when there are no observations selected
+  and leaves the new variable in memory with all missing values.
+- `gegen, missing` for total and sum now correctly output missing if all
+  inputs are missing
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/32 (gcontract
+  should allow abbreviations)
+
+## gtools-0.11.3 (2017-11-21)
+
+### Bug fixes
+
+- `gtop` now reads a global from `gtoplevelsof` so if there was an error
+  but the exit code should be 0 (in this case, no observations throws an
+  error internally but exits with 0 status externally) `gtop` no longer
+  throws a syntax error.
+- Fixed bug in gdistinct where all missing observations without the
+  missing option caused an error.
+
 ## gtools-0.11.2 (2017-11-20)
+
+### Bug fixes
 
 - Fixed bug in glevelsof where if string data is already sorted the
   system does not compute the length of the de-duplicated string
@@ -11,6 +41,8 @@ Change Log
   on some systems.
 
 ## gtools-0.11.1 (2017-11-20)
+
+### Bug fixes
 
 - Fixed bug with naming conflicts between internals and gcollapse.
 

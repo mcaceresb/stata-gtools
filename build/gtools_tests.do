@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Nov 19 22:18:19 EST 2017
+* Updated: Mon Jan  8 21:30:00 EST 2018
 * Purpose: Unit tests for gtools
-* Version: 0.11.2
+* Version: 0.11.4
 * Manual:  help gtools
 
 * Stata start-up options
@@ -498,6 +498,25 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * https://github.com/mcaceresb/stata-gtools/issues/32
+    qui {
+        clear
+        sysuse auto
+        set varabbrev on
+        gcollapse head = head
+        set varabbrev off
+    }
+
+    qui {
+        clear
+        set obs 10
+        gen x = .
+        gcollapse (sum) y = x, merge missing
+        gcollapse (sum) z = x, merge
+        assert y == .
+        assert z == 0
+    }
 
     * https://github.com/mcaceresb/stata-gtools/issues/27
     qui {
@@ -1014,6 +1033,15 @@ program checks_gcontract
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/32
+    qui {
+        clear
+        sysuse auto
+        set varabbrev on
+        gcontract head
+        set varabbrev off
+    }
+
     qui `noisily' gen_data, n(5000) random(2)
     qui expand 2
     gen long ix = _n
@@ -1072,7 +1100,7 @@ program compare_gcontract
     qui `noisily' gen_data, n(1000) random(2) binary(1)
     qui expand 50
 
-    di as txt _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, `options'" _n(1) "{hline 80}" _n(1)
+    di as txt _n(1) "{hline 80}" _n(1) "consistency_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_contract str_12,              `options' tol(`tol') nomiss
     compare_inner_contract str_12 str_32,       `options' tol(`tol') sort
@@ -3060,6 +3088,14 @@ program checks_gegen
     checks_inner_egen -int1 -str_32 -double1,                                         `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    clear
+    set obs 10
+    gen x = .
+    gegen y = total(x), missing
+    gegen z = total(x)
+    assert y == .
+    assert z == 0
 
     clear
     gen x = 1

@@ -669,20 +669,22 @@ program gcollapse, rclass
     *                            Program Exit                             *
     ***********************************************************************
 
-    mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
-    if ( `invert' ) {
-        mata: st_numscalar("__gtools_first_inverted", ///
-                           selectindex(st_matrix("__gtools_invert"))[1])
-        if ( `=scalar(__gtools_first_inverted)' > 1 ) {
-            local sortvars ""
-            forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
-                local sortvars `sortvars' `:word `i' of `clean_by''
+    if ( "`unsorted'" == "" ) {
+        mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
+        if ( `invert' ) {
+            mata: st_numscalar("__gtools_first_inverted", ///
+                               selectindex(st_matrix("__gtools_invert"))[1])
+            if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+                local sortvars ""
+                forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                    local sortvars `sortvars' `:word `i' of `clean_by''
+                }
+                sort `sortvars'
             }
-            sort `sortvars'
         }
-    }
-    else if ( "`clean_by'" != "" ) {
-        sort `clean_by'
+        else if ( "`clean_by'" != "" ) {
+            sort `clean_by'
+        }
     }
 
     gtools_timer on 97

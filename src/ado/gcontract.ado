@@ -168,7 +168,8 @@ program gcontract, rclass
     * Call the plugin
     * ---------------
 
-    local opts      `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local opts `missing' `verbose' `unsorted' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 
@@ -235,24 +236,26 @@ program gcontract, rclass
     * Set sort var using varlist
     * --------------------------
 
-    mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
-    if ( `invert' ) {
-        mata: st_numscalar("__gtools_first_inverted", ///
-                           selectindex(st_matrix("__gtools_invert"))[1])
-        if ( `=scalar(__gtools_first_inverted)' > 1 ) {
-            local sortvars ""
-            forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
-                local sortvars `sortvars' `:word `i' of `varlist''
+    if ( "`unsorted'" == "" ) {
+        mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
+        if ( `invert' ) {
+            mata: st_numscalar("__gtools_first_inverted", ///
+                               selectindex(st_matrix("__gtools_invert"))[1])
+            if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+                local sortvars ""
+                forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                    local sortvars `sortvars' `:word `i' of `varlist''
+                }
+                sort `sortvars'
             }
-            sort `sortvars'
         }
-    }
-    else {
-        sort `varlist'
-    }
+        else {
+            sort `varlist'
+        }
 
-    cap scalar drop __gtools_first_inverted
-    cap matrix drop __gtools_invert
+        cap scalar drop __gtools_first_inverted
+        cap matrix drop __gtools_invert
+    }
 
     if ( "`fast'" == "" ) restore, not
 end

@@ -259,7 +259,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     // for sums, which go to 0 for some reason (this is the
                     // behavior of collapse), and min/max (which pick out the
                     // min/max missing value).
-                    if ( statcode[k] == -1 ) { // sum
+                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
                         output[offset_output + k] = 0;
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
@@ -538,7 +538,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     // for sums, which go to 0 for some reason (this is the
                     // behavior of collapse), and min/max (which pick out the
                     // min/max missing value).
-                    if ( statcode[k] == -1 ) { // sum
+                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
                         output[offset_output + k] = 0;
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max

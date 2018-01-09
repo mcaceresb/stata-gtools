@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.11.2 21Nov2017}{...}
+{* *! version 0.11.4 08Jan2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -87,6 +87,8 @@ user press {hi:Break}
 {p_end}
 
 {syntab:Extras}
+{synopt :{opt missing}}Sums are set to missing when all inputs in group are also missing.
+{p_end}
 {synopt :{opt merge}}Merge statistics back to original data, replacing if applicable.
 {p_end}
 {synopt :{opt replace}}Allow replacing existing variables with output with {opt merge}.
@@ -149,6 +151,10 @@ possible observations are used for each calculated statistic.
 should the user press {hi:Break}.
 
 {dlgtab:Extras}
+
+{phang}
+{opt missing} Sums are set to missing (instead of 0) when all input
+values within a group are also missing.
 
 {phang}
 {opt merge} merges the collapsed data back to the original data set.

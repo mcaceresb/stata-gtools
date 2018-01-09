@@ -1,4 +1,4 @@
-*! version 0.4.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -141,7 +141,7 @@ program gcontract, rclass
         if ( _rc | ("`varlist'" == "") ) {
             local rc = _rc
             di as err "Malformed call: '`anything''"
-            di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
             exit 111
         }
         local varlist `r(varlist)'
@@ -197,11 +197,34 @@ program gcontract, rclass
     local r_J     = `r(J)'
     local r_minJ  = `r(minJ)'
     local r_maxJ  = `r(maxJ)'
+    matrix __gtools_invert = r(invert)
 
     return scalar N    = `r_N'
     return scalar J    = `r_J'
     return scalar minJ = `r_minJ'
     return scalar maxJ = `r_maxJ'
+
+    * Set sort var using varlist
+    * --------------------------
+
+    mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
+    if ( `invert' ) {
+        mata: st_numscalar("__gtools_first_inverted", ///
+                           selectindex(st_matrix("__gtools_invert"))[1])
+        if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+            local sortvars ""
+            forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                local sortvars `sortvars' `:word `i' of `varlist''
+            }
+            sort `sortvars'
+        }
+    }
+    else {
+        sort `varlist'
+    }
+
+    cap scalar drop __gtools_first_inverted
+    cap matrix drop __gtools_invert
 
     * Exit in the style of contract
     * -----------------------------

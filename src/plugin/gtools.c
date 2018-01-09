@@ -5,7 +5,7 @@
  * Updated: Tue Oct 31 06:01:11 EDT 2017
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.11.2
+ * Version: 0.11.4
  *********************************************************************/
 
 /**
@@ -265,6 +265,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             benchmark,
             countonly,
             seecount,
+            keepmiss,
             missing,
             nomiss,
             unsorted,
@@ -388,6 +389,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_unsorted",       &unsorted)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_keepmiss",       &keepmiss)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_missing",        &missing)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_nomiss",         &nomiss)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_replace",        &replace)        )) goto exit;
@@ -538,6 +540,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->unsorted       = unsorted;
     st_info->countonly      = countonly;
     st_info->seecount       = seecount;
+    st_info->keepmiss       = keepmiss;
     st_info->missing        = missing;
     st_info->nomiss         = nomiss;
     st_info->replace        = replace;

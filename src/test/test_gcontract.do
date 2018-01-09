@@ -3,6 +3,15 @@ program checks_gcontract
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/32
+    qui {
+        clear
+        sysuse auto
+        set varabbrev on
+        gcontract head
+        set varabbrev off
+    }
+
     qui `noisily' gen_data, n(5000) random(2)
     qui expand 2
     gen long ix = _n

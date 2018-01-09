@@ -1,10 +1,11 @@
-*! version 0.4.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
 
 cap program drop gtoplevelsof
 program gtoplevelsof, rclass
+    global GTOP_RC 0
     version 13
 
     if ( `=_N < 1' ) {
@@ -58,7 +59,7 @@ program gtoplevelsof, rclass
 
     if ( `"`colseparate'"' == "" ) local colseparate colseparate(`"  "')
     if ( `"`numfmt'"'      == "" ) local numfmt      numfmt(`"%.8g"')
-    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.2g"'
+    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.1f"'
 
     if !regexm(`"`pctfmt'"', "%[0-9]+\.[0-9]+(gc?|fc?|e)") {
         di as err "Percent format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
@@ -76,7 +77,7 @@ program gtoplevelsof, rclass
         if ( _rc | ("`varlist'" == "") ) {
             local rc = _rc
             di as err "Malformed call: '`anything''"
-            di as err "Syntas: [+|-]varname [[+|-]varname ...]"
+            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
             exit 111
         }
         local varlist `r(varlist)'
@@ -149,6 +150,8 @@ program gtoplevelsof, rclass
         exit 17000
     }
     else if ( `rc' == 17001 ) {
+        global GTOP_RC 17001
+        di as txt "(no observations)"
         exit 0
     }
     else if ( `rc' ) {

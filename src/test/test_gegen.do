@@ -26,6 +26,14 @@ program checks_gegen
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     clear
+    set obs 10
+    gen x = .
+    gegen y = total(x), missing
+    gegen z = total(x)
+    assert y == .
+    assert z == 0
+
+    clear
     gen x = 1
     cap gegen y = group(x)
     assert _rc == 111

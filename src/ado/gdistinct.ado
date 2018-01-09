@@ -1,4 +1,4 @@
-*! version 0.4.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -45,12 +45,6 @@ program gdistinct, rclass
     local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
-        local r_N          = `r(N)'
-        local r_J          = `r(J)'
-        local r_ndistinct  = `r(J)'
-        local r_minJ       = `r(minJ)'
-        local r_maxJ       = `r(maxJ)'
-        matrix `ndistinct' = (`r(N)', `r(J)')
 
         local rc  = _rc
         global GTOOLS_CALLER ""
@@ -59,9 +53,25 @@ program gdistinct, rclass
             exit 0
         }
         else if ( `rc' == 17001 ) {
+            local r_N          = 0
+            local r_J          = 0
+            local r_ndistinct  = 0
+            local r_minJ       = 0
+            local r_maxJ       = 0
+            matrix `ndistinct' = (0, 0)
             exit 0
         }
-        else if ( `rc' ) exit `rc'
+        else if ( `rc' ) {
+            exit `rc'
+        }
+        else {
+            local r_N          = `r(N)'
+            local r_J          = `r(J)'
+            local r_ndistinct  = `r(J)'
+            local r_minJ       = `r(minJ)'
+            local r_maxJ       = `r(maxJ)'
+            matrix `ndistinct' = (`r(N)', `r(J)')
+        }
 
 		di
 		di in text "        Observations"
@@ -86,11 +96,6 @@ program gdistinct, rclass
 
 		foreach v of local varlist {
             cap noi _gtools_internal `v' `if' `in', countonly unsorted `opts' gfunction(unique)
-            local r_N         = `r(N)'
-            local r_J         = `r(J)'
-            local r_ndistinct = `r(J)'
-            local r_minJ      = `r(minJ)'
-            local r_maxJ      = `r(maxJ)'
 
             local rc  = _rc
             if ( `rc' == 17999 ) {
@@ -98,14 +103,23 @@ program gdistinct, rclass
                 distinct `varlist' `if' `in', `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
             }
             else if ( `rc' == 17001 ) {
-                global GTOOLS_CALLER ""
-                cap mata: mata drop __gtools_distinct
-                exit 0
+                local r_N         = 0
+                local r_J         = 0
+                local r_ndistinct = 0
+                local r_minJ      = 0
+                local r_maxJ      = 0
             }
             else if ( `rc' ) {
                 global GTOOLS_CALLER ""
                 cap mata: mata drop __gtools_distinct
                 exit `rc'
+            }
+            else {
+                local r_N         = `r(N)'
+                local r_J         = `r(J)'
+                local r_ndistinct = `r(J)'
+                local r_minJ      = `r(minJ)'
+                local r_maxJ      = `r(maxJ)'
             }
 
             if ( (`r_J' >= `minimum') & (`r_J' <= `maximum') ) {

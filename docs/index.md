@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.11.2 21Nov2017`
+`version 0.11.4 08Jan2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -284,7 +284,7 @@ __*Differences from Stata counterparts*__
 Differences from `collapse`
 
 - No support for weights.
-- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
+- String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
@@ -292,13 +292,13 @@ Differences from `collapse`
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
+- `gcollapse, missing` outputs a missing value for sums if all inputs are missing.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
 - No support for weights.
 - Adds support for `by()`
 - Does not ignore `altdef` with `xtile` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1417198-typo-in-xtile-ado-with-option-altdef))
-- Fixes numerical precision issues with `pctile, altdef` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se))
 - Category frequencies can also be requested via `binfreq[()]`.
 - `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
   `pctile(newvar)`
@@ -310,6 +310,7 @@ Differences from `xtile`, `pctile`, and `_pctile`
 - The user has control over the behavior of `cutpoints()` and `cutquantiles()`.
   They obey `if` `in` with option `cutifin`, they can be group-specific with
   option `cutby`, and they can be de-duplicated via `dedup`.
+- Fixes numerical precision issues with `pctile, altdef` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se); this is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not).
 
 Differences from `egen`
 
@@ -354,11 +355,17 @@ The program has not crashed; it is merely trying to swap memory.  To
 check this is the case, the user can monitor disk activity or monitor the
 pagefile/swap space directly.
 
+Differences from `gsort`
+
+`hashsort` behaves as if `mfirst` was always passed.
+
 TODO
 ----
 
 Features that might make it to 1.0 (but I make no promises)
 
+- Have `mlast` option for hashsort?
+    - Or switch its behavior and have `mfirst` do what it does now.
 - Add option to save glevelsof in a variable/matrix (incl freq).
 - Add option to control how to treat missing values in gcollapse
     - anymissing()
@@ -377,6 +384,9 @@ ETA for them (and they almost surely won't make it to the 1.0 release):
 - `gcollapse (mean) pre_* (count) count_* = pre_*, by(byvars)`
 - Have some type of coding standard for the base (coding style)
 - Add `Var`, `kurtosis`, `skewness`
+- Add option to `gtop` to display top X results in alpha order
+- Clean exit from `gcollapse`, `gegen` on error.
+- Print # of missings for gegen
 
 License
 -------

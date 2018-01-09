@@ -56,6 +56,13 @@ Options
             here. Only "%.#g|f" and "%#.#g|f" are accepted since this is formated
             internally in C.
 
+- `unsorted` Do not sort levels. This option is experimental and only affects the
+            output when the input is not an integer (for integers, the levels are
+            sorted internally regardless). While not sorting the levels is faster,
+            `glevelsof` is typically used when the number of levels is small (10s,
+            100s, 1000s) and thus speed
+            savings will be minimal.
+
 ### Gtools options
 
 (Note: These are common to every gtools command.)

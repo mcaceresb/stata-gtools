@@ -35,7 +35,7 @@ l
 *  Label outputs  *
 *******************
 
-* The default label for collapsed stats is "(stat) source label"..  I find this
+* The default label for collapsed stats is "(stat) source label".  I find this
 * format ugly, so I have implemented a very basic engine to label outputs:
 
 sysuse auto, clear

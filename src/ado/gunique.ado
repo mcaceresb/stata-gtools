@@ -1,4 +1,4 @@
-*! version 0.4.2 21Nov2017 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -80,6 +80,7 @@ program gunique, rclass
             exit 0
         }
         else if ( `rc' == 17001 ) {
+            di as txt "(no observations)"
             exit 0
         }
         else if ( `rc' ) exit `rc'
@@ -106,6 +107,7 @@ program gunique, rclass
             exit 0
         }
         else if ( `rc' == 17001 ) {
+            di as txt "(no observations)"
             exit 0
         }
         else if ( `rc' ) exit `rc'

@@ -77,6 +77,25 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/32
+    qui {
+        clear
+        sysuse auto
+        set varabbrev on
+        gcollapse head = head
+        set varabbrev off
+    }
+
+    qui {
+        clear
+        set obs 10
+        gen x = .
+        gcollapse (sum) y = x, merge missing
+        gcollapse (sum) z = x, merge
+        assert y == .
+        assert z == 0
+    }
+
     * https://github.com/mcaceresb/stata-gtools/issues/27
     qui {
         clear

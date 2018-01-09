@@ -70,7 +70,7 @@ program compare_gcontract
     qui `noisily' gen_data, n(1000) random(2) binary(1)
     qui expand 50
 
-    di as txt _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, `options'" _n(1) "{hline 80}" _n(1)
+    di as txt _n(1) "{hline 80}" _n(1) "consistency_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_contract str_12,              `options' tol(`tol') nomiss
     compare_inner_contract str_12 str_32,       `options' tol(`tol') sort

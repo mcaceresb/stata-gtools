@@ -204,28 +204,6 @@ program gcontract, rclass
     return scalar minJ = `r_minJ'
     return scalar maxJ = `r_maxJ'
 
-    * Set sort var using varlist
-    * --------------------------
-
-    mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
-    if ( `invert' ) {
-        mata: st_numscalar("__gtools_first_inverted", ///
-                           selectindex(st_matrix("__gtools_invert"))[1])
-        if ( `=scalar(__gtools_first_inverted)' > 1 ) {
-            local sortvars ""
-            forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
-                local sortvars `sortvars' `:word `i' of `varlist''
-            }
-            sort `sortvars'
-        }
-    }
-    else {
-        sort `varlist'
-    }
-
-    cap scalar drop __gtools_first_inverted
-    cap matrix drop __gtools_invert
-
     * Exit in the style of contract
     * -----------------------------
 
@@ -253,6 +231,28 @@ program gcontract, rclass
     if ( "`percent'`cpercent'" != "" ) {
         format `format' `percent' `cpercent'
     }
+
+    * Set sort var using varlist
+    * --------------------------
+
+    mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
+    if ( `invert' ) {
+        mata: st_numscalar("__gtools_first_inverted", ///
+                           selectindex(st_matrix("__gtools_invert"))[1])
+        if ( `=scalar(__gtools_first_inverted)' > 1 ) {
+            local sortvars ""
+            forvalues i = 1 / `=scalar(__gtools_first_inverted) - 1' {
+                local sortvars `sortvars' `:word `i' of `varlist''
+            }
+            sort `sortvars'
+        }
+    }
+    else {
+        sort `varlist'
+    }
+
+    cap scalar drop __gtools_first_inverted
+    cap matrix drop __gtools_invert
 
     if ( "`fast'" == "" ) restore, not
 end

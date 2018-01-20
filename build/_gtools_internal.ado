@@ -1,4 +1,4 @@
-*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.5 16Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal

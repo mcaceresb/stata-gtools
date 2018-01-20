@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.11.4 08Jan2018`
+`version 0.11.5 16Jan2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -50,7 +50,7 @@ or thousands of times faster.</small>
 
 __*Gtools extras*__
 
-| Function            | Similar (SSC)      | Speedup (IC / MP)       | Notes                                 |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                                 |
 | ------------------- | ------------------ | ----------------------- | ------------------------------------- |
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`; weights not supported |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                                       |
@@ -295,6 +295,7 @@ Differences from `collapse`
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
+- Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
@@ -389,6 +390,7 @@ Roadmap to 1.0
 
 Features that might make it to 1.0 (but I make no promises)
 
+- [ ] Add support for weights.
 - [ ] Have `mlast` option for hashsort?
     - [ ] Or switch its behavior and have `mfirst` do what it does now.
 - [ ] Add option to save glevelsof in a variable/matrix (incl freq).
@@ -400,18 +402,17 @@ Features that might make it to 1.0 (but I make no promises)
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
-- [ ] Add support for weights.
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
-- [ ] `gcollapse (mean) pre_* (count) count_* = pre_*, by(byvars)`
 - [ ] Have some type of coding standard for the base (coding style)
 - [ ] Add `Var`, `kurtosis`, `skewness`
 - [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen
+- [ ] Add "Open Source Licenses" section?
 
 License
 -------

@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-0.11.5 (2018-01-16)
+
+### Features
+
+- gcollapse now allows wild-parsing via option `wild`
+  (`wildparse`). E.g. `(sum) x* (mean) mean_x* = x*` would
+  be valid syntax.
+
 ## gtools-0.11.4 (2018-01-08)
 
 ### Features

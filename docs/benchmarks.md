@@ -62,7 +62,7 @@ can run in up to linear time, O(N).  In practice it is much faster than
 quicksort and, since it modifies the data in place, subsequent calls to compute
 percentiles run much faster.
 
-### Versus SSC equivalents
+### Versus SSC/SJ equivalents
 
 | Function     | Versus             | Speedup (IC)    | Speedup (MP)    |
 | ------------ | ------------------ | --------------- | --------------- |
@@ -70,18 +70,19 @@ percentiles run much faster.
 |              | egenmisc (SSC) (-) |  8 to 25        |  2.5 to 6       |
 |              | astile (SSC) (-)   |  8 to 12        |  3.5 to 6       |
 | gunique      | unique (SSC)       |  4 to 26        |  4 to 12        |
-| gdistinct    | distinct (SSC)     |  4 to 26        |  4 to 12        |
+| gdistinct    | distinct (SJ)      |  4 to 26        |  4 to 12        |
 | gtoplevelsof | gcontract (Gtools) |  1.5 to 6       |  2 to 6.5       |
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
 
-`gtoplevelsof` does not quite have an equivalent in SSC. The command `groups`
-with the `select` option is very similar, but it is dozens of times slower
-then `gtoplevelsof` when the data is large (millions of rows). This seems to
-be mainly because `groups` is not written as a way to quickly see the top
-groups of a data set, and it offers relatively different functionality (and
-more options).  Hence I felt the comparison might be unfair.
+`gtoplevelsof` does not quite have an equivalent in SSC/SJ. The command
+`groups` with the `select` option is very similar, but it is dozens of
+times slower then `gtoplevelsof` when the data is large (millions of
+rows). This seems to be mainly because `groups` is not written as a way
+to quickly see the top groups of a data set, and it offers relatively
+different functionality (and more options).  Hence I felt the comparison
+might be unfair.
 
 Note that `fasterxtile` is merely an alias for `gquantiles, xtile`.
 

@@ -14,6 +14,10 @@ ST_retcode sf_read_collapsed        (GT_size J, GT_size kextra, char *fname);
 ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 {
 
+    if ( st_info->wcode ) {
+        return (sf_egen_bulk_w (st_info, level));
+    }
+
     if ( st_info->kvars_targets < 1 ) {
         return (0);
     }
@@ -120,7 +124,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
@@ -353,7 +357,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     GT_size *pos_sources = calloc(ksources, sizeof *pos_sources);
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
-    if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
+    if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "pos_sources"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -376,19 +380,19 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     GT_size   *offsets_buffer = calloc(J, sizeof *offsets_buffer);
     GT_size   *nj_buffer      = calloc(J, sizeof *nj_buffer);
 
-    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_bulk", "output"));
-    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "all_firstmiss"));
-    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen_bulk", "all_lastmiss"));
-    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_nonmiss"));
-    if ( all_yesmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_yesmiss"));
-    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen_bulk", "offsets_buffer"));
-    if ( nj_buffer      == NULL ) return(sf_oom_error("sf_egen_bulk", "nj_buffer"));
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "output"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_nonmiss"));
+    if ( all_yesmiss    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_yesmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "offsets_buffer"));
+    if ( nj_buffer      == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nj_buffer"));
 
     for (j = 0; j < J; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = all_yesmiss[j] = 0;
 
     GT_size *nmfreq = calloc(1, sizeof *nmfreq);
-    if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_bulk", "nmfreq"));
+    if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nmfreq"));
 
     nmfreq[0] = 0;
 
@@ -397,10 +401,10 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double *firstnm   = calloc(1, sizeof *firstnm);
     ST_double *lastnm    = calloc(1, sizeof *lastnm);
 
-    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
-    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
-    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk", "firstnm"));
-    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk", "lastnm"));
+    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "firstmiss"));
+    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "lastmiss"));
+    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "firstnm"));
+    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "lastnm"));
 
     /*********************************************************************
      *               Step 3: Read in variables from Stata                *
@@ -415,7 +419,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
@@ -614,7 +618,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
     GT_size start_targets = start_sources + ksources;
 
     GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
-    if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
+    if ( pos_targets == NULL ) return(sf_oom_error("sf_write_output", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
         pos_targets[k] = start_targets + k;
@@ -704,7 +708,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
     GT_size start_targets = start_sources + ksources;
 
     GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
-    if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
+    if ( pos_targets == NULL ) return(sf_oom_error("sf_write_collapsed", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
         pos_targets[k] = start_targets + k;
@@ -847,7 +851,7 @@ ST_retcode sf_read_collapsed (GT_size J, GT_size kextra, char *fname)
     ST_retcode rc = 0;
 
     ST_double *output = calloc(J * kextra, sizeof *output);
-    if ( output == NULL ) return(sf_oom_error("stata_call", "output"));
+    if ( output == NULL ) return(sf_oom_error("sf_read_collapsed", "output"));
 
     gf_read_collapsed (fname, output, kextra, J);
 

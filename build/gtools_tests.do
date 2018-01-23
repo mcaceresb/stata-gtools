@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Jan  8 21:30:00 EST 2018
+* Updated: Mon Jan 22 19:54:18 EST 2018
 * Purpose: Unit tests for gtools
 * Version: 0.11.5
 * Manual:  help gtools
@@ -24,6 +24,9 @@ set type double
 
 program main
     syntax, [NOIsily *]
+
+    compare_gcollapse,  `noisily' oncollision(error) wgt(both mix)
+    exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -79,9 +82,17 @@ program main
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
+
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
+
+            unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
@@ -102,9 +113,14 @@ program main
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles,    `noisily' oncollision(error) noaltdef
+
             compare_gcollapse,     `noisily' oncollision(error)
-            compare_gcontract,     `noisily' oncollision(error)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)
+
             compare_egen,          `noisily' oncollision(error)
+            compare_gcontract,     `noisily' oncollision(error)
             compare_isid,          `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
@@ -450,10 +466,16 @@ end
 
 capture program drop checks_inner_collapse
 program checks_inner_collapse
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) wgt(str) *]
 
-    local stats sum mean sd max min count median iqr percent first last firstnm lastnm semean sebinomial sepoisson
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
+    local stats sum mean max min count percent first last firstnm lastnm median iqr
+    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
+    if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
+    if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     local collapse_str ""
     foreach stat of local stats {
@@ -470,23 +492,23 @@ program checks_inner_collapse
     }
 
     preserve
-        gcollapse `collapse_str', by(`anything') verbose `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose benchmark `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose benchmark `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose forceio `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose forceio `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose forcemem `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose forcemem `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose benchmark cw `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose benchmark cw `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose benchmark fast `options'
+        gcollapse `collapse_str' `wgt', by(`anything') verbose benchmark fast `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') double `options'
+        gcollapse `collapse_str' `wgt', by(`anything') double `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') merge `options'
+        gcollapse `collapse_str' `wgt', by(`anything') merge `options'
     restore, preserve
-        gcollapse `collapse_str', by(`anything') verbose `options' benchmark debug_io_check(0)
+        gcollapse `collapse_str' `wgt', by(`anything') verbose `options' benchmark debug_io_check(0)
     restore
 end
 
@@ -666,7 +688,24 @@ end
 
 capture program drop compare_inner_gcollapse_gegen
 program compare_inner_gcollapse_gegen
-    syntax [anything], [tol(real 1e-6) sort shuffle *]
+    syntax [anything], [tol(real 1e-6) sort shuffle wgt(str) *]
+
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "mix" ) {
+        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wcall_a "[aw = unif_0_100]"
+        local wgen_f  gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wcall_f "[fw = int_unif_0_100]"
+        local wgen_p  gen float_unif_0_1 = runiform() if mod(_n, 100)
+        local wcall_p "[pw = float_unif_0_1]"
+        local wgen_i  gen rnormal_0_10 = 10 * rnormal() if mod(_n, 100)
+        local wcall_i "[iw = rnormal_0_10]"
+    }
+    else {
+        local wgt wgt(`wgt')
+    }
 
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
@@ -678,92 +717,171 @@ program compare_inner_gcollapse_gegen
     di _n(2) "Checking gegen vs gcollapse. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
 
     preserve
-        _compare_inner_gcollapse_gegen `anything', `options' tol(`tol')
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_a'
+            local wgt wgt(both `wcall_a')
+        }
+        _compare_inner_gcollapse_gegen `anything', `options' tol(`tol') `wgt'
     restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_f'
+            local wgt wgt(both `wcall_f')
+        }
         if ( "`shuffle'" != "" ) sort `rsort'
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gcollapse_gegen  `anything' in `from' / `to', `options' tol(`tol')
+        _compare_inner_gcollapse_gegen  `anything' in `from' / `to', `options' `wgt' tol(`tol')
     restore, preserve
-        _compare_inner_gcollapse_gegen `anything' if random2 > 0, `options' tol(`tol')
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_i'
+            local wgt wgt(both `wcall_i')
+        }
+        _compare_inner_gcollapse_gegen `anything' if random2 > 0, `options' `wgt' tol(`tol')
     restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_p'
+            local wgt wgt(both `wcall_p')
+        }
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gcollapse_gegen `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+        _compare_inner_gcollapse_gegen `anything' if random2 < 0 in `from' / `to', `options' `wgt' tol(`tol')
     restore
 end
 
 capture program drop _compare_inner_gcollapse_gegen
 program _compare_inner_gcollapse_gegen
-    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) *]
+
+    gettoken wfun wgt: wgt
+    local wgt `wgt'
+
+    if ( "`wgt'" != "" ) {
+        if inlist("`wfun'", "both", "g") {
+            local wgt_gc `wgt'
+        }
+        if inlist("`wfun'", "both", "c") {
+            local wgt_ge `wgt'
+        }
+        if ( "`wfun'" == "both" ) {
+            local wtxt " `wgt'"
+        }
+        else if ( "`wfun'" == "g" ) {
+            local wtxt " `wgt' (gcollapse only)"
+        }
+        else if ( "`wfun'" == "c" ) {
+            local wtxt " `wgt' (gegen only)"
+        }
+    }
+
+    local ifin `if' `in'
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
+    local sestats
+    local stats sum mean max min percent first last firstnm lastnm median iqr
+    if ( !inlist("`weight'", "pweight") ) {
+        local stats   `stats'   sd
+        local sestats `sestats' sd
+    }
+    if ( !inlist("`weight'", "pweight", "iweight") ) {
+        local stats   `stats'   semean
+        local sestats `sestats' semean
+    }
+    if (  inlist("`weight'", "fweight", "") ) {
+        local stats   `stats'   sebinomial sepoisson
+        local sestats `sestats' sebinomial sepoisson
+    }
 
     gegen id = group(`anything'), missing
 
-    gegen double mean       = mean       (random1) `if' `in',  by(`anything')
-    gegen double sum        = sum        (random1) `if' `in',  by(`anything')
-    gegen double median     = median     (random1) `if' `in',  by(`anything')
-    gegen double sd         = sd         (random1) `if' `in',  by(`anything')
-    gegen double iqr        = iqr        (random1) `if' `in',  by(`anything')
-    gegen double first      = first      (random1) `if' `in',  by(`anything')
-    gegen double last       = last       (random1) `if' `in',  by(`anything')
-    gegen double firstnm    = firstnm    (random1) `if' `in',  by(`anything')
-    gegen double lastnm     = lastnm     (random1) `if' `in',  by(`anything')
-    gegen double semean     = semean     (random1) `if' `in',  by(`anything')
-    gegen double sebinomial = sebinomial (random1) `if' `in',  by(`anything')
-    gegen double sepoisson  = sepoisson  (random1) `if' `in',  by(`anything')
-    gegen double q10        = pctile     (random1) `if' `in',  by(`anything') p(10.5)
-    gegen double q30        = pctile     (random1) `if' `in',  by(`anything') p(30)
-    gegen double q70        = pctile     (random1) `if' `in',  by(`anything') p(70)
-    gegen double q90        = pctile     (random1) `if' `in',  by(`anything') p(90.5)
+    gegen double percent = percent (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double mean    = mean    (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double sum     = sum     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double median  = median  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double min     = min     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double max     = max     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double iqr     = iqr     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double first   = first   (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double last    = last    (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double firstnm = firstnm (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double lastnm  = lastnm  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double q10     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(10.5)
+    gegen double q30     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(30)
+    gegen double q70     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(70)
+    gegen double q90     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(90.5)
+
+    local gextra
+    foreach extra of local sestats {
+        gegen double `extra' = `extra'(random1) `ifin' `wgt_ge',  by(`anything')
+        local gextra `gextra' (`extra') g_`extra' = random1
+    }
 
     qui `noisily' {
-        gcollapse (mean)       g_mean       = random1  ///
-                  (sum)        g_sum        = random1  ///
-                  (median)     g_median     = random1  ///
-                  (sd)         g_sd         = random1  ///
-                  (iqr)        g_iqr        = random1  ///
-                  (first)      g_first      = random1  ///
-                  (last)       g_last       = random1  ///
-                  (firstnm)    g_firstnm    = random1  ///
-                  (lastnm)     g_lastnm     = random1  ///
-                  (semean)     g_semean     = random1  ///
-                  (sebinomial) g_sebinomial = random1  ///
-                  (sepoisson)  g_sepoisson  = random1  ///
-                  (p10.5)      g_q10        = random1  ///
-                  (p30)        g_q30        = random1  ///
-                  (p70)        g_q70        = random1  ///
-                  (p90.5)      g_q90        = random1 `if' `in', by(id) benchmark verbose `options' merge double
+        gcollapse (percent)    g_percent    = random1 ///
+                  (mean)       g_mean       = random1 ///
+                  (sum)        g_sum        = random1 ///
+                  (median)     g_median     = random1 ///
+                  (min)        g_min        = random1 ///
+                  (max)        g_max        = random1 ///
+                  (iqr)        g_iqr        = random1 ///
+                  (first)      g_first      = random1 ///
+                  (last)       g_last       = random1 ///
+                  (firstnm)    g_firstnm    = random1 ///
+                  (lastnm)     g_lastnm     = random1 ///
+                  (p10.5)      g_q10        = random1 ///
+                  (p30)        g_q30        = random1 ///
+                  (p70)        g_q70        = random1 ///
+                  (p90.5)      g_q90        = random1 ///
+                  `gextra'                            ///
+              `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
     }
 
-    if ( "`if'`in'" == "" ) {
-        di _n(1) "Checking full range: `anything'"
+    if ( "`ifin'" == "" ) {
+        di _n(1) "Checking full range`wtxt': `anything'"
     }
-    else if ( "`if'`in'" != "" ) {
-        di _n(1) "Checking [`if' `in'] range: `anything'"
+    else if ( "`ifin'" != "" ) {
+        di _n(1) "Checking [`ifin']`wtxt' range: `anything'"
     }
 
-    foreach fun in mean sum median sd iqr first last firstnm lastnm semean sebinomial sepoisson q10 q30 q70 q90 {
+    foreach fun in `stats' q10 q30 q70 q90 {
         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
         if ( _rc ) {
             recast double g_`fun' `fun'
             cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
             if ( _rc ) {
-                di as err "    compare_gegen_gcollapse (failed): `fun' yielded different results (tol = `tol')"
+                di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
                 exit _rc
             }
-            else di as txt "    compare_gegen_gcollapse (passed): `fun' yielded same results (tol = `tol')"
+            else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
         }
-        else di as txt "    compare_gegen_gcollapse (passed): `fun' yielded same results (tol = `tol')"
+        else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
     }
 end
 
 capture program drop compare_inner_collapse
 program compare_inner_collapse
-    syntax [anything], [tol(real 1e-6) sort shuffle *]
+    syntax [anything], [tol(real 1e-6) sort shuffle wgt(str) *]
+
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "mix" ) {
+        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wcall_a "[aw = unif_0_100]"
+        local wgen_f  gen int_unif_0_100 = int(100 * runiform())
+        local wcall_f "[fw = int_unif_0_100]"
+        local wgen_p  gen float_unif_0_1 = runiform()
+        local wcall_p "[pw = float_unif_0_1]"
+        local wgen_i  gen rnormal_0_10 = 10 * rnormal()
+        local wcall_i "[iw = rnormal_0_10]"
+    }
+    else {
+        local wgt wgt(`wgt')
+    }
 
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
@@ -775,29 +893,74 @@ program compare_inner_collapse
     di _n(2) "Checking collapse. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
 
     preserve
-        _compare_inner_collapse `anything', `options' tol(`tol')
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_a'
+            local wgt wgt(both `wcall_a')
+        }
+        _compare_inner_collapse `anything', `options' `wgt' tol(`tol')
     restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_f'
+            local wgt wgt(both `wcall_f')
+        }
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_collapse  `anything' in `from' / `to', `options' tol(`tol')
+        _compare_inner_collapse  `anything' in `from' / `to', `options' `wgt' tol(`tol')
     restore, preserve
-        _compare_inner_collapse `anything' if random2 > 0, `options' tol(`tol')
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_i'
+            local wgt wgt(both `wcall_i')
+        }
+        _compare_inner_collapse `anything' if random2 > 0, `options' `wgt' tol(`tol')
     restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_p'
+            local wgt wgt(both `wcall_p')
+        }
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_collapse `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+        _compare_inner_collapse `anything' if random2 < 0 in `from' / `to', `options' `wgt' tol(`tol')
     restore
 end
 
 capture program drop _compare_inner_collapse
 program _compare_inner_collapse
-    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) *]
 
-    local stats sum mean sd max min count percent first last firstnm lastnm median iqr semean sebinomial sepoisson
+    gettoken wfun wgt: wgt
+    local wgt `wgt'
+
+    if ( "`wgt'" != "" ) {
+        if inlist("`wfun'", "both", "g") {
+            local wgt_gc `wgt'
+        }
+        if inlist("`wfun'", "both", "c") {
+            local wgt_ge `wgt'
+        }
+        if ( "`wfun'" == "both" ) {
+            local wtxt " `wgt'"
+        }
+        else if ( "`wfun'" == "g" ) {
+            local wtxt " `wgt' (gcollapse only)"
+        }
+        else if ( "`wfun'" == "c" ) {
+            local wtxt " `wgt' (collapse only)"
+        }
+    }
+
+    local ifin `if' `in'
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
+    local stats sum mean max min count percent first last firstnm lastnm median iqr
+    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
+    if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
+    if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
+
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
     foreach pct of local percentiles {
@@ -813,10 +976,14 @@ program _compare_inner_collapse
         local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
 
+    if ( "`wgt'" == "" ) {
+        local freq freq(freq)
+    }
+
     preserve
         timer clear
         timer on 43
-        qui `noisily' gcollapse `collapse_str' `if' `in', by(`anything') verbose benchmark `options' freq(freq)
+        qui `noisily' gcollapse `collapse_str' `ifin' `wgt_gc', by(`anything') verbose benchmark `options' `freq'
         timer off 43
         qui timer list
         local time_gcollapse = r(t43)
@@ -827,8 +994,13 @@ program _compare_inner_collapse
     preserve
         timer clear
         timer on 42
-        qui gen long freq = 1
-        qui `noisily' collapse `collapse_str' (sum) freq `if' `in', by(`anything')
+        if ( "`wgt'" == "" ) {
+            qui gen long freq = 1
+            qui `noisily' collapse `collapse_str' (sum) freq `ifin' `wgt_ge', by(`anything')
+        }
+        else {
+            qui `noisily' collapse `collapse_str' `ifin' `wgt_ge', by(`anything')
+        }
         timer off 42
         qui timer list
         local time_gcollapse = r(t42)
@@ -845,7 +1017,7 @@ program _compare_inner_collapse
             rename r1_`var' c_r1_`var'
             rename r2_`var' c_r2_`var'
         }
-        rename freq c_freq
+        cap rename freq c_freq
         if ( "`by'" == "" ) {
             qui merge 1:1 _n using `fg', assert(3)
         }
@@ -871,20 +1043,22 @@ program _compare_inner_collapse
                 order *r2_`var'
             }
         }
-        qui count if ( (abs(freq - c_freq) > `tol') & (freq != c_freq))
-        if ( `r(N)' > 0 ) {
-            gen bad_freq = abs(freq - c_freq) * (freq != c_freq)
-            local bad `bad' *freq
-            di "    freq has `:di r(n)' mismatches".
-            local bad_any = 1
-            order *freq
+        if ( "`wgt'" == "" ) {
+            qui count if ( (abs(freq - c_freq) > `tol') & (freq != c_freq))
+            if ( `r(N)' > 0 ) {
+                gen bad_freq = abs(freq - c_freq) * (freq != c_freq)
+                local bad `bad' *freq
+                di "    freq has `:di r(n)' mismatches".
+                local bad_any = 1
+                order *freq
+            }
         }
         if ( `bad_any' ) {
-            if ( "`if'`in'" == "" ) {
-                di "    compare_collapse (failed): full range, `anything'"
+            if ( "`ifin'" == "" ) {
+                di "    compare_collapse (failed): full range`wtxt', `anything'"
             }
-            else if ( "`if'`in'" != "" ) {
-                di "    compare_collapse (failed): [`if' `in'], `anything'"
+            else if ( "`ifin'" != "" ) {
+                di "    compare_collapse (failed): [`ifin']`wtxt', `anything'"
             }
             order `bad'
             egen bad_any = rowmax(bad_*)
@@ -894,11 +1068,11 @@ program _compare_inner_collapse
             exit 9
         }
         else {
-            if ( "`if'`in'" == "" ) {
-                di "    compare_collapse (passed): full range, gcollapse results equal to collapse (tol = `tol')"
+            if ( "`ifin'" == "" ) {
+                di "    compare_collapse (passed): full range`wtxt', gcollapse results equal to collapse (tol = `tol')"
             }
-            else if ( "`if'`in'" != "" ) {
-                di "    compare_collapse (passed): [`if' `in'], gcollapse results equal to collapse (tol = `tol')"
+            else if ( "`ifin'" != "" ) {
+                di "    compare_collapse (passed): [`ifin']`wtxt', gcollapse results equal to collapse (tol = `tol')"
             }
         }
     restore
@@ -3111,26 +3285,36 @@ end
 
 capture program drop checks_inner_egen
 program checks_inner_egen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) wgt(str) *]
 
-    local stats total sum mean sd max min count median iqr percent first last firstnm lastnm
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
     local percentiles 1 10 30.5 50 70.5 90 99
+    local stats total sum mean max min count median iqr percent first last firstnm lastnm
+    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
+    if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
+    if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     tempvar gvar
     foreach fun of local stats {
-        `noisily' gegen `gvar' = `fun'(random1), by(`anything') replace `options'
-        `noisily' gegen `gvar' = `fun'(random*), by(`anything') replace `options'
+        `noisily' gegen `gvar' = `fun'(random1) `wgt', by(`anything') replace `options'
+        if ( "`weight'" == "" ) {
+        `noisily' gegen `gvar' = `fun'(random*) `wgt', by(`anything') replace `options'
+        }
     }
 
     foreach p in `percentiles' {
-        `noisily' gegen `gvar' = pctile(random1), p(`p') by(`anything') replace `options'
-        `noisily' gegen `gvar' = pctile(random*), p(`p') by(`anything') replace `options'
+        `noisily' gegen `gvar' = pctile(random1) `wgt', p(`p') by(`anything') replace `options'
+        if ( "`weight'" == "" ) {
+        `noisily' gegen `gvar' = pctile(random*) `wgt', p(`p') by(`anything') replace `options'
+        }
     }
 
     if ( "`anything'" != "" ) {
-        `noisily' gegen `gvar' = tag(`anything'),   replace `options'
-        `noisily' gegen `gvar' = group(`anything'), replace `options'
-        `noisily' gegen `gvar' = count(1), by(`anything') replace `options'
+        `noisily' gegen `gvar' = tag(`anything')   `wgt', replace `options'
+        `noisily' gegen `gvar' = group(`anything') `wgt', replace `options'
+        `noisily' gegen `gvar' = count(1)          `wgt', by(`anything') replace `options'
     }
 end
 

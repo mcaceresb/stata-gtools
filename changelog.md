@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-0.12.0 (2018-01-22)
+
+### Features
+
+- gcollapse and gegen now support weights in Windows and Unix
+  (OSX pending). gegen does not support weights with multiple
+  sources (e.g. `sum(x y z)`).
+
 ## gtools-0.11.5 (2018-01-16)
 
 ### Features

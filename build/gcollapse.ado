@@ -11,7 +11,8 @@ program gcollapse, rclass
     syntax [anything(equalok)]       /// Main function call:
                                      /// [(stat)] varlist [ [(stat)] ... ]
                                      /// [(stat)] target = source [target = source ...] [ [(stat)] ...]
-        [if] [in] ,                  /// [if condition] [in start / end]
+        [if] [in]                    /// [if condition] [in start / end]
+        [aw fw iw pw] ,              /// [weight type = exp]
     [                                ///
         by(str)                      /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
         cw                           /// Drop ocase-wise bservations where sources are missing.
@@ -52,6 +53,9 @@ program gcollapse, rclass
         debug_io_threshold(real 10)  /// (internal) Threshold to switch to I/O instead of RAM
     ]
 
+    * Pre-option parsing
+    * ------------------
+
     if ( "`debug'" != "" ) local debug_level 9
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -59,6 +63,9 @@ program gcollapse, rclass
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
     local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
+
+    * Parse by call (make sure varlist is valid)
+    * ------------------------------------------
 
     if ( "`by'" != "" ) {
         local clean_by `by'
@@ -181,12 +188,58 @@ program gcollapse, rclass
         disp as txt `""'
     }
 
+    * Parse weights
+    * -------------
+
+    if ( `:list posof "count" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "aweight" ) {
+            local awnote 1
+        }
+        else local awnote 0
+    }
+    else local awnote 0
+
+    if ( `:list posof "sd" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "sd not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "semean" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "pweight", "iweight") ) {
+            di as err "semean not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sebinomial" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sebinomial not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sepoisson" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sepoisson not allowed with `weight's"
+            exit 135
+        }
+    }
+
+	if ( `"`weight'"' != "" ) {
+		tempvar w
+		qui gen double `w' `exp' `if' `in'
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+	}
+    else local weights
+
     * Subset if requested
     * -------------------
 
-    if ( ("`if'" != "") | ("`cw'" != "") ) {
-        marksample touse, strok novarlist
-        if ("`cw'" != "") {
+    if ( ("`if'`wgt'" != "") | ("`cw'" != "") ) {
+        * marksample touse, strok novarlist
+        tempvar touse
+        mark `touse' `if' `in' `wgt'
+        if ( "`cw'" != "" ) {
             markout `touse' `gtools_uniq_vars', strok
         }
         if ( "`merge'" == "" ) {
@@ -215,6 +268,7 @@ program gcollapse, rclass
     set varabbrev off
     cap noi parse_keep_drop,                                  ///
         by(`clean_by') `merge' `double' `replace' `replaceby' ///
+        `=cond("`weights'" == "", "", "weights")'             ///
         __gtools_gc_targets(`__gtools_gc_targets')            ///
         __gtools_gc_vars(`__gtools_gc_vars')                  ///
         __gtools_gc_stats(`__gtools_gc_stats')                ///
@@ -229,7 +283,7 @@ program gcollapse, rclass
     }
 
     local dropme       ""
-    local keepvars     "`r(keepvars)'"
+    local keepvars     "`r(keepvars)' `w'"
     local added        "`r(added)'"
     local memvars      "`r(memvars)'"
     local check_recast "`r(check_recast)'"
@@ -542,7 +596,7 @@ program gcollapse, rclass
         disp as txt `""'
     }
 
-    cap noi _gtools_internal `by' `ifin', `opts' `action' `gcollapse' gfunction(collapse)
+    cap noi _gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)
     if ( _rc == 17999 ) {
         if ( "`gfallbackok'" != "" ) {
             di as err "Cannot use fallback with gtools-only options"
@@ -693,6 +747,10 @@ program gcollapse, rclass
 
     local msg "Program exit executed"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
+
+	if ( `awnote' ) {
+		di as txt "(note: {bf:aweight}s not used to compute {bf:count}s)"
+	}
 
     CleanExit
     exit 0
@@ -956,6 +1014,7 @@ capture program drop parse_keep_drop
 program parse_keep_drop, rclass
     syntax,                         ///
     [                               ///
+        weights                     ///
         replace                     ///
         replaceby                   ///
         merge                       ///
@@ -1092,15 +1151,25 @@ program parse_keep_drop, rclass
             * First, last, min, max can preserve type, clearly
             local targettype: type `sourcevar'
         }
-        else if ( "`double'" != "" ) {
-            local targettype double
-        }
-        else if ( inlist("`collstat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
-            * Counts can be long if we have fewer than 2^31 observations
+        else if ( inlist("`collstat'", "freq") & ( `=_N < maxlong()' ) ) {
+            * freqs can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype long
         }
-        else if ( inlist("`collstat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
+        else if ( inlist("`collstat'", "freq") & !( `=_N < maxlong()' ) ) {
+            local targettype double
+        }
+        else if ( "`double'" != "" ) {
+            local targettype double
+        }
+        else if ( inlist("`collstat'", "count") & (`=_N < maxlong()') & ("`weights'" == "") ) {
+            * Counts can be long if we have fewer than 2^31 observations
+            * (largest signed integer in long variables can be 2^31-1).
+            * With weights, however, count is sum w_i, so the rules are
+            * as with sums in that case.
+            local targettype long
+        }
+        else if ( inlist("`collstat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
             local targettype double
         }
         else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -1130,7 +1199,7 @@ program parse_keep_drop, rclass
         else {
             * We only recast integers. Floats and doubles are preserved unless
             * requested or the target is a sum.
-            parse_ok_astarget, sourcevar(`var') targetvar(`var') stat(`collstat') `double'
+            parse_ok_astarget, sourcevar(`var') targetvar(`var') stat(`collstat') `double' `weights'
             local recast = !(`r(ok_astarget)')
 
             if ( `recast' ) {
@@ -1148,7 +1217,7 @@ end
 
 capture program drop parse_ok_astarget
 program parse_ok_astarget, rclass
-    syntax, sourcevar(varlist) targetvar(str) stat(str) [double]
+    syntax, sourcevar(varlist) targetvar(str) stat(str) [double weights]
     local ok_astarget = 0
     local sourcetype  = "`:type `sourcevar''"
 
@@ -1162,13 +1231,18 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
-        * Counts can be long if we have fewer than 2^31 observations
-        * (largest signed integer in long variables can be 2^31-1)
+    else if ( inlist("`stat'", "freq") & ( `=_N < maxlong()' ) ) {
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
+    else if ( inlist("`stat'", "freq") & !( `=_N < maxlong()' ) ) {
+        local targettype double
+    }
+    else if ( inlist("`stat'", "count") & (`=_N < maxlong()') & ("`weights'" == "") ) {
+        local targettype long
+        local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
+    }
+    else if ( inlist("`stat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
         local targettype double
     }
     else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {

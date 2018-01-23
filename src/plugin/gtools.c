@@ -40,7 +40,9 @@
 #include "common/encode.c"
 
 #include "collapse/gtools_math.c"
+#include "collapse/gtools_math_w.c"
 #include "collapse/gtools_utils.c"
+#include "collapse/gegen_w.c"
 #include "collapse/gegen.c"
 
 #include "extra/gisid.c"
@@ -304,6 +306,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile_cutifin,
             xtile_cutby,
             hash_method,
+            wcode,
+            wpos,
             any_if,
             countmiss,
             replace,
@@ -385,6 +389,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_invertix",       &invertix)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
@@ -536,6 +542,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->invertix       = invertix;
     st_info->skipcheck      = skipcheck;
     st_info->hash_method    = hash_method;
+    st_info->wcode          = wcode;
+    st_info->wpos           = wpos;
 
     st_info->unsorted       = unsorted;
     st_info->countonly      = countonly;

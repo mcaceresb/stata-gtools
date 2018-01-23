@@ -102,7 +102,11 @@ ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const G
  * @param end summaryze until the (@end - 1)-th entry
  * @return Quantile of the elements of @v from @start to @end
  */
-ST_double gf_array_dquantile_range (ST_double v[], const GT_size start, const GT_size end, const ST_double quantile)
+ST_double gf_array_dquantile_range (
+    ST_double v[],
+    const GT_size start,
+    const GT_size end,
+    const ST_double quantile)
 {
     ST_double q, qdbl, qfoo, Ndbl;
     GT_size   Ndiv, qth;
@@ -218,7 +222,7 @@ ST_double gf_array_diqr_range (ST_double v[], const GT_size start, const GT_size
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-ST_double gf_array_dsemean_range (ST_double v[], const GT_size start, const GT_size end)
+ST_double gf_array_dsemean_range (const ST_double v[], const GT_size start, const GT_size end)
 {
     return (gf_array_dsd_range(v, start, end) / sqrt(end - start));
 }
@@ -231,7 +235,7 @@ ST_double gf_array_dsemean_range (ST_double v[], const GT_size start, const GT_s
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-ST_double gf_array_dsebinom_range (ST_double v[], const GT_size start, const GT_size end)
+ST_double gf_array_dsebinom_range (const ST_double v[], const GT_size start, const GT_size end)
 {
     GT_size i;
     ST_double p;
@@ -250,7 +254,7 @@ ST_double gf_array_dsebinom_range (ST_double v[], const GT_size start, const GT_
  * @param end summaryze until the (@end - 1)-th entry
  * @return SE of the mean for the elements of @v from @start to @end
  */
-ST_double gf_array_dsepois_range (ST_double v[], const GT_size start, const GT_size end)
+ST_double gf_array_dsepois_range (const ST_double v[], const GT_size start, const GT_size end)
 {
     GT_size i;
     // GT_size vsum = 0;
@@ -258,8 +262,10 @@ ST_double gf_array_dsepois_range (ST_double v[], const GT_size start, const GT_s
         if ( v[i] < 0 ) return (SV_missval);
         // vsum += (GT_size) round(v[i]);
     }
-    ST_double rmean = round(gf_array_dsum_range(v, start, end)) / (end - start);
-    return (sqrt(rmean / (end - start)));
+
+    // ST_double rmean = (GT_int) gf_array_dsum_range(v, start, end);
+    ST_double rmean = (GT_int) (gf_array_dsum_range(v, start, end) + 0.5);
+    return (sqrt(rmean) / (end - start));
 }
 
 /**

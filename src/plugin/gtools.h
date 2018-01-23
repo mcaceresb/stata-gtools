@@ -31,6 +31,10 @@
  *
  */
 
+// Tolerance for weighted percentiles (following Stata)
+#define GTOOLS_WQUANTILES_TOL 1e-6
+// #define GTOOLS_WQUANTILES_TOL 1e-12
+
 // Largest 64-bit signed integer
 #define GTOOLS_BIJECTION_LIMIT 9223372036854775807LL
 
@@ -104,6 +108,7 @@ struct StataInfo {
     GT_bool xtile_cutby;
     //
     GT_bool   hash_method;
+    GT_bool   wcode;
     GT_bool   sorted;
     GT_bool   cleanstr;
     GT_bool   init_targ;
@@ -123,6 +128,7 @@ struct StataInfo {
     GT_bool   countmiss;
     GT_bool   used_io;
     //
+    GT_size   wpos;
     GT_size   kvars_group;
     GT_size   kvars_sources;
     GT_size   kvars_targets;

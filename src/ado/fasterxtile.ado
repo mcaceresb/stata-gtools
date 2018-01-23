@@ -11,7 +11,8 @@ program define fasterxtile
     }
 
     syntax newvarname =/exp         /// newvar = exp
-        [if] [in] ,                 /// [if condition] [in start / end]
+        [if] [in]                   /// [if condition] [in start / end]
+        [aw fw pw] ,                /// [weight type = exp]
     [                               ///
         by(passthru)                /// By variabes: [+|-]varname [[+|-]varname ...]
         Nquantiles(str)             /// Number of quantiles
@@ -32,6 +33,16 @@ program define fasterxtile
         counts(passthru)            ///
         fill(passthru)              ///
     ]
+
+	if ( `"`weight'"' != "" ) {
+		di in err "weights are planned for a future release"
+        exit 198
+    }
+
+	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
+		di in err "altdef option cannot be used with weights"
+        exit 198
+	}
 
 	if ( "`nquantiles'" != "" ) {
 		if ( "`cutpoints'" != "" ) {
@@ -62,6 +73,8 @@ program define fasterxtile
         local cutpoints cutpoints(`cutpoints')
     }
 
+    if ( `"`weight'"' != "" ) local wgt `"[`weight'=`w']"'
+
     local   opts `verbose'        ///
                  `benchmark'      ///
                  `benchmarklevel' ///
@@ -74,5 +87,5 @@ program define fasterxtile
                  `fill'
 
     local gqopts `nquantiles' `cutpoints' `altdef' `strict' `opts' `method'
-    gquantiles `varlist' = `exp' `if' `in', xtile `gqopts' `by'
+    gquantiles `varlist' = `exp' `if' `in' `wgt', xtile `gqopts' `by'
 end

@@ -87,6 +87,7 @@ program _gtools_internal, rclass
         gcollapse(str)            /// options for gcollapse (to parse later)
         gtop(str)                 /// options for gtop (to parse later)
         recast(str)               /// bulk recast
+        weights(str)              /// weight_type weight_var
                                   ///
                                   /// gegen group options
                                   /// -------------------
@@ -379,6 +380,32 @@ program _gtools_internal, rclass
         }
     }
 
+    * Parse weights
+    * -------------
+
+    gettoken wtype wvar: weights
+
+    if ( `"`wtype'"' == "" ) {
+        local wcode 0
+    }
+    else {
+        if ( `"`wvar'"' == "" ) {
+            di as err "Passed option {opt weights(`wtype')} without a weighting variable"
+            clean_all 198
+            exit 198
+        }
+
+             if ( `"`wtype'"' == "aweight" ) local wcode 1
+        else if ( `"`wtype'"' == "fweight" ) local wcode 2
+        else if ( `"`wtype'"' == "iweight" ) local wcode 3
+        else if ( `"`wtype'"' == "pweight" ) local wcode 4
+        else {
+            di as err "unknown weight type {opt `wtype'}"
+            clean_all 198
+            exit 198
+        }
+    }
+
     * Parse options into scalars, etc. for C
     * --------------------------------------
 
@@ -402,6 +429,8 @@ program _gtools_internal, rclass
     scalar __gtools_invertix    = ( "`invertinmata'" == "" )
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
     scalar __gtools_hash_method = `hashmethod'
+    scalar __gtools_weight_code = `wcode'
+    scalar __gtools_weight_pos  = 0
 
     scalar __gtools_top_ntop        = 0
     scalar __gtools_top_pct         = 0
@@ -981,7 +1010,9 @@ program _gtools_internal, rclass
         }
 
         local plugvars `byvars' `etargets' `extravars' `ixinfo'
-        cap noi plugin call gtools_plugin `plugvars' `ifin', ///
+        scalar __gtools_weight_pos  = `:list sizeof plugvars' + 1
+
+        cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', ///
             collapse `anything' `"`fname'"'
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
@@ -1009,7 +1040,9 @@ program _gtools_internal, rclass
 
             local extravars `__gtools_sources' `__gtools_targets' `freq'
             local plugvars `byvars' `etargets' `extravars' `ixinfo'
-            cap noi plugin call gtools_plugin `plugvars' `ifin', ///
+            scalar __gtools_weight_pos  = `:list sizeof plugvars' + 1
+
+            cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', ///
                 collapse ixfinish `"`fname'"'
             if ( _rc ) {
                 local rc = _rc
@@ -1578,7 +1611,9 @@ program _gtools_internal, rclass
         else local gcall `gfunction'
 
         local plugvars `byvars' `etargets' `extravars' `contractvars' `xvars'
-        cap noi plugin call gtools_plugin `plugvars' `ifin', `gcall'
+        scalar __gtools_weight_pos  = `:list sizeof plugvars' + 1
+
+        cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
         local rc = _rc
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
@@ -1713,6 +1748,9 @@ program clean_all
     cap scalar drop __gtools_replace
     cap scalar drop __gtools_countmiss
     cap scalar drop __gtools_skipcheck
+    cap scalar drop __gtools_hash_method
+    cap scalar drop __gtools_weight_code
+    cap scalar drop __gtools_weight_pos
 
     cap scalar drop __gtools_top_ntop
     cap scalar drop __gtools_top_pct

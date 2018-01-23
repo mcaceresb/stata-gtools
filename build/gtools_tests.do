@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Mon Jan 22 19:54:18 EST 2018
 * Purpose: Unit tests for gtools
-* Version: 0.11.5
+* Version: 0.12.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -25,7 +25,19 @@ set type double
 program main
     syntax, [NOIsily *]
 
-    compare_gcollapse,  `noisily' oncollision(error) wgt(both mix)
+    clear
+    set obs 10
+    gen x = mod(_n, 2)
+    gen y = _n
+    contract x [fw = y], freq(freq) cf(cf) p(p) cp(cp)
+    l
+
+    clear
+    set obs 10
+    gen x = mod(_n, 2)
+    gen y = _n
+    gcontract x [fw = y], freq(freq) cf(cf) p(p) cp(cp)
+    l
     exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {

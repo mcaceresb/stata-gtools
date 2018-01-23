@@ -1,10 +1,11 @@
 Change Log
 ==========
 
-## gtools-0.12.0 (2018-01-22)
+## gtools-0.12.1 (2018-01-22)
 
 ### Features
 
+- gcontract supports fweights (Unix only; tests pending)
 - gcollapse and gegen now support weights in Windows and Unix
   (OSX pending). gegen does not support weights with multiple
   sources (e.g. `sum(x y z)`).

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Mon Jan 22 19:54:18 EST 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.0
+* Version: 0.12.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -24,9 +24,6 @@ set type double
 
 program main
     syntax, [NOIsily *]
-
-    compare_gcollapse,  `noisily' oncollision(error) wgt(both mix)
-    exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

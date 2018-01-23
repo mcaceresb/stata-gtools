@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.0 22Jan2018`
+`version 0.12.1 22Jan2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -29,9 +29,9 @@ __*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
 | ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
-| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output  |
-| gcontract    | contract |  5 to 7   / 2.5 to 4     | Weights         |                                   |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
+| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, `merge`, label output  |
+| gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                   |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Quantiles                         |
 | gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
 | glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
 | gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
@@ -291,7 +291,6 @@ __*Differences from Stata counterparts*__
 
 Differences from `collapse`
 
-- No support for weights.
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
@@ -324,6 +323,7 @@ Differences from `xtile`, `pctile`, and `_pctile`
 Differences from `egen`
 
 - `group` label options are not supported
+- weights are supported for internally implemented functions.
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And
@@ -381,6 +381,8 @@ Roadmap to 1.0
       (Plugin Step 4.3) is actually a pretty big bottleneck.
       Benchmark whether it is better to use pointers.
 - [X] Reconcile numerical precision issues in `gquantiles`
+- [X] Add support for weights (Windows and Unix).
+    - [X] Add support for weights in OSX.
 - [ ] Add comments to all the code base
 - [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
@@ -390,7 +392,6 @@ Roadmap to 1.0
 
 Features that might make it to 1.0 (but I make no promises)
 
-- [ ] Add support for weights.
 - [ ] Have `mlast` option for hashsort?
     - [ ] Or switch its behavior and have `mfirst` do what it does now.
 - [ ] Add option to save glevelsof in a variable/matrix (incl freq).

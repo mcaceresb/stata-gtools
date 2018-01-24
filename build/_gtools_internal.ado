@@ -1,4 +1,4 @@
-*! version 0.5.0 22Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.1 22Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -431,6 +431,7 @@ program _gtools_internal, rclass
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
+    scalar __gtools_nunique     = ( `:list posof "nunique" in stats' > 0 )
 
     scalar __gtools_top_ntop        = 0
     scalar __gtools_top_pct         = 0
@@ -1751,6 +1752,7 @@ program clean_all
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
+    cap scalar drop __gtools_nunique
 
     cap scalar drop __gtools_top_ntop
     cap scalar drop __gtools_top_pct
@@ -2200,7 +2202,8 @@ program parse_targets
                   freq       ///
                   semean     ///
                   sebinomial ///
-                  sepoisson
+                  sepoisson  ///
+                  nunique
 
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
@@ -2305,6 +2308,7 @@ program encode_stat, rclass
     if ( "`0'" == "semean"      ) local statcode -15
     if ( "`0'" == "sebinomial"  ) local statcode -16
     if ( "`0'" == "sepoisson"   ) local statcode -17
+    if ( "`0'" == "nunique"     ) local statcode -18
     return scalar statcode = `statcode'
 end
 

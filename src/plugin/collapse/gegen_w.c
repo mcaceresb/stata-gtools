@@ -78,6 +78,18 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
             nj_max = (st_info->info[j + 1] - st_info->info[j]);
     }
 
+    GT_size   *nuniq_ix    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_ix);
+    uint64_t  *nuniq_h1    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h1);
+    uint64_t  *nuniq_h2    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h2);
+    uint64_t  *nuniq_h3    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h3);
+    uint64_t  *nuniq_xcopy = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_xcopy);
+
+    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_ix"));
+    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h1"));
+    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h2"));
+    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h3"));
+    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_xcopy"));
+
     ST_double *p_buffer = calloc(2 * nj_max, sizeof *p_buffer);
     ST_double *weights  = calloc(N, sizeof *weights);
     GT_size   *nbuffer  = calloc(J, sizeof *nbuffer);
@@ -272,6 +284,20 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
+                else if ( statcode[k] == -18 ) { // nunique
+                    if ( (rc = gf_array_nunique_range (
+                            output + offset_output + k,
+                            all_buffer + start,
+                            nj,
+                            (endwraw == SV_missval),
+                            nuniq_h1,
+                            nuniq_h2,
+                            nuniq_h3,
+                            nuniq_ix,
+                            nuniq_xcopy
+                        )
+                    ) ) return (rc);
+                }
                 else if ( endwraw == SV_missval ) { // all missing values
                     // If everything is missing, write a missing value, Except
                     // for sums, which go to 0 for some reason (this is the
@@ -322,6 +348,12 @@ exit:
     free (statcode);
 
     free (index_st);
+
+    free (nuniq_h1);
+    free (nuniq_h2);
+    free (nuniq_h3);
+    free (nuniq_ix);
+    free (nuniq_xcopy);
 
     free (p_buffer);
     free (weights);

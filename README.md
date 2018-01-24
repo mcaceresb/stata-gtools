@@ -30,8 +30,8 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
 | ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
 | gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, `merge`, label output  |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Quantiles, nunique                |
 | gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                   |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Quantiles                         |
 | gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
 | glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
 | gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
@@ -294,6 +294,7 @@ Differences from `collapse`
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
+- `nunique` is supported.
 - Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
@@ -324,6 +325,7 @@ Differences from `egen`
 
 - `group` label options are not supported
 - weights are supported for internally implemented functions.
+- `nunique` is supported.
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And

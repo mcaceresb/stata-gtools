@@ -109,6 +109,7 @@ struct StataInfo {
     //
     GT_bool   hash_method;
     GT_bool   wcode;
+    GT_bool   nunique;
     GT_bool   sorted;
     GT_bool   cleanstr;
     GT_bool   init_targ;

@@ -303,20 +303,23 @@ ST_double gf_switch_fun (char * fname, ST_double v[], const GT_size start, const
  */
 ST_double gf_code_fun (char * fname)
 {
-    if ( strcmp (fname, "sum")     == 0 ) return (-1);  // sum
-    if ( strcmp (fname, "mean")    == 0 ) return (-2);  // mean
-    if ( strcmp (fname, "sd")      == 0 ) return (-3);  // sd
-    if ( strcmp (fname, "max")     == 0 ) return (-4);  // max
-    if ( strcmp (fname, "min")     == 0 ) return (-5);  // min
-    if ( strcmp (fname, "count")   == 0 ) return (-6);  // count
-    if ( strcmp (fname, "percent") == 0 ) return (-7);  // percent
-    if ( strcmp (fname, "median")  == 0 ) return (50); // median
-    if ( strcmp (fname, "iqr")     == 0 ) return (-9);  // iqr
-    if ( strcmp (fname, "first")   == 0 ) return (-10); // first
-    if ( strcmp (fname, "firstnm") == 0 ) return (-11); // firstnm
-    if ( strcmp (fname, "last")    == 0 ) return (-12); // last
-    if ( strcmp (fname, "lastnm")  == 0 ) return (-13); // lastnm
-    ST_double q = (ST_double) atof(fname);              // quantile
+    if ( strcmp (fname, "sum")        == 0 ) return (-1);  // sum
+    if ( strcmp (fname, "mean")       == 0 ) return (-2);  // mean
+    if ( strcmp (fname, "sd")         == 0 ) return (-3);  // sd
+    if ( strcmp (fname, "max")        == 0 ) return (-4);  // max
+    if ( strcmp (fname, "min")        == 0 ) return (-5);  // min
+    if ( strcmp (fname, "count")      == 0 ) return (-6);  // count
+    if ( strcmp (fname, "percent")    == 0 ) return (-7);  // percent
+    if ( strcmp (fname, "median")     == 0 ) return (50);  // median
+    if ( strcmp (fname, "iqr")        == 0 ) return (-9);  // iqr
+    if ( strcmp (fname, "first")      == 0 ) return (-10); // first
+    if ( strcmp (fname, "firstnm")    == 0 ) return (-11); // firstnm
+    if ( strcmp (fname, "last")       == 0 ) return (-12); // last
+    if ( strcmp (fname, "lastnm")     == 0 ) return (-13); // lastnm
+    if ( strcmp (fname, "semean")     == 0 ) return (-15); // semean
+    if ( strcmp (fname, "sebinomial") == 0 ) return (-16); // sebinomial
+    if ( strcmp (fname, "sepoisson ") == 0 ) return (-17); // sepoisson
+    ST_double q = (ST_double) atof(fname);                 // quantile
     return (q > 0? q: 0);
 }
 

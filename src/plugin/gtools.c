@@ -2,7 +2,7 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Oct 31 06:01:11 EDT 2017
+ * Updated: Tue Jan 23 08:32:25 EST 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 0.12.1
@@ -41,6 +41,7 @@
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_math_w.c"
+#include "collapse/gtools_nunique.c"
 #include "collapse/gtools_utils.c"
 #include "collapse/gegen_w.c"
 #include "collapse/gegen.c"
@@ -308,6 +309,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             hash_method,
             wcode,
             wpos,
+            nunique,
             any_if,
             countmiss,
             replace,
@@ -391,6 +393,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_nunique",        &nunique)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
@@ -544,6 +547,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
+    st_info->nunique        = nunique;
 
     st_info->unsorted       = unsorted;
     st_info->countonly      = countonly;
@@ -995,7 +999,6 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         stimer = clock();
     }
-
 
     // Level 2 is code for isid
     // ------------------------

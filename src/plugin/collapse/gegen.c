@@ -14,6 +14,14 @@ ST_retcode sf_read_collapsed        (GT_size J, GT_size kextra, char *fname);
 ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 {
 
+//     uint64_t c, d;
+//     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
+// printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
+//     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
+// printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
+// 
+//    return (17999);
+
     if ( st_info->wcode ) {
         return (sf_egen_bulk_w (st_info, level));
     }
@@ -38,7 +46,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     ST_double z;
 
     GT_size i, j, k, l;
-    GT_size nj, start, end, sel;
+    GT_size nj, nj_max, start, end, sel;
     GT_size offset_output,
            offset_source,
            offset_buffer;
@@ -75,6 +83,24 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->output")
     ST_double *output = st_info->output;
     st_info->free = 9;
+
+    nj_max = st_info->info[1] - st_info->info[0];
+    for (j = 1; j < st_info->J; j++) {
+        if (nj_max < (st_info->info[j + 1] - st_info->info[j]))
+            nj_max = (st_info->info[j + 1] - st_info->info[j]);
+    }
+
+    GT_size   *nuniq_ix    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_ix);
+    uint64_t  *nuniq_h1    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h1);
+    uint64_t  *nuniq_h2    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h2);
+    uint64_t  *nuniq_h3    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h3);
+    uint64_t  *nuniq_xcopy = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_xcopy);
+
+    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_ix"));
+    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h1"));
+    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h2"));
+    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h3"));
+    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_xcopy"));
 
     ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
     GT_bool   *all_firstmiss  = calloc(J * ksources, sizeof *all_firstmiss);
@@ -258,6 +284,20 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
+                else if ( statcode[k] == -18 ) { // nunique
+                    if ( (rc = gf_array_nunique_range (
+                            output + offset_output + k,
+                            all_buffer + start,
+                            nj,
+                            (end == 0),
+                            nuniq_h1,
+                            nuniq_h2,
+                            nuniq_h3,
+                            nuniq_ix,
+                            nuniq_xcopy
+                        )
+                    ) ) return (rc);
+                }
                 else if ( end == 0 ) { // no obs
                     // If everything is missing, write a missing value, Except
                     // for sums, which go to 0 for some reason (this is the
@@ -298,6 +338,12 @@ exit:
     free (statcode);
 
     free (index_st);
+
+    free (nuniq_h1);
+    free (nuniq_h2);
+    free (nuniq_h3);
+    free (nuniq_ix);
+    free (nuniq_xcopy);
 
     free (all_buffer);
     free (all_firstmiss);

@@ -6,6 +6,7 @@ Change Log
 ### Features
 
 - gcontract supports fweights (Unix only; tests pending)
+- gcollapse and gegen support nunique (Unix only; tests pending)
 - gcollapse and gegen now support weights in Windows and Unix
   (OSX pending). gegen does not support weights with multiple
   sources (e.g. `sum(x y z)`).

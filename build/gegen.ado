@@ -1,4 +1,4 @@
-*! version 0.12.0 22Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.1 22Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -94,7 +94,8 @@ program define gegen, byable(onecall) rclass
                 semean     ///
                 sebinomial ///
                 sepoisson  ///
-                pctile
+                pctile     ///
+                nunique
 
     * If function does not exist, fall back on egen
     * ---------------------------------------------
@@ -612,6 +613,7 @@ program parse_target_type, rclass
     if ( "`fcn'" == "sebinomial" ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
     if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "nunique"    ) return local retype = "`retype_C'"
 end
 
 capture program drop encode_vartype

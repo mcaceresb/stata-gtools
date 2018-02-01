@@ -53,7 +53,7 @@ program checks_inner_egen
     syntax [aw fw iw pw]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats total sum mean max min count median iqr percent first last firstnm lastnm
+    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson

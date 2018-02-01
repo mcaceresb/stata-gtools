@@ -388,6 +388,7 @@ Roadmap to 1.0
 - [ ] Add comments to all the code base
 - [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
+    - [ ] Test `nunique` for gegen and gcollapse (vs `gunique`)
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command
     - [ ] Test errors (i.e. make sure commands fail as expected).

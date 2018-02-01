@@ -84,10 +84,13 @@ program main
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([aw = int1]))
+
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
 
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))

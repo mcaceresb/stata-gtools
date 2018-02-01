@@ -34,7 +34,7 @@ program checks_inner_collapse
     syntax [aw fw iw pw]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local stats sum mean max min count percent first last firstnm lastnm median iqr
+    local stats nunique sum mean max min count percent first last firstnm lastnm median iqr
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson

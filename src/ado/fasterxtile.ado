@@ -10,9 +10,12 @@ program define fasterxtile
         error 2000
     }
 
+	_parsewt "aweight fweight pweight" `0'
+	local 0   "`s(newcmd)'"  /* command minus weight statement   */
+	local wgt "`s(weight)'"  /* contains [weight=exp] or nothing */
+
     syntax newvarname =/exp         /// newvar = exp
-        [if] [in]                   /// [if condition] [in start / end]
-        [aw fw pw] ,                /// [weight type = exp]
+        [if] [in] ,                 /// [if condition] [in start / end]
     [                               ///
         by(passthru)                /// By variabes: [+|-]varname [[+|-]varname ...]
         Nquantiles(str)             /// Number of quantiles
@@ -72,8 +75,6 @@ program define fasterxtile
         unab cutpoints: `cutpoints'
         local cutpoints cutpoints(`cutpoints')
     }
-
-    if ( `"`weight'"' != "" ) local wgt `"[`weight'=`w']"'
 
     local   opts `verbose'        ///
                  `benchmark'      ///

@@ -77,9 +77,6 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
-
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
@@ -91,6 +88,9 @@ program main
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
+
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
@@ -111,13 +111,13 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            compare_gquantiles_by, `noisily' oncollision(error)
-            compare_gquantiles,    `noisily' oncollision(error) noaltdef
-
             compare_gcollapse,     `noisily' oncollision(error)
             compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
             compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
             compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)
+
+            compare_gquantiles_by, `noisily' oncollision(error)
+            compare_gquantiles,    `noisily' oncollision(error) noaltdef
 
             compare_egen,          `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)

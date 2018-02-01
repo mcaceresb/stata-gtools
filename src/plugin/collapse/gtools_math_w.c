@@ -316,7 +316,7 @@ ST_double gf_array_dsd_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( wsum == 0 ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
 
     ST_double *vptr;
     ST_double *wptr  = w;
@@ -339,11 +339,9 @@ ST_double gf_array_dsd_weighted (
             return (SV_missval);
         }
     }
-    else if ( wsum == 1 ) {
-        return (SV_missval);
-    }
     else {
-        return(sqrt(vvar / (wsum - 1)));
+        vvar /= (wsum - 1);
+        return(vvar < 0? SV_missval: sqrt(vvar));
     }
 
 }
@@ -369,7 +367,7 @@ ST_double gf_array_dsemean_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( wsum == 0 ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
 
     ST_double *vptr;
     ST_double *wptr  = w;
@@ -382,7 +380,8 @@ ST_double gf_array_dsemean_weighted (
         }
     }
 
-    return (sqrt(vvar / (wsum * ((aw? vcount: wsum) - 1))));
+    vvar /= (wsum * ((aw? vcount: wsum) - 1));
+    return (vvar < 0? SV_missval: sqrt(vvar));
 }
 
 /**

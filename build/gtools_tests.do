@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Mon Jan 22 19:54:18 EST 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.1
+* Version: 0.12.2
 * Manual:  help gtools
 
 * Stata start-up options
@@ -24,15 +24,6 @@ set type double
 
 program main
     syntax, [NOIsily *]
-
-    set rmsg on
-    sysuse auto, clear
-    expand 100000
-    gen x = int(10 * runiform()) / 10
-    gdistinct price headroom, bench(3)
-    gcollapse (nunique) price headroom
-    l
-    exit 17999
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -93,10 +84,13 @@ program main
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
             unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([aw = int1]))
+
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
             unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
 
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
@@ -478,7 +472,7 @@ program checks_inner_collapse
     syntax [aw fw iw pw]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local stats sum mean max min count percent first last firstnm lastnm median iqr
+    local stats nunique sum mean max min count percent first last firstnm lastnm median iqr
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -3297,7 +3291,7 @@ program checks_inner_egen
     syntax [aw fw iw pw]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats total sum mean max min count median iqr percent first last firstnm lastnm
+    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson

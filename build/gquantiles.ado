@@ -1,4 +1,4 @@
-*! version 0.4.1 22Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.2 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles

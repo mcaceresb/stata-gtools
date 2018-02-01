@@ -1,11 +1,19 @@
 Change Log
 ==========
 
+## gtools-0.12.2 (2018-02-01)
+
+### Enhancements
+
+- OSX version of gcollapse, gegen with weights and nunique
+- Travis-compiled; I won't commit to master w/o passing tests
+
 ## gtools-0.12.1 (2018-01-22)
 
 ### Features
 
 - gcontract supports fweights (Unix only; tests pending)
+- gcollapse and gegen support nunique (Unix only; tests pending)
 - gcollapse and gegen now support weights in Windows and Unix
   (OSX pending). gegen does not support weights with multiple
   sources (e.g. `sum(x y z)`).

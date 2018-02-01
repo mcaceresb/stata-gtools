@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.12.2 (2018-02-01)
+
+### Enhancements
+
+- OSX version of gcollapse, gegen with weights and nunique
+- Travis-compiled; I won't commit to master w/o passing tests
+
 ## gtools-0.12.1 (2018-01-22)
 
 ### Features

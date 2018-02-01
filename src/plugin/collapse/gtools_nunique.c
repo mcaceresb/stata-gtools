@@ -27,7 +27,6 @@ ST_retcode gf_array_nunique_range (
     uint64_t *ix,
     uint64_t *xcopy)
 {
-    clock_t timer = clock();
     spookyhash_context context;
     ST_double *v = (ST_double *) x;
 

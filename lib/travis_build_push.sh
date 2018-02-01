@@ -8,6 +8,7 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     git config user.email "$COMMIT_AUTHOR_EMAIL"
 
     echo "Adding OSX files."
+    git checkout develop
     git branch -D osx
     git checkout -B osx
 	cp build/*plugin lib/plugin/
@@ -23,7 +24,7 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     ssh-add lib/id_rsa_travis
 
     echo "Pushing OSX files."
-    git push ${SSH_REPO} osx
+    git push -f ${SSH_REPO} osx
 
     rm -f lib/id_rsa_travis
 

@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-0.12.3 (2018-02-01)
+
+### Enhancements
+
+- Linux and Windows tests passing with updated weights and nunique
+- Updated documentation.
+
+### Bug fixes
+
+- Weights used the incorrect rules for outputting missing values
+  when computing `sd` or `se*`; this was fixed.
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/33 and now
+  tries to parse and expression first and a varlist second.
+
 ## gtools-0.12.2 (2018-02-01)
 
 ### Enhancements

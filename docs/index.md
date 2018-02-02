@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.2 01Feb2018`
+`version 0.12.3 01Feb2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -19,19 +19,20 @@ caveats and details on the plugin.
 
 __*Gtools commands with a Stata equivalent*__
 
-| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
-| ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
-| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output  |
-| gcontract    | contract |  5 to 7   / 2.5 to 4     | Weights         |                                   |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
-| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
-| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
-| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](usage/gquantiles)) |
-|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                             |
-|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                             |
+| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                                  |
+| ------------ | -------- | ------------------------ | --------------- | --------------------------------------- |
+| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
+| gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                         |
+| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
+| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
+| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
+|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
-quantiles (e.g. median, iqr, p90) and few groups.</small>
+quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
+benchmarked.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
 
@@ -192,7 +193,7 @@ gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
 gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v
-gcollapse (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
+gcollapse (nunique) turn (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -217,10 +218,12 @@ Remarks
 
 *__Functions available with `gegen` and `gcollapse`__*
 
-Other than `rawsum`, `gcollapse` supports every `collapse` function. `gegen`
-technically does not support all of `egen`, but whenever a function that is
-not supported is requested, `gegen` hashes the data and calls `egen` grouping
-by the hash, which is often faster.
+Other than `rawsum`, `gcollapse` supports every `collapse` function,
+including their weighted versions. `gegen` technically does not
+support all of `egen`, but whenever a function that is not supported
+is requested, `gegen` hashes the data and calls `egen` grouping by the
+hash, which is often faster (`gegen` only supports weights for internal
+functions, since `egen` does not normally allow weights).
 
 Hence both should be able to replicate almost all of the functionality of their
 Stata counterparts. The following are implemented internally in C:
@@ -230,6 +233,7 @@ Stata counterparts. The following are implemented internally in C:
 | tag         |           |   X     |
 | group       |           |   X     |
 | total       |           |   X     |
+| nunique     |     X     |   X     |
 | sum         |     X     |   X     |
 | mean        |     X     |   X     |
 | sd          |     X     |   X     |
@@ -387,7 +391,7 @@ ETA for them (and they almost surely won't make it to the 1.0 release):
 - Add option to `gtop` to display top X results in alpha order
 - Clean exit from `gcollapse`, `gegen` on error.
 - Print # of missings for gegen
-- Add "Open Source Licenses" section?
+- Add "Open Source Licenses" section
 
 License
 -------

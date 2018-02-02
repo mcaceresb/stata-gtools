@@ -1,4 +1,4 @@
-*! version 0.12.2 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -373,28 +373,52 @@ program define gegen, byable(onecall) rclass
     * Parse source(s)
     * ---------------
 
-    cap ds `args'
-    if ( _rc == 0 ) {
-        local sametype 1
-        local sources `r(varlist)'
-        cap confirm numeric v `sources'
-        if ( _rc ) {
-            global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
-            exit _rc
-        }
-    }
-    else {
-        local sametype 0
-        tempvar exp
-        cap gen double `exp' = `args'
+    tempvar exp
+    cap gen double `exp' = `args'
+    if ( _rc ) {
+        cap ds `args'
         if ( _rc ) {
             global GTOOLS_CALLER ""
             di as error "Invalid call; please specify {opth `ofcn'(varlist)} or {opth `ofcn'(exp)}."
-
             exit 198
         }
-        local sources `exp'
+        else {
+            local sametype 1
+            local sources `r(varlist)'
+            cap confirm numeric v `sources'
+            if ( _rc ) {
+                global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+                exit _rc
+            }
+        }
     }
+    else {
+        local sources `exp'
+        local sametype 0
+    }
+
+    * cap ds `args'
+    * if ( _rc == 0 ) {
+    *     local sametype 1
+    *     local sources `r(varlist)'
+    *     cap confirm numeric v `sources'
+    *     if ( _rc ) {
+    *         global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+    *         exit _rc
+    *     }
+    * }
+    * else {
+    *     local sametype 0
+    *     tempvar exp
+    *     cap gen double `exp' = `args'
+    *     if ( _rc ) {
+    *         global GTOOLS_CALLER ""
+    *         di as error "Invalid call; please specify {opth `ofcn'(varlist)} or {opth `ofcn'(exp)}."
+    *
+    *         exit 198
+    *     }
+    *     local sources `exp'
+    * }
 
     * Parse target type
     * -----------------

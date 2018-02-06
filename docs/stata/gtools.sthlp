@@ -25,26 +25,26 @@ traditional stata commands. The following are available as part of gtools:
 {manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
 
 {p 8 17 2}
-{manhelp gquantiles R:gquantiles}  as {opt pctile}, {opt xtile}, and {opt _pctile} replacements. {manhelp fasterxtile R:fasterxtile} is also provided as an alias
+{manhelp gquantiles R:gquantiles} as {opt pctile}, {opt xtile}, and {opt _pctile} replacements. {manhelp fasterxtile R:fasterxtile} is also provided as an alias
 {p_end}
 
 {p 8 17 2}
-{manhelp gegen R:gegen} {opt egen} alternative. {p_end}
+{manhelp gegen R:gegen} as a {opt egen} alternative. {p_end}
 
 {p 8 17 2}
-{manhelp gisid R:gisid} {opt isid} replacement. {p_end}
+{manhelp gisid R:gisid} as an {opt isid} replacement. {p_end}
 
 {p 8 17 2}
-{manhelp glevelsof R:glevelsof} {opt levelsof} replacement. {p_end}
+{manhelp glevelsof R:glevelsof} as a {opt levelsof} replacement. {p_end}
 
 {p 8 17 2}
-{manhelp gtoplevelsof R:gtoplevelsof} Frequency count of top levels of a {opt varlist}. {p_end}
+{manhelp gtoplevelsof R:gtoplevelsof} ({opt gtop}): Frequency count of top levels of a {opt varlist}. {p_end}
 
 {p 8 17 2}
-{manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct} Count unique levels of a set of variables. {p_end}
+{manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct}: Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
-{manhelp hashsort R:hashsort} (Experimental) Hash-based sorting. {p_end}
+{manhelp hashsort R:hashsort}: (Experimental) Hash-based sorting. {p_end}
 
 {marker syntax}{...}
 {title:Syntax}

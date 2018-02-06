@@ -28,7 +28,9 @@ in IC and 4-120 times faster in MP), with several additions.
 {cmd:gcollapse}
 {it:clist}
 {ifin}
-[{cmd:,} {it:{help gcollapse##table_options:options}}]
+[{it:{help gcollapse##weight:weight}}]
+[{cmd:,}
+{it:{help gcollapse##table_options:options}}]
 
 {pstd}where {it:clist} is either
 
@@ -47,6 +49,7 @@ in IC and 4-120 times faster in MP), with several additions.
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
+{p2col :{opt nunique}}number of unique elements{p_end}
 {p2col :{opt median}}medians{p_end}
 {p2col :{opt p1}}1st percentile{p_end}
 {p2col :{opt p2}}2nd percentile{p_end}
@@ -91,6 +94,8 @@ user press {hi:Break}
 {p_end}
 {synopt :{opt merge}}Merge statistics back to original data, replacing if applicable.
 {p_end}
+{synopt :{opt wild:parse}}Allow rename-style syntax in target naming
+{p_end}
 {synopt :{opt replace}}Allow replacing existing variables with output with {opt merge}.
 {p_end}
 {synopt :{opth freq(varname)}}Include frequency count with observations per group in {opt freq}.
@@ -121,6 +126,16 @@ user press {hi:Break}
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
+
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s
+are allowed and mimic {cmd:collapse}; see {help weight} and
+{help collapse##weights:Weights (collapse)}. {opt pweight}s may not be used
+with {opt sd}, {opt semean}, {opt sebinomial}, or {opt sepoisson}. 
+{opt iweight}s may not be used with {opt semean}, {opt sebinomial}, or 
+{opt sepoisson}. {opt aweight}s may not be used with {opt sebinomial} or
+{opt sepoisson}.{p_end}
 
 {marker description}{...}
 {title:Description}
@@ -160,6 +175,11 @@ values within a group are also missing.
 {opt merge} merges the collapsed data back to the original data set.
 Note that if you want to replace the source variable(s) then you need
 to specify {opt replace}.
+
+{phang}
+{opt wildparse} specifies that the function call should be parsed
+assuming targets are named using rename-stle syntax. For example,
+{cmd:gcollapse (sum) s_x* = x*, wildparse}
 
 {phang}
 {opt replace} Replace allows replacing existing variables with {opt merge}.

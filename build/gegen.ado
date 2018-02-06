@@ -25,6 +25,8 @@ capture program drop gegen
 program define gegen, byable(onecall) rclass
     version 13
 
+    gtools_timer on 97
+
     local 00 `0'
     syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
     local byvars `by'
@@ -151,6 +153,8 @@ program define gegen, byable(onecall) rclass
         }
     }
 
+    gtools_timer info 97 `"Plugin setup"', prints(1) off
+    gtools_timer off 97
     gtools_timer on 97
     global GTOOLS_CALLER gegen
 
@@ -373,9 +377,16 @@ program define gegen, byable(onecall) rclass
     * Parse source(s)
     * ---------------
 
-    tempvar exp
-    cap gen double `exp' = `args'
-    if ( _rc ) {
+    unab memvars: _all
+
+    local rc = 0
+    if ( !((`:list sizeof args' == 1) & (`:list args in memvars')) ) {
+        tempvar exp
+        cap gen double `exp' = `args'
+        local rc = _rc
+    }
+
+    if ( ((`:list sizeof args' == 1) & (`:list args in memvars')) | `rc' ) {
         cap ds `args'
         if ( _rc ) {
             global GTOOLS_CALLER ""
@@ -392,7 +403,7 @@ program define gegen, byable(onecall) rclass
             }
         }
     }
-    else {
+    else if ( `rc' == 0 ) {
         local sources `exp'
         local sametype 0
     }

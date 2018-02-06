@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.3 01Feb2018}{...}
+{* *! version 0.4.4 06Feb2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -365,8 +365,8 @@ for examples.
 {synoptset 22 tabbed}{...}
 {p2col 5 20 24 2: Scalars}{p_end}
 {synopt:{cmd:r(N)           }}Number of observations                     {p_end}
-{synopt:{cmd:r(min)         }}Min (only w minmax was requested)          {p_end}
-{synopt:{cmd:r(max)         }}Max (only w minmax was requested)          {p_end}
+{synopt:{cmd:r(min)         }}Min (only if minmax was requested)         {p_end}
+{synopt:{cmd:r(max)         }}Max (only if minmax was requested)         {p_end}
 {synopt:{cmd:r(nqused)      }}Number of quantiles/cutoffs                {p_end}
 {synopt:{cmd:r(method_ratio)}}Rule used to decide between methods 1 and 2{p_end}
 

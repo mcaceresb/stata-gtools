@@ -68,6 +68,7 @@ program main
             cap ssc install moremata
             cap ssc install fastxtile
             cap ssc install egenmisc
+            ftools, compile
         }
 
         if ( `:list posof "basic_checks" in options' ) {

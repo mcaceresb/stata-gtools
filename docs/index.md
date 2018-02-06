@@ -287,10 +287,10 @@ __*Differences from Stata counterparts*__
 
 Differences from `collapse`
 
-- No support for weights.
-- String variables are not allowed for `first`, `last`, `min`, `max`, etc.
+- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
+- `nunique` is supported.
 - Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
@@ -320,6 +320,8 @@ Differences from `xtile`, `pctile`, and `_pctile`
 Differences from `egen`
 
 - `group` label options are not supported
+- weights are supported for internally implemented functions.
+- `nunique` is supported.
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And
@@ -333,7 +335,6 @@ Differences from `egen`
 
 Differences from `levelsof`
 
-- The user can specify a number format.
 - It can take a `varlist` and not just a `varname`; in that case it prints
   all unique combinations of the varlist. The user can specify column and row
   separators.
@@ -369,7 +370,6 @@ TODO
 
 Features that might make it to 1.0 (but I make no promises)
 
-- Add support for weights.
 - Have `mlast` option for hashsort?
     - Or switch its behavior and have `mfirst` do what it does now.
 - Add option to save glevelsof in a variable/matrix (incl freq).

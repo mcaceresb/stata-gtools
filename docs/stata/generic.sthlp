@@ -79,7 +79,7 @@ final data.
 {opt g[command]} does things.
 
 {pstd}
-Weights are currently not supported.
+[depends] Weights are currently not supported.
 
 {marker options}{...}
 {title:Options}

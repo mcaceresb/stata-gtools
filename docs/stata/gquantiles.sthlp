@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.4 08Jan2018}{...}
+{* *! version 0.4.3 01Feb2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}

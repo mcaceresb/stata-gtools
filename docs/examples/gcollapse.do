@@ -6,6 +6,27 @@ l
 * specifying the target name.
 
 
+*******************
+*  Unique Counts  *
+*******************
+
+sysuse auto, clear
+gcollapse (nunique) rep78 mpg turn, by(foreign)
+l
+
+******************
+*  Wild Parsing  *
+******************
+
+clear
+set obs 10
+gen x1 = _n
+gen x2 = _n^2
+gen x3 = _n^3
+
+gcollapse mean_x* = x*, wildparse
+l
+
 ***************
 *  Quantiles  *
 ***************

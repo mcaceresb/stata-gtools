@@ -1,4 +1,4 @@
-*! version 0.3.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -9,6 +9,10 @@ program define fasterxtile
     if ( `=_N < 1' ) {
         error 2000
     }
+
+	_parsewt "aweight fweight pweight" `0'
+	local 0   "`s(newcmd)'"  /* command minus weight statement   */
+	local wgt "`s(weight)'"  /* contains [weight=exp] or nothing */
 
     syntax newvarname =/exp         /// newvar = exp
         [if] [in] ,                 /// [if condition] [in start / end]
@@ -32,6 +36,16 @@ program define fasterxtile
         counts(passthru)            ///
         fill(passthru)              ///
     ]
+
+	if ( `"`weight'"' != "" ) {
+		di in err "weights are planned for a future release"
+        exit 198
+    }
+
+	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
+		di in err "altdef option cannot be used with weights"
+        exit 198
+	}
 
 	if ( "`nquantiles'" != "" ) {
 		if ( "`cutpoints'" != "" ) {
@@ -74,5 +88,5 @@ program define fasterxtile
                  `fill'
 
     local gqopts `nquantiles' `cutpoints' `altdef' `strict' `opts' `method'
-    gquantiles `varlist' = `exp' `if' `in', xtile `gqopts' `by'
+    gquantiles `varlist' = `exp' `if' `in' `wgt', xtile `gqopts' `by'
 end

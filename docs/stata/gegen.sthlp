@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.11.4 08Jan2018}{...}
+{* *! version 0.12.3 01Feb2018}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -21,6 +21,7 @@
 
 {p 8 14 2}
 {cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 
+[{it:{help gegen##weight:weight}}]
 [{cmd:,}
 {opt replace}
 {it:fcn_options}
@@ -39,6 +40,17 @@
 {p_end}
 {synopt :{opth gtools_capture(str)}}The above 3 options are captured and not passed to {opt egen} in case the requested function is not internally supported by gtools. You can pass extra arguments here if their names conflict with captured gtools options.
 {p_end}
+{synoptline}
+
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are
+allowed for the functions listed below and mimic {cmd:collapse} and
+{cmd:gcollapse}; see {help weight} and {help collapse##weights:Weights (collapse)}.
+{opt pweight}s may not be used with {opt sd}, {opt semean},
+{opt sebinomial}, or {opt sepoisson}. {opt iweight}s may not be used
+with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
+may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 
 {phang}
 Functions not listed here hash the data and then call {opt egen} with 
@@ -101,6 +113,11 @@ observation. The functions are analogous to those in {opt collapse} and {opt not
         {opth count(exp)} {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the number of nonmissing
+observations of {it:exp}.
+
+        {opth nunique(exp)} {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the number of unique
 observations of {it:exp}.
 
         {opth iqr(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }

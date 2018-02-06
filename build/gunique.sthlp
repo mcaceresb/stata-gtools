@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.4  08Jan2018}{...}
+{* *! version 0.5.3  01Feb2018}{...}
 {viewerdialog gunique "dialog gunique"}{...}
 {vieweralsosee "[D] gunique" "mansection D gunique"}{...}
 {viewerjumpto "Syntax" "gunique##syntax"}{...}

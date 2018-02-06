@@ -1,6 +1,31 @@
 Change Log
 ==========
 
+## gtools-0.12.2 (2018-02-01)
+
+### Enhancements
+
+- OSX version of gcollapse, gegen with weights and nunique
+- Travis-compiled; I won't commit to master w/o passing tests
+
+## gtools-0.12.1 (2018-01-22)
+
+### Features
+
+- gcontract supports fweights (Unix only; tests pending)
+- gcollapse and gegen support nunique (Unix only; tests pending)
+- gcollapse and gegen now support weights in Windows and Unix
+  (OSX pending). gegen does not support weights with multiple
+  sources (e.g. `sum(x y z)`).
+
+## gtools-0.11.5 (2018-01-16)
+
+### Features
+
+- gcollapse now allows wild-parsing via option `wild`
+  (`wildparse`). E.g. `(sum) x* (mean) mean_x* = x*` would
+  be valid syntax.
+
 ## gtools-0.11.4 (2018-01-08)
 
 ### Features

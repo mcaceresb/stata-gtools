@@ -1,4 +1,4 @@
-*! version 0.3.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
@@ -11,7 +11,8 @@ program gquantiles, rclass
 
     global GTOOLS_CALLER gquantiles
     syntax [anything(equalok)]          /// newvar = exp, exp
-        [if] [in],                      /// [if condition] [in start / end]
+        [if] [in]                       /// [if condition] [in start / end]
+        [aw fw pw] ,                    /// [weight type = exp]
     [                                   ///
                                         /// Standard options
                                         /// ----------------
@@ -73,6 +74,11 @@ program gquantiles, rclass
         fill(passthru)                  ///
     ]
 
+	if ( `"`weight'"' != "" ) {
+		di in err "weights are planned for a future release"
+        exit 198
+    }
+
     local if0  `if'
     local in0  `in'
     local ifin `if' `in'
@@ -93,6 +99,11 @@ program gquantiles, rclass
     }
 
     local early_rc = 0
+	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
+		di in err "altdef option cannot be used with weights"
+        local early_rc = 198
+	}
+
     if ("`pctile'" != "") & ("`xtile'" != "") {
         di as err "Specify only one of -xtile- or -pctile-."
         di as err "To specify a second variable, try -xtile()- or -pctile()-."
@@ -302,11 +313,21 @@ program gquantiles, rclass
     * Pass arguments to internals
     * ---------------------------
 
+	if ( `"`weight'"' != "" ) {
+		tempvar touse w
+		qui gen double `w' `exp' `if' `in'
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+        mark `touse' `if' `in' `wgt'
+        local ifin if `touse' `in'
+	}
+    else local weights
+
     if ( ("`xtile'" != "") | ("`pctile'" != "") ) {
-        local fallback `xtile'`pctile' `varlist' = `exp' `if' `in', `fall_nq' `cutpoints' `altdef'
+        local fallback `xtile'`pctile' `varlist' = `exp' `ifin' `wgt', `fall_nq' `cutpoints' `altdef'
     }
     else {
-        local fallback _pctile `xsources' `if' `in', `fall_nq' `altdef' p(`percentiles')
+        local fallback _pctile `xsources' `ifin' `wgt', `fall_nq' `altdef' p(`percentiles')
     }
 
     local bench = ( "`benchmark'" != "" )
@@ -314,7 +335,7 @@ program gquantiles, rclass
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
     local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug'
-    local   opts `opts' gen(`groupid') `tag' `counts' `fill'
+    local   opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
     local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'
     local gqopts `gqopts' `cutifin' `cutby' `dedup' `replace' `altdef' `method' `strict' `minmax'

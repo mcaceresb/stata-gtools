@@ -14,6 +14,18 @@ ST_retcode sf_read_collapsed        (GT_size J, GT_size kextra, char *fname);
 ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 {
 
+//     uint64_t c, d;
+//     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
+// printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
+//     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
+// printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
+// 
+//    return (17999);
+
+    if ( st_info->wcode ) {
+        return (sf_egen_bulk_w (st_info, level));
+    }
+
     if ( st_info->kvars_targets < 1 ) {
         return (0);
     }
@@ -34,7 +46,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     ST_double z;
 
     GT_size i, j, k, l;
-    GT_size nj, start, end, sel;
+    GT_size nj, nj_max, start, end, sel;
     GT_size offset_output,
            offset_source,
            offset_buffer;
@@ -71,6 +83,24 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->output")
     ST_double *output = st_info->output;
     st_info->free = 9;
+
+    nj_max = st_info->info[1] - st_info->info[0];
+    for (j = 1; j < st_info->J; j++) {
+        if (nj_max < (st_info->info[j + 1] - st_info->info[j]))
+            nj_max = (st_info->info[j + 1] - st_info->info[j]);
+    }
+
+    GT_size   *nuniq_ix    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_ix);
+    uint64_t  *nuniq_h1    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h1);
+    uint64_t  *nuniq_h2    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h2);
+    uint64_t  *nuniq_h3    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h3);
+    uint64_t  *nuniq_xcopy = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_xcopy);
+
+    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_ix"));
+    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h1"));
+    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h2"));
+    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h3"));
+    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_xcopy"));
 
     ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
     GT_bool   *all_firstmiss  = calloc(J * ksources, sizeof *all_firstmiss);
@@ -120,7 +150,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
@@ -254,6 +284,20 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
+                else if ( statcode[k] == -18 ) { // nunique
+                    if ( (rc = gf_array_nunique_range (
+                            output + offset_output + k,
+                            all_buffer + start,
+                            nj,
+                            (end == 0),
+                            nuniq_h1,
+                            nuniq_h2,
+                            nuniq_h3,
+                            nuniq_ix,
+                            nuniq_xcopy
+                        )
+                    ) ) return (rc);
+                }
                 else if ( end == 0 ) { // no obs
                     // If everything is missing, write a missing value, Except
                     // for sums, which go to 0 for some reason (this is the
@@ -295,6 +339,12 @@ exit:
 
     free (index_st);
 
+    free (nuniq_h1);
+    free (nuniq_h2);
+    free (nuniq_h3);
+    free (nuniq_ix);
+    free (nuniq_xcopy);
+
     free (all_buffer);
     free (all_firstmiss);
     free (all_lastmiss);
@@ -331,7 +381,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double z;
 
     GT_size i, j, k, l;
-    GT_size nj, start, end;
+    GT_size nj, nj_max, start, end;
     GT_size offset_output,
            offset_buffer;
 
@@ -353,7 +403,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     GT_size *pos_sources = calloc(ksources, sizeof *pos_sources);
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
-    if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
+    if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "pos_sources"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -368,6 +418,24 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double *output = st_info->output;
     st_info->free = 9;
 
+    nj_max = st_info->info[1] - st_info->info[0];
+    for (j = 1; j < st_info->J; j++) {
+        if (nj_max < (st_info->info[j + 1] - st_info->info[j]))
+            nj_max = (st_info->info[j + 1] - st_info->info[j]);
+    }
+
+    GT_size   *nuniq_ix    = calloc(st_info->nunique? nj_max * ksources: 1, sizeof *nuniq_ix);
+    uint64_t  *nuniq_h1    = calloc(st_info->nunique? nj_max * ksources: 1, sizeof *nuniq_h1);
+    uint64_t  *nuniq_h2    = calloc(st_info->nunique? nj_max * ksources: 1, sizeof *nuniq_h2);
+    uint64_t  *nuniq_h3    = calloc(st_info->nunique? nj_max * ksources: 1, sizeof *nuniq_h3);
+    uint64_t  *nuniq_xcopy = calloc(st_info->nunique? nj_max * ksources: 1, sizeof *nuniq_xcopy);
+
+    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nuniq_ix"));
+    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nuniq_h1"));
+    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nuniq_h2"));
+    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nuniq_h3"));
+    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nuniq_xcopy"));
+
     ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
     GT_bool   *all_firstmiss  = calloc(J, sizeof *all_firstmiss);
     GT_bool   *all_lastmiss   = calloc(J, sizeof *all_lastmiss);
@@ -376,19 +444,19 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     GT_size   *offsets_buffer = calloc(J, sizeof *offsets_buffer);
     GT_size   *nj_buffer      = calloc(J, sizeof *nj_buffer);
 
-    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_bulk", "output"));
-    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "all_firstmiss"));
-    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen_bulk", "all_lastmiss"));
-    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_nonmiss"));
-    if ( all_yesmiss    == NULL ) return(sf_oom_error("sf_egen_bulk", "all_yesmiss"));
-    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen_bulk", "offsets_buffer"));
-    if ( nj_buffer      == NULL ) return(sf_oom_error("sf_egen_bulk", "nj_buffer"));
+    if ( all_buffer     == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "output"));
+    if ( all_firstmiss  == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_firstmiss"));
+    if ( all_lastmiss   == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_lastmiss"));
+    if ( all_nonmiss    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_nonmiss"));
+    if ( all_yesmiss    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "all_yesmiss"));
+    if ( offsets_buffer == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "offsets_buffer"));
+    if ( nj_buffer      == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nj_buffer"));
 
     for (j = 0; j < J; j++)
         all_firstmiss[j] = all_lastmiss[j] = all_nonmiss[j] = all_yesmiss[j] = 0;
 
     GT_size *nmfreq = calloc(1, sizeof *nmfreq);
-    if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_bulk", "nmfreq"));
+    if ( nmfreq == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "nmfreq"));
 
     nmfreq[0] = 0;
 
@@ -397,10 +465,10 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double *firstnm   = calloc(1, sizeof *firstnm);
     ST_double *lastnm    = calloc(1, sizeof *lastnm);
 
-    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
-    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
-    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk", "firstnm"));
-    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk", "lastnm"));
+    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "firstmiss"));
+    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "lastmiss"));
+    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "firstnm"));
+    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "lastnm"));
 
     /*********************************************************************
      *               Step 3: Read in variables from Stata                *
@@ -415,7 +483,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_collapse", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
@@ -533,6 +601,20 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[0];
                 }
+                else if ( statcode[k] == -18 ) { // nunique
+                    if ( (rc = gf_array_nunique_range (
+                            output + offset_output + k,
+                            all_buffer + start,
+                            nj * ksources,
+                            (end == 0),
+                            nuniq_h1,
+                            nuniq_h2,
+                            nuniq_h3,
+                            nuniq_ix,
+                            nuniq_xcopy
+                        )
+                    ) ) return (rc);
+                }
                 else if ( end == 0 ) { // no obs
                     // If everything is missing, write a missing value, Except
                     // for sums, which go to 0 for some reason (this is the
@@ -574,6 +656,12 @@ exit:
 
     free (index_st);
 
+    free (nuniq_h1);
+    free (nuniq_h2);
+    free (nuniq_h3);
+    free (nuniq_ix);
+    free (nuniq_xcopy);
+
     free (all_buffer);
     free (all_firstmiss);
     free (all_lastmiss);
@@ -614,7 +702,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
     GT_size start_targets = start_sources + ksources;
 
     GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
-    if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
+    if ( pos_targets == NULL ) return(sf_oom_error("sf_write_output", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
         pos_targets[k] = start_targets + k;
@@ -704,7 +792,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
     GT_size start_targets = start_sources + ksources;
 
     GT_size *pos_targets = calloc(ktargets, sizeof *pos_targets);
-    if ( pos_targets == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_targets"));
+    if ( pos_targets == NULL ) return(sf_oom_error("sf_write_collapsed", "pos_targets"));
 
     for (k = 0; k < ktargets; k++)
         pos_targets[k] = start_targets + k;
@@ -847,7 +935,7 @@ ST_retcode sf_read_collapsed (GT_size J, GT_size kextra, char *fname)
     ST_retcode rc = 0;
 
     ST_double *output = calloc(J * kextra, sizeof *output);
-    if ( output == NULL ) return(sf_oom_error("stata_call", "output"));
+    if ( output == NULL ) return(sf_oom_error("sf_read_collapsed", "output"));
 
     gf_read_collapsed (fname, output, kextra, J);
 

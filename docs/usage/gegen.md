@@ -10,7 +10,7 @@ Syntax
 ------
 
 <p>
-<span class="codespan">gegen [type] newvar = fcn(arguments) [if] [in] [, ///</spen>
+<span class="codespan">gegen [type] newvar = fcn(arguments) [if] [in] [weight] [, ///</spen>
 </br>
 <span class="codespan">&emsp;&emsp;&emsp; replace <a href="#compiled-functions">fcn_options</a> <a href="#gtools-options">gtools_options</a> ]
 </p>
@@ -28,6 +28,23 @@ Syntax
                                  internally supported by gtools. You can pass
                                  extra arguments here if their names conflict
                                  with captured gtools options.
+
+Weights
+-------
+
+Weights are only allowed for internally-implemented functions. In
+particular they only affect: total, sum, mean, sd, count, median, iqr,
+percent, semean, sebinomial, sepoisson, percentiles. They are ignored
+by: tag, group, nunique, max, min, first, last, firstnm, lastnm. All
+other functions do not allow weights.
+
+aweight, fweight, iweight, and pweight are allowed for the functions
+listed below and mimic `collapse` (see `help weight` and the weights
+section in `help collapse`).
+
+pweights may not be used with sd, semean, sebinomial, or sepoisson.
+iweights may not be used with semean, sebinomial, or sepoisson. aweights
+may not be used with sebinomial or sepoisson.
 
 Compiled functions
 ------------------
@@ -93,6 +110,10 @@ or a list of variables.
     count(exp)
         creates a constant (within varlist) containing the number of
         nonmissing observations of exp.
+
+    nunique(exp)
+        creates a constant (within varlist) containing the number of
+        unique observations of exp.
 
     iqr(exp)
         creates a constant (within varlist) containing the interquartile
@@ -180,11 +201,12 @@ You can download the raw code for the examples below
 
 ```stata
 . sysuse auto, clear
-. gegen id   = group(foreign)
-. gegen tag  = group(foreign)
-. gegen sum  = sum(mpg), by(foreign)
-. gegen sum2 = sum(mpg rep78), by(foreign)
-. gegen p5   = pctile(mpg rep78), p(5) by(foreign)
+. gegen id    = group(foreign)
+. gegen tag   = group(foreign)
+. gegen sum   = sum(mpg), by(foreign)
+. gegen sum2  = sum(mpg rep78), by(foreign)
+. gegen p5    = pctile(mpg rep78), p(5) by(foreign)
+. gegen nuniq = nunique(mpg rep78), by(foreign)
 ```
 
 The function can be any of the supported functions above.

@@ -1,24 +1,19 @@
 language: c
-
 env:
   global:
-    - OMP_NUM_THREADS=4
-    # - secure: "encrypted environment variable"
-
+  - OMP_NUM_THREADS=4
 compiler:
-  - gcc
-
+- gcc
 os:
-  - linux
-  - osx
-
+- linux
+- osx
 script:
-  - cd lib/spookyhash/build
-  - sed -i.bak -e '37,40d' premake5.lua
-  - ../../travis_build_premake.sh
-  - ./premake5 gmake
-  - make clean
-  - ALL_CFLAGS+=-fPIC make
-  - cd -
-  # - ls -lahR ./lib/spookyhash/build/
-  - make clean && make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+- cd lib/spookyhash/build
+- sed -i.bak -e '37,40d' premake5.lua
+- "../../travis_build_premake.sh"
+- "./premake5 gmake"
+- make clean
+- ALL_CFLAGS+=-fPIC make
+- cd -
+- make clean && make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+# - "./lib/travis_build_push.sh"

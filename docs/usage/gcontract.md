@@ -16,9 +16,10 @@ Syntax
 
 This is a fast option to Stata's contract.
 
-<p><span class="codespan">gcontract varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gcontract varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
-Instead of varlist, it is possible to specify
+`fweight`s are allowed; see `help weights`. Further, instead of a
+varlist, it is possible to specify
 
 ```stata
 [+|-] varname [[+|-] varname ...]

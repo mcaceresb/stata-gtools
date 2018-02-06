@@ -47,26 +47,36 @@ end
 
 capture program drop checks_inner_egen
 program checks_inner_egen
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) wgt(str) *]
 
-    local stats total sum mean sd max min count median iqr percent first last firstnm lastnm
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
     local percentiles 1 10 30.5 50 70.5 90 99
+    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm
+    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
+    if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
+    if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     tempvar gvar
     foreach fun of local stats {
-        `noisily' gegen `gvar' = `fun'(random1), by(`anything') replace `options'
-        `noisily' gegen `gvar' = `fun'(random*), by(`anything') replace `options'
+        `noisily' gegen `gvar' = `fun'(random1) `wgt', by(`anything') replace `options'
+        if ( "`weight'" == "" ) {
+        `noisily' gegen `gvar' = `fun'(random*) `wgt', by(`anything') replace `options'
+        }
     }
 
     foreach p in `percentiles' {
-        `noisily' gegen `gvar' = pctile(random1), p(`p') by(`anything') replace `options'
-        `noisily' gegen `gvar' = pctile(random*), p(`p') by(`anything') replace `options'
+        `noisily' gegen `gvar' = pctile(random1) `wgt', p(`p') by(`anything') replace `options'
+        if ( "`weight'" == "" ) {
+        `noisily' gegen `gvar' = pctile(random*) `wgt', p(`p') by(`anything') replace `options'
+        }
     }
 
     if ( "`anything'" != "" ) {
-        `noisily' gegen `gvar' = tag(`anything'),   replace `options'
-        `noisily' gegen `gvar' = group(`anything'), replace `options'
-        `noisily' gegen `gvar' = count(1), by(`anything') replace `options'
+        `noisily' gegen `gvar' = tag(`anything')   `wgt', replace `options'
+        `noisily' gegen `gvar' = group(`anything') `wgt', replace `options'
+        `noisily' gegen `gvar' = count(1)          `wgt', by(`anything') replace `options'
     }
 end
 

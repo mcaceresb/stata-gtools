@@ -13,7 +13,6 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.11.4 08Jan2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -23,23 +22,24 @@ Faster Stata for Group Operations
 This package's aim is to provide a fast implementation of various Stata
 commands using hashes and C plugins.  If you plan to use the plugin
 extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
-caveats and details on the plugin.
+caveats and details on the plugin (including some extra features!).
 
 __*Gtools commands with a Stata equivalent*__
 
-| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                            |
-| ------------ | -------- | ------------------------ | --------------- | --------------------------------- |
-| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) | Weights         | Quantiles, `merge`, label output  |
-| gcontract    | contract |  5 to 7   / 2.5 to 4     | Weights         |                                   |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | Weights, labels | Quantiles                         |
-| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                        |
-| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                |
+| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                                  |
+| ------------ | -------- | ------------------------ | --------------- | --------------------------------------- |
+| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
+| gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                         |
+| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
+| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
 | gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                             |
-|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                             |
+|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
+|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
-quantiles (e.g. median, iqr, p90) and few groups.</small>
+quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
+benchmarked.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
 
@@ -50,7 +50,7 @@ or thousands of times faster.</small>
 
 __*Gtools extras*__
 
-| Function            | Similar (SSC)      | Speedup (IC / MP)       | Notes                                 |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                                 |
 | ------------------- | ------------------ | ----------------------- | ------------------------------------- |
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`; weights not supported |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                                       |
@@ -200,7 +200,7 @@ gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
 gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v
-gcollapse (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
+gcollapse (nunique) turn (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -225,10 +225,12 @@ Remarks
 
 *__Functions available with `gegen` and `gcollapse`__*
 
-Other than `rawsum`, `gcollapse` supports every `collapse` function. `gegen`
-technically does not support all of `egen`, but whenever a function that is
-not supported is requested, `gegen` hashes the data and calls `egen` grouping
-by the hash, which is often faster.
+Other than `rawsum`, `gcollapse` supports every `collapse` function,
+including their weighted versions. `gegen` technically does not
+support all of `egen`, but whenever a function that is not supported
+is requested, `gegen` hashes the data and calls `egen` grouping by the
+hash, which is often faster (`gegen` only supports weights for internal
+functions, since `egen` does not normally allow weights).
 
 Hence both should be able to replicate almost all of the functionality of their
 Stata counterparts. The following are implemented internally in C:
@@ -238,6 +240,7 @@ Stata counterparts. The following are implemented internally in C:
 | tag         |           |   X     |
 | group       |           |   X     |
 | total       |           |   X     |
+| nunique     |     X     |   X     |
 | sum         |     X     |   X     |
 | mean        |     X     |   X     |
 | sd          |     X     |   X     |
@@ -291,10 +294,11 @@ __*Differences from Stata counterparts*__
 
 Differences from `collapse`
 
-- No support for weights.
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
+- `nunique` is supported.
+- Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
@@ -323,6 +327,8 @@ Differences from `xtile`, `pctile`, and `_pctile`
 Differences from `egen`
 
 - `group` label options are not supported
+- weights are supported for internally implemented functions.
+- `nunique` is supported.
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And
@@ -380,9 +386,12 @@ Roadmap to 1.0
       (Plugin Step 4.3) is actually a pretty big bottleneck.
       Benchmark whether it is better to use pointers.
 - [X] Reconcile numerical precision issues in `gquantiles`
+- [X] Add support for weights (Windows and Unix).
+    - [X] Add support for weights in OSX.
 - [ ] Add comments to all the code base
 - [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
+    - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command
     - [ ] Test errors (i.e. make sure commands fail as expected).
@@ -400,18 +409,17 @@ Features that might make it to 1.0 (but I make no promises)
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
-- [ ] Add support for weights.
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
-- [ ] `gcollapse (mean) pre_* (count) count_* = pre_*, by(byvars)`
 - [ ] Have some type of coding standard for the base (coding style)
 - [ ] Add `Var`, `kurtosis`, `skewness`
 - [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen
+- [ ] Add "Open Source Licenses" section
 
 License
 -------

@@ -1,4 +1,4 @@
-*! version 0.11.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -26,9 +26,14 @@ program define gegen, byable(onecall) rclass
     version 13
 
     local 00 `0'
-    syntax anything(equalok) [if] [in], [by(str) *]
+    syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
     local byvars `by'
     local 0 `00'
+
+    * Parse weights
+    * -------------
+
+    local wgt = cond(`"`weight'"' != "", `"[`weight' `exp']"', "")
 
     * Parse egen call
     * ---------------
@@ -89,7 +94,8 @@ program define gegen, byable(onecall) rclass
                 semean     ///
                 sebinomial ///
                 sepoisson  ///
-                pctile
+                pctile     ///
+                nunique
 
     * If function does not exist, fall back on egen
     * ---------------------------------------------
@@ -110,6 +116,12 @@ program define gegen, byable(onecall) rclass
                 di as error "`fcn'() is neither a gtools nor an egen function"
                 exit 133
             }
+        }
+
+        if ( "`weight'" != "" ) {
+            di as txt "`fcn'() is not a gtools function; falling back on egen"
+            di as err "weights are not allowed for egen-only functions"
+            exit 101
         }
 
         if ( `"`args'"' == "_all" ) | ( `"`args'"' == "*" ) {
@@ -148,7 +160,8 @@ program define gegen, byable(onecall) rclass
     * gegen [type] varname = fun(args) [if] [in], [options]
 
     syntax                       /// Main call was parsed manually
-        [if] [in] ,              /// [if condition] [in start / end]
+        [if] [in]                /// [if condition] [in start / end]
+        [aw fw iw pw] ,          /// [weight type = exp]
     [                            ///
         by(str)                  /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
                                  ///
@@ -192,7 +205,50 @@ program define gegen, byable(onecall) rclass
     }
 
     local bench = ( "`benchmark'" != "" )
-    local ifin `if' `in'
+
+    * Parse weights
+    * -------------
+
+    if ( `:list posof "sd" in fcn' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "sd not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "semean" in fcn' > 0 ) {
+        if ( inlist(`"`weight'"', "pweight", "iweight") ) {
+            di as err "semean not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sebinomial" in fcn' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sebinomial not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sepoisson" in fcn' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sepoisson not allowed with `weight's"
+            exit 135
+        }
+    }
+
+	if ( `"`weight'"' != "" ) {
+		tempvar w touse
+		qui gen double `w' `exp' `if' `in'
+
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+
+        mark `touse' `if' `in' `wgt'
+        local ifin if `touse' `in'
+	}
+    else {
+		local wgt
+        local weights
+        local ifin `if' `in'
+    }
 
     * Parse quantiles
     * ---------------
@@ -249,6 +305,10 @@ program define gegen, byable(onecall) rclass
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
         if ( "`fill'" != "" ) local fill fill(`fill')
+
+        if ( "`weight'" != "" ) {
+            di as txt "(weights are ignored for egen function {opt `fcn'})"
+        }
 
         gtools_timer info 97 `"Plugin setup"', prints(`bench') off
 
@@ -313,28 +373,52 @@ program define gegen, byable(onecall) rclass
     * Parse source(s)
     * ---------------
 
-    cap ds `args'
-    if ( _rc == 0 ) {
-        local sametype 1
-        local sources `r(varlist)'
-        cap confirm numeric v `sources'
-        if ( _rc ) {
-            global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
-            exit _rc
-        }
-    }
-    else {
-        local sametype 0
-        tempvar exp
-        cap gen double `exp' = `args'
+    tempvar exp
+    cap gen double `exp' = `args'
+    if ( _rc ) {
+        cap ds `args'
         if ( _rc ) {
             global GTOOLS_CALLER ""
             di as error "Invalid call; please specify {opth `ofcn'(varlist)} or {opth `ofcn'(exp)}."
-
             exit 198
         }
-        local sources `exp'
+        else {
+            local sametype 1
+            local sources `r(varlist)'
+            cap confirm numeric v `sources'
+            if ( _rc ) {
+                global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+                exit _rc
+            }
+        }
     }
+    else {
+        local sources `exp'
+        local sametype 0
+    }
+
+    * cap ds `args'
+    * if ( _rc == 0 ) {
+    *     local sametype 1
+    *     local sources `r(varlist)'
+    *     cap confirm numeric v `sources'
+    *     if ( _rc ) {
+    *         global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+    *         exit _rc
+    *     }
+    * }
+    * else {
+    *     local sametype 0
+    *     tempvar exp
+    *     cap gen double `exp' = `args'
+    *     if ( _rc ) {
+    *         global GTOOLS_CALLER ""
+    *         di as error "Invalid call; please specify {opth `ofcn'(varlist)} or {opth `ofcn'(exp)}."
+    *
+    *         exit 198
+    *     }
+    *     local sources `exp'
+    * }
 
     * Parse target type
     * -----------------
@@ -394,11 +478,15 @@ program define gegen, byable(onecall) rclass
 
     `addvar'
     local action sources(`sources') `targets' `stats' fill(`fill') `counts' countmiss
-    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' missing `keepmissing' `replace'
+    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' `weights' missing `keepmissing' `replace'
     local rc = _rc
     global GTOOLS_CALLER ""
 
     if ( `rc' == 17999 ) {
+        if ( `"`weight'"' != "" ) {
+            di as err "Cannot use fallback with weights."
+            exit 17000
+        }
         local gtools_args `hashmethod'     ///
                           `hashlib'        ///
                           `oncollision'    ///
@@ -549,6 +637,7 @@ program parse_target_type, rclass
     if ( "`fcn'" == "sebinomial" ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
     if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "nunique"    ) return local retype = "`retype_C'"
 end
 
 capture program drop encode_vartype

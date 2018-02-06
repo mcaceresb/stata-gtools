@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Jan  8 21:30:00 EST 2018
+* Updated: Mon Jan 22 19:54:18 EST 2018
 * Purpose: Unit tests for gtools
-* Version: 0.11.4
+* Version: 0.12.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -77,11 +77,22 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([aw = int1]))
+
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
+
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
+
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
@@ -100,11 +111,16 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
+            compare_gcollapse,     `noisily' oncollision(error)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)
+
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles,    `noisily' oncollision(error) noaltdef
-            compare_gcollapse,     `noisily' oncollision(error)
-            compare_gcontract,     `noisily' oncollision(error)
+
             compare_egen,          `noisily' oncollision(error)
+            compare_gcontract,     `noisily' oncollision(error)
             compare_isid,          `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)

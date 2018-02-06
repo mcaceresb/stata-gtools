@@ -1,4 +1,4 @@
-*! version 0.11.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -11,7 +11,8 @@ program gcollapse, rclass
     syntax [anything(equalok)]       /// Main function call:
                                      /// [(stat)] varlist [ [(stat)] ... ]
                                      /// [(stat)] target = source [target = source ...] [ [(stat)] ...]
-        [if] [in] ,                  /// [if condition] [in start / end]
+        [if] [in]                    /// [if condition] [in start / end]
+        [aw fw iw pw] ,              /// [weight type = exp]
     [                                ///
         by(str)                      /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
         cw                           /// Drop ocase-wise bservations where sources are missing.
@@ -30,6 +31,7 @@ program gcollapse, rclass
         ALLMISSing(passthru)         /// Custom handling if all missing values per stat per group
                                      ///
                                      ///
+        WILDparse                    /// parse assuming wildcard renaming
         unsorted                     /// Do not sort the data; faster
         forceio                      /// Use disk temp drive for writing/reading collapsed data
         forcemem                     /// Use memory for writing/reading collapsed data
@@ -51,6 +53,9 @@ program gcollapse, rclass
         debug_io_threshold(real 10)  /// (internal) Threshold to switch to I/O instead of RAM
     ]
 
+    * Pre-option parsing
+    * ------------------
+
     if ( "`debug'" != "" ) local debug_level 9
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -58,6 +63,9 @@ program gcollapse, rclass
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
     local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
+
+    * Parse by call (make sure varlist is valid)
+    * ------------------------------------------
 
     if ( "`by'" != "" ) {
         local clean_by `by'
@@ -139,7 +147,7 @@ program gcollapse, rclass
 
     gtools_timer on 97
     cap noi parse_vars `anything' `if' `in', ///
-        `cw' `labelformat' `labelprogram' `freq'
+        `cw' `labelformat' `labelprogram' `freq' `wildparse'
 
     if ( _rc ) {
         local rc = _rc
@@ -180,12 +188,58 @@ program gcollapse, rclass
         disp as txt `""'
     }
 
+    * Parse weights
+    * -------------
+
+    if ( `:list posof "count" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "aweight" ) {
+            local awnote 1
+        }
+        else local awnote 0
+    }
+    else local awnote 0
+
+    if ( `:list posof "sd" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "sd not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "semean" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "pweight", "iweight") ) {
+            di as err "semean not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sebinomial" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sebinomial not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( `:list posof "sepoisson" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
+            di as err "sepoisson not allowed with `weight's"
+            exit 135
+        }
+    }
+
+	if ( `"`weight'"' != "" ) {
+		tempvar w
+		qui gen double `w' `exp' `if' `in'
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+	}
+    else local weights
+
     * Subset if requested
     * -------------------
 
-    if ( ("`if'" != "") | ("`cw'" != "") ) {
-        marksample touse, strok novarlist
-        if ("`cw'" != "") {
+    if ( ("`if'`wgt'" != "") | ("`cw'" != "") ) {
+        * marksample touse, strok novarlist
+        tempvar touse
+        mark `touse' `if' `in' `wgt'
+        if ( "`cw'" != "" ) {
             markout `touse' `gtools_uniq_vars', strok
         }
         if ( "`merge'" == "" ) {
@@ -214,6 +268,7 @@ program gcollapse, rclass
     set varabbrev off
     cap noi parse_keep_drop,                                  ///
         by(`clean_by') `merge' `double' `replace' `replaceby' ///
+        `=cond("`weights'" == "", "", "weights")'             ///
         __gtools_gc_targets(`__gtools_gc_targets')            ///
         __gtools_gc_vars(`__gtools_gc_vars')                  ///
         __gtools_gc_stats(`__gtools_gc_stats')                ///
@@ -228,7 +283,7 @@ program gcollapse, rclass
     }
 
     local dropme       ""
-    local keepvars     "`r(keepvars)'"
+    local keepvars     "`r(keepvars)' `w'"
     local added        "`r(added)'"
     local memvars      "`r(memvars)'"
     local check_recast "`r(check_recast)'"
@@ -541,7 +596,7 @@ program gcollapse, rclass
         disp as txt `""'
     }
 
-    cap noi _gtools_internal `by' `ifin', `opts' `action' `gcollapse' gfunction(collapse)
+    cap noi _gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)
     if ( _rc == 17999 ) {
         if ( "`gfallbackok'" != "" ) {
             di as err "Cannot use fallback with gtools-only options"
@@ -693,6 +748,10 @@ program gcollapse, rclass
     local msg "Program exit executed"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
+	if ( `awnote' ) {
+		di as txt "(note: {bf:aweight}s not used to compute {bf:count}s)"
+	}
+
     CleanExit
     exit 0
 end
@@ -756,6 +815,7 @@ program parse_vars
         [if] [in] ,            /// subset
     [                          ///
         cw                     /// case-wise non-missing
+        WILDparse              /// parse assuming wildcard renaming
         freq(str)              /// include number of observations in group
         labelformat(str)       /// label prefix
         labelprogram(str)      /// label prefix
@@ -769,7 +829,41 @@ program parse_vars
         exit 198
     }
     else {
-        ParseList `anything'
+        if ( "`wildparse'" != "" ) {
+            local rc = 0
+            ParseListWild `anything', loc(__gtools_gc_call)
+
+            local __gtools_bak_stats      `__gtools_gc_stats'
+            local __gtools_bak_vars       `__gtools_gc_vars'
+            local __gtools_bak_targets    `__gtools_gc_targets'
+            local __gtools_bak_uniq_stats `__gtools_gc_uniq_stats'
+            local __gtools_bak_uniq_vars  `__gtools_gc_uniq_vars'
+
+            ParseList `__gtools_gc_call'
+
+            cap assert ("`__gtools_gc_stats'" == "`__gtools_bak_stats'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_gc_vars'" == "`__gtools_bak_vars'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_gc_targets'" == "`__gtools_bak_targets'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_gc_uniq_stats'" == "`__gtools_bak_uniq_stats'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_gc_uniq_vars'" == "`__gtools_bak_uniq_vars'")
+            local rc = max(_rc, `rc')
+
+            if ( `rc' ) {
+                disp as error "Wild parsing inconsistent with standard parsing."
+                exit 198
+            }
+        }
+        else {
+            ParseList `anything'
+        }
     }
 
     if ( "`freq'" != "" ) {
@@ -877,7 +971,8 @@ program parse_vars
                 lastnm     ///
                 semean     ///
                 sebinomial ///
-                sepoisson
+                sepoisson  ///
+                nunique
 
     * Parse quantiles
     local anyquant  = 0
@@ -920,6 +1015,7 @@ capture program drop parse_keep_drop
 program parse_keep_drop, rclass
     syntax,                         ///
     [                               ///
+        weights                     ///
         replace                     ///
         replaceby                   ///
         merge                       ///
@@ -1056,15 +1152,25 @@ program parse_keep_drop, rclass
             * First, last, min, max can preserve type, clearly
             local targettype: type `sourcevar'
         }
-        else if ( "`double'" != "" ) {
-            local targettype double
-        }
-        else if ( inlist("`collstat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
-            * Counts can be long if we have fewer than 2^31 observations
+        else if ( inlist("`collstat'", "freq") & ( `=_N < maxlong()' ) ) {
+            * freqs can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype long
         }
-        else if ( inlist("`collstat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
+        else if ( inlist("`collstat'", "freq") & !( `=_N < maxlong()' ) ) {
+            local targettype double
+        }
+        else if ( "`double'" != "" ) {
+            local targettype double
+        }
+        else if ( inlist("`collstat'", "count") & (`=_N < maxlong()') & ("`weights'" == "") ) {
+            * Counts can be long if we have fewer than 2^31 observations
+            * (largest signed integer in long variables can be 2^31-1).
+            * With weights, however, count is sum w_i, so the rules are
+            * as with sums in that case.
+            local targettype long
+        }
+        else if ( inlist("`collstat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
             local targettype double
         }
         else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -1094,7 +1200,7 @@ program parse_keep_drop, rclass
         else {
             * We only recast integers. Floats and doubles are preserved unless
             * requested or the target is a sum.
-            parse_ok_astarget, sourcevar(`var') targetvar(`var') stat(`collstat') `double'
+            parse_ok_astarget, sourcevar(`var') targetvar(`var') stat(`collstat') `double' `weights'
             local recast = !(`r(ok_astarget)')
 
             if ( `recast' ) {
@@ -1112,7 +1218,7 @@ end
 
 capture program drop parse_ok_astarget
 program parse_ok_astarget, rclass
-    syntax, sourcevar(varlist) targetvar(str) stat(str) [double]
+    syntax, sourcevar(varlist) targetvar(str) stat(str) [double weights]
     local ok_astarget = 0
     local sourcetype  = "`:type `sourcevar''"
 
@@ -1126,13 +1232,18 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & ( `=_N < maxlong()' ) ) {
-        * Counts can be long if we have fewer than 2^31 observations
-        * (largest signed integer in long variables can be 2^31-1)
+    else if ( inlist("`stat'", "freq") & ( `=_N < maxlong()' ) ) {
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( inlist("`stat'", "count", "freq") & !( `=_N < maxlong()' ) ) {
+    else if ( inlist("`stat'", "freq") & !( `=_N < maxlong()' ) ) {
+        local targettype double
+    }
+    else if ( inlist("`stat'", "count") & (`=_N < maxlong()') & ("`weights'" == "") ) {
+        local targettype long
+        local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
+    }
+    else if ( inlist("`stat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
         local targettype double
     }
     else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
@@ -1208,85 +1319,6 @@ program benchmark_memvars, rclass
     return local st_str  = `"Added index and info (`n_str' obs; approx `mib_str'MiB)"'
     return local st_time = max(`total_time', 0.001) * scalar(__gtools_gc_k_extra) * `factor'
     * return local st_time = `total_time' * scalar(__gtools_gc_k_extra) * `factor'
-end
-
-***********************************************************************
-*       Parsing is adapted from Sergio Correia's fcollapse.ado        *
-***********************************************************************
-
-capture program drop ParseList
-program define ParseList
-    syntax [anything(equalok)]
-    local stat mean
-
-    * Trim spaces
-    while strpos("`0'", "  ") {
-        local 0: subinstr local 0 "  " " "
-    }
-    local 0 `0'
-
-    while (trim("`0'") != "") {
-        GetStat stat 0 : `0'
-        GetTarget target 0 : `0'
-        gettoken vars 0 : 0
-        unab vars : `vars'
-        foreach var of local vars {
-            if ("`target'" == "") local target `var'
-
-            if ( "`stat'" == "sem" ) local stat semean
-            if ( "`stat'" == "seb" ) local stat sebinomial
-            if ( "`stat'" == "sep" ) local stat sepoisson
-
-            local full_vars    `full_vars'    `var'
-            local full_targets `full_targets' `target'
-            local full_stats   `full_stats'   `stat'
-
-            local target
-        }
-    }
-
-    * Check that targets don't repeat
-    local dups : list dups targets
-    if ("`dups'" != "") {
-        di as error "repeated targets in collapse: `dups'"
-        error 110
-    }
-
-    c_local __gtools_gc_targets    `full_targets'
-    c_local __gtools_gc_stats      `full_stats'
-    c_local __gtools_gc_vars       `full_vars'
-    c_local __gtools_gc_uniq_stats : list uniq full_stats
-    c_local __gtools_gc_uniq_vars  : list uniq full_vars
-end
-
-capture program drop GetStat
-program define GetStat
-    _on_colon_parse `0'
-    local before `s(before)'
-    gettoken lhs rhs : before
-    local rest `s(after)'
-
-    gettoken stat rest : rest , match(parens)
-    if ("`parens'" != "") {
-        c_local `lhs' `stat'
-        c_local `rhs' `rest'
-    }
-end
-
-capture program drop GetTarget
-program define GetTarget
-    _on_colon_parse `0'
-    local before `s(before)'
-    gettoken lhs rhs : before
-    local rest `s(after)'
-
-    local rest : subinstr local rest "=" "= ", all
-    gettoken target rest : rest, parse("= ")
-    gettoken eqsign rest : rest
-    if ("`eqsign'" == "=") {
-        c_local `lhs' `target'
-        c_local `rhs' `rest'
-    }
 end
 
 capture program drop CleanExit
@@ -1370,6 +1402,7 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "semean"      ) local prettystat "SE Mean"
     if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
     if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
+    if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
     if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
         local p = `:di regexs(1)'
              if ( mod(`p', 10) == 1 ) local prettystat "`p'st Pctile"
@@ -1378,4 +1411,167 @@ program GtoolsPrettyStat, rclass
         else                          local prettystat "`p'th Pctile"
     }
     return local prettystat = `"`prettystat'"'
+end
+
+***********************************************************************
+*         Parse assuming the call includes wildcard renaming          *
+***********************************************************************
+
+capture program drop ParseListWild
+program ParseListWild
+    syntax [anything(equalok)], [LOCal(str)]
+    local stat mean
+
+    if ( "`local'" == "" ) local local gcollapse_call
+
+    * Trim spaces
+    local 0 `anything'
+    while strpos("`0'", "  ") {
+        local 0: subinstr local 0 "  " " ", all
+    }
+    local 0 `0'
+
+    * Parse each portion of the collapse call
+    while (trim("`0'") != "") {
+        GetStat   stat   0 : `0'
+        GetTarget target 0 : `0'
+        gettoken  vars   0 : 0
+
+        * Must specify stat (if blank, we do the mean)
+        if ( "`stat'" == "" ) {
+            disp as err "option stat() requried"
+            exit 198
+        }
+
+        if ( "`stat'" == "sem" ) local stat semean
+        if ( "`stat'" == "seb" ) local stat sebinomial
+        if ( "`stat'" == "sep" ) local stat sepoisson
+
+        * Parse bulk rename if applicable
+        unab usources : `vars'
+        if ( "`eqsign'" == "=" ) {
+            rename `vars' `target'
+            unab utargets : `target'
+            rename (`utargets') (`usources')
+
+            local full_vars    `full_vars'    `usources'
+            local full_targets `full_targets' `utargets'
+
+            local call `call' (`stat')
+            foreach svar of varlist `usources' {
+                gettoken tvar utargets: utargets
+                local call `call' `tvar' = `svar'
+                local full_stats  `full_stats' `stat'
+            }
+        }
+        else {
+            local call `call' (`stat') `usources'
+            local full_vars    `full_vars'    `usources'
+            local full_targets `full_targets' `usources'
+
+            foreach svar of varlist `usources' {
+                local full_stats `full_stats' `stat'
+            }
+        }
+
+        local target
+    }
+
+    * Check that targets don't repeat
+    local dups : list dups targets
+    if ("`dups'" != "") {
+        di as error "repeated targets in collapse: `dups'"
+        error 110
+    }
+
+    * disp "`call'"
+    c_local `local' `call'
+    c_local __gtools_gc_targets    `full_targets'
+    c_local __gtools_gc_stats      `full_stats'
+    c_local __gtools_gc_vars       `full_vars'
+    c_local __gtools_gc_uniq_stats : list uniq full_stats
+    c_local __gtools_gc_uniq_vars  : list uniq full_vars
+end
+
+***********************************************************************
+*       Parsing is adapted from Sergio Correia's fcollapse.ado        *
+***********************************************************************
+
+capture program drop ParseList
+program define ParseList
+    syntax [anything(equalok)]
+    local stat mean
+
+    * Trim spaces
+    while strpos("`0'", "  ") {
+        local 0: subinstr local 0 "  " " "
+    }
+    local 0 `0'
+
+    while (trim("`0'") != "") {
+        GetStat stat 0 : `0'
+        GetTarget target 0 : `0'
+        gettoken vars 0 : 0
+        unab vars : `vars'
+        foreach var of local vars {
+            if ("`target'" == "") local target `var'
+
+            if ( "`stat'" == "sem" ) local stat semean
+            if ( "`stat'" == "seb" ) local stat sebinomial
+            if ( "`stat'" == "sep" ) local stat sepoisson
+
+            local full_vars    `full_vars'    `var'
+            local full_targets `full_targets' `target'
+            local full_stats   `full_stats'   `stat'
+
+            local target
+        }
+    }
+
+    * Check that targets don't repeat
+    local dups : list dups targets
+    if ("`dups'" != "") {
+        di as error "repeated targets in collapse: `dups'"
+        error 110
+    }
+
+    c_local __gtools_gc_targets    `full_targets'
+    c_local __gtools_gc_stats      `full_stats'
+    c_local __gtools_gc_vars       `full_vars'
+    c_local __gtools_gc_uniq_stats : list uniq full_stats
+    c_local __gtools_gc_uniq_vars  : list uniq full_vars
+end
+
+capture program drop GetStat
+program define GetStat
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
+
+    gettoken stat rest : rest , match(parens)
+    if ("`parens'" != "") {
+        c_local `lhs' `stat'
+        c_local `rhs' `rest'
+    }
+end
+
+capture program drop GetTarget
+program define GetTarget
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
+
+    local rest : subinstr local rest "=" "= ", all
+    gettoken target rest : rest, parse("= ")
+    gettoken eqsign rest : rest
+    if ("`eqsign'" == "=") {
+        c_local `lhs' `target'
+        c_local `rhs' `rest'
+        c_local eqsign "="
+    }
+    else {
+        c_local eqsign
+    }
 end

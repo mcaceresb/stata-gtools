@@ -1,10 +1,14 @@
 FAQs
 ====
 
-### Why can't the functions do weights?
+### Have weights been implemented yet?
 
-I have never used weights in Stata, so I will have to read up on how weights
-are implemented before adding that option to `gcollapse` and `gegen`.
+Yes for `gcollapse`, which can match all the weight options in
+`collapse`, as well as `gegen`, which can do weights for internally
+impemented functions (`egen` does not take weights, so functions that
+are not internally implemented cannot do weights either).
+
+However, weights have not been implemented for `gquantiles`.
 
 ### My computer has a 32-bit CPU
 

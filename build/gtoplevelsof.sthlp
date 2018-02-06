@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.5.4  08Jan2018}{...}
+{* *! version 0.6.3  01Feb2018}{...}
 {vieweralsosee "[P] gtoplevelsof" "mansection P gtoplevelsof"}{...}
 {viewerjumpto "Syntax" "gtoplevelsof##syntax"}{...}
 {viewerjumpto "Description" "gtoplevelsof##description"}{...}

@@ -1,4 +1,4 @@
-*! version 0.4.4 08Jan2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -11,27 +11,27 @@ program gcontract, rclass
     }
 
     global GTOOLS_CALLER gcontract
-    syntax anything [if] [in], /// [if condition] [in start / end]
-    [                          ///
-        Freq(string)           /// Name of frequency variable
-        CFreq(name)            /// Add cummulative frequency in cfreq
-        Percent(name)          /// Add percentages in percent
-        CPercent(name)         /// Add cummulative percentages in cpercent
-        FLOAT                  /// Store percentages in float variables
-        FORMat(string)         /// Format for percentage variables
-        Zero                   /// Include varlist combinations with 0 frequency
-        noMISS                 /// Exclude rows with missing values in varlist
-                               ///
-        fast                   /// Do not preserve and restore the original dataset. Saves speed
-                               /// but leaves data unusable if the user hits Break.
-        unsorted               /// Do not sort the data; faster
-                               ///
-        Verbose                /// Print info during function execution
-        BENCHmark              /// Benchmark function
-        BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
-        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
+    syntax anything [if] [in] [fw], /// [if condition] [in start / end] [fw = exp]
+    [                               ///
+        Freq(string)                /// Name of frequency variable
+        CFreq(name)                 /// Add cummulative frequency in cfreq
+        Percent(name)               /// Add percentages in percent
+        CPercent(name)              /// Add cummulative percentages in cpercent
+        FLOAT                       /// Store percentages in float variables
+        FORMat(string)              /// Format for percentage variables
+        Zero                        /// Include varlist combinations with 0 frequency
+        noMISS                      /// Exclude rows with missing values in varlist
+                                    ///
+        fast                        /// Do not preserve and restore the original dataset. Saves speed
+                                    /// but leaves data unusable if the user hits Break.
+        unsorted                    /// Do not sort the data; faster
+                                    ///
+        Verbose                     /// Print info during function execution
+        BENCHmark                   /// Benchmark function
+        BENCHmarklevel(int 0)       /// Benchmark various steps of the plugin
+        HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
@@ -153,11 +153,21 @@ program gcontract, rclass
     if ( "`fast'" == "" ) preserve
     gtools_timer on 97
 
-    if ( "`if'`in'" != "" ) qui keep `if' `in'
+    if ( "`if'`in'" != "" ) qui keep `if' `in' 
+    if ( `"`weight'"' != "" ) {
+        tempvar w touse
+        qui gen double `w' `exp'
+        local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+        mark `touse' `wgt'
+        qui keep if `touse'
+    }
+    else local weights
 
     qui ds *
-    local memvars `r(varlist)'
-    local dropvars: list memvars - varlist
+    local memvars  `r(varlist)'
+    local keepvars `varlist' `w'
+    local dropvars: list memvars - keepvars
     if ( "`dropvars'" != "" ) qui mata: st_dropvar(tokens(`"`dropvars'"'))
     qui mata: st_addvar(tokens(`"`types'"'), tokens(`"`newvars'"'))
 
@@ -169,7 +179,7 @@ program gcontract, rclass
     * ---------------
 
     local opts `missing' `verbose' `unsorted' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 

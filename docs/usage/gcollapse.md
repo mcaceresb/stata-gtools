@@ -16,7 +16,7 @@ Syntax
 
 This is a fast option to Stata's collapse, with several additions.
 
-<p><span class="codespan">gcollapse clist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gcollapse clist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 where clist is either
 
@@ -27,9 +27,10 @@ where clist is either
 
 or any combination of the varlist or target_var forms, and stat is one of
 
-| Stata      | Description
+| Stat       | Description
 | ---------- | -----------
 | mean       | means (default)
+| nunique    | counts unique elements
 | median     | medians
 | p#.#       | arbitrary quantiles (#.# must be strictly between 0, 100)
 | p1         | 1st percentile
@@ -54,6 +55,16 @@ or any combination of the varlist or target_var forms, and stat is one of
 | firstnm    | first nonmissing value
 | lastnm     | last nonmissing value
 
+Weights
+-------
+
+aweight, fweight, iweight, and pweight are allowed and mimic `collapse`
+(see `help weight` and the weights section in `help collapse`).
+
+pweights may not be used with sd, semean, sebinomial, or sepoisson.
+iweights may not be used with semean, sebinomial, or sepoisson. aweights
+may not be used with sebinomial or sepoisson.
+
 Options
 -------
 
@@ -74,6 +85,10 @@ Options
 - `merge` merges the collapsed data back to the original data set.  Note that
           if you want to replace the source variable(s) then you need to
           specify replace.
+
+- `wildparse` specifies that the function call should be parsed assuming
+              targets are named using rename-stle syntax. For example,
+              `gcollapse (sum) s_x* = x*, wildparse`
 
 - `replace` Replace allows replacing existing variables with merge.
 
@@ -210,6 +225,40 @@ l
 
 You can call multiple names per statistic in any order,
 optionally specifying the target name.
+
+### Unique counts
+
+```stata
+sysuse auto, clear
+gcollapse (nunique) rep78 mpg turn, by(foreign)
+l
+
+     +-------------------------------+
+     |  foreign   rep78   mpg   turn |
+     |-------------------------------|
+  1. | Domestic       6    17     17 |
+  2. |  Foreign       4    13      7 |
+     +-------------------------------+
+```
+
+### Wild Parsing
+
+```stata
+clear
+set obs 10
+gen x1 = _n
+gen x2 = _n^2
+gen x3 = _n^3
+
+gcollapse mean_x* = x*, wildparse
+l
+
+     +-----------------------------+
+     | mean_x1   mean_x2   mean_x3 |
+     |-----------------------------|
+  1. |     5.5      38.5     302.5 |
+     +-----------------------------+
+```
 
 ### Quantiles
 

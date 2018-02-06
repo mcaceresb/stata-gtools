@@ -46,8 +46,8 @@ f _gtools_internal.ado
 f gcollapse.ado
 f gcontract.ado
 f gegen.ado
-f fasterxtile.ado
 f gquantiles.ado
+f fasterxtile.ado
 f gunique.ado
 f gdistinct.ado
 f glevelsof.ado
@@ -59,8 +59,8 @@ f gtools.ado
 f gcollapse.sthlp
 f gcontract.sthlp
 f gegen.sthlp
-f fasterxtile.sthlp
 f gquantiles.sthlp
+f fasterxtile.sthlp
 f gunique.sthlp
 f gdistinct.sthlp
 f glevelsof.sthlp

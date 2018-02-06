@@ -1,4 +1,4 @@
-*! version 0.12.3 01Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.4 06Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -373,9 +373,16 @@ program define gegen, byable(onecall) rclass
     * Parse source(s)
     * ---------------
 
-    tempvar exp
-    cap gen double `exp' = `args'
-    if ( _rc ) {
+    unab memvars: _all
+
+    local rc = 0
+    if ( !((`:list sizeof args' == 1) & (`:list args in memvars')) ) {
+        tempvar exp
+        cap gen double `exp' = `args'
+        local rc = _rc
+    }
+
+    if ( ((`:list sizeof args' == 1) & (`:list args in memvars')) | `rc' ) {
         cap ds `args'
         if ( _rc ) {
             global GTOOLS_CALLER ""
@@ -392,7 +399,7 @@ program define gegen, byable(onecall) rclass
             }
         }
     }
-    else {
+    else if ( `rc' == 0 ) {
         local sources `exp'
         local sametype 0
     }

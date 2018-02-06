@@ -1,4 +1,4 @@
-gquantiles
+equantiles
 ==========
 
 Efficiently compute percentiles, quantiles, categories, and frequency counts.
@@ -215,7 +215,7 @@ __*Switches*__
   is the number of observations in the data, which can be millions or billions. Setting
   that many return values is computationally infeasible! The user can turn
   off this check via `returnlimit(.)`. **This is ill-advised**. To compute
-  that many quantiles it is better to use `pctile`.
+  that many quantiles it is better to use the `pctile` option.
 <br><br>
 
 - `strict` Without `by()`, exit with error if the number of quantiles requested
@@ -231,7 +231,6 @@ __*Switches*__
   (quantiles) are required to be strictly between 0 and 100. However,
   the min and max are relatively trivial to compute given the internals
   of the command, so the user can request them here.
-
 <br><br>
 
 - `replace` Replace targets, should they exist.
@@ -262,8 +261,8 @@ All calls store the following results
     Scalars
 
         r(N)                  Number of observations
-        r(min)                Min (only w minmax was requested)
-        r(max)                Max (only w minmax was requested)
+        r(min)                Min (only if minmax was requested)
+        r(max)                Max (only if minmax was requested)
         r(nqused)             Number of quantiles/cutoffs
         r(method_ratio)       Rule used to decide between methods 1 and 2
 

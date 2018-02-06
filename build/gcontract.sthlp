@@ -26,6 +26,7 @@ It is 5-7 times faster in Stata/IC and 2.5-4 times faster in MP
 {cmd:gcontract}
 {varlist}
 {ifin}
+[{it:{help gcontract##weight:weight}}]
 [{cmd:,} {it:{help gcontract##table_options:options}}]
 
 {pstd}
@@ -69,6 +70,10 @@ final data.
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
+
+{p 4 6 2}
+{opt fweight}s are allowed; see {help weight}.
+{p_end}
 
 {marker description}{...}
 {title:Description}

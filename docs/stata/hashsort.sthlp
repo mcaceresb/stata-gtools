@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.3  01Feb2018}{...}
+{* *! version 0.6.4  06Feb2018}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}

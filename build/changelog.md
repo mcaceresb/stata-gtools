@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-0.12.5 (2018-03-06)
+
+### Bug fixes
+
+* Fixed install issues in https://github.com/matthieugomez/benchmark-stata-r/issues/6
+* Fixed `gegen` type issue in https://github.com/mcaceresb/stata-gtools/issues/34
+
+## gtools-0.12.4 (2018-02-06)
+
+### Enhancements
+
+- `gegen` always created a temporary variable in an attempt
+  to fix https://github.com/mcaceresb/stata-gtools/issues/33,
+  which was unnecessary and it slowed it down.
+- Updated typos in documentation.
+
 ## gtools-0.12.3 (2018-02-01)
 
 ### Enhancements

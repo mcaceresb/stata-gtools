@@ -1,4 +1,4 @@
-*! version 0.12.4 06Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse

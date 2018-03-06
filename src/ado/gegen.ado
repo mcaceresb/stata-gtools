@@ -1,4 +1,4 @@
-*! version 0.12.4 06Feb2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -42,17 +42,17 @@ program define gegen, byable(onecall) rclass
     gettoken name 0 : 0, parse(" =(")
 
     if ( `"`name'"' == "=" ) {
-        local name  `"`type'"'
-        local type  : set type
+        local name   `"`type'"'
+        local type   : set type
         local retype = 1
-        local btype double
+        local btype  double
     }
     else {
         gettoken eqsign 0 : 0, parse(" =(")
         if ( `"`eqsign'"' != "=" ) {
             error 198
         }
-        local btype `type'
+        local btype  `type'
         local retype = 0
     }
 
@@ -315,6 +315,44 @@ program define gegen, byable(onecall) rclass
         if ( "`fcn'" == "tag" ) {
             local action tag(`type' `dummy') gfunction(hash) unsorted
             local noobs qui replace `dummy' = 0
+        }
+
+        if ( inlist("`fcn'", "group", "count") ) {
+            if ( `=_N' < maxbyte() ) {
+                * All types are OK
+            }
+            else if ( `=_N' < `=2^24' ) {
+                if inlist("`type'", "byte") {
+                    * byte is no longer OK; int, float still OK
+                    local upgraded = cond(`retype', "", "`type'")
+                    local type int
+                }
+            }
+            else if ( `=_N' < maxint() ) {
+                if inlist("`type'", "byte", "float") {
+                    * byte and float no longer OK; int still OK
+                    local upgraded = cond(`retype', "", "`type'")
+                    local type int
+                }
+            }
+            else if ( `=_N' < maxlong() ) {
+                if inlist("`type'", "byte", "int", "float") {
+                    * byte, float, int no longer OK; must upgrade to long
+                    local upgraded = cond(`retype', "", "`type'")
+                    local type long
+                }
+            }
+            else {
+                if ( "`type'" != "double" ) {
+                    * Only double can maintain precision
+                    local upgraded = cond(`retype', "", "`type'")
+                    local type double
+                }
+            }
+        }
+
+        if ( "`upgraded'" != "" ) {
+            disp "(warning: user-requested type '`upgraded'' upgraded to '`type'')"
         }
 
         if ( "`fcn'" == "group" ) {

@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-0.12.6 (2018-03-31)
+
+### Features
+
+* Added skewness and kurtosis to `gcollapse` and `gegen`
+
+### Bug fixes
+
+* Fixed install issues in https://github.com/mcaceresb/stata-gtools/issues/36
+
 ## gtools-0.12.5 (2018-03-06)
 
 ### Bug fixes

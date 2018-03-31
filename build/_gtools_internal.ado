@@ -1,4 +1,4 @@
-*! version 0.5.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -2203,7 +2203,9 @@ program parse_targets
                   semean     ///
                   sebinomial ///
                   sepoisson  ///
-                  nunique
+                  nunique    ///
+                  skewness   ///
+                  kurtosis
 
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
@@ -2291,24 +2293,26 @@ end
 
 capture program drop encode_stat
 program encode_stat, rclass
-    if ( "`0'" == "sum"         ) local statcode -1
-    if ( "`0'" == "mean"        ) local statcode -2
-    if ( "`0'" == "sd"          ) local statcode -3
-    if ( "`0'" == "max"         ) local statcode -4
-    if ( "`0'" == "min"         ) local statcode -5
-    if ( "`0'" == "count"       ) local statcode -6
-    if ( "`0'" == "percent"     ) local statcode -7
-    if ( "`0'" == "median"      ) local statcode 50
-    if ( "`0'" == "iqr"         ) local statcode -9
-    if ( "`0'" == "first"       ) local statcode -10
-    if ( "`0'" == "firstnm"     ) local statcode -11
-    if ( "`0'" == "last"        ) local statcode -12
-    if ( "`0'" == "lastnm"      ) local statcode -13
-    if ( "`0'" == "freq"        ) local statcode -14
-    if ( "`0'" == "semean"      ) local statcode -15
-    if ( "`0'" == "sebinomial"  ) local statcode -16
-    if ( "`0'" == "sepoisson"   ) local statcode -17
-    if ( "`0'" == "nunique"     ) local statcode -18
+    if ( "`0'" == "sum"       ) local statcode -1
+    if ( "`0'" == "mean"      ) local statcode -2
+    if ( "`0'" == "sd"        ) local statcode -3
+    if ( "`0'" == "max"       ) local statcode -4
+    if ( "`0'" == "min"       ) local statcode -5
+    if ( "`0'" == "count"     ) local statcode -6
+    if ( "`0'" == "percent"   ) local statcode -7
+    if ( "`0'" == "median"    ) local statcode 50
+    if ( "`0'" == "iqr"       ) local statcode -9
+    if ( "`0'" == "first"     ) local statcode -10
+    if ( "`0'" == "firstnm"   ) local statcode -11
+    if ( "`0'" == "last"      ) local statcode -12
+    if ( "`0'" == "lastnm"    ) local statcode -13
+    if ( "`0'" == "freq"      ) local statcode -14
+    if ( "`0'" == "semean"    ) local statcode -15
+    if ( "`0'" == "sebinomial") local statcode -16
+    if ( "`0'" == "sepoisson" ) local statcode -17
+    if ( "`0'" == "nunique"   ) local statcode -18
+    if ( "`0'" == "skewness"  ) local statcode -19
+    if ( "`0'" == "kurtosis"  ) local statcode -20
     return scalar statcode = `statcode'
 end
 

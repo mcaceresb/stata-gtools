@@ -22,6 +22,9 @@ ST_double gf_array_dsemean_range   (const ST_double v[], const GT_size start, co
 ST_double gf_array_dsebinom_range  (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dsepois_range   (const ST_double v[], const GT_size start, const GT_size end);
 
+ST_double gf_array_dskew_range     (const ST_double v[], const GT_size start, const GT_size end);
+ST_double gf_array_dkurt_range     (const ST_double v[], const GT_size start, const GT_size end);
+
 ST_double gf_array_dmedian_range   (ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_diqr_range      (ST_double v[], const GT_size start, const GT_size end);
 

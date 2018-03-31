@@ -1,4 +1,4 @@
-*! version 0.5.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract

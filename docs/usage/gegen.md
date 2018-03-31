@@ -33,10 +33,10 @@ Weights
 -------
 
 Weights are only allowed for internally-implemented functions. In
-particular they only affect: total, sum, mean, sd, count, median, iqr,
-percent, semean, sebinomial, sepoisson, percentiles. They are ignored
-by: tag, group, nunique, max, min, first, last, firstnm, lastnm. All
-other functions do not allow weights.
+particular they only affect: total, sum, mean, sd, count, median,
+iqr, percent, semean, sebinomial, sepoisson, percentiles, skewness,
+kurtosis. They are ignored by: tag, group, nunique, max, min, first,
+last, firstnm, lastnm. All other functions do not allow weights.
 
 aweight, fweight, iweight, and pweight are allowed for the functions
 listed below and mimic `collapse` (see `help weight` and the weights
@@ -143,7 +143,31 @@ or a list of variables.
         creates a constant (within varlist) containing the standard
         deviation of exp.  Also see mean().
 
+    percent(exp)
+        creates a constant (within varlist) containing the percent of
+        non-missing observations in the group relative to the sample.
+
+    semean(exp)
+        creates a constant (within varlist) containing the standard
+        error of the mean (sd/sqrt(n))
+
+    sebinomial(exp)
+        creates a constant (within varlist) containing the standard
+        error of the mean, binomial (sqrt(p(1-p)/n)) (missing if not 0, 1)
+
+    sepoisson(exp)
+        creates a constant (within varlist) containing the standard
+        error of the mean, Poisson (sqrt(mean / n)) (missing if
+        negative; result rounded to nearest integer)
+
+    skewness(exp)
+        creates a constant (within varlist) containing the skewness
+
+    kurtosis(exp)
+        creates a constant (within varlist) containing the kurtosis
+
     total(exp) [, missing]
+    sum(exp) [, missing]
         creates a constant (within varlist) containing the sum of exp
         treating missing as 0.  If missing is specified and all values in
         exp are missing, newvar is set to missing.  Also see mean().

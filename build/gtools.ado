@@ -1,4 +1,4 @@
-*! version 0.12.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -13,7 +13,7 @@ program gtools
     }
 
     syntax, [Dependencies Install_latest Upgrade replace dll hashlib(str)]
-    local cwd `"`c(pwd)'"'
+    local cwd `c(pwd)'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
 
     if ( "`dependencies'" == "dependencies" ) {
@@ -22,8 +22,8 @@ program gtools
         cap confirm file `spookyhash_dll'
         if ( _rc ) local download `github_url'/`spookyhash_dll'
         else local download `c(pwd)'/`spookyhash_dll'
-        cap mkdir `c(sysdir_plus)'s/
-        cap cd `c(sysdir_plus)'s/
+        cap mkdir `"`c(sysdir_plus)'s/"'
+        cap cd `"`c(sysdir_plus)'s/"'
         if ( _rc ) {
             local url `github_url'/`spookyhash_dll'
             di as err `"Could not find directory '`c(sysdir_plus)'s/'"'
@@ -38,7 +38,7 @@ program gtools
             exit 0
         }
         cap erase `spookyhash_dll'
-        cap copy `download' `spookyhash_dll'
+        cap copy `"`download'"' `spookyhash_dll'
         if ( _rc ) {
             di as err "Unable to download `spookyhash_dll' from `download'."
             cd `"`cwd'"'
@@ -66,7 +66,7 @@ program gtools
         local hashusr 0
     }
     else local hashusr 1
-    if ( "`c_os_'" == "windows" & (`hashusr' | ("`dll'" == "dll") ) ) {
+    if ( ("`c_os_'" == "windows") & (`hashusr' | ("`dll'" == "dll") ) ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll

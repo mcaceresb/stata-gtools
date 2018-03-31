@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.12.5 06Mar2018}{...}
+{* *! version 0.12.6 31Mar2018}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -159,6 +159,37 @@ Also see {help egen##median():{bf:median()}}.
 creates a constant (within {it:varlist}) containing the standard
 deviation of {it:exp}.  Also see {help egen##mean():{bf:mean()}}.
 
+        {opth percent(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the percent of
+non-missing observations of {it:exp} in the group relative to the sample.
+
+        {opth semean(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the standard
+error of the mean of {it:exp}, (sd/sqrt(n)).
+
+        {opth sebinomial(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the standard
+error of the mean of {it:exp}, binomial (sqrt(p(1-p)/n)) (missing if
+{it:exp} not 0, 1).
+
+        {opth sepoisson(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the standard
+error of the mean of {it:exp}, Poisson (sqrt(mean / n)) (missing if
+{it:exp} is negative; result rounded to nearest integer)
+
+        {opth skewness(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the skewness of {it:exp}
+
+        {opth kurtosis(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the kurtosis of {it:exp}
+
+        {opth sum(exp)} [{cmd:,} {opt m:issing}] {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
         {opth total(exp)} [{cmd:,} {opt m:issing}] {right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the sum of {it:exp}

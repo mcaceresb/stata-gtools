@@ -44,6 +44,8 @@ or any combination of the varlist or target_var forms, and stat is one of
 | semean     | standard error of the mean (sd/sqrt(n))
 | sebinomial | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
 | sepoisson  | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness   | Skewness
+| kurtosis   | Kurtosis
 | count      | number of nonmissing observations
 | percent    | percentage of nonmissing observations
 | max        | maximums

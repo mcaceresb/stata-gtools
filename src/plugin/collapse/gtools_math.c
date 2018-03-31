@@ -269,6 +269,65 @@ ST_double gf_array_dsepois_range (const ST_double v[], const GT_size start, cons
 }
 
 /**
+ * @brief Skewness
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Skewness of @v from @start to @end
+ */
+ST_double gf_array_dskew_range (const ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double s1, s2, aux1, aux2;
+    ST_double m2 = 0;
+    ST_double m3 = 0;
+    ST_double vmean = gf_array_dmean_range(v, start, end);
+
+    for (i = start; i < end; i++) {
+        s1  = (v[i] - vmean);
+        s2  = s1 * s1;
+        m2 += s2;
+        m3 += s2 * s1;
+    }
+
+    m2 /= (end - start);
+    m3 /= (end - start);
+
+    aux1 = sqrt(m2);
+    aux2 = aux1 * aux1 * aux1;
+
+    return (m3 / aux2);
+}
+
+/**
+ * @brief Kurtosis
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Kurtosis of @v from @start to @end
+ */
+ST_double gf_array_dkurt_range (const ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double s;
+    ST_double m2 = 0;
+    ST_double m4 = 0;
+    ST_double vmean = gf_array_dmean_range(v, start, end);
+
+    for (i = start; i < end; i++) {
+        s   = SQUARE(v[i] - vmean);
+        m2 += s;
+        m4 += s * s;
+    }
+
+    m2 /= (end - start);
+    m4 /= (end - start);
+    return (m4 / (m2 * m2));
+}
+
+/**
  * @brief Wrapper to choose summary function using a string
  *
  * @param fname Character with name of funtion to apply to @v
@@ -289,6 +348,8 @@ ST_double gf_switch_fun (char * fname, ST_double v[], const GT_size start, const
     if ( strcmp (fname, "semean")     == 0 ) return (gf_array_dsemean_range  (v, start, end));
     if ( strcmp (fname, "sebinomial") == 0 ) return (gf_array_dsebinom_range (v, start, end));
     if ( strcmp (fname, "sepoisson ") == 0 ) return (gf_array_dsepois_range  (v, start, end));
+    if ( strcmp (fname, "skewness")   == 0 ) return (gf_array_dskew_range    (v, start, end));
+    if ( strcmp (fname, "kurtosis")   == 0 ) return (gf_array_dkurt_range    (v, start, end));
     ST_double q = (ST_double) atof(fname);
     return (q > 0? gf_array_dquantile_range(v, start, end, q): 0);
 }
@@ -319,6 +380,8 @@ ST_double gf_code_fun (char * fname)
     if ( strcmp (fname, "semean")     == 0 ) return (-15); // semean
     if ( strcmp (fname, "sebinomial") == 0 ) return (-16); // sebinomial
     if ( strcmp (fname, "sepoisson ") == 0 ) return (-17); // sepoisson
+    if ( strcmp (fname, "skewness")   == 0 ) return (-19); // skewness
+    if ( strcmp (fname, "kurtosis")   == 0 ) return (-20); // kurtosis
     ST_double q = (ST_double) atof(fname);                 // quantile
     return (q > 0? q: 0);
 }
@@ -345,6 +408,8 @@ ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size star
     if ( fcode == -15 )  return (gf_array_dsemean_range  (v, start, end)); // semean
     if ( fcode == -16 )  return (gf_array_dsebinom_range (v, start, end)); // sebinomial
     if ( fcode == -17 )  return (gf_array_dsepois_range  (v, start, end)); // sepoisson
+    if ( fcode == -19 )  return (gf_array_dskew_range    (v, start, end)); // skewness
+    if ( fcode == -20 )  return (gf_array_dkurt_range    (v, start, end)); // kurtosis
     return (gf_array_dquantile_range(v, start, end, fcode));               // percentiles
 }
 

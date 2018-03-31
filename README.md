@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.5 06Mar2018`
+`version 0.12.6 31Mar2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -259,6 +259,8 @@ Stata counterparts. The following are implemented internally in C:
 | sebinomial  |     X     |   X     |
 | sepoisson   |     X     |   X     |
 | percentiles |     X     |   X     |
+| skewness    |     X     |   X     |
+| kurtosis    |     X     |   X     |
 
 <small>(+) first, last, firstmn, and lastnm are different from their counterparts
 in the egenmore package and, instead, they are analogous to the gcollapse
@@ -299,7 +301,7 @@ Differences from `collapse`
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `rawsum` is not supported.
 - `nunique` is supported.
-- Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
+- Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
@@ -354,6 +356,10 @@ Differences from `isid`
 - Option `sort` is not available.
 - It can also check IDs with `if` and `in` conditions.
 
+Differences from `gsort`
+
+- `hashsort` behaves as if `mfirst` was always passed.
+
 __*The Stata GUI freezes when running Gtools commands*__
 
 When Stata is executing the plugin, the user will not be able to interact
@@ -368,10 +374,6 @@ a "(Not Responding)" message on Windows or it may darken on \*nix systems).
 The program has not crashed; it is merely trying to swap memory.  To
 check this is the case, the user can monitor disk activity or monitor the
 pagefile/swap space directly.
-
-Differences from `gsort`
-
-`hashsort` behaves as if `mfirst` was always passed.
 
 TODO
 ----
@@ -416,7 +418,6 @@ ETA for them (and they almost surely won't make it to the 1.0 release):
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
 - [ ] Have some type of coding standard for the base (coding style)
-- [ ] Add `Var`, `kurtosis`, `skewness`
 - [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen

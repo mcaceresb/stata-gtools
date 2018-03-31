@@ -103,4 +103,22 @@ ST_double gf_array_dsepois_weighted (
     GT_size   vcount
 );
 
+ST_double gf_array_dkurt_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount
+);
+
+ST_double gf_array_dskew_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount
+);
+
 #endif

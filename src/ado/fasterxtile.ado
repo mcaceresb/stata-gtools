@@ -1,4 +1,4 @@
-*! version 0.4.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 

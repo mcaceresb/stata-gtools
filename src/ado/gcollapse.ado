@@ -1,4 +1,4 @@
-*! version 0.12.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -972,7 +972,9 @@ program parse_vars
                 semean     ///
                 sebinomial ///
                 sepoisson  ///
-                nunique
+                nunique    ///
+                skewness   ///
+                kurtosis
 
     * Parse quantiles
     local anyquant  = 0
@@ -1403,6 +1405,9 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
     if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
     if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
+    if ( `"`0'"' == "skewness"    ) local prettystat "Skewness"
+    if ( `"`0'"' == "kurtosis"    ) local prettystat "Kurtosis"
+
     if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
         local p = `:di regexs(1)'
              if ( mod(`p', 10) == 1 ) local prettystat "`p'st Pctile"

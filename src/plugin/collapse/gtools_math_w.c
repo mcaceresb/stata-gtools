@@ -41,6 +41,8 @@ ST_double gf_switch_fun_code_w (
     if ( fcode == -15 )  return (gf_array_dsemean_weighted  (v, N, w, vsum, wsum, vcount, aw)); // semean
     if ( fcode == -16 )  return (gf_array_dsebinom_weighted (v, N, w, vsum, wsum, vcount));     // sebinomial
     if ( fcode == -17 )  return (gf_array_dsepois_weighted  (v, N, w, vsum, wsum, vcount));     // sepoisson
+    if ( fcode == -19 )  return (gf_array_dskew_weighted    (v, N, w, vsum, wsum, vcount));     // skewness
+    if ( fcode == -20 )  return (gf_array_dkurt_weighted    (v, N, w, vsum, wsum, vcount));     // kurtosis
     return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));               // percentiles
 }
 
@@ -448,6 +450,105 @@ ST_double gf_array_dsepois_weighted (
 
     // return (sqrt(((GT_int) vsum) / wsum);
     return (sqrt((GT_int) (vsum + 0.5)) / wsum);
+}
+
+/**
+ * @brief Weighted skewness
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @param vsum sum(v_i * w_i)
+ * @param wsum sum(w_i)
+ * @param vcount sum(v_i < SV_missval)
+ * @return Skewness for the elements of @v
+ */
+ST_double gf_array_dskew_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount)
+{
+    if ( wsum == 0 ) return (SV_missval);
+
+    ST_double *vptr, s1, s2, aux1, aux2;
+    ST_double *wptr = w;
+    ST_double m2    = 0;
+    ST_double m3    = 0;
+    ST_double vmean = vsum / wsum;
+    GT_size   nobs  = 0;
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr < SV_missval ) {
+            s1 = (*vptr) - vmean;
+            s2 = s1 * s1;
+            m2 += (*wptr) * s2;
+            m3 += (*wptr) * s2 * s1;
+            nobs++;
+        }
+    }
+
+    m2 /= wsum;
+    m3 /= wsum;
+
+    if ( (nobs > 1) && (m2 > 0) ) {
+        aux1 = sqrt(m2);
+        aux2 = aux1 * aux1 * aux1;
+        return (m3 / aux2);
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
+ * @brief Weighted kurtosis
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @param vsum sum(v_i * w_i)
+ * @param wsum sum(w_i)
+ * @param vcount sum(v_i < SV_missval)
+ * @return Kurtosis for the elements of @v
+ */
+ST_double gf_array_dkurt_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount)
+{
+    if ( wsum == 0 ) return (SV_missval);
+
+    ST_double *vptr, s;
+    ST_double *wptr = w;
+    ST_double m2    = 0;
+    ST_double m4    = 0;
+    ST_double vmean = vsum / wsum;
+    GT_size   nobs  = 0;
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr < SV_missval ) {
+            s  = SQUARE((*vptr) - vmean);
+            m2 += (*wptr) * s;
+            m4 += (*wptr) * s * s;
+            nobs++;
+        }
+    }
+
+    m2 /= wsum;
+    m4 /= wsum;
+
+    if ( (nobs > 1) && (m2 > 0) ) {
+        return (m4 / (m2 * m2));
+    }
+    else {
+        return (SV_missval);
+    }
 }
 
 /**

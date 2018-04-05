@@ -1,4 +1,4 @@
-*! version 0.12.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -62,7 +62,7 @@ program gcollapse, rclass
     local keepmissing = cond("`missing'" == "", "", "keepmissing")
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
-    local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
+    local gfallbackok = `"`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'"' == `""'
 
     * Parse by call (make sure varlist is valid)
     * ------------------------------------------
@@ -235,7 +235,7 @@ program gcollapse, rclass
     * Subset if requested
     * -------------------
 
-    if ( ("`if'`wgt'" != "") | ("`cw'" != "") ) {
+    if ( (`"`if'`wgt'"' != `""') | ("`cw'" != "") ) {
         * marksample touse, strok novarlist
         tempvar touse
         mark `touse' `if' `in' `wgt'

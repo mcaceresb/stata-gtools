@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-0.12.7 (2018-04-05)
+
+### Bug fixes
+
+* Added OSX plugin in build.
+* Enclosed various macros in `""' in case they contain quotations.
+
 ## gtools-0.12.6 (2018-03-31)
 
 ### Features

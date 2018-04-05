@@ -1,4 +1,4 @@
-*! version 0.4.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -11,8 +11,8 @@ program define fasterxtile
     }
 
 	_parsewt "aweight fweight pweight" `0'
-	local 0   "`s(newcmd)'"  /* command minus weight statement   */
-	local wgt "`s(weight)'"  /* contains [weight=exp] or nothing */
+	local 0   `"`s(newcmd)'"'  /* command minus weight statement   */
+	local wgt `"`s(weight)'"'  /* contains [weight=exp] or nothing */
 
     syntax newvarname =/exp         /// newvar = exp
         [if] [in] ,                 /// [if condition] [in start / end]

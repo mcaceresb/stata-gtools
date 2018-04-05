@@ -1,4 +1,4 @@
-*! version 0.12.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -105,7 +105,7 @@ program define gegen, byable(onecall) rclass
     if !( `:list fcn in funcs' ) {
         confirm new variable `name'
 
-        if ( "`c(adoarchive)'" == "1" ) {
+        if ( `"`c(adoarchive)'"' == "1" ) {
             capture qui _stfilearchive find _g`fcn'.ado
             if ( _rc ) {
                 di as error "`fcn'() is neither a gtools nor an egen function"
@@ -120,7 +120,7 @@ program define gegen, byable(onecall) rclass
             }
         }
 
-        if ( "`weight'" != "" ) {
+        if ( `"`weight'"' != "" ) {
             di as txt "`fcn'() is not a gtools function; falling back on egen"
             di as err "weights are not allowed for egen-only functions"
             exit 101
@@ -196,7 +196,7 @@ program define gegen, byable(onecall) rclass
     local keepmissing = cond("`missing'" == "", "", "keepmissing")
 
     foreach opt in label lname truncate {
-        if ( "``opt''" != "" ) {
+        if ( `"``opt''"' != "" ) {
             di as txt ("Option -`opt'- is not implemented."
             exit 198
         }
@@ -308,7 +308,7 @@ program define gegen, byable(onecall) rclass
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
         if ( "`fill'" != "" ) local fill fill(`fill')
 
-        if ( "`weight'" != "" ) {
+        if ( `"`weight'"' != "" ) {
             di as txt "(weights are ignored for egen function {opt `fcn'})"
         }
 

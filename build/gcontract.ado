@@ -1,4 +1,4 @@
-*! version 0.5.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -153,7 +153,7 @@ program gcontract, rclass
     if ( "`fast'" == "" ) preserve
     gtools_timer on 97
 
-    if ( "`if'`in'" != "" ) qui keep `if' `in' 
+    if ( `"`if'`in'"' != "" ) qui keep `if' `in' 
     if ( `"`weight'"' != "" ) {
         tempvar w touse
         qui gen double `w' `exp'

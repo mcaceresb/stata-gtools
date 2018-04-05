@@ -1,4 +1,4 @@
-*! version 0.5.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -141,9 +141,9 @@ program _gtools_internal, rclass
         exit 198
     }
 
-    if ( "`hashmethod'" == "default" ) local hashmethod 0
-    if ( "`hashmethod'" == "biject"  ) local hashmethod 1
-    if ( "`hashmethod'" == "spooky"  ) local hashmethod 2
+    if ( `"`hashmethod'"' == "default" ) local hashmethod 0
+    if ( `"`hashmethod'"' == "biject"  ) local hashmethod 1
+    if ( `"`hashmethod'"' == "spooky"  ) local hashmethod 2
 
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
@@ -151,13 +151,13 @@ program _gtools_internal, rclass
     local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
     local url `url'/master/spookyhash.dll
 
-    if ( "`hashlib'" == "" ) {
+    if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
         local hashusr 0
     }
     else local hashusr 1
 
-    if ( ("`c_os_'" == "windows") & `hashusr' ) {
+    if ( (`"`c_os_'"' == "windows") & `hashusr' ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll

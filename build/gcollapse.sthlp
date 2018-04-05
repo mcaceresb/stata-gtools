@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.12.6 31Mar2018}{...}
+{* *! version 0.12.7 05Apr2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -64,6 +64,8 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
 {p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
 {p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
+{p2col :{opt skewness}}Skewness{p_end}
+{p2col :{opt kurtosis}}Kurtosis{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}

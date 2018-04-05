@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.6 31Mar2018`
+`version 0.12.7 05Apr2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -391,6 +391,7 @@ Roadmap to 1.0
 - [X] Reconcile numerical precision issues in `gquantiles`
 - [X] Add support for weights (Windows and Unix).
     - [X] Add support for weights in OSX.
+- [ ] Add tests for `skewness` and `kurtosis`, specially OSX.
 - [ ] Add comments to all the code base
 - [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.

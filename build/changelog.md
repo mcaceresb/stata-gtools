@@ -1,6 +1,23 @@
 Change Log
 ==========
 
+## gtools-0.12.7 (2018-04-05)
+
+### Bug fixes
+
+* Added OSX plugin in build.
+* Enclosed various macros in `""' in case they contain quotations.
+
+## gtools-0.12.6 (2018-03-31)
+
+### Features
+
+* Added skewness and kurtosis to `gcollapse` and `gegen`
+
+### Bug fixes
+
+* Fixed install issues in https://github.com/mcaceresb/stata-gtools/issues/36
+
 ## gtools-0.12.5 (2018-03-06)
 
 ### Bug fixes

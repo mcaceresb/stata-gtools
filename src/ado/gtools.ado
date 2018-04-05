@@ -1,4 +1,4 @@
-*! version 0.12.6 31Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -61,7 +61,7 @@ program gtools
        exit 0
     }
 
-    if ( "`hashlib'" == "" ) {
+    if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
         local hashusr 0
     }
@@ -90,9 +90,9 @@ program gtools
             mata: mata drop __gtools_dll
             local path: env PATH
             if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                local path = substr("`path'"', 1, length(`"`path'"') - 1)
+                local path = substr(`"`path'"', 1, length(`"`path'"') - 1)
             }
-            local __gtools_hashpath = subinstr("`__gtools_hashpath'", "/", "\", .)
+            local __gtools_hashpath = subinstr(`"`__gtools_hashpath'"', "/", "\", .)
 
             local newpath `"`path';`__gtools_hashpath'"'
             local truncate 2048

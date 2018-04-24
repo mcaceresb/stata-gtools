@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Apr 23 20:29:39 EDT 2018
+* Updated: Tue Apr 24 15:08:03 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 0.12.8
 * Manual:  help gtools
@@ -930,10 +930,10 @@ program compare_inner_collapse
         local wcall_a "[aw = unif_0_100]"
         local wgen_f  gen int_unif_0_100 = int(100 * runiform())
         local wcall_f "[fw = int_unif_0_100]"
-        local wgen_p  gen float_unif_0_1 = runiform()
-        local wcall_p "[pw = float_unif_0_1]"
         local wgen_i  gen rnormal_0_10 = 10 * rnormal()
         local wcall_i "[iw = rnormal_0_10]"
+        local wgen_p  gen float_unif_0_1 = runiform()
+        local wcall_p "[pw = float_unif_0_1]"
     }
     else {
         local wgt wgt(`wgt')
@@ -1019,6 +1019,10 @@ program _compare_inner_collapse
 
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
+    local k1 ""
+    local k2 ""
+    local k3 ""
+
     foreach pct of local percentiles {
         local k1 `k1' r1_`pct'
         local collapse_str `collapse_str' (`pct') r1_`pct' = random1

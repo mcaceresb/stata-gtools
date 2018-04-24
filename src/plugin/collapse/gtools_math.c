@@ -16,6 +16,10 @@
  * @return Standard deviation of the elements of @v from @start to @end
  */
 ST_double gf_array_dsd_range (const ST_double v[], const GT_size start, const GT_size end) {
+    if ( gf_array_dsame(v + start, end - start) ) {
+        return (0);
+    }
+
     GT_size i;
     ST_double vvar  = 0;
     ST_double vmean = gf_array_dmean_range(v, start, end);

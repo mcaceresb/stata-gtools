@@ -350,6 +350,10 @@ ST_double gf_array_dsd_weighted (
 {
     if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
 
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
+
     ST_double *vptr;
     ST_double *wptr  = w;
     ST_double vvar  = 0;
@@ -400,6 +404,10 @@ ST_double gf_array_dsemean_weighted (
     GT_bool   aw)
 {
     if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
+
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
 
     ST_double *vptr;
     ST_double *wptr  = w;
@@ -501,7 +509,7 @@ ST_double gf_array_dskew_weighted (
     ST_double wsum,
     GT_size   vcount)
 {
-    if ( gf_array_dsame_weighted(v, w, N) ) {
+    if ( gf_array_dsame_unweighted(v, N) ) {
         return (SV_missval);
     }
 
@@ -556,7 +564,7 @@ ST_double gf_array_dkurt_weighted (
     ST_double wsum,
     GT_size   vcount)
 {
-    if ( gf_array_dsame_weighted(v, w, N) ) {
+    if ( gf_array_dsame_unweighted(v, N) ) {
         return (SV_missval);
     }
 
@@ -646,6 +654,27 @@ GT_bool gf_array_dsame_weighted (ST_double *v, ST_double *w, GT_size N) {
         if ( (*vptr < SV_missval) && (*wptr < SV_missval) && ( ((*vstart) * (*wstart)) != ((*vptr) * (*wptr)) ) ) {
             return (0);
         }
+    }
+
+    return (1);
+}
+
+/**
+ * @brief Determine if all entries are the same, unweighted
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Whether the elements of @v are the same, unweighted
+ */
+GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N) {
+    ST_double *vstart = v, *vptr;
+
+    while ( *vstart >= SV_missval ) {
+        vstart++;
+    }
+
+    for (vptr = vstart + 1; vptr < v + N; vptr++) {
+        if ( (*vptr < SV_missval) && (*vstart != *vptr) ) return (0);
     }
 
     return (1);

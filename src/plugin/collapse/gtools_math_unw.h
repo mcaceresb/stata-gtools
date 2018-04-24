@@ -56,6 +56,4 @@ ST_double gf_array_dskew_unweighted (
     GT_size N
 );
 
-GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N);
-
 #endif

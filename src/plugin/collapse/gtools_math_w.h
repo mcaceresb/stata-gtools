@@ -128,4 +128,6 @@ ST_double gf_array_dskew_weighted (
 
 GT_bool gf_array_dsame_weighted (ST_double *v, ST_double *w, GT_size N);
 
+GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N);
+
 #endif

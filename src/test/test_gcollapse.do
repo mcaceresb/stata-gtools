@@ -490,10 +490,10 @@ program compare_inner_collapse
         local wcall_a "[aw = unif_0_100]"
         local wgen_f  gen int_unif_0_100 = int(100 * runiform())
         local wcall_f "[fw = int_unif_0_100]"
-        local wgen_p  gen float_unif_0_1 = runiform()
-        local wcall_p "[pw = float_unif_0_1]"
         local wgen_i  gen rnormal_0_10 = 10 * rnormal()
         local wcall_i "[iw = rnormal_0_10]"
+        local wgen_p  gen float_unif_0_1 = runiform()
+        local wcall_p "[pw = float_unif_0_1]"
     }
     else {
         local wgt wgt(`wgt')
@@ -579,6 +579,10 @@ program _compare_inner_collapse
 
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
+    local k1 ""
+    local k2 ""
+    local k3 ""
+
     foreach pct of local percentiles {
         local k1 `k1' r1_`pct'
         local collapse_str `collapse_str' (`pct') r1_`pct' = random1

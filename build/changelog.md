@@ -1,6 +1,29 @@
 Change Log
 ==========
 
+## gtools-0.12.8 (2018-04-19)
+
+### Features
+
+* Added `rawsum`
+* Added option `rawstat()`; you can pass a list of targets for which
+  weights will be ignored. `percent` cannot be called with `rawstat`.
+  All targets must be named _**explicitly**_ (i.e. will not expand
+  varlist notation). Fixes https://github.com/mcaceresb/stata-gtools/issues/37
+
+Neither rawsum nor rawstat are very smart. If the user requests them
+without weights, they will be ignored without warning. If the user
+requests them with weights, the weighted version will still be called
+(weighted internals are slower than unweighted internals).
+
+### Bug fixes
+
+- When not weighted, `skew` and `kurt` return missing when all
+  observations are the same. When weighted, they may return -1 or 1
+  due to numerical (im)precission problems. This issue is also present
+  in Stata's implementation and should only come up when working with
+  doubles rounded to arbitrary decimal places.
+
 ## gtools-0.12.7 (2018-04-05)
 
 ### Bug fixes

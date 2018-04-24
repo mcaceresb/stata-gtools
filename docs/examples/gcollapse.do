@@ -1,10 +1,17 @@
 sysuse auto, clear
-gcollapse (sum) price mpg (mean) m1 = price m2 = mpg, by(foreign)
+gcollapse (sum) price mpg (mean) m1 = price m2 = mpg if !mi(rep78), by(foreign)
 l
 
 * You can call multiple names per statistic in any order, optionally
-* specifying the target name.
+* specifying the target name. Further, weights can be selectively
+* applied to each target.
 
+sysuse auto, clear
+gcollapse (mean) price praw = price [fw = rep78], by(foreign) rawstat(praw)
+l
+
+* Note, however, that rows with missing or 0 values of rep78 are
+* excluded regardless when selectively applying weights.
 
 *******************
 *  Unique Counts  *

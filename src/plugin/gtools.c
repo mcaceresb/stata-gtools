@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Jan 23 08:32:25 EST 2018
+ * Updated: Mon Apr 23 20:54:30 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.12.7
+ * Version: 0.12.8
  *********************************************************************/
 
 /**
@@ -41,6 +41,8 @@
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_math_w.c"
+#include "collapse/gtools_math_unw.c"
+
 #include "collapse/gtools_nunique.c"
 #include "collapse/gtools_utils.c"
 #include "collapse/gegen_w.c"
@@ -250,7 +252,6 @@ exit:
     free (tostat);
     free (todo);
 
-
     return (rc);
 }
 
@@ -310,6 +311,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             hash_method,
             wcode,
             wpos,
+            wselective,
             nunique,
             any_if,
             countmiss,
@@ -394,6 +396,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_sel",     &wselective)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_nunique",        &nunique)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
@@ -469,6 +472,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
     st_info->group_init      = calloc(3,            sizeof st_info->group_init);
 
+    st_info->wselmat         = calloc((wselective    > 0)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
     st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
     st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2       : 1, sizeof st_info->xtile_quantiles);
@@ -477,6 +481,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->invert          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
     if ( st_info->pos_num_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
     if ( st_info->pos_str_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
     if ( st_info->group_targets   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
@@ -490,6 +495,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
     GTOOLS_GC_ALLOCATED("st_info->invert")
+    GTOOLS_GC_ALLOCATED("st_info->wselmat")
     GTOOLS_GC_ALLOCATED("st_info->pos_num_byvars")
     GTOOLS_GC_ALLOCATED("st_info->pos_str_byvars")
     GTOOLS_GC_ALLOCATED("st_info->group_targets")
@@ -500,8 +506,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->xtile_quantiles")
     GTOOLS_GC_ALLOCATED("st_info->xtile_cutoffs")
 
-    if ( (rc = sf_get_vector_size ("__gtools_bylens", st_info->byvars_lens) )) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_invert", st_info->invert)      )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_bylens",      st_info->byvars_lens) )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_invert",      st_info->invert)      )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_weight_smat", st_info->wselmat)     )) goto exit;
 
     if ( (rc = sf_get_vector      ("__gtools_stats",           st_info->statcode)        )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_pos_targets",     st_info->pos_targets)     )) goto exit;
@@ -548,6 +555,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
+    st_info->wselective     = wselective;
     st_info->nunique        = nunique;
 
     st_info->unsorted       = unsorted;
@@ -1297,6 +1305,7 @@ exit:
 void sf_free (struct StataInfo *st_info, int level)
 {
     if ( st_info->free >= 1 ) {
+        free (st_info->wselmat);
         free (st_info->invert);
         free (st_info->missval);
         free (st_info->byvars_lens);
@@ -1310,6 +1319,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->xtile_quantiles);
         free (st_info->xtile_cutoffs);
 
+        GTOOLS_GC_FREED("st_info->wselmat")
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
         GTOOLS_GC_FREED("st_info->byvars_lens")

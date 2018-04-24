@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Jan 22 19:54:18 EST 2018
+* Updated: Mon Apr 23 20:29:39 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.7
+* Version: 0.12.8
 * Manual:  help gtools
 
 * Stata start-up options
@@ -68,6 +68,7 @@ program main
             cap ssc install moremata
             cap ssc install fastxtile
             cap ssc install egenmisc
+            cap ssc install egenmore
             ftools, compile
         }
 
@@ -290,7 +291,7 @@ end
 
 capture program drop gen_data
 program gen_data
-    syntax, [n(int 100) random(int 0) binary(int 0) double skipstr]
+    syntax, [n(int 100) random(int 0) binary(int 0) float double skipstr]
     clear
     set obs `n'
 
@@ -428,7 +429,7 @@ program gen_data
 
     if ( `random' > 0 ) {
         forvalues i = 1 / `random' {
-            gen `double' random`i' = rnormal() * `i' * 5
+            gen `float'`double' random`i' = rnormal() * `i' * 5
             replace random`i' = . if mod(_n, 20) == 0
             if ( `binary' ) {
                 replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'

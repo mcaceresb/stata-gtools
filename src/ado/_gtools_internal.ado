@@ -1,4 +1,4 @@
-*! version 0.5.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.8 23Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -78,6 +78,7 @@ program _gtools_internal, rclass
         freq(str)                 /// also collapse frequencies to variable
         ANYMISSing(str)           /// Value if any missing per stat per group
         ALLMISSing(str)           /// Value if all missing per stat per group
+        rawstat(str)              /// Value if all missing per stat per group
                                   ///
                                   /// Capture options
                                   /// ---------------
@@ -406,6 +407,42 @@ program _gtools_internal, rclass
         }
     }
 
+    local wstats: copy local stats
+    local wselective 0
+    local skipstats percent
+
+    if ( "`rawstat'" != "" ) {
+        cap matrix drop wselmat
+        foreach var in `targets' {
+            gettoken wstat wstats: wstats
+            local inraw:    list posof `"`var'"'   in rawstat
+            local statskip: list posof `"`wstat'"' in skipstats
+            if ( (`inraw' > 0) & (`statskip' == 0) ) {
+                local ++wselective
+                matrix wselmat = nullmat(wselmat), 1
+            }
+            else if ( (`inraw' > 0) & (`statskip' > 0) ) {
+                disp as err "{opt rawstat} cannot be requested for {opt percent}"
+                exit 198
+            }
+            else {
+                matrix wselmat = nullmat(wselmat), 0
+            }
+        }
+
+        if ( `wselective' == 0 ) {
+            disp as err "{bf:Warning:} {opt rawstat} requested but none of the variables are targets"
+        }
+        else {
+            if ( `"`wtype'"' != "" ) {
+                disp "{bf:Warning:} 0 or missing weights are dropped for {bf:all} variables."
+            }
+        }
+    }
+    else {
+        matrix wselmat = J(1, 1, 0)
+    }
+
     * Parse options into scalars, etc. for C
     * --------------------------------------
 
@@ -431,6 +468,7 @@ program _gtools_internal, rclass
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
+    scalar __gtools_weight_sel  = `wselective'
     scalar __gtools_nunique     = ( `:list posof "nunique" in stats' > 0 )
 
     scalar __gtools_top_ntop        = 0
@@ -445,6 +483,8 @@ program _gtools_internal, rclass
     matrix __gtools_top_num         = J(1, 1, .)
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
+    matrix __gtools_weight_smat     = wselmat
+    cap matrix drop wselmat
 
     scalar __gtools_levels_return   = 1
 
@@ -848,7 +888,7 @@ program _gtools_internal, rclass
 
             scalar __gtools_k_targets    = __gtools_k_targets + 1
             scalar __gtools_k_stats      = __gtools_k_stats   + 1
-            matrix __gtools_stats        = __gtools_stats,        -14
+            matrix __gtools_stats        = __gtools_stats,    -14
             matrix __gtools_pos_targets  = __gtools_pos_targets,  0
         }
 
@@ -1752,6 +1792,7 @@ program clean_all
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
+    cap scalar drop __gtools_weight_sel
     cap scalar drop __gtools_nunique
 
     cap scalar drop __gtools_top_ntop
@@ -1821,6 +1862,7 @@ program clean_all
     cap scalar drop __gtools_ixfinish
     cap scalar drop __gtools_J
 
+    cap matrix drop __gtools_weight_smat
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
     cap matrix drop __gtools_numpos
@@ -2205,7 +2247,8 @@ program parse_targets
                   sepoisson  ///
                   nunique    ///
                   skewness   ///
-                  kurtosis
+                  kurtosis   ///
+                  rawsum
 
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
@@ -2313,6 +2356,7 @@ program encode_stat, rclass
     if ( "`0'" == "nunique"   ) local statcode -18
     if ( "`0'" == "skewness"  ) local statcode -19
     if ( "`0'" == "kurtosis"  ) local statcode -20
+    if ( "`0'" == "rawsum"    ) local statcode -21
     return scalar statcode = `statcode'
 end
 

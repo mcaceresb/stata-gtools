@@ -1,4 +1,4 @@
-*! version 0.12.7 05Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.12.8 23Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -64,6 +64,8 @@ program define gegen, byable(onecall) rclass
     if ( "`fcn'"   == "sem"   ) local fcn semean
     if ( "`fcn'"   == "seb"   ) local fcn sebinomial
     if ( "`fcn'"   == "sep"   ) local fcn sepoisson
+    if ( "`fcn'"   == "kurt"  ) local fcn kurtosis
+    if ( "`fcn'"   == "skew"  ) local fcn skewness
     if ( `"`par'"' != "("     ) exit 198
     if ( "`fcn'"   == "sum"   ) local type `btype'
 

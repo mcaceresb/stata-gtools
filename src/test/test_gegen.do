@@ -53,7 +53,7 @@ program checks_inner_egen
     syntax [aw fw iw pw]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm
+    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -89,8 +89,9 @@ program compare_egen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000) random(2)
-    qui expand 100
+    qui `noisily' gen_data, n(1000) random(2) float
+    * qui expand 100
+    qui expand 10
 
     compare_inner_egen, `options' tol(`tol')
 
@@ -146,7 +147,7 @@ capture program drop _compare_inner_egen
 program _compare_inner_egen
     syntax [anything] [if] [in], [tol(real 1e-6) *]
 
-    local stats       total sum mean sd max min count median iqr
+    local stats       total sum mean sd max min count median iqr skew kurt
     local percentiles 1 10 30 50 70 90 99
 
     cap drop g*_*
@@ -168,7 +169,6 @@ program _compare_inner_egen
         timer off 43
         qui timer list
         local time_gegen = r(t43)
-
 
         timer clear
         timer on 42

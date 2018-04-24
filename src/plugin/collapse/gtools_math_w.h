@@ -34,6 +34,11 @@ ST_double gf_array_diqr_weighted (
     ST_double *p_buffer
 );
 
+ST_double gf_array_drawsum_weighted (
+    ST_double *v,
+    GT_size N
+);
+
 void gf_array_dsum_dcount_weighted (
     ST_double *v,
     GT_size N,
@@ -120,5 +125,7 @@ ST_double gf_array_dskew_weighted (
     ST_double wsum,
     GT_size   vcount
 );
+
+GT_bool gf_array_dsame_weighted (ST_double *v, ST_double *w, GT_size N);
 
 #endif

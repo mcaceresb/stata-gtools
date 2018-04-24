@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.7 05Apr2018`
+`version 0.12.8 23Apr2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -218,14 +218,17 @@ Remarks
 
 *__Functions available with `gegen` and `gcollapse`__*
 
-Other than `rawsum`, `gcollapse` supports every `collapse` function,
-including their weighted versions. `gegen` technically does not
-support all of `egen`, but whenever a function that is not supported
-is requested, `gegen` hashes the data and calls `egen` grouping by the
-hash, which is often faster (`gegen` only supports weights for internal
-functions, since `egen` does not normally allow weights).
+`gcollapse` supports every `collapse` function, including their
+weighted versions. In addition, weights can be selectively applied via
+`rawstat()`, and `nunique` counts the number of unique values.
 
-Hence both should be able to replicate almost all of the functionality of their
+`gegen` technically does not support all of `egen`, but whenever a
+function that is not supported is requested, `gegen` hashes the data and
+calls `egen` grouping by the hash, which is often faster (`gegen` only
+supports weights for internal functions, since `egen` does not normally
+allow weights).
+
+Hence both should be able to replicate all of the functionality of their
 Stata counterparts. The following are implemented internally in C:
 
 | Function    | gcollapse | gegen   |
@@ -291,8 +294,8 @@ Differences from `collapse`
 
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- `rawsum` is not supported.
 - `nunique` is supported.
+- `rawstat` allows selectively applying weights.
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,

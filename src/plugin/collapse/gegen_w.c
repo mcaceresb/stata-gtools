@@ -220,7 +220,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
      *                Step 5: Collapse variables by gorup                *
      *********************************************************************/
 
-    {
+    if ( st_info->wselective == 0 ) {
         for (j = 0; j < J; j++) {
 
             // Remember we read things in group sort order but info and index
@@ -331,6 +331,136 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         aweights,
                         p_buffer
                     );
+                }
+            }
+        }
+    }
+    else {
+        for (j = 0; j < J; j++) {
+
+            // Remember we read things in group sort order but info and index
+            // are in hash sort order, so the jth output corresponds to the
+            // st_info->ix[j]th source
+            offset_output = j * ktargets;
+            offset_source = st_info->ix[j] * ksources;
+            offset_buffer = offsets_buffer[j];
+            offset_weight = st_info->info[st_info->ix[j]];
+            nj            = nj_buffer[j];
+
+            // Get the position of the first and last obs of each source
+            // variable (in case they are modified by calling qselect)
+            for (k = 0; k < ksources; k++) {
+                start        = offset_buffer + nj * k;
+                firstmiss[k] = all_buffer[start];
+                lastmiss[k]  = all_buffer[start + nj - 1];
+                firstnm[k]   = gf_array_dfirstnm(all_buffer + offset_buffer + nj * k, nj);
+                lastnm[k]    = gf_array_dlastnm (all_buffer + offset_buffer + nj * k, nj);
+            }
+
+            for (k = 0; k < ktargets; k++) {
+
+                // For each target, grab start and end position of source variable
+                start    = offset_buffer + nj * st_info->pos_targets[k];
+                startw   = j * ksources + st_info->pos_targets[k];
+                endwraw  = all_wsum[startw];
+                endw     = endwraw == SV_missval? 0: endwraw;
+
+                // If there is at least one non-missing observation, we store
+                // the result in output. If all observations are missing then
+                // we store Stata's special SV_missval
+                if ( statcode[k] == -6 ) { // count
+                    // If count, you just need to know how many non-missing obs there are
+                    if ( st_info->wselmat[k] ) {
+                        output[offset_output + k] = all_xcount[startw];
+                    }
+                    else {
+                        output[offset_output + k] = aweights? all_xcount[startw]: endw;
+                    }
+                }
+                else if ( statcode[k] == -14 ) { // freq
+                    output[offset_output + k] = nj;
+                }
+                else if ( statcode[k] == -7  ) { // percent
+                    // Percent outputs the % of all non-missing values of
+                    // that variable in that group relative to the number
+                    // of non-missing values of that variable in the entire
+                    // data. This latter count is stored in nmfreq; we divide
+                    // by this when writing to Stata.
+                    output[offset_output + k] = 100 * (endw / nmfreq[st_info->pos_targets[k]]);
+                }
+                else if ( statcode[k] == -10 ) { // first
+                    output[offset_output + k] = firstmiss[st_info->pos_targets[k]];
+                }
+                else if ( statcode[k] == -11 ) { // firstnm
+                    // First non-missing is the first entry in the inputs buffer;
+                    // this is only missing if all are missing.
+                    output[offset_output + k] = firstnm[st_info->pos_targets[k]];
+                }
+                else if (statcode[k] == -12 ) { // last
+                    output[offset_output + k] = lastmiss[st_info->pos_targets[k]];
+                }
+                else if ( statcode[k] == -13 ) { // lastnm
+                    // Last non-missing is the last entry in the inputs buffer;
+                    // this is only missing is all are missing.
+                    output[offset_output + k] = lastnm[st_info->pos_targets[k]];
+                }
+                else if ( statcode[k] == -18 ) { // nunique
+                    if ( (rc = gf_array_nunique_range (
+                            output + offset_output + k,
+                            all_buffer + start,
+                            nj,
+                            (endwraw == SV_missval),
+                            nuniq_h1,
+                            nuniq_h2,
+                            nuniq_h3,
+                            nuniq_ix,
+                            nuniq_xcopy
+                        )
+                    ) ) return (rc);
+                }
+                else if ( endwraw == SV_missval ) { // all missing values
+                    // If everything is missing, write a missing value, Except
+                    // for sums, which go to 0 for some reason (this is the
+                    // behavior of collapse), and min/max (which pick out the
+                    // min/max missing value).
+                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
+                        output[offset_output + k] = 0;
+                    }
+                    else if ( statcode[k] == -4 ) { // max
+                        // min/max handle missings b/c they only do comparisons
+                        output[offset_output + k] = gf_array_dmax_range (all_buffer + start, 0, nj);
+                    }
+                    else if ( statcode[k] == -5 ) { // min
+                        // min/max handle missings b/c they only do comparisons
+                        output[offset_output + k] = gf_array_dmin_range (all_buffer + start, 0, nj);
+                    }
+                    else {
+                        output[offset_output + k] = SV_missval;
+                    }
+                }
+                else {
+                    // Otherwise compute the requested summary stat
+                    if ( st_info->wselmat[k] ) {
+                        output[offset_output + k] = gf_switch_fun_code_unw (
+                            statcode[k],
+                            all_buffer + start,
+                            nj,
+                            p_buffer
+                        );
+                    }
+                    else {
+                        output[offset_output + k] = gf_switch_fun_code_w (
+                            statcode[k],
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight,
+                            all_xwsum[startw],
+                            all_wsum[startw],
+                            all_xcount[startw],
+                            aweights,
+                            p_buffer
+                        );
+                    }
                 }
             }
         }

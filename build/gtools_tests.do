@@ -113,9 +113,9 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            * compare_gcollapse,     `noisily' oncollision(error)
-            * compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
-            * compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
             compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)
 
             compare_gquantiles_by, `noisily' oncollision(error)
@@ -641,51 +641,51 @@ program compare_gcollapse
     * This should be ignored for compare_inner_gcollapse_gegen bc of merge
     local debug_io debug_io_check(0) debug_io_threshold(0.0001)
 
-    * qui `noisily' gen_data, n(1000) random(2)
-    * qui expand 100
-    *
-    * di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_gegen, `options'" _n(1) "{hline 80}" _n(1)
-    *
-    * compare_inner_gcollapse_gegen, `options' tol(`tol')
-    *
-    * compare_inner_gcollapse_gegen -str_12,              `options' tol(`tol') `debug_io'
-    * compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol') sort
-    * compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol') shuffle
-    *
-    * compare_inner_gcollapse_gegen -double1,                 `options' tol(`tol') `debug_io'
-    * compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol') sort
-    * compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol') shuffle
-    *
-    * compare_inner_gcollapse_gegen -int1,           `options' tol(`tol') `debug_io'
-    * compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol') sort
-    * compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol') shuffle
-    *
-    * compare_inner_gcollapse_gegen -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
-    * compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
-    * compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
-    *
-    * qui `noisily' gen_data, n(1000) random(2) binary(1)
-    * qui expand 50
-    *
-    * di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
-    *
-    * compare_inner_collapse, `options' tol(`tol')
-    *
-    * compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
-    * compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
-    * compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
-    *
-    * compare_inner_collapse double1,                 `options' tol(`tol') forcemem
-    * compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
-    * compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
-    *
-    * compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
-    * compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
-    * compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
-    *
-    * compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
-    * compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
-    * compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
+    qui `noisily' gen_data, n(1000) random(2)
+    qui expand 100
+
+    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_gegen, `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_gcollapse_gegen, `options' tol(`tol')
+
+    compare_inner_gcollapse_gegen -str_12,              `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen str_12 -str_32,       `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen str_12 -str_32 str_4, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_gegen -double1,                 `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen double1 -double2,         `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen double1 -double2 double3, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_gegen -int1,           `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen int1 -int2,      `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -int2 int3, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_gegen -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
+    compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
+
+    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui expand 50
+
+    di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_collapse, `options' tol(`tol')
+
+    compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
+    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
+    compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
+
+    compare_inner_collapse double1,                 `options' tol(`tol') forcemem
+    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
+    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
+
+    compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
+    compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
+    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
+
+    compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 
     qui `noisily' gen_data, n(1000) random(2) binary(1)
     qui expand 50
@@ -4136,17 +4136,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique unique
-    versus_unique str_12 str_32,       `options' funique unique
-    versus_unique str_12 str_32 str_4, `options' funique unique
+    versus_unique str_12,              `options' unique
+    versus_unique str_12 str_32,       `options' unique
+    versus_unique str_12 str_32 str_4, `options' unique
 
-    versus_unique double1,                 `options' funique unique
-    versus_unique double1 double2,         `options' funique unique
-    versus_unique double1 double2 double3, `options' funique unique
+    versus_unique double1,                 `options' unique
+    versus_unique double1 double2,         `options' unique
+    versus_unique double1 double2 double3, `options' unique
 
-    versus_unique int1,           `options' funique unique
-    versus_unique int1 int2,      `options' funique unique
-    versus_unique int1 int2 int3, `options' funique unique
+    versus_unique int1,           `options' unique
+    versus_unique int1 int2,      `options' unique
+    versus_unique int1 int2 int3, `options' unique
+
+    * versus_unique str_12,              `options' funique unique
+    * versus_unique str_12 str_32,       `options' funique unique
+    * versus_unique str_12 str_32 str_4, `options' funique unique
+    *
+    * versus_unique double1,                 `options' funique unique
+    * versus_unique double1 double2,         `options' funique unique
+    * versus_unique double1 double2 double3, `options' funique unique
+    *
+    * versus_unique int1,           `options' funique unique
+    * versus_unique int1 int2,      `options' funique unique
+    * versus_unique int1 int2 int3, `options' funique unique
 
     versus_unique int1 str_32 double1,                                        unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
@@ -4165,17 +4177,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique
-    versus_unique str_12 str_32,       `options' funique
-    versus_unique str_12 str_32 str_4, `options' funique
+    versus_unique str_12,              `options'
+    versus_unique str_12 str_32,       `options'
+    versus_unique str_12 str_32 str_4, `options'
 
-    versus_unique double1,                 `options' funique
-    versus_unique double1 double2,         `options' funique
-    versus_unique double1 double2 double3, `options' funique
+    versus_unique double1,                 `options'
+    versus_unique double1 double2,         `options'
+    versus_unique double1 double2 double3, `options'
 
-    versus_unique int1,           `options' funique
-    versus_unique int1 int2,      `options' funique
-    versus_unique int1 int2 int3, `options' funique
+    versus_unique int1,           `options'
+    versus_unique int1 int2,      `options'
+    versus_unique int1 int2 int3, `options'
+
+    * versus_unique str_12,              `options' funique
+    * versus_unique str_12 str_32,       `options' funique
+    * versus_unique str_12 str_32 str_4, `options' funique
+    *
+    * versus_unique double1,                 `options' funique
+    * versus_unique double1 double2,         `options' funique
+    * versus_unique double1 double2 double3, `options' funique
+    *
+    * versus_unique int1,           `options' funique
+    * versus_unique int1 int2,      `options' funique
+    * versus_unique int1 int2 int3, `options' funique
 
     versus_unique int1 str_32 double1,                                        `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    `options'
@@ -4254,13 +4278,6 @@ end
 * ---------------------
 
 cap mata: mata drop funique()
-cap pr drop funique
-program funique
-	syntax varlist [if] [in], [Detail]
-	
-	mata: funique("`varlist'", "`detail'"!="")
-end
-
 mata:
 mata set matastrict off
 void funique(string scalar varlist, real scalar detail)
@@ -4277,6 +4294,14 @@ void funique(string scalar varlist, real scalar detail)
 	}
 }
 end
+
+cap program drop funique
+program funique
+	syntax varlist [if] [in], [Detail]
+	
+	mata: funique("`varlist'", "`detail'"!="")
+end
+
 capture program drop checks_levelsof
 program checks_levelsof
     syntax, [tol(real 1e-6) NOIsily *]

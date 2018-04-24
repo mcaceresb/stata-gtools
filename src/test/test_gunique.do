@@ -281,17 +281,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique unique
-    versus_unique str_12 str_32,       `options' funique unique
-    versus_unique str_12 str_32 str_4, `options' funique unique
+    versus_unique str_12,              `options' unique
+    versus_unique str_12 str_32,       `options' unique
+    versus_unique str_12 str_32 str_4, `options' unique
 
-    versus_unique double1,                 `options' funique unique
-    versus_unique double1 double2,         `options' funique unique
-    versus_unique double1 double2 double3, `options' funique unique
+    versus_unique double1,                 `options' unique
+    versus_unique double1 double2,         `options' unique
+    versus_unique double1 double2 double3, `options' unique
 
-    versus_unique int1,           `options' funique unique
-    versus_unique int1 int2,      `options' funique unique
-    versus_unique int1 int2 int3, `options' funique unique
+    versus_unique int1,           `options' unique
+    versus_unique int1 int2,      `options' unique
+    versus_unique int1 int2 int3, `options' unique
+
+    * versus_unique str_12,              `options' funique unique
+    * versus_unique str_12 str_32,       `options' funique unique
+    * versus_unique str_12 str_32 str_4, `options' funique unique
+    *
+    * versus_unique double1,                 `options' funique unique
+    * versus_unique double1 double2,         `options' funique unique
+    * versus_unique double1 double2 double3, `options' funique unique
+    *
+    * versus_unique int1,           `options' funique unique
+    * versus_unique int1 int2,      `options' funique unique
+    * versus_unique int1 int2 int3, `options' funique unique
 
     versus_unique int1 str_32 double1,                                        unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
@@ -310,17 +322,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique
-    versus_unique str_12 str_32,       `options' funique
-    versus_unique str_12 str_32 str_4, `options' funique
+    versus_unique str_12,              `options'
+    versus_unique str_12 str_32,       `options'
+    versus_unique str_12 str_32 str_4, `options'
 
-    versus_unique double1,                 `options' funique
-    versus_unique double1 double2,         `options' funique
-    versus_unique double1 double2 double3, `options' funique
+    versus_unique double1,                 `options'
+    versus_unique double1 double2,         `options'
+    versus_unique double1 double2 double3, `options'
 
-    versus_unique int1,           `options' funique
-    versus_unique int1 int2,      `options' funique
-    versus_unique int1 int2 int3, `options' funique
+    versus_unique int1,           `options'
+    versus_unique int1 int2,      `options'
+    versus_unique int1 int2 int3, `options'
+
+    * versus_unique str_12,              `options' funique
+    * versus_unique str_12 str_32,       `options' funique
+    * versus_unique str_12 str_32 str_4, `options' funique
+    *
+    * versus_unique double1,                 `options' funique
+    * versus_unique double1 double2,         `options' funique
+    * versus_unique double1 double2 double3, `options' funique
+    *
+    * versus_unique int1,           `options' funique
+    * versus_unique int1 int2,      `options' funique
+    * versus_unique int1 int2 int3, `options' funique
 
     versus_unique int1 str_32 double1,                                        `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    `options'
@@ -399,13 +423,6 @@ end
 * ---------------------
 
 cap mata: mata drop funique()
-cap pr drop funique
-program funique
-	syntax varlist [if] [in], [Detail]
-	
-	mata: funique("`varlist'", "`detail'"!="")
-end
-
 mata:
 mata set matastrict off
 void funique(string scalar varlist, real scalar detail)
@@ -422,3 +439,11 @@ void funique(string scalar varlist, real scalar detail)
 	}
 }
 end
+
+cap program drop funique
+program funique
+	syntax varlist [if] [in], [Detail]
+	
+	mata: funique("`varlist'", "`detail'"!="")
+end
+

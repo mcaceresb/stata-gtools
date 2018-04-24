@@ -378,14 +378,14 @@ Features that might make it to 1.0 (but I make no promises)
 - Have `mlast` option for hashsort?
     - Or switch its behavior and have `mfirst` do what it does now.
 - Add option to save glevelsof in a variable/matrix (incl freq).
-- Add option to control how to treat missing values in gcollapse
-    - anymissing()
-    - allmissing()
-- Minimize memory use.
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
+- Add option to control how to treat missing values in gcollapse
+    - anymissing()
+    - allmissing()
+- Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.

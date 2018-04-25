@@ -1,4 +1,4 @@
-*! version 0.6.8 23Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.0 24Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop glevelsof

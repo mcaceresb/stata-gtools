@@ -1,4 +1,4 @@
-*! version 0.5.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.8 23Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique

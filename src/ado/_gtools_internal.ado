@@ -1,4 +1,4 @@
-*! version 0.5.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.6.0 24Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 capture program drop _gtools_internal
@@ -78,6 +78,7 @@ program _gtools_internal, rclass
         freq(str)                 /// also collapse frequencies to variable
         ANYMISSing(str)           /// Value if any missing per stat per group
         ALLMISSing(str)           /// Value if all missing per stat per group
+        rawstat(str)              /// Ignore weights for these targets
                                   ///
                                   /// Capture options
                                   /// ---------------
@@ -120,6 +121,9 @@ program _gtools_internal, rclass
         numfmt(str)               /// Columns sepparator
     ]
 
+    * Startup!
+    * --------
+
     * if ( ("`replace'" != "") & ("${GTOOLS_USER_INTERNAL_VARABBREV}" == "on") ) {
     *     disp as err "Option {opt replace} not allowed with varabbrev on."
     *     disp as err "Run {stata set varabbrev off} to use this feature."
@@ -141,9 +145,84 @@ program _gtools_internal, rclass
         exit 198
     }
 
-    if ( "`hashmethod'" == "default" ) local hashmethod 0
-    if ( "`hashmethod'" == "biject"  ) local hashmethod 1
-    if ( "`hashmethod'" == "spooky"  ) local hashmethod 2
+    if ( `"`hashmethod'"' == "default" ) local hashmethod 0
+    if ( `"`hashmethod'"' == "biject"  ) local hashmethod 1
+    if ( `"`hashmethod'"' == "spooky"  ) local hashmethod 2
+
+    ***********************************************************************
+    *                               debug!                                *
+    ***********************************************************************
+
+    if ( `debug_level' ) {
+        local gopts1 tag(`tag')
+        local gopts1 `gopts1' generate(`generate')
+        local gopts1 `gopts1' counts(`counts')
+        local gopts1 `gopts1' fill(`fill')
+
+        local gopts2 `exitmissing'
+
+        local gopts3 `invertinmata'
+        local gopts3 `gopts3' sortindex(`sortindex')
+        local gopts3 `gopts3' `sortgen'
+        local gopts3 `gopts3' `skipcheck'
+
+        local gopts4 glevelsof(`glevelsof')
+        local gopts4 `gopts4' separate(`separate')
+        local gopts4 `gopts4' colseparate(`colseparate')
+        local gopts4 `gopts4' clean
+        local gopts4 `gopts4' numfmt(`numfmt')
+
+        disp as txt `""'
+        disp as txt "{cmd:_gtools_internal} (debug level `debug_level')"
+        disp as txt "{hline 72}"
+        disp as txt `""'
+        disp as txt `"    anything:         `anything'"'
+        disp as txt `"    [if] [in]:        `if' `in'"'
+        disp as txt `"    weights:          `weights'"'
+        disp as txt `"    gfunction:        `gfunction'"'
+        disp as txt `"    GTOOLS_CALLER:    $GTOOLS_CALLER"'
+        disp as txt `""'
+        disp as txt `"    verbose:          `verbose'"'
+        disp as txt `"    benchmark:        `benchmark'"'
+        disp as txt `"    hashmethod:       `hashmethod'"'
+        disp as txt `"    hashlib:          `hashlib'"'
+        disp as txt `"    oncollision:      `oncollision'"'
+        disp as txt `"    replace:          `replace'"'
+        disp as txt `""'
+        disp as txt `"    seecount:         `seecount'"'
+        disp as txt `"    countonly:        `countonly'"'
+        disp as txt `"    missing:          `missing'"'
+        disp as txt `"    keepmissing:      `keepmissing'"'
+        disp as txt `"    unsorted:         `unsorted'"'
+        disp as txt `"    countmiss:        `countmiss'"'
+        disp as txt `""'
+        disp as txt `"    sources:          `sources'"'
+        disp as txt `"    targets:          `targets'"'
+        disp as txt `"    stats:            `stats'"'
+        disp as txt `"    freq:             `freq'"'
+        disp as txt `"    rawstat:          `rawstat'"'
+        disp as txt `"    anymissing:       `anymissing'"'
+        disp as txt `"    allmissing:       `allmissing'"'
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
+        disp as txt `"    gegen:            `gopts1'"'
+        disp as txt `"    gisid:            `gopts2'"'
+        disp as txt `"    hashsort:         `gopts3'"'
+        disp as txt `"    glevelsof:        `gopts4'"'
+        disp as txt `"    gquantiles:       `gquantiles'"'
+        disp as txt `"    gcontract:        `gcontract'"'
+        disp as txt `"    gcollapse:        `gcollapse'"'
+        disp as txt `"    gtop:             `gtop'"'
+        disp as txt `"    recast:           `recast'"'
+        disp as txt `""'
+        disp as txt "{hline 72}"
+        disp as txt `""'
+    }
+
+    ***********************************************************************
+    *                               debug!                                *
+    ***********************************************************************
 
     * Check you will find the hash library (Windows only)
     * ---------------------------------------------------
@@ -151,13 +230,13 @@ program _gtools_internal, rclass
     local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
     local url `url'/master/spookyhash.dll
 
-    if ( "`hashlib'" == "" ) {
+    if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
         local hashusr 0
     }
     else local hashusr 1
 
-    if ( ("`c_os_'" == "windows") & `hashusr' ) {
+    if ( (`"`c_os_'"' == "windows") & `hashusr' ) {
         cap confirm file spookyhash.dll
         if ( _rc | `hashusr' ) {
             cap findfile spookyhash.dll
@@ -222,6 +301,16 @@ program _gtools_internal, rclass
             exit 198
         }
 
+        if ( `debug_level' ) {
+            disp as txt `""'
+            disp as txt "{cmd:_gtools_internal/recast} (debug level `debug_level')"
+            disp as txt "{hline 72}"
+            disp as txt `""'
+            disp as txt `"    sources:              `sources'"'
+            disp as txt `"    targets:              `targets'"'
+            disp as txt `"    __gtools_k_recast:    `:list sizeof sources'"'
+        }
+
         scalar __gtools_k_recast = `:list sizeof sources'
         cap noi plugin call gtools_plugin `targets' `sources', recast
         local rc = _rc
@@ -272,6 +361,9 @@ program _gtools_internal, rclass
     * Check options compatibility
     * ---------------------------
 
+    * Unsorted is passed automagically for isid and unique, where we
+    * don't care about sort order.
+
     if ( inlist("`gfunction'", "isid", "unique") ) {
         if ( "`unsorted'" == "" ) {
             di as txt "({opt gfunction(`gfunction')} sets option" ///
@@ -279,6 +371,10 @@ program _gtools_internal, rclass
             local unsorted unsorted
         }
     }
+
+    * isid exits with error if any variables have a missing value; the
+    * function needs to know whether to obey this rule or skip it (i.e.
+    * -missok- option in the caller)
 
     if ( inlist("`gfunction'", "isid") ) {
         if ( "`exitmissing'`missing'" == "" ) {
@@ -288,6 +384,12 @@ program _gtools_internal, rclass
             exit 198
         }
     }
+
+    * If the caller is sort, then
+    *     - It must be applied to the entire data set (no partial sorts)
+    *     - It does not exit if any observations are missing
+    *     - It also sorts rows with any missing observations
+    *     - The output cannot be unsorted!
 
     if ( inlist("`gfunction'", "sort") ) {
         if ( "`if'" != "" ) {
@@ -313,12 +415,19 @@ program _gtools_internal, rclass
         }
     }
 
+    * You cannot both exit if any observation is missing and not exit
+    * if any observation is missing. For several group functions, stata
+    * ignores a row if the by variable has a missing observation. This
+    * controls whether to exclude the row/throw an error or whether to
+    * include it as a new group.
+
     if ( ("`exitmissing'" != "") & ("`missing'" != "") ) {
         di as err "Cannot specify {opt exitmissing} with option {opt missing}"
         clean_all 198
         exit 198
     }
 
+    * If the caller is sort, you can request a sort index.
     if ( "`sortindex'" != "" ) {
         if ( !inlist("`gfunction'", "sort") ) {
             di as err "sort index only allowed with {opt gfunction(sort)}"
@@ -326,6 +435,12 @@ program _gtools_internal, rclass
             exit 198
         }
     }
+
+    * Counts, gen, and tag are generic options that were specially
+    * coded to work with egen count, group, and tag, espectively. Hence
+    * they are handled sepparately. However, we only allow them to be
+    * requested with egen, unique, sort, levelsof, or quantiles as the
+    * caller.
 
     if ( "`counts'`gen'`tag'" != "" ) {
         if ( "`countonly'" != "" ) {
@@ -351,6 +466,12 @@ program _gtools_internal, rclass
         }
     }
 
+    * Sources, targets, and stats are coded as generic options but they
+    * are basically only allowed with egen and collapse as callers. The
+    * generic "hash" caller will also accept it but it will not run any
+    * of the optimization checks that gegen and gcollapse do (specially
+    * gcollapse).
+
     if ( "`sources'`targets'`stats'" != "" ) {
         if ( !inlist("`gfunction'", "hash", "egen", "collapse", "unique") ) {
             di as err "cannot generate targets with {opt gfunction(`gfunction')}"
@@ -359,6 +480,12 @@ program _gtools_internal, rclass
         }
     }
 
+    * -fill()- is an option that was included at Sergio Correia's
+    * request. It allows the user to specify how certain output is to
+    * be filled (group: merge back to the data; missing: only the first
+    * observation of each group; adata: sequentially without merging
+    * back to the data). I believe he uses this internally in reghdfe.
+
     if ( "`fill'" != "" ) {
         if ( "`counts'`targets'" == "" ) {
             di as err "{opt fill()} only allowed with {opth counts(newvarname)}"
@@ -366,6 +493,14 @@ program _gtools_internal, rclass
             exit 198
         }
     }
+
+    * The levelsof caller's options were implemented before I got the
+    * idea of capturing each caller's options. Hence they are parsed
+    * here! Yay for legacy support.
+    *     - separate is the character that delimits each group
+    *     - colseparate is the char that delimits each column within a group
+    *     - clean is whether the strings should be left unquoted
+    *     - numfmt is how to print the numbers
 
     if ( "`separate'`colseparate'`clean'`numfmt'" != "" ) {
         local errmsg ""
@@ -382,6 +517,8 @@ program _gtools_internal, rclass
 
     * Parse weights
     * -------------
+
+    * Some functions allow weights, which are parsed here.
 
     gettoken wtype wvar: weights
 
@@ -406,8 +543,77 @@ program _gtools_internal, rclass
         }
     }
 
+    * Interestingly, stata allows for rawsum, but someone gave me the
+    * idea of implementing a generic -rawstat()- option, so weights are
+    * selectively applied to each individual target, if the user so
+    * chooses to specify it.
+
+    local wstats: copy local stats
+    local wselective 0
+    local skipstats percent
+
+    if ( "`rawstat'" != "" ) {
+        cap matrix drop wselmat
+        foreach var in `targets' {
+            gettoken wstat wstats: wstats
+            local inraw:    list posof `"`var'"'   in rawstat
+            local statskip: list posof `"`wstat'"' in skipstats
+            if ( (`inraw' > 0) & (`statskip' == 0) ) {
+                local ++wselective
+                matrix wselmat = nullmat(wselmat), 1
+            }
+            else if ( (`inraw' > 0) & (`statskip' > 0) ) {
+                disp as err "{opt rawstat} cannot be requested for {opt percent}"
+                exit 198
+            }
+            else {
+                matrix wselmat = nullmat(wselmat), 0
+            }
+        }
+
+        if ( `wselective' == 0 ) {
+            disp as err "{bf:Warning:} {opt rawstat} requested but none of the variables are targets"
+        }
+        else {
+            if ( `"`wtype'"' != "" ) {
+                disp "{bf:Warning:} 0 or missing weights are dropped for {bf:all} variables."
+            }
+        }
+    }
+    else {
+        matrix wselmat = J(1, 1, 0)
+    }
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:_gtools_internal/weights} (debug level `debug_level')"
+        disp as txt "{hline 72}"
+        disp as txt `""'
+        disp as txt `"    wtype:         `wtype'"'
+        disp as txt `"    wcode:         `wcode'"'
+        disp as txt `"    wstats:        `wstats'"'
+        disp as txt `"    wselective:    `wselective'"'
+        disp as txt `"    skipstats:     `skipstats'"'
+        disp as txt `"    rawstat:       `rawstat'"'
+        matrix list wselmat
+    }
+
     * Parse options into scalars, etc. for C
     * --------------------------------------
+
+    * C is great! It's fast, it's...well, it's fast. The compiler is
+    * cool too, but it's not the friendliest language to write stuff in.
+    * And Stata's C API is limited. It's awesome and amazing that it
+    * even exists, to be honest, but the functionality is wanting.
+    *
+    * Anyway, the easiest way to pass info to and from C is to use
+    * scalars and matrices. Moreover, it's easier to define EVERY
+    * variable that we could possibly set and read it from C every
+    * time vs going through the hassle of writing 16 pairs of if-else
+    * statements.
+    *
+    * Here I initialize all the relevant scalars and such to empty or
+    * dummy values as applicable.
 
     local any_if    = ( "if'"         != "" )
     local verbose   = ( "`verbose'"   != "" )
@@ -431,6 +637,7 @@ program _gtools_internal, rclass
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
+    scalar __gtools_weight_sel  = `wselective'
     scalar __gtools_nunique     = ( `:list posof "nunique" in stats' > 0 )
 
     scalar __gtools_top_ntop        = 0
@@ -445,6 +652,8 @@ program _gtools_internal, rclass
     matrix __gtools_top_num         = J(1, 1, .)
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
+    matrix __gtools_weight_smat     = wselmat
+    cap matrix drop wselmat
 
     scalar __gtools_levels_return   = 1
 
@@ -478,6 +687,9 @@ program _gtools_internal, rclass
     * Parse glevelsof options
     * -----------------------
 
+    * Again, glevelsof is parsed in the open since I defined the options
+    * before moving to capturing each caller's options.
+
     if ( `"`separate'"' == "" ) local sep `" "'
 	else local sep `"`separate'"'
 
@@ -509,6 +721,11 @@ program _gtools_internal, rclass
 
     * Parse target names and group fill
     * ---------------------------------
+
+    * tag, gen, and counts are set up as generic options. Here we figure
+    * out whether to generate each of them as empty variables or whether
+    * to over-write existing variables (if -replace- was specified by
+    * the user).
 
     * confirm new variable `gen_name'
     * local 0 `gen_name'
@@ -552,6 +769,12 @@ program _gtools_internal, rclass
         }
         local new_gen = `r(newvar)'
     }
+
+    * counts is a bit convoluted because it must obey the fill() option.
+    * Depending on the set up, we specify whether counts will be filled
+    * sequentially 1 / number of groups, whether they will be merged
+    * back to the data, or whether only the first entry within a group
+    * will be filled.
 
     scalar __gtools_group_data = 0
     scalar __gtools_group_fill = 0
@@ -624,6 +847,9 @@ program _gtools_internal, rclass
 
     * Generate new variables
     * ----------------------
+
+    * Here is where we actually generate the variables. If the target
+    * already exists we skip it; otherwise we add an empty variable.
 
     local kvars_group = 0
     scalar __gtools_encode  = 1
@@ -713,6 +939,20 @@ program _gtools_internal, rclass
     * Parse by types
     * --------------
 
+    * Finally parse the by variables We process the set of by variables.
+    * differently depending on their type. If any are strings, then we
+    * use the spooky hash regardless. If all are numbers, we may use a
+    * bijection, which is faster, instead.
+    *
+    * Here we obtain the number of string variables, the number of
+    * numeric variables, and the length of each string variables (to
+    * adequately allocate memory internally). For numeric variables
+    * we also need the min and the max, but we will find that out
+    * internally later on.
+    *
+    * Last, we parse whether or not to invert the sort orner of a given
+    * by variable ("-" preceding it).
+
     if ( "`anything'" != "" ) {
         local clean_anything `anything'
         local clean_anything: subinstr local clean_anything "+" "", all
@@ -746,6 +986,19 @@ program _gtools_internal, rclass
     local byvars = "`r(varlist)'"
     local bynum  = "`r(varnum)'"
     local bystr  = "`r(varstr)'"
+
+    * Unfortunately, the number of by variables we can process is
+    * limited by the number of entries we can store in a Stata matrix.
+    * We _could_ hack our way around this, but it would be very
+    * cumbersome for very little payoff. (Is it that common to request
+    * more than 800p by variables, sources, or targets? Or 11,000 in the
+    * case of MP?)
+    *
+    * Anyway, we check whether the largest allowed number of entries
+    * in a matrix is at least as large as the number of variables. If
+    * it's not, we try to set matsize to that number so we don't get any
+    * errors. If we reach Stata's limit then we throw an error and let
+    * the user know about this limitation.
 
     if ( "`byvars'" != "" ) {
         cap noi check_matsize `byvars'
@@ -805,6 +1058,29 @@ program _gtools_internal, rclass
     * Parse sources, targets, stats (sources and targets MUST exist!)
     * ---------------------------------------------------------------
 
+    * Here we code the position of each source and each target relative
+    * to each source. A single source can be the base of multiple
+    * targets. That is, consider:
+    *
+    *     source1 source2 source3 source4
+    *     target1 target2 target3 target4
+    *
+    * It coult be the case that, for example,
+    *
+    *     source1 = source3
+    *     source2 = source4
+    *
+    * Hence we pass the variable list as
+    *
+    *     source1 source3 target1 target2 target3 target4
+    *
+    * And the source of each target is (1, 2, 1, 2).
+    *
+    * We also need to encode the stat requested. It's inconsequential
+    * for a few groups, but if there are a large number of groups
+    * then it's much more efficient to use numbers to determine which
+    * statistic to compute than strings.
+
     matrix __gtools_stats        = 0
     matrix __gtools_pos_targets  = 0
     scalar __gtools_k_vars       = 0
@@ -848,7 +1124,7 @@ program _gtools_internal, rclass
 
             scalar __gtools_k_targets    = __gtools_k_targets + 1
             scalar __gtools_k_stats      = __gtools_k_stats   + 1
-            matrix __gtools_stats        = __gtools_stats,        -14
+            matrix __gtools_stats        = __gtools_stats,    -14
             matrix __gtools_pos_targets  = __gtools_pos_targets,  0
         }
 
@@ -883,12 +1159,70 @@ program _gtools_internal, rclass
     }
 
     ***********************************************************************
+    *                               Debug!                                *
+    ***********************************************************************
+
+    if ( `debug_level' ) {
+        disp as txt `""'
+        disp as txt "{cmd:_gtools_internal/setup} (debug level `debug_level')"
+        disp as txt "{hline 72}"
+        disp as txt `""'
+        disp as txt `"    sep:                 `sep'        "'
+        disp as txt `"    colsep:              `colsep'     "'
+        disp as txt `"    numfmt:              `numfmt'     "'
+        disp as txt `"    numlen:              `numlen'     "'
+        disp as txt `""'
+        disp as txt `"    tag_name:            `tag_name'   "'
+        disp as txt `"    tag_type:            `tag_type'   "'
+        disp as txt `"    gen_name:            `gen_name'   "'
+        disp as txt `"    gen_type:            `gen_type'   "'
+        disp as txt `"    counts_name:         `counts_name'"'
+        disp as txt `"    counts_type:         `counts_type'"'
+        disp as txt `""'
+        disp as txt `"    clean_anything:      `clean_anything'"'
+        disp as txt `"    invert:              `invert'"'
+        disp as txt `"    byvars:              `byvars'"'
+        disp as txt `"    bynum:               `bynum'"'
+        disp as txt `"    bystr:               `bystr'"'
+        disp as txt `""'
+        disp as txt `"    __gtools_sources:    `__gtools_sources'"'
+        disp as txt `"    __gtools_targets:    `__gtools_targets'"'
+        disp as txt `"    extravars:           `extravars'"'
+
+        scalar list
+        matrix dir
+    }
+
+    ***********************************************************************
     *                           Call the plugin                           *
     ***********************************************************************
 
     local rset = 1
     local opts oncollision(`oncollision')
     if ( "`gfunction'" == "sort" ) {
+
+        * Sorting using plugins internally involves several steps:
+        *
+        *     1) Make a copy of the data in memory
+        *     2) Sort the copy of the data in place
+        *     3) Copy the sorted copy back into Stata
+        *
+        * While step 2, the sort itself, is much faster in C, steps
+        * 1 and 3 make it so such an implementation is actually much
+        * slower than sorting in Stata. This involves only one step:
+        * Sort the copy of the data in place.
+        *
+        * Hence we use a trick!
+        *
+        *    1) Generate an index
+        *    2) Make a copy of the indexed sort variables
+        *    3) Sort the indexed copy
+        *    4) Copy the index to Stata
+        *    5) Re-arrange the data in place using the index
+        *
+        * This is still a multi-step process that is not particularly
+        * fast. Hence Stata, specially Stata/MP, can often still sort
+        * faster (since it's only one step).
 
         * Andrew Mauer's trick? From ftools
         * ---------------------------------
@@ -993,8 +1327,34 @@ program _gtools_internal, rclass
             stype double
         }
         if ( "`sortindex'" != "" ) gen `stype' `sortindex' = _n
+
+        if ( `debug_level' ) {
+            disp as txt `""'
+            disp as txt "{cmd:_gtools_internal/sort} (debug level `debug_level')"
+            disp as txt "{hline 72}"
+            disp as txt `""'
+            disp as txt `"    contained:         `contained'"'
+            disp as txt `"    skipcheck:         `skipcheck'"'
+            disp as txt `"    sortvar:           `sortvar'"'
+            disp as txt `"    sortvar_type:      `sortvar_type'"'
+            disp as txt `"    sortvar_is_str:    `sortvar_is_str'"'
+            disp as txt `"    gen_name:          `gen_name'"'
+            disp as txt `"    sortgen:           `sortgen'"'
+            disp as txt `"    sortindex:         `sortindex'"'
+            disp as txt `""'
+            disp as txt `"    byvars:            `byvars'"'
+            disp as txt `"    etargets:          `etargets'"'
+            disp as txt `"    hopts:             `hopts'"'
+            disp as txt `""'
+        }
     }
     else if ( "`gfunction'" == "collapse" ) {
+
+        * Collapse is a convoluted function. It would be simpler if
+        * Stata's C API was nicer, but due to the way it's written,
+        * we require a number of workarounds. See gcollapse.ado for
+        * details.
+
         local 0 `gcollapse'
         syntax anything, [st_time(real 0) fname(str) ixinfo(str) merge]
         scalar __gtools_st_time   = `st_time'
@@ -1061,8 +1421,42 @@ program _gtools_internal, rclass
 
         return scalar used_io = `=scalar(__gtools_used_io)'
         local runtxt " (internals)"
+
+        if ( `debug_level' ) {
+            disp as txt `""'
+            disp as txt "{cmd:_gtools_internal/collapse} (debug level `debug_level')"
+            disp as txt "{hline 72}"
+            disp as txt `""'
+            disp as txt `"    byvars:       `byvars'"'
+            disp as txt `"    etargets:     `etargets'"'
+            disp as txt `"    extravars:    `extravars'"'
+            disp as txt `"    ixinfo:       `ixinfo'"'
+            disp as txt `""'
+            disp as txt `"    [if] [in]:    `if' `in'"'
+            disp as txt `"    wvar:         `wvar'"'
+            disp as txt `"    fname:        `fname'"'
+            disp as txt `"    anything:     `anything'"'
+            disp as txt `""'
+
+            scalar list __gtools_st_time
+            scalar list __gtools_used_io
+            scalar list __gtools_ixfinish
+            scalar list __gtools_J
+            scalar list __gtools_init_targ
+            scalar list __gtools_weight_pos
+            scalar list __gtools_J
+        }
     }
     else {
+
+        * The rest of the functions can be easily dispatched using
+        * a similar set of steps. Internally:
+        *
+        *     1. Hash, index
+        *     2. Sort indexed hash
+        *     3. Determine group sizes and cut points
+        *     4. Use index and group info to compute the function
+
         if ( inlist("`gfunction'", "unique", "egen") ) {
             local gcall hash
         }
@@ -1154,6 +1548,20 @@ program _gtools_internal, rclass
             }
         }
         else if ( inlist("`gfunction'",  "quantiles") ) {
+
+            * gquantiles is the only complex function in this portion
+            * of the program. While it involves the same initial steps,
+            * it also requires additional work. In particular we need
+            * run a selection algorithm on the sources to compute the
+            * percentiles or xtile.
+            *
+            * The function does a number of other things, which I will
+            * not repeat here. For details see the documentation online:
+            *
+            *     https://gtools.readthedocs.io/en/latest/usage/gquantiles/index.html
+            *
+            * In particular, the "examples" section.
+
             local 0 `gquantiles'
             syntax [name],                    ///
             [                                 ///
@@ -1625,6 +2033,112 @@ program _gtools_internal, rclass
 
         local msg "Plugin runtime"
         gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+
+        if ( `debug_level' ) {
+            disp as txt `""'
+            disp as txt "{cmd:_gtools_internal/`gfunction'} (debug level `debug_level')"
+            disp as txt "{hline 72}"
+            disp as txt `""'
+            disp as txt `"    gcall:            `gcall'"'
+            disp as txt `""'                    
+            disp as txt `"    contractvars:     `contractvars'"'
+            disp as txt `""'                    
+            disp as txt `"    nolocalvar:       `nolocalvar'"'
+            disp as txt `"    freq:             `freq'"'
+            disp as txt `"    store:            `store'"'
+            disp as txt `""'                    
+            disp as txt `"    ntop:             `ntop'"'
+            disp as txt `"    pct:              `pct'"'
+            disp as txt `"    freq:             `freq'"'
+            disp as txt `"    misslab:          `misslab'"'
+            disp as txt `"    otherlab:         `otherlab'"'
+            disp as txt `"    groupmiss:        `groupmiss'"'
+            disp as txt `"    nrows:            `nrows'"'
+            disp as txt `""'                    
+            disp as txt `"    xvars:            `xvars'"'
+            disp as txt `"    xsources:         `xsources'"'
+            disp as txt `"    nquantiles:       `nquantiles'"'
+            disp as txt `"    quantiles:        `quantiles'"'
+            disp as txt `"    cutoffs:          `cutoffs'"'
+            disp as txt `"    quantmatrix:      `quantmatrix'"'
+            disp as txt `"    cutmatrix:        `cutmatrix'"'
+            disp as txt `"    cutpoints:        `cutpoints'"'
+            disp as txt `"    cutquantiles:     `cutquantiles'"'
+            disp as txt `"    pctile:           `pctile'"'
+            disp as txt `"    genp:             `genp'"'
+            disp as txt `"    binfreqvar:       `binfreqvar'"'
+            disp as txt `"    replace:          `replace'"'
+            disp as txt `"    returnlimit:      `returnlimit'"'
+            disp as txt `"    dedup:            `dedup'"'
+            disp as txt `"    cutifin:          `cutifin'"'
+            disp as txt `"    cutby:            `cutby'"'
+            disp as txt `"    _pctile:          `_pctile'"'
+            disp as txt `"    binfreq:          `binfreq'"'
+            disp as txt `"    method:           `method'"'
+            disp as txt `"    xmissing:         `xmissing'"'
+            disp as txt `"    altdef:           `altdef'"'
+            disp as txt `"    strict:           `strict'"'
+            disp as txt `"    minmax:           `minmax'"'
+            disp as txt `""'                    
+            disp as txt `"    xhow_nq:          `xhow_nq'"'
+            disp as txt `"    xhow_cutvars:     `xhow_cutvars'"'
+            disp as txt `"    xhow_qvars:       `xhow_qvars'"'
+            disp as txt `"    xhow_total:       `xhow_total'"'
+            disp as txt `"    xhow_cuts:        `xhow_cuts'"'
+            disp as txt `"    xhow_nq2:         `xhow_nq2'"'
+            disp as txt `"    xgen_ix:          `xgen_ix'"'
+            disp as txt `"    xgen_p:           `xgen_p'"'
+            disp as txt `"    xgen_gp:          `xgen_gp'"'
+            disp as txt `"    xgen_bf:          `xgen_bf'"'
+            disp as txt `"    xgen_tot:         `xgen_tot'"'
+            disp as txt `"    xgen_required:    `xgen_required'"'
+            disp as txt `"    xgen_any:         `xgen_any'"'
+            disp as txt `"    xbin_any:         `xbin_any'"'
+            disp as txt `"    xgen_maxdata:     `xgen_maxdata'"'
+            disp as txt `""'
+
+            cap matrix list __gtools_contract_which
+            cap matrix list __gtools_top_matrix
+            cap matrix list __gtools_top_num
+            cap matrix list __gtools_xtile_cutoffs
+            cap matrix list __gtools_xtile_quantbin
+            cap matrix list __gtools_xtile_cutbin
+            cap matrix list __gtools_xtile_quantiles
+
+            cap scalar list __gtools_top_ntop
+            cap scalar list __gtools_top_pct
+            cap scalar list __gtools_top_freq
+            cap scalar list __gtools_top_miss
+            cap scalar list __gtools_top_groupmiss
+            cap scalar list __gtools_top_other
+            cap scalar list __gtools_top_lmiss
+            cap scalar list __gtools_top_lother
+
+            cap scalar list __gtools_xtile_xvars
+            cap scalar list __gtools_xtile_nq
+            cap scalar list __gtools_xtile_nq2
+            cap scalar list __gtools_xtile_cutvars
+            cap scalar list __gtools_xtile_qvars
+            cap scalar list __gtools_xtile_gen
+            cap scalar list __gtools_xtile_ncuts
+            cap scalar list __gtools_xtile_pctile
+            cap scalar list __gtools_xtile_genpct
+            cap scalar list __gtools_xtile_pctpct
+            cap scalar list __gtools_xtile_altdef
+            cap scalar list __gtools_xtile_missing
+            cap scalar list __gtools_xtile_strict
+            cap scalar list __gtools_xtile_min
+            cap scalar list __gtools_xtile_max
+            cap scalar list __gtools_xtile_method
+            cap scalar list __gtools_xtile_bincount
+            cap scalar list __gtools_xtile__pctile
+            cap scalar list __gtools_xtile_dedup
+            cap scalar list __gtools_xtile_cutifin
+            cap scalar list __gtools_xtile_cutby
+            cap scalar list __gtools_xtile_imprecise
+            cap scalar list __gtools_xtile_size
+            cap scalar list __gtools_weight_pos
+        }
     }
 
     local msg "Total runtime`runtxt'"
@@ -1752,6 +2266,7 @@ program clean_all
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
+    cap scalar drop __gtools_weight_sel
     cap scalar drop __gtools_nunique
 
     cap scalar drop __gtools_top_ntop
@@ -1821,6 +2336,7 @@ program clean_all
     cap scalar drop __gtools_ixfinish
     cap scalar drop __gtools_J
 
+    cap matrix drop __gtools_weight_smat
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
     cap matrix drop __gtools_numpos
@@ -2203,7 +2719,10 @@ program parse_targets
                   semean     ///
                   sebinomial ///
                   sepoisson  ///
-                  nunique
+                  nunique    ///
+                  skewness   ///
+                  kurtosis   ///
+                  rawsum
 
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
@@ -2291,24 +2810,27 @@ end
 
 capture program drop encode_stat
 program encode_stat, rclass
-    if ( "`0'" == "sum"         ) local statcode -1
-    if ( "`0'" == "mean"        ) local statcode -2
-    if ( "`0'" == "sd"          ) local statcode -3
-    if ( "`0'" == "max"         ) local statcode -4
-    if ( "`0'" == "min"         ) local statcode -5
-    if ( "`0'" == "count"       ) local statcode -6
-    if ( "`0'" == "percent"     ) local statcode -7
-    if ( "`0'" == "median"      ) local statcode 50
-    if ( "`0'" == "iqr"         ) local statcode -9
-    if ( "`0'" == "first"       ) local statcode -10
-    if ( "`0'" == "firstnm"     ) local statcode -11
-    if ( "`0'" == "last"        ) local statcode -12
-    if ( "`0'" == "lastnm"      ) local statcode -13
-    if ( "`0'" == "freq"        ) local statcode -14
-    if ( "`0'" == "semean"      ) local statcode -15
-    if ( "`0'" == "sebinomial"  ) local statcode -16
-    if ( "`0'" == "sepoisson"   ) local statcode -17
-    if ( "`0'" == "nunique"     ) local statcode -18
+    if ( "`0'" == "sum"       ) local statcode -1
+    if ( "`0'" == "mean"      ) local statcode -2
+    if ( "`0'" == "sd"        ) local statcode -3
+    if ( "`0'" == "max"       ) local statcode -4
+    if ( "`0'" == "min"       ) local statcode -5
+    if ( "`0'" == "count"     ) local statcode -6
+    if ( "`0'" == "percent"   ) local statcode -7
+    if ( "`0'" == "median"    ) local statcode 50
+    if ( "`0'" == "iqr"       ) local statcode -9
+    if ( "`0'" == "first"     ) local statcode -10
+    if ( "`0'" == "firstnm"   ) local statcode -11
+    if ( "`0'" == "last"      ) local statcode -12
+    if ( "`0'" == "lastnm"    ) local statcode -13
+    if ( "`0'" == "freq"      ) local statcode -14
+    if ( "`0'" == "semean"    ) local statcode -15
+    if ( "`0'" == "sebinomial") local statcode -16
+    if ( "`0'" == "sepoisson" ) local statcode -17
+    if ( "`0'" == "nunique"   ) local statcode -18
+    if ( "`0'" == "skewness"  ) local statcode -19
+    if ( "`0'" == "kurtosis"  ) local statcode -20
+    if ( "`0'" == "rawsum"    ) local statcode -21
     return scalar statcode = `statcode'
 end
 

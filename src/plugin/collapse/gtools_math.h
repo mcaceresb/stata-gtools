@@ -22,10 +22,14 @@ ST_double gf_array_dsemean_range   (const ST_double v[], const GT_size start, co
 ST_double gf_array_dsebinom_range  (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dsepois_range   (const ST_double v[], const GT_size start, const GT_size end);
 
+ST_double gf_array_dskew_range     (const ST_double v[], const GT_size start, const GT_size end);
+ST_double gf_array_dkurt_range     (const ST_double v[], const GT_size start, const GT_size end);
+
 ST_double gf_array_dmedian_range   (ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_diqr_range      (ST_double v[], const GT_size start, const GT_size end);
 
 int gf_qsort_compare (const void * a, const void * b);
-ST_boolean gf_array_dsorted_range (const ST_double v[], const GT_size start, const GT_size end);
+GT_bool gf_array_dsorted_range (const ST_double v[], const GT_size start, const GT_size end);
+GT_bool gf_array_dsame (const ST_double *v, const GT_size N);
 
 #endif

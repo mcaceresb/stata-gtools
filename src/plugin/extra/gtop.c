@@ -18,7 +18,26 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     GT_size nrows    = ntop + st_info->top_miss + st_info->top_other;
     GT_size nalloc   = nrows > 0? nrows: 1;
     ST_double Ndbl   = (ST_double) st_info->N;
+    GT_bool debug    = st_info->debug;
     clock_t timer    = clock();
+
+    if ( debug ) {
+        sf_printf_debug("debug 1 (sf_top): read in meta info\n");
+        sf_printf_debug("\t"GT_size_cfmt" obs, "GT_size_cfmt" read, "GT_size_cfmt" groups.\n",
+                        st_info->N, st_info->Nread, st_info->J);
+        sf_printf_debug("\tin1 / in2: "GT_size_cfmt" / "GT_size_cfmt"\n", st_info->in1, st_info->in2);
+        sf_printf_debug("\tkvars_by_str: "GT_size_cfmt"\n", st_info->kvars_by_str);
+        sf_printf_debug("\tkvars_by_num: "GT_size_cfmt"\n", st_info->kvars_by_num);
+        sf_printf_debug("\tnumfmt_max:   "GT_size_cfmt"\n", st_info->numfmt_max);
+        sf_printf_debug("\n");
+        sf_printf_debug("\tkvars:        "GT_size_cfmt"\n", kvars);
+        sf_printf_debug("\tnumwidth:     "GT_size_cfmt"\n", numwidth);
+        sf_printf_debug("\tinvert:       %u\n",             invert);
+        sf_printf_debug("\ntop:          "GT_size_cfmt"\n", ntop);
+        sf_printf_debug("\tnrows:        "GT_size_cfmt"\n", nrows);
+        sf_printf_debug("\tnalloc:       "GT_size_cfmt"\n", nalloc);
+        sf_printf_debug("\n");
+    }
 
     /*********************************************************************
      *                     Step 2: Sort group counts                     *
@@ -35,6 +54,10 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("toptop")
     GTOOLS_GC_ALLOCATED("topall")
     GTOOLS_GC_ALLOCATED("topix")
+
+    if ( debug ) {
+        sf_printf_debug("debug 2 (sf_top): Memory allocation.\n");
+    }
 
     // Read group sizes as N - size so we sort in ascending order
     if ( invert ) {
@@ -62,6 +85,10 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     GT_size range = (st_info->nj_max - st_info->nj_min);
     GT_size ctol  = pow(2, 24);
 
+    if ( debug ) {
+        sf_printf_debug("debug 3 (sf_top): Top (or bottom) levels by count.\n");
+    }
+
     // Sort in ascending order, which is descending group order
     if ( range < ctol ) {
         if ( (rc = gf_counting_sort (topall, topix, st_info->J, min, max)) )
@@ -76,6 +103,10 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     if ( !invert ) {
         for (j = 0; j < st_info->J; j++)
             topall[j] = st_info->N - topall[j];
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 4 (sf_top): Sorted levels by count.\n");
     }
 
     /*********************************************************************
@@ -126,6 +157,10 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     if ( (rc = SF_macro_use("_colsep", colsep, (st_info->colsep_len + 1) * sizeof(char))) ) goto exit;
     if ( (rc = SF_macro_use("_sep",    sep,    (st_info->sep_len    + 1) * sizeof(char))) ) goto exit;
     if ( (rc = SF_macro_use("_numfmt", numfmt, (st_info->numfmt_len + 1) * sizeof(char))) ) goto exit;
+
+    if ( debug ) {
+        sf_printf_debug("debug 5 (sf_top): Read in locals with meta info.\n");
+    }
 
     /*********************************************************************
      *             Step 4: Get top groups and summary Stats              *
@@ -293,6 +328,10 @@ countmiss_dbl:
         }
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 6 (sf_top): Read in levels into string buffer.\n");
+    }
+
     if ( (rc = SF_macro_save("_vals", macrobuffer)) ) goto exit;
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote top levels to Stata macro");
@@ -338,6 +377,10 @@ countmiss_dbl:
         if ( (rc = SF_mat_store("__gtools_top_matrix", j + 1, 3, toptop[j * 5 + 2])) ) goto exit;
         if ( (rc = SF_mat_store("__gtools_top_matrix", j + 1, 4, toptop[j * 5 + 3])) ) goto exit;
         if ( (rc = SF_mat_store("__gtools_top_matrix", j + 1, 5, toptop[j * 5 + 4])) ) goto exit;
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 7 (sf_top): Created output matrix with frequency counts and such.\n");
     }
 
 exit:

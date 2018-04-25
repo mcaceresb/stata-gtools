@@ -8,6 +8,11 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
         return (sf_contract_w (st_info, level));
     }
 
+    GT_bool debug = st_info->debug;
+    if ( debug ) {
+        sf_printf_debug("debug 1 (sf_contract): Starting contract.\n");
+    }
+
     /*********************************************************************
      *                           Step 1: Setup                           *
      *********************************************************************/
@@ -28,6 +33,10 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->output")
     st_info->free = 9;
 
+    if ( debug ) {
+        sf_printf_debug("debug 2 (sf_contract): Allocated ouptut.\n");
+    }
+
     k = 0;
     l = st_info->ix[0];
     st_info->output[k++] = z = st_info->info[l + 1] - st_info->info[l];
@@ -42,6 +51,10 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
 
     if ( st_info->contract_which[3] ) {
         st_info->output[k++] = 100 * z / Ndbl;
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 3 (sf_contract): First frequency count.\n");
     }
 
     for (j = 1; j < st_info->J; j++) {
@@ -63,6 +76,10 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
         }
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 4 (sf_contract): Looped over all frequencies.\n");
+    }
+
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Generated output array");
 
@@ -76,6 +93,11 @@ ST_retcode sf_contract (struct StataInfo *st_info, int level)
 
 ST_retcode sf_contract_w (struct StataInfo *st_info, int level)
 {
+
+    GT_bool debug = st_info->debug;
+    if ( debug ) {
+        sf_printf_debug("debug 1 (sf_contract_w): Starting weighted contract.\n");
+    }
 
     /*********************************************************************
      *                           Step 1: Setup                           *
@@ -97,6 +119,10 @@ ST_retcode sf_contract_w (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->output")
     st_info->free = 9;
 
+    if ( debug ) {
+        sf_printf_debug("debug 2 (sf_contract): Allocated ouptut.\n");
+    }
+
     if ( st_info->wcode ) {
         for (j = 0; j < st_info->J; j++) {
             st_info->output[cvars * j] = 0;
@@ -109,6 +135,10 @@ ST_retcode sf_contract_w (struct StataInfo *st_info, int level)
                 Ndbl += z;
             }
         }
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 3 (sf_contract): Weighted group sizes.\n");
     }
 
     if ( st_info->benchmark > 1 )
@@ -129,6 +159,10 @@ ST_retcode sf_contract_w (struct StataInfo *st_info, int level)
         st_info->output[k++] = 100 * z / Ndbl;
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 4 (sf_contract): First group freq, weighted.\n");
+    }
+
     for (j = 1; j < st_info->J; j++) {
         k  = 0;
         z += st_info->output[j * cvars + k++];
@@ -144,6 +178,10 @@ ST_retcode sf_contract_w (struct StataInfo *st_info, int level)
         if ( st_info->contract_which[3] ) {
             st_info->output[j * cvars + k++] = 100 * z / Ndbl;
         }
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 5 (sf_contract): Looped over all frequencies, weighted.\n");
     }
 
     if ( st_info->benchmark > 1 )

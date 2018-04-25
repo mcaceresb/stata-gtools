@@ -129,6 +129,7 @@ struct StataInfo {
     GT_bool   countmiss;
     GT_bool   used_io;
     //
+    GT_size   wselective;
     GT_size   wpos;
     GT_size   kvars_group;
     GT_size   kvars_sources;
@@ -153,6 +154,7 @@ struct StataInfo {
     GT_size   *pos_str_byvars;
     GT_size   *group_targets;
     GT_size   *group_init;
+    GT_size   *wselmat;
     GT_size   *invert;
     GT_size   *positions;
     ST_double *missval;

@@ -159,9 +159,10 @@ timer list
 * Computation methods
 * -------------------
 
-* Computing quantiles involves selecting elements from an unordered two
-* ways: Using a selection algorithm on the unsorted variable or sorting and
-* then selecting elements of the sorted varaible.
+* Computing quantiles involves selecting elements from an unordered
+* array, which can be done in two ways: Using a selection algorithm on
+* the unsorted variable or sorting and then selecting elements of the
+* sorted varaible.
 
 * The internal selection algorithm of gquantiles is very fast and on average
 * will run in linear O(N) time (see quickselect) The sorting algorithm runs in

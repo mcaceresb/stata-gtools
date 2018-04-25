@@ -34,7 +34,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                           st_info->J * st_info->colsep_len * (kvars - 1);
 
     if ( debug ) {
-        sf_printf_debug("debug 1: read in meta info\n");
+        sf_printf_debug("debug 1 (sf_levelsof): read in meta info\n");
         sf_printf_debug("\t"GT_size_cfmt" obs, "GT_size_cfmt" read, "GT_size_cfmt" groups.\n",
                         st_info->N, st_info->Nread, st_info->J);
         sf_printf_debug("\tin1 / in2: "GT_size_cfmt" / "GT_size_cfmt"\n", st_info->in1, st_info->in2);
@@ -91,6 +91,10 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     if ( (rc = SF_macro_use("_colsep", colsep, (st_info->colsep_len + 1) * sizeof(char))) ) goto exit;
     if ( (rc = SF_macro_use("_sep",    sep,    (st_info->sep_len    + 1) * sizeof(char))) ) goto exit;
     if ( (rc = SF_macro_use("_numfmt", numfmt, (st_info->numfmt_len + 1) * sizeof(char))) ) goto exit;
+
+    if ( debug ) {
+        sf_printf_debug("debug 2 (sf_levelsof): Read in locals info.\n");
+    }
 
     if ( kvars > 1 ) {
         if ( st_info->kvars_by_str > 0 ) {
@@ -171,6 +175,10 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                 }
             }
         }
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 3 (sf_levelsof): Read all levels into string buffer.\n");
     }
 
     if ( (rc = SF_macro_save("_vals", macrobuffer)) ) goto exit;

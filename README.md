@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.12.5 06Mar2018`
+`version 0.13.0 24Apr2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -226,14 +226,17 @@ Remarks
 
 *__Functions available with `gegen` and `gcollapse`__*
 
-Other than `rawsum`, `gcollapse` supports every `collapse` function,
-including their weighted versions. `gegen` technically does not
-support all of `egen`, but whenever a function that is not supported
-is requested, `gegen` hashes the data and calls `egen` grouping by the
-hash, which is often faster (`gegen` only supports weights for internal
-functions, since `egen` does not normally allow weights).
+`gcollapse` supports every `collapse` function, including their
+weighted versions. In addition, weights can be selectively applied via
+`rawstat()`, and `nunique` counts the number of unique values.
 
-Hence both should be able to replicate almost all of the functionality of their
+`gegen` technically does not support all of `egen`, but whenever a
+function that is not supported is requested, `gegen` hashes the data and
+calls `egen` grouping by the hash, which is often faster (`gegen` only
+supports weights for internal functions, since `egen` does not normally
+allow weights).
+
+Hence both should be able to replicate all of the functionality of their
 Stata counterparts. The following are implemented internally in C:
 
 | Function    | gcollapse | gegen   |
@@ -259,6 +262,8 @@ Stata counterparts. The following are implemented internally in C:
 | sebinomial  |     X     |   X     |
 | sepoisson   |     X     |   X     |
 | percentiles |     X     |   X     |
+| skewness    |     X     |   X     |
+| kurtosis    |     X     |   X     |
 
 <small>(+) first, last, firstmn, and lastnm are different from their counterparts
 in the egenmore package and, instead, they are analogous to the gcollapse
@@ -297,9 +302,9 @@ Differences from `collapse`
 
 - String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- `rawsum` is not supported.
+- `rawstat` allows selectively applying weights.
 - `nunique` is supported.
-- Option `wild` allows bulk-rename. E.g. gcollapse mean_x* = x*, wild`
+- Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
@@ -354,6 +359,10 @@ Differences from `isid`
 - Option `sort` is not available.
 - It can also check IDs with `if` and `in` conditions.
 
+Differences from `gsort`
+
+- `hashsort` behaves as if `mfirst` was always passed.
+
 __*The Stata GUI freezes when running Gtools commands*__
 
 When Stata is executing the plugin, the user will not be able to interact
@@ -368,10 +377,6 @@ a "(Not Responding)" message on Windows or it may darken on \*nix systems).
 The program has not crashed; it is merely trying to swap memory.  To
 check this is the case, the user can monitor disk activity or monitor the
 pagefile/swap space directly.
-
-Differences from `gsort`
-
-`hashsort` behaves as if `mfirst` was always passed.
 
 TODO
 ----
@@ -389,8 +394,9 @@ Roadmap to 1.0
 - [X] Reconcile numerical precision issues in `gquantiles`
 - [X] Add support for weights (Windows and Unix).
     - [X] Add support for weights in OSX.
-- [ ] Add comments to all the code base
-- [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
+- [X] Add tests for `skewness` and `kurtosis`, specially OSX.
+- [X] Add comments to all the code base
+- [X] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
     - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
     - [ ] Have corner cases for ALL commands
@@ -402,21 +408,22 @@ Features that might make it to 1.0 (but I make no promises)
 - [ ] Have `mlast` option for hashsort?
     - [ ] Or switch its behavior and have `mfirst` do what it does now.
 - [ ] Add option to save glevelsof in a variable/matrix (incl freq).
-- [ ] Add option to control how to treat missing values in gcollapse
-    - [ ] anymissing()
-    - [ ] allmissing()
-- [ ] Minimize memory use.
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
+- [ ] Improve debugging info.
+- [ ] Improve code comments when you write the API!
+- [ ] Minimize memory use.
+- [ ] Add option to control how to treat missing values in gcollapse
+    - [ ] anymissing()
+    - [ ] allmissing()
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
 - [ ] Have some type of coding standard for the base (coding style)
-- [ ] Add `Var`, `kurtosis`, `skewness`
 - [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen

@@ -4,6 +4,10 @@
 #include "quicksort.c"
 #include "quicksortComparators.c"
 
+// All the multi-sort and multi-level checks follow the same logic. I
+// only detail the logic once, in MultiIsIDCheckDbl (for numeric only)
+// and MultiIsIDCheckMC (for a mix of string and numeric).
+
 /*********************************************************************
  *                              Doubles                              *
  *********************************************************************/

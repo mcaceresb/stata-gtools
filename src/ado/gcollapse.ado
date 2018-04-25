@@ -1,4 +1,4 @@
-*! version 0.12.5 06Mar2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.13.0 24Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -29,6 +29,7 @@ program gcollapse, rclass
         missing                      /// Preserve missing values for sums
         ANYMISSing(passthru)         /// Custom handling if any missing values per stat per group
         ALLMISSing(passthru)         /// Custom handling if all missing values per stat per group
+        rawstat(passthru)            /// Ignore weights for selected variables
                                      ///
                                      ///
         WILDparse                    /// parse assuming wildcard renaming
@@ -62,7 +63,7 @@ program gcollapse, rclass
     local keepmissing = cond("`missing'" == "", "", "keepmissing")
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
-    local gfallbackok = "`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`anymissing'`allmissing'" == ""
+    local gfallbackok = `"`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`rawstat'`anymissing'`allmissing'"' == `""'
 
     * Parse by call (make sure varlist is valid)
     * ------------------------------------------
@@ -235,7 +236,7 @@ program gcollapse, rclass
     * Subset if requested
     * -------------------
 
-    if ( ("`if'`wgt'" != "") | ("`cw'" != "") ) {
+    if ( (`"`if'`wgt'"' != `""') | ("`cw'" != "") ) {
         * marksample touse, strok novarlist
         tempvar touse
         mark `touse' `if' `in' `wgt'
@@ -462,7 +463,7 @@ program gcollapse, rclass
         local __gtools_gc_stats    `__gtools_gc_stats'   `stat'
     }
     local __gtools_gc_uniq_stats: list uniq __gtools_gc_stats
-    local __gtools_gc_uniq_vars:  list uniq __gtools_gc_stats
+    local __gtools_gc_uniq_vars:  list uniq __gtools_gc_vars
 
     ***********************************************************************
     *                             I/O switch                              *
@@ -476,7 +477,7 @@ program gcollapse, rclass
     local targets  targets(`__gtools_gc_targets')
     local opts     missing replace `keepmissing'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
-    local opts     `opts' `anymissing' `allmissing'
+    local opts     `opts' `anymissing' `allmissing' `rawstat'
     local action   `sources' `targets' `stats'
 
     local switch = (`=scalar(__gtools_gc_k_extra)' > 3) & (`debug_io_check' < `=_N')
@@ -594,6 +595,8 @@ program gcollapse, rclass
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
+
+        disp `"_gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)"'
     }
 
     cap noi _gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)
@@ -724,7 +727,7 @@ program gcollapse, rclass
     *                            Program Exit                             *
     ***********************************************************************
 
-    if ( "`unsorted'" == "" ) {
+    if ( ("`unsorted'" == "") & ("`merge'" == "") ) {
         mata: st_local("invert", strofreal(sum(st_matrix("__gtools_invert"))))
         if ( `invert' ) {
             mata: st_numscalar("__gtools_first_inverted", ///
@@ -972,7 +975,10 @@ program parse_vars
                 semean     ///
                 sebinomial ///
                 sepoisson  ///
-                nunique
+                nunique    ///
+                skewness   ///
+                kurtosis   ///
+                rawsum
 
     * Parse quantiles
     local anyquant  = 0
@@ -1403,6 +1409,10 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
     if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
     if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
+    if ( `"`0'"' == "skewness"    ) local prettystat "Skewness"
+    if ( `"`0'"' == "kurtosis"    ) local prettystat "Kurtosis"
+    if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
+
     if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
         local p = `:di regexs(1)'
              if ( mod(`p', 10) == 1 ) local prettystat "`p'st Pctile"
@@ -1443,9 +1453,11 @@ program ParseListWild
             exit 198
         }
 
-        if ( "`stat'" == "sem" ) local stat semean
-        if ( "`stat'" == "seb" ) local stat sebinomial
-        if ( "`stat'" == "sep" ) local stat sepoisson
+        if ( "`stat'" == "sem"  ) local stat semean
+        if ( "`stat'" == "seb"  ) local stat sebinomial
+        if ( "`stat'" == "sep"  ) local stat sepoisson
+        if ( "`stat'" == "skew" ) local stat skewness
+        if ( "`stat'" == "kurt" ) local stat kurtosis
 
         * Parse bulk rename if applicable
         unab usources : `vars'
@@ -1516,9 +1528,11 @@ program define ParseList
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 
-            if ( "`stat'" == "sem" ) local stat semean
-            if ( "`stat'" == "seb" ) local stat sebinomial
-            if ( "`stat'" == "sep" ) local stat sepoisson
+            if ( "`stat'" == "sem"  ) local stat semean
+            if ( "`stat'" == "seb"  ) local stat sebinomial
+            if ( "`stat'" == "sep"  ) local stat sepoisson
+            if ( "`stat'" == "skew" ) local stat skewness
+            if ( "`stat'" == "kurt" ) local stat kurtosis
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'

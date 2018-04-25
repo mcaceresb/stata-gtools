@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Mon Jan 22 19:54:18 EST 2018
+* Updated: Tue Apr 24 15:08:03 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.5
+* Version: 0.12.8
 * Manual:  help gtools
 
 * Stata start-up options
@@ -68,6 +68,7 @@ program main
             cap ssc install moremata
             cap ssc install fastxtile
             cap ssc install egenmisc
+            cap ssc install egenmore
             ftools, compile
         }
 
@@ -290,7 +291,7 @@ end
 
 capture program drop gen_data
 program gen_data
-    syntax, [n(int 100) random(int 0) binary(int 0) double skipstr]
+    syntax, [n(int 100) random(int 0) binary(int 0) float double skipstr]
     clear
     set obs `n'
 
@@ -428,7 +429,7 @@ program gen_data
 
     if ( `random' > 0 ) {
         forvalues i = 1 / `random' {
-            gen `double' random`i' = rnormal() * `i' * 5
+            gen `float'`double' random`i' = rnormal() * `i' * 5
             replace random`i' = . if mod(_n, 20) == 0
             if ( `binary' ) {
                 replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'
@@ -473,7 +474,7 @@ program checks_inner_collapse
     syntax [aw fw iw pw]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local stats nunique sum mean max min count percent first last firstnm lastnm median iqr
+    local stats nunique sum mean max min count percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -685,7 +686,34 @@ program compare_gcollapse
     compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
+
+    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui expand 50
+
+    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_skew_kurt, `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_gcollapse_skew, `options' tol(`tol')
+
+    compare_inner_gcollapse_skew -str_12,              `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_skew str_12 -str_32,       `options' tol(`tol') sort
+    compare_inner_gcollapse_skew str_12 -str_32 str_4, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_skew -double1,                 `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_skew double1 -double2,         `options' tol(`tol') sort
+    compare_inner_gcollapse_skew double1 -double2 double3, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_skew -int1,           `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_skew int1 -int2,      `options' tol(`tol') sort
+    compare_inner_gcollapse_skew int1 -int2 int3, `options' tol(`tol') shuffle
+
+    compare_inner_gcollapse_skew -int1 -str_32 -double1, `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_skew int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
+    compare_inner_gcollapse_skew int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 end
+
+***********************************************************************
+*                            Compare gegen                            *
+***********************************************************************
 
 capture program drop compare_inner_gcollapse_gegen
 program compare_inner_gcollapse_gegen
@@ -783,7 +811,7 @@ program _compare_inner_gcollapse_gegen
     syntax [aw fw iw pw]
 
     local sestats
-    local stats sum mean max min percent first last firstnm lastnm median iqr
+    local stats nunique sum mean max min percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd
         local sestats `sestats' sd
@@ -799,6 +827,7 @@ program _compare_inner_gcollapse_gegen
 
     gegen id = group(`anything'), missing
 
+    gegen double nunique = nunique (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double percent = percent (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double mean    = mean    (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double sum     = sum     (random1) `ifin' `wgt_ge',  by(`anything')
@@ -810,6 +839,8 @@ program _compare_inner_gcollapse_gegen
     gegen double last    = last    (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double firstnm = firstnm (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double lastnm  = lastnm  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double skew    = skew    (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double kurt    = kurt    (random1) `ifin' `wgt_ge',  by(`anything')
     gegen double q10     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(10.5)
     gegen double q30     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(30)
     gegen double q70     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(70)
@@ -822,7 +853,8 @@ program _compare_inner_gcollapse_gegen
     }
 
     qui `noisily' {
-        gcollapse (percent)    g_percent    = random1 ///
+        gcollapse (nunique)    g_nunique    = random1 ///
+                  (percent)    g_percent    = random1 ///
                   (mean)       g_mean       = random1 ///
                   (sum)        g_sum        = random1 ///
                   (median)     g_median     = random1 ///
@@ -833,6 +865,8 @@ program _compare_inner_gcollapse_gegen
                   (last)       g_last       = random1 ///
                   (firstnm)    g_firstnm    = random1 ///
                   (lastnm)     g_lastnm     = random1 ///
+                  (skew)       g_skew       = random1 ///
+                  (kurt)       g_kurt       = random1 ///
                   (p10.5)      g_q10        = random1 ///
                   (p30)        g_q30        = random1 ///
                   (p70)        g_q70        = random1 ///
@@ -851,17 +885,38 @@ program _compare_inner_gcollapse_gegen
     foreach fun in `stats' q10 q30 q70 q90 {
         cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
         if ( _rc ) {
-            recast double g_`fun' `fun'
-            cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
-            if ( _rc ) {
-                di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
-                exit _rc
+            if inlist("`fun'", "skew", "kurt") {
+                local a1 ((g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol')
+                local a2 (inlist(g_`fun', 1, -1) & mi(`fun'))
+                local a3 (inlist(`fun', 1, -1)   & mi(g_`fun'))
+                local a4 (nunique == 1)
+                cap noi assert `a1' | ((`a2' | `a3') & `a4')
+                if ( _rc ) {
+                    di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
+                    keep `ifin'
+                    keep if !(`a1' | ((`a2' | `a3') & `a4'))
+                    save /tmp/xx, replace
+                    exit _rc
+                }
+                else di as txt "    compare_gegen_gcollapse (imprecision): `fun'`wtxt' yielded similar results (tol = `tol')"
             }
-            else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
+            else {
+                recast double g_`fun' `fun'
+                cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+                if ( _rc ) {
+                    di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
+                    exit _rc
+                }
+                else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
+            }
         }
         else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
     }
 end
+
+***********************************************************************
+*                          Compare collapse                           *
+***********************************************************************
 
 capture program drop compare_inner_collapse
 program compare_inner_collapse
@@ -875,10 +930,10 @@ program compare_inner_collapse
         local wcall_a "[aw = unif_0_100]"
         local wgen_f  gen int_unif_0_100 = int(100 * runiform())
         local wcall_f "[fw = int_unif_0_100]"
-        local wgen_p  gen float_unif_0_1 = runiform()
-        local wcall_p "[pw = float_unif_0_1]"
         local wgen_i  gen rnormal_0_10 = 10 * rnormal()
         local wcall_i "[iw = rnormal_0_10]"
+        local wgen_p  gen float_unif_0_1 = runiform()
+        local wcall_p "[pw = float_unif_0_1]"
     }
     else {
         local wgt wgt(`wgt')
@@ -957,44 +1012,78 @@ program _compare_inner_collapse
     local 0 `wgt'
     syntax [aw fw iw pw]
 
-    local stats sum mean max min count percent first last firstnm lastnm median iqr
+    local stats sum mean max min count first last firstnm lastnm median iqr
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     local percentiles p1 p13 p30 p50 p70 p87 p99
     local collapse_str ""
+    local k1 ""
+    local k2 ""
+    local k3 ""
+
     foreach pct of local percentiles {
+        local k1 `k1' r1_`pct'
         local collapse_str `collapse_str' (`pct') r1_`pct' = random1
     }
     foreach stat of local stats {
+        local k1 `k1' r1_`stat'
         local collapse_str `collapse_str' (`stat') r1_`stat' = random1
     }
     foreach pct of local percentiles {
+        local k2 `k2' r2_`pct'
         local collapse_str `collapse_str' (`pct') r2_`pct' = random2
     }
     foreach stat of local stats {
+        local k2 `k2' r2_`stat'
         local collapse_str `collapse_str' (`stat') r2_`stat' = random2
     }
+    local k3 r1_percent r2_percent
+    local collapse_str `collapse_str' (percent) r1_percent = random1 r2_percent = random2
 
     if ( "`wgt'" == "" ) {
         local freq freq(freq)
+        local wgt_gc [fw = 42]
     }
 
+    local sopts by(`anything') verbose benchmark `options' `freq'
     preserve
-        timer clear
-        timer on 43
-        qui `noisily' gcollapse `collapse_str' `ifin' `wgt_gc', by(`anything') verbose benchmark `options' `freq'
-        timer off 43
-        qui timer list
-        local time_gcollapse = r(t43)
+        qui `noisily' gcollapse `collapse_str' `ifin' `wgt_gc', `sopts' rawstat(`k1')
+        if ( "`wgt'" == "" ) {
+            drop `k2'
+        }
+        else {
+            drop `k1'
+        }
+        tempfile fg1
+        qui save `fg1'
+    restore, preserve
+        qui `noisily' gcollapse `collapse_str' `ifin' `wgt_gc', `sopts' rawstat(`k2')
+        if ( "`wgt'" == "" ) {
+            drop `k1'
+        }
+        else {
+            drop `k2'
+        }
+        tempfile fg2
+        qui save `fg2'
+    restore, preserve
+        use `fg1', clear
+            qui ds *
+            local mergevars `r(varlist)'
+            local mergevars: list mergevars - k1
+            local mergevars: list mergevars - k2
+            local mergevars: list mergevars - k3
+            if ( "`mergevars'" == "" ) {
+                local mergevars _n
+            }
+            qui merge 1:1 `mergevars' using `fg2', assert(3) nogen
         tempfile fg
         qui save `fg'
     restore
 
     preserve
-        timer clear
-        timer on 42
         if ( "`wgt'" == "" ) {
             qui gen long freq = 1
             qui `noisily' collapse `collapse_str' (sum) freq `ifin' `wgt_ge', by(`anything')
@@ -1002,9 +1091,6 @@ program _compare_inner_collapse
         else {
             qui `noisily' collapse `collapse_str' `ifin' `wgt_ge', by(`anything')
         }
-        timer off 42
-        qui timer list
-        local time_gcollapse = r(t42)
         tempfile fc
         qui save `fc'
     restore
@@ -1026,7 +1112,16 @@ program _compare_inner_collapse
             qui merge 1:1 `by' using `fg', assert(3)
         }
         foreach var in `stats' `percentiles' {
-            qui count if ( (abs(r1_`var' - c_r1_`var') > `tol') & (r1_`var' != c_r1_`var'))
+            if inlist("`var'", "sd", "semean") {
+                local nonz1 & (r1_`var' != 0 & c_r1_`var' != .)
+                local nonz2 & (r2_`var' != 0 & c_r2_`var' != .)
+            }
+            else {
+                local nonz1
+                local nonz2
+            }
+
+            qui count if ( (abs(r1_`var' - c_r1_`var') > `tol') & (r1_`var' != c_r1_`var')) `nonz1'
             if ( `r(N)' > 0 ) {
                 gen bad_r1_`var' = abs(r1_`var' - c_r1_`var') * (r1_`var' != c_r1_`var')
                 local bad `bad' *r1_`var'
@@ -1035,7 +1130,7 @@ program _compare_inner_collapse
                 order *r1_`var'
             }
 
-            qui count if ( (abs(r2_`var' - c_r2_`var') > `tol') & (r2_`var' != c_r2_`var'))
+            qui count if ( (abs(r2_`var' - c_r2_`var') > `tol') & (r2_`var' != c_r2_`var')) `nonz2'
             if ( `r(N)' > 0 ) {
                 gen bad_r2_`var' = abs(r2_`var' - c_r2_`var') * (r2_`var' != c_r2_`var')
                 local bad `bad' *r2_`var'
@@ -1063,7 +1158,7 @@ program _compare_inner_collapse
             }
             order `bad'
             egen bad_any = rowmax(bad_*)
-            l *count* *mean* `bad' if bad_any
+            * l *count* *mean* `bad' if bad_any
             sum bad_*
             desc
             exit 9
@@ -1077,6 +1172,175 @@ program _compare_inner_collapse
             }
         }
     restore
+end
+
+***********************************************************************
+*                           Check skewness                            *
+***********************************************************************
+
+capture program drop compare_inner_gcollapse_skew
+program compare_inner_gcollapse_skew
+    syntax [anything], [tol(real 1e-6) sort shuffle wgt(str) *]
+
+    * iw and pw not allowed in -sum, detail-
+
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "mix" ) {
+        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wcall_a "[aw = unif_0_100]"
+        local wgen_f  gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wcall_f "[fw = int_unif_0_100]"
+        local wgen_p  `wgen_a'
+        local wcall_p `wcall_a'
+        local wgen_i  `wgen_f'
+        local wcall_i `wcall_f'
+    }
+    else {
+        local wgt wgt(`wgt')
+    }
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+
+    local N = trim("`: di %15.0gc _N'")
+    local hlen = 45 + length("`anything'") + length("`N'")
+    di _n(2) "Checking skewness and kurtosis. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+
+    preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_a'
+            local wgt wgt(both `wcall_a')
+        }
+        _compare_inner_gcollapse_skew `anything', `options' tol(`tol') `wgt'
+    restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_f'
+            local wgt wgt(both `wcall_f')
+        }
+        if ( "`shuffle'" != "" ) sort `rsort'
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gcollapse_skew  `anything' in `from' / `to', `options' `wgt' tol(`tol')
+    restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_i'
+            local wgt wgt(both `wcall_i')
+        }
+        _compare_inner_gcollapse_skew `anything' if random2 > 0, `options' `wgt' tol(`tol')
+    restore, preserve
+        if ( `"`wfoo'"' == "mix" ) {
+            `wgen_p'
+            local wgt wgt(both `wcall_p')
+        }
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        _compare_inner_gcollapse_skew `anything' if random2 < 0 in `from' / `to', `options' `wgt' tol(`tol')
+    restore
+end
+
+capture program drop _compare_inner_gcollapse_skew
+program _compare_inner_gcollapse_skew
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) *]
+
+    gettoken wfun wgt: wgt
+    local wgt `wgt'
+
+    if ( "`wgt'" != "" ) {
+        if inlist("`wfun'", "both", "g") {
+            local wgt_gc `wgt'
+        }
+        if inlist("`wfun'", "both", "c") {
+            local wgt_ge `wgt'
+        }
+        if ( "`wfun'" == "both" ) {
+            local wtxt " `wgt'"
+        }
+        else if ( "`wfun'" == "g" ) {
+            local wtxt " `wgt' (gcollapse only)"
+        }
+        else if ( "`wfun'" == "c" ) {
+            local wtxt " `wgt' (gegen only)"
+        }
+    }
+
+    local ifin `in' `if'
+    if ( `"`if'"' == "" ) {
+        local sifin `in' if id ==
+    }
+    else {
+        local sifin `in' `if' & id ==
+    }
+
+    local 0 `wgt'
+    syntax [aw fw iw pw]
+
+    gegen id = group(`anything') `ifin', missing
+    qui gunique id `ifin', missing
+    local J = `r(J)'
+    qui sum id
+    local maxid = `r(max)'
+    * gquantiles id, pctile(idlevel) cutpoints(id) dedup
+
+    local checks
+    forvalues i = 1 / 10 {
+        local j = ceil(runiform() * `J')
+        qui sum random1 `sifin' `j' `wgt_gc', d
+        local sd_`j'   = r(sd)
+        local skew_`j' = r(skewness)
+        local kurt_`j' = r(kurtosis)
+        local checks `checks' `j'
+    }
+
+    qui sum random1 `sifin' `maxid' `wgt_gc', d
+    local sd_`maxid'   = r(sd)
+    local skew_`maxid' = r(skewness)
+    local kurt_`maxid' = r(kurtosis)
+    local checks `checks' `maxid'
+
+    qui gcollapse (skew) skew = random1 (kurt) kurt = random1 (nunique) nq = random1 ///
+        `ifin' `wgt_gc', by(id) benchmark verbose `options' double
+
+    if ( "`ifin'" == "" ) {
+        di _n(1) "Checking full range`wtxt': `anything'"
+    }
+    else if ( "`ifin'" != "" ) {
+        di _n(1) "Checking [`ifin']`wtxt' range: `anything'"
+    }
+
+    * For skewness and kurtosis, numerical imprecision can cause the
+    * result to be -1 or 1 when it should really be missing. Internally
+    * 0 / 0 is computed as ε / ε for some ε small.
+
+    foreach fun in kurt skew {
+        local imprecise 0
+        foreach j in `checks' {
+        * disp "`j'"
+            cap assert ``fun'_`j'' == `fun'[`j'] | abs(``fun'_`j'' - `fun'[`j']) < `tol'
+            if ( _rc & (nq[`j'] > 1) ) {
+                cap noi assert 0
+                di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
+                exit _rc
+            }
+            else {
+                local imprecise 1
+            }
+        }
+
+        if ( `imprecise' ) {
+            di as txt "    compare_`fun'_gcollapse (imprecision): sum`wtxt' yielded similar results (tol = `tol')"
+        }
+        else {
+            di as txt "    compare_`fun'_gcollapse (passed): sum`wtxt' yielded same results (tol = `tol')"
+        }
+    }
 end
 
 ***********************************************************************
@@ -3292,7 +3556,7 @@ program checks_inner_egen
     syntax [aw fw iw pw]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm
+    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -3328,8 +3592,9 @@ program compare_egen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000) random(2)
-    qui expand 100
+    qui `noisily' gen_data, n(1000) random(2) float
+    * qui expand 100
+    qui expand 10
 
     compare_inner_egen, `options' tol(`tol')
 
@@ -3385,7 +3650,7 @@ capture program drop _compare_inner_egen
 program _compare_inner_egen
     syntax [anything] [if] [in], [tol(real 1e-6) *]
 
-    local stats       total sum mean sd max min count median iqr
+    local stats       total sum mean sd max min count median iqr skew kurt
     local percentiles 1 10 30 50 70 90 99
 
     cap drop g*_*
@@ -3407,7 +3672,6 @@ program _compare_inner_egen
         timer off 43
         qui timer list
         local time_gegen = r(t43)
-
 
         timer clear
         timer on 42
@@ -3885,17 +4149,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique unique
-    versus_unique str_12 str_32,       `options' funique unique
-    versus_unique str_12 str_32 str_4, `options' funique unique
+    versus_unique str_12,              `options' unique
+    versus_unique str_12 str_32,       `options' unique
+    versus_unique str_12 str_32 str_4, `options' unique
 
-    versus_unique double1,                 `options' funique unique
-    versus_unique double1 double2,         `options' funique unique
-    versus_unique double1 double2 double3, `options' funique unique
+    versus_unique double1,                 `options' unique
+    versus_unique double1 double2,         `options' unique
+    versus_unique double1 double2 double3, `options' unique
 
-    versus_unique int1,           `options' funique unique
-    versus_unique int1 int2,      `options' funique unique
-    versus_unique int1 int2 int3, `options' funique unique
+    versus_unique int1,           `options' unique
+    versus_unique int1 int2,      `options' unique
+    versus_unique int1 int2 int3, `options' unique
+
+    * versus_unique str_12,              `options' funique unique
+    * versus_unique str_12 str_32,       `options' funique unique
+    * versus_unique str_12 str_32 str_4, `options' funique unique
+    *
+    * versus_unique double1,                 `options' funique unique
+    * versus_unique double1 double2,         `options' funique unique
+    * versus_unique double1 double2 double3, `options' funique unique
+    *
+    * versus_unique int1,           `options' funique unique
+    * versus_unique int1 int2,      `options' funique unique
+    * versus_unique int1 int2 int3, `options' funique unique
 
     versus_unique int1 str_32 double1,                                        unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
@@ -3914,17 +4190,29 @@ program bench_unique
         di as txt "     `dsep' | -`dsep' | -`dsep' | ----------- | ----------- | -------"
     }
 
-    versus_unique str_12,              `options' funique
-    versus_unique str_12 str_32,       `options' funique
-    versus_unique str_12 str_32 str_4, `options' funique
+    versus_unique str_12,              `options'
+    versus_unique str_12 str_32,       `options'
+    versus_unique str_12 str_32 str_4, `options'
 
-    versus_unique double1,                 `options' funique
-    versus_unique double1 double2,         `options' funique
-    versus_unique double1 double2 double3, `options' funique
+    versus_unique double1,                 `options'
+    versus_unique double1 double2,         `options'
+    versus_unique double1 double2 double3, `options'
 
-    versus_unique int1,           `options' funique
-    versus_unique int1 int2,      `options' funique
-    versus_unique int1 int2 int3, `options' funique
+    versus_unique int1,           `options'
+    versus_unique int1 int2,      `options'
+    versus_unique int1 int2 int3, `options'
+
+    * versus_unique str_12,              `options' funique
+    * versus_unique str_12 str_32,       `options' funique
+    * versus_unique str_12 str_32 str_4, `options' funique
+    *
+    * versus_unique double1,                 `options' funique
+    * versus_unique double1 double2,         `options' funique
+    * versus_unique double1 double2 double3, `options' funique
+    *
+    * versus_unique int1,           `options' funique
+    * versus_unique int1 int2,      `options' funique
+    * versus_unique int1 int2 int3, `options' funique
 
     versus_unique int1 str_32 double1,                                        `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    `options'
@@ -4003,13 +4291,6 @@ end
 * ---------------------
 
 cap mata: mata drop funique()
-cap pr drop funique
-program funique
-	syntax varlist [if] [in], [Detail]
-	
-	mata: funique("`varlist'", "`detail'"!="")
-end
-
 mata:
 mata set matastrict off
 void funique(string scalar varlist, real scalar detail)
@@ -4026,6 +4307,14 @@ void funique(string scalar varlist, real scalar detail)
 	}
 }
 end
+
+cap program drop funique
+program funique
+	syntax varlist [if] [in], [Detail]
+	
+	mata: funique("`varlist'", "`detail'"!="")
+end
+
 capture program drop checks_levelsof
 program checks_levelsof
     syntax, [tol(real 1e-6) NOIsily *]

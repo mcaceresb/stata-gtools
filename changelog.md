@@ -1,6 +1,59 @@
 Change Log
 ==========
 
+## gtools-0.13.0 (2018-04-24)
+
+### Enhancements
+
+- Added some basic debugging code and comments to the code base.
+
+### Bug fixes
+
+- `sd`, `semean` give the correct answer when the group is a singleton
+   or when all observations are the same.
+- `skew`, `kurt` give the correct answer when the group is a singleton
+   or when all observations are the same.
+
+## gtools-0.12.8 (2018-04-23)
+
+### Features
+
+* Added `rawsum`
+* Added option `rawstat()`; you can pass a list of targets for which
+  weights will be ignored. `percent` cannot be called with `rawstat`.
+  All targets must be named _**explicitly**_ (i.e. will not expand
+  varlist notation). Fixes https://github.com/mcaceresb/stata-gtools/issues/37
+
+Neither rawsum nor rawstat are very smart. If the user requests them
+without weights, they will be ignored without warning. If the user
+requests them with weights, the weighted version will still be called
+(weighted internals are slower than unweighted internals).
+
+### Bug fixes
+
+- When not weighted, `skew` and `kurt` return missing when all
+  observations are the same. When weighted, they may return -1 or 1
+  due to numerical (im)precission problems. This issue is also present
+  in Stata's implementation and should only come up when working with
+  doubles rounded to arbitrary decimal places.
+
+## gtools-0.12.7 (2018-04-05)
+
+### Bug fixes
+
+* Added OSX plugin in build.
+* Enclosed various macros in `""' in case they contain quotations.
+
+## gtools-0.12.6 (2018-03-31)
+
+### Features
+
+* Added skewness and kurtosis to `gcollapse` and `gegen`
+
+### Bug fixes
+
+* Fixed install issues in https://github.com/mcaceresb/stata-gtools/issues/36
+
 ## gtools-0.12.5 (2018-03-06)
 
 ### Bug fixes

@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Jan 23 08:32:25 EST 2018
+ * Updated: Mon Apr 23 20:54:30 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.12.5
+ * Version: 0.12.8
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 25 Oct 2017
+ * @date 25 Apr 2018
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -41,6 +41,8 @@
 
 #include "collapse/gtools_math.c"
 #include "collapse/gtools_math_w.c"
+#include "collapse/gtools_math_unw.c"
+
 #include "collapse/gtools_nunique.c"
 #include "collapse/gtools_utils.c"
 #include "collapse/gegen_w.c"
@@ -85,6 +87,23 @@ STDLL stata_call(int argc, char *argv[])
     st_info->free = 0;
     GTOOLS_GC_INIT
 
+    /**************************************************************************
+     * This is the main wrapper. We apply one of:                             *                                          
+     *                                                                        *
+     *     - check:     Exit with 0 status. This just tests the plugin can be *                                                                      
+     *                  called from Stata without crashing.                   *                                                    
+     *     - recast:    Bulk copy sources into targets.                       *                                                
+     *     - hash:      Generic (read, hash, sort, generate, summary stats).  *                                                                     
+     *     - isid:      Do by vars uniquely identify obs?                     *                                                  
+     *     - levelsof:  Levels of by variables.                               *                                        
+     *     - top:       Top levels by frequency.                              *                                         
+     *     - contract:  Frequency counts of levels.                           *                                            
+     *     - hashsort:  Sort data by variables.                               *                                        
+     *     - quantiles: Percentiles, xtile, bin counts, and more.             *                                                          
+     *     - collapse:  Summary stat by group.                                *                                       
+     *                                                                        *
+     **************************************************************************/
+
     if ( strcmp(todo, "check") == 0 ) {
         goto exit;
     }
@@ -103,6 +122,18 @@ STDLL stata_call(int argc, char *argv[])
         goto exit;
     }
     else if ( strcmp(todo, "collapse") == 0 ) { // (Note: keeps by copy; always)
+
+        /*********************************************************************
+         * collapse dispatcher                                               * 
+         *                                                                   * 
+         *     - memory: Targets in memory                                   * 
+         *     - switch: Hash only. May generate targets; may write to disk. * 
+         *     - forceio: Write to disk.                                     * 
+         *     - ixfinish: Targets and group info in memory.                 * 
+         *     - read: Read targets from disk.                               * 
+         *                                                                   * 
+         *********************************************************************/
+
         if ( argc < 2 ) {
             sf_errprintf ("collapse requires a subcommand\n");
             rc = 198; goto exit;
@@ -250,7 +281,6 @@ exit:
     free (tostat);
     free (todo);
 
-
     return (rc);
 }
 
@@ -310,6 +340,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             hash_method,
             wcode,
             wpos,
+            wselective,
             nunique,
             any_if,
             countmiss,
@@ -394,6 +425,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_sel",     &wselective)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_nunique",        &nunique)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
@@ -447,6 +479,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_k_targets",      &kvars_targets)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_k_group",        &kvars_group)    )) goto exit;
 
+    if ( debug ) {
+        printf("debug 1: Read all integer scalars\n");
+    }
+
     // Value fill for group
     if ( (rc = SF_scal_use("__gtools_group_val", &(st_info->group_val) )) ) return (rc);
 
@@ -461,6 +497,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_kvars_num", &kvars_by_num) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_kvars_str", &kvars_by_str) )) goto exit;
 
+    if ( debug ) {
+        printf("debug 2: Read all double scalars\n");
+    }
+
     // Parse variable lengths, positions, and sort order
     st_info->byvars_lens     = calloc(kvars_by,     sizeof st_info->byvars_lens);
     st_info->invert          = calloc(kvars_by,     sizeof st_info->invert);
@@ -469,6 +509,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
     st_info->group_init      = calloc(3,            sizeof st_info->group_init);
 
+    st_info->wselmat         = calloc((wselective    > 0)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
     st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
     st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2       : 1, sizeof st_info->xtile_quantiles);
@@ -477,6 +518,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->invert          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
     if ( st_info->pos_num_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
     if ( st_info->pos_str_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
     if ( st_info->group_targets   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
@@ -490,6 +532,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
     GTOOLS_GC_ALLOCATED("st_info->invert")
+    GTOOLS_GC_ALLOCATED("st_info->wselmat")
     GTOOLS_GC_ALLOCATED("st_info->pos_num_byvars")
     GTOOLS_GC_ALLOCATED("st_info->pos_str_byvars")
     GTOOLS_GC_ALLOCATED("st_info->group_targets")
@@ -500,8 +543,13 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->xtile_quantiles")
     GTOOLS_GC_ALLOCATED("st_info->xtile_cutoffs")
 
-    if ( (rc = sf_get_vector_size ("__gtools_bylens", st_info->byvars_lens) )) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_invert", st_info->invert)      )) goto exit;
+    if ( debug ) {
+        printf("debug 3: Allocated all matrices\n");
+    }
+
+    if ( (rc = sf_get_vector_size ("__gtools_bylens",      st_info->byvars_lens) )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_invert",      st_info->invert)      )) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_weight_smat", st_info->wselmat)     )) goto exit;
 
     if ( (rc = sf_get_vector      ("__gtools_stats",           st_info->statcode)        )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_pos_targets",     st_info->pos_targets)     )) goto exit;
@@ -521,6 +569,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( (rc = sf_get_vector_size ("__gtools_group_targets", st_info->group_targets)) ) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_group_init",    st_info->group_init))    ) goto exit;
+
+    if ( debug ) {
+        printf("debug 4: Read matrices into arrays\n");
+    }
 
     /*********************************************************************
      *                    Save into st_info structure                    *
@@ -548,6 +600,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
+    st_info->wselective     = wselective;
     st_info->nunique        = nunique;
 
     st_info->unsorted       = unsorted;
@@ -611,6 +664,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
      *                              Cleanup                              *
      *********************************************************************/
 
+    if ( debug ) {
+        printf("debug 5: Stored all internal variables in st_info\n");
+    }
+
     st_info->free = 1;
 
 exit:
@@ -665,6 +722,35 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
     st_info->free = 2;
 
+    // The by variables are copied to a custom array. echnically it is a
+    // Tcharacter array, but it is structured as follows:
+    //
+    //     | numeric | string7 | numeric | string32 |
+    //     | 8 bytes | 7 bytes | 8 bytes | 32 bytes |
+    //
+    // string variables. The exception is if the by variables are all
+    // That is, we allocate enough bytes to hold all the numeric and
+    //
+    // numeric, in which case we simply use a numeric array. The
+    // positions array stores the position of each entry. We have a
+    // sepparate array that tells us the variable type and length of
+    // each string (st_info->byvars_lens). So we have, in the example
+    // above:
+    //
+    //     position[0] = 0
+    //     position[1] = 8
+    //     position[2] = 15
+    //     position[3] = 23
+    //
+    //     st_info->byvars_lens[0] = -1
+    //     st_info->byvars_lens[1] = 7
+    //     st_info->byvars_lens[2] = -1
+    //     st_info->byvars_lens[3] = 32
+    //
+    // -1 denotes double, so we know to read 8 bytes. Then rowbytes
+    // would be 55, the total number of bytes required to store roweach
+    // of the by variables.
+
     st_info->positions[0] = rowbytes = 0;
     for (k = 1; k < kvars + 1; k++) {
         ilen = st_info->byvars_lens[k - 1] * sizeof(char);
@@ -679,11 +765,20 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     }
     st_info->rowbytes = rowbytes;
 
+    if ( st_info->debug ) {
+        printf("debug 6: Read in hash variable position and ranges\n");
+    }
+
     /*********************************************************************
      *              Special processing for no by variables               *
      *********************************************************************/
 
     if ( st_info->kvars_by == 0 ) {
+
+        // If there is only one group or no groups, it's faster to
+        // process this sepparately since we know the answers for all
+        // the variables we care about.
+
         st_info->st_numx  = malloc(sizeof(ST_double));
         st_info->st_charx = malloc(sizeof(char));
 
@@ -750,6 +845,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     if ( index == NULL ) return (sf_oom_error("sf_read_byvars", "index"));
     GTOOLS_GC_ALLOCATED("index")
 
+    if ( st_info->debug ) {
+        printf("debug 7: No special processing for singleton group; allocated inex\n");
+    }
+
     /*********************************************************************
      *                       Read in by variables                        *
      *********************************************************************/
@@ -757,6 +856,14 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     if ( (rc = sf_read_byvars (st_info,
                                level,
                                index)) ) goto exit;
+
+    if ( st_info->debug ) {
+        printf("debug 8: Read in by variables\n");
+    }
+
+    // The number of variables passed in start / end may not be the same
+    // as the nubmer read. In particular if an if condition was passed,
+    // we will need to adjust the index.
 
     N = st_info->N;
     if ( st_info->N < Nread ) {
@@ -781,12 +888,27 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
     stimer = clock();
 
+    if ( st_info->debug ) {
+        printf("debug 9: Allocated second index\n");
+    }
+
     /*********************************************************************
      *                  Check whether is id (isid only)                  *
      *********************************************************************/
 
     if ( level == 2 ) {
+        if ( st_info->debug ) {
+            printf("debug 10: isid\n");
+        }
+
+        // If the data is already sorted, checking whether we have an id
+        // is faster to do pre-hash than post.
+
         if ( st_info->kvars_by_str > 0 ) {
+            if ( st_info->debug ) {
+                printf("debug 11: checking ID with string mix\n");
+            }
+
             if ( (rc = MultiIsIDCheckMC (st_info->st_charx,
                                          st_info->N,
                                          0,
@@ -795,6 +917,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                                          st_info->byvars_lens,
                                          st_info->invert,
                                          st_info->positions)) >= 0 ) {
+
+                if ( st_info->debug ) {
+                    printf("debug 12: isid checked multi-level\n");
+                }
 
                 // rc == 0 means the result from a comparison was 0, that is,
                 // two elements within a group were the same. This means that
@@ -818,17 +944,29 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 goto exit;
             }
             else {
+                if ( st_info->debug ) {
+                    printf("debug 13: isid data is not sorted\n");
+                }
+
                 if ( st_info->verbose )
                     sf_printf("Data not sorted; will hash.\n");
             }
         }
         else {
+            if ( st_info->debug ) {
+                printf("debug 14: checking ID with numeric data only\n");
+            }
+
             if ( (rc = MultiIsIDCheckDbl(st_info->st_numx,
                                          st_info->N,
                                          0,
                                          st_info->kvars_by - 1,
                                          st_info->kvars_by * sizeof(ST_double),
                                          st_info->invert)) >= 0 ) {
+
+                if ( st_info->debug ) {
+                    printf("debug 15: isid checked multi-level\n");
+                }
 
                 // Ibid.
                 if ( rc == 0 ) {
@@ -847,6 +985,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 goto exit;
             }
             else {
+                if ( st_info->debug ) {
+                    printf("debug 16: isid data not sorted\n");
+                }
+
                 if ( st_info->verbose )
                     sf_printf("Data not sorted; will hash.\n");
             }
@@ -857,6 +999,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
      *                          Check if sorted                          *
      *********************************************************************/
 
+    if ( st_info->debug ) {
+        printf("debug 17: check if data is sorted\n");
+    }
+
     // With hashsort, only check if skipcheck is not specified; if
     // sorted simply exit. With isid, we have already checked and we
     // need to skip this part. With all others, check if it is sorted
@@ -864,7 +1010,16 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
     checksorted = (level != 2) & (level != 3);
     if ( ((level == 3) & (st_info->skipcheck == 0)) | checksorted ) {
+
+        if ( st_info->debug ) {
+            printf("debug 18: checking if input by vars are sorted\n");
+        }
+
         if ( st_info->kvars_by_str > 0 ) {
+            if ( st_info->debug ) {
+                printf("debug 19: mix with strings\n");
+            }
+
             st_info->sorted = MultiSortCheckMC (
                 st_info->st_charx,
                 st_info->N,
@@ -877,6 +1032,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             );
         }
         else {
+            if ( st_info->debug ) {
+                printf("debug 20: mix only numeric\n");
+            }
+
             st_info->sorted = MultiSortCheckDbl(
                 st_info->st_numx,
                 st_info->N,
@@ -886,24 +1045,54 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 st_info->invert
             );
         }
+
+        if ( st_info->debug ) {
+            printf("debug 21: sorted? %d\n", st_info->sorted? 1: 0);
+        }
+
         if ( st_info->verbose & st_info->sorted )
             sf_printf("(already sorted)\n");
     }
     else {
         st_info->sorted = 0;
+        if ( st_info->debug ) {
+            printf("debug 22: data not sorted or no we skipped the check\n");
+        }
     }
 
     if ( (level == 3) & (st_info->skipcheck == 0) & st_info->sorted ) {
+        if ( st_info->debug ) {
+            printf("debug 23: data is sorted and we want to sort, so we exit\n");
+        }
         rc = 17013;
         goto exit;
     }
 
+    if ( st_info->debug ) {
+        printf("debug 24: checkpoint outside if-else\n");
+    }
+
+    // If the data is already sorted, then we can set up the panel
+    // pre-hash, which is faster than post. We care about the index
+    // and info arrays; the latter notes the starting position of each
+    // group. This can simply be done when a group changes. This is
+    // not trivial to do with multiple variables, but it's faster than
+    // hashing since we are only doing comparisons and loops.
+
     checksorted = checksorted & (st_info->hash_method == 0);
     if ( checksorted & st_info->sorted ) {
+        if ( st_info->debug ) {
+            printf("debug 25: the data is already sorted; set up the panel directly\n");
+        }
+
         GT_size *info_largest = calloc(st_info->N + 1, sizeof *info_largest);
         if ( info_largest == NULL ) return (sf_oom_error("sf_hash_byvars", "info_largest"));
 
         if ( st_info->kvars_by_str > 0 ) {
+            if ( st_info->debug ) {
+                printf("debug 26: sorted string mix multi-level panel setup\n");
+            }
+
             st_info->J = MultiSortPanelSetupMC (
                 st_info->st_charx,
                 st_info->N,
@@ -918,6 +1107,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             );
         }
         else {
+            if ( st_info->debug ) {
+                printf("debug 27: sorted numeric only multi-level panel setup\n");
+            }
+
             st_info->J = MultiSortPanelSetupDbl (
                 st_info->st_numx,
                 st_info->N,
@@ -941,30 +1134,57 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             st_info->info[i] = info_largest[i];
 
         free(info_largest);
+
+        if ( st_info->debug ) {
+            printf("debug 28: set up done (group cutpoints)\n");
+        }
+    }
+
+    if ( st_info->debug ) {
+        printf("debug 29: checkpoint outside if-else\n");
     }
 
     /*********************************************************************
      *            Check whether to hash or to use a bijection            *
      *********************************************************************/
 
+    // It's feasible to use a bijection when all the inputs are
+    // integers. If all the source variables are numeric then we check
+    // whether they are all integers and whether we can biject them into
+    // the natural numbers. We check for that here.
+
     if ( checksorted & st_info->sorted ) {
         st_info->biject = 1;
+        if ( st_info->debug ) {
+            printf("debug 30: hash will use bijection\n");
+        }
     }
     else if ( (kstr > 0) | (st_info->hash_method == 2) ) {
         st_info->biject = 0;
+        if ( st_info->debug ) {
+            printf("debug 31: hash will use spooky\n");
+        }
     }
     else {
         if ( (rc = gf_bijection_limits (st_info, level)) ) goto exit;
         if ( st_info->benchmark > 2 )
             sf_running_timer (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
+
+        if ( st_info->debug ) {
+            printf("debug 32: hash strategy automagically determined\n");
+        }
+    }
+
+    if ( st_info->debug ) {
+        printf("debug 33: checkpoint outside if-else\n");
     }
 
     /*********************************************************************
      *                       Panel setup and info                        *
      *********************************************************************/
 
-    // Hash and sort
-    // -------------
+    // Hash or biject, then sort
+    // -------------------------
 
     uint64_t *ghash1;
     uint64_t *ghash2;
@@ -972,6 +1192,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     if ( checksorted & st_info->sorted ) {
         ghash1 = malloc(sizeof(uint64_t));
         ghash2 = malloc(sizeof(uint64_t));
+
+        if ( st_info->debug ) {
+            printf("debug 34: Allocated dummies for hash arrays.\n");
+        }
     }
     else if ( st_info->biject ) {
         ghash1 = calloc(N, sizeof *ghash1);
@@ -979,6 +1203,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
         if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
+
+        if ( st_info->debug ) {
+            printf("debug 35: Allocated one hash array for bijection.\n");
+        }
     }
     else {
         ghash1 = calloc(N, sizeof *ghash1);
@@ -986,12 +1214,19 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         if ( ghash1 == NULL ) sf_oom_error("sf_hash_byvars", "ghash1");
         if ( ghash2 == NULL ) sf_oom_error("sf_hash_byvars", "ghash2");
+
+        if ( st_info->debug ) {
+            printf("debug 35: Allocated two arrays for 128-bit hash.\n");
+        }
     }
 
     GTOOLS_GC_ALLOCATED("ghash1")
     GTOOLS_GC_ALLOCATED("ghash2")
 
     if ( checksorted & st_info->sorted ) {
+        if ( st_info->debug ) {
+            printf("debug 36: Data already sorted; will skip hash.\n");
+        }
     }
     else {
         if ( (rc = gf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
@@ -999,6 +1234,14 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
 
         stimer = clock();
+
+        if ( st_info->debug ) {
+            printf("debug 37: Hashed by variables; spooky or bijection.\n");
+        }
+    }
+
+    if ( st_info->debug ) {
+        printf("debug 38: checkpoint outside if-else\n");
     }
 
     // Level 2 is code for isid
@@ -1007,6 +1250,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     if ( level == 2 ) {
 
         rc_isid = gf_isid (ghash1, ghash2, st_info, ix, !(st_info->biject));
+
+        if ( st_info->debug ) {
+            printf("debug 39: Checked id for unsorted data.\n");
+        }
 
         if ( st_info->benchmark > 1 )
             sf_running_timer (&timer, "\tPlugin step 3: Checked if group is id");
@@ -1026,7 +1273,22 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         // Otherwise, set up panel normally
         // --------------------------------
 
+        // It's trivial to write code to find the group starting points
+        // from a single array. Once we have the hash we only need to
+        // check the positions where an entry changes.
+        //
+        // The only slight complication is that the spooky hash is a
+        // two-part hash. We check whether the groups defined by the
+        // first part are unique. Within the groups that are not unique
+        // we refine the cutpoints using the second part.
+        //
+        // Most of the time the first part will be enough, so it's much
+        // faster to only use the first part if it is sufficient.
+
         if ( checksorted & st_info->sorted ) {
+            if ( st_info->debug ) {
+                printf("debug 40: no need to set up panel if sorted.\n");
+            }
         }
         else {
             if ( (rc = gf_panelsetup (ghash1,
@@ -1034,6 +1296,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                                       st_info,
                                       ix,
                                       !(st_info->biject))) ) goto error;
+
+            if ( st_info->debug ) {
+                printf("debug 41: panel set up using hash info.\n");
+            }
         }
 
         if ( st_info->benchmark > 2 )
@@ -1070,8 +1336,29 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         if ( (rc = sf_set_rinfo (st_info, level)) ) goto error;
 
+        if ( st_info->debug ) {
+            printf("debug 42: some panel info using group cut points.\n");
+        }
+
         // Copy Stata index in correct order
         // ---------------------------------
+
+        // We keep track of 3 arrays throughout that help us read and
+        // write grouped data from and to stata.
+        //
+        //     - info[j]:  The starting position of group j in the sorted hash;
+        //                 info[J] is the number of observations.
+        //
+        //     - index[i]: info[j] to info[j + 1] (left inclusive, right exclusive)
+        //                 are the starting and ending positions of group j.
+        //                 index[info[j]] to index[info[j + 1] - 1] are the
+        //                 positions of each entry in the group in the unsorted
+        //                 data.
+        //
+        //     - ix[s]:    The group in sort order s; that is, the group ix[s]
+        //                 has sort order s. In other words, processing groups
+        //                 ix[0], ix[1], ..., ix[J - 1] would process them in
+        //                 order.
 
         if ( st_info->N < Nread ) {
 
@@ -1089,6 +1376,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
             free (ix);
             GTOOLS_GC_FREED("ix")
+
+            if ( st_info->debug ) {
+                printf("debug 43: Adjust index if any obs were skipped (if/missing)\n");
+            }
         }
         else {
             st_info->index = calloc(st_info->N, sizeof(st_info->index));
@@ -1099,6 +1390,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 st_info->index[i] = index[i];
 
             st_info->ix = st_info->index;
+
+            if ( st_info->debug ) {
+                printf("debug 44: Copy index as is.\n");
+            }
         }
 
         if ( st_info->benchmark > 2 )
@@ -1110,6 +1405,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             sf_running_timer (&timer, "\tPlugin step 3: Set up panel");
 
         stimer = clock();
+    }
+
+    if ( st_info->debug ) {
+        printf("debug 45: Done with hasing, indexing, and all dat!\n");
     }
 
 error:
@@ -1163,12 +1462,27 @@ exit:
 
 ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
 {
+
+    // Here we decide whether or not to collapse the output to disk or
+    // whether it will be faster to generate the variables in memory and
+    // collapse to memory. We call it switching because at this point we
+    // have not generated the targets in memory, so we are assuming that
+    // collapsing to disk might be faster.
+    //
+    // If it will not be, we switch from this path. We will store info,
+    // index, and ix in Stata and generate the variables there. We pick
+    // up from this point and collapse to memory.
+
     ST_retcode rc = 0;
     GT_size i, j;
     clock_t timer = clock();
 
     ST_double st_time;
     if ( (rc = SF_scal_use ("__gtools_st_time", &st_time)) ) goto exit;
+
+    if ( st_info->debug ) {
+        printf("debug 46: I/O switching code.\n");
+    }
 
     ST_double c_rate      = gf_benchmark(fname);
     ST_double time_vars   = (ST_double) (st_info->kvars_targets - st_info->kvars_sources);
@@ -1185,6 +1499,10 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
     }
     else {
         used_io = (c_time < st_time);
+    }
+
+    if ( st_info->debug ) {
+        printf("debug 47: Determine if we will write variables to disk.\n");
     }
 
     if ( st_info->verbose ) {
@@ -1216,6 +1534,10 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
 
     if ( used_io ) {
         st_info->used_io = 1;
+
+        if ( st_info->debug ) {
+            printf("debug 48: Will use I/O; read back later.\n");
+        }
     }
     else {
         GT_size kvars    = st_info->kvars_by;
@@ -1235,6 +1557,10 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
         if ( (rc = SF_vstore(ipos + 2, j + st_info->in1, st_info->info[j])) ) goto exit;
 
         st_info->used_io = 0;
+
+        if ( st_info->debug ) {
+            printf("debug 49: Will not use I/O; must allocate all memory from Stata.\n");
+        }
     }
 
     if ( st_info->benchmark > 1 )
@@ -1246,6 +1572,10 @@ exit:
 
 ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
 {
+
+    // Read in info, index, and ix from Stata after deciding to switch
+    // and collapse stats to memory.
+
     ST_double z;
     ST_retcode rc = 0;
     GT_size i, j;
@@ -1265,6 +1595,10 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     GT_size kgroup   = st_info->kvars_group;
     GT_size ipos     = kvars + kgroup + ksources + ktargets + 1;
 
+    if ( st_info->debug ) {
+        printf("debug 50: Index from stata.\n");
+    }
+
     for (i = 0; i < st_info->N; i++) {
         if ( (rc = SF_vdata(ipos, i + st_info->in1, &z)) ) goto exit;
         st_info->index[i] = (GT_size) z;
@@ -1280,6 +1614,10 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     j = st_info->J;
     if ( (rc = SF_vdata(ipos + 2, j + st_info->in1, &z)) ) goto exit;
     st_info->info[j] = (GT_size) z;
+
+    if ( st_info->debug ) {
+        printf("debug 51: Read index and info stored in stata.\n");
+    }
 
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 4: Read info, index from Stata");
@@ -1297,6 +1635,7 @@ exit:
 void sf_free (struct StataInfo *st_info, int level)
 {
     if ( st_info->free >= 1 ) {
+        free (st_info->wselmat);
         free (st_info->invert);
         free (st_info->missval);
         free (st_info->byvars_lens);
@@ -1310,6 +1649,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->xtile_quantiles);
         free (st_info->xtile_cutoffs);
 
+        GTOOLS_GC_FREED("st_info->wselmat")
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
         GTOOLS_GC_FREED("st_info->byvars_lens")

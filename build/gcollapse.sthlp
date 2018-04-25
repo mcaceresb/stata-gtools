@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.12.5 06Mar2018}{...}
+{* *! version 0.12.8 23Apr2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -60,10 +60,13 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt p99}}99th percentile{p_end}
 {p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
 {p2col :{opt sum}}sums{p_end}
+{p2col :{opt rawsum}}sums, ignoring optionally specified weight except observations with a weight of zero are excluded{p_end}
 {p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
 {p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
 {p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
+{p2col :{opt skewness}}Skewness{p_end}
+{p2col :{opt kurtosis}}Kurtosis{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
@@ -90,6 +93,8 @@ user press {hi:Break}
 {p_end}
 
 {syntab:Extras}
+{synopt :{opth rawstat(varlist)}}Sequence of target names for which to ignore weights.
+{p_end}
 {synopt :{opt missing}}Sums are set to missing when all inputs in group are also missing.
 {p_end}
 {synopt :{opt merge}}Merge statistics back to original data, replacing if applicable.
@@ -166,6 +171,13 @@ possible observations are used for each calculated statistic.
 should the user press {hi:Break}.
 
 {dlgtab:Extras}
+
+{phang}
+{opth rawstat(varlist)}Sequence of target names for which to ignore
+weights, except observations with a weight of zero or missing, which are
+excluded. This is a generalization of {opt rawsum}, but it is specified
+for each individual target (if no target is specified, the source
+variable name is what we call target).
 
 {phang}
 {opt missing} Sums are set to missing (instead of 0) when all input

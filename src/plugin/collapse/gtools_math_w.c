@@ -22,7 +22,7 @@
  * @return @fname(@v[@start to @end])
  */
 ST_double gf_switch_fun_code_w (
-    ST_double fcode, 
+    ST_double fcode,
     ST_double *v,
     GT_size N,
     ST_double *w,
@@ -32,16 +32,48 @@ ST_double gf_switch_fun_code_w (
     GT_bool   aw,
     ST_double *p_buffer)
 {
-    if ( fcode == -1  )  return (aw? vsum * vcount / wsum: vsum);                               // sum
-    if ( fcode == -2  )  return (wsum == 0? SV_missval: vsum / wsum);                           // mean
-    if ( fcode == -3  )  return (gf_array_dsd_weighted      (v, N, w, vsum, wsum, vcount, aw)); // sd)
-    if ( fcode == -4  )  return (gf_array_dmax_weighted     (v, N));                            // max
-    if ( fcode == -5  )  return (gf_array_dmin_range        (v, 0, N));                         // min
-    if ( fcode == -9  )  return (gf_array_diqr_weighted     (v, N, w, wsum, vcount, p_buffer)); // iqr
-    if ( fcode == -15 )  return (gf_array_dsemean_weighted  (v, N, w, vsum, wsum, vcount, aw)); // semean
-    if ( fcode == -16 )  return (gf_array_dsebinom_weighted (v, N, w, vsum, wsum, vcount));     // sebinomial
-    if ( fcode == -17 )  return (gf_array_dsepois_weighted  (v, N, w, vsum, wsum, vcount));     // sepoisson
-    return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));               // percentiles
+         if ( fcode == -1  )  return (aw? vsum * vcount / wsum: vsum);                               // sum
+    else if ( fcode == -2  )  return (wsum == 0? SV_missval: vsum / wsum);                           // mean
+    else if ( fcode == -3  )  return (gf_array_dsd_weighted      (v, N, w, vsum, wsum, vcount, aw)); // sd)
+    else if ( fcode == -4  )  return (gf_array_dmax_weighted     (v, N));                            // max
+    else if ( fcode == -5  )  return (gf_array_dmin_range        (v, 0, N));                         // min
+    else if ( fcode == -9  )  return (gf_array_diqr_weighted     (v, N, w, wsum, vcount, p_buffer)); // iqr
+    else if ( fcode == -15 )  return (gf_array_dsemean_weighted  (v, N, w, vsum, wsum, vcount, aw)); // semean
+    else if ( fcode == -16 )  return (gf_array_dsebinom_weighted (v, N, w, vsum, wsum, vcount));     // sebinomial
+    else if ( fcode == -17 )  return (gf_array_dsepois_weighted  (v, N, w, vsum, wsum, vcount));     // sepoisson
+    else if ( fcode == -19 )  return (gf_array_dskew_weighted    (v, N, w, vsum, wsum, vcount));     // skewness
+    else if ( fcode == -20 )  return (gf_array_dkurt_weighted    (v, N, w, vsum, wsum, vcount));     // kurtosis
+    else if ( fcode == -21 )  return (gf_array_drawsum_weighted  (v, N));                            // rawsum
+    else {
+        return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                // percentiles
+    }
+}
+
+/**
+ * @brief Sum of entries in range of array, unweighted
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Unweighted sum
+ */
+ST_double gf_array_drawsum_weighted (ST_double *v, GT_size N)
+{
+    ST_double *vptr = v;
+    ST_double vsum  = 0;
+    GT_size   nobs  = 0;
+    for (vptr = v; vptr < v + N; vptr++) {
+        if ( *vptr < SV_missval ) {
+            vsum += *vptr;
+            nobs += 1;
+        }
+    }
+
+    if ( nobs > 0 ) {
+        return (vsum);
+    }
+    else {
+        return (SV_missval);
+    }
 }
 
 /**
@@ -201,7 +233,7 @@ void gf_array_dsum_dcount_weighted (
             _wsum += *wptr;
             _vsum += (*vptr) * (*wptr);
             nobs++;
-        } 
+        }
     }
 
     *vsum   = nobs? _vsum: SV_missval;
@@ -289,7 +321,7 @@ ST_double gf_array_dmean_weighted (
         if ( *vptr < SV_missval ) {
             wsum += *wptr;
             vsum += (*vptr) * (*wptr);
-        } 
+        }
     }
 
     return (wsum == 0? SV_missval: vsum / wsum);
@@ -316,7 +348,11 @@ ST_double gf_array_dsd_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
+
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
 
     ST_double *vptr;
     ST_double *wptr  = w;
@@ -367,7 +403,11 @@ ST_double gf_array_dsemean_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
+
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
 
     ST_double *vptr;
     ST_double *wptr  = w;
@@ -451,6 +491,113 @@ ST_double gf_array_dsepois_weighted (
 }
 
 /**
+ * @brief Weighted skewness
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @param vsum sum(v_i * w_i)
+ * @param wsum sum(w_i)
+ * @param vcount sum(v_i < SV_missval)
+ * @return Skewness for the elements of @v
+ */
+ST_double gf_array_dskew_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount)
+{
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (SV_missval);
+    }
+
+    if ( wsum == 0 ) return (SV_missval);
+
+    ST_double *vptr, s1, s2, aux1, aux2;
+    ST_double *wptr = w;
+    ST_double m2    = 0;
+    ST_double m3    = 0;
+    ST_double vmean = vsum / wsum;
+    GT_size   nobs  = 0;
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr < SV_missval ) {
+            s1 = (*vptr) - vmean;
+            s2 = s1 * s1;
+            m2 += (*wptr) * s2;
+            m3 += (*wptr) * s2 * s1;
+            nobs++;
+        }
+    }
+
+    m2 /= wsum;
+    m3 /= wsum;
+
+    if ( (nobs > 1) && (m2 > 0) ) {
+        aux1 = sqrt(m2);
+        aux2 = aux1 * aux1 * aux1;
+        return (aux2 > 0? m3 / aux2: SV_missval);
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
+ * @brief Weighted kurtosis
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @param vsum sum(v_i * w_i)
+ * @param wsum sum(w_i)
+ * @param vcount sum(v_i < SV_missval)
+ * @return Kurtosis for the elements of @v
+ */
+ST_double gf_array_dkurt_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount)
+{
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (SV_missval);
+    }
+
+    if ( wsum == 0 ) return (SV_missval);
+
+    ST_double *vptr, s;
+    ST_double *wptr = w;
+    ST_double m2    = 0;
+    ST_double m4    = 0;
+    ST_double vmean = vsum / wsum;
+    GT_size   nobs  = 0;
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr < SV_missval ) {
+            s  = SQUARE((*vptr) - vmean);
+            m2 += (*wptr) * s;
+            m4 += (*wptr) * s * s;
+            nobs++;
+        }
+    }
+
+    m2 /= wsum;
+    m4 /= wsum;
+
+    if ( (nobs > 1) && (m2 > 0) ) {
+        return (m2 > 0? m4 / (m2 * m2): SV_missval);
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
  * @brief Max of enries in range of array
  *
  * @param v vector of doubles containing the current group's variables
@@ -484,4 +631,51 @@ ST_double gf_array_dmax_weighted (ST_double *v, GT_size N)
     // Return largest non-missing if at least one non-missing; return
     // largest missing if all missing
     return (max);
+}
+
+/**
+ * @brief Determine if all entries are the same, weighted
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Whether the elements of @v are the same, weighted
+ */
+GT_bool gf_array_dsame_weighted (ST_double *v, ST_double *w, GT_size N) {
+    ST_double *vstart = v, *vptr;
+    ST_double *wstart = w, *wptr;
+
+    while ( (*vstart >= SV_missval) || (*wstart >= SV_missval) ) {
+        vstart++;
+        wstart++;
+    }
+
+    wptr = wstart + 1;
+    for (vptr = vstart + 1; vptr < v + N; vptr++, wptr++) {
+        if ( (*vptr < SV_missval) && (*wptr < SV_missval) && ( ((*vstart) * (*wstart)) != ((*vptr) * (*wptr)) ) ) {
+            return (0);
+        }
+    }
+
+    return (1);
+}
+
+/**
+ * @brief Determine if all entries are the same, unweighted
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Whether the elements of @v are the same, unweighted
+ */
+GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N) {
+    ST_double *vstart = v, *vptr;
+
+    while ( *vstart >= SV_missval ) {
+        vstart++;
+    }
+
+    for (vptr = vstart + 1; vptr < v + N; vptr++) {
+        if ( (*vptr < SV_missval) && (*vstart != *vptr) ) return (0);
+    }
+
+    return (1);
 }

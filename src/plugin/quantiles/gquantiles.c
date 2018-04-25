@@ -39,6 +39,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_bool minmax   = st_info->xtile_minmax;
     GT_bool bincount = st_info->xtile_bincount;
     GT_bool _pctile  = st_info->xtile__pctile;
+    GT_bool debug    = st_info->debug;
 
     GT_size kvars          = st_info->kvars_by;
     GT_size ksources       = st_info->kvars_sources;
@@ -58,6 +59,46 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     nout = GTOOLS_PWMAX(nq,   (nq2 + 1));
     nout = GTOOLS_PWMAX(nout, (ncuts + 1));
     nout = GTOOLS_PWMAX(nout, 1);
+
+    if ( debug ) {
+        sf_printf_debug("debug 1 (sf_xtile): read in meta info\n");
+        sf_printf_debug("\t"GT_size_cfmt" read, "GT_size_cfmt" groups.\n", Nread, st_info->J);
+        sf_printf_debug("\tin1 / in2: "GT_size_cfmt" / "GT_size_cfmt"\n", st_info->in1, st_info->in2);
+        sf_printf_debug("\n");
+        sf_printf_debug("\tmethod:            %u\n",              method);
+        sf_printf_debug("\tnout:              %u\n",              nout);
+        sf_printf_debug("\tnq:                "GT_size_cfmt"\n",  nq);
+        sf_printf_debug("\tnq2:               "GT_size_cfmt"\n",  nq2);
+        sf_printf_debug("\tncuts:             "GT_size_cfmt"\n",  ncuts);
+        sf_printf_debug("\tcutvars:           "GT_size_cfmt"\n",  cutvars);
+        sf_printf_debug("\tqvars:             "GT_size_cfmt"\n",  qvars);
+        sf_printf_debug("\tnpoints:           "GT_size_cfmt"\n",  npoints);
+        sf_printf_debug("\tnquants:           "GT_size_cfmt"\n",  nquants);
+        sf_printf_debug("\n");                                   
+        sf_printf_debug("\tkgen:              "GT_size_cfmt"\n",  kgen);
+        sf_printf_debug("\tpctile:            %u\n",              pctile);
+        sf_printf_debug("\tgenpct:            %u\n",              genpct);
+        sf_printf_debug("\tpctpct:            %u\n",              pctpct);
+        sf_printf_debug("\tkpctile:           "GT_size_cfmt"\n",  kpctile);
+        sf_printf_debug("\txstart:            "GT_size_cfmt"\n",  xstart);
+        sf_printf_debug("\n");                                   
+        sf_printf_debug("\taltdef:            %u\n",              altdef);
+        sf_printf_debug("\tminmax:            %u\n",              minmax);
+        sf_printf_debug("\tbincount:          %u\n",              bincount);
+        sf_printf_debug("\t_pctile:           %u\n",              _pctile);
+        sf_printf_debug("\tdebug:             %u\n",              debug);
+        sf_printf_debug("\n");                                   
+        sf_printf_debug("\tkvars:             "GT_size_cfmt"\n",  kvars);
+        sf_printf_debug("\tksources:          "GT_size_cfmt"\n",  ksources);
+        sf_printf_debug("\tktargets:          "GT_size_cfmt"\n",  ktargets);
+        sf_printf_debug("\tstart_sources:     "GT_size_cfmt"\n",  start_sources);
+        sf_printf_debug("\tstart_targets:     "GT_size_cfmt"\n",  start_targets);
+        sf_printf_debug("\tstart_xtile:       "GT_size_cfmt"\n",  start_xtile);
+        sf_printf_debug("\tstart_genpct:      "GT_size_cfmt"\n",  start_genpct);
+        sf_printf_debug("\tstart_cutvars:     "GT_size_cfmt"\n",  start_cutvars);
+        sf_printf_debug("\tstart_qvars:       "GT_size_cfmt"\n",  start_qvars);
+        sf_printf_debug("\tstart_xsources:    "GT_size_cfmt"\n",  start_xsources);
+    }
 
     /*********************************************************************
      *                         Memory Allocation                         *
@@ -79,13 +120,25 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     if ( xpoints  == NULL ) return(sf_oom_error("sf_quantiles", "xpoints"));
     if ( xquants  == NULL ) return(sf_oom_error("sf_quantiles", "xquants"));
 
+    if ( debug ) {
+        sf_printf_debug("debug 2 (sf_xtile): Allocated memory\n");
+    }
+
     /*********************************************************************
      *                     Cutvars and cutquantiles                      *
      *********************************************************************/
 
     if ( st_info->xtile_cutifin ) {
         if ( st_info->any_if ) {
+            if ( debug ) {
+                sf_printf_debug("debug 5 (sf_xtile): cut if in, any if\n");
+            }
+
             if ( cutvars ) {
+                if ( debug ) {
+                    sf_printf_debug("debug 3 (sf_xtile): cut if in, any if, cut vars\n");
+                }
+
                 obs = 0;
                 for (i = 0; i < Nread; i++) {
                     if ( SF_ifobs(i + in1) ) {
@@ -98,6 +151,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
 
             if ( qvars ) {
+                if ( debug ) {
+                    sf_printf_debug("debug 4 (sf_xtile): cut if in, any if, q vars\n");
+                }
+
                 obs = 0;
                 for (i = 0; i < Nread; i++) {
                     if ( SF_ifobs(i + in1) ) {
@@ -110,7 +167,15 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
         }
         else {
+            if ( debug ) {
+                sf_printf_debug("debug 8 (sf_xtile): cut if in, not any if\n");
+            }
+
             if ( cutvars ) {
+                if ( debug ) {
+                    sf_printf_debug("debug 8 (sf_xtile): cut if in, not any if, cut vars\n");
+                }
+
                 for (i = 0; i < Nread; i++) {
                     if ( (rc = SF_vdata(start_cutvars,
                                         i + in1,
@@ -120,6 +185,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
 
             if ( qvars ) {
+                if ( debug ) {
+                    sf_printf_debug("debug 8 (sf_xtile): cut if in, not any if, q vars\n");
+                }
+
                 for (i = 0; i < Nread; i++) {
                     if ( (rc = SF_vdata(start_qvars,
                                         i + in1,
@@ -130,7 +199,15 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
     else {
+        if ( debug ) {
+            sf_printf_debug("debug 9 (sf_xtile): not cut if in\n");
+        }
+
         if ( cutvars ) {
+            if ( debug ) {
+                sf_printf_debug("debug 10 (sf_xtile): not cut if in, cut vars\n");
+            }
+
             for (i = 0; i < SF_nobs(); i++) {
                 if ( (rc = SF_vdata(start_cutvars,
                                     i + 1,
@@ -140,6 +217,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
 
         if ( qvars ) {
+            if ( debug ) {
+                sf_printf_debug("debug 11 (sf_xtile): not cut if in, q vars\n");
+            }
+
             for (i = 0; i < SF_nobs(); i++) {
                 if ( (rc = SF_vdata(start_qvars,
                                     i + 1,
@@ -202,6 +283,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     stimer = clock();
 
+    if ( debug ) {
+        sf_printf_debug("debug 12 (sf_xtile): adjusted percentiles and cutoffs\n");
+    }
+
     /*********************************************************************
      *                      Select execution method                      *
      *********************************************************************/
@@ -211,6 +296,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     m_ratio = m1_etime = m2_etime = 0;
     if ( (nq > 0) | (nq2 > 0) | (nquants > 0) ) {
+        if ( debug ) {
+            sf_printf_debug("debug 13 (sf_xtile): Estimate method time (nq, nw2, or nquants)\n");
+        }
+
         // Expected operations (in 'N' units):
         // - Method 1 (qsort): sort (log(N)) + 1 for xtile + 1 to rearrange + 1 counts
         // - Method 2 (qselect): # of selections + time to compute xtile + 1 counts
@@ -230,6 +319,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
     else if ( (ncuts > 0) | (npoints > 0) ) {
+        if ( debug ) {
+            sf_printf_debug("debug 14 (sf_xtile): Estimate method time (ncuts or npoints)\n");
+        }
+
         if ( kgen ) {
             // Expected operations (in 'N' units):
             // - Method 1 (qsort): Ibid.
@@ -286,6 +379,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         method = 1;
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 15 (sf_xtile): Chose execution method.\n");
+    }
+
     // method = 0; // expected optimal
     // method = 1; // qsort, default
     // method = 2; // qselect
@@ -300,6 +397,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     xptr2 = xsources;
     ixptr = xsources;
     if ( method == 2 ) {
+        if ( debug ) {
+            sf_printf_debug("debug 16 (sf_xtile): Read sources (method 2)\n");
+        }
+
         xptr2 = kgen? xsources + 1 * Nread: xsources;
         ixptr = kgen? xsources + 2 * Nread: xsources;
         if ( st_info->any_if ) {
@@ -354,8 +455,12 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
     else {
+        if ( debug ) {
+            sf_printf_debug("debug 17 (sf_xtile): Read sources (method 1)\n");
+        }
+
         if ( st_info->any_if ) {
-            if ( kgen ) { 
+            if ( kgen ) {
                 for (i = 0; i < Nread; i++) {
                     if ( SF_ifobs(i + in1) ) {
                         if ( (rc = SF_vdata(start_xsources,
@@ -415,6 +520,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         goto error;
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 18 (sf_xtile): Check nq request is sane.\n");
+    }
+
     // This limitation seems to have more to do with the number of rows in the
     // data being the limit to how many quantiles Stata can save via pctile.
 
@@ -436,6 +545,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                         Memory allocation                         *
      *********************************************************************/
 
+    if ( debug ) {
+        sf_printf_debug("debug 19 (sf_xtile): Allocated memory for counts and output.\n");
+    }
+
     GT_size xmem_count  = (pctpct | bincount)? nout: 1;
     GT_size xmem_output = (kgen & (method != 2))? N: 1;
 
@@ -451,6 +564,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     /*********************************************************************
      *                               Sort!                               *
      *********************************************************************/
+
+    if ( debug ) {
+        sf_printf_debug("debug 20 (sf_xtile): Sort if method 1.\n");
+    }
 
     if ( method == 2 ) kx = 1;
 
@@ -488,6 +605,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                         Copy pct to data                          *
      *********************************************************************/
 
+    if ( debug ) {
+        sf_printf_debug("debug 21 (sf_xtile): Copy pct to data if requested.\n");
+    }
+
     if ( genpct ) {
         if ( nquants > 0 ) {
             for (i = 0; i < nquants; i++) {
@@ -510,6 +631,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     /*********************************************************************
      *      Turn quantiles into cutoffs (or point qptr to cutoffs)       *
      *********************************************************************/
+
+    if ( debug ) {
+        sf_printf_debug("debug 22 (sf_xtile): Transform quantiles using requested method (or altdef)\n");
+    }
 
     qptr = NULL;
     if ( ncuts > 0 ) {
@@ -581,6 +706,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 23 (sf_xtile): Grab min and max while you're here.\n");
+    }
+
     if ( method == 2 ) {
         xmin = gf_array_dmin_range(xptr2, 0, N);
         xmax = qptr[nout - 1];
@@ -611,9 +740,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *    Compute xtile, if requested; else just count bin frequency     *
      *********************************************************************/
 
+    if ( debug ) {
+        sf_printf_debug("debug 24 (sf_xtile): Compute xtile using method.\n");
+    }
+
     q = 0;
     if ( kgen ) {
         if ( method == 2 ) {
+            if ( debug ) {
+                sf_printf_debug("debug 25 (sf_xtile): xtile method 2\n");
+            }
+
             if ( sorted ) {
                 if ( bincount | pctpct ) {
                     for (xptr = xsources; xptr < xsources + N; xptr += 1) {
@@ -671,6 +808,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
         }
         else {
+            if ( debug ) {
+                sf_printf_debug("debug 25 (sf_xtile): xtile method 1\n");
+            }
+
             if ( bincount | pctpct ) {
                 for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
                     while ( *xptr > qptr[q] ) q++;
@@ -724,6 +865,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
     else if ( pctpct | bincount ) {
+        if ( debug ) {
+            sf_printf_debug("debug 26 (sf_xtile): no xtile; only counts and such.\n");
+        }
+
         if ( sorted ) {
             for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
                 while ( *xptr > qptr[q] ) q++;
@@ -739,12 +884,20 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 27 (sf_xtile): Done with xtile, counts, etc.\n");
+    }
+
     /*********************************************************************
      *         Return percentiles and frequencies, if requested          *
      *********************************************************************/
 
     // qtot = q + 1;
     qtot = GTOOLS_PWMIN((nout - 1), SF_nobs());
+
+    if ( debug ) {
+        sf_printf_debug("debug 28 (sf_xtile): Write pctile, xtile, and counts back to stata.\n");
+    }
 
     if ( pctile ) {
         if ( pctpct ) {
@@ -811,6 +964,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
 
+    if ( debug ) {
+        sf_printf_debug("debug 29 (sf_xtile): Write info matrices.\n");
+    }
+
     if ( (rc = SF_scal_save ("__gtools_xtile_nq",      (ST_double) nq       )) ) goto exit;
     if ( (rc = SF_scal_save ("__gtools_xtile_nq2",     (ST_double) nq2      )) ) goto exit;
     if ( (rc = SF_scal_save ("__gtools_xtile_cutvars", (ST_double) npoints  )) ) goto exit;
@@ -839,6 +996,10 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         else if ( pctpct | (ncuts > 0) ) {
             sf_running_timer (&timer, "\txtile step 4: Copied bin counts to Stata");
         }
+    }
+
+    if ( debug ) {
+        sf_printf_debug("debug 30 (sf_xtile): Done with xtile.\n");
     }
 
 exit:
@@ -1143,3 +1304,4 @@ error:
 //         }
 //     }
 // }
+

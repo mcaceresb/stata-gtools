@@ -512,9 +512,9 @@ when computing many quantiles.
 
 ### Computation methods
 
-Computing quantiles involves selecting elements from an unordered two
-ways: Using a selection algorithm on the unsorted variable or sorting and then
-selecting elements of the sorted varaible.
+Computing quantiles involves selecting elements from an unordered array
+in one of two ways: Using a selection algorithm on the unsorted variable
+or sorting and then selecting elements of the sorted varaible.
 
 The internal selection algorithm of gquantiles is very fast and on average will
 run in linear O(N) time (see [quickselect](https://en.wikipedia.org/wiki/Quickselect)).

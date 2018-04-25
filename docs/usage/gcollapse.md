@@ -40,10 +40,13 @@ or any combination of the varlist or target_var forms, and stat is one of
 | p98        | 98th percentile
 | p99        | 99th percentile
 | sum        | sums
+| rawsum     | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
 | sd         | standard deviation
 | semean     | standard error of the mean (sd/sqrt(n))
 | sebinomial | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
 | sepoisson  | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness   | Skewness
+| kurtosis   | Kurtosis
 | count      | number of nonmissing observations
 | percent    | percentage of nonmissing observations
 | max        | maximums
@@ -77,6 +80,12 @@ Options
          user press Break.
 
 ### Extras
+
+- `rawsum(varlist)` Sequence of target names for which to ignore weights,
+        except observations with a weight of zero or missing, which are
+        excluded. This is a generalization of {opt rawsum}, but it is
+        specified for each individual target (if no target is specified,
+        the source variable name is what we call target).
 
 - `missing` Sums are set to missing (instead of 0) when all input values within
           a group are also missing.
@@ -211,19 +220,36 @@ The syntax for its basic use is the same as collapse:
 
 ```stata
 sysuse auto, clear
-gcollapse (sum) price mpg (mean) m1 = price m2 = mpg, by(foreign)
+gcollapse (sum) price mpg (mean) m1 = price m2 = mpg if !mi(rep78), by(foreign)
 l
 
-     +------------------------------------------------------+
-     |  foreign    price    mpg        m1        m2     p23 |
-     |------------------------------------------------------|
-  1. | Domestic   315766   1031   6,072.4   19.8269   4,172 |
-  2. |  Foreign   140463    545   6,384.7   24.7727   4,499 |
-     +------------------------------------------------------+
+     +---------------------------------------------+
+     |  foreign    price   mpg        m1        m2 |
+     |---------------------------------------------|
+  1. | Domestic   296604   938   6,179.3   19.5417 |
+  2. |  Foreign   127473   531   6,070.1   25.2857 |
+     +---------------------------------------------+
 ```
 
-You can call multiple names per statistic in any order,
-optionally specifying the target name.
+You can call multiple names per statistic in any order, optionally
+specifying the target name. Further, weights can be selectively applied
+to each target.
+
+```stata
+sysuse auto, clear
+gcollapse (mean) price praw = price [fw = rep78], by(foreign) rawstat(praw)
+l
+
+     +------------------------------+
+     |  foreign     price      praw |
+     |------------------------------|
+  1. | Domestic   6,162.5   6,179.3 |
+  2. |  Foreign   6,133.8   6,070.1 |
+     +------------------------------+
+```
+
+Note, however, that rows with missing or 0 values of rep78 are excluded
+regardless when selectively applying weights.
 
 ### Unique counts
 

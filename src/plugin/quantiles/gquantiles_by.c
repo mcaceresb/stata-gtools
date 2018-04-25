@@ -64,7 +64,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     nout = GTOOLS_PWMAX(nout, 1);
 
     if ( debug ) {
-        sf_printf_debug("debug 1: read in meta info\n");
+        sf_printf_debug("debug 1 (sf_xtile_by): read in meta info\n");
         sf_printf_debug("\t"GT_size_cfmt" obs, "GT_size_cfmt" read, "GT_size_cfmt" groups.\n", N, Nread, J);
         sf_printf_debug("\tin1 / in2: "GT_size_cfmt" / "GT_size_cfmt"\n", st_info->in1, st_info->in2);
         sf_printf_debug("\taltdef:    %u\n",  altdef);
@@ -122,7 +122,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     if ( nj_buffer      == NULL ) return(sf_oom_error("sf_quantiles_by", "nj_buffer"));
 
     if ( debug ) {
-        sf_printf_debug("debug 2: allocated memory\n");
+        sf_printf_debug("debug 2 (sf_xtile_by): allocated memory\n");
         sf_printf_debug("\txmem_sources: "GT_size_cfmt"\n", xmem_sources);
         sf_printf_debug("\txmem_points:  "GT_size_cfmt"\n", xmem_points);
         sf_printf_debug("\txmem_quants:  "GT_size_cfmt"\n", xmem_quants);
@@ -137,7 +137,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         if ( st_info->any_if ) {
             if ( cutvars ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 3: any_if, cutvars, cutifin, and no cutby\n");
+                    sf_printf_debug("debug 3 (sf_xtile_by): any_if, cutvars, cutifin, and no cutby\n");
                 }
 
                 for (i = 0; i < Nread; i++) {
@@ -152,7 +152,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
             if ( qvars ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 3: any_if, qvars, cutifin, and no cutby\n");
+                    sf_printf_debug("debug 3 (sf_xtile_by): any_if, qvars, cutifin, and no cutby\n");
                 }
 
                 for (i = 0; i < Nread; i++) {
@@ -168,7 +168,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         else {
             if ( cutvars ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 3: no any_if, cutvars, cutifin, and no cutby\n");
+                    sf_printf_debug("debug 3 (sf_xtile_by): no any_if, cutvars, cutifin, and no cutby\n");
                 }
 
                 for (i = 0; i < Nread; i++) {
@@ -181,7 +181,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
             if ( qvars ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 3: no any_if, qvars, cutifin, and no cutby\n");
+                    sf_printf_debug("debug 3 (sf_xtile_by): no any_if, qvars, cutifin, and no cutby\n");
                 }
 
                 for (i = 0; i < Nread; i++) {
@@ -196,7 +196,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     else if ( st_info->xtile_cutby == 0 ) {
         if ( cutvars ) {
             if ( debug ) {
-                sf_printf_debug("debug 3: cutvars, no cutifin, and no cutby\n");
+                sf_printf_debug("debug 3 (sf_xtile_by): cutvars, no cutifin, and no cutby\n");
             }
 
             for (i = 0; i < SF_nobs(); i++) {
@@ -209,7 +209,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( qvars ) {
             if ( debug ) {
-                sf_printf_debug("debug 3: qvars, no cutifin, and no cutby\n");
+                sf_printf_debug("debug 3 (sf_xtile_by): qvars, no cutifin, and no cutby\n");
             }
 
             for (i = 0; i < SF_nobs(); i++) {
@@ -222,7 +222,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 4: npoints = "GT_size_cfmt", nquants = "GT_size_cfmt"\n", npoints, nquants);
+        sf_printf_debug("debug 4 (sf_xtile_by): npoints = "GT_size_cfmt
+                        ", nquants = "GT_size_cfmt"\n", npoints, nquants);
     }
 
     /*********************************************************************
@@ -232,7 +233,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     if ( st_info->xtile_cutby ) {
         failmiss = (ncuts > 0);
         if ( debug ) {
-            sf_printf_debug("debug 5: failmiss with cutby = %u\n", failmiss);
+            sf_printf_debug("debug 5 (sf_xtile_by): failmiss with cutby = %u\n", failmiss);
         }
     }
     else {
@@ -240,15 +241,17 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         npoints  = (npoints == 0)? 0: gf_xtile_clean(xpoints, npoints, 1, st_info->xtile_dedup);
         nquants  = (nquants == 0)? 0: gf_xtile_clean(xquants, nquants, 1, st_info->xtile_dedup);
         if ( debug ) {
-            sf_printf_debug("debug 5: failmiss with no cutby = %u\n", failmiss);
-            sf_printf_debug("debug 5: npoints = "GT_size_cfmt", nquants = "GT_size_cfmt"\n", npoints, nquants);
+            sf_printf_debug("debug 5 (sf_xtile_by): failmiss with no cutby = %u\n", failmiss);
+            sf_printf_debug("debug 5 (sf_xtile_by): npoints = "GT_size_cfmt
+                            ", nquants = "GT_size_cfmt"\n", npoints, nquants);
         }
     }
 
     nq2   = (nq2   == 0)? 0: gf_xtile_clean(st_info->xtile_quantiles, nq2,   1, st_info->xtile_dedup);
     ncuts = (ncuts == 0)? 0: gf_xtile_clean(st_info->xtile_cutoffs,   ncuts, 1, st_info->xtile_dedup);
     if ( debug ) {
-        sf_printf_debug("debug 6: nq2 = "GT_size_cfmt", ncuts = "GT_size_cfmt"\n", nq2, ncuts);
+        sf_printf_debug("debug 6 (sf_xtile_by): nq2 = "GT_size_cfmt
+                        ", ncuts = "GT_size_cfmt"\n", nq2, ncuts);
     }
 
     if ( failmiss & (ncuts == 0) & (npoints == 0) & (nquants == 0) ) {
@@ -308,7 +311,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     if ( debug ) {
-        sf_printf_debug("debug 7: Will read from Stata in order.\n");
+        sf_printf_debug("debug 7 (sf_xtile_by): Will read from Stata in order.\n");
     }
 
     for (i = 0; i < Nread; i++)
@@ -329,7 +332,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 8: Set up index_st.\n");
+        sf_printf_debug("debug 8 (sf_xtile_by): Set up index_st.\n");
     }
 
     i = 0;
@@ -341,7 +344,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         if ( cutvars ) {
             if ( kgen ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 9: cutvars, kgen, and cutby.\n");
+                    sf_printf_debug("debug 9 (sf_xtile_by): cutvars, kgen, and cutby.\n");
                 }
 
                 for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -363,7 +366,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             }
             else {
                 if ( debug ) {
-                    sf_printf_debug("debug 9: cutvars, no kgen, and cutby.\n");
+                    sf_printf_debug("debug 9 (sf_xtile_by): cutvars, no kgen, and cutby.\n");
                 }
 
                 for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -387,7 +390,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         if ( qvars ) {
             if ( kgen ) {
                 if ( debug ) {
-                    sf_printf_debug("debug 9: qvars, kgen, and cutby.\n");
+                    sf_printf_debug("debug 9 (sf_xtile_by): qvars, kgen, and cutby.\n");
                 }
 
                 for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -409,7 +412,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             }
             else {
                 if ( debug ) {
-                    sf_printf_debug("debug 9: qvars, no kgen, and cutby.\n");
+                    sf_printf_debug("debug 9 (sf_xtile_by): qvars, no kgen, and cutby.\n");
                 }
 
                 for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -433,7 +436,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     else {
         if ( kgen ) {
             if ( debug ) {
-                sf_printf_debug("debug 9: kgen, no cutby.\n");
+                sf_printf_debug("debug 9 (sf_xtile_by): kgen, no cutby.\n");
             }
 
             for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -450,7 +453,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         }
         else {
             if ( debug ) {
-                sf_printf_debug("debug 9: no kgen, no cutby.\n");
+                sf_printf_debug("debug 9 (sf_xtile_by): no kgen, no cutby.\n");
             }
 
             for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
@@ -467,7 +470,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( npoints > 0 ) {
             if ( debug ) {
-                sf_printf_debug("debug 10: set all points_nonmiss to "GT_size_cfmt" with no cutby.\n", npoints);
+                sf_printf_debug("debug 10 (sf_xtile_by): set all points_nonmiss to "GT_size_cfmt
+                                " with no cutby.\n", npoints);
             }
             for (jptr = points_nonmiss; jptr < points_nonmiss + J; jptr++)
                 *jptr = npoints;
@@ -475,7 +479,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( nquants > 0 ) {
             if ( debug ) {
-                sf_printf_debug("debug 10: set all points_nonmiss to "GT_size_cfmt" with no cutby.\n", nquants);
+                sf_printf_debug("debug 10 (sf_xtile_by): set all points_nonmiss to "GT_size_cfmt
+                                " with no cutby.\n", nquants);
             }
             for (jptr = points_nonmiss; jptr < points_nonmiss + J; jptr++)
                 *jptr = nquants;
@@ -483,7 +488,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( ncuts > 0 ) {
             if ( debug ) {
-                sf_printf_debug("debug 10: set all points_nonmiss to "GT_size_cfmt" with no cutby.\n", ncuts);
+                sf_printf_debug("debug 10 (sf_xtile_by): set all points_nonmiss to "GT_size_cfmt
+                                " with no cutby.\n", ncuts);
             }
             for (jptr = points_nonmiss; jptr < points_nonmiss + J; jptr++)
                 *jptr = ncuts;
@@ -491,7 +497,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( nq2 > 0 ) {
             if ( debug ) {
-                sf_printf_debug("debug 10: set all points_nonmiss to "GT_size_cfmt" with no cutby.\n", nq2);
+                sf_printf_debug("debug 10 (sf_xtile_by): set all points_nonmiss to "GT_size_cfmt
+                                " with no cutby.\n", nq2);
             }
             for (jptr = points_nonmiss; jptr < points_nonmiss + J; jptr++)
                 *jptr = nq2;
@@ -499,7 +506,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
         if ( nq > 0 ) {
             if ( debug ) {
-                sf_printf_debug("debug 10: set all points_nonmiss to "GT_size_cfmt" with no cutby.\n", nq);
+                sf_printf_debug("debug 10 (sf_xtile_by): set all points_nonmiss to "GT_size_cfmt
+                                " with no cutby.\n", nq);
             }
             for (jptr = points_nonmiss; jptr < points_nonmiss + J; jptr++)
                 *jptr = nq - 1;
@@ -511,7 +519,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         obs += *jptr;
 
     if ( debug ) {
-        sf_printf_debug("debug 11: count the number of obs "GT_size_cfmt"\n", obs);
+        sf_printf_debug("debug 11 (sf_xtile_by): count the number of obs "GT_size_cfmt"\n", obs);
     }
 
     if ( obs == 0 ) {
@@ -551,7 +559,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         *optr = 0;
 
     if ( debug ) {
-        sf_printf_debug("debug 12: allocated memory\n");
+        sf_printf_debug("debug 12 (sf_xtile_by): allocated memory\n");
         sf_printf_debug("\txmem_quant:  "GT_size_cfmt"\n", xmem_quant);
         sf_printf_debug("\txmem_count:  "GT_size_cfmt"\n", xmem_count);
         sf_printf_debug("\txmem_qout:   "GT_size_cfmt"\n", xmem_qout);
@@ -682,7 +690,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
     if ( cutvars & st_info->xtile_cutby ) {
         if ( debug ) {
-            sf_printf_debug("debug 13: cutvars, cutby\n");
+            sf_printf_debug("debug 13 (sf_xtile_by): cutvars, cutby\n");
         }
 
         for (j = 0; j < J; j++) {
@@ -723,7 +731,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
     else if ( qvars & st_info->xtile_cutby ) {
         if ( debug ) {
-            sf_printf_debug("debug 13: qvars, cutby\n");
+            sf_printf_debug("debug 13 (sf_xtile_by): qvars, cutby\n");
         }
 
         for (j = 0; j < J; j++) {
@@ -764,7 +772,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
     else {
         if ( debug ) {
-            sf_printf_debug("debug 13: no cutby\n");
+            sf_printf_debug("debug 13 (sf_xtile_by): no cutby\n");
         }
 
         for (j = 0; j < J; j++) {
@@ -821,12 +829,12 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 14: assign qptr to %p (NULL is %p)\n", qptr, NULL);
+        sf_printf_debug("debug 14 (sf_xtile_by): assign qptr to %p (NULL is %p)\n", qptr, NULL);
     }
 
     if ( kgen & (pctpct | pctile) ) {
         if ( debug ) {
-            sf_printf_debug("debug 15: kgen and pctile or pctpct (cstartj = %u, J = %lu)\n", cstartj, J);
+            sf_printf_debug("debug 15 (sf_xtile_by): kgen and pctile or pctpct (cstartj = %u, J = %lu)\n", cstartj, J);
         }
 
         for (j = 0; j < J; j++) {
@@ -919,7 +927,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
     else if ( kgen ) {
         if ( debug ) {
-            sf_printf_debug("debug 15: kgen only\n");
+            sf_printf_debug("debug 15 (sf_xtile_by): kgen only\n");
         }
 
         for (j = 0; j < J; j++) {
@@ -996,7 +1004,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
     else if ( pctpct | pctile ) {
         if ( debug ) {
-            sf_printf_debug("debug 15: pctile or pctpct only\n");
+            sf_printf_debug("debug 15 (sf_xtile_by): pctile or pctpct only\n");
         }
 
         for (j = 0; j < J; j++) {
@@ -1065,7 +1073,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 16: done with main computations\n");
+        sf_printf_debug("debug 16 (sf_xtile_by): done with main computations\n");
     }
 
     /*********************************************************************
@@ -1077,7 +1085,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     if ( pctile ) {
         if ( pctpct ) {
             if ( debug ) {
-                sf_printf_debug("debug 17: write pctile and pctpct\n");
+                sf_printf_debug("debug 17 (sf_xtile_by): write pctile and pctpct\n");
             }
 
             for (i = 0; i < Nread; i++, cptr++, qptr++) {
@@ -1089,7 +1097,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
         }
         else {
             if ( debug ) {
-                sf_printf_debug("debug 17: write pctile\n");
+                sf_printf_debug("debug 17 (sf_xtile_by): write pctile\n");
             }
 
             for (i = 0; i < Nread; i++, cptr++, qptr++) {
@@ -1101,7 +1109,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
     else if ( pctpct ) {
         if ( debug ) {
-            sf_printf_debug("debug 17: write pctpct\n");
+            sf_printf_debug("debug 17 (sf_xtile_by): write pctpct\n");
         }
 
         for (i = 0; i < Nread; i++, cptr++, qptr++) {
@@ -1112,7 +1120,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 18: everything should be in Stata\n");
+        sf_printf_debug("debug 18 (sf_xtile_by): everything should be in Stata\n");
     }
 
     if ( st_info->benchmark ) {
@@ -1146,7 +1154,7 @@ exit:
     free (xquant);
 
     if ( debug ) {
-        sf_printf_debug("debug 19: free 1\n");
+        sf_printf_debug("debug 19 (sf_xtile_by): free 1\n");
     }
 
 error:
@@ -1157,7 +1165,7 @@ error:
     free (nj_buffer);
 
     if ( debug ) {
-        sf_printf_debug("debug 19: free 2\n");
+        sf_printf_debug("debug 19 (sf_xtile_by): free 2\n");
     }
 
     free (xsources);
@@ -1165,8 +1173,9 @@ error:
     free (xquants);
 
     if ( debug ) {
-        sf_printf_debug("debug 19: free 3\n");
+        sf_printf_debug("debug 19 (sf_xtile_by): free 3\n");
     }
 
     return (rc);
 }
+

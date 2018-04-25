@@ -445,6 +445,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                             statcode[k],
                             all_buffer + start,
                             nj,
+                            all_xcount[startw],
                             p_buffer
                         );
                     }

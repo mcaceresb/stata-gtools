@@ -13,9 +13,15 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
     clock_t  timer = clock();
     clock_t stimer = clock();
 
+    // No point encoding if there's only one group!
+
     if ( st_info->kvars_group < 1 ) {
         return (0);
     }
+
+    // Here we generate tag, counts, and group code. We only want to
+    // look through all the groups once, so we figure out which targets
+    // to generate and only look once.
 
     GT_size group_targets[3];
     group_targets[0] = st_info->group_targets[0] + kvars;
@@ -74,7 +80,10 @@ ST_retcode sf_encode (struct StataInfo *st_info, int level)
     within   = (st_info->group_data == 0);
     missval  = (st_info->group_val != SV_missval);
 
-    // Special case for group
+    // Special case for group: If this is the only thing we are
+    // generating, it's paster to sort the encoding to Stata order and
+    // write the output sequntially. Otherwise we write out of order.
+
     if ( st_info->group_targets[0] & !(st_info->group_targets[1]) & !(st_info->group_targets[2]) ) {
         GT_size *eptr;
         GT_size *encoding = calloc(GTOOLS_PWMAX(st_info->N, st_info->Nread), sizeof *encoding);

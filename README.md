@@ -395,8 +395,8 @@ Roadmap to 1.0
 - [X] Add support for weights (Windows and Unix).
     - [X] Add support for weights in OSX.
 - [X] Add tests for `skewness` and `kurtosis`, specially OSX.
-- [ ] Add comments to all the code base
-- [ ] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
+- [X] Add comments to all the code base
+- [X] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
 - [ ] Improve coverage of debug checks.
     - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
     - [ ] Have corner cases for ALL commands
@@ -412,6 +412,8 @@ Features that might make it to 1.0 (but I make no promises)
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
+- [ ] Improve debugging info.
+- [ ] Improve code comments when you write the API!
 - [ ] Minimize memory use.
 - [ ] Add option to control how to treat missing values in gcollapse
     - [ ] anymissing()

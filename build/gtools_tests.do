@@ -1112,7 +1112,16 @@ program _compare_inner_collapse
             qui merge 1:1 `by' using `fg', assert(3)
         }
         foreach var in `stats' `percentiles' {
-            qui count if ( (abs(r1_`var' - c_r1_`var') > `tol') & (r1_`var' != c_r1_`var'))
+            if inlist("`var'", "sd", "semean") {
+                local nonz1 & (r1_`var' != 0 & c_r1_`var' != .)
+                local nonz2 & (r2_`var' != 0 & c_r2_`var' != .)
+            }
+            else {
+                local nonz1
+                local nonz2
+            }
+
+            qui count if ( (abs(r1_`var' - c_r1_`var') > `tol') & (r1_`var' != c_r1_`var')) `nonz1'
             if ( `r(N)' > 0 ) {
                 gen bad_r1_`var' = abs(r1_`var' - c_r1_`var') * (r1_`var' != c_r1_`var')
                 local bad `bad' *r1_`var'
@@ -1121,7 +1130,7 @@ program _compare_inner_collapse
                 order *r1_`var'
             }
 
-            qui count if ( (abs(r2_`var' - c_r2_`var') > `tol') & (r2_`var' != c_r2_`var'))
+            qui count if ( (abs(r2_`var' - c_r2_`var') > `tol') & (r2_`var' != c_r2_`var')) `nonz2'
             if ( `r(N)' > 0 ) {
                 gen bad_r2_`var' = abs(r2_`var' - c_r2_`var') * (r2_`var' != c_r2_`var')
                 local bad `bad' *r2_`var'
@@ -1149,7 +1158,7 @@ program _compare_inner_collapse
             }
             order `bad'
             egen bad_any = rowmax(bad_*)
-            l *count* *mean* `bad' if bad_any
+            * l *count* *mean* `bad' if bad_any
             sum bad_*
             desc
             exit 9

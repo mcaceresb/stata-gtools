@@ -5,6 +5,7 @@ ST_double gf_switch_fun_code_unw (
     ST_double fcode, 
     ST_double *v,
     GT_size N,
+    GT_size vcount,
     ST_double *p_buffer
 );
 

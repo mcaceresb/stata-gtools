@@ -25,6 +25,7 @@ ST_double gf_array_dsd_range (const ST_double v[], const GT_size start, const GT
     ST_double vmean = gf_array_dmean_range(v, start, end);
     for (i = start; i < end; i++)
         vvar += SQUARE(v[i] - vmean);
+
     return (sqrt(vvar / (end - start - 1)));
 }
 

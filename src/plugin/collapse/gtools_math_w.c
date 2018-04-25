@@ -348,7 +348,7 @@ ST_double gf_array_dsd_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
 
     if ( gf_array_dsame_unweighted(v, N) ) {
         return (0);
@@ -403,7 +403,7 @@ ST_double gf_array_dsemean_weighted (
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( (wsum == 0) || (wsum == 1) ) return (SV_missval);
+    if ( (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
 
     if ( gf_array_dsame_unweighted(v, N) ) {
         return (0);

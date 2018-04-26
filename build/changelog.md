@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+## gtools-0.13.0 (2018-04-24)
+
+### Enhancements
+
+- Added some basic debugging code and comments to the code base.
+
+### Bug fixes
+
+- `sd`, `semean` give the correct answer when the group is a singleton
+   or when all observations are the same.
+- `skew`, `kurt` give the correct answer when the group is a singleton
+   or when all observations are the same.
+
 ## gtools-0.12.8 (2018-04-23)
 
 ### Features

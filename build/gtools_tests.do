@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Apr 24 15:08:03 EDT 2018
+* Updated: Wed May  2 02:29:56 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.8
+* Version: 0.13.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -21,6 +21,9 @@ set type double
 
 * Main program wrapper
 * --------------------
+
+* TODO: cap repalce random1 = runiform() in 1 / `=ceil(_N / 2)'
+* TODO: cap repalce random2 = rnormal()  in `=ceil(_N / 2)' / _N
 
 program main
     syntax, [NOIsily *]
@@ -522,6 +525,55 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * https://github.com/mcaceresb/stata-gtools/issues/39
+    qui {
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcollapse (p70) x, by(y)
+        assert _rc == 17003
+    }
+
+    * https://github.com/mcaceresb/stata-gtools/issues/38
+    qui {
+        clear
+        set obs 5
+        gen x = _n
+        gcollapse (p70) x
+        assert x == 4
+
+        clear
+        set obs 5
+        gen x = _n
+        gcollapse (p80) x
+        assert x == 4.5
+
+        clear
+        set obs 5
+        gen x = _n
+        gcollapse (p80.0001) x
+        assert x == 5
+
+        clear
+        set obs 3
+        gen x = _n
+        gcollapse (p50) x
+        assert x == 2
+
+        clear
+        set obs 3
+        gen x = _n
+        gcollapse (p66.6) x
+        assert x == 2
+
+        clear
+        set obs 3
+        gen x = _n
+        gcollapse (p66.7) x
+        assert x == 3
+    }
 
     * https://github.com/mcaceresb/stata-gtools/issues/32
     qui {

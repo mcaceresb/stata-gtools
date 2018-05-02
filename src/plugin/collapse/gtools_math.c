@@ -165,10 +165,28 @@ ST_double gf_array_dquantile_range (
     // ------------------------
 
     GT_size left = start, right = end;
-    GT_bool dmax = (qth == (N - 1)) | (qfoo == (N - 1));
+
+    // I was doing the OR because I was concerned about a case where,
+    // because of numerical precision, the correct quantile was the
+    // largest value but qfoo or qth returned N - 2. However, I think
+    // it's better to do cases.
+    //
+    // If rfoo, then the correct quantile is qfoo since the quantile is
+    // exact. In this case, requesting exactly N - 1 should give the
+    // average between N - 1 and N - 2. E.g. 80th out of an array of
+    // length 5.
+    //
+    // If not rfoo, then qth, the floor, should give the correct
+    // position of the quantile, and we would only care about the max
+    // if it is N - 1 (and qfoo could, in fact, be incorrectly rounding
+    // up). E.g. 70th for an array of length 5 asks for 3.5, which
+    // clearly is position N - 2; however, rounding gives N - 1.
+
+    // GT_bool dmax = (qth == (N - 1)) | (qfoo == (N - 1));
 
     if ( rfoo ) {
-        if ( dmax ) {
+        // if ( dmax ) {
+        if ( qfoo == (N - 1) ) {
             q = (
                 gf_array_dmax_range(v, left, right) +
                 gf_qselect_range (v, left, right, qfoo - 1)
@@ -182,7 +200,8 @@ ST_double gf_array_dquantile_range (
         }
     }
     else {
-        if ( dmax ) {
+        // if ( dmax ) {
+        if ( qth == (N - 1) ) {
             q = gf_array_dmax_range(v, left, right);
         }
         else{

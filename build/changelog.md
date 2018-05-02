@@ -1,6 +1,30 @@
 Change Log
 ==========
 
+## gtools-0.13.1 (2018-05-02)
+
+### Pending
+
+- For now, throws error for strL variable: https://github.com/mcaceresb/stata-gtools/issues/39
+
+Plugin version 2.0 makes no mention of strL variables; however, plugin
+version 3.0 notes that they are actually not supported by the macros
+that I use to access strings. I think I'll have to compile a sepparate
+version of the plugin for Stata 13 and Stata 14 and above. The Stata
+13 version will throw an error for strL variables. This is currently
+the only version until I figure out where to test Stata 14 and how to
+implement this switch.
+
+### Bug fixes
+
+- Fixes https://github.com/mcaceresb/stata-gtools/issues/38
+
+When the quantile requested was N - 1 out of an array of length N, I
+makde an exception so the function picked up the largest value, instead
+of passing N - 1 to the selection algorithm. However, I made a mistake
+and quantiles between 100 - 150 / N and 100 - 100 / N, left-inclusive
+right-exclusive, would give the wrong quantile.
+
 ## gtools-0.13.0 (2018-04-24)
 
 ### Enhancements

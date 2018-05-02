@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Apr 24 15:08:03 EDT 2018
+* Updated: Wed May  2 02:29:56 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.12.8
+* Version: 0.13.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -21,6 +21,9 @@ set type double
 
 * Main program wrapper
 * --------------------
+
+* TODO: cap repalce random1 = runiform() in 1 / `=ceil(_N / 2)'
+* TODO: cap repalce random2 = rnormal()  in `=ceil(_N / 2)' / _N
 
 program main
     syntax, [NOIsily *]

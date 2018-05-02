@@ -1,5 +1,13 @@
-*! version 0.6.0 24Apr2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
+
+* rc 17000
+* rc 17001
+* rc 17002 - strL variables and version < 14
+* rc 17003 - strL variables and version >= 14
+* rc 17459
+* rc 17900
+* rc 17999
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
@@ -2040,13 +2048,13 @@ program _gtools_internal, rclass
             disp as txt "{hline 72}"
             disp as txt `""'
             disp as txt `"    gcall:            `gcall'"'
-            disp as txt `""'                    
+            disp as txt `""'
             disp as txt `"    contractvars:     `contractvars'"'
-            disp as txt `""'                    
+            disp as txt `""'
             disp as txt `"    nolocalvar:       `nolocalvar'"'
             disp as txt `"    freq:             `freq'"'
             disp as txt `"    store:            `store'"'
-            disp as txt `""'                    
+            disp as txt `""'
             disp as txt `"    ntop:             `ntop'"'
             disp as txt `"    pct:              `pct'"'
             disp as txt `"    freq:             `freq'"'
@@ -2054,7 +2062,7 @@ program _gtools_internal, rclass
             disp as txt `"    otherlab:         `otherlab'"'
             disp as txt `"    groupmiss:        `groupmiss'"'
             disp as txt `"    nrows:            `nrows'"'
-            disp as txt `""'                    
+            disp as txt `""'
             disp as txt `"    xvars:            `xvars'"'
             disp as txt `"    xsources:         `xsources'"'
             disp as txt `"    nquantiles:       `nquantiles'"'
@@ -2079,7 +2087,7 @@ program _gtools_internal, rclass
             disp as txt `"    altdef:           `altdef'"'
             disp as txt `"    strict:           `strict'"'
             disp as txt `"    minmax:           `minmax'"'
-            disp as txt `""'                    
+            disp as txt `""'
             disp as txt `"    xhow_nq:          `xhow_nq'"'
             disp as txt `"    xhow_cutvars:     `xhow_cutvars'"'
             disp as txt `"    xhow_qvars:       `xhow_qvars'"'
@@ -2457,9 +2465,10 @@ program parse_by_types, rclass
     local kstr  = 0
     local kvars = 0
 
-    local varint ""
-    local varnum ""
-    local varstr ""
+    local varint  ""
+    local varnum  ""
+    local varstr  ""
+    local varstrL ""
 
     if ( "`varlist'" != "" ) {
         cap confirm variable `varlist'
@@ -2487,6 +2496,7 @@ program parse_by_types, rclass
                 local varstr `varstr' `byvar'
                 if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
                     if (regexs(1) == "L") {
+                        local varstrL `varstrL' `byvar'
                         tempvar strlen
                         gen long `strlen' = length(`byvar')
                         qui sum `strlen', meanonly
@@ -2512,6 +2522,30 @@ program parse_by_types, rclass
                 _n(1) "`anything'"
             exit 198
         }
+    }
+
+    * if ( ("`varstrL'" != "") & (_caller() < 14) ) {
+    *     disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your" ///
+    *                 _n(1) "strL variables are string-only, try"                                      ///
+    *                 _n(2) "    {stata compress `varstrL'}"                                           ///
+    *                 _n(2) "If this does not work or if you have binary data, you will need to use"   ///
+    *                 _n(1) "Stata 14 or newer. This limitation comes from the Stata Plugin Interface" ///
+    *                 _n(1) "(SPI) 2.0 that was used to write gtools. gtools 0.14 integrated 3.0"      ///
+    *                 _n(1) "(Stata 14 and above only), which added support for strL variables."
+    *     exit 17002
+    * }
+    * else if ( "`varstrL'" != "" ) {
+    if ( "`varstrL'" != "" ) {
+        disp as err _n(1) "gtools 0.13.x does not support strL variables. If your strL variables"   ///
+                    _n(1) "are string-only, try"                                                    ///
+                    _n(2) "    {stata compress `varstrL'}"                                          ///
+                    _n(2) "If this does not work or if you have binary data, then you will have to" ///
+                    _n(1) "wait for the next release of gtools (0.14)."                             ///
+                    _n(2) "This limitation comes from the Stata Plugin Interface (SPI) 2.0"         ///
+                    _n(1) "that was used to write gtools. 3.0 (Stata 14 and above only) added"      ///
+                    _n(1) "support for strL variables. gtools will add strL support in its next"    ///
+                    _n(1) "relase (0.14)."
+        exit 17003
     }
 
     * Parse which hashing strategy to use

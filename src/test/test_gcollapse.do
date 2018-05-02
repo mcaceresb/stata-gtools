@@ -83,6 +83,16 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/39
+    qui {
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcollapse (p70) x, by(y)
+        assert _rc == 17003
+    }
+
     * https://github.com/mcaceresb/stata-gtools/issues/38
     qui {
         clear

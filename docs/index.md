@@ -355,7 +355,8 @@ Differences from `isid`
 
 Differences from `gsort`
 
-- `hashsort` behaves as if `mfirst` was always passed.
+- `hashsort` behaves as if `mfirst` was passed. To recover the default
+  behavior of `gsort` pass option `mlast`.
 
 __*The Stata GUI freezes when running Gtools commands*__
 

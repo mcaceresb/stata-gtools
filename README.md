@@ -363,7 +363,8 @@ Differences from `isid`
 
 Differences from `gsort`
 
-- `hashsort` behaves as if `mfirst` was always passed.
+- `hashsort` behaves as if `mfirst` was passed. To recover the default
+  behavior of `gsort` pass option `mlast`.
 
 __*The Stata GUI freezes when running Gtools commands*__
 
@@ -404,11 +405,10 @@ Roadmap to 1.0
     - [ ] Have corner cases for ALL commands
     - [ ] Test all the options in every command
     - [ ] Test errors (i.e. make sure commands fail as expected).
+- [X] Add `mlast` option to hashsort
 
 Features that might make it to 1.0 (but I make no promises)
 
-- [ ] Have `mlast` option for hashsort?
-    - [ ] Or switch its behavior and have `mfirst` do what it does now.
 - [ ] Add option to save glevelsof in a variable/matrix (incl freq).
 
 These are options/features I would like to support, but I don't have an

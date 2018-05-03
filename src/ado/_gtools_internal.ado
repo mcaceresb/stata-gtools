@@ -1,4 +1,4 @@
-*! version 0.7.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.2 03May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
@@ -118,6 +118,7 @@ program _gtools_internal, rclass
         sortindex(str)            /// keep sort index in memory
         sortgen                   /// sort by generated variable (hashsort only)
         skipcheck                 /// skip is sorted check
+        mlast                     /// sort missing values last, as a group
                                   ///
                                   /// glevelsof options
                                   /// -----------------
@@ -173,6 +174,7 @@ program _gtools_internal, rclass
         local gopts3 `gopts3' sortindex(`sortindex')
         local gopts3 `gopts3' `sortgen'
         local gopts3 `gopts3' `skipcheck'
+        local gopts3 `gopts3' `mlast'
 
         local gopts4 glevelsof(`glevelsof')
         local gopts4 `gopts4' separate(`separate')
@@ -642,6 +644,7 @@ program _gtools_internal, rclass
     scalar __gtools_countmiss   = ( "`countmiss'"    != "" )
     scalar __gtools_invertix    = ( "`invertinmata'" == "" )
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
+    scalar __gtools_mlast       = ( "`mlast'"        != "" )
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
@@ -2271,6 +2274,7 @@ program clean_all
     cap scalar drop __gtools_replace
     cap scalar drop __gtools_countmiss
     cap scalar drop __gtools_skipcheck
+    cap scalar drop __gtools_mlast
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos

@@ -312,6 +312,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             init_targ,
             invertix,
             skipcheck,
+            mlast,
             top_miss,
             top_groupmiss,
             top_other,
@@ -422,6 +423,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_init_targ",      &init_targ)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_invertix",       &invertix)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_mlast",          &mlast)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
@@ -597,6 +599,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->strmax         = strmax;
     st_info->invertix       = invertix;
     st_info->skipcheck      = skipcheck;
+    st_info->mlast          = mlast;
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
@@ -957,12 +960,12 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 printf("debug 14: checking ID with numeric data only\n");
             }
 
-            if ( (rc = MultiIsIDCheckDbl(st_info->st_numx,
-                                         st_info->N,
-                                         0,
-                                         st_info->kvars_by - 1,
-                                         st_info->kvars_by * sizeof(ST_double),
-                                         st_info->invert)) >= 0 ) {
+            if ( (rc = MultiIsIDCheckDbl (st_info->st_numx,
+                                          st_info->N,
+                                          0,
+                                          st_info->kvars_by - 1,
+                                          st_info->kvars_by * sizeof(ST_double),
+                                          st_info->invert)) >= 0 ) {
 
                 if ( st_info->debug ) {
                     printf("debug 15: isid checked multi-level\n");
@@ -1020,30 +1023,56 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 printf("debug 19: mix with strings\n");
             }
 
-            st_info->sorted = MultiSortCheckMC (
-                st_info->st_charx,
-                st_info->N,
-                0,
-                st_info->kvars_by - 1,
-                st_info->rowbytes,
-                st_info->byvars_lens,
-                st_info->invert,
-                st_info->positions
-            );
+            if ( st_info->mlast ) {
+                st_info->sorted = MultiSortCheckMCMlast (
+                    st_info->st_charx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->rowbytes,
+                    st_info->byvars_lens,
+                    st_info->invert,
+                    st_info->positions
+                );
+            }
+            else {
+                st_info->sorted = MultiSortCheckMC (
+                    st_info->st_charx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->rowbytes,
+                    st_info->byvars_lens,
+                    st_info->invert,
+                    st_info->positions
+                );
+            }
         }
         else {
             if ( st_info->debug ) {
                 printf("debug 20: mix only numeric\n");
             }
 
-            st_info->sorted = MultiSortCheckDbl(
-                st_info->st_numx,
-                st_info->N,
-                0,
-                st_info->kvars_by - 1,
-                st_info->kvars_by * sizeof(ST_double),
-                st_info->invert
-            );
+            if ( st_info->mlast ) {
+                st_info->sorted = MultiSortCheckDblMlast(
+                    st_info->st_numx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->kvars_by * sizeof(ST_double),
+                    st_info->invert
+                );
+            }
+            else {
+                st_info->sorted = MultiSortCheckDbl(
+                    st_info->st_numx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->kvars_by * sizeof(ST_double),
+                    st_info->invert
+                );
+            }
         }
 
         if ( st_info->debug ) {
@@ -1093,34 +1122,64 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 printf("debug 26: sorted string mix multi-level panel setup\n");
             }
 
-            st_info->J = MultiSortPanelSetupMC (
-                st_info->st_charx,
-                st_info->N,
-                0,
-                st_info->kvars_by - 1,
-                st_info->rowbytes,
-                st_info->byvars_lens,
-                st_info->invert,
-                st_info->positions,
-                info_largest,
-                0
-            );
+            if ( st_info->mlast ) {
+                st_info->J = MultiSortPanelSetupMCMlast (
+                    st_info->st_charx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->rowbytes,
+                    st_info->byvars_lens,
+                    st_info->invert,
+                    st_info->positions,
+                    info_largest,
+                    0
+                );
+            }
+            else {
+                st_info->J = MultiSortPanelSetupMC (
+                    st_info->st_charx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->rowbytes,
+                    st_info->byvars_lens,
+                    st_info->invert,
+                    st_info->positions,
+                    info_largest,
+                    0
+                );
+            }
         }
         else {
             if ( st_info->debug ) {
                 printf("debug 27: sorted numeric only multi-level panel setup\n");
             }
 
-            st_info->J = MultiSortPanelSetupDbl (
-                st_info->st_numx,
-                st_info->N,
-                0,
-                st_info->kvars_by - 1,
-                st_info->kvars_by * sizeof(ST_double),
-                st_info->invert,
-                info_largest,
-                0
-            );
+            if ( st_info->mlast ) {
+                st_info->J = MultiSortPanelSetupDblMlast (
+                    st_info->st_numx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->kvars_by * sizeof(ST_double),
+                    st_info->invert,
+                    info_largest,
+                    0
+                );
+            }
+            else {
+                st_info->J = MultiSortPanelSetupDbl (
+                    st_info->st_numx,
+                    st_info->N,
+                    0,
+                    st_info->kvars_by - 1,
+                    st_info->kvars_by * sizeof(ST_double),
+                    st_info->invert,
+                    info_largest,
+                    0
+                );
+            }
         }
 
         info_largest[st_info->J] = st_info->N;

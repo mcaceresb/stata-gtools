@@ -5549,21 +5549,21 @@ program compare_hashsort
     di "    gsort | hashsort | ratio (g/h) | varlist"
     di "    ----- | -------- | ----------- | -------"
 
-    compare_gsort -str_12,              `options'
-    compare_gsort str_12 -str_32,       `options'
-    compare_gsort str_12 -str_32 str_4, `options'
+    compare_gsort -str_12,              `options' mfirst
+    compare_gsort str_12 -str_32,       `options' mfirst
+    compare_gsort str_12 -str_32 str_4, `options' mfirst
 
-    compare_gsort -double1,                 `options'
-    compare_gsort double1 -double2,         `options'
-    compare_gsort double1 -double2 double3, `options'
+    compare_gsort -double1,                 `options' mfirst
+    compare_gsort double1 -double2,         `options' mlast
+    compare_gsort double1 -double2 double3, `options' mfirst
 
-    compare_gsort -int1,           `options'
-    compare_gsort int1 -int2,      `options'
-    compare_gsort int1 -int2 int3, `options'
+    compare_gsort -int1,           `options' mfirst
+    compare_gsort int1 -int2,      `options' mfirst
+    compare_gsort int1 -int2 int3, `options' mlast
 
-    compare_gsort -int1 -str_32 -double1,                                         `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
-    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+    compare_gsort -int1 -str_32 -double1,                                         `options' mlast
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options' mfirst
+    compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' mfirst
 
     qui expand 10
     local N = trim("`: di %15.0gc _N'")
@@ -5702,7 +5702,7 @@ end
 
 capture program drop compare_gsort
 program compare_gsort, rclass
-    syntax anything, [benchmode *]
+    syntax anything, [benchmode mfirst mlast *]
     tempvar ix
     gen long `ix' = _n
     if ( "`benchmode'" == "" ) local gstable `ix'
@@ -5710,7 +5710,7 @@ program compare_gsort, rclass
     timer clear
     preserve
         timer on 42
-        gsort `anything' `gstable', mfirst
+        gsort `anything' `gstable', `mfirst'
         timer off 42
         tempfile file_sort
         qui save `file_sort'
@@ -5721,7 +5721,7 @@ program compare_gsort, rclass
     timer clear
     preserve
         timer on 43
-        qui hashsort `anything', `options'
+        qui hashsort `anything', `mlast'  `options'
         timer off 43
         cf `:di subinstr("`anything'", "-", "", .)' using `file_sort'
     restore

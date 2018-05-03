@@ -724,22 +724,44 @@ bycopy:
 
         if ( (level > 1) &  multisort ) {
             if ( kstr > 0 ) {
-                MultiQuicksortMC (st_info->st_by_charx,
-                                  st_info->J,
-                                  0,
-                                  kvars - 1,
-                                  rowbytes,
-                                  st_info->byvars_lens,
-                                  st_info->invert,
-                                  st_info->positions);
+                if ( st_info->mlast ) {
+                    MultiQuicksortMCMlast (st_info->st_by_charx,
+                                           st_info->J,
+                                           0,
+                                           kvars - 1,
+                                           rowbytes,
+                                           st_info->byvars_lens,
+                                           st_info->invert,
+                                           st_info->positions);
+                }
+                else {
+                    MultiQuicksortMC (st_info->st_by_charx,
+                                      st_info->J,
+                                      0,
+                                      kvars - 1,
+                                      rowbytes,
+                                      st_info->byvars_lens,
+                                      st_info->invert,
+                                      st_info->positions);
+                }
             }
             else {
-                MultiQuicksortDbl(st_info->st_by_numx,
-                                  st_info->J,
-                                  0,
-                                  kvars - 1,
-                                  (kvars + 1) * sizeof(ST_double),
-                                  st_info->invert);
+                if ( st_info->mlast ) {
+                    MultiQuicksortDblMlast(st_info->st_by_numx,
+                                           st_info->J,
+                                           0,
+                                           kvars - 1,
+                                           (kvars + 1) * sizeof(ST_double),
+                                           st_info->invert);
+                }
+                else {
+                    MultiQuicksortDbl(st_info->st_by_numx,
+                                      st_info->J,
+                                      0,
+                                      kvars - 1,
+                                      (kvars + 1) * sizeof(ST_double),
+                                      st_info->invert);
+                }
             }
 
             if ( st_info->benchmark > 2 )

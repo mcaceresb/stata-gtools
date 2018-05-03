@@ -1,10 +1,3 @@
-#include <sys/cdefs.h>
-#include <stdlib.h>
-#include <string.h>
-#include "quicksort.c"
-#include "quicksortComparators.c"
-#include "quicksortMultiLevelMlast.c"
-
 // All the multi-sort and multi-level checks follow the same logic. I
 // only detail the logic once, in MultiIsIDCheckDbl (for numeric only)
 // and MultiIsIDCheckMC (for a mix of string and numeric).
@@ -13,7 +6,7 @@
  *                              Doubles                              *
  *********************************************************************/
 
-void MultiQuicksortDbl (
+void MultiQuicksortDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -22,7 +15,7 @@ void MultiQuicksortDbl (
     GT_size *invert
 );
 
-void MultiQuicksortDbl (
+void MultiQuicksortDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -37,7 +30,7 @@ void MultiQuicksortDbl (
         start,
         N,
         elsize,
-        invert[kstart]? MultiCompareNum2Invert: MultiCompareNum2,
+        invert[kstart]? MultiCompareNum2InvertMlast: MultiCompareNum2,
         &kstart
     );
 
@@ -51,7 +44,7 @@ loop:
     j = 1;
     if ( invert[kstart] ) {
         for (i = start + elsize; i < end; i += elsize) {
-            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            if ( MultiCompareNum2InvertMlast(i - elsize, i, &kstart) ) break;
             j++;
         }
     }
@@ -63,7 +56,7 @@ loop:
     }
 
     if ( j > 1 ) {
-        MultiQuicksortDbl (
+        MultiQuicksortDblMlast (
             start,
             j,
             kstart + 1,
@@ -84,7 +77,7 @@ loop:
  *                       Mixed Character Array                       *
  *********************************************************************/
 
-void MultiQuicksortMC (
+void MultiQuicksortMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -95,7 +88,7 @@ void MultiQuicksortMC (
     GT_size *positions
 );
 
-void MultiQuicksortMC (
+void MultiQuicksortMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -115,7 +108,7 @@ void MultiQuicksortMC (
         elsize,
         ( (ischar = (ltypes[kstart] > 0)) )?
         (invert[kstart]? AltCompareCharInvert: AltCompareChar):
-        (invert[kstart]? AltCompareNumInvert: AltCompareNum),
+        (invert[kstart]? AltCompareNumInvertMlast: AltCompareNum),
         &(positions[kstart])
     );
 
@@ -136,7 +129,7 @@ loop:
         }
         else {
             for (i = start + elsize; i < end; i += elsize) {
-                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                if ( AltCompareNumInvertMlast(i - elsize, i, &(positions[kstart])) ) break;
                 j++;
             }
         }
@@ -157,7 +150,7 @@ loop:
     }
 
     if ( j > 1 ) {
-        MultiQuicksortMC (
+        MultiQuicksortMCMlast (
             start,
             j,
             kstart + 1,
@@ -177,70 +170,10 @@ loop:
 }
 
 /*********************************************************************
- *                      Spooky Hash with Index                       *
- *********************************************************************/
-
-void MultiQuicksortSpooky (
-    void *start,
-    GT_size N,
-    GT_size kstart,
-    GT_size kend,
-    GT_size elsize
-);
-
-void MultiQuicksortSpooky (
-    void *start,
-    GT_size N,
-    GT_size kstart,
-    GT_size kend,
-    GT_size elsize)
-{
-    GT_size j;
-    void *i, *end;
-
-    quicksort_bsd (
-        start,
-        N,
-        elsize,
-        CompareSpooky,
-        &kstart
-    );
-
-    if ( kstart >= kend )
-        return;
-
-    end = start + N * elsize;
-
-loop:
-
-    j = 1;
-    for (i = start + elsize; i < end; i += elsize) {
-        if ( CompareSpooky(i - elsize, i, &kstart) ) break;
-        j++;
-    }
-
-    if ( j > 1 ) {
-        MultiQuicksortSpooky (
-            start,
-            j,
-            kstart + 1,
-            kend,
-            elsize
-        );
-    }
-
-    if ( (kstart < kend) ) {
-        start = i;
-        if ( start < end )
-            goto loop;
-    }
-}
-
-/*********************************************************************
  *                             Is sorted                             *
  *********************************************************************/
 
-int MultiSortCheckMC (
+int MultiSortCheckMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -251,7 +184,7 @@ int MultiSortCheckMC (
     GT_size *positions
 );
 
-int MultiSortCheckMC (
+int MultiSortCheckMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -271,7 +204,7 @@ int MultiSortCheckMC (
         elsize,
         ( (ischar = (ltypes[kstart] > 0)) )?
         (invert[kstart]? AltCompareCharInvert: AltCompareChar):
-        (invert[kstart]? AltCompareNumInvert: AltCompareNum),
+        (invert[kstart]? AltCompareNumInvertMlast: AltCompareNum),
         &(positions[kstart])
     ) == 0 ) return (0);
 
@@ -292,7 +225,7 @@ loop:
         }
         else {
             for (i = start + elsize; i < end; i += elsize) {
-                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                if ( AltCompareNumInvertMlast(i - elsize, i, &(positions[kstart])) ) break;
                 j++;
             }
         }
@@ -313,7 +246,7 @@ loop:
     }
 
     if ( j > 1 ) {
-        if ( MultiSortCheckMC (
+        if ( MultiSortCheckMCMlast (
             start,
             j,
             kstart + 1,
@@ -334,7 +267,7 @@ loop:
     return (1);
 }
 
-int MultiSortCheckDbl (
+int MultiSortCheckDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -343,7 +276,7 @@ int MultiSortCheckDbl (
     GT_size *invert
 );
 
-int MultiSortCheckDbl (
+int MultiSortCheckDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -358,7 +291,7 @@ int MultiSortCheckDbl (
         start,
         N,
         elsize,
-        invert[kstart]? MultiCompareNum2Invert: MultiCompareNum2,
+        invert[kstart]? MultiCompareNum2InvertMlast: MultiCompareNum2,
         &kstart
     ) == 0 ) return (0);
 
@@ -371,7 +304,7 @@ loop:
     j = 1;
     if ( invert[kstart] ) {
         for (i = start + elsize; i < end; i += elsize) {
-            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            if ( MultiCompareNum2InvertMlast(i - elsize, i, &kstart) ) break;
             j++;
         }
     }
@@ -383,7 +316,7 @@ loop:
     }
 
     if ( j > 1 ) {
-        if ( MultiSortCheckDbl (
+        if ( MultiSortCheckDblMlast (
             start,
             j,
             kstart + 1,
@@ -406,7 +339,7 @@ loop:
  *                               Is ID                               *
  *********************************************************************/
 
-int MultiIsIDCheckMC (
+int MultiIsIDCheckMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -417,7 +350,7 @@ int MultiIsIDCheckMC (
     GT_size *positions
 );
 
-int MultiIsIDCheckMC (
+int MultiIsIDCheckMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -443,7 +376,7 @@ int MultiIsIDCheckMC (
         elsize,
         ( (ischar = (ltypes[kstart] > 0)) )?
         (invert[kstart]? AltCompareCharInvert: AltCompareChar):
-        (invert[kstart]? AltCompareNumInvert: AltCompareNum),
+        (invert[kstart]? AltCompareNumInvertMlast: AltCompareNum),
         &(positions[kstart])
     )) < 0 ) return (rc);
 
@@ -487,7 +420,7 @@ loop:
         }
         else {
             for (i = start + elsize; i < end; i += elsize) {
-                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                if ( AltCompareNumInvertMlast(i - elsize, i, &(positions[kstart])) ) break;
                 j++;
             }
         }
@@ -518,7 +451,7 @@ loop:
         // move on to checking the next group in this level, should any
         // exist. However, if this is sorted weakly or not sorted then exit.
 
-        if ( (rc = MultiIsIDCheckMC (
+        if ( (rc = MultiIsIDCheckMCMlast (
             start,
             j,
             kstart + 1,
@@ -563,7 +496,7 @@ loop:
     return (-1);
 }
 
-int MultiIsIDCheckDbl (
+int MultiIsIDCheckDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -572,7 +505,7 @@ int MultiIsIDCheckDbl (
     GT_size *invert
 );
 
-int MultiIsIDCheckDbl (
+int MultiIsIDCheckDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -592,7 +525,7 @@ int MultiIsIDCheckDbl (
         start,
         N,
         elsize,
-        invert[kstart]? MultiCompareNum2Invert: MultiCompareNum2,
+        invert[kstart]? MultiCompareNum2InvertMlast: MultiCompareNum2,
         &kstart
     )) < 0 ) return (rc);
 
@@ -629,7 +562,7 @@ loop:
     j = 1;
     if ( invert[kstart] ) {
         for (i = start + elsize; i < end; i += elsize) {
-            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            if ( MultiCompareNum2InvertMlast(i - elsize, i, &kstart) ) break;
             j++;
         }
     }
@@ -652,7 +585,7 @@ loop:
         // exist. However, if this is sorted weakly or not sorted then it is
         // not an ID.
 
-        if ( (rc = MultiIsIDCheckDbl (
+        if ( (rc = MultiIsIDCheckDblMlast (
             start,
             j,
             kstart + 1,
@@ -701,7 +634,7 @@ loop:
 
 /* NOTE(mauricio): With J = 1, make sure info is [0, 1] // 2017-11-13 21:19 EST */
 
-GT_size MultiSortPanelSetupMC (
+GT_size MultiSortPanelSetupMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -714,7 +647,7 @@ GT_size MultiSortPanelSetupMC (
     GT_size info_start
 );
 
-GT_size MultiSortPanelSetupMC (
+GT_size MultiSortPanelSetupMCMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -749,7 +682,7 @@ GT_size MultiSortPanelSetupMC (
             }
             else {
                 for (i = start + elsize; i < end; i += elsize) {
-                    if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) {
+                    if ( AltCompareNumInvertMlast(i - elsize, i, &(positions[kstart])) ) {
                         *info = j;
                         info++; J++;
                     }
@@ -795,7 +728,7 @@ loop:
         }
         else {
             for (i = start + elsize; i < end; i += elsize) {
-                if ( AltCompareNumInvert(i - elsize, i, &(positions[kstart])) ) break;
+                if ( AltCompareNumInvertMlast(i - elsize, i, &(positions[kstart])) ) break;
                 j++;
             }
         }
@@ -817,7 +750,7 @@ loop:
 
     if ( j > info_start ) {
         j++;
-        nj = MultiSortPanelSetupMC (
+        nj = MultiSortPanelSetupMCMlast (
             start,
             j - info_start,
             kstart + 1,
@@ -845,7 +778,7 @@ loop:
     return (J);
 }
 
-GT_size MultiSortPanelSetupDbl (
+GT_size MultiSortPanelSetupDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -856,7 +789,7 @@ GT_size MultiSortPanelSetupDbl (
     GT_size info_start
 );
 
-GT_size MultiSortPanelSetupDbl (
+GT_size MultiSortPanelSetupDblMlast (
     void *start,
     GT_size N,
     GT_size kstart,
@@ -878,7 +811,7 @@ GT_size MultiSortPanelSetupDbl (
 
         if ( invert[kstart] ) {
             for (i = start + elsize; i < end; i += elsize) {
-                if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) {
+                if ( MultiCompareNum2InvertMlast(i - elsize, i, &kstart) ) {
                     *info = j;
                     info++; J++;
                 }
@@ -905,7 +838,7 @@ loop:
 
     if ( invert[kstart] ) {
         for (i = start + elsize; i < end; i += elsize) {
-            if ( MultiCompareNum2Invert(i - elsize, i, &kstart) ) break;
+            if ( MultiCompareNum2InvertMlast(i - elsize, i, &kstart) ) break;
             j++;
         }
     }
@@ -918,7 +851,7 @@ loop:
 
     if ( j > info_start ) {
         j++;
-        nj = MultiSortPanelSetupDbl (
+        nj = MultiSortPanelSetupDblMlast (
             start,
             j - info_start,
             kstart + 1,

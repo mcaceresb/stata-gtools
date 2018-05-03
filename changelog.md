@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-0.13.2 (2018-05-03)
+
+### Features
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/31
+  (added option `mlast` to `hashsort` to imitate `gsort` when sorting
+  numbers in inverse order and they contain missing values).
+
 ## gtools-0.13.1 (2018-05-02)
 
 ### Pending

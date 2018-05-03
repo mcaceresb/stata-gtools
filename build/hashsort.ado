@@ -28,6 +28,7 @@ program define hashsort
                                /// ------------------------
                                ///
         stable                 /// Hashsort is always stable
+        mlast                  ///
         Mfirst                 ///
     ]
 
@@ -38,22 +39,32 @@ program define hashsort
         di as txt "hashsort is always -stable-"
     }
 
-    if ( ("`mfirst'" == "") & (strpos("`anything'", "-") > 0) ) {
+    if ( ("`mfirst'" != "") & ("`mlast'" != "") ) {
+        di as err "Cannot request both {opt mfirst} and {opt mlast}"
+    }
+
+    * mfirst is set by default, unlike gsort
+    if ( ("`mfirst'" == "") & ("`mlast'" == "") & (strpos("`anything'", "-") > 0) ) {
         di as txt "(note: missing values will be sorted first)"
+    }
+
+    * mfirst is set by default
+    if ( ("`mfirst'" == "") & ("`mlast'" == "") ) {
+        local mfirst mfirst
     }
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
     local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local eopts `invertinmata' `sortgen' `skipcheck'
-    local gopts `generate' `tag' `counts' `replace'
+    local gopts `generate' `tag' `counts' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)
     global GTOOLS_CALLER ""
     local rc = _rc
 
     if ( `rc' == 17999 ) {
         if regexm("`anything'", "[\+\-]") {
-            gsort `anything', `generate' mfirst
+            gsort `anything', `generate' `mfirst'
             exit 0
         }
         else {

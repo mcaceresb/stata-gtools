@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed May  2 02:29:56 EDT 2018
+* Updated: Sun May  6 12:23:55 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.13.1
+* Version: 0.13.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -58,6 +58,7 @@ program main
         * qui do test_gcontract.do
         * qui do test_gegen.do
         * qui do test_gisid.do
+        * qui do test_gduplicates.do
         * qui do test_glevelsof.do
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
@@ -99,6 +100,7 @@ program main
 
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
             unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
@@ -127,6 +129,7 @@ program main
             compare_egen,          `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)
             compare_isid,          `noisily' oncollision(error)
+            compare_duplicates,    `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_unique,        `noisily' oncollision(error) distinct
@@ -145,6 +148,7 @@ program main
             bench_contract,      n(1000) bench(1)   `noisily' oncollision(error)
             bench_egen,          n(1000) bench(1)   `noisily' oncollision(error)
             bench_isid,          n(1000) bench(1)   `noisily' oncollision(error)
+            bench_duplicates,    n(1000) bench(1)   `noisily' oncollision(error)
             bench_levelsof,      n(100)  bench(1)   `noisily' oncollision(error)
             bench_toplevelsof,   n(1000) bench(1)   `noisily' oncollision(error)
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error)
@@ -166,6 +170,7 @@ program main
             bench_contract,      n(10000)   bench(10)   `noisily' oncollision(error)
             bench_egen,          n(10000)   bench(10)   `noisily' oncollision(error)
             bench_isid,          n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_duplicates,    n(10000)   bench(10)   `noisily' oncollision(error)
             bench_levelsof,      n(100)     bench(100)  `noisily' oncollision(error)
             bench_toplevelsof,   n(10000)   bench(10)   `noisily' oncollision(error)
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error)

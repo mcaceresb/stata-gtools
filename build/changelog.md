@@ -1,6 +1,25 @@
 Change Log
 ==========
 
+## gtools-0.13.3 (2018-05-06)
+
+### Features
+
+* Adds `gduplicates` as a replacement of `duplicates`. This is
+  basically a wrapper for `gegen tag` and `gegen count`.
+
+### Enhancements
+
+* `_gtools_internals.ado` exits when `GTOOLS_CALLER` is empty.
+
+## gtools-0.13.2 (2018-05-03)
+
+### Features
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/31
+  (added option `mlast` to `hashsort` to imitate `gsort` when sorting
+  numbers in inverse order and they contain missing values).
+
 ## gtools-0.13.1 (2018-05-02)
 
 ### Pending

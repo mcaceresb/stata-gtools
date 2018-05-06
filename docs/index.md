@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.13.2 03May2018`
+`version 0.13.3 06May2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -21,16 +21,17 @@ __*Gtools commands with a Stata equivalent*__
 
 (_**NOTE:**_ `strL` variables are not yet supported; see [issue 39](https://github.com/mcaceresb/stata-gtools/issues/39))
 
-| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                                  |
-| ------------ | -------- | ------------------------ | --------------- | --------------------------------------- |
-| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
-| gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                         |
-| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
-| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
-|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
+| Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
+| ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
+| gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
+| gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
+| gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
+| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
+| gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
+| gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile     |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
+|              | \_pctile   |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -184,6 +185,10 @@ gegen p2_5  = pctile(price), by(foreign) p(2.5)
 * gisid varlist [if] [in], [options]
 gisid make, missok
 gisid price in 1
+
+* gduplicates varlist [if] [in], [options]
+gduplicates report foreign
+gduplicates report rep78 if foreign
 
 * glevelsof varlist [if] [in], [options]
 glevelsof rep78, local(levels) sep(" | ")
@@ -358,6 +363,12 @@ Differences from `gsort`
 - `hashsort` behaves as if `mfirst` was passed. To recover the default
   behavior of `gsort` pass option `mlast`.
 
+Differences from `duplicates`
+
+- `gduplicates` does not sort `examples` or `list` by default. This massively
+  enhances performance but it might be harder to read. Pass option `sort`
+  (`sorted`) to mimic `duplicates` behavior and sort the list. 
+
 __*The Stata GUI freezes when running Gtools commands*__
 
 When Stata is executing the plugin, the user will not be able to interact
@@ -378,17 +389,17 @@ TODO
 
 Features that might make it to 1.0 (but I make no promises)
 
-- Have `mlast` option for hashsort?
-    - Or switch its behavior and have `mfirst` do what it does now.
 - Add option to save glevelsof in a variable/matrix (incl freq).
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
+- Improve debugging info.
+- Improve code comments when you write the API!
+- Minimize memory use.
 - Add option to control how to treat missing values in gcollapse
     - anymissing()
     - allmissing()
-- Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.

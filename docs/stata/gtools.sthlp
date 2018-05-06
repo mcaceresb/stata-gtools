@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.13.2 03May2018}{...}
+{* *! version 0.13.3 06May2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -33,6 +33,9 @@ traditional stata commands. The following are available as part of gtools:
 
 {p 8 17 2}
 {manhelp gisid R:gisid} as an {opt isid} replacement. {p_end}
+
+{p 8 17 2}
+{manhelp gduplicates R:gduplicates} as a {opt duplicates} replacement. {p_end}
 
 {p 8 17 2}
 {manhelp glevelsof R:glevelsof} as a {opt levelsof} replacement. {p_end}

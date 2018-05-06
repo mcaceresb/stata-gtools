@@ -1,4 +1,4 @@
-*! version 0.13.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.13.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -400,13 +400,23 @@ program define gegen, byable(onecall) rclass
             exit 0
         }
         else if ( `rc' == 17001 ) {
-            if ( `=_N' > 0 ) `noobs'
-            `rename'
-            exit 0
+            if ( "${GTOOLS_DUPS}" == "" ) {
+                if ( `=_N' > 0 ) `noobs'
+                `rename'
+                exit 0
+            }
+            else {
+                error 2000
+            }
         }
         else if ( `rc' ) {
             exit `rc'
         }
+
+        return scalar N    = `r(N)'
+        return scalar J    = `r(J)'
+        return scalar minJ = `r(minJ)'
+        return scalar maxJ = `r(maxJ)'
 
         `rename'
         exit 0
@@ -548,8 +558,13 @@ program define gegen, byable(onecall) rclass
         exit 0
     }
     else if ( `rc' == 17001 ) {
-        `rename'
-        exit 0
+        if ( "${GTOOLS_DUPS}" == "" ) {
+            `rename'
+            exit 0
+        }
+        else {
+            error 2000
+        }
     }
     else if ( `rc' ) exit `rc'
 

@@ -1,4 +1,4 @@
-*! version 0.8.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -39,6 +39,7 @@ program define hashsort
         di as txt "hashsort is always -stable-"
     }
 
+    * mfirst is set by default, unlike gsort
     if ( ("`mfirst'" != "") & ("`mlast'" != "") ) {
         di as err "Cannot request both {opt mfirst} and {opt mlast}"
     }

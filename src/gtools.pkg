@@ -1,11 +1,11 @@
-v 0.13.2
+v 0.13.3
 d
 d 'GTOOLS': Faster group operations using C plugins
 d
-d This package provides a fast C-based implementations of Stata
-d commands, such as collapse, pctile, xtile, contract, egen, isid, levelsof,
-d top levelsof, unique/distinct via gcollapse, gegen, and so on. This package
-d was inspired d by Sergio Correia's ftools.
+d This package provides a fast C-based implementations of Stata commands,
+d such as collapse, pctile, xtile, contract, egen, isid, levelsof, top
+d levelsof, unique/distinct, duplicates via gcollapse, gegen, and so on.
+d This package was inspired d by Sergio Correia's ftools.
 d
 d KW: plugin
 d KW: gtools
@@ -19,6 +19,7 @@ d KW: _pctile
 d KW: levelsof
 d KW: toplevelsof
 d KW: isid
+d KW: duplicates
 d KW: unique
 d KW: distinct
 d KW: sort
@@ -29,6 +30,7 @@ d KW: gquantiles
 d KW: gcollapse
 d KW: gcontract
 d KW: gisid
+d KW: gduplicates
 d KW: glevelsof
 d KW: gtoplevelsof
 d KW: gunique
@@ -40,7 +42,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20180503
+d Distribution-Date: 20180506
 d
 f _gtools_internal.ado
 f gcollapse.ado
@@ -54,6 +56,7 @@ f glevelsof.ado
 f gtop.ado
 f gtoplevelsof.ado
 f gisid.ado
+f gduplicates.ado
 f hashsort.ado
 f gtools.ado
 f gcollapse.sthlp
@@ -67,6 +70,7 @@ f glevelsof.sthlp
 f gtop.sthlp
 f gtoplevelsof.sthlp
 f gisid.sthlp
+f gduplicates.sthlp
 f hashsort.sthlp
 f gtools.sthlp
 f gtools_windows.plugin

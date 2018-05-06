@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-0.13.3 (2018-05-06)
+
+### Features
+
+* Adds `gduplicates` as a replacement of `duplicates`. This is
+  basically a wrapper for `gegen tag` and `gegen count`.
+
+### Enhancements
+
+* `_gtools_internals.ado` exits when `GTOOLS_CALLER` is empty.
+
 ## gtools-0.13.2 (2018-05-03)
 
 ### Features

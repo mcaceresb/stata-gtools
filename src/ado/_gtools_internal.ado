@@ -1,8 +1,8 @@
-*! version 0.7.2 03May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
-* rc 17001
+* rc 17001 - no observations
 * rc 17002 - strL variables and version < 14
 * rc 17003 - strL variables and version >= 14
 * rc 17459
@@ -28,9 +28,10 @@ program _gtools_internal, rclass
                          gunique      ///
                          gtoplevelsof ///
                          gcontract    /// 8
-                         gquantiles
+                         gquantiles   ///
+                         ghash
 
-    if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
+    if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
         di as err "_gtools_internal is not meant to be called directly." ///
                   " See {help gtools}"
         clean_all 198
@@ -68,6 +69,7 @@ program _gtools_internal, rclass
                                   /// General options
                                   /// ---------------
                                   ///
+                                  /// keeptouse(str) /// generate sample indicator
         seecount                  /// print group info to console
         COUNTonly                 /// report group info and exit
         MISSing                   /// Include missing values

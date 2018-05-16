@@ -240,7 +240,7 @@ program _gtools_internal, rclass
     * ---------------------------------------------------
 
     local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-    local url `url'/master/spookyhash.dll
+    local url `url'/master/lib/windows/spookyhash.dll
 
     if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
@@ -2892,7 +2892,7 @@ if ( "`c_os_'" == "windows" ) {
         if ( _rc ) {
             local rc = _rc
             local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-            local url `url'/master/spookyhash.dll
+            local url `url'/master/lib/windows/spookyhash.dll
             di as err `"gtools: `hashlib' not found."' _n(1)     ///
                       `"gtools: download {browse "`url'":here}"' ///
                       `" or run {opt gtools, dependencies}"'

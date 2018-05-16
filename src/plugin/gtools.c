@@ -88,19 +88,19 @@ STDLL stata_call(int argc, char *argv[])
     GTOOLS_GC_INIT
 
     /**************************************************************************
-     * This is the main wrapper. We apply one of:                             *                                          
+     * This is the main wrapper. We apply one of:                             *
      *                                                                        *
-     *     - check:     Exit with 0 status. This just tests the plugin can be *                                                                      
-     *                  called from Stata without crashing.                   *                                                    
-     *     - recast:    Bulk copy sources into targets.                       *                                                
-     *     - hash:      Generic (read, hash, sort, generate, summary stats).  *                                                                     
-     *     - isid:      Do by vars uniquely identify obs?                     *                                                  
-     *     - levelsof:  Levels of by variables.                               *                                        
-     *     - top:       Top levels by frequency.                              *                                         
-     *     - contract:  Frequency counts of levels.                           *                                            
-     *     - hashsort:  Sort data by variables.                               *                                        
-     *     - quantiles: Percentiles, xtile, bin counts, and more.             *                                                          
-     *     - collapse:  Summary stat by group.                                *                                       
+     *     - check:     Exit with 0 status. This just tests the plugin can be *
+     *                  called from Stata without crashing.                   *
+     *     - recast:    Bulk copy sources into targets.                       *
+     *     - hash:      Generic (read, hash, sort, generate, summary stats).  *
+     *     - isid:      Do by vars uniquely identify obs?                     *
+     *     - levelsof:  Levels of by variables.                               *
+     *     - top:       Top levels by frequency.                              *
+     *     - contract:  Frequency counts of levels.                           *
+     *     - hashsort:  Sort data by variables.                               *
+     *     - quantiles: Percentiles, xtile, bin counts, and more.             *
+     *     - collapse:  Summary stat by group.                                *
      *                                                                        *
      **************************************************************************/
 
@@ -124,14 +124,14 @@ STDLL stata_call(int argc, char *argv[])
     else if ( strcmp(todo, "collapse") == 0 ) { // (Note: keeps by copy; always)
 
         /*********************************************************************
-         * collapse dispatcher                                               * 
-         *                                                                   * 
-         *     - memory: Targets in memory                                   * 
-         *     - switch: Hash only. May generate targets; may write to disk. * 
-         *     - forceio: Write to disk.                                     * 
-         *     - ixfinish: Targets and group info in memory.                 * 
-         *     - read: Read targets from disk.                               * 
-         *                                                                   * 
+         * collapse dispatcher                                               *
+         *                                                                   *
+         *     - memory: Targets in memory                                   *
+         *     - switch: Hash only. May generate targets; may write to disk. *
+         *     - forceio: Write to disk.                                     *
+         *     - ixfinish: Targets and group info in memory.                 *
+         *     - read: Read targets from disk.                               *
+         *                                                                   *
          *********************************************************************/
 
         if ( argc < 2 ) {

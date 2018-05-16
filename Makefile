@@ -112,7 +112,7 @@ links:
 
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
-	mkdir -p ./lib/spookyhash/build/bin/Releas
+	mkdir -p ./lib/spookyhash/build/bin/Release
 	$(GCC) $(CFLAGS) -o $(OUT)  src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
 	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
 	cp build/*plugin lib/plugin/

@@ -77,8 +77,12 @@ f gtools_windows_v2.plugin
 f env_set_windows_v2.plugin
 f gtools_unix_v2.plugin
 f env_set_unix_v2.plugin
+f gtools_macosx_v2.plugin
+f env_set_macosx_v2.plugin
 f gtools_windows_v3.plugin
 f env_set_windows_v3.plugin
 f gtools_unix_v3.plugin
 f env_set_unix_v3.plugin
+f gtools_macosx_v3.plugin
+f env_set_macosx_v3.plugin
 F spookyhash.dll

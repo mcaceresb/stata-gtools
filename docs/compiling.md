@@ -19,7 +19,8 @@ If you want to compile the plugin yourself, you will, at a minimum, need
 
 The plugin additionally requires:
 
-- v2.0 or above of the [Stata Plugin Interface](https://stata.com/plugins/version2) (SPI).
+- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2) (Stata 13 and earlier).
+- v3.0 of the [Stata Plugin Interface](https://stata.com/plugins) (Stata 14 and later).
 - [`premake5`](https://premake.github.io)
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
 
@@ -94,7 +95,11 @@ cd -
 To finish, compile the plugin
 
 ```bash
-make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+# Stata 13 and earlier
+make clean SPI=2.0 SPIVER=v2 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+
+# Stata 14 and later
+make clean SPI=3.0 SPIVER=v3 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 ```
 
 ### Unit tests

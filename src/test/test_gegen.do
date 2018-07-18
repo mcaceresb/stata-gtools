@@ -43,6 +43,29 @@ program checks_gegen
     gen x = 1
     gegen y = group(x) if x > 1
     gegen z = tag(x)   if x > 1
+
+    clear
+    sysuse auto
+    tempfile auto
+    save `"`auto'"'
+
+    clear
+    set obs 5
+    gen x = _n
+    gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
+    replace y  = fileread(`"`auto'"') in 1
+    cap gegen z = group(y)
+    if ( `c(stata_version)' < 14 ) {
+        assert _rc == 17002
+    }
+    else {
+        assert _rc  == 0
+        assert z[1] == 1
+        assert z[2] == 2
+        assert z[3] == 3
+        assert z[4] == 2
+        assert z[5] == 3
+    }
 end
 
 capture program drop checks_inner_egen

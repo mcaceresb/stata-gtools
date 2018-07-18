@@ -1,8 +1,10 @@
-*! version 0.1.1 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -duplicates- implementation using -gegen tag- for faster processing
 
 capture program drop gduplicates
 program gduplicates, rclass
+    version 13
+
     local 00 `0'
     gettoken cmd 0 : 0, parse(" ,")
     local l = length("`cmd'")

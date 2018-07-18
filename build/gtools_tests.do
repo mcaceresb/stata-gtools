@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sun May  6 12:23:55 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.13.3
+* Version: 0.14.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -21,9 +21,6 @@ set type double
 
 * Main program wrapper
 * --------------------
-
-* TODO: cap repalce random1 = runiform() in 1 / `=ceil(_N / 2)'
-* TODO: cap repalce random2 = rnormal()  in `=ceil(_N / 2)' / _N
 
 program main
     syntax, [NOIsily *]
@@ -538,7 +535,28 @@ program checks_corners
         gen x = _n
         gen strL y = "hi"
         cap gcollapse (p70) x, by(y)
-        assert _rc == 17003
+        if ( `c(stata_version)' < 14 ) {
+            assert _rc == 17002
+        }
+        else {
+            assert _rc == 0
+        }
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcollapse (p70) x, by(y) compress
+        assert _rc == 0
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
+        cap gcollapse (p70) x, by(y)
+        assert _rc == 17002
+        cap gcollapse (p70) x, by(y) compress
+        assert _rc == 17004
     }
 
     * https://github.com/mcaceresb/stata-gtools/issues/38
@@ -3603,6 +3621,29 @@ program checks_gegen
     gen x = 1
     gegen y = group(x) if x > 1
     gegen z = tag(x)   if x > 1
+
+    clear
+    sysuse auto
+    tempfile auto
+    save `"`auto'"'
+
+    clear
+    set obs 5
+    gen x = _n
+    gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
+    replace y  = fileread(`"`auto'"') in 1
+    cap gegen z = group(y)
+    if ( `c(stata_version)' < 14 ) {
+        assert _rc == 17002
+    }
+    else {
+        assert _rc  == 0
+        assert z[1] == 1
+        assert z[2] == 2
+        assert z[3] == 3
+        assert z[4] == 2
+        assert z[5] == 3
+    }
 end
 
 capture program drop checks_inner_egen

@@ -1,8 +1,10 @@
-*! version 0.6.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
 program gquantiles, rclass
+    version 13
+
     if ( `=_N < 1' ) {
         error 2000
     }
@@ -61,6 +63,7 @@ program gquantiles, rclass
                                         /// -----------------------
                                         ///
         debug(passthru)                 /// Print debugging info to console
+        compress                        /// Try to compress strL variables
         Verbose                         /// Print info during function execution
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
@@ -334,7 +337,7 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug'
+    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug' `compress'
     local   opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
     local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'

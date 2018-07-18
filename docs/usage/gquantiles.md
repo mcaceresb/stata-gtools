@@ -240,6 +240,12 @@ __*Switches*__
 
 (Note: These are common to every gtools command.)
 
+- `compress` Try to compress strL to str#. The Stata Plugin Interface has
+            only limited support for strL variables. In Stata 13 and
+            earlier (version 2.0) there is no support, and in Stata 14
+            and later (version 3.0) there is read-only support. The user
+            can try to compress strL variables using this option.
+
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
@@ -252,6 +258,16 @@ __*Switches*__
             thing a Windows user can do is run gtools, dependencies at the start
             of their Stata session, but if Stata cannot find the plugin the user
             can specify a path manually here.
+
+- `hashmethod(str)` Hash method to use. `default` automagically chooses the
+            algorithm. `biject` tries to biject the inputs into the
+            natural numbers. `spooky` hashes the data and then uses the
+            hash.
+
+- `oncollision(str)` How to handle collisions. A collision should never happen
+            but just in case it does `gtools` will try to use native
+            commands. The user can specify it throw an error instead by
+            passing `oncollision(error)`.
 
 Stored results
 --------------

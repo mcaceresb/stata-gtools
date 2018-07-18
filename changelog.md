@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-0.14.0 (2018-07-17)
+
+### Bug Fixes
+
+* Closes https://github.com/mcaceresb/stata-gtools/issues/39 `strL`
+  partial support (OSX pending).
+* Closes https://github.com/mcaceresb/stata-gtools/issues/41 `wild` with
+  existing variables gets a warning.
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/42 `gunique` typo.
+
 ## gtools-0.13.3 (2018-05-06)
 
 ### Features

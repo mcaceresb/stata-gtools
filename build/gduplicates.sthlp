@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1  06May2018}{...}
+{* *! version 0.2.0  17Jul2018}{...}
 {viewerdialog gduplicates "dialog gduplicates"}{...}
 {vieweralsosee "[D] gduplicates" "mansection D gduplicates"}{...}
 {viewerjumpto "Syntax" "gduplicates##syntax"}{...}
@@ -133,6 +133,7 @@ option {opt sorted} when using those sub-commands.
 
 {pstd}
 {opt gduplicates} is part of the {manhelp gtools R:gtools} project.
+In order to pass {opt gtools} options, use {opth gtools(str)}.
 
 {marker commands}{...}
 {title:Commands}

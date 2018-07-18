@@ -78,8 +78,11 @@ observations. The word drop may not be abbreviated.
 Options
 -------
 
-See `help list` for the full options available with examples and list
-(both call the list command internally).
+Unlike other `gtools` commands, `gdistinct` extra arguments are
+captured. See `help list` for the full options available with examples
+and list (both call the list command internally).
+ 
+To pass `gtools` options use `gtools(str)`.
 
 Examples
 --------

@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.13.3 06May2018`
+`version 0.14.0 17Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -19,7 +19,8 @@ caveats and details on the plugin.
 
 __*Gtools commands with a Stata equivalent*__
 
-(_**NOTE:**_ `strL` variables are not yet supported; see [issue 39](https://github.com/mcaceresb/stata-gtools/issues/39))
+(_**NOTE:**_ `strL` variables only partially supported on Stata 14 and
+above; `gcollapse` and `gcontract` do not support `strL` by variabes).
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |

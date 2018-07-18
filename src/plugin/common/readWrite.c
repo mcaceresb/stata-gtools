@@ -18,6 +18,7 @@ ST_retcode sf_read_byvars (
     ST_retcode rc = 0;
     ST_double z;
 
+    GT_int  bytes;
     GT_size i, k, sel, obs;
     GT_size rowbytes   = st_info->rowbytes;
     GT_size N          = st_info->N;
@@ -54,7 +55,25 @@ ST_retcode sf_read_byvars (
                     if ( SF_ifobs(i + in1) ) {
                         for (k = 0; k < kvars; k++) {
                             sel = obs * rowbytes + positions[k];
-                            if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( st_info->byvars_strL[k] ) {
+                                if ( (bytes = SF_strldata (k + 1,
+                                                           i + in1,
+                                                           st_info->st_charx + sel,
+                                                           SF_sdatalen(k + 1, i + in1))) == -1 ) {
+                                    rc = -1;
+                                    goto exit;
+                                }
+
+                                if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
+                                    if ( st_info->nomiss ) {
+                                        rc = 459;
+                                        goto exit;
+                                    }
+                                    memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
+                                    goto next_inner1;
+                                }
+                            }
+                            else if ( st_info->byvars_lens[k] > 0 ) {
                                 if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
                                     goto exit;
 
@@ -93,7 +112,16 @@ next_inner1: continue;
                     if ( SF_ifobs(i + in1) ) {
                         for (k = 0; k < kvars; k++) {
                             sel = obs * rowbytes + positions[k];
-                            if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( st_info->byvars_strL[k] ) {
+                                if ( (bytes = SF_strldata (k + 1,
+                                                           i + in1,
+                                                           st_info->st_charx + sel,
+                                                           SF_sdatalen(k + 1, i + in1))) == -1 ) {
+                                    rc = -1;
+                                    goto exit;
+                                }
+                            }
+                            else if ( st_info->byvars_lens[k] > 0 ) {
                                 if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
                                     goto exit;
                             }
@@ -112,7 +140,25 @@ next_inner1: continue;
                 for (i = 0; i < N; i++) {
                     for (k = 0; k < kvars; k++) {
                         sel = obs * rowbytes + positions[k];
-                        if ( st_info->byvars_lens[k] > 0 ) {
+                        if ( st_info->byvars_strL[k] ) {
+                            if ( (bytes = SF_strldata (k + 1,
+                                                       i + in1,
+                                                       st_info->st_charx + sel,
+                                                       SF_sdatalen(k + 1, i + in1))) == -1 ) {
+                                rc = -1;
+                                goto exit;
+                            }
+
+                            if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
+                                if ( st_info->nomiss ) {
+                                    rc = 459;
+                                    goto exit;
+                                }
+                                memset (st_info->st_charx + obs * rowbytes, '\0', rowbytes);
+                                goto next_inner2;
+                            }
+                        }
+                        else if ( st_info->byvars_lens[k] > 0 ) {
                             if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
                                 goto exit;
 
@@ -152,7 +198,16 @@ next_inner2: continue;
                 index[i] = i;
                 for (k = 0; k < kvars; k++) {
                     sel = i * rowbytes + positions[k];
-                    if ( st_info->byvars_lens[k] > 0 ) {
+                    if ( st_info->byvars_strL[k] ) {
+                        if ( (bytes = SF_strldata (k + 1,
+                                                   i + in1,
+                                                   st_info->st_charx + sel,
+                                                   SF_sdatalen(k + 1, i + in1))) == -1 ) {
+                            rc = -1;
+                            goto exit;
+                        }
+                    }
+                    else if ( st_info->byvars_lens[k] > 0 ) {
                         if ( (rc = SF_sdata(k + 1, i + in1, st_info->st_charx + sel)) )
                             goto exit;
                     }

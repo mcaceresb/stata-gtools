@@ -90,7 +90,28 @@ program checks_corners
         gen x = _n
         gen strL y = "hi"
         cap gcollapse (p70) x, by(y)
-        assert _rc == 17003
+        if ( `c(stata_version)' < 14 ) {
+            assert _rc == 17002
+        }
+        else {
+            assert _rc == 0
+        }
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcollapse (p70) x, by(y) compress
+        assert _rc == 0
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
+        cap gcollapse (p70) x, by(y)
+        assert _rc == 17002
+        cap gcollapse (p70) x, by(y) compress
+        assert _rc == 17004
     }
 
     * https://github.com/mcaceresb/stata-gtools/issues/38

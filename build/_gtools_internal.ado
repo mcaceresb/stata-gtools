@@ -1,10 +1,11 @@
-*! version 0.7.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
 * rc 17001 - no observations
 * rc 17002 - strL variables and version < 14
 * rc 17003 - strL variables and version >= 14
+* rc 17004 - strL variables could not be compressed
 * rc 17459
 * rc 17900
 * rc 17999
@@ -65,6 +66,7 @@ program _gtools_internal, rclass
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
+        compress                  /// Try to compress strL variables
                                   ///
                                   /// General options
                                   /// ---------------
@@ -240,7 +242,7 @@ program _gtools_internal, rclass
     * ---------------------------------------------------
 
     local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-    local url `url'/master/spookyhash.dll
+    local url `url'/master/lib/windows/spookyhash.dll
 
     if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
@@ -988,7 +990,7 @@ program _gtools_internal, rclass
         }
     }
 
-    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything')
+    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `compress'
     if ( _rc ) {
         local rc = _rc
         clean_all `rc'
@@ -1388,6 +1390,7 @@ program _gtools_internal, rclass
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', ///
             collapse `anything' `"`fname'"'
+
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -2172,6 +2175,7 @@ program _gtools_internal, rclass
     return scalar knum  = `=scalar(__gtools_kvars_num)'
     return scalar kint  = `=scalar(__gtools_kvars_int)'
     return scalar kstr  = `=scalar(__gtools_kvars_str)'
+    return scalar kstrL = `=scalar(__gtools_kvars_strL)'
 
     return local byvars = "`byvars'"
     return local bynum  = "`bynum'"
@@ -2329,6 +2333,7 @@ program clean_all
     cap scalar drop __gtools_kvars_num
     cap scalar drop __gtools_kvars_int
     cap scalar drop __gtools_kvars_str
+    cap scalar drop __gtools_kvars_strL
 
     cap scalar drop __gtools_group_data
     cap scalar drop __gtools_group_fill
@@ -2353,6 +2358,7 @@ program clean_all
     cap matrix drop __gtools_weight_smat
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
+    cap matrix drop __gtools_strL
     cap matrix drop __gtools_numpos
     cap matrix drop __gtools_strpos
 
@@ -2397,27 +2403,31 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in], [clean_anything(str)]
+    syntax [anything] [if] [in], [clean_anything(str) compress]
 
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0
+        matrix __gtools_strL   = 0
 
         return local invert  = 0
         return local varlist = ""
         return local varnum  = ""
         return local varstr  = ""
+        return local varstrL = ""
 
-        scalar __gtools_kvars     = 0
-        scalar __gtools_kvars_int = 0
-        scalar __gtools_kvars_num = 0
-        scalar __gtools_kvars_str = 0
+        scalar __gtools_kvars      = 0
+        scalar __gtools_kvars_int  = 0
+        scalar __gtools_kvars_num  = 0
+        scalar __gtools_kvars_str  = 0
+        scalar __gtools_kvars_strL = 0
 
         exit 0
     }
 
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
+    cap matrix drop __gtools_strL
 
     * Parse whether to invert sort order
     * ----------------------------------
@@ -2463,12 +2473,117 @@ program parse_by_types, rclass
         matrix __gtools_invert = J(1, max(`:list sizeof varlist', 1), 0)
     }
 
+    * Compress strL variables if requested
+    * ------------------------------------
+
+    local GTOOLS_CALLER $GTOOLS_CALLER
+    local GTOOLS_STRL   gcollapse gcontract
+    local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
+
+    local varstrL ""
+    if ( "`varlist'" != "" ) {
+        cap confirm variable `varlist'
+        if ( _rc ) {
+            di as err "{opt varlist} requried but received: `varlist'"
+            exit 198
+        }
+
+        foreach byvar of varlist `varlist' {
+            if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
+                if (regexs(1) == "L") {
+                    local varstrL `varstrL' `byvar'
+                }
+            }
+        }
+    }
+
+    local need_compress = `GTOOLS_STRL_FAIL' | (`c(stata_version)' < 14)
+    if ( ("`varstrL'" != "") & `need_compress' & ("`compress'" != "") ) {
+        qui compress `varstrL', nocoalesce
+    }
+
+    local varstrL ""
+    if ( "`varlist'" != "" ) {
+        cap confirm variable `varlist'
+        if ( _rc ) {
+            di as err "{opt varlist} requried but received: `varlist'"
+            exit 198
+        }
+
+        foreach byvar of varlist `varlist' {
+            if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
+                if (regexs(1) == "L") {
+                    local varstrL `varstrL' `byvar'
+                }
+            }
+        }
+    }
+
+    if ( ("`varstrL'" != "") & `need_compress' & ("`compress'" != "") ) {
+        if ( `GTOOLS_STRL_FAIL' ) {
+            disp as err _n(1) "{cmd:`GTOOLS_CALLER'} does not support strL variables. I tried"         ///
+                        _n(1) ""                                                                       ///
+                        _n(1) "    {stata compress `varstrL'}"                                         ///
+                        _n(1) ""                                                                       ///
+                        _n(1) "But these variables could not be recast as str#. This limitation comes" ///
+                        _n(1) "from the Stata Plugin Interface, which does not allow writing to strL"  ///
+                        _n(1) "variables from a plugin."
+        }
+        else if ( `c(stata_version)' < 14 ) {
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"         ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "    {stata compress `varstrL'}"                                                   ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "But these variables could not be compressed as str#. To work with strL"           ///
+                        _n(1) "variables you will need Stata 14 or later. This limitation comes from"            ///
+                        _n(1) "the Stata Plugin Interface (SPI) 2.0 that was used to write gtools for"           ///
+                        _n(1) "Stata 13. gtools 0.14 integrated 3.0 (Stata 14 and above only), which"            ///
+                        _n(1) "added support for strL variables."                                                ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "Please note {cmd:gcollapse} and {cmd:gcontract} do not support strL variables in" ///
+                        _n(1) "any Stata version."
+        }
+        exit 17004
+    }
+    else if ( ("`varstrL'" != "") & `need_compress' ) {
+        if ( `GTOOLS_STRL_FAIL' ) {
+            disp as err _n(1) "{cmd:`GTOOLS_CALLER'} does not support strL variables. If your strL variables are str#, try" ///
+                        _n(1) ""                                                                                            ///
+                        _n(1) "    {stata compress `varstrL'}"                                                              ///
+                        _n(1) ""                                                                                            ///
+                        _n(1) "or passing {opt compress} to {opt `GTOOLS_CALLER'}. If this does not work or if you have"    ///
+                        _n(1) "have binary data, you will not be able to use {opt `GTOOLS_CALLER'}. This limitation"        ///
+                        _n(1) "comes from the Stata Plugin Interface, which does not allow writing to"                      ///
+                        _n(1) "strL variables from a plugin."
+        }
+        else if ( `c(stata_version)' < 14 ) {
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                 ///
+                        _n(1) "strL variables are string-only, try"                                                      ///
+                        _n(1) ""                                                                                         ///
+                        _n(1) "    {stata compress `varstrL'}"                                                           ///
+                        _n(1) ""                                                                                         ///
+                        _n(1) "or passing {opt compress} to {opt `GTOOLS_CALLER'}. If this does not work or if you have" ///
+                        _n(1) "binary data, you will need to use Stata 14 or newer. This limitation"                     ///
+                        _n(1) "comes from the Stata Plugin Interface (SPI) 2.0 that was used to write"                   ///
+                        _n(1) "gtools. gtools 0.14 integrated 3.0 (Stata 14 and above only), which"                      ///
+                        _n(1) "added support for strL variables."                                                        ///
+                        _n(1) ""                                                                                         ///
+                        _n(1) "Please note {cmd:gcollapse} and {cmd:gcontract} do not support strL variables in"         ///
+                        _n(1) "any Stata version."
+        }
+        exit 17002
+    }
+
+    tempvar strlen
+    if ( "`varstrL'" != "" ) qui gen long `strlen' = .
+
     * Check how many of each variable type we have
     * --------------------------------------------
 
     local kint  = 0
     local knum  = 0
     local kstr  = 0
+    local kstrL = 0
     local kvars = 0
 
     local varint  ""
@@ -2490,11 +2605,13 @@ program parse_by_types, rclass
                 local ++knum
                 local varint `varint' `byvar'
                 local varnum `varnum' `byvar'
+                matrix __gtools_strL   = nullmat(__gtools_strL),   0
                 matrix __gtools_bylens = nullmat(__gtools_bylens), 0
             }
             else if inlist("`:type `byvar''", "float", "double") {
                 local ++knum
                 local varnum `varnum' `byvar'
+                matrix __gtools_strL   = nullmat(__gtools_strL),   0
                 matrix __gtools_bylens = nullmat(__gtools_bylens), 0
             }
             else {
@@ -2502,14 +2619,16 @@ program parse_by_types, rclass
                 local varstr `varstr' `byvar'
                 if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
                     if (regexs(1) == "L") {
+                        local ++kstrL
                         local varstrL `varstrL' `byvar'
-                        tempvar strlen
-                        gen long `strlen' = length(`byvar')
+                        qui replace `strlen' = length(`byvar')
                         qui sum `strlen', meanonly
+                        matrix __gtools_strL   = nullmat(__gtools_strL), 1
                         matrix __gtools_bylens = nullmat(__gtools_bylens), ///
                                                  `r(max)'
                     }
                     else {
+                        matrix __gtools_strL   = nullmat(__gtools_strL), 0
                         matrix __gtools_bylens = nullmat(__gtools_bylens), ///
                                                  `:di regexs(1)'
                     }
@@ -2530,37 +2649,14 @@ program parse_by_types, rclass
         }
     }
 
-    * if ( ("`varstrL'" != "") & (_caller() < 14) ) {
-    *     disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your" ///
-    *                 _n(1) "strL variables are string-only, try"                                      ///
-    *                 _n(2) "    {stata compress `varstrL'}"                                           ///
-    *                 _n(2) "If this does not work or if you have binary data, you will need to use"   ///
-    *                 _n(1) "Stata 14 or newer. This limitation comes from the Stata Plugin Interface" ///
-    *                 _n(1) "(SPI) 2.0 that was used to write gtools. gtools 0.14 integrated 3.0"      ///
-    *                 _n(1) "(Stata 14 and above only), which added support for strL variables."
-    *     exit 17002
-    * }
-    * else if ( "`varstrL'" != "" ) {
-    if ( "`varstrL'" != "" ) {
-        disp as err _n(1) "gtools 0.13.x does not support strL variables. If your strL variables"   ///
-                    _n(1) "are string-only, try"                                                    ///
-                    _n(2) "    {stata compress `varstrL'}"                                          ///
-                    _n(2) "If this does not work or if you have binary data, then you will have to" ///
-                    _n(1) "wait for the next release of gtools (0.14)."                             ///
-                    _n(2) "This limitation comes from the Stata Plugin Interface (SPI) 2.0"         ///
-                    _n(1) "that was used to write gtools. 3.0 (Stata 14 and above only) added"      ///
-                    _n(1) "support for strL variables. gtools will add strL support in its next"    ///
-                    _n(1) "relase (0.14)."
-        exit 17003
-    }
-
     * Parse which hashing strategy to use
     * -----------------------------------
 
-    scalar __gtools_kvars     = `kvars'
-    scalar __gtools_kvars_int = `kint'
-    scalar __gtools_kvars_num = `knum'
-    scalar __gtools_kvars_str = `kstr'
+    scalar __gtools_kvars      = `kvars'
+    scalar __gtools_kvars_int  = `kint'
+    scalar __gtools_kvars_num  = `knum'
+    scalar __gtools_kvars_str  = `kstr'
+    scalar __gtools_kvars_strL = `kstrL'
 
     * Return hash info
     * ----------------
@@ -2569,6 +2665,7 @@ program parse_by_types, rclass
     return local varlist = "`varlist'"
     return local varnum  = "`varnum'"
     return local varstr  = "`varstr'"
+    return local varstrL = "`varstrL'"
 end
 
 ***********************************************************************
@@ -2881,8 +2978,11 @@ end
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
+if ( `c(stata_version)' < 14 ) local spiver v2
+else local spiver v3
+
 cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'.plugin")
+program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")
 
 * Windows hack
 if ( "`c_os_'" == "windows" ) {
@@ -2892,7 +2992,7 @@ if ( "`c_os_'" == "windows" ) {
         if ( _rc ) {
             local rc = _rc
             local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-            local url `url'/master/spookyhash.dll
+            local url `url'/master/lib/windows/spookyhash.dll
             di as err `"gtools: `hashlib' not found."' _n(1)     ///
                       `"gtools: download {browse "`url'":here}"' ///
                       `" or run {opt gtools, dependencies}"'
@@ -2943,10 +3043,10 @@ if ( "`c_os_'" == "windows" ) {
 
 cap program drop gtools_plugin
 if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {
-    cap program gtools_plugin, plugin using("gtools_`c_os_'_multi.plugin")
+    cap program gtools_plugin, plugin using("gtools_`c_os_'_multi_`spiver'.plugin")
     if ( _rc ) {
         global GTOOLS_FORCE_PARALLEL 17900
-        program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+        program gtools_plugin, plugin using("gtools_`c_os_'_`spiver'.plugin")
     }
 }
-else program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+else program gtools_plugin, plugin using("gtools_`c_os_'_`spiver'.plugin")

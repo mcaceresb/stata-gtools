@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, and unique/distinct using C plugins for a massive speed
 improvement.
 
-`version 0.13.3 06May2018`
+`version 0.14.0 17Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -27,7 +27,8 @@ caveats and details on the plugin (including some extra features!).
 
 __*Gtools commands with a Stata equivalent*__
 
-(_**NOTE:**_ `strL` variables are not yet supported; see [issue 39](https://github.com/mcaceresb/stata-gtools/issues/39))
+(_**NOTE:**_ `strL` variables only partially supported on Stata 14 and
+above; `gcollapse` and `gcontract` do not support `strL` by variabes).
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
@@ -169,6 +170,22 @@ net install gtools, from(`github'/mcaceresb/stata-gtools/develop/build/)
 * adoupdate, update
 * ado uninstall gtools
 ```
+
+### Known Issues
+
+The plugin works on most systems and Stata versions; however, the
+following are known issues:
+
+- On some versions of Windows Server, `spookyhash.dll` fails to load.
+  See [issue 35](https://github.com/mcaceresb/stata-gtools/issues/35).
+
+- On some versions of Linux, the plugin seems to temporarily modify Stata internals.
+  See [issue 40](https://github.com/mcaceresb/stata-gtools/issues/40).
+
+If you experience any of these problems, please add a comment to the
+relevant issue.
+
+### Examples
 
 The syntax is generally analogous to the standard commands (see the corresponding
 help files for full syntax and options):
@@ -397,7 +414,7 @@ TODO
 
 Roadmap to 1.0
 
-- [ ] Add support for `strL` variables.
+- [X] Add support for `strL` variables.
 - [ ] Improve coverage of debug checks.
     - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
     - [ ] Have corner cases for ALL commands

@@ -141,6 +141,7 @@ struct StataInfo {
     GT_size   kvars_by_int;
     GT_size   kvars_by_num;
     GT_size   kvars_by_str;
+    GT_size   kvars_by_strL;
     //
     GT_size   *pos_targets;
     ST_double *statcode;
@@ -151,6 +152,7 @@ struct StataInfo {
     GT_int    *byvars_mins;
     GT_int    *byvars_maxs;
     GT_size   *byvars_lens;
+    GT_bool   *byvars_strL;
     GT_size   *pos_num_byvars;
     GT_size   *pos_str_byvars;
     GT_size   *group_targets;
@@ -291,5 +293,18 @@ ST_retcode sf_check_hash  (struct StataInfo *st_info, int level);
 ST_retcode sf_switch_io   (struct StataInfo *st_info, int level, char* fname);
 ST_retcode sf_switch_mem  (struct StataInfo *st_info, int level);
 ST_retcode sf_set_rinfo   (struct StataInfo *st_info, int level);
+
+// Define dummy strl functions to use the same code with SPI 2.0
+#ifndef SF_var_is_strl
+#define SF_var_is_strl(a) 0
+#endif
+
+#ifndef SF_sdatalen
+#define SF_sdatalen(i, j) 0
+#endif
+
+#ifndef SF_strldata
+#define SF_strldata(i, j, s, l) -1
+#endif
 
 #endif

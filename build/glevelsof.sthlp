@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.3  06May2018}{...}
+{* *! version 0.9.0  17Jul2018}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -61,11 +61,17 @@ To change the sort order of the results.
 {synopt:{opt unsorted}}do not sort levels{p_end}
 
 {syntab:Gtools}
+{synopt :{opth compress}}Try to compress strL to str#.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
+{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+{synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}
 
 {synoptline}
@@ -135,13 +141,21 @@ is small (10s, 100s, 1000s) and thus speed savings will be minimal.
 {dlgtab:Gtools}
 
 {phang}
+{opt compress} Try to compress strL to str#. The Stata Plugin Interface
+has only limited support for strL variables. In Stata 13 and earlier
+(version 2.0) there is no support, and in Stata 14 and later (version
+3.0) there is read-only support. The user can try to compress strL
+variables using this option.
+
+{phang}
 {opt verbose} prints some useful debugging info to the console.
 
 {phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute. The user can also pass {opth bench(int)} for finer control.
-{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
-prints benchmarks for internal plugin steps.
+{opt bench:mark} and {opt bench:marklevel(int)} print how long in
+seconds various parts of the program take to execute. The user can also
+pass {opth bench(int)} for finer control. {opt bench(1)} is the same
+as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
+internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem
@@ -150,6 +164,16 @@ gtools and required for the plugin to run correctly. The best thing a Windows
 user can do is run {opt gtools, dependencies} at the start of their Stata
 session, but if Stata cannot find the plugin the user can specify a path
 manually here.
+
+{phang}
+{opth hashmethod(str)} Hash method to use. {opt default} automagically
+chooses the algorithm. {opt biject} tries to biject the inputs into the
+natural numbers. {opt spooky} hashes the data and then uses the hash.
+
+{phang}
+{opth oncollision(str)} How to handle collisions. A collision should never
+happen but just in case it does {opt gtools} will try to use native commands.
+The user can specify it throw an error instead by passing {opt oncollision(error)}.
 
 
 {marker remarks}{...}

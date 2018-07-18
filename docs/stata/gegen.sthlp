@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.13.3 06May2018}{...}
+{* *! version 0.14.0 17Jul2018}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -32,13 +32,21 @@
 {synopthdr}
 {synoptline}
 {syntab:Gtools}
+{synopt :{opth compress}}Try to compress strL to str#.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
 {synopt :{opt bench:mark}}Benchmark various steps of the plugin.
 {p_end}
+{synopt :{opt bench:marklevel(int)}}Benchmark various steps of the plugin.
+{p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
-{synopt :{opth gtools_capture(str)}}The above 3 options are captured and not passed to {opt egen} in case the requested function is not internally supported by gtools. You can pass extra arguments here if their names conflict with captured gtools options.
+{synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
+{p_end}
+{synopt :{opth gtools_capture(str)}}The above options are captured and not passed to {opt egen} in case the requested function is not internally supported by gtools. You can pass extra arguments here if their names conflict with captured gtools options.
 {p_end}
 {synoptline}
 

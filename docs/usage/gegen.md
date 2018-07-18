@@ -17,13 +17,21 @@ Syntax
 
 ### Gtools options
 
+- `compress` prints some useful debugging info to the console.
+
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` prints how long in seconds various parts of the program take to execute.
 
+- `benchmarklevel(int)` depth of benchmark.
+
 - `hashlib(str)` Custom path to spookyhash.dll
 
-- `gtools_capture(str)`  The above 3 options are captured and not passed to
+- `hashmethod(str)` For debugging: default, biject, or spooky.
+
+- `oncollision(str)` For debugging: fallback or error.
+
+- `gtools_capture(str)`  The above options are captured and not passed to
                                  egen in case the requested function is not
                                  internally supported by gtools. You can pass
                                  extra arguments here if their names conflict

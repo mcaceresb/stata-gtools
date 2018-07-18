@@ -2,6 +2,25 @@ EXECUTION=normal
 LEGACY=
 
 # ---------------------------------------------------------------------
+# Editing/debugging
+
+## Open current meta for working
+open:
+	konsole -e nvim -S ~/.vim/session/gtools &
+	konsole --new-tab --workdir /home/mauricio/todo/now/stata-gtools &
+	dolphin --split ~/todo/now/stata-gtools \
+					~/todo/now/stata-gtools/src &
+
+# ---------------------------------------------------------------------
+# Gtools flags
+
+SPI = 2.0
+SPIVER = v2
+CFLAGS = -Wall -O3 $(OSFLAGS)
+OPENMP = -fopenmp -DGMULTI=1
+PTHREADS = -lpthread -DGMULTI=1
+
+# ---------------------------------------------------------------------
 # OS parsing
 
 ifeq ($(OS),Windows_NT)
@@ -12,25 +31,25 @@ ifeq ($(OS),Windows_NT)
 	# GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	GCC = x86_64-w64-mingw32-gcc.exe
 	PREMAKE = premake5.exe
-	OUT = build/gtools_windows$(LEGACY).plugin
-	OUTM = build/gtools_windows_multi$(LEGACY).plugin
-	OUTE = build/env_set_windows$(LEGACY).plugin
+	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
+	OUTM = build/gtools_windows_multi$(LEGACY)_$(SPIVER).plugin
+	OUTE = build/env_set_windows$(LEGACY)_$(SPIVER).plugin
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
-		OUT = build/gtools_unix$(LEGACY).plugin
-		OUTM = build/gtools_unix_multi$(LEGACY).plugin
-		OUTE = build/env_set_unix$(LEGACY).plugin
+		OUT = build/gtools_unix$(LEGACY)_$(SPIVER).plugin
+		OUTM = build/gtools_unix_multi$(LEGACY)_$(SPIVER).plugin
+		OUTE = build/env_set_unix$(LEGACY)_$(SPIVER).plugin
 		SPOOKYLIB = libspookyhash.a
 		SPOOKYPATH = lib/spookyhash/build/bin/Release
 		SPOOKY = -L./$(SPOOKYPATH) -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
-		OUT = build/gtools_macosx$(LEGACY).plugin
-		OUTM = build/gtools_macosx_multi$(LEGACY).plugin
-		OUTE = build/env_set_macosx$(LEGACY).plugin
+		OUT = build/gtools_macosx$(LEGACY)_$(SPIVER).plugin
+		OUTM = build/gtools_macosx_multi$(LEGACY)_$(SPIVER).plugin
+		OUTE = build/env_set_macosx$(LEGACY)_$(SPIVER).plugin
 		SPOOKYLIB = libspookyhash.a
 		SPOOKYPATH = lib/spookyhash/build/bin/Release
 		SPOOKY = $(SPOOKYPATH)/$(SPOOKYLIB)
@@ -43,20 +62,17 @@ ifeq ($(EXECUTION),windows)
 	SPOOKYLIB = spookyhash.dll
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
-	OUT = build/gtools_windows$(LEGACY).plugin
-	OUTE = build/env_set_windows$(LEGACY).plugin
+	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
+	OUTE = build/env_set_windows$(LEGACY)_$(SPIVER).plugin
 endif
 
 # ---------------------------------------------------------------------
-# Gtools flags
+# Main
 
-SPI = 2.0
-CFLAGS = -Wall -O3 $(OSFLAGS)
-OPENMP = -fopenmp -DGMULTI=1
-PTHREADS = -lpthread -DGMULTI=1
-
+## Compile directory
 all: clean links gtools
 
+## Initialize git and pull sub-modules
 git:
 	git init
 	git submodule add https://github.com/centaurean/spookyhash lib/spookyhash
@@ -66,6 +82,7 @@ git:
 # Rules
 
 ifeq ($(OS),Windows_NT)
+## Build spooky hash
 spooky:
 	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
 	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
@@ -99,9 +116,11 @@ spooky:
 endif
 endif
 
+## Test spookyhash
 spookytest:
 	cd lib/spookyhash/build && ./bin/Release/spookyhash-test
 
+## Build gtools library links
 links:
 	rm -f  src/plugin/lib
 	rm -f  src/plugin/spi
@@ -110,6 +129,7 @@ links:
 	ln -sf lib/spi-$(SPI) src/plugin/spi
 	ln -sf lib/spookyhash src/plugin/spookyhash
 
+## Build gtools plugin
 gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 	mkdir -p ./build
 	mkdir -p ./lib/spookyhash/build/bin/Release
@@ -120,3 +140,51 @@ gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
 .PHONY: clean
 clean:
 	rm -f $(OUT) $(OUTE)
+
+#######################################################################
+#                                                                     #
+#                    Self-Documenting Foo (Ignore)                    #
+#                                                                     #
+#######################################################################
+
+.DEFAULT_GOAL := show-help
+
+.PHONY: show-help
+show-help:
+	@echo "$$(tput bold)Available rules:$$(tput sgr0)"
+	@echo
+	@sed -n -e "/^## / { \
+		h; \
+		s/.*//; \
+		:doc" \
+		-e "H; \
+		n; \
+		s/^## //; \
+		t doc" \
+		-e "s/:.*//; \
+		G; \
+		s/\\n## /---/; \
+		s/\\n/ /g; \
+		p; \
+	}" ${MAKEFILE_LIST} \
+	| LC_ALL='C' sort --ignore-case \
+	| awk -F '---' \
+		-v ncol=$$(tput cols) \
+		-v indent=19 \
+		-v col_on="$$(tput setaf 6)" \
+		-v col_off="$$(tput sgr0)" \
+	'{ \
+		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
+		n = split($$2, words, " "); \
+		line_length = ncol - indent; \
+		for (i = 1; i <= n; i++) { \
+			line_length -= length(words[i]) + 1; \
+			if (line_length <= 0) { \
+				line_length = ncol - indent - length(words[i]) - 1; \
+				printf "\n%*s ", -indent, " "; \
+			} \
+			printf "%s ", words[i]; \
+		} \
+		printf "\n"; \
+	}' \
+	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')

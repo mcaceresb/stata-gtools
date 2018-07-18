@@ -18,7 +18,9 @@ ST_retcode sf_oom_error (char * step_desc, char * obj_desc);
 
 GT_int     sf_get_vector_length (char *st_matrix);
 ST_retcode sf_get_vector        (char *st_matrix, ST_double *v);
-ST_retcode sf_get_vector_int    (char *st_matrix, GT_size *v);
+ST_retcode sf_get_vector_int    (char *st_matrix, GT_int  *v);
+ST_retcode sf_get_vector_size   (char *st_matrix, GT_size *v);
+ST_retcode sf_get_vector_bool   (char *st_matrix, GT_bool *v);
 
 /*
  * #if defined(_WIN64) || defined(_WIN32)

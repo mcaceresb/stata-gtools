@@ -163,7 +163,8 @@ if args['clean']:
             except:
                 print("\t" + bfile + " not found")
 
-    rc = system("make clean")
+    rc = system("make clean SPI=2.0 SPIVER=v2")
+    rc = system("make clean SPI=3.0 SPIVER=v3")
     exit(0)
 
 makedirs_safe(path.join("build", "gtools"))
@@ -204,12 +205,16 @@ if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     print("Trying to compile plugins for -gtools-")
     print("(note: this assumes you have already compiled SpookyHash)")
     make_flags = args['make_flags'][0] if args['make_flags'] is not None else ""
-    rc = system("make {0}".format(make_flags))
+    rc = system("make all SPI=2.0 SPIVER=v2 {0}".format(make_flags))
+    rc = system("make all SPI=3.0 SPIVER=v3 {0}".format(make_flags))
     print("Success!" if rc == 0 else "Failed.")
     if args['windows']:
-        rc = system("make EXECUTION=windows clean")
-        rc = system("make EXECUTION=windows spooky")
-        rc = system("make EXECUTION=windows {0}".format(make_flags))
+        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows clean")
+        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows spooky")
+        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows {0}".format(make_flags))
+        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows clean")
+        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows spooky")
+        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows {0}".format(make_flags))
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
     exit(198)
@@ -290,13 +295,22 @@ with open(path.join("src", "ado", "gtools.ado"), 'r') as f:
     line    = f.readline()
     version = search('(\d+\.?)+', line).group(0)
 
-plugins = ["env_set_unix.plugin",
-           "env_set_windows.plugin",
-           "env_set_macosx.plugin",
-           "gtools_unix.plugin",
-           "gtools_windows.plugin",
-           "gtools_macosx.plugin",
-           "spookyhash.dll"]
+plugins = [
+    "env_set_unix_v2.plugin",
+    "env_set_windows_v2.plugin",
+    "env_set_macosx_v2.plugin",
+    "gtools_unix_v2.plugin",
+    "gtools_windows_v2.plugin",
+    "gtools_macosx_v2.plugin",
+    "env_set_unix_v3.plugin",
+    "env_set_windows_v3.plugin",
+    "env_set_macosx_v3.plugin",
+    "gtools_unix_v3.plugin",
+    "gtools_windows_v3.plugin",
+    "gtools_macosx_v3.plugin",
+    "spookyhash.dll"
+]
+
 plugbak = plugins[:]
 for plug in plugbak:
     if not path.isfile(path.join("build", plug)):

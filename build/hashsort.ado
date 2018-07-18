@@ -1,4 +1,4 @@
-*! version 0.8.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -13,6 +13,7 @@ program define hashsort
         sortgen                /// Sort by generated variable, if applicable
         skipcheck              /// Turn off internal is sorted check
                                ///
+        compress               /// Try to compress strL variables
         Verbose                /// Print info during function execution
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
@@ -56,7 +57,7 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress'
     local eopts `invertinmata' `sortgen' `skipcheck'
     local gopts `generate' `tag' `counts' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)

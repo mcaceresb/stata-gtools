@@ -1,9 +1,10 @@
-*! version 0.13.3 06May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.14.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
 program gtools
     version 13
+
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
     else local c_os_: di lower("`c(os)'")
 
@@ -132,5 +133,8 @@ end
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
+if ( _caller() < 14 ) local spiver v2
+else local spiver v3
+
 cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'.plugin")
+program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")

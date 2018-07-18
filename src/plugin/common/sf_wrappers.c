@@ -101,6 +101,46 @@ ST_retcode sf_get_vector (char *st_matrix, ST_double *v)
  * @param v array where to store the vector
  * @return Store min and max of @x
  */
+ST_retcode sf_get_vector_int (char *st_matrix, GT_int *v)
+{
+    ST_double z;
+    ST_retcode rc = 0;
+
+    GT_size i;
+    GT_size ncol = SF_col(st_matrix);
+    GT_size nrow = SF_row(st_matrix);
+    if ( (ncol > 1) & (nrow > 1) ) {
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        return (198);
+    }
+    else if ( (ncol == 0) & (nrow == 0) ) {
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        return (198);
+    }
+
+    if ( ncol > 1 ) {
+        for (i = 0; i < ncol; i++) {
+            if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return (rc);
+            v[i] = (GT_int) z;
+        }
+    }
+    else {
+        for (i = 0; i < nrow; i++) {
+            if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return (rc);
+            v[i] = (GT_int) z;
+        }
+    }
+
+    return (rc);
+}
+
+/**
+ * @brief Parse stata vector into C array
+ *
+ * @param st_matrix name of stata matrix to get
+ * @param v array where to store the vector
+ * @return Store min and max of @x
+ */
 ST_retcode sf_get_vector_size (char *st_matrix, GT_size *v)
 {
     ST_double z;
@@ -128,6 +168,46 @@ ST_retcode sf_get_vector_size (char *st_matrix, GT_size *v)
         for (i = 0; i < nrow; i++) {
             if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return (rc);
             v[i] = (GT_size) z;
+        }
+    }
+
+    return (rc);
+}
+
+/**
+ * @brief Parse stata vector into C array
+ *
+ * @param st_matrix name of stata matrix to get
+ * @param v array where to store the vector
+ * @return Store min and max of @x
+ */
+ST_retcode sf_get_vector_bool (char *st_matrix, GT_bool *v)
+{
+    ST_double z;
+    ST_retcode rc = 0;
+
+    GT_size i;
+    GT_size ncol = SF_col(st_matrix);
+    GT_size nrow = SF_row(st_matrix);
+    if ( (ncol > 1) & (nrow > 1) ) {
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        return (198);
+    }
+    else if ( (ncol == 0) & (nrow == 0) ) {
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        return (198);
+    }
+
+    if ( ncol > 1 ) {
+        for (i = 0; i < ncol; i++) {
+            if ( (rc = SF_mat_el(st_matrix, 1, i + 1, &z)) ) return (rc);
+            v[i] = (GT_bool) z;
+        }
+    }
+    else {
+        for (i = 0; i < nrow; i++) {
+            if ( (rc = SF_mat_el(st_matrix, i + 1, 1, &z)) ) return (rc);
+            v[i] = (GT_bool) z;
         }
     }
 

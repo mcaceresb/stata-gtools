@@ -5,7 +5,7 @@
  * Updated: Mon Apr 23 20:54:30 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.13.3
+ * Version: 0.14.0
  *********************************************************************/
 
 /**
@@ -355,7 +355,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             kvars_by,
             kvars_by_int,
             kvars_by_num,
-            kvars_by_str;
+            kvars_by_str,
+            kvars_by_strL;
 
     /*********************************************************************
      *       Fallback whenever this is not parsed (set to missing)       *
@@ -494,16 +495,18 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = SF_scal_use("__gtools_top_pct",   &(st_info->top_pct)   )) ) return (rc);
 
     // Parse number of variables
-    if ( (rc = sf_scalar_size("__gtools_kvars",     &kvars_by)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_kvars_int", &kvars_by_int) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_kvars_num", &kvars_by_num) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_kvars_str", &kvars_by_str) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_kvars",      &kvars_by)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_kvars_int",  &kvars_by_int)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_kvars_num",  &kvars_by_num)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_kvars_str",  &kvars_by_str)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_kvars_strL", &kvars_by_strL) )) goto exit;
 
     if ( debug ) {
         printf("debug 2: Read all double scalars\n");
     }
 
     // Parse variable lengths, positions, and sort order
+    st_info->byvars_strL     = calloc(kvars_by,     sizeof st_info->byvars_strL);
     st_info->byvars_lens     = calloc(kvars_by,     sizeof st_info->byvars_lens);
     st_info->invert          = calloc(kvars_by,     sizeof st_info->invert);
     st_info->pos_num_byvars  = calloc(kvars_by_num, sizeof st_info->pos_num_byvars);
@@ -518,6 +521,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
+    if ( st_info->byvars_strL     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
     if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
     if ( st_info->invert          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
     if ( st_info->wselmat         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
@@ -532,6 +536,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->xtile_quantiles == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
     if ( st_info->xtile_cutoffs   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
 
+    GTOOLS_GC_ALLOCATED("st_info->byvars_strL")
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
     GTOOLS_GC_ALLOCATED("st_info->invert")
     GTOOLS_GC_ALLOCATED("st_info->wselmat")
@@ -549,6 +554,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         printf("debug 3: Allocated all matrices\n");
     }
 
+    if ( (rc = sf_get_vector_bool ("__gtools_strL",        st_info->byvars_strL) )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_bylens",      st_info->byvars_lens) )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_invert",      st_info->invert)      )) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_weight_smat", st_info->wselmat)     )) goto exit;
@@ -656,6 +662,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->kvars_by_int   = kvars_by_int;
     st_info->kvars_by_num   = kvars_by_num;
     st_info->kvars_by_str   = kvars_by_str;
+    st_info->kvars_by_strL  = kvars_by_strL;
 
     st_info->kvars_group    = kvars_group;
     st_info->kvars_sources  = kvars_sources;

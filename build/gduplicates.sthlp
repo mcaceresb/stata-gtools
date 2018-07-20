@@ -80,6 +80,7 @@ Drop duplicates
 {synoptline}
 {syntab :Main}
 {synopt :{opt c:ompress}}compress width of columns in both table and display formats{p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.{p_end}
 {synopt :{opt noc:ompress}}use display format of each variable{p_end}
 {synopt :{opt fast}}synonym for {opt nocompress}; no delay in output of large datasets{p_end}
 {synopt :{opt ab:breviate(#)}}abbreviate variable names to {it:#} characters; default is {cmd:ab(8)}{p_end}

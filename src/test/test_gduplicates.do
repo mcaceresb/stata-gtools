@@ -23,9 +23,10 @@ program checks_duplicates
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_duplicates strL1,             `options'
-        checks_inner_duplicates strL1 strL2,       `options'
-        checks_inner_duplicates strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_duplicates strL1,             `options' `forcestrl'
+        checks_inner_duplicates strL1 strL2,       `options' `forcestrl'
+        checks_inner_duplicates strL1 strL2 strL3, `options' `forcestrl'
     }
 
     sysuse auto, clear
@@ -85,9 +86,10 @@ program compare_duplicates
     compare_duplicates_internal int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_duplicates_internal strL1,             `options'
-        compare_duplicates_internal strL1 strL2,       `options'
-        compare_duplicates_internal strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_duplicates_internal strL1,             `options' `forcestrl'
+        compare_duplicates_internal strL1 strL2,       `options' `forcestrl'
+        compare_duplicates_internal strL1 strL2 strL3, `options' `forcestrl'
     }
 end
 
@@ -166,9 +168,10 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' report
 
     if ( `c(stata_version)' >= 14 ) {
-        _compare_duplicates strL1,             `options' report
-        _compare_duplicates strL1 strL2,       `options' report
-        _compare_duplicates strL1 strL2 strL3, `options' report
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _compare_duplicates strL1,             `options' report `forcestrl'
+        _compare_duplicates strL1 strL2,       `options' report `forcestrl'
+        _compare_duplicates strL1 strL2 strL3, `options' report `forcestrl'
     }
 
     di as txt _n(1)
@@ -193,9 +196,10 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' drop
 
     if ( `c(stata_version)' >= 14 ) {
-        _compare_duplicates strL1,             `options' drop
-        _compare_duplicates strL1 strL2,       `options' drop
-        _compare_duplicates strL1 strL2 strL3, `options' drop
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _compare_duplicates strL1,             `options' drop `forcestrl'
+        _compare_duplicates strL1 strL2,       `options' drop `forcestrl'
+        _compare_duplicates strL1 strL2 strL3, `options' drop `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "compare_duplicates, `options'" _n(1) "{hline 80}" _n(1)

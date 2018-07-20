@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Jul 19 22:16:45 EDT 2018
+* Updated: Fri Jul 20 16:32:33 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 0.14.1
 * Manual:  help gtools
@@ -15,7 +15,7 @@ version 13
 clear all
 set more off
 set varabbrev off
-set seed 1729
+set seed 42
 set linesize 255
 set type double
 
@@ -1408,7 +1408,7 @@ program _compare_inner_gcollapse_skew
     }
 
     local anything_ `anything'
-    local options_  `options'
+    local options_   `options'
     local 0 `wgt'
     syntax [aw fw iw pw]
     local anything `anything_'
@@ -2266,14 +2266,6 @@ program _consistency_inner_nq
     gquantiles __p5 = `anything' `if' `in' `wgt', pctile `options' cutquantiles(__g1) binfreq(__f5) xtile(__x5)
     }
 
-    * gquantiles __p3 = `anything' `if' `in' `wgt', pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) xtile(__x3) replace
-    * gquantiles __p3 = double1  in 1/5 , pctile oncollision(error) binfreq binfreq(__f3) xtile(__x3) replace
-    * gquantiles __p3 = double1  in 1/5 [pw = float_unif_0_1], pctile oncollision(error) binfreq binfreq(__f3) xtile(__x3) replace
-    * gquantiles __p3 = double1  in 1/5 [pw = float_unif_0_1], pctile oncollision(error) binfreq replace
-    * return list
-    * matrix list  r(quantiles_binfreq) 
-    * l __f3 in 1
-
     * NOTE(mauricio): At one point I do exp(X) which blows this up.
     * xtile and binfreq are still good, but the pctile discrepancy
     * is relatively large because of it. Hence I also do relative
@@ -2705,7 +2697,7 @@ program _compare_inner_xtile
                 di as err "    compare_xtile (warning): gquantiles xtile = `anything' gave different levels to xtile"
                 di as err ""
                 di as err "using weights in xtile seems to give incorrect results under some" ///
-                    _n(1) "circumstances. Only `fail' / `total' xtiles were off."
+                    _n(1) "circumstances. Only `fail' / `=_N' xtiles were off."
                 di as err ""
             }
             else {
@@ -3236,9 +3228,10 @@ program checks_gquantiles_by
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        _checks_gquantiles_by -strL1,             `options'
-        _checks_gquantiles_by strL1 -strL2,       `options'
-        _checks_gquantiles_by strL1 strL2  strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _checks_gquantiles_by -strL1,             `options' `forcestrl'
+        _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
+        _checks_gquantiles_by strL1 strL2  strL3, `options' `forcestrl'
     }
 end
 
@@ -3461,14 +3454,15 @@ program _consistency_inner_gquantiles_by
     _consistency_inner_full_by -int1             `if' `in', `options' var(`anything')
     _consistency_inner_full_by int1 -int2        `if' `in', `options' var(`anything')
 
+    local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
     if ( `c(stata_version)' >= 14 ) {
-        _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything')
-        _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything')
+        _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything') `forcestrl'
+        _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything') `forcestrl'
     }
 
     _consistency_inner_full_by str_12 -str_4 double2 -double3 `if' `in', `options' var(`anything')
     if ( `c(stata_version)' >= 14 ) {
-        _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything')
+        _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything') `forcestrl'
     }
 end
 
@@ -3678,9 +3672,10 @@ program _compare_inner_gquantiles_by
         _compare_inner_xtile_by int1            `if' `in', `options'
         _compare_inner_xtile_by int1 int2       `if' `in', `options'
 
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         if ( `c(stata_version)' >= 14 ) {
-            _compare_inner_xtile_by strL1       `if' `in', `options'
-            _compare_inner_xtile_by strL1 strL2 `if' `in', `options'
+            _compare_inner_xtile_by strL1       `if' `in', `options' `forcestrl'
+            _compare_inner_xtile_by strL1 strL2 `if' `in', `options' `forcestrl'
         }
     }
     else if ( "`nqlist'" != "" ) {
@@ -3810,8 +3805,22 @@ program _compare_inner_xtile_by
     cap assert `gxtile' == `fxtile'
     if ( _rc & (`rc_f' == 0) ) {
         if ( "`forcecmp'" == "" ) {
-            di as err "    compare_xtile_by (failed): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
-            exit 198
+            tempfile diff
+            qui gen `diff' = `fxtile' - `gxtile'
+            gtoplevelsof `diff', nowarn
+            qui count if `fxtile' != `gxtile'
+            local fail = `r(N)'
+            if ( `=max(`=`fail' / _N' < 0.05, `fail' == 1)' & ("`wgt'" != "") ) {
+                di as err "    compare_xtile_by (warning): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
+                di as err ""
+                di as err "using weights in fastxtile[egenmisc] seems to give incorrect results" ///
+                    _n(1) "under some circumstances. Only `fail' / `=_N' xtiles were off."
+                di as err ""
+            }
+            else {
+                di as err "    compare_xtile_by (failed): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
+                exit 198
+            }
         }
         else {
             di as txt "    (note: fastxtile[egenmisc] gave different levels)"
@@ -3864,9 +3873,10 @@ program checks_gegen
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_egen -strL1,             `options' hash(1)
-        checks_inner_egen strL1 -strL2,       `options' hash(2)
-        checks_inner_egen strL1 -strL2 strL3, `options' hash(0)
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_egen -strL1,             `options' hash(1) `forcestrl'
+        checks_inner_egen strL1 -strL2,       `options' hash(2) `forcestrl'
+        checks_inner_egen strL1 -strL2 strL3, `options' hash(0) `forcestrl'
     }
 
     clear
@@ -3975,9 +3985,10 @@ program compare_egen
     compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_egen strL1,             `options' tol(`tol') hash(0) sort
-        compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) shuffle
-        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1)
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_egen strL1,             `options' tol(`tol') hash(0) `forcestrl' sort
+        compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) `forcestrl' shuffle
+        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1) `forcestrl' 
     }
 end
 
@@ -4191,9 +4202,10 @@ program bench_egen
     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_egen strL1,             `options'
-        versus_egen strL1 strL2,       `options'
-        versus_egen strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_egen strL1,             `options' `forcestrl'
+        versus_egen strL1 strL2,       `options' `forcestrl'
+        versus_egen strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)
@@ -4265,14 +4277,16 @@ program checks_unique
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+
         * This is for the benefit of gtop, which can only handle strings that are so long
         qui `noisily' gen_data, n(50)
         qui expand 200
         gen long ix = _n
 
-        checks_inner_unique strL1,             `options'
-        checks_inner_unique strL1 strL2,       `options' by(strL3) replace
-        checks_inner_unique strL1 strL2 strL3, `options'
+        checks_inner_unique strL1,             `options' `forcestrl'
+        checks_inner_unique strL1 strL2,       `options' `forcestrl' by(strL3) replace
+        checks_inner_unique strL1 strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -4349,9 +4363,10 @@ program compare_unique
     compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_unique strL1,             `options' shuffle
-        compare_inner_unique strL1 strL2,       `options'
-        compare_inner_unique strL1 strL2 strL3, `options' sort
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_unique strL1,             `options' `forcestrl' shuffle
+        compare_inner_unique strL1 strL2,       `options' `forcestrl' 
+        compare_inner_unique strL1 strL2 strL3, `options' `forcestrl' sort
     }
 end
 
@@ -4568,9 +4583,10 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_unique strL1,             `options' unique
-        versus_unique strL1 strL2,       `options' unique
-        versus_unique strL1 strL2 strL3, `options' unique
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl' unique
+        versus_unique strL1 strL2,       `options' `forcestrl' unique
+        versus_unique strL1 strL2 strL3, `options' `forcestrl' unique
     }
 
     if ( ("`distunique'" != "") & ("`joint'" != "") ) {
@@ -4615,9 +4631,10 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_unique strL1,             `options'
-        versus_unique strL1 strL2,       `options'
-        versus_unique strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl'
+        versus_unique strL1 strL2,       `options' `forcestrl'
+        versus_unique strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di as txt _n(1) "{hline 80}" _n(1) "bench_unique, `options'" _n(1) "{hline 80}" _n(1)
@@ -4742,13 +4759,14 @@ program checks_levelsof
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         qui `noisily' gen_data, n(50)
         qui expand 200
         gen long ix = _n
 
-        checks_inner_levelsof strL1,             `options'
-        checks_inner_levelsof strL1 strL2,       `options'
-        checks_inner_levelsof strL1 strL2 strL3, `options'
+        checks_inner_levelsof strL1,             `options' `forcestrl'
+        checks_inner_levelsof strL1 strL2,       `options' `forcestrl'
+        checks_inner_levelsof strL1 strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -4808,9 +4826,10 @@ program compare_levelsof
     compare_inner_levelsof int3, `options' sort
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_levelsof strL1, `options'
-        compare_inner_levelsof strL2, `options'
-        compare_inner_levelsof strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_levelsof strL1, `options' `forcestrl'
+        compare_inner_levelsof strL2, `options' `forcestrl'
+        compare_inner_levelsof strL3, `options' `forcestrl'
     }
 end
 
@@ -5171,9 +5190,10 @@ program checks_toplevelsof
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_toplevelsof -strL1,             `options'
-        checks_inner_toplevelsof strL1 -strL2,       `options'
-        checks_inner_toplevelsof strL1 -strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -5262,9 +5282,10 @@ program compare_toplevelsof
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract
-        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract
-        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl'
     }
 end
 
@@ -5421,9 +5442,10 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_toplevelsof strL1,             `options'
-        versus_toplevelsof strL1 strL2,       `options'
-        versus_toplevelsof strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_toplevelsof strL1,             `options' `forcestrl'
+        versus_toplevelsof strL1 strL2,       `options' `forcestrl'
+        versus_toplevelsof strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di as txt _n(1)
@@ -5448,9 +5470,10 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' sorted
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_toplevelsof strL1,             `options' sorted
-        versus_toplevelsof strL1 strL2,       `options' sorted
-        versus_toplevelsof strL1 strL2 strL3, `options' sorted
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_toplevelsof strL1,             `options' sorted `forcestrl'
+        versus_toplevelsof strL1 strL2,       `options' sorted `forcestrl'
+        versus_toplevelsof strL1 strL2 strL3, `options' sorted `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "bench_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
@@ -5527,9 +5550,10 @@ program checks_isid
     checks_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_isid strL1,             `options'
-        checks_inner_isid strL1 strL2,       `options'
-        checks_inner_isid strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_isid strL1,             `options' `forcestrl'
+        checks_inner_isid strL1 strL2,       `options' `forcestrl'
+        checks_inner_isid strL1 strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -5615,9 +5639,10 @@ program compare_isid
     compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_isid strL1,             `options'
-        compare_inner_isid strL1 strL2,       `options'
-        compare_inner_isid strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_isid strL1,             `options' `forcestrl'
+        compare_inner_isid strL1 strL2,       `options' `forcestrl'
+        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl'
     }
 end
 
@@ -5912,9 +5937,10 @@ program checks_duplicates
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_duplicates strL1,             `options'
-        checks_inner_duplicates strL1 strL2,       `options'
-        checks_inner_duplicates strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_duplicates strL1,             `options' `forcestrl'
+        checks_inner_duplicates strL1 strL2,       `options' `forcestrl'
+        checks_inner_duplicates strL1 strL2 strL3, `options' `forcestrl'
     }
 
     sysuse auto, clear
@@ -5974,9 +6000,10 @@ program compare_duplicates
     compare_duplicates_internal int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_duplicates_internal strL1,             `options'
-        compare_duplicates_internal strL1 strL2,       `options'
-        compare_duplicates_internal strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_duplicates_internal strL1,             `options' `forcestrl'
+        compare_duplicates_internal strL1 strL2,       `options' `forcestrl'
+        compare_duplicates_internal strL1 strL2 strL3, `options' `forcestrl'
     }
 end
 
@@ -6055,9 +6082,10 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' report
 
     if ( `c(stata_version)' >= 14 ) {
-        _compare_duplicates strL1,             `options' report
-        _compare_duplicates strL1 strL2,       `options' report
-        _compare_duplicates strL1 strL2 strL3, `options' report
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _compare_duplicates strL1,             `options' report `forcestrl'
+        _compare_duplicates strL1 strL2,       `options' report `forcestrl'
+        _compare_duplicates strL1 strL2 strL3, `options' report `forcestrl'
     }
 
     di as txt _n(1)
@@ -6082,9 +6110,10 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' drop
 
     if ( `c(stata_version)' >= 14 ) {
-        _compare_duplicates strL1,             `options' drop
-        _compare_duplicates strL1 strL2,       `options' drop
-        _compare_duplicates strL1 strL2 strL3, `options' drop
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _compare_duplicates strL1,             `options' drop `forcestrl'
+        _compare_duplicates strL1 strL2,       `options' drop `forcestrl'
+        _compare_duplicates strL1 strL2 strL3, `options' drop `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "compare_duplicates, `options'" _n(1) "{hline 80}" _n(1)
@@ -6188,9 +6217,10 @@ program checks_hashsort
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_hashsort -strL1,             `options'
-        checks_inner_hashsort strL1 -strL2,       `options'
-        checks_inner_hashsort strL1 -strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_hashsort -strL1,             `options' `forcestrl'
+        checks_inner_hashsort strL1 -strL2,       `options' `forcestrl'
+        checks_inner_hashsort strL1 -strL2 strL3, `options' `forcestrl'
     }
 
     sysuse auto, clear
@@ -6280,9 +6310,10 @@ program compare_hashsort
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' mfirst
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_gsort -strL1,             `options' mfirst
-        compare_gsort strL1 -strL2,       `options' mfirst
-        compare_gsort strL1 -strL2 strL3, `options' mlast
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_gsort -strL1,             `options' mfirst `forcestrl'
+        compare_gsort strL1 -strL2,       `options' mfirst `forcestrl'
+        compare_gsort strL1 -strL2 strL3, `options' mlast  `forcestrl'
     }
 
     qui expand 10
@@ -6313,9 +6344,10 @@ program compare_hashsort
     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_sort strL1,             `options' mfirst
-        compare_sort strL1 strL2,       `options' mfirst
-        compare_sort strL1 strL2 strL3, `options' mlast
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_sort strL1,             `options' mfirst `forcestrl'
+        compare_sort strL1 strL2,       `options' mfirst `forcestrl'
+        compare_sort strL1 strL2 strL3, `options' mlast  `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)

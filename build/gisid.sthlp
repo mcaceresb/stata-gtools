@@ -47,12 +47,21 @@ a subset of the data, but it can't do it for an external dataset or sort the dat
 
 {phang}{opt missok} indicates that missing values are permitted in {varlist}.
 
+{dlgtab:Gtools}
+
 {phang}
 {opt compress} Try to compress strL to str#. The Stata Plugin Interface
 has only limited support for strL variables. In Stata 13 and earlier
 (version 2.0) there is no support, and in Stata 14 and later (version
 3.0) there is read-only support. The user can try to compress strL
 variables using this option.
+
+{phang} 
+{opt forcestrl} Skip binary variable check and force gtools to read strL
+variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
+This option was included because on some windows systems Stata detects
+binary data even when there is none. Only use this option if you are
+sure you do not have binary data in your strL variables.
 
 {phang}
 {opt verbose} prints some useful debugging info to the console.

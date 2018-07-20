@@ -27,9 +27,10 @@ program checks_gegen
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_egen -strL1,             `options' hash(1)
-        checks_inner_egen strL1 -strL2,       `options' hash(2)
-        checks_inner_egen strL1 -strL2 strL3, `options' hash(0)
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_egen -strL1,             `options' hash(1) `forcestrl'
+        checks_inner_egen strL1 -strL2,       `options' hash(2) `forcestrl'
+        checks_inner_egen strL1 -strL2 strL3, `options' hash(0) `forcestrl'
     }
 
     clear
@@ -138,9 +139,10 @@ program compare_egen
     compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_egen strL1,             `options' tol(`tol') hash(0) sort
-        compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) shuffle
-        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1)
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_egen strL1,             `options' tol(`tol') hash(0) `forcestrl' sort
+        compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) `forcestrl' shuffle
+        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1) `forcestrl' 
     }
 end
 
@@ -354,9 +356,10 @@ program bench_egen
     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_egen strL1,             `options'
-        versus_egen strL1 strL2,       `options'
-        versus_egen strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_egen strL1,             `options' `forcestrl'
+        versus_egen strL1 strL2,       `options' `forcestrl'
+        versus_egen strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)

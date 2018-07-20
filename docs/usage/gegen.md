@@ -19,6 +19,8 @@ Syntax
 
 - `compress` prints some useful debugging info to the console.
 
+- `forcestrl` Skip binary variable check and force gtools to read strL variables.
+
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` prints how long in seconds various parts of the program take to execute.

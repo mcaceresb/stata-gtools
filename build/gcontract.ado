@@ -26,6 +26,7 @@ program gcontract, rclass
                                     /// but leaves data unusable if the user hits Break.
         unsorted                    /// Do not sort the data; faster
         compress                    /// Try to compress strL variables
+        forcestrl                   /// Force reading strL variables (stata 14 and above only)
                                     ///
         Verbose                     /// Print info during function execution
         BENCHmark                   /// Benchmark function
@@ -180,7 +181,7 @@ program gcontract, rclass
     * ---------------
 
     local opts `missing' `verbose' `unsorted' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights' `compress'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights' `compress' `forcestrl'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 

@@ -62,6 +62,8 @@ final data.
 {syntab:Gtools}
 {synopt :{opth compress}}Try to compress strL to str#.
 {p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
 {synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
@@ -157,6 +159,13 @@ has only limited support for strL variables. In Stata 13 and earlier
 (version 2.0) there is no support, and in Stata 14 and later (version
 3.0) there is read-only support. The user can try to compress strL
 variables using this option.
+
+{phang} 
+{opt forcestrl} Skip binary variable check and force gtools to read strL
+variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
+This option was included because on some windows systems Stata detects
+binary data even when there is none. Only use this option if you are
+sure you do not have binary data in your strL variables.
 
 {phang}
 {opt verbose} prints some useful debugging info to the console.

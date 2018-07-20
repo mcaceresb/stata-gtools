@@ -41,8 +41,9 @@ program gtoplevelsof, rclass
         LOCal(str)               /// Store variable levels in local
         MATrix(str)              /// Store result in matrix
                                  ///
-        noWARNing                /// Try to compress strL variables
+        noWARNing                /// Do not warn about how tab might sometimes be faster
         compress                 /// Try to compress strL variables
+        forcestrl                /// Force reading strL variables (stata 14 and above only)
         Verbose                  /// debugging
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
@@ -142,7 +143,7 @@ program gtoplevelsof, rclass
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress'
+    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
     local gopts gen(`group') `tag' `counts' `replace'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 

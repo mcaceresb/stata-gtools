@@ -6,9 +6,11 @@ Change Log
 ### Features
 
 * `fasterxtile` and `gquantiles` now accept weights (including `by()`)
-* Note that stata might not handle weights accurately (or, at the very least,
-  it does not seem to follow its documented formulas in all cases).
+* Note that stata might not handle weights accurately in pctile
+  and xtile (or, at the very least, it does not seem to follow its
+  documented formulas in all cases).
 * Option `compress` tries to recast strL variables as str#
+* Option `forcestrl` ignores binary values check (use with caution).
 
 ### Bug Fixes
 

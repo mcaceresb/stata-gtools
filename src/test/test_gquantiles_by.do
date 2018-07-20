@@ -32,9 +32,10 @@ program checks_gquantiles_by
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        _checks_gquantiles_by -strL1,             `options'
-        _checks_gquantiles_by strL1 -strL2,       `options'
-        _checks_gquantiles_by strL1 strL2  strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        _checks_gquantiles_by -strL1,             `options' `forcestrl'
+        _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
+        _checks_gquantiles_by strL1 strL2  strL3, `options' `forcestrl'
     }
 end
 
@@ -257,14 +258,15 @@ program _consistency_inner_gquantiles_by
     _consistency_inner_full_by -int1             `if' `in', `options' var(`anything')
     _consistency_inner_full_by int1 -int2        `if' `in', `options' var(`anything')
 
+    local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
     if ( `c(stata_version)' >= 14 ) {
-        _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything')
-        _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything')
+        _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything') `forcestrl'
+        _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything') `forcestrl'
     }
 
     _consistency_inner_full_by str_12 -str_4 double2 -double3 `if' `in', `options' var(`anything')
     if ( `c(stata_version)' >= 14 ) {
-        _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything')
+        _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything') `forcestrl'
     }
 end
 
@@ -474,9 +476,10 @@ program _compare_inner_gquantiles_by
         _compare_inner_xtile_by int1            `if' `in', `options'
         _compare_inner_xtile_by int1 int2       `if' `in', `options'
 
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         if ( `c(stata_version)' >= 14 ) {
-            _compare_inner_xtile_by strL1       `if' `in', `options'
-            _compare_inner_xtile_by strL1 strL2 `if' `in', `options'
+            _compare_inner_xtile_by strL1       `if' `in', `options' `forcestrl'
+            _compare_inner_xtile_by strL1 strL2 `if' `in', `options' `forcestrl'
         }
     }
     else if ( "`nqlist'" != "" ) {
@@ -606,8 +609,22 @@ program _compare_inner_xtile_by
     cap assert `gxtile' == `fxtile'
     if ( _rc & (`rc_f' == 0) ) {
         if ( "`forcecmp'" == "" ) {
-            di as err "    compare_xtile_by (failed): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
-            exit 198
+            tempfile diff
+            qui gen `diff' = `fxtile' - `gxtile'
+            gtoplevelsof `diff', nowarn
+            qui count if `fxtile' != `gxtile'
+            local fail = `r(N)'
+            if ( `=max(`=`fail' / _N' < 0.05, `fail' == 1)' & ("`wgt'" != "") ) {
+                di as err "    compare_xtile_by (warning): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
+                di as err ""
+                di as err "using weights in fastxtile[egenmisc] seems to give incorrect results" ///
+                    _n(1) "under some circumstances. Only `fail' / `=_N' xtiles were off."
+                di as err ""
+            }
+            else {
+                di as err "    compare_xtile_by (failed): gquantiles, by(`anything') gave different levels to fastxtile[egenmisc]"
+                exit 198
+            }
         }
         else {
             di as txt "    (note: fastxtile[egenmisc] gave different levels)"

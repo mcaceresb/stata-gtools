@@ -917,7 +917,7 @@ program _compare_inner_gcollapse_skew
     }
 
     local anything_ `anything'
-    local options_  `options'
+    local options_   `options'
     local 0 `wgt'
     syntax [aw fw iw pw]
     local anything `anything_'

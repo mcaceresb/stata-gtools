@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jul 20 16:32:33 EDT 2018
+* Updated: Fri Jul 20 18:16:33 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 0.14.1
 * Manual:  help gtools
@@ -15,7 +15,7 @@ version 13
 clear all
 set more off
 set varabbrev off
-set seed 1729
+set seed 42
 set linesize 255
 set type double
 

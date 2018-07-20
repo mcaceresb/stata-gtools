@@ -69,6 +69,7 @@ program _gtools_internal, rclass
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
         compress                  /// Try to compress strL variables
+        forcestrl                 /// Force reading strL variables (stata 14 and above only)
                                   ///
                                   /// General options
                                   /// ---------------
@@ -199,6 +200,7 @@ program _gtools_internal, rclass
         disp as txt `"    GTOOLS_CALLER:    $GTOOLS_CALLER"'
         disp as txt `""'
         disp as txt `"    compress:         `compress'"'
+        disp as txt `"    forcestrl:        `forcestrl'"'
         disp as txt `"    verbose:          `verbose'"'
         disp as txt `"    benchmark:        `benchmark'"'
         disp as txt `"    hashmethod:       `hashmethod'"'
@@ -993,7 +995,7 @@ program _gtools_internal, rclass
         }
     }
 
-    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `compress'
+    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `compress' `forcestrl'
     if ( _rc ) {
         local rc = _rc
         clean_all `rc'
@@ -2451,7 +2453,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in], [clean_anything(str) compress]
+    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl]
 
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
@@ -2618,17 +2620,25 @@ program parse_by_types, rclass
         }
         exit 17002
     }
-    else if ( ("`varstrL'" != "") & (`c(stata_version)' >= 14) ) {
+    else if ( ("`varstrL'" != "") & (`c(stata_version)' >= 14) & ("`forcestrl'" == "") ) {
         scalar __gtools_k_strL = `:list sizeof varstrL'
         cap noi plugin call gtools_plugin `varstrL', checkstrL
         if ( _rc ) {
             cap scalar drop __gtools_k_strL
             disp as err _n(1) "gtools does not yet support binary data in strL variables."
+            if ( strpos(lower("`c(os)'"), "windows") ) {
+                disp as txt                                                                                    ///
+                      _n(1) "On some Windows systems Stata detects binary data in strL variables even"         ///
+                      _n(1) "when there is none. You can try the experimental option {opt forcestrl} to skip"  ///
+                      _n(1) "the binary data check. {opt Forcing gtools to work with binary data gives wrong}" ///
+                      _n(1) "results, so only use this option if you are certain your strL variables"          ///
+                      _n(1) "do no contain binary data."
+            }
             exit 17005
         }
         cap scalar drop __gtools_k_strL
     }
-    else if ( "`varstrL'" != "" ) {
+    else if ( ("`varstrL'" != "") & ("`forcestrl'" == "") ) {
         disp as err _n(1) "gtools failed to parse strL variables."
         exit 17006
     }

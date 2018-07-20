@@ -6,7 +6,11 @@ Change Log
 ### Features
 
 * `fasterxtile` and `gquantiles` now accept weights (including `by()`)
+* Note that stata might not handle weights accurately in pctile
+  and xtile (or, at the very least, it does not seem to follow its
+  documented formulas in all cases).
 * Option `compress` tries to recast strL variables as str#
+* Option `forcestrl` ignores binary values check (use with caution).
 
 ### Bug Fixes
 
@@ -14,9 +18,6 @@ Change Log
 * `strL` missing values now read correctly.
 * `strL` partial support for OSX (long strings only).
 * Added `strL`-specific tests
-* All tests passing in Stata 13 in Linux, Windows
-* All tests passing in Stata 15 in Linux
-* All tests passing in Stata 14 in OSX
 
 ## gtools-0.14.0 (2018-07-17)
 

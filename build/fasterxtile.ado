@@ -14,29 +14,30 @@ program define fasterxtile
 	local 0   `"`s(newcmd)'"'  /* command minus weight statement   */
 	local wgt `"`s(weight)'"'  /* contains [weight=exp] or nothing */
 
-    syntax newvarname =/exp        /// newvar = exp
-        [if] [in] ,                /// [if condition] [in start / end]
-    [                              ///
-        by(passthru)               /// By variabes: [+|-]varname [[+|-]varname ...]
-        Nquantiles(str)            /// Number of quantiles
-        Cutpoints(varname numeric) /// Use cutpoints instead of percentiles
-        ALTdef                     /// Alternative definition
-                                   ///
-        method(passthru)           /// Quantile method: (1) qsort, (2) qselect
-        strict                     /// Exit if nquantiles > # non-missing obs
-        Verbose                    /// Print info during function execution
-        BENCHmark                  /// Benchmark function
-        BENCHmarklevel(passthru)   /// Benchmark various steps of the plugin
-        HASHmethod(passthru)       /// Hashing method: 1 (biject), 2 (spooky)
-        hashlib(passthru)          /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)      /// error|fallback: On collision, use native command or throw error
-                                   ///
-        compress                   ///
-        debug(passthru)            ///
-        GROUPid(passthru)          ///
-        tag(passthru)              ///
-        counts(passthru)           ///
-        fill(passthru)             ///
+    syntax newvarname =/exp         /// newvar = exp
+        [if] [in] ,                 /// [if condition] [in start / end]
+    [                               ///
+        by(passthru)                /// By variabes: [+|-]varname [[+|-]varname ...]
+        Nquantiles(str)             /// Number of quantiles
+        Cutpoints(varname numeric)  /// Use cutpoints instead of percentiles
+        ALTdef                      /// Alternative definition
+                                    ///
+        method(passthru)            /// Quantile method: (1) qsort, (2) qselect
+        strict                      /// Exit if nquantiles > # non-missing obs
+        Verbose                     /// Print info during function execution
+        BENCHmark                   /// Benchmark function
+        BENCHmarklevel(passthru)    /// Benchmark various steps of the plugin
+        HASHmethod(passthru)        /// Hashing method: 1 (biject), 2 (spooky)
+        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
+                                    ///
+        forcestrl                   ///
+        compress                    ///
+        debug(passthru)             ///
+        GROUPid(passthru)           ///
+        tag(passthru)               ///
+        counts(passthru)            ///
+        fill(passthru)              ///
     ]
 
 	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
@@ -80,6 +81,7 @@ program define fasterxtile
                  `oncollision'    ///
                  `hashmethod'     ///
                  `compress'       ///
+                 `forcestrl'      ///
                  `replace'        ///
                  `groupid'        ///
                  `debug'          ///

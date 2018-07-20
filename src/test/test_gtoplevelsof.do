@@ -24,9 +24,10 @@ program checks_toplevelsof
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        checks_inner_toplevelsof -strL1,             `options'
-        checks_inner_toplevelsof strL1 -strL2,       `options'
-        checks_inner_toplevelsof strL1 -strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -115,9 +116,10 @@ program compare_toplevelsof
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract
-        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract
-        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl'
     }
 end
 
@@ -274,9 +276,10 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_toplevelsof strL1,             `options'
-        versus_toplevelsof strL1 strL2,       `options'
-        versus_toplevelsof strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_toplevelsof strL1,             `options' `forcestrl'
+        versus_toplevelsof strL1 strL2,       `options' `forcestrl'
+        versus_toplevelsof strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di as txt _n(1)
@@ -301,9 +304,10 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' sorted
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_toplevelsof strL1,             `options' sorted
-        versus_toplevelsof strL1 strL2,       `options' sorted
-        versus_toplevelsof strL1 strL2 strL3, `options' sorted
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_toplevelsof strL1,             `options' sorted `forcestrl'
+        versus_toplevelsof strL1 strL2,       `options' sorted `forcestrl'
+        versus_toplevelsof strL1 strL2 strL3, `options' sorted `forcestrl'
     }
 
     di _n(1) "{hline 80}" _n(1) "bench_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)

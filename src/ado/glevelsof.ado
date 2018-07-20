@@ -29,6 +29,7 @@ program glevelsof, rclass
                               ///
         debug(passthru)       /// Print debugging info to console
         compress              /// Try to compress strL variables
+        forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
@@ -65,7 +66,7 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean' `unsorted'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `compress'
+    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `compress' `forcestrl'
     local sopts `sopts' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
     local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store' `gen')
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)

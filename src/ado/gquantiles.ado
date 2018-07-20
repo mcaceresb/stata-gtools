@@ -64,6 +64,7 @@ program gquantiles, rclass
                                         ///
         debug(passthru)                 /// Print debugging info to console
         compress                        /// Try to compress strL variables
+        forcestrl                       /// Force reading strL variables (stata 14 and above only)
         Verbose                         /// Print info during function execution
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
@@ -334,7 +335,7 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug' `compress'
+    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug' `compress' `forcestrl'
     local   opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
     local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'

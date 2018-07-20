@@ -24,14 +24,16 @@ program checks_unique
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+
         * This is for the benefit of gtop, which can only handle strings that are so long
         qui `noisily' gen_data, n(50)
         qui expand 200
         gen long ix = _n
 
-        checks_inner_unique strL1,             `options'
-        checks_inner_unique strL1 strL2,       `options' by(strL3) replace
-        checks_inner_unique strL1 strL2 strL3, `options'
+        checks_inner_unique strL1,             `options' `forcestrl'
+        checks_inner_unique strL1 strL2,       `options' `forcestrl' by(strL3) replace
+        checks_inner_unique strL1 strL2 strL3, `options' `forcestrl'
     }
 
     clear
@@ -108,9 +110,10 @@ program compare_unique
     compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        compare_inner_unique strL1,             `options' shuffle
-        compare_inner_unique strL1 strL2,       `options'
-        compare_inner_unique strL1 strL2 strL3, `options' sort
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_unique strL1,             `options' `forcestrl' shuffle
+        compare_inner_unique strL1 strL2,       `options' `forcestrl' 
+        compare_inner_unique strL1 strL2 strL3, `options' `forcestrl' sort
     }
 end
 
@@ -327,9 +330,10 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_unique strL1,             `options' unique
-        versus_unique strL1 strL2,       `options' unique
-        versus_unique strL1 strL2 strL3, `options' unique
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl' unique
+        versus_unique strL1 strL2,       `options' `forcestrl' unique
+        versus_unique strL1 strL2 strL3, `options' `forcestrl' unique
     }
 
     if ( ("`distunique'" != "") & ("`joint'" != "") ) {
@@ -374,9 +378,10 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
     if ( `c(stata_version)' >= 14 ) {
-        versus_unique strL1,             `options'
-        versus_unique strL1 strL2,       `options'
-        versus_unique strL1 strL2 strL3, `options'
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl'
+        versus_unique strL1 strL2,       `options' `forcestrl'
+        versus_unique strL1 strL2 strL3, `options' `forcestrl'
     }
 
     di as txt _n(1) "{hline 80}" _n(1) "bench_unique, `options'" _n(1) "{hline 80}" _n(1)

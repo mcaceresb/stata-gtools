@@ -63,6 +63,8 @@ final data.
 {syntab:Gtools}
 {synopt :{opth compress}}Try to compress strL to str#.
 {p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
 {synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.

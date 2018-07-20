@@ -136,9 +136,9 @@ program main
             compare_gquantiles,    `noisily' oncollision(error) noaltdef wgt(both mix)
 
             compare_gcollapse,     `noisily' oncollision(error)
-            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1]) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1]) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)   tol(1e-4)
         }
 
         if ( `:list posof "switches" in options' ) {

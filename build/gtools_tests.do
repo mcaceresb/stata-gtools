@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jul 20 16:32:33 EDT 2018
+* Updated: Fri Jul 20 18:16:33 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 0.14.1
 * Manual:  help gtools
@@ -136,9 +136,9 @@ program main
             compare_gquantiles,    `noisily' oncollision(error) noaltdef wgt(both mix)
 
             compare_gcollapse,     `noisily' oncollision(error)
-            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1]) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1]) tol(1e-4)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)   tol(1e-4)
         }
 
         if ( `:list posof "switches" in options' ) {

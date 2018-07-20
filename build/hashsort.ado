@@ -21,6 +21,7 @@ program define hashsort
         HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
+        debug(passthru)        /// Print debugging info to console
                                ///
         tag(passthru)          ///
         counts(passthru)       ///
@@ -58,7 +59,7 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local  opts `verbose' `debug' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
     local eopts `invertinmata' `sortgen' `skipcheck'
     local gopts `generate' `tag' `counts' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)

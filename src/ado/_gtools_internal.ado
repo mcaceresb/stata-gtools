@@ -1006,6 +1006,7 @@ program _gtools_internal, rclass
     local byvars = "`r(varlist)'"
     local bynum  = "`r(varnum)'"
     local bystr  = "`r(varstr)'"
+    local bystrL = "`r(varstrL)'"
 
     * Unfortunately, the number of by variables we can process is
     * limited by the number of entries we can store in a Stata matrix.
@@ -1266,7 +1267,7 @@ program _gtools_internal, rclass
             else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
                 * If the first k sorted variables equal byvars, just call sort
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                sort `byvars' // , stable
+                sort `byvars', `:disp cond("`bystrL'" == "", "", "stable")'
                 clean_all 0
                 exit 0
             }
@@ -1326,15 +1327,15 @@ program _gtools_internal, rclass
                         local sortvars `sortvars' `:word `i' of `byvars''
                     }
                     scalar drop __gtools_first_inverted
-                    sort `sortvars' // , stable
+                    sort `sortvars', `:disp cond("`bystrL'" == "", "", "stable")'
                 }
             }
             else {
-                sort `byvars' // , stable
+                sort `byvars', `:disp cond("`bystrL'" == "", "", "stable")'
             }
         }
         else if ( ("`gen_name'" != "") & ("`sortgen'" != "") ) {
-            sort `gen_name' // , stable
+            sort `gen_name', `:disp cond("`bystrL'" == "", "", "stable")'
         }
 
         local msg "Stata reshuffle"

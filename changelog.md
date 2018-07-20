@@ -18,6 +18,9 @@ Change Log
 * `strL` missing values now read correctly.
 * `strL` partial support for OSX (long strings only).
 * Added `strL`-specific tests
+* All tests passing in Stata 13 in Linux, Windows
+* All tests passing in Stata 15 in Linux
+* All tests passing in Stata 14 in OSX
 
 ## gtools-0.14.0 (2018-07-17)
 

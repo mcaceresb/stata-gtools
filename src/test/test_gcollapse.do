@@ -749,9 +749,15 @@ program _compare_inner_collapse
             qui merge 1:1 `by' using `fg', assert(3)
         }
         foreach var in `stats' `percentiles' {
+
+            * I am not entirely sure why this check is here. I figured
+            * it had to be a corner case where I might return . and
+            * stata 0 or the converse... Not 100% why that changes if
+            * there is a weight, where it failed.
+
             if inlist("`var'", "sd", "semean") {
-                local nonz1 & (r1_`var' != 0 & c_r1_`var' != .)
-                local nonz2 & (r2_`var' != 0 & c_r2_`var' != .)
+                local nonz1 & (r1_`var' != 0 & c_r1_`var' != .) & (r1_`var' != . & c_r1_`var' != 0)
+                local nonz2 & (r2_`var' != 0 & c_r2_`var' != .) & (r2_`var' != . & c_r2_`var' != 0)
             }
             else {
                 local nonz1

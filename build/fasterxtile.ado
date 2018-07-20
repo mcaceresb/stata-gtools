@@ -1,4 +1,4 @@
-*! version 0.7.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -32,16 +32,12 @@ program define fasterxtile
         oncollision(passthru)      /// error|fallback: On collision, use native command or throw error
                                    ///
         compress                   ///
+        debug(passthru)            ///
         GROUPid(passthru)          ///
         tag(passthru)              ///
         counts(passthru)           ///
         fill(passthru)             ///
     ]
-
-	if ( `"`weight'"' != "" ) {
-		di in err "weights are planned for a future release"
-        exit 198
-    }
 
 	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
 		di in err "altdef option cannot be used with weights"
@@ -84,7 +80,9 @@ program define fasterxtile
                  `oncollision'    ///
                  `hashmethod'     ///
                  `compress'       ///
+                 `replace'        ///
                  `groupid'        ///
+                 `debug'          ///
                  `tag'            ///
                  `counts'         ///
                  `fill'

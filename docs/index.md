@@ -2,10 +2,10 @@
 
 Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, pctile, xtile, contract, egen, isid,
-levelsof, and unique/distinct using C plugins for a massive speed
-improvement.
+levelsof, duplicates, and unique/distinct using C plugins for a massive
+speed improvement.
 
-`version 0.14.0 17Jul2018`
+`version 0.14.1 19Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -30,9 +30,9 @@ above; `gcollapse` and `gcontract` do not support `strL` by variabes).
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
 | glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
 | gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
-| gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile     |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
-|              | \_pctile   |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
+| gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
+|              | \_pctile   |  25 to 40 / 3 to 5       |                 | Ibid.                                   |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -47,14 +47,14 @@ or thousands of times faster.</small>
 
 __*Gtools extras*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                                 |
-| ------------------- | ------------------ | ----------------------- | ------------------------------------- |
-| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`; weights not supported |
-|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                                       |
-|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                                       |
-| gunique             | unique             |  4 to 26 / 4 to 12      |                                       |
-| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix          |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)                   |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                        |
+| ------------------- | ------------------ | ----------------------- | ---------------------------- |
+| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
+|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
+|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
+| gunique             | unique             |  4 to 26 / 4 to 12      |                              |
+| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
+| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -314,8 +314,7 @@ Differences from `collapse`
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
-- No support for weights.
-- Adds support for `by()`
+- Adds support for `by()` (including weights)
 - Does not ignore `altdef` with `xtile` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1417198-typo-in-xtile-ado-with-option-altdef))
 - Category frequencies can also be requested via `binfreq[()]`.
 - `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
@@ -328,7 +327,7 @@ Differences from `xtile`, `pctile`, and `_pctile`
 - The user has control over the behavior of `cutpoints()` and `cutquantiles()`.
   They obey `if` `in` with option `cutifin`, they can be group-specific with
   option `cutby`, and they can be de-duplicated via `dedup`.
-- Fixes numerical precision issues with `pctile, altdef` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se); this is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not).
+- Fixes numerical precision issues with `pctile, altdef` (e.g. see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se), which is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not; also see [this thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1454409-weights-in-pctile)).
 
 Differences from `egen`
 

@@ -1,4 +1,4 @@
-*! version 0.9.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -25,6 +25,7 @@ program glevelsof, rclass
         numfmt(passthru)      /// Number format
         freq(passthru)        /// compute frequency counts
         store(passthru)       /// Number format
+        gen(passthru)         /// Save unique levels in varlist
                               ///
         debug(passthru)       /// Print debugging info to console
         compress              /// Try to compress strL variables
@@ -66,7 +67,7 @@ program glevelsof, rclass
     local opts  `separate' `missing' `clean' `unsorted'
     local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `compress'
     local sopts `sopts' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
-    local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store')
+    local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store' `gen')
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
     global GTOOLS_CALLER ""

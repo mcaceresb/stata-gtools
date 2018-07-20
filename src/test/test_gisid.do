@@ -24,6 +24,12 @@ program checks_isid
     checks_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        checks_inner_isid strL1,             `options'
+        checks_inner_isid strL1 strL2,       `options'
+        checks_inner_isid strL1 strL2 strL3, `options'
+    }
+
     clear
     gen x = 1
     cap gisid x
@@ -105,6 +111,12 @@ program compare_isid
     compare_inner_isid int1 str_32 double1,                                        `options'
     compare_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        compare_inner_isid strL1,             `options'
+        compare_inner_isid strL1 strL2,       `options'
+        compare_inner_isid strL1 strL2 strL3, `options'
+    }
 end
 
 capture program drop compare_inner_isid

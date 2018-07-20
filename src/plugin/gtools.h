@@ -153,6 +153,7 @@ struct StataInfo {
     GT_int    *byvars_maxs;
     GT_size   *byvars_lens;
     GT_bool   *byvars_strL;
+    GT_int    *bymap_strL;
     GT_size   *pos_num_byvars;
     GT_size   *pos_str_byvars;
     GT_size   *group_targets;
@@ -165,6 +166,8 @@ struct StataInfo {
     GT_size   *ix;
     GT_size   *index;
     GT_size   *info;
+    GT_size   *strL_bytes;
+    GT_size   *strL_bybytes;
     ST_double *output;
     ST_double *st_numx;
     ST_double *st_by_numx;
@@ -295,6 +298,10 @@ ST_retcode sf_switch_mem  (struct StataInfo *st_info, int level);
 ST_retcode sf_set_rinfo   (struct StataInfo *st_info, int level);
 
 // Define dummy strl functions to use the same code with SPI 2.0
+#ifndef SF_var_is_binary
+#define SF_var_is_binary(i, j) 0
+#endif
+
 #ifndef SF_var_is_strl
 #define SF_var_is_strl(a) 0
 #endif

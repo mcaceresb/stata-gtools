@@ -1,3 +1,5 @@
+#include "gquantiles_math.h"
+
 GT_size gf_quantiles_gcd (
     GT_size a,
     GT_size b)

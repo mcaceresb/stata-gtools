@@ -3,8 +3,8 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level);
 ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 {
 
-    ST_double z, nqdbl;
-    ST_double *xptr, *qptr, *qptr2, *optr, *gptr, *xptr2;
+    ST_double z, w, nqdbl;
+    ST_double *xptr, *wptr, *qptr, *qptr2, *optr, *gptr, *xptr2;
     GT_size   *jptr, *stptr, *cptr;
 
     GT_bool failmiss = 0;
@@ -25,6 +25,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     GT_size npoints = 0;
     GT_size nquants = 0;
 
+    GT_bool weights = st_info->wcode > 0;
     GT_size kgen    = st_info->xtile_gen;
     GT_bool pctile  = st_info->xtile_pctile;
     GT_bool genpct  = st_info->xtile_genpct;
@@ -52,6 +53,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     GT_size start_cutvars  = start_xtile   + xstart;
     GT_size start_qvars    = start_cutvars + cutvars;
     GT_size start_xsources = start_qvars   + qvars;
+    GT_size wpos           = st_info->wpos;
 
     GT_size in1   = st_info->in1;
     GT_size Nread = st_info->Nread;
@@ -84,7 +86,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
      *                         Memory Allocation                         *
      *********************************************************************/
 
-    GT_size kx = kgen? 2: 1;
+    GT_size kx = kgen? (2 + weights): (1 + weights);
     GT_size xmem_sources = kx * N;
     GT_size xmem_points  = cutvars?
         (
@@ -347,20 +349,45 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                     sf_printf_debug("debug 9 (sf_xtile_by): cutvars, kgen, and cutby.\n");
                 }
 
-                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                    if ( *stptr ) {
-                        j     = *stptr - 1;
-                        start = st_info->info[j];
-                        sel   = start + j + points_nonmiss[j]++;
-                        if ( (rc = SF_vdata(start_cutvars,
-                                            i + in1,
-                                            xpoints + sel)) ) goto error;
+                if ( weights ) {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_cutvars,
+                                                i + in1,
+                                                xpoints + sel)) ) goto error;
 
-                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                        if ( SF_is_missing(z) ) continue;
-                        sel = kx * start + kx * all_nonmiss[j]++;
-                        xsources[sel]     = z;
-                        xsources[sel + 1] = i;
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+
+                            if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                            if ( SF_is_missing(w) ) continue;
+
+                            sel = kx * start + kx * all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = w;
+                            xsources[sel + 2] = i;
+                        }
+                    }
+                }
+                else {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_cutvars,
+                                                i + in1,
+                                                xpoints + sel)) ) goto error;
+
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+                            sel = kx * start + kx * all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = i;
+                        }
                     }
                 }
             }
@@ -369,19 +396,43 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                     sf_printf_debug("debug 9 (sf_xtile_by): cutvars, no kgen, and cutby.\n");
                 }
 
-                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                    if ( *stptr ) {
-                        j     = *stptr - 1;
-                        start = st_info->info[j];
-                        sel   = start + j + points_nonmiss[j]++;
-                        if ( (rc = SF_vdata(start_cutvars,
-                                            i + in1,
-                                            xpoints + sel)) ) goto error;
+                if ( weights ) {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_cutvars,
+                                                i + in1,
+                                                xpoints + sel)) ) goto error;
 
-                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                        if ( SF_is_missing(z) ) continue;
-                        sel = start + all_nonmiss[j]++;
-                        xsources[sel] = z;
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+
+                            if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                            if ( SF_is_missing(w) ) continue;
+
+                            sel = start + all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = w;
+                        }
+                    }
+                }
+                else {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_cutvars,
+                                                i + in1,
+                                                xpoints + sel)) ) goto error;
+
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+                            sel = start + all_nonmiss[j]++;
+                            xsources[sel] = z;
+                        }
                     }
                 }
             }
@@ -393,20 +444,45 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                     sf_printf_debug("debug 9 (sf_xtile_by): qvars, kgen, and cutby.\n");
                 }
 
-                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                    if ( *stptr ) {
-                        j     = *stptr - 1;
-                        start = st_info->info[j];
-                        sel   = start + j + points_nonmiss[j]++;
-                        if ( (rc = SF_vdata(start_qvars,
-                                            i + in1,
-                                            xquants + sel)) ) goto error;
+                if ( weights ) {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_qvars,
+                                                i + in1,
+                                                xquants + sel)) ) goto error;
 
-                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                        if ( SF_is_missing(z) ) continue;
-                        sel = kx * start + kx * all_nonmiss[j]++;
-                        xsources[sel]     = z;
-                        xsources[sel + 1] = i;
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+
+                            if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                            if ( SF_is_missing(w) ) continue;
+
+                            sel = kx * start + kx * all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = w;
+                            xsources[sel + 2] = i;
+                        }
+                    }
+                }
+                else {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_qvars,
+                                                i + in1,
+                                                xquants + sel)) ) goto error;
+
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+                            sel = kx * start + kx * all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = i;
+                        }
                     }
                 }
             }
@@ -415,19 +491,44 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                     sf_printf_debug("debug 9 (sf_xtile_by): qvars, no kgen, and cutby.\n");
                 }
 
-                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                    if ( *stptr ) {
-                        j     = *stptr - 1;
-                        start = st_info->info[j];
-                        sel   = start + j + points_nonmiss[j]++;
-                        if ( (rc = SF_vdata(start_qvars,
-                                            i + in1,
-                                            xquants + sel)) ) goto error;
+                if ( weights ) {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_qvars,
+                                                i + in1,
+                                                xquants + sel)) ) goto error;
 
-                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                        if ( SF_is_missing(z) ) continue;
-                        sel = start + all_nonmiss[j]++;
-                        xsources[sel] = z;
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+
+                            if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                            if ( SF_is_missing(w) ) continue;
+
+                            sel = start + all_nonmiss[j]++;
+                            xsources[sel]     = z;
+                            xsources[sel + 1] = w;
+                        }
+                    }
+                }
+                else {
+                    for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                        if ( *stptr ) {
+                            j     = *stptr - 1;
+                            start = st_info->info[j];
+                            sel   = start + j + points_nonmiss[j]++;
+                            if ( (rc = SF_vdata(start_qvars,
+                                                i + in1,
+                                                xquants + sel)) ) goto error;
+
+                            if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                            if ( SF_is_missing(z) ) continue;
+
+                            sel = start + all_nonmiss[j]++;
+                            xsources[sel] = z;
+                        }
                     }
                 }
             }
@@ -439,15 +540,35 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 sf_printf_debug("debug 9 (sf_xtile_by): kgen, no cutby.\n");
             }
 
-            for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                if ( *stptr ) {
-                    j     = *stptr - 1;
-                    start = st_info->info[j];
-                    if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                    if ( SF_is_missing(z) ) continue;
-                    sel = kx * start + kx * all_nonmiss[j]++;
-                    xsources[sel]     = z;
-                    xsources[sel + 1] = i;
+            if ( weights ) {
+                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                    if ( *stptr ) {
+                        j     = *stptr - 1;
+                        start = st_info->info[j];
+                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+
+                        if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                        if ( SF_is_missing(w) ) continue;
+
+                        sel = kx * start + kx * all_nonmiss[j]++;
+                        xsources[sel]     = z;
+                        xsources[sel + 1] = w;
+                        xsources[sel + 2] = i;
+                    }
+                }
+            }
+            else {
+                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                    if ( *stptr ) {
+                        j     = *stptr - 1;
+                        start = st_info->info[j];
+                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        sel = kx * start + kx * all_nonmiss[j]++;
+                        xsources[sel]     = z;
+                        xsources[sel + 1] = i;
+                    }
                 }
             }
         }
@@ -456,14 +577,33 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 sf_printf_debug("debug 9 (sf_xtile_by): no kgen, no cutby.\n");
             }
 
-            for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
-                if ( *stptr ) {
-                    j     = *stptr - 1;
-                    start = st_info->info[j];
-                    if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
-                    if ( SF_is_missing(z) ) continue;
-                    sel = start + all_nonmiss[j]++;
-                    xsources[sel] = z;
+            if ( weights ) {
+                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                    if ( *stptr ) {
+                        j     = *stptr - 1;
+                        start = st_info->info[j];
+                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+
+                        if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
+                        if ( SF_is_missing(w) ) continue;
+
+                        sel = start + all_nonmiss[j]++;
+                        xsources[sel]     = z;
+                        xsources[sel + 1] = w;
+                    }
+                }
+            }
+            else {
+                for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {
+                    if ( *stptr ) {
+                        j     = *stptr - 1;
+                        start = st_info->info[j];
+                        if ( (rc = SF_vdata(start_xsources, i + in1, &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+                        sel = start + all_nonmiss[j]++;
+                        xsources[sel] = z;
+                    }
                 }
             }
         }
@@ -542,18 +682,39 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     GT_size xmem_qout   = ( pctpct | pctile )? Nread: 1;
     GT_size xmem_output = kgen? Nread: 1;
 
-    ST_double *xquant   = calloc(xmem_quant,   sizeof *xquant);
-    GT_size   *xcount   = calloc(xmem_count,   sizeof *xcount);
-    ST_double *xqout    = calloc(xmem_qout,    sizeof *xqout);
-    ST_double *xoutput  = calloc(xmem_output,  sizeof *xoutput);
+    GT_size   *xcount;
+    ST_double *wcount;
+    ST_double *xquant;
+    ST_double *xqout;
+    ST_double *xoutput;
 
-    if ( xquant   == NULL ) return(sf_oom_error("sf_quantiles", "xquant"));
+    if ( weights ) {
+        xcount = malloc(sizeof(xcount));
+        wcount = calloc(xmem_count, sizeof *wcount);
+    }
+    else {
+        xcount = calloc(xmem_count, sizeof *xcount);
+        wcount = malloc(sizeof(wcount));
+    }
+
+    xquant  = calloc(xmem_quant,   sizeof *xquant);
+    xqout   = calloc(xmem_qout,    sizeof *xqout);
+    xoutput = calloc(xmem_output,  sizeof *xoutput);
+
     if ( xcount   == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
+    if ( wcount   == NULL ) return(sf_oom_error("sf_quantiles", "wcount"));
+    if ( xquant   == NULL ) return(sf_oom_error("sf_quantiles", "xquant"));
     if ( xqout    == NULL ) return(sf_oom_error("sf_quantiles", "xqout"));
     if ( xoutput  == NULL ) return(sf_oom_error("sf_quantiles", "xoutput"));
 
-    for (cptr = xcount; cptr < xcount + xmem_count; cptr++)
-        *cptr = 0;
+    if ( weights ) {
+        for (wptr = wcount; wptr < wcount + xmem_count; wptr++)
+            *wptr = 0;
+    }
+    else {
+        for (cptr = xcount; cptr < xcount + xmem_count; cptr++)
+            *cptr = 0;
+    }
 
     for (optr = xoutput; optr < xoutput + xmem_output; optr++)
         *optr = 0;
@@ -688,44 +849,75 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
      *                               Sort!                               *
      *********************************************************************/
 
+    GT_size invert[2]; invert[0] = 0; invert[1] = 0;
     if ( cutvars & st_info->xtile_cutby ) {
         if ( debug ) {
             sf_printf_debug("debug 13 (sf_xtile_by): cutvars, cutby\n");
         }
 
-        for (j = 0; j < J; j++) {
-            cstart = offsets_buffer[j] + j;
-            cend   = points_nonmiss[j];
-            start  = kx * offsets_buffer[j];
-            end    = all_nonmiss[j];
-            xptr   = xsources + start;
-            gptr   = xpoints + cstart;
+        if ( weights ) {
+            for (j = 0; j < J; j++) {
+                cstart = offsets_buffer[j] + j;
+                cend   = points_nonmiss[j];
+                start  = kx * offsets_buffer[j];
+                end    = all_nonmiss[j];
+                xptr   = xsources + start;
+                gptr   = xpoints + cstart;
 
-            if ( end && cend ) {
-                points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
-                if ( points_nonmiss[j] ) {
-                    i = 0;
-                    for (xptr2 = xptr;
-                         xptr2 < xptr + kx * (end - 1);
-                         xptr2 += kx, i++) {
-                        if ( *xptr2 > *(xptr2 + kx) ) break;
-                    }
-                    i++;
-
-                    if ( i < end ) {
-                        quicksort_bsd (
+                if ( end && cend ) {
+                    points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
+                    if ( points_nonmiss[j] ) {
+                        MultiQuicksortDbl(
                             xptr,
                             end,
+                            0,
+                            1,
                             kx * sizeof(xptr),
-                            xtileCompare,
-                            NULL
+                            invert
                         );
                     }
                 }
+                else {
+                    all_nonmiss[j]    = 0;
+                    points_nonmiss[j] = 0;
+                }
             }
-            else {
-                all_nonmiss[j]    = 0;
-                points_nonmiss[j] = 0;
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                cstart = offsets_buffer[j] + j;
+                cend   = points_nonmiss[j];
+                start  = kx * offsets_buffer[j];
+                end    = all_nonmiss[j];
+                xptr   = xsources + start;
+                gptr   = xpoints + cstart;
+
+                if ( end && cend ) {
+                    points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
+                    if ( points_nonmiss[j] ) {
+                        i = 0;
+                        for (xptr2 = xptr;
+                             xptr2 < xptr + kx * (end - 1);
+                             xptr2 += kx, i++) {
+                            if ( *xptr2 > *(xptr2 + kx) ) break;
+                        }
+                        i++;
+
+                        if ( i < end ) {
+                            quicksort_bsd (
+                                xptr,
+                                end,
+                                kx * sizeof(xptr),
+                                xtileCompare,
+                                NULL
+                            );
+                        }
+                    }
+                }
+                else {
+                    all_nonmiss[j]    = 0;
+                    points_nonmiss[j] = 0;
+                }
             }
         }
     }
@@ -734,17 +926,99 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 13 (sf_xtile_by): qvars, cutby\n");
         }
 
-        for (j = 0; j < J; j++) {
-            cstart = offsets_buffer[j] + j;
-            cend   = points_nonmiss[j];
-            start  = kx * offsets_buffer[j];
-            end    = all_nonmiss[j];
-            xptr   = xsources + start;
-            gptr   = xquants + cstart;
+        if ( weights ) {
+            for (j = 0; j < J; j++) {
+                cstart = offsets_buffer[j] + j;
+                cend   = points_nonmiss[j];
+                start  = kx * offsets_buffer[j];
+                end    = all_nonmiss[j];
+                xptr   = xsources + start;
+                gptr   = xquants + cstart;
 
-            if ( end && cend ) {
-                points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
-                if ( points_nonmiss[j] ) {
+                if ( end && cend ) {
+                    points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
+                    if ( points_nonmiss[j] ) {
+                        MultiQuicksortDbl(
+                            xptr,
+                            end,
+                            0,
+                            1,
+                            kx * sizeof(xptr),
+                            invert
+                        );
+                    }
+                }
+                else {
+                    all_nonmiss[j]    = 0;
+                    points_nonmiss[j] = 0;
+                }
+            }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                cstart = offsets_buffer[j] + j;
+                cend   = points_nonmiss[j];
+                start  = kx * offsets_buffer[j];
+                end    = all_nonmiss[j];
+                xptr   = xsources + start;
+                gptr   = xquants + cstart;
+
+                if ( end && cend ) {
+                    points_nonmiss[j] = gf_xtile_clean(gptr, cend, 1, st_info->xtile_dedup);
+                    if ( points_nonmiss[j] ) {
+                        i = 0;
+                        for (xptr2 = xptr;
+                             xptr2 < xptr + kx * (end - 1);
+                             xptr2 += kx, i++) {
+                            if ( *xptr2 > *(xptr2 + kx) ) break;
+                        }
+                        i++;
+
+                        if ( i < end ) {
+                            quicksort_bsd (
+                                xptr,
+                                end,
+                                kx * sizeof(xptr),
+                                xtileCompare,
+                                NULL
+                            );
+                        }
+                    }
+                }
+                else {
+                    all_nonmiss[j]    = 0;
+                    points_nonmiss[j] = 0;
+                }
+            }
+        }
+    }
+    else {
+        if ( debug ) {
+            sf_printf_debug("debug 13 (sf_xtile_by): no cutby\n");
+        }
+
+        if ( weights ) {
+            for (j = 0; j < J; j++) {
+                start = kx * offsets_buffer[j];
+                end   = all_nonmiss[j];
+                xptr  = xsources + start;
+                MultiQuicksortDbl(
+                    xptr,
+                    end,
+                    0,
+                    1,
+                    kx * sizeof(xptr),
+                    invert
+                );
+            }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                start = kx * offsets_buffer[j];
+                end   = all_nonmiss[j];
+                xptr  = xsources + start;
+
+                if ( end ) {
                     i = 0;
                     for (xptr2 = xptr;
                          xptr2 < xptr + kx * (end - 1);
@@ -762,42 +1036,6 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             NULL
                         );
                     }
-                }
-            }
-            else {
-                all_nonmiss[j]    = 0;
-                points_nonmiss[j] = 0;
-            }
-        }
-    }
-    else {
-        if ( debug ) {
-            sf_printf_debug("debug 13 (sf_xtile_by): no cutby\n");
-        }
-
-        for (j = 0; j < J; j++) {
-            start = kx * offsets_buffer[j];
-            end   = all_nonmiss[j];
-            xptr  = xsources + start;
-
-            if ( end ) {
-                i = 0;
-                for (xptr2 = xptr;
-                     xptr2 < xptr + kx * (end - 1);
-                     xptr2 += kx, i++) {
-                    if ( *xptr2 > *(xptr2 + kx) ) break;
-                }
-                i++;
-
-                if ( i < end ) {
-                i = 0;
-                    quicksort_bsd (
-                        xptr,
-                        end,
-                        kx * sizeof(xptr),
-                        xtileCompare,
-                        NULL
-                    );
                 }
             }
         }
@@ -837,68 +1075,126 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 15 (sf_xtile_by): kgen and pctile or pctpct (cstartj = %u, J = %lu)\n", cstartj, J);
         }
 
-        for (j = 0; j < J; j++) {
-            cend = points_nonmiss[j];
-            end  = all_nonmiss[j];
-            nj   = nj_buffer[j];
+        if ( weights )  {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
 
-            if ( (end == 0) || (cend == 0) ) continue;
-            if ( st_info->xtile_strict && (cend > nj) ) continue;
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
 
-            cstart = cstartj? offsets_buffer[j] + j: 0;
-            start  = kx * (ixstart = offsets_buffer[j]);
-            xptr   = xsources + start;
-            qptr2  = qptr + cstart;
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * (ixstart = offsets_buffer[j]);
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
 
-            if ( ncuts > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( npoints > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( altdef ) {
-                if ( nquants > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_w (qptr2, xptr, cend + 1, end, kx);
+                    }
                 }
-            }
-            else {
-                if ( nquants > 0 ) {
-                    gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
-                }
-            }
 
-            nj = GTOOLS_PWMIN(cend, nj);
-            q  = 0;
-            for (jptr = st_info->index + ixstart;
-                 jptr < st_info->index + ixstart + nj;
-                 jptr++, q++) {
-                xcount[*jptr] = 1;
-                xqout[*jptr]  = qptr2[q];
-            }
+                nj = GTOOLS_PWMIN(cend, nj);
+                q  = 0;
+                for (jptr = st_info->index + ixstart;
+                     jptr < st_info->index + ixstart + nj;
+                     jptr++, q++) {
+                    wcount[*jptr] = 1;
+                    xqout[*jptr]  = qptr2[q];
+                }
 
-            q    = 0;
-            jptr = st_info->index + ixstart;
-            for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
-                while ( *xptr2 > qptr2[q] ) {
-                    q++;
-                    jptr++;
+                q    = 0;
+                jptr = st_info->index + ixstart;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) {
+                        q++;
+                        jptr++;
+                    }
+                    if ( q < nj ) {
+                        wcount[*jptr] += *(xptr2 + 1);
+                    }
+                    xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
                 }
-                if ( q < nj ) {
-                    xcount[*jptr]++;
+            }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
+
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
+
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * (ixstart = offsets_buffer[j]);
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
+
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
+                }
+                else if ( altdef ) {
+                    // altdef and weights not allowed
+                    if ( nquants > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+
+                nj = GTOOLS_PWMIN(cend, nj);
+                q  = 0;
+                for (jptr = st_info->index + ixstart;
+                     jptr < st_info->index + ixstart + nj;
+                     jptr++, q++) {
+                    xcount[*jptr] = 1;
+                    xqout[*jptr]  = qptr2[q];
+                }
+
+                q    = 0;
+                jptr = st_info->index + ixstart;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) {
+                        q++;
+                        jptr++;
+                    }
+                    if ( q < nj ) {
+                        xcount[*jptr]++;
+                    }
+                    xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
+                }
             }
         }
 
@@ -930,52 +1226,93 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 15 (sf_xtile_by): kgen only\n");
         }
 
-        for (j = 0; j < J; j++) {
-            cend = points_nonmiss[j];
-            end  = all_nonmiss[j];
-            nj   = nj_buffer[j];
+        if ( weights ) {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
 
-            if ( (end == 0) || (cend == 0) ) continue;
-            if ( st_info->xtile_strict && (cend > nj) ) continue;
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
 
-            cstart = cstartj? offsets_buffer[j] + j: 0;
-            start  = kx * offsets_buffer[j];
-            xptr   = xsources + start;
-            qptr2  = qptr + cstart;
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * offsets_buffer[j];
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
 
-            if ( ncuts > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( npoints > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( altdef ) {
-                if ( nquants > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_w (qptr2, xptr, cend + 1, end, kx);
+                    }
                 }
-            }
-            else {
-                if ( nquants > 0 ) {
-                    gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
+
+                q = 0;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) q++;
+                    xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
                 }
             }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
 
-            q = 0;
-            for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
-                while ( *xptr2 > qptr2[q] ) q++;
-                xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
+
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * offsets_buffer[j];
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
+
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
+                }
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
+                }
+                else if ( altdef ) {
+                    if ( nquants > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+
+                q = 0;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) q++;
+                    xoutput[(GT_size) *(xptr2 + kx - 1)] = q + 1;
+                }
             }
         }
 
@@ -1007,66 +1344,122 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 15 (sf_xtile_by): pctile or pctpct only\n");
         }
 
-        for (j = 0; j < J; j++) {
-            cend = points_nonmiss[j];
-            end  = all_nonmiss[j];
-            nj   = nj_buffer[j];
+        if ( weights ) {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
 
-            if ( (end == 0) || (cend == 0) ) continue;
-            if ( st_info->xtile_strict && (cend > nj) ) continue;
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
 
-            cstart = cstartj? offsets_buffer[j] + j: 0;
-            start  = kx * (ixstart = offsets_buffer[j]);
-            xptr   = xsources + start;
-            qptr2  = qptr + cstart;
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * (ixstart = offsets_buffer[j]);
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
 
-            if ( ncuts > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( npoints > 0 ) {
-                qptr2[cend] = xptr[kx * end - kx];
-            }
-            else if ( altdef ) {
-                if ( nquants > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
                 }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_w (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_w (qptr2, xptr, cend + 1, end, kx);
+                    }
                 }
-            }
-            else {
-                if ( nquants > 0 ) {
-                    gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
-                }
-                else if ( nq2 > 0 ) {
-                    gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
-                }
-                else if ( nq > 0 ) {
-                    gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
-                }
-            }
 
-            nj = GTOOLS_PWMIN(cend, nj);
-            q  = 0;
-            for (jptr = st_info->index + ixstart;
-                 jptr < st_info->index + ixstart + nj;
-                 jptr++) {
-                xcount[*jptr] = 1;
-                xqout[*jptr]  = qptr2[q++];
-            }
-
-            q    = 0;
-            jptr = st_info->index + ixstart;
-            for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
-                while ( *xptr2 > qptr2[q] ) {
-                    q++;
-                    jptr++;
+                nj = GTOOLS_PWMIN(cend, nj);
+                q  = 0;
+                for (jptr = st_info->index + ixstart;
+                     jptr < st_info->index + ixstart + nj;
+                     jptr++) {
+                    wcount[*jptr] = 1;
+                    xqout[*jptr]  = qptr2[q++];
                 }
-                if ( q < nj ) {
-                    xcount[*jptr]++;
+
+                q    = 0;
+                jptr = st_info->index + ixstart;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) {
+                        q++;
+                        jptr++;
+                    }
+                    if ( q < nj ) {
+                        wcount[*jptr] += *(xptr2 + 1);
+                    }
+                }
+            }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                cend = points_nonmiss[j];
+                end  = all_nonmiss[j];
+                nj   = nj_buffer[j];
+
+                if ( (end == 0) || (cend == 0) ) continue;
+                if ( st_info->xtile_strict && (cend > nj) ) continue;
+
+                cstart = cstartj? offsets_buffer[j] + j: 0;
+                start  = kx * (ixstart = offsets_buffer[j]);
+                xptr   = xsources + start;
+                qptr2  = qptr + cstart;
+
+                if ( ncuts > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
+                }
+                else if ( npoints > 0 ) {
+                    qptr2[cend] = xptr[kx * end - kx];
+                }
+                else if ( altdef ) {
+                    if ( nquants > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles_altdef (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq_altdef (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+                else {
+                    if ( nquants > 0 ) {
+                        gf_quantiles (qptr2, xptr, xquants + cstart, cend, end, kx);
+                    }
+                    else if ( nq2 > 0 ) {
+                        gf_quantiles (qptr2, xptr, st_info->xtile_quantiles, cend, end, kx);
+                    }
+                    else if ( nq > 0 ) {
+                        gf_quantiles_nq (qptr2, xptr, cend + 1, end, kx);
+                    }
+                }
+
+                nj = GTOOLS_PWMIN(cend, nj);
+                q  = 0;
+                for (jptr = st_info->index + ixstart;
+                     jptr < st_info->index + ixstart + nj;
+                     jptr++) {
+                    xcount[*jptr] = 1;
+                    xqout[*jptr]  = qptr2[q++];
+                }
+
+                q    = 0;
+                jptr = st_info->index + ixstart;
+                for (xptr2 = xptr; xptr2 < xptr + kx * end; xptr2 += kx) {
+                    while ( *xptr2 > qptr2[q] ) {
+                        q++;
+                        jptr++;
+                    }
+                    if ( q < nj ) {
+                        xcount[*jptr]++;
+                    }
                 }
             }
         }
@@ -1080,6 +1473,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
      *         Return percentiles and frequencies, if requested          *
      *********************************************************************/
 
+    wptr = wcount;
     cptr = xcount;
     qptr = xqout;
     if ( pctile ) {
@@ -1088,10 +1482,20 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 sf_printf_debug("debug 17 (sf_xtile_by): write pctile and pctpct\n");
             }
 
-            for (i = 0; i < Nread; i++, cptr++, qptr++) {
-                if ( *cptr ) {
-                    if ( (rc = SF_vstore(start_xtile + kgen,     i + in1, *qptr))     ) goto exit;
-                    if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *cptr - 1)) ) goto exit;
+            if ( weights ) {
+                for (i = 0; i < Nread; i++, wptr++, qptr++) {
+                    if ( *wptr ) {
+                        if ( (rc = SF_vstore(start_xtile + kgen,     i + in1, *qptr))     ) goto exit;
+                        if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *wptr - 1)) ) goto exit;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++, cptr++, qptr++) {
+                    if ( *cptr ) {
+                        if ( (rc = SF_vstore(start_xtile + kgen,     i + in1, *qptr))     ) goto exit;
+                        if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *cptr - 1)) ) goto exit;
+                    }
                 }
             }
         }
@@ -1100,9 +1504,18 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 sf_printf_debug("debug 17 (sf_xtile_by): write pctile\n");
             }
 
-            for (i = 0; i < Nread; i++, cptr++, qptr++) {
-                if ( *cptr ) {
-                    if ( (rc = SF_vstore(start_xtile + kgen, i + in1, *qptr)) ) goto exit;
+            if ( weights ) {
+                for (i = 0; i < Nread; i++, wptr++, qptr++) {
+                    if ( *wptr ) {
+                        if ( (rc = SF_vstore(start_xtile + kgen, i + in1, *qptr)) ) goto exit;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++, cptr++, qptr++) {
+                    if ( *cptr ) {
+                        if ( (rc = SF_vstore(start_xtile + kgen, i + in1, *qptr)) ) goto exit;
+                    }
                 }
             }
         }
@@ -1112,9 +1525,18 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 17 (sf_xtile_by): write pctpct\n");
         }
 
-        for (i = 0; i < Nread; i++, cptr++, qptr++) {
-            if ( *cptr ) {
-                if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *cptr - 1)) ) goto exit;
+        if ( weights ) {
+            for (i = 0; i < Nread; i++, wptr++, qptr++) {
+                if ( *wptr ) {
+                    if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *wptr - 1)) ) goto exit;
+                }
+            }
+        }
+        else {
+            for (i = 0; i < Nread; i++, cptr++, qptr++) {
+                if ( *cptr ) {
+                    if ( (rc = SF_vstore(start_xtile + kgen + 1, i + in1, *cptr - 1)) ) goto exit;
+                }
             }
         }
     }
@@ -1149,6 +1571,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
 
 exit:
     free (xcount);
+    free (wcount);
     free (xoutput);
     free (xqout);
     free (xquant);
@@ -1178,4 +1601,3 @@ error:
 
     return (rc);
 }
-

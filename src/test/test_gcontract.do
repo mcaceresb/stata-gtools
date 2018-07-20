@@ -12,8 +12,35 @@ program checks_gcontract
         set varabbrev off
     }
 
-    qui `noisily' gen_data, n(5000) random(2)
+    * https://github.com/mcaceresb/stata-gtools/issues/39
+    qui {
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcontract y
+        assert _rc == 17002
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi"
+        cap gcontract y, compress
+        assert _rc == 0
+
+        clear
+        set obs 5
+        gen x = _n
+        gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
+        cap gcontract y
+        assert _rc == 17002
+        cap gcontract y, compress
+        assert _rc == 17004
+    }
+
+    qui `noisily' gen_data, n(5000)
     qui expand 2
+    qui `noisily' random_draws, random(2)
     gen long ix = _n
 
     cap gcontract
@@ -67,8 +94,9 @@ capture program drop compare_gcontract
 program compare_gcontract
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui `noisily' gen_data, n(1000)
     qui expand 50
+    qui `noisily' random_draws, random(2) binary(2)
 
     di as txt _n(1) "{hline 80}" _n(1) "consistency_gcontract, `options'" _n(1) "{hline 80}" _n(1)
 
@@ -200,8 +228,9 @@ capture program drop bench_contract
 program bench_contract
     syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
 
-    qui gen_data, n(`n') random(1) double
+    qui gen_data, n(`n')
     qui expand `=100 * `bench''
+    qui `noisily' random_draws, random(1) double
     qui hashsort random1
 
     local N = trim("`: di %15.0gc _N'")

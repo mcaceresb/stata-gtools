@@ -1,4 +1,4 @@
-*! version 0.7.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
@@ -77,14 +77,11 @@ program gquantiles, rclass
         fill(passthru)                  ///
     ]
 
-	if ( `"`weight'"' != "" ) {
-		di in err "weights are planned for a future release"
-        exit 198
-    }
-
-    local if0  `if'
-    local in0  `in'
-    local ifin `if' `in'
+    local if0     `if'
+    local in0     `in'
+    local ifin    `if' `in'
+    local weight0 `weight'
+    local exp0    `"`exp'"'
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -316,13 +313,13 @@ program gquantiles, rclass
     * Pass arguments to internals
     * ---------------------------
 
-	if ( `"`weight'"' != "" ) {
+	if ( `"`weight0'"' != "" ) {
 		tempvar touse w
-		qui gen double `w' `exp' `if' `in'
-		local wgt `"[`weight'=`w']"'
-        local weights weights(`weight' `w')
-        mark `touse' `if' `in' `wgt'
-        local ifin if `touse' `in'
+		qui gen double `w' `exp0' `ifin'
+		local wgt `"[`weight0'=`w']"'
+        local weights weights(`weight0' `w')
+        mark `touse' `ifin' `wgt'
+        local ifin if `touse' `in0'
 	}
     else local weights
 

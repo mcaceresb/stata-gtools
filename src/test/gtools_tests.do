@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun May  6 12:23:55 EDT 2018
+* Updated: Fri Jul 20 16:32:33 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.14.0
+* Version: 0.14.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -80,21 +80,6 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
-            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([aw = int1]))
-
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
-            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
-
-            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
-
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
@@ -102,6 +87,27 @@ program main
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([aw = int1]))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gquantiles,    `noisily' oncollision(error) wgt([aw = int1]))
+
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gegen,         `noisily' oncollision(error) wgt([aw = int1]))
+
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([fw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([iw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([pw = int1]))
+            unit_test, `noisily' test(checks_gcollapse,     `noisily' oncollision(error) wgt([aw = int1]))
 
             di _n(1)
 
@@ -115,22 +121,24 @@ program main
             di "Consistency checks (v native commands) $S_TIME $S_DATE"
             di "-----------------------------------------------------------"
 
-            compare_gcollapse,     `noisily' oncollision(error)
-            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
-            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix)
-
-            compare_gquantiles_by, `noisily' oncollision(error)
-            compare_gquantiles,    `noisily' oncollision(error) noaltdef
-
-            compare_egen,          `noisily' oncollision(error)
-            compare_gcontract,     `noisily' oncollision(error)
             compare_isid,          `noisily' oncollision(error)
             compare_duplicates,    `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_unique,        `noisily' oncollision(error) distinct
             compare_hashsort,      `noisily' oncollision(error)
+            compare_egen,          `noisily' oncollision(error)
+            compare_gcontract,     `noisily' oncollision(error)
+
+            compare_gquantiles_by, `noisily' oncollision(error)
+            compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
+            compare_gquantiles,    `noisily' oncollision(error) noaltdef
+            compare_gquantiles,    `noisily' oncollision(error) noaltdef wgt(both mix)
+
+            compare_gcollapse,     `noisily' oncollision(error)
+            compare_gcollapse,     `noisily' oncollision(error) wgt(g [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(c [fw = 1])
+            compare_gcollapse,     `noisily' oncollision(error) wgt(both mix) tol(1e-4)
         }
 
         if ( `:list posof "switches" in options' ) {
@@ -296,7 +304,7 @@ end
 
 capture program drop gen_data
 program gen_data
-    syntax, [n(int 100) random(int 0) binary(int 0) float double skipstr]
+    syntax, [n(int 100) skipstr]
     clear
     set obs `n'
 
@@ -312,7 +320,27 @@ program gen_data
     * Generate does-what-it-says-on-the-tin variables
     * -----------------------------------------------
 
+    local chars char(40 + mod(_n, 50))
+    forvalues i = 1 / 50 {
+        local chars `chars' + char(40 + mod(_n + `i', 50))
+    }
+
+    forvalues i = 35 / 115 {
+        disp `i', char(`i')
+    }
+
     if ( "`skipstr'" == "" ) {
+        if ( `c(stata_version)' >= 14 ) {
+            gen strL strL1 = str_long  + `chars'
+            gen strL strL2 = str_mid   + `chars'
+            gen strL strL3 = str_short + `chars'
+            forvalues i = 1 / 42 {
+                replace strL1 = strL1 + `chars'
+                replace strL2 = strL2 + `chars'
+                replace strL3 = strL3 + `chars'
+            }
+        }
+
         gen str32 str_32   = str_long + "this is some string padding"
         gen str12 str_12   = str_mid  + "padding" + str_short + str_short
         gen str4  str_4    = str_mid  + str_short
@@ -345,6 +373,16 @@ program gen_data
         replace str_32 = "            " if mod(_n, 21) == 0
         replace str_12 = "   "          if mod(_n, 34) == 0
         replace str_4  = " "            if mod(_n, 55) == 0
+
+        if ( `c(stata_version)' >= 14 ) {
+            replace strL1 = "            " in 1 / 10
+            replace strL2 = "   "          in 1 / 10
+            replace strL3 = " "            in 1 / 10
+
+            replace strL1 = "            " if mod(_n, 21) == 0
+            replace strL2 = "   "          if mod(_n, 34) == 0
+            replace strL3 = " "            if mod(_n, 55) == 0
+        }
     }
 
     * Missing values
@@ -354,6 +392,12 @@ program gen_data
         replace str_32 = "" if mod(_n, 10) ==  0
         replace str_12 = "" if mod(_n, 20) ==  0
         replace str_4  = "" if mod(_n, 20) == 10
+
+        if ( `c(stata_version)' >= 14 ) {
+            replace strL1 = "" if mod(_n, 10) ==  0
+            replace strL2 = "" if mod(_n, 20) ==  0
+            replace strL3 = "" if mod(_n, 20) == 10
+        }
     }
 
     replace int2  = .   if mod(_n, 10) ==  0
@@ -431,14 +475,16 @@ program gen_data
     replace double3 = .x in 25
     replace double3 = .y in 26
     replace double3 = .z in 27
+end
 
-    if ( `random' > 0 ) {
-        forvalues i = 1 / `random' {
-            gen `float'`double' random`i' = rnormal() * `i' * 5
-            replace random`i' = . if mod(_n, 20) == 0
-            if ( `binary' ) {
-                replace random`i' = floor(runiform() * 1.99) if _n < `=_N / 2'
-            }
+capture program drop random_draws
+program random_draws
+    syntax, random(int) [binary(int 0) float double]
+    forvalues i = 1 / `random' {
+        gen `float'`double' random`i' = rnormal() * `i' * 5
+        replace random`i' = . if mod(_n, 20) == 0
+        if ( `binary' > 0 ) {
+            replace random`i' = floor(runiform() * 1.99) if _n <= `=_N / `binary''
         }
     }
 end

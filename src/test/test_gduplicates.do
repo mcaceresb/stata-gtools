@@ -22,6 +22,12 @@ program checks_duplicates
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        checks_inner_duplicates strL1,             `options'
+        checks_inner_duplicates strL1 strL2,       `options'
+        checks_inner_duplicates strL1 strL2 strL3, `options'
+    }
+
     sysuse auto, clear
     gen idx = _n
     qui gduplicates report foreign,       `options'
@@ -56,8 +62,9 @@ capture program drop compare_duplicates
 program compare_duplicates
     syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
 
-    qui `noisily' gen_data, n(`n') random(2)
+    qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''
+    qui `noisily' random_draws, random(2)
     qui gen rsort = rnormal()
     qui sort rsort
 
@@ -76,6 +83,12 @@ program compare_duplicates
     compare_duplicates_internal int1 str_32 double1,                                        `options'
     compare_duplicates_internal int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_duplicates_internal int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        compare_duplicates_internal strL1,             `options'
+        compare_duplicates_internal strL1 strL2,       `options'
+        compare_duplicates_internal strL1 strL2 strL3, `options'
+    }
 end
 
 capture program drop compare_duplicates_internal
@@ -152,6 +165,12 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' report
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' report
 
+    if ( `c(stata_version)' >= 14 ) {
+        _compare_duplicates strL1,             `options' report
+        _compare_duplicates strL1 strL2,       `options' report
+        _compare_duplicates strL1 strL2 strL3, `options' report
+    }
+
     di as txt _n(1)
     di as txt "Benchmark vs duplicates drop, obs = `N', J = `J' (in seconds; output compared via {opt cf})"
     di as txt "    duplicates | gduplicates | ratio (g/h) | varlist"
@@ -172,6 +191,12 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1,                                        `options' drop
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' drop
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' drop
+
+    if ( `c(stata_version)' >= 14 ) {
+        _compare_duplicates strL1,             `options' drop
+        _compare_duplicates strL1 strL2,       `options' drop
+        _compare_duplicates strL1 strL2 strL3, `options' drop
+    }
 
     di _n(1) "{hline 80}" _n(1) "compare_duplicates, `options'" _n(1) "{hline 80}" _n(1)
 end

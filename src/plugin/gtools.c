@@ -55,6 +55,7 @@
 #include "extra/gtop.c"
 
 #include "quantiles/gquantiles_math.c"
+#include "quantiles/gquantiles_math_w.c"
 #include "quantiles/gquantiles_utils.c"
 #include "quantiles/gquantiles.c"
 
@@ -92,6 +93,7 @@ STDLL stata_call(int argc, char *argv[])
      *                                                                        *
      *     - check:     Exit with 0 status. This just tests the plugin can be *
      *                  called from Stata without crashing.                   *
+     *     - checkstrL: Check if strL variables have binary data              *
      *     - recast:    Bulk copy sources into targets.                       *
      *     - hash:      Generic (read, hash, sort, generate, summary stats).  *
      *     - isid:      Do by vars uniquely identify obs?                     *
@@ -121,18 +123,30 @@ STDLL stata_call(int argc, char *argv[])
 
         goto exit;
     }
+    if ( strcmp(todo, "checkstrL") == 0 ) {
+        GT_size kvars_strL, i, k;
+        if ( (rc = sf_scalar_size("__gtools_k_strL", &kvars_strL) )) goto exit;
+        for (i = SF_in1(); i <= SF_in2(); i++) {
+            for (k = 1; k <= kvars_strL; k++) {
+                if ( SF_var_is_binary(k, i) ) {
+                    rc = 17005;
+                    goto exit;
+                }
+            }
+        }
+    }
     else if ( strcmp(todo, "collapse") == 0 ) { // (Note: keeps by copy; always)
 
-        /*********************************************************************
-         * collapse dispatcher                                               *
-         *                                                                   *
-         *     - memory: Targets in memory                                   *
-         *     - switch: Hash only. May generate targets; may write to disk. *
-         *     - forceio: Write to disk.                                     *
-         *     - ixfinish: Targets and group info in memory.                 *
-         *     - read: Read targets from disk.                               *
-         *                                                                   *
-         *********************************************************************/
+        /***********************************************************************
+         * collapse dispatcher                                                 *
+         *                                                                     *
+         *     - memory:   Targets in memory                                   *
+         *     - switch:   Hash only. May generate targets; may write to disk. *
+         *     - forceio:  Write to disk.                                      *
+         *     - ixfinish: Targets and group info in memory.                   *
+         *     - read:     Read targets from disk.                             *
+         *                                                                     *
+         ***********************************************************************/
 
         if ( argc < 2 ) {
             sf_errprintf ("collapse requires a subcommand\n");
@@ -719,18 +733,27 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     // -----------------------------
 
     st_info->positions   = calloc(kvars + 1, sizeof(st_info->positions));
+    st_info->bymap_strL  = calloc(kvars,     sizeof(st_info->bymap_strL));
     st_info->byvars_mins = calloc(kvars,     sizeof(st_info->byvars_mins));
     st_info->byvars_maxs = calloc(kvars,     sizeof(st_info->byvars_maxs));
 
     if ( st_info->positions   == NULL ) return (sf_oom_error("sf_hash_byvars", "positions"));
+    if ( st_info->bymap_strL  == NULL ) return (sf_oom_error("sf_hash_byvars", "bymap_strL"));
     if ( st_info->byvars_mins == NULL ) return (sf_oom_error("sf_hash_byvars", "byvars_mins"));
     if ( st_info->byvars_maxs == NULL ) return (sf_oom_error("sf_hash_byvars", "byvars_maxs"));
 
     GTOOLS_GC_ALLOCATED("st_info->positions")
+    GTOOLS_GC_ALLOCATED("st_info->bymap_strL")
     GTOOLS_GC_ALLOCATED("st_info->byvars_mins")
     GTOOLS_GC_ALLOCATED("st_info->byvars_maxs")
 
     st_info->free = 2;
+
+    // Position on the strL length array of the kth variable, if strL
+    j = 0;
+    for (k = 0; k < kvars; k++) {
+        st_info->bymap_strL[k] = st_info->byvars_strL[k]? j++: -1;
+    }
 
     // The by variables are copied to a custom array. echnically it is a
     // Tcharacter array, but it is structured as follows:
@@ -789,8 +812,9 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         // process this sepparately since we know the answers for all
         // the variables we care about.
 
-        st_info->st_numx  = malloc(sizeof(ST_double));
-        st_info->st_charx = malloc(sizeof(char));
+        st_info->strL_bytes = malloc(sizeof(st_info->strL_bytes));;
+        st_info->st_numx    = malloc(sizeof(st_info->st_numx));
+        st_info->st_charx   = malloc(sizeof(st_info->st_charx));
 
         st_info->index = calloc(st_info->N, sizeof(st_info->index));
         st_info->info  = calloc(2, sizeof(st_info->info));
@@ -799,6 +823,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
         GTOOLS_GC_ALLOCATED("st_info->info")
         GTOOLS_GC_ALLOCATED("st_info->index")
+        GTOOLS_GC_ALLOCATED("st_info->strL_bytes")
         GTOOLS_GC_ALLOCATED("st_info->st_numx")
         GTOOLS_GC_ALLOCATED("st_info->st_charx")
 
@@ -1731,17 +1756,21 @@ void sf_free (struct StataInfo *st_info, int level)
     }
     if ( (st_info->free >= 2) & (level != 11) ) {
         free (st_info->positions);
+        free (st_info->bymap_strL);
         free (st_info->byvars_mins);
         free (st_info->byvars_maxs);
 
         GTOOLS_GC_FREED("st_info->positions")
+        GTOOLS_GC_FREED("st_info->bymap_strL")
         GTOOLS_GC_FREED("st_info->byvars_mins")
         GTOOLS_GC_FREED("st_info->byvars_maxs")
     }
     if ( (st_info->free >= 3) & (st_info->free <= 5) & (level != 11) ) {
+        free (st_info->strL_bytes);
         free (st_info->st_numx);
         free (st_info->st_charx);
 
+        GTOOLS_GC_FREED("st_info->strL_bytes")
         GTOOLS_GC_FREED("st_info->st_numx")
         GTOOLS_GC_FREED("st_info->st_charx")
     }
@@ -1758,9 +1787,11 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->ix")
     }
     if ( (st_info->free >= 6) & (st_info->free <= 7) & (level != 11) ) {
+        free (st_info->strL_bybytes);
         free (st_info->st_by_numx);
         free (st_info->st_by_charx);
 
+        GTOOLS_GC_FREED("st_info->strL_bybytes")
         GTOOLS_GC_FREED("st_info->st_by_numx")
         GTOOLS_GC_FREED("st_info->st_by_charx")
     }

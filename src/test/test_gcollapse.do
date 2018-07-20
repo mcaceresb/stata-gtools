@@ -3,8 +3,9 @@ program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(5000) random(2)
+    qui `noisily' gen_data, n(5000)
     qui expand 2
+    qui `noisily' random_draws, random(2)
     gen long ix = _n
 
     checks_inner_collapse, `options'
@@ -30,8 +31,8 @@ capture program drop checks_inner_collapse
 program checks_inner_collapse
     syntax [anything], [tol(real 1e-6) wgt(str) *]
 
-    local 0 `wgt'
-    syntax [aw fw iw pw]
+    local 0 `anything' `wgt', `options'
+    syntax [anything] [aw fw iw pw], [*]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
     local stats nunique sum mean max min count percent first last firstnm lastnm median iqr skew kurt
@@ -90,12 +91,7 @@ program checks_corners
         gen x = _n
         gen strL y = "hi"
         cap gcollapse (p70) x, by(y)
-        if ( `c(stata_version)' < 14 ) {
-            assert _rc == 17002
-        }
-        else {
-            assert _rc == 0
-        }
+        assert _rc == 17002
 
         clear
         set obs 5
@@ -271,8 +267,9 @@ program compare_gcollapse
     * This should be ignored for compare_inner_gcollapse_gegen bc of merge
     local debug_io debug_io_check(0) debug_io_threshold(0.0001)
 
-    qui `noisily' gen_data, n(1000) random(2)
+    qui `noisily' gen_data, n(1000)
     qui expand 100
+    qui `noisily' random_draws, random(2)
 
     di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_gegen, `options'" _n(1) "{hline 80}" _n(1)
 
@@ -294,8 +291,9 @@ program compare_gcollapse
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
-    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui `noisily' gen_data, n(1000)
     qui expand 50
+    qui `noisily' random_draws, random(2) binary(5)
 
     di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
 
@@ -317,8 +315,9 @@ program compare_gcollapse
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 
-    qui `noisily' gen_data, n(1000) random(2) binary(1)
+    qui `noisily' gen_data, n(1000)
     qui expand 50
+    qui `noisily' random_draws, random(2) binary(5)
 
     di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_skew_kurt, `options'" _n(1) "{hline 80}" _n(1)
 
@@ -353,13 +352,13 @@ program compare_inner_gcollapse_gegen
     local wfun `wfun'
     local wfoo `wfoo'
     if ( `"`wfoo'"' == "mix" ) {
-        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wgen_a  qui gen unif_0_100 = 100 * runiform() if mod(_n, 100)
         local wcall_a "[aw = unif_0_100]"
-        local wgen_f  gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wgen_f  qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
         local wcall_f "[fw = int_unif_0_100]"
-        local wgen_p  gen float_unif_0_1 = runiform() if mod(_n, 100)
+        local wgen_p  qui gen float_unif_0_1 = runiform() if mod(_n, 100)
         local wcall_p "[pw = float_unif_0_1]"
-        local wgen_i  gen rnormal_0_10 = 10 * rnormal() if mod(_n, 100)
+        local wgen_i  qui gen rnormal_0_10 = 10 * rnormal() if mod(_n, 100)
         local wcall_i "[iw = rnormal_0_10]"
     }
     else {
@@ -369,7 +368,7 @@ program compare_inner_gcollapse_gegen
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) qui hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 45 + length("`anything'") + length("`N'")
@@ -437,8 +436,12 @@ program _compare_inner_gcollapse_gegen
     }
 
     local ifin `if' `in'
+    local anything_ `anything'
+    local options_  `options'
     local 0 `wgt'
     syntax [aw fw iw pw]
+    local anything `anything_'
+    local options  `options_'
 
     local sestats
     local stats nunique sum mean max min percent first last firstnm lastnm median iqr skew kurt
@@ -556,13 +559,13 @@ program compare_inner_collapse
     local wfun `wfun'
     local wfoo `wfoo'
     if ( `"`wfoo'"' == "mix" ) {
-        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wgen_a  qui gen unif_0_100 = 100 * runiform() if mod(_n, 100)
         local wcall_a "[aw = unif_0_100]"
-        local wgen_f  gen int_unif_0_100 = int(100 * runiform())
+        local wgen_f  qui gen int_unif_0_100 = int(100 * runiform())
         local wcall_f "[fw = int_unif_0_100]"
-        local wgen_i  gen rnormal_0_10 = 10 * rnormal()
+        local wgen_i  qui gen rnormal_0_10 = 10 * rnormal()
         local wcall_i "[iw = rnormal_0_10]"
-        local wgen_p  gen float_unif_0_1 = runiform()
+        local wgen_p  qui gen float_unif_0_1 = runiform()
         local wcall_p "[pw = float_unif_0_1]"
     }
     else {
@@ -572,7 +575,7 @@ program compare_inner_collapse
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) qui hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 35 + length("`anything'") + length("`N'")
@@ -639,8 +642,12 @@ program _compare_inner_collapse
     }
 
     local ifin `if' `in'
+    local anything_ `anything'
+    local options_  `options'
     local 0 `wgt'
     syntax [aw fw iw pw]
+    local anything `anything_'
+    local options  `options_'
 
     local stats sum mean max min count first last firstnm lastnm median iqr
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
@@ -818,9 +825,9 @@ program compare_inner_gcollapse_skew
     local wfun `wfun'
     local wfoo `wfoo'
     if ( `"`wfoo'"' == "mix" ) {
-        local wgen_a  gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wgen_a  qui gen unif_0_100 = 100 * runiform() if mod(_n, 100)
         local wcall_a "[aw = unif_0_100]"
-        local wgen_f  gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wgen_f  qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
         local wcall_f "[fw = int_unif_0_100]"
         local wgen_p  `wgen_a'
         local wcall_p `wcall_a'
@@ -834,7 +841,7 @@ program compare_inner_gcollapse_skew
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) qui hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 45 + length("`anything'") + length("`N'")
@@ -909,10 +916,14 @@ program _compare_inner_gcollapse_skew
         local sifin `in' `if' & id ==
     }
 
+    local anything_ `anything'
+    local options_  `options'
     local 0 `wgt'
     syntax [aw fw iw pw]
+    local anything `anything_'
+    local options  `options_'
 
-    gegen id = group(`anything') `ifin', missing
+    qui gegen id = group(`anything') `ifin', missing
     qui gunique id `ifin', missing
     local J = `r(J)'
     qui sum id
@@ -952,20 +963,21 @@ program _compare_inner_gcollapse_skew
     foreach fun in kurt skew {
         local imprecise 0
         foreach j in `checks' {
-        * disp "`j'"
+            * disp "`j'"
             cap assert ``fun'_`j'' == `fun'[`j'] | abs(``fun'_`j'' - `fun'[`j']) < `tol'
             if ( _rc & (nq[`j'] > 1) ) {
                 cap noi assert 0
                 di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
+                disp "``fun'_`j'' vs `=`fun'[`j']'; diff `=abs(``fun'_`j'' - `fun'[`j'])'"
                 exit _rc
             }
-            else {
-                local imprecise 1
+            else if ( _rc & (nq[`j'] == 1) ) {
+                local ++imprecise
             }
         }
 
         if ( `imprecise' ) {
-            di as txt "    compare_`fun'_gcollapse (imprecision): sum`wtxt' yielded similar results (tol = `tol')"
+            di as txt "    compare_`fun'_gcollapse (imprecision): sum`wtxt' yielded similar results (tol = `tol'; `imprecise' imprecisions)"
         }
         else {
             di as txt "    compare_`fun'_gcollapse (passed): sum`wtxt' yielded same results (tol = `tol')"
@@ -981,8 +993,9 @@ capture program drop bench_collapse
 program bench_collapse
     syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily style(str) vars(int 1) collapse fcollapse *]
 
-    qui gen_data, n(`n') random(`vars') double
+    qui gen_data, n(`n')
     qui expand `=100 * `bench''
+    qui `noisily' random_draws, random(`vars') double
     qui hashsort random1
 
     local N = trim("`: di %15.0gc _N'")

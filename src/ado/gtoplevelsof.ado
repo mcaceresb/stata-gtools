@@ -1,4 +1,4 @@
-*! version 0.8.0 17Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -41,6 +41,7 @@ program gtoplevelsof, rclass
         LOCal(str)               /// Store variable levels in local
         MATrix(str)              /// Store result in matrix
                                  ///
+        noWARNing                /// Try to compress strL variables
         compress                 /// Try to compress strL variables
         Verbose                  /// debugging
         BENCHmark                /// Benchmark function
@@ -200,8 +201,8 @@ program gtoplevelsof, rclass
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
     if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
 
-    if ( `c(MP)' & (`r(J)' < 50) ) {
-        disp as txt "(Note: {cmd:tab} is often fasater than {cmd:gtop} with few groups.)"
+    if ( `c(MP)' & (`r(J)' < 50) & ("`warning'" != "nowarning") ) {
+        disp as txt "(Note: {cmd:tab} is often faster than {cmd:gtop} with few groups.)"
     }
 
     return local levels    `"`r(levels)'"'

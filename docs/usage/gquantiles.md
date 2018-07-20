@@ -1,4 +1,4 @@
-equantiles
+gquantiles
 ==========
 
 Efficiently compute percentiles, quantiles, categories, and frequency counts.
@@ -8,9 +8,7 @@ that offers several additional features, like computing arbitrary
 quantiles (and an arbitrary number), frequency counts, and more (see the
 [examples](#examples) below).
 
-While weights are not yet supported, gquantiles offers several
-additional options above the three built-in Stata commands. gquantiles
-is also faster than the user-written fastxtile, so an alias,
+gquantiles is also faster than the user-written fastxtile, so an alias,
 fasterxtile, is also provided.
 
 _Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
@@ -54,6 +52,13 @@ gquantiles exp [if] [in], _pctile [nquantiles(#) percentiles(numlist) altdef]
 The options and behavior of the above largely mimic that of the Stata native
 commands. You only need to read the rest of the documentation if you wish to
 use some of the additional features that gquantiles provides.
+
+Weights
+-------
+
+aweight, fweight, and pweight are allowed and mimic the weights in
+`pctile`, `xtile`, or `_pctile` (see `help weight` and the weights
+section in `help pctile`). Weights are not allowed with `altdef`.
 
 Options
 -------
@@ -178,9 +183,12 @@ __*Extras*__
 <br><br>
 
 - `binfreq` (Not with by.) or `binfreq(newvar)` Stores the frequency counts of the source variable
-  within the bins defined by the quantiles or the cuoffs. If `newvar` is passed then
-  the frequency counts are stored in `newvar`; otherwise they are stored in the matrix
+  within the bins defined by the quantiles or the cuoffs. When
+  weights are specified, this stores the sum of the weights within
+  that category. If `newvar` is passed then the frequency counts
+  are stored in `newvar`; otherwise they are stored in the matrix
   `r(quantiles_bincount)` or `r(cutoffs_bincount)`.
+
 <br><br>
 
 __*Switches*__

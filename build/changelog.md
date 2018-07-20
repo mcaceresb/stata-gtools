@@ -1,11 +1,29 @@
 Change Log
 ==========
 
+## gtools-0.14.1 (2018-07-19)
+
+### Features
+
+* `fasterxtile` and `gquantiles` now accept weights (including `by()`)
+* Option `compress` tries to recast strL variables as str#
+
+### Bug Fixes
+
+* If `strL` contains binary data `gtools` functions now throw an error.
+* `strL` missing values now read correctly.
+* `strL` partial support for OSX (long strings only).
+* Added `strL`-specific tests
+* All tests passing in Stata 13 in Linux, Windows
+* All tests passing in Stata 15 in Linux
+* All tests passing in Stata 14 in OSX
+
 ## gtools-0.14.0 (2018-07-17)
 
 ### Bug Fixes
 
-* Closes https://github.com/mcaceresb/stata-gtools/issues/39 `strL` partial support.
+* Closes https://github.com/mcaceresb/stata-gtools/issues/39 `strL`
+  partial support (OSX pending).
 * Closes https://github.com/mcaceresb/stata-gtools/issues/41 `wild` with
   existing variables gets a warning.
 * Fixes https://github.com/mcaceresb/stata-gtools/issues/42 `gunique` typo.

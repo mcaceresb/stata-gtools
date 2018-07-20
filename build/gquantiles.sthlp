@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.0 17Jul2018}{...}
+{* *! version 0.7.1 19Jul2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -34,6 +34,7 @@ Create variable containing percentiles (equivalent to {cmd:pctile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 pctile
 [{opth nquantiles(int)}
@@ -47,6 +48,7 @@ Create variable containing quantile categories (equivalent to {cmd:xtile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 xtile
 [{opth nquantiles(int)}
@@ -57,6 +59,7 @@ xtile
 {cmd:fasterxtile}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 [{opth nquantiles(int)}
 {opth cutpoints(varname)}
@@ -69,6 +72,7 @@ Compute percentiles and store them in r() (equivalent to {cmd:_pctile})
 {cmd:gquantiles}
 {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 _pctile
 [{opth nquantiles(int)}
@@ -82,6 +86,7 @@ The full syntax, however, is
 {cmd:gquantiles}
 [{newvar} {cmd:=}] {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 {c -(}{cmd:pctile}{c |}{cmd:xtile}{c |}{cmd:_pctile}{c )-}
 {it:{help gquantiles##quantiles_method:quantiles_method}}
@@ -169,20 +174,26 @@ The full syntax, however, is
 {p2colreset}{...}
 {p 4 6 2}
 
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, and {opt pweight}s are allowed (see
+{manhelp weight U:11.1.6 weight}), except with option {opt altdef}, in
+which case no weights are allowed.
+{p_end}
+
 {marker description}{...}
 {title:Description}
 
 {pstd}
 {cmd:gquantiles} replaces {cmd:xtile}, {cmd:pctile}, and {cmd:_pctile}.
-While weights are not yet supported, gquantiles offers several additional
-options above the three built-in Stata commands. gquantiles is also faster
-than the user-written fastxtile, so an alias, fasterxtile, is also provided.
+gquantiles offers several additional options above the three built-in
+Stata commands: an arbitrary number of quantiles, arbitrary cutoffs,
+frequency counts of the xtile categories, computing {cmd:pctile} and
+{cmd:xtile} at the same time, and so on.
 
 {pstd}
-Weights are currently not supported. But {cmd:gquantiles} can compute an 
-arbitrary number of quantiles, can deal with arbitrary cutoffs, can compute
-frequency counts of the categories, can compute {cmd:pctile} and {cmd:xtile}
-at the same time, and so on.
+gquantiles is also faster than the user-written fastxtile, so an alias,
+fasterxtile, is provided.
 
 {pstd}
 {opt gquantiles} is part of the {manhelp gtools R:gtools} project.
@@ -244,7 +255,8 @@ this option is otherwise equivalent to its behavior when passing
 specifies a new variable to be generated
 containing the percentages corresponding to the percentiles.
 
-{phang}{opt altdef} uses an alternative formula for calculating percentiles.
+{phang}{opt altdef} uses an alternative formula for calculating percentiles
+(not with weights).
 The default method is to invert the empirical distribution function by using
 averages, where the function is flat (the default is the same method used by
 {cmd:summarize}; see {manhelp summarize R}).
@@ -285,11 +297,12 @@ computations in the style of {cmd:xtile}. This can be combined with other
 options listed in this section.
 
 {phang}
-{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}] Store the frequency counts of the
-source variable in the quantile categories in {it:newvar}. If {it:newvar}
-is not specified, this is stored in {hi:r(quantiles_bincount)} or
-{hi:r(cutoffs_bincount)}. This can be combined with other
-options listed in this section.
+{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}] Store the frequency counts of
+the source variable in the quantile categories in {it:newvar}. When
+weights are specified, this stores the sum of the weights within
+that category. If {it:newvar} is not specified, this is stored in
+{hi:r(quantiles_bincount)} or {hi:r(cutoffs_bincount)}. This can be
+combined with other options listed in this section.
 
 {dlgtab:Switches}
 

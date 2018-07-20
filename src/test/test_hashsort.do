@@ -23,6 +23,12 @@ program checks_hashsort
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        checks_inner_hashsort -strL1,             `options'
+        checks_inner_hashsort strL1 -strL2,       `options'
+        checks_inner_hashsort strL1 -strL2 strL3, `options'
+    }
+
     sysuse auto, clear
     gen idx = _n
     hashsort -foreign rep78 make -mpg, `options'
@@ -109,6 +115,12 @@ program compare_hashsort
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options' mfirst
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' mfirst
 
+    if ( `c(stata_version)' >= 14 ) {
+        compare_gsort -strL1,             `options' mfirst
+        compare_gsort strL1 -strL2,       `options' mfirst
+        compare_gsort strL1 -strL2 strL3, `options' mlast
+    }
+
     qui expand 10
     local N = trim("`: di %15.0gc _N'")
     cap drop rsort
@@ -135,6 +147,12 @@ program compare_hashsort
     compare_sort int1 str_32 double1,                                        `options'
     compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        compare_sort strL1,             `options' mfirst
+        compare_sort strL1 strL2,       `options' mfirst
+        compare_sort strL1 strL2 strL3, `options' mlast
+    }
 
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
 end
@@ -225,15 +243,26 @@ program compare_sort, rclass
         timer clear
         preserve
             timer on 44
-            qui fsort `varlist'
+            cap fsort `varlist'
+            local rc_f = _rc
             timer off 44
-            cap noi cf * using `file_sort'
-            if ( _rc ) {
-                disp as txt "(note: ftools `varlist' returned different data vs sort, stable)"
+            if ( `rc_f' ) {
+                disp as err "(warning: fsort `varlist' failed)"
+            }
+            else {
+                cap noi cf * using `file_sort'
+                if ( _rc ) {
+                    disp as txt "(note: ftools `varlist' returned different data vs sort, stable)"
+                }
             }
         restore
-        qui timer list
-        local time_fsort = r(t44)
+        if ( `rc_f' ) {
+            local time_fsort = .
+        }
+        else {
+            qui timer list
+            local time_fsort = r(t44)
+        }
     }
     else {
         local time_fsort = .

@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-0.14.1 (2018-07-19)
+
+### Features
+
+* `fasterxtile` and `gquantiles` now accept weights (including `by()`)
+* Note that stata might not handle weights accurately (or, at the very least,
+  it does not seem to follow its documented formulas in all cases).
+* Option `compress` tries to recast strL variables as str#
+
+### Bug Fixes
+
+* If `strL` contains binary data `gtools` functions now throw an error.
+* `strL` missing values now read correctly.
+* `strL` partial support for OSX (long strings only).
+* Added `strL`-specific tests
+
 ## gtools-0.14.0 (2018-07-17)
 
 ### Bug Fixes

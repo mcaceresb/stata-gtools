@@ -25,6 +25,7 @@ ST_retcode sf_read_byvars (
     GT_size in1        = st_info->in1;
     GT_size kvars      = st_info->kvars_by;
     GT_size kstr       = st_info->kvars_by_str;
+    // GT_size kstrL      = st_info->kvars_by_strL;
     GT_size *positions = st_info->positions;
 
     // index = calloc(N, sizeof(index));
@@ -32,12 +33,16 @@ ST_retcode sf_read_byvars (
     // GTOOLS_GC_ALLOCATED("index")
 
     if ( kstr > 0 ) {
-        st_info->st_numx  = malloc(sizeof(ST_double));
-        st_info->st_charx = calloc(N, rowbytes);
+        // st_info->strL_bytes = calloc((kstrL? N * kstrL: 1), sizeof(st_info->strL_bytes));
+        st_info->strL_bytes = malloc(sizeof(st_info->strL_bytes));
+        st_info->st_numx    = malloc(sizeof(st_info->st_numx));
+        st_info->st_charx   = calloc(N, rowbytes);
 
-        if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_numx"));
-        if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_charx"));
+        if ( st_info->strL_bytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bytes"));
+        if ( st_info->st_numx    == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_numx"));
+        if ( st_info->st_charx   == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_charx"));
 
+        GTOOLS_GC_ALLOCATED("st_info->strL_bytes")
         GTOOLS_GC_ALLOCATED("st_info->st_numx")
         GTOOLS_GC_ALLOCATED("st_info->st_charx")
 
@@ -56,15 +61,19 @@ ST_retcode sf_read_byvars (
                         for (k = 0; k < kvars; k++) {
                             sel = obs * rowbytes + positions[k];
                             if ( st_info->byvars_strL[k] ) {
-                                if ( (bytes = SF_strldata (k + 1,
-                                                           i + in1,
-                                                           st_info->st_charx + sel,
-                                                           SF_sdatalen(k + 1, i + in1))) == -1 ) {
-                                    rc = -1;
-                                    goto exit;
+                                bytes = SF_sdatalen(k + 1, i + in1);
+                                // st_info->strL_bytes[obs * kstrL + st_info->bymap_strL[k]] = bytes;
+                                if ( bytes > 0 ) {
+                                    if ( SF_strldata (k + 1,
+                                                      i + in1,
+                                                      st_info->st_charx + sel,
+                                                      bytes + 1) == -1 ) {
+                                        rc = -1;
+                                        goto exit;
+                                    }
+// sf_printf_debug("debug (%lu): %s (%lu)\n", i, st_info->st_charx + sel, bytes);
                                 }
-
-                                if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
+                                else {
                                     if ( st_info->nomiss ) {
                                         rc = 459;
                                         goto exit;
@@ -113,12 +122,17 @@ next_inner1: continue;
                         for (k = 0; k < kvars; k++) {
                             sel = obs * rowbytes + positions[k];
                             if ( st_info->byvars_strL[k] ) {
-                                if ( (bytes = SF_strldata (k + 1,
-                                                           i + in1,
-                                                           st_info->st_charx + sel,
-                                                           SF_sdatalen(k + 1, i + in1))) == -1 ) {
-                                    rc = -1;
-                                    goto exit;
+                                bytes = SF_sdatalen(k + 1, i + in1);
+                                // st_info->strL_bytes[obs * kstrL + st_info->bymap_strL[k]] = bytes;
+                                if ( bytes > 0 ) {
+                                    if ( SF_strldata (k + 1,
+                                                      i + in1,
+                                                      st_info->st_charx + sel,
+                                                      bytes + 1) == -1 ) {
+                                        rc = -1;
+                                        goto exit;
+                                    }
+// sf_printf_debug("debug (%lu): %s (%lu)\n", i, st_info->st_charx + sel, bytes);
                                 }
                             }
                             else if ( st_info->byvars_lens[k] > 0 ) {
@@ -141,15 +155,19 @@ next_inner1: continue;
                     for (k = 0; k < kvars; k++) {
                         sel = obs * rowbytes + positions[k];
                         if ( st_info->byvars_strL[k] ) {
-                            if ( (bytes = SF_strldata (k + 1,
-                                                       i + in1,
-                                                       st_info->st_charx + sel,
-                                                       SF_sdatalen(k + 1, i + in1))) == -1 ) {
-                                rc = -1;
-                                goto exit;
+                            bytes = SF_sdatalen(k + 1, i + in1);
+                            // st_info->strL_bytes[obs * kstrL + st_info->bymap_strL[k]] = bytes;
+                            if ( bytes > 0 ) {
+                                if ( SF_strldata (k + 1,
+                                                  i + in1,
+                                                  st_info->st_charx + sel,
+                                                  bytes + 1) == -1 ) {
+                                    rc = -1;
+                                    goto exit;
+                                }
+// sf_printf_debug("debug (%lu): %s (%lu)\n", i, st_info->st_charx + sel, bytes);
                             }
-
-                            if ( strcmp(st_info->st_charx + sel, "") == 0 ) {
+                            else {
                                 if ( st_info->nomiss ) {
                                     rc = 459;
                                     goto exit;
@@ -199,12 +217,17 @@ next_inner2: continue;
                 for (k = 0; k < kvars; k++) {
                     sel = i * rowbytes + positions[k];
                     if ( st_info->byvars_strL[k] ) {
-                        if ( (bytes = SF_strldata (k + 1,
-                                                   i + in1,
-                                                   st_info->st_charx + sel,
-                                                   SF_sdatalen(k + 1, i + in1))) == -1 ) {
-                            rc = -1;
-                            goto exit;
+                        bytes = SF_sdatalen(k + 1, i + in1);
+                        // st_info->strL_bytes[i * kstrL + st_info->bymap_strL[k]] = bytes;
+                        if ( bytes > 0 ) {
+                            if ( SF_strldata (k + 1,
+                                              i + in1,
+                                              st_info->st_charx + sel,
+                                              bytes + 1) == -1 ) {
+                                rc = -1;
+                                goto exit;
+                            }
+// sf_printf_debug("debug (%lu): %s (%lu)\n", i, st_info->st_charx + sel, bytes);
                         }
                     }
                     else if ( st_info->byvars_lens[k] > 0 ) {
@@ -220,12 +243,15 @@ next_inner2: continue;
         }
     }
     else {
-        st_info->st_numx  = calloc(N * kvars, sizeof(st_info->st_numx));
-        st_info->st_charx = malloc(sizeof(char));
+        st_info->strL_bytes = malloc(sizeof(st_info->strL_bytes));;
+        st_info->st_numx    = calloc(N * kvars, sizeof(st_info->st_numx));
+        st_info->st_charx   = malloc(sizeof(st_info->st_charx));
 
-        if ( st_info->st_numx  == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));
-        if ( st_info->st_charx == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_charx"));
+        if ( st_info->strL_bytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bytes"));
+        if ( st_info->st_numx    == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));
+        if ( st_info->st_charx   == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_charx"));
 
+        GTOOLS_GC_ALLOCATED("st_info->strL_bytes")
         GTOOLS_GC_ALLOCATED("st_info->st_numx")
         GTOOLS_GC_ALLOCATED("st_info->st_charx")
 

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.14.0 17Jul2018}{...}
+{* *! version 0.14.1 19Jul2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -156,8 +156,7 @@ with {opt sd}, {opt semean}, {opt sebinomial}, or {opt sepoisson}.
 sums, medians, etc. {it:clist} can refer only to numeric variables.
 
 {pstd}
-Weights are currently not supported. first, last, firstnm, lastnm for
-string variables are not supported.
+first, last, firstnm, lastnm for string variables are not supported.
 
 {marker options}{...}
 {title:Options}

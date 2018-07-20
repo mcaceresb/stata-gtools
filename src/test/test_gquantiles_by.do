@@ -1,10 +1,11 @@
 capture program drop checks_gquantiles_by
 program checks_gquantiles_by
     syntax, [tol(real 1e-6) NOIsily *]
-    di _n(1) "{hline 80}" _n(1) "checks_gquantiles_by, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "checks_gqantiles_by, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000) random(2)
+    qui `noisily' gen_data, n(1000)
     qui expand 10
+    qui `noisily' random_draws, random(2)
     gen long   ix  = _n
     gen double ru  = runiform() * 100
     gen double rn  = rnormal() * 100
@@ -29,6 +30,12 @@ program checks_gquantiles_by
     _checks_gquantiles_by -int1 -str_32 -double1,                                         `options'
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        _checks_gquantiles_by -strL1,             `options'
+        _checks_gquantiles_by strL1 -strL2,       `options'
+        _checks_gquantiles_by strL1 strL2  strL3, `options'
+    }
 end
 
 capture program drop _checks_gquantiles_by
@@ -50,45 +57,50 @@ program _checks_gquantiles_by
     checks_inner_gquantiles_by random1, `by' `options'
 
     checks_inner_gquantiles_by int1^2 + 3 * double1,          `by' `options'
-    checks_inner_gquantiles_by 2 * int1 + log(double1),       `by' `options'
-    checks_inner_gquantiles_by int1 * double3 + exp(double3), `by' `options'
+    checks_inner_gquantiles_by log(double1) + 2 * int1,       `by' `options'
+    checks_inner_gquantiles_by exp(double3) + int1 * double3, `by' `options'
 end
 
 capture program drop checks_inner_gquantiles_by
 program checks_inner_gquantiles_by
-    syntax anything, [tol(real 1e-6) NOIsily *]
+    syntax anything, [tol(real 1e-6) NOIsily wgt(str) *]
     cap drop __*
     local qui = cond("`noisily'" == "", "qui", "noisily")
 
+    local 0 `anything' `wgt', `options'
+    syntax anything [aw fw pw], [*]
+
     `qui' {
-        gquantiles __p1 = `anything', pctile `options' nq(10) strict
+        gquantiles __p1 = `anything' `wgt', pctile `options' nq(10) strict
         l in 1/10
 
-        gquantiles __p2 = `anything', pctile `options' cutpoints(__p1) strict
-        gquantiles __p3 = `anything', pctile `options' quantiles(10 30 50 70 90) strict
-        gquantiles __p4 = `anything', pctile `options' cutoffs(10 30 50 70 90) strict
-        cap gquantiles __p5 = `anything', pctile `options' cutquantiles(rn) strict
+        gquantiles __p2 = `anything' `wgt', pctile `options' cutpoints(__p1) strict
+        gquantiles __p3 = `anything' `wgt', pctile `options' quantiles(10 30 50 70 90) strict
+        gquantiles __p4 = `anything' `wgt', pctile `options' cutoffs(10 30 50 70 90) strict
+        cap gquantiles __p5 = `anything' `wgt', pctile `options' cutquantiles(rn) strict
         assert _rc == 198
-        gquantiles __p5 = `anything', pctile `options' cutquantiles(ru) strict
+        gquantiles __p5 = `anything' `wgt', pctile `options' cutquantiles(ru) strict
 
 
-        fasterxtile __fx1 = `anything', `options' nq(10)
-        fasterxtile __fx2 = `anything', `options' cutpoints(__p1)
+        fasterxtile __fx1 = `anything' `wgt', `options' nq(10)
+        fasterxtile __fx2 = `anything' `wgt', `options' cutpoints(__p1)
         fasterxtile __fx3 = `anything', `options' cutpoints(__p1) altdef
         fasterxtile __fx4 = `anything', `options' nq(10) altdef
 
 
-        gquantiles __x1 = `anything', xtile `options' nq(10)
-        gquantiles __x2 = `anything', xtile `options' cutpoints(__p1)
-        gquantiles __x3 = `anything', xtile `options' quantiles(10 30 50 70 90)
-        gquantiles __x4 = `anything', xtile `options' cutoffs(10 30 50 70 90)
-        cap gquantiles __x5 = `anything', xtile `options' cutquantiles(rn)
+        gquantiles __x1 = `anything' `wgt', xtile `options' nq(10)
+        gquantiles __x2 = `anything' `wgt', xtile `options' cutpoints(__p1)
+        gquantiles __x3 = `anything' `wgt', xtile `options' quantiles(10 30 50 70 90)
+        gquantiles __x4 = `anything' `wgt', xtile `options' cutoffs(10 30 50 70 90)
+        cap gquantiles __x5 = `anything' `wgt', xtile `options' cutquantiles(rn)
         assert _rc == 198
-        gquantiles __x5 = `anything', xtile `options' cutquantiles(ru)
+        gquantiles __x5 = `anything' `wgt', xtile `options' cutquantiles(ru)
 
-        cap gquantiles `anything', _pctile `options' nq(10)
+        cap gquantiles `anything' `wgt', _pctile `options' nq(10)
         assert _rc == 198
     }
+
+    if ( "`wgt'" != "" ) exit 0
 
     `qui' {
         cap gquantiles __p1 = `anything', pctile altdef binfreq `options' nq(10) replace strict
@@ -169,42 +181,62 @@ end
 
 capture program drop compare_gquantiles_by
 program compare_gquantiles_by
-    syntax, [NOIsily noaltdef *]
+    syntax, [NOIsily noaltdef wgt(str) *]
     local options `options' `noisily'
 
-    compare_gquantiles_stata_by, n(10000) bench(10) `altdef' `options'
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "mix" ) {
+        local wcall_a "[aw = unif_0_100]"
+        local wcall_f "[fw = int_unif_0_100]"
+        local wcall_p "[pw = float_unif_0_1]"
+        local wgen_a qui gen unif_0_100     = 100 * runiform() if mod(_n, 100)
+        local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wgen_p qui gen float_unif_0_1 = runiform() if mod(_n, 100)
+
+        * This is for the benefit of comparing with fasterxtile from egenmisc
+        local wcall_stata [aw = unif_0_100_]
+        local wgen_stata  qui gen unif_0_100_ = 100 * runiform()
+    }
+
+    compare_gquantiles_stata_by, n(10000) bench(10) `altdef' `options' wgt(`wcall_stata') wgen(`wgen_stata')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile_by, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000) random(3) double
+    qui `noisily' gen_data, n(10000)
     qui expand 10
+    qui `noisily' random_draws, random(3) double
     gen long   ix = _n
     gen double ru = runiform() * 100
     qui replace ix = . if mod(_n, 10000) == 0
     qui replace ru = . if mod(_n, 10000) == 0
     gen byte    one = 1
     qui sort random3
+    `wgen_a'
+    `wgen_f'
+    `wgen_p'
 
-    _consistency_inner_gquantiles_by ru, `options'
-    _consistency_inner_gquantiles_by ru in 1 / 5, `options' corners
-
-    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-    local from = cond(`in1' < `in2', `in1', `in2')
-    local to   = cond(`in1' > `in2', `in1', `in2')
-    _consistency_inner_gquantiles_by ru      in `from' / `to', `options'
-    _consistency_inner_gquantiles_by random1 in `from' / `to', `options'
-
-    _consistency_inner_gquantiles_by ru      if random2 > 0, `options'
-    _consistency_inner_gquantiles_by random1 if random2 > 0, `options'
+    _consistency_inner_gquantiles_by ru, `options' wgt(`wcall_f')
+    _consistency_inner_gquantiles_by ru in 1 / 5, `options' corners wgt(`wcall_p')
 
     local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
     local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
     local from = cond(`in1' < `in2', `in1', `in2')
     local to   = cond(`in1' > `in2', `in1', `in2')
-    _consistency_inner_gquantiles_by ru      `anything' if random2 < 0 in `from' / `to', `options'
-    _consistency_inner_gquantiles_by random1 `anything' if random2 < 0 in `from' / `to', `options'
+    _consistency_inner_gquantiles_by ru      in `from' / `to', `options' wgt(`wcall_a')
+    _consistency_inner_gquantiles_by random1 in `from' / `to', `options' wgt(`wcall_f')
+
+    _consistency_inner_gquantiles_by ru      if random2 > 0, `options' wgt(`wcall_p')
+    _consistency_inner_gquantiles_by random1 if random2 > 0, `options' wgt(`wcall_a')
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    _consistency_inner_gquantiles_by ru      `anything' if random2 < 0 in `from' / `to', `options' wgt(`wcall_f')
+    _consistency_inner_gquantiles_by random1 `anything' if random2 < 0 in `from' / `to', `options' wgt(`wcall_p')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_internals_by, N = `N', `options'" _n(1) "{hline 80}" _n(1)
@@ -225,12 +257,24 @@ program _consistency_inner_gquantiles_by
     _consistency_inner_full_by -int1             `if' `in', `options' var(`anything')
     _consistency_inner_full_by int1 -int2        `if' `in', `options' var(`anything')
 
+    if ( `c(stata_version)' >= 14 ) {
+        _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything')
+        _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything')
+    }
+
     _consistency_inner_full_by str_12 -str_4 double2 -double3 `if' `in', `options' var(`anything')
+    if ( `c(stata_version)' >= 14 ) {
+        _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything')
+    }
 end
 
 capture program drop _consistency_inner_full_by
 program _consistency_inner_full_by
-    syntax anything [if] [in], [var(str) *]
+    syntax anything [if] [in], [var(str) wgt(str) *]
+
+    if ( "`wgt'" != "" ) {
+        local wtxt " `wgt'"
+    }
 
     if ( "`if'`in'" != "" ) {
         local ifinstr ""
@@ -238,12 +282,14 @@ program _consistency_inner_full_by
         if ( "`in'" != "" ) local ifinstr `ifinstr' [`in']
     }
 
-    local hlen = length("Internal consistency_by for gquantiles `var', by(`anything') `ifinstr'")
-    di as txt _n(1) "Internal consistency_by for gquantiles `var', by(`anything') `ifinstr'" _n(1) "{hline `hlen'}" _n(1)
+    local hlen = length("Internal consistency_by for gquantiles `var', by(`anything') `ifinstr'`wtxt'")
+    di as txt _n(1) "Internal consistency_by for gquantiles `var', by(`anything') `ifinstr'`wtxt'" _n(1) "{hline `hlen'}" _n(1)
 
-    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' nq(2)
-    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' nq(20)
-    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' nq(`=_N + 1')
+    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' wgt(`wgt') nq(2)
+    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' wgt(`wgt') nq(20)
+    _consistency_inner_nq_by `var' `if' `in', by(`anything') `options' wgt(`wgt') nq(`=_N + 1')
+
+    if ( `"`wgt'"' != "" ) exit 0
 
     _consistency_inner_nq_by `var' `if' `in', by(`anything') altdef `options' nq(2)
     _consistency_inner_nq_by `var' `if' `in', by(`anything') altdef `options' nq(20)
@@ -252,16 +298,16 @@ end
 
 capture program drop _consistency_inner_nq_by
 program _consistency_inner_nq_by
-    syntax anything [if] [in], [tol(real 1e-15) tolpct(real 1e-6) nq(real 2) by(str) *]
+    syntax anything [if] [in], [tol(real 1e-15) tolpct(real 1e-6) nq(real 2) by(str) wgt(str) *]
     cap drop __* _*
     local rc = 0
 
     local options `options' by(`by')
 
     qui {
-    gquantiles __p1 = `anything' `if' `in', strict pctile `options' binfreq(__f1) xtile(__x1) nq(`nq') genp(__g1)
-    gquantiles __p2 = `anything' `if' `in', strict pctile `options' binfreq(__f2) xtile(__x2) cutpoints(__p1) cutby
-    gquantiles __p5 = `anything' `if' `in', strict pctile `options' binfreq(__f5) xtile(__x5) cutquantiles(__g1) genp(__g5) cutby
+    gquantiles __p1 = `anything' `if' `in' `wgt', strict pctile `options' binfreq(__f1) xtile(__x1) nq(`nq') genp(__g1)
+    gquantiles __p2 = `anything' `if' `in' `wgt', strict pctile `options' binfreq(__f2) xtile(__x2) cutpoints(__p1) cutby
+    gquantiles __p5 = `anything' `if' `in' `wgt', strict pctile `options' binfreq(__f5) xtile(__x5) cutquantiles(__g1) genp(__g5) cutby
 
     _compare_inner_nqvars_by `tol' `tolpct'
     if ( `rc' ) {
@@ -270,9 +316,9 @@ program _consistency_inner_nq_by
     }
 
     cap drop __*
-    gquantiles __x1 = `anything' `if' `in', strict xtile `options' binfreq(__f1) pctile(__p1) nq(`nq') genp(__g1)
-    gquantiles __x2 = `anything' `if' `in', strict xtile `options' binfreq(__f2) pctile(__p2) cutpoints(__p1) cutby
-    gquantiles __x5 = `anything' `if' `in', strict xtile `options' binfreq(__f5) pctile(__p5) cutquantiles(__g1) cutby
+    gquantiles __x1 = `anything' `if' `in' `wgt', strict xtile `options' binfreq(__f1) pctile(__p1) nq(`nq') genp(__g1)
+    gquantiles __x2 = `anything' `if' `in' `wgt', strict xtile `options' binfreq(__f2) pctile(__p2) cutpoints(__p1) cutby
+    gquantiles __x5 = `anything' `if' `in' `wgt', strict xtile `options' binfreq(__f5) pctile(__p5) cutquantiles(__g1) cutby
 
     _compare_inner_nqvars_by `tol' `tolpct'
     if ( `rc' ) {
@@ -349,11 +395,12 @@ end
 
 capture program drop compare_inner_quantiles_by
 program compare_inner_quantiles_by
-    syntax, [bench(int 100) n(real 1000) benchmode *]
+    syntax, [bench(int 100) n(real 1000) benchmode wgen(str) *]
     local options `options' `benchmode' j(`n')
 
-    qui `noisily' gen_data, n(`n') random(2) double
+    qui `noisily' gen_data, n(`n')
     qui expand `bench'
+    qui `noisily' random_draws, random(2) double
     gen long   ix = _n
     gen double ru = runiform() * 100
     gen double rn = rnormal() * 100
@@ -361,6 +408,7 @@ program compare_inner_quantiles_by
     qui replace ru = . if mod(_n, `n') == 0
     qui replace rn = . if mod(_n, `n') == 0
     qui sort random1
+    `wgen'
 
     _compare_inner_gquantiles_by, `options'
 
@@ -387,7 +435,7 @@ end
 
 capture program drop _compare_inner_gquantiles_by
 program _compare_inner_gquantiles_by
-    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) nqlist(numlist) nlist(numlist) benchmode table J(real 0) *]
+    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) nqlist(numlist) nlist(numlist) benchmode table J(real 0) wgt(str) *]
 
     if ( "`if'`in'" != "" ) {
         local ifinstr ""
@@ -400,16 +448,17 @@ program _compare_inner_gquantiles_by
     local J = trim("`: di %15.0gc `j''")
 
     if ( "`nqlist'`nlist'" == "" ) {
-        local options `options' `benchmode' `table' qopts(`qopts')
+        local options `options' `benchmode' `table' qopts(`qopts') wgt(`wgt')
 
         di as txt _n(1)
         di as txt "Compare xtile"
-        di as txt "     - if in: `ifinstr'"
-        di as txt "     - obs:   `N'"
-        di as txt "     - J:     `J'"
-        di as txt "     - call:  fcn xtile = x, by(varlist) opts"
-        di as txt "     - opts:  `qopts'"
-        di as txt "     - x:     x ~ N(0, 100)"
+        di as txt "     - if in:  `ifinstr'"
+        di as txt "     - weight: `wgt'"
+        di as txt "     - obs:    `N'"
+        di as txt "     - J:      `J'"
+        di as txt "     - call:   fcn xtile = x, by(varlist) opts"
+        di as txt "     - opts:   `qopts'"
+        di as txt "     - x:      x ~ N(0, 100)"
         if ( ("`benchmode'" != "") | ("`table'" != "") ) {
         di as txt "          | egenmisc  |            |             |             |        "
         di as txt "   astile | fastxtile | gquantiles | ratio (a/g) | ratio (f/g) | varlist"
@@ -424,13 +473,19 @@ program _compare_inner_gquantiles_by
 
         _compare_inner_xtile_by int1            `if' `in', `options'
         _compare_inner_xtile_by int1 int2       `if' `in', `options'
+
+        if ( `c(stata_version)' >= 14 ) {
+            _compare_inner_xtile_by strL1       `if' `in', `options'
+            _compare_inner_xtile_by strL1 strL2 `if' `in', `options'
+        }
     }
     else if ( "`nqlist'" != "" ) {
-        local options `options' `benchmode' `table'
+        local options `options' `benchmode' `table' wgt(`wgt')
 
         di as txt _n(1)
         di as txt "Compare xtile"
         di as txt "     - if in:   `ifinstr'"
+        di as txt "     - weight:  `wgt'"
         di as txt "     - obs:     `N'"
         di as txt "     - J:       `J'"
         di as txt "     - call:    fcn xtile = x, by(varlist)"
@@ -451,11 +506,13 @@ program _compare_inner_gquantiles_by
         local exp  = round(`to' / `from', 1)
         local step = round(`exp' / 10, 1)
 
-        qui `noisily' gen_data, n(`j') random(1) double skipstr
+        qui `noisily' gen_data, n(`j') skipstr
+        qui `noisily' random_draws, random(1) double
 
         di as txt _n(1)
         di as txt "Compare xtile"
         di as txt "     - if in:   `ifinstr'"
+        di as txt "     - weight:  `wgt'"
         di as txt "     - J:       `J'"
         di as txt "     - call:    fcn xtile = x, by(varlist) nq(10)"
         di as txt "     - varlist: int1"
@@ -466,7 +523,7 @@ program _compare_inner_gquantiles_by
         di as txt "  ------------ | ------ | --------- | ---------- | ----------- | -----------"
         }
 
-        local options `options' `benchmode' `table'
+        local options `options' `benchmode' `table' wgt(`wgt')
         forvalues i = `step'(`step')`exp' {
         preserve
             qui expand `i'
@@ -480,8 +537,12 @@ end
 
 capture program drop _compare_inner_xtile_by
 program _compare_inner_xtile_by
-    syntax anything [if] [in], [benchmode table qopts(str) sorted FORCEcmp nq(str) n(str) *]
+    syntax anything [if] [in], [benchmode table qopts(str) sorted FORCEcmp nq(str) n(str) wgt(str) *]
     tempvar axtile fxtile gxtile
+
+    local 0 `anything' `if' `in' `wgt', `options'
+    syntax anything [if] [in] [aw fw pw/], [*]
+    if ( "`weight'" != "" ) local weight weight(`exp')
 
     if ( "`sorted'" != "" ) {
         cap sort `anything'
@@ -496,22 +557,25 @@ program _compare_inner_xtile_by
 
     timer clear
     timer on 43
-    qui gquantiles `gxtile' = rn `if' `in', `qopts' by(`anything') `options' xtile
+    qui gquantiles `gxtile' = rn `if' `in' `wgt', `qopts' by(`anything') `options' xtile
     timer off 43
     qui timer list
     local time_gxtile = r(t43)
 
-    timer clear
-    timer on 42
-    cap astile `axtile' = rn `if' `in', `qopts' by(`anything')
-    local rc_a = _rc
-    timer off 42
-    qui timer list
-    local time_axtile = r(t42)
+    if ( "`wgt'" == "" ) {
+        timer clear
+        timer on 42
+        cap astile `axtile' = rn `if' `in', `qopts' by(`anything')
+        local rc_a = _rc
+        timer off 42
+        qui timer list
+        local time_axtile = r(t42)
+    }
+    else local rc_a = 9
 
     timer clear
     timer on 44
-    cap egen `fxtile' = fastxtile(rn) `if' `in', `qopts' by(`anything')
+    cap egen `fxtile' = fastxtile(rn) `if' `in', `qopts' by(`anything') `weight'
     local rc_f = _rc
     timer off 44
     qui timer list

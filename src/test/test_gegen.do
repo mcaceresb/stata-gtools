@@ -3,8 +3,9 @@ program checks_gegen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(5000) random(2)
+    qui `noisily' gen_data, n(5000)
     qui expand 2
+    qui `noisily' random_draws, random(2)
     gen long ix = _n
 
     checks_inner_egen, `options'
@@ -24,6 +25,12 @@ program checks_gegen
     checks_inner_egen -int1 -str_32 -double1,                                         `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        checks_inner_egen -strL1,             `options' hash(1)
+        checks_inner_egen strL1 -strL2,       `options' hash(2)
+        checks_inner_egen strL1 -strL2 strL3, `options' hash(0)
+    }
 
     clear
     set obs 10
@@ -59,12 +66,7 @@ program checks_gegen
         assert _rc == 17002
     }
     else {
-        assert _rc  == 0
-        assert z[1] == 1
-        assert z[2] == 2
-        assert z[3] == 3
-        assert z[4] == 2
-        assert z[5] == 3
+        assert _rc == 17005
     }
 end
 
@@ -72,8 +74,8 @@ capture program drop checks_inner_egen
 program checks_inner_egen
     syntax [anything], [tol(real 1e-6) wgt(str) *]
 
-    local 0 `wgt'
-    syntax [aw fw iw pw]
+    local 0 `anything' `wgt', `options'
+    syntax [anything] [aw fw iw pw], [*]
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
@@ -112,8 +114,9 @@ program compare_egen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000) random(2) float
+    qui `noisily' gen_data, n(1000)
     * qui expand 100
+    qui `noisily' random_draws, random(2) float
     qui expand 10
 
     compare_inner_egen, `options' tol(`tol')
@@ -133,6 +136,12 @@ program compare_egen
     compare_inner_egen int1 str_32 double1,                                        `options' tol(`tol')
     compare_inner_egen int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')
     compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
+
+    if ( `c(stata_version)' >= 14 ) {
+        compare_inner_egen strL1,             `options' tol(`tol') hash(0) sort
+        compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) shuffle
+        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1)
+    }
 end
 
 capture program drop compare_inner_egen
@@ -315,8 +324,9 @@ capture program drop bench_egen
 program bench_egen
     syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
 
-    qui gen_data, n(`n') random(1)
+    qui gen_data, n(`n')
     qui expand `=100 * `bench''
+    qui `noisily' random_draws, random(1)
     qui sort random1
 
     local N = trim("`: di %15.0gc _N'")
@@ -342,6 +352,12 @@ program bench_egen
     versus_egen int1 str_32 double1,                                        `options'
     versus_egen int1 str_32 double1 int2 str_12 double2,                    `options'
     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        versus_egen strL1,             `options'
+        versus_egen strL1 strL2,       `options'
+        versus_egen strL1 strL2 strL3, `options'
+    }
 
     di _n(1) "{hline 80}" _n(1) "bench_egen, `options'" _n(1) "{hline 80}" _n(1)
 end

@@ -275,13 +275,6 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2,                    `options'
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        versus_toplevelsof strL1,             `options' `forcestrl'
-        versus_toplevelsof strL1 strL2,       `options' `forcestrl'
-        versus_toplevelsof strL1 strL2 strL3, `options' `forcestrl'
-    }
-
     di as txt _n(1)
     di as txt "Benchmark toplevelsof vs contract (plus preserve, sort, keep, restore), obs = `N', J = `J' (in seconds)"
     di as txt "    gcontract | gtoplevelsof | ratio (c/t) | varlist"
@@ -302,13 +295,6 @@ program bench_toplevelsof
     versus_toplevelsof int1 str_32 double1,                                        `options' sorted
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2,                    `options' sorted
     versus_toplevelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' sorted
-
-    if ( `c(stata_version)' >= 14 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        versus_toplevelsof strL1,             `options' sorted `forcestrl'
-        versus_toplevelsof strL1 strL2,       `options' sorted `forcestrl'
-        versus_toplevelsof strL1 strL2 strL3, `options' sorted `forcestrl'
-    }
 
     di _n(1) "{hline 80}" _n(1) "bench_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
 end

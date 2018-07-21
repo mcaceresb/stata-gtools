@@ -5,7 +5,7 @@
  * Updated: Mon Apr 23 20:54:30 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.14.1
+ * Version: 1.0.0
  *********************************************************************/
 
 /**

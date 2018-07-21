@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.2  21Jul2018}{...}
+{* *! version 1.0.0  21Jul2018}{...}
 {viewerdialog gdistinct "dialog gdistinct"}{...}
 {vieweralsosee "[D] gdistinct" "mansection D gdistinct"}{...}
 {viewerjumpto "Syntax" "gdistinct##syntax"}{...}

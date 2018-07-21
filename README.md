@@ -13,7 +13,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 0.14.2 21Jul2018`
+`version 1.0.0 21Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -403,34 +403,7 @@ TODO
 ----
 
 `gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until version 1.0.
-
-- [X] Improve coverage of debug checks.
-    - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
-    - [X] Have corner cases for ALL commands
-    - [X] Test all the options in every command
-    - [X] Test errors (i.e. make sure commands fail as expected).
-    - [X] Test weights in `gtop`.
-    - [X] Test `gen` and `nolocal` in `glevelsof`.
-- [X] Weights in `gquantiles`.
-- [X] Add (partial) support for `strL` variables.
-- [X] Add support for `by` in `gunique`
-- [X] Write examples showcasing each command.
-- [X] Optimize gquantiles
-    - [X] If few quentiles, don't sort and do selection.
-- [X] Add `by` to gquantiles.
-- [X] Copying the second index from the multi-sorted array
-      (Plugin Step 4.3) is actually a pretty big bottleneck.
-      Benchmark whether it is better to use pointers.
-- [X] Reconcile numerical precision issues in `gquantiles`
-- [X] Add support for weights (Windows and Unix).
-    - [X] Add support for weights in OSX.
-- [X] Add tests for `skewness` and `kurtosis`, specially OSX.
-- [X] Add comments to all the code base
-- [X] Add debugging info to code base (e.g. `gquantiles_by.c`, `gcollapse.ado`)
-- [X] Add `mlast` option to hashsort
-- [X] Add option to save glevelsof in a variable.
-- [X] Add weights in `gtop`.
+be added until after it has been submitted to SSC.
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they won't make it to the 1.0 release).

@@ -4,7 +4,16 @@ Change Log
 ## gtools-1.0.0 (2018-07-21)
 
 First official release! This will go on SSC once all the tests have
-passed.
+passed. Final TODOs:
+
+[ ] Tests from github 1.0 tag
+    [ ] Linux with Stata 13
+    [ ] Windows with Stata 13
+    [ ] Windows with Stata 15
+    [ ] Linux with Stata 15
+    [ ] OSX with Stata 14
+[ ] Read the documentation (Stata)
+[ ] Read the documentation (online)
 
 ------------------------------------------------------------------------
 
@@ -23,6 +32,7 @@ Feature freeze!
 * Added weights to the quick showcase in the README
 * Added `gen()` to the quick `glevelsof' showcase
 * Added `gen()` to the `glevelsof' usage page and examples.
+* Added tests for `gtop [weight]` and `glevelsof, gen()`
 
 ### Bug Fixes
 

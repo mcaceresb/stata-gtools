@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 0.14.2 21Jul2018`
+`version 1.0.0 21Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -393,7 +393,7 @@ TODO
 ----
 
 `gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until version 1.0.
+be added until after it has been submitted to SSC.
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they won't make it to the 1.0 release).

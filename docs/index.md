@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 0.14.1 19Jul2018`
+`version 0.14.2 21Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -168,11 +168,11 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
-* gquantiles [newvarname =] exp, {_pctile|xtile|pctile} [options]
+* gquantiles [newvarname =] exp [weight], {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
 gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
-fasterxtile xx = log(price), cutpoints(p10) by(foreign)
+fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
 
 * hashsort varlist, [options]
 hashsort -make
@@ -194,14 +194,19 @@ gduplicates report rep78 if foreign
 * glevelsof varlist [if] [in], [options]
 glevelsof rep78, local(levels) sep(" | ")
 glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
+glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
 
-* gtoplevelsof varlist [if] [in], [options]
+* gtop varlist [if] [in] [weight], [options]
+* gtoplevelsof varlist [if] [in] [weight], [options]
 gtop foreign rep78
-gtoplevelsof foreign rep78, ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
+gtoplevelsof foreign rep78 [w = weight], ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
-* gcollapse (stat) out = src [(stat) out = src ...], by(varlist) [options]
+* gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
 gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v
 gcollapse (nunique) turn (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
+
+* gcontract varlist [if] [if] [fweight], [options]
+gcontract foreign [fw = turn], freq(f) percent(p)
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -387,13 +392,14 @@ pagefile/swap space directly.
 TODO
 ----
 
-Features that might make it to 1.0 (but I make no promises)
-
-- Add option to save glevelsof in a variable/matrix (incl freq).
+`gtools` is feature-frozen. No new features will be added until version
+1.0. All that remains is improving the coverage of the debug checks
+before submitting to SSC.
 
 These are options/features I would like to support, but I don't have an
-ETA for them (and they almost surely won't make it to the 1.0 release):
+ETA for them (and they almost surely won't make it to the 1.0 release).
 
+- Add support for binary `strL` variables.
 - Improve debugging info.
 - Improve code comments when you write the API!
 - Minimize memory use.

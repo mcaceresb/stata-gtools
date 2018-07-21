@@ -5,6 +5,30 @@ display "`mylevs'"
 glevelsof rep78, sep(,)
 
 
+************************************
+*  De-duplicating a variable list  *
+************************************
+
+* `glevelsof` can store the unique levels of a varlist. This is
+* specially useful when the user wants to obtain the unique levels but
+* runs up against the stata macro variable limit.
+
+set seed 42
+clear
+set obs 100000
+gen x = "a long string appeared" + string(mod(_n, 10000))
+gen y = int(10 * runiform())
+glevelsof x
+glevelsof x, gen(uniq_) nolocal
+
+* The user can also replace the source variables if need be. This is
+* faster and saves memory, but it dispenses with the original variables.
+
+glevelsof x y, gen(, replace) nolocal
+l in `r(J)'
+l in `=_N'
+
+
 *******************
 *  Number format  *
 *******************

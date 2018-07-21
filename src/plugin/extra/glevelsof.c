@@ -1,13 +1,27 @@
-ST_retcode sf_levelsof (struct StataInfo *st_info, int level);
+ST_retcode sf_levelsof     (struct StataInfo *st_info, int level);
+ST_retcode sf_write_levels (struct StataInfo *st_info, int level);
 
 ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
 {
+
+    ST_retcode rc = 0;
+    if ( st_info->levels_return == 0 ) {
+        if ( st_info->levels_gen == 0 ) {
+            sf_printf("(note: glevelsof will not store the levels of varlist)\n");
+            return (0);
+        }
+        else {
+            return (sf_write_levels (st_info, level));
+        }
+    }
+    else if ( st_info->levels_gen > 0 ) {
+        if ( (rc = sf_write_levels (st_info, level) ) ) return (rc);
+    }
 
     /*********************************************************************
      *                           Step 1: Setup                           *
      *********************************************************************/
 
-    ST_retcode rc = 0;
     ST_double z;
     GT_size j, k;
     GT_size sel;
@@ -192,5 +206,79 @@ exit:
     free (sprintfmt);
     free (macrobuffer);
 
+    return (rc);
+}
+
+ST_retcode sf_write_levels (struct StataInfo *st_info, int level)
+{
+
+    /*********************************************************************
+     *                           Step 1: Setup                           *
+     *********************************************************************/
+
+    ST_retcode rc = 0;
+    ST_double z;
+
+    GT_size j, k;
+    GT_size sel, rowbytes;
+    clock_t timer = clock();
+
+    GT_size kvars = st_info->kvars_by;
+    GT_size kpos  = st_info->levels_gen;
+
+    /*********************************************************************
+     *                   Write unique levels to memory                   *
+     *********************************************************************/
+
+    rowbytes = (st_info->rowbytes + sizeof(GT_size));
+    if ( st_info->kvars_by_str > 0 ) {
+        for (j = 0; j < st_info->J; j++) {
+            for (k = 0; k < kvars; k++) {
+                sel = j * rowbytes + st_info->positions[k];
+                if ( st_info->byvars_lens[k] > 0 ) {
+                    if ( (rc = SF_sstore(k + kpos, j + 1, st_info->st_by_charx + sel)) ) goto exit;
+                }
+                else {
+                    z = *((ST_double *) (st_info->st_by_charx + sel));
+                    if ( (rc = SF_vstore(k + kpos, j + 1, z)) ) goto exit;
+                }
+            }
+        }
+
+        if ( st_info->levels_replace ) {
+            for (j = st_info->J; j < SF_nobs(); j++) {
+                for (k = 0; k < kvars; k++) {
+                    if ( st_info->byvars_lens[k] > 0 ) {
+                        if ( (rc = SF_sstore(k + kpos, j + 1, "")) ) goto exit;
+                    }
+                    else {
+                        if ( (rc = SF_vstore(k + kpos, j + 1, SV_missval)) ) goto exit;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        for (j = 0; j < st_info->J; j++) {
+            for (k = 0; k < kvars; k++) {
+                if ( (rc = SF_vstore(k + kpos,
+                                     j + 1,
+                                     st_info->st_by_numx[j * (kvars + 1) + k])) ) goto exit;
+            }
+        }
+
+        if ( st_info->levels_replace ) {
+            for (j = st_info->J; j < SF_nobs(); j++) {
+                for (k = 0; k < kvars; k++) {
+                    if ( (rc = SF_vstore(k + kpos, j + 1, SV_missval)) ) goto exit;
+                }
+            }
+        }
+    }
+
+    if ( st_info->benchmark > 1 )
+        sf_running_timer (&timer, "\tPlugin step 6: Copied unique levels to stata");
+
+exit:
     return (rc);
 }

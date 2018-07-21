@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-0.14.2 (2018-07-21)
+
+Feature freeze!
+
+### Features
+
+* `gtop` (and `gtoplevelsof`) now accept weights.
+* `glevelsof` has option `gen()` to store the levels in a variable.
+* `glevelsof` has option `nolocal` to skip storing the levels in a local.
+
+### Enhancements
+
+* Added weights to the quick showcase in the README
+* Added `gen()` to the quick `glevelsof' showcase
+* Added `gen()` to the `glevelsof' usage page and examples.
+
 ## gtools-0.14.1 (2018-07-19)
 
 ### Features

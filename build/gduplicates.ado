@@ -1,4 +1,4 @@
-*! version 0.2.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.2 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -duplicates- implementation using -gegen tag- for faster processing
 
 capture program drop gduplicates

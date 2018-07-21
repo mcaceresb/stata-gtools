@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.9.1  19Jul2018}{...}
+{* *! version 0.9.2  21Jul2018}{...}
 {vieweralsosee "[P] gtoplevelsof" "mansection P gtoplevelsof"}{...}
 {viewerjumpto "Syntax" "gtoplevelsof##syntax"}{...}
 {viewerjumpto "Description" "gtoplevelsof##description"}{...}
@@ -20,6 +20,7 @@
 {cmd:gtoplevelsof}
 {varlist}
 {ifin}
+[{it:{help gtoplevelsof##weight:weight}}]
 [{cmd:,} {it:options}]
 
 {synoptset 24 tabbed}{...}
@@ -70,6 +71,12 @@
 
 {synoptline}
 {p2colreset}{...}
+
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, and {opt pweight}s are allowed, in which
+case the top levels by weight are printed (see {manhelp weight U:11.1.6 weight})
+{p_end}
 
 
 {marker description}{...}

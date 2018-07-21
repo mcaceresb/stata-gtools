@@ -1,4 +1,4 @@
-*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.2 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
@@ -676,6 +676,8 @@ program _gtools_internal, rclass
     cap matrix drop wselmat
 
     scalar __gtools_levels_return   = 1
+    scalar __gtools_levels_gen      = 0
+    scalar __gtools_levels_replace  = 0
 
     scalar __gtools_xtile_xvars     = 0
     scalar __gtools_xtile_nq        = 0
@@ -995,7 +997,8 @@ program _gtools_internal, rclass
         }
     }
 
-    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `compress' `forcestrl'
+    local opts `compress' `forcestrl' glevelsof(`glevelsof')
+    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `opts'
     if ( _rc ) {
         local rc = _rc
         clean_all `rc'
@@ -1495,13 +1498,7 @@ program _gtools_internal, rclass
             local 0, `glevelsof'
             syntax, [noLOCALvar freq(str) store(str) gen(str)]
             local gcall `gfunction'
-            scalar __gtools_levels_return = ( "`localvar'" == "" )
-
-            if ( "`gen'" != "" ) {
-                di as err "gen() is planned for a future release."
-                clean_all 198
-                exit 198
-            }
+            scalar __gtools_levels_return = ( `"`localvar'"' == "" )
 
             if ( "`store'" != "" ) {
                 di as err "store() is planned for a future release."
@@ -1516,25 +1513,80 @@ program _gtools_internal, rclass
             }
 
             local 0 `gen'
-            syntax [anything], [rename]
+            syntax [anything], [replace]
+
+            scalar __gtools_levels_gen     = ( `"`gen'"'     != "" )
+            scalar __gtools_levels_replace = ( `"`replace'"' != "" )
 
             local k1: list sizeof anything
             local k2: list sizeof byvars
 
-            if ( "`rename'" != "" ) {
-                cap assert (`k1') == (`k2')
-                if ( _rc ) {
-                    disp as err "gen() must specify one name per target (found `k1'; expected `k2')."
+            // 1. gen(, replace)  -> replaces existing varlist
+            // 2. gen(prefix)     -> generates prefix_*
+            // 4. gen(newvarlist) -> generates newvarlist
+
+            if ( "`gen'" != "" ) {
+                if ( ("`replace'" == "") & (`k1' == 0) ) {
+                        disp as err "{opt gen()} requires a prefix, target names, or {opt gen(, replace)}."
+                        clean_all 198
+                        exit 198
+                }
+
+                if ( ("`replace'" != "") & (`k1' > 0) ) {
+                    disp as err "{opt gen(, replace)} can only replace the source variables, not arbitrary targets."
                     clean_all 198
                     exit 198
                 }
-            }
-            else if ( `k1' > 1 ) {
-                cap assert (`k1') == (`k2')
-                if ( _rc ) {
-                    disp as err "gen() must specify a single prefix or one name per target."
-                    clean_all 198
-                    exit 198
+
+                local level_targets
+                if ( `k1' > 0 ) {
+                    cap confirm name `anything'
+                    if ( _rc ) {
+                        disp as err "{opt gen()} must specify a variable name or prefix"
+                        clean_all 198
+                        exit 198
+                    }
+
+                    if ( `k1' > 1 ) {
+                        cap assert (`k1') == (`k2')
+                        if ( _rc ) {
+                            disp as err "{opt gen()} must specify a single prefix or one name per target."
+                            clean_all 198
+                            exit 198
+                        }
+
+                        cap confirm new var `anything'
+                        if ( _rc ) {
+                            disp as err "{opt gen()} must specify new variable names."
+                            clean_all 198
+                            exit 198
+                        }
+                        local level_targets `anything'
+                    }
+                    else {
+                        local level_targets
+                        foreach var of varlist `byvars' {
+                            local level_targets `level_targets' `anything'`var'
+                        }
+
+                        cap confirm new var `level_targets'
+                        if ( _rc ) {
+                            disp as err "{opt gen()} must specify new variable names."
+                            clean_all 198
+                            exit 198
+                        }
+                    }
+
+                    local level_types
+                    foreach var of varlist `byvars' {
+                        local level_types `level_types' `:type `var''
+                    }
+
+                    qui mata: st_addvar(tokens(`"`level_types'"'), tokens(`"`level_targets'"'))
+                    qui mata: __gtools_level_targets = tokens(`"`level_targets'"')
+
+                    local plugvars `byvars' `etargets' `extravars'
+                    scalar __gtools_levels_gen = `:list sizeof plugvars' + 1
                 }
             }
 
@@ -2086,7 +2138,7 @@ program _gtools_internal, rclass
         }
         else local gcall `gfunction'
 
-        local plugvars `byvars' `etargets' `extravars' `contractvars' `xvars'
+        local plugvars `byvars' `etargets' `extravars' `level_targets' `contractvars' `xvars'
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
@@ -2351,6 +2403,8 @@ program clean_all
     cap matrix drop __gtools_contract_which
 
     cap scalar drop __gtools_levels_return
+    cap scalar drop __gtools_levels_gen
+    cap scalar drop __gtools_levels_replace
 
     cap scalar drop __gtools_xtile_xvars
     cap scalar drop __gtools_xtile_nq
@@ -2428,6 +2482,7 @@ program clean_all
 
     if ( `rc' ) {
         cap mata: st_dropvar(__gtools_xtile_addnam)
+        cap mata: st_dropvar(__gtools_level_targets)
         * cap mata: st_dropvar(__gtools_togen_names[__gtools_togen_s])
         * cap mata: st_dropvar(__gtools_gc_addvars)
     }
@@ -2440,6 +2495,8 @@ program clean_all
 
     cap mata: mata drop __gtools_xtile_addlab
     cap mata: mata drop __gtools_xtile_addnam
+
+    cap mata: mata drop __gtools_level_targets
 
     cap timer off   99
     cap timer clear 99
@@ -2454,8 +2511,9 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl]
+    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl glevelsof(str)]
 
+    local ifin `if' `in'
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0
@@ -2527,10 +2585,29 @@ program parse_by_types, rclass
     * Compress strL variables if requested
     * ------------------------------------
 
+    * gcollapse and gcontract need to write to variables, and so cannot
+    * support strL variables
+
     local GTOOLS_CALLER $GTOOLS_CALLER
     local GTOOLS_STRL   gcollapse gcontract
     local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
 
+    * glevelsof, gen() needs to write to variables, and so cannot
+    * support strL variables
+
+    local varlist_  `varlist'
+    local anything_ `anything'
+    local 0, `glevelsof'
+    syntax, [noLOCALvar freq(str) store(str) gen(str)]
+    local varlist  `varlist_'
+    local anything `anything_'
+
+    if ( `"`gen'"' != "" ) {
+        local GTOOLS_CALLER "`GTOOLS_CALLER', gen()"
+        local GTOOLS_STRL_FAIL = 1
+    }
+
+    * Any strL?
     local varstrL ""
     if ( "`varlist'" != "" ) {
         cap confirm variable `varlist'

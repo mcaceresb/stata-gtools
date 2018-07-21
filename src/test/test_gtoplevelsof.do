@@ -31,6 +31,12 @@ program checks_toplevelsof
     }
 
     clear
+    set obs 10
+    gen x = _n
+    gen w = runiform()
+    gtoplevelsof x [w = w]
+
+    clear
     gen x = 1
     gtoplevelsof x
 

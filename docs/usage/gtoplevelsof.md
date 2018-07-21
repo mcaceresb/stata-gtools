@@ -18,7 +18,7 @@ the start of your Stata session.
 Syntax
 ------
 
-<p><span class="codespan">gtoplevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan">gtoplevelsof varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 
@@ -28,6 +28,12 @@ Instead of varlist, it is possible to specify
 
 Note sort order is used to break ties, so this might affect the
 levels displayed.
+
+Weights
+-------
+
+aweight, fweight, and pweight are allowed, in which case the top
+levels by weight are printed (see `help weight`)
 
 Options
 -------
@@ -219,6 +225,31 @@ You can download the raw code for the examples below
        2 |    8   67        11            91 
        . |    5   72       6.8            97 
        1 |    2   74       2.7           100 
+
+
+. gtoplevelsof rep78 [fw = weight]
+
+   rep78 |       W      Cum   Pct (%)   Cum Pct (%) 
+ ---------------------------------------------------
+       3 |  98,970   98,970      44.3          44.3 
+       4 |  51,660  150,630      23.1          67.4 
+       2 |  26,830  177,460      12.0          79.4 
+       5 |  25,550  203,010      11.4          90.9 
+       . |  14,230  217,240       6.4          97.2 
+       1 |   6,200  223,440       2.8         100.0 
+
+
+. gtoplevelsof rep78 [w = gear_ratio]
+(analytic weights assumed)
+
+   rep78 |     W   Cum   Pct (%)   Cum Pct (%) 
+ ----------------------------------------------
+       3 |  86.1  86.1      38.6          38.6 
+       4 |  57.2   143      25.6          64.2 
+       5 |  36.3   180      16.3          80.5 
+       2 |  21.5   201       9.6          90.2 
+       . |  16.1   217       7.2          97.4 
+       1 |  5.81   223       2.6         100.0 
 
 
 . gtoplevelsof rep78,   missrow

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.1 19Jul2018}{...}
+{* *! version 0.7.2 21Jul2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -34,7 +34,7 @@ Create variable containing percentiles (equivalent to {cmd:pctile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 pctile
 [{opth nquantiles(int)}
@@ -48,7 +48,7 @@ Create variable containing quantile categories (equivalent to {cmd:xtile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 xtile
 [{opth nquantiles(int)}
@@ -59,7 +59,7 @@ xtile
 {cmd:fasterxtile}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 [{opth nquantiles(int)}
 {opth cutpoints(varname)}
@@ -72,7 +72,7 @@ Compute percentiles and store them in r() (equivalent to {cmd:_pctile})
 {cmd:gquantiles}
 {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 _pctile
 [{opth nquantiles(int)}
@@ -86,7 +86,7 @@ The full syntax, however, is
 {cmd:gquantiles}
 [{newvar} {cmd:=}] {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 {c -(}{cmd:pctile}{c |}{cmd:xtile}{c |}{cmd:_pctile}{c )-}
 {it:{help gquantiles##quantiles_method:quantiles_method}}

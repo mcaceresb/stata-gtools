@@ -157,6 +157,65 @@ You can download the raw code for the examples below
 . glevelsof rep78, sep(,)
 1,2,3,4,5
 ```
+###  De-duplicating a variable list
+
+`glevelsof` can store the unique levels of a varlist. This is specially
+useful when the user wants to obtain the unique levels but runs up
+against the stata macro variable limit.
+
+```stata
+. set seed 42
+
+. clear
+
+. set obs 100000
+obs was 0, now 100000
+
+. gen x = "a long string appeared" + string(mod(_n, 10000))
+
+. gen y = int(10 * runiform())
+
+. glevelsof x
+macro substitution results in line that is too long
+    The line resulting from substituting macros would be longer than allowed.  The maximum allowed length is 165,216 characters, which is calculated on the
+    basis of set maxvar.
+
+    You can change that in Stata/SE and Stata/MP.  What follows is relevant only if you are using Stata/SE or Stata/MP.
+
+    The maximum line length is defined as 16 more than the maximum macro length, which is currently 165,200 characters.  Each unit increase in set maxvar
+    increases the length maximums by 33.  The maximum value of set maxvar is 32,767.  Thus, the maximum line length may be set up to 1,081,527 characters
+    if you set maxvar to its largest value.
+
+try gen(prefix) nolocal; see help glevelsof for details
+r(920);
+
+. glevelsof x, gen(uniq_) nolocal
+```
+
+The user can also replace the source variables if need be. This is
+faster and saves memory, but it dispenses with the original variables.
+
+```stata
+. glevelsof x, gen(uniq_) nolocal
+
+. glevelsof x y, gen(, replace) nolocal
+
+. l in `r(J)'
+
+       +-----------------------------------------+
+       |                          x   y   uniq_x |
+       |-----------------------------------------|
+64958. | a long string appeared9999   8          |
+       +-----------------------------------------+
+
+. l in `=_N'
+
+        +----------------+
+        | x   y   uniq_x |
+        |----------------|
+100000. |     .          |
+        +----------------+
+```
 
 ### Number format
 

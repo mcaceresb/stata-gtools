@@ -1,4 +1,4 @@
-*! version 0.14.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.14.2 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -481,7 +481,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing' `compress' `forcestrl'
+    local opts     missing replace `keepmissing' `compress' `forcestrl' debug(`debug_level')
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local opts     `opts' `anymissing' `allmissing' `rawstat'
     local action   `sources' `targets' `stats'

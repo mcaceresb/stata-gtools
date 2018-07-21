@@ -20,7 +20,7 @@ Syntax
 The full syntax is
 
 <p>
-<span class="codespan">gquantiles [newvar =] exp [if] [in], {pctile | xtile | _
+<span class="codespan">gquantiles [newvar =] exp [if] [in] [weight], {pctile | xtile | _
 pctile}</span>
 </br>
 <span class="codespan">&emsp;&emsp;&emsp;<a href="#quantiles-method">quantiles_method</a> [ <a href="#gquantiles-options">gquantiles_options</a> ]</span>
@@ -31,21 +31,21 @@ can simply use it as a replacement for native Stata commands.
 
 __*Equivaent to pctile*__ (store the quantiles of `exp` in `newvar`):
 ```stata
-gquantiles newvar = exp [if] [in], pctile [nquantiles(#) genp(newvarname) altdef]
+gquantiles newvar = exp [if] [in] [weight], pctile [nquantiles(#) genp(newvarname) altdef]
 ```
 
 <br>
 __*Equivaent to xtile*__ (store the categories of `exp` in `newvar`):
 ```stata
-gquantiles newvar = exp [if] [in], xtile [nquantiles(#) cutpoints(numlist) altdef]
+gquantiles newvar = exp [if] [in] [weight], xtile [nquantiles(#) cutpoints(numlist) altdef]
 
-fasterxtile newvar = exp [if] [in], [nquantiles(#) cutpoints(numlist) altdef]
+fasterxtile newvar = exp [if] [in] [weight], [nquantiles(#) cutpoints(numlist) altdef]
 ```
 
 <br>
 __*Equivaent to \_pctile*__ (return the percentiles of `exp`):
 ```stata
-gquantiles exp [if] [in], _pctile [nquantiles(#) percentiles(numlist) altdef]
+gquantiles exp [if] [in] [weight], _pctile [nquantiles(#) percentiles(numlist) altdef]
 ```
 
 <br>

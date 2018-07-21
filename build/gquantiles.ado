@@ -1,4 +1,4 @@
-*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.2 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
@@ -315,12 +315,12 @@ program gquantiles, rclass
     * ---------------------------
 
 	if ( `"`weight0'"' != "" ) {
-		tempvar touse w
+		tempvar touse0 w
 		qui gen double `w' `exp0' `ifin'
 		local wgt `"[`weight0'=`w']"'
         local weights weights(`weight0' `w')
-        mark `touse' `ifin' `wgt'
-        local ifin if `touse' `in0'
+        mark `touse0' `ifin' `wgt'
+        local ifin if `touse0' `in0'
 	}
     else local weights
 

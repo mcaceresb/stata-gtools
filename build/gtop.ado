@@ -1,4 +1,4 @@
-*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.2 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 cap program drop gtop
@@ -12,7 +12,8 @@ program gtop, rclass
         exit 0
     }
     local 0 `00'
-    syntax [anything] [if] [in], [LOCal(str) MATrix(str) *]
+
+    qui syntax [anything] [if] [in] [aw fw pw], [LOCal(str) MATrix(str) *]
     tempname gmat
     matrix `gmat' = r(toplevels)
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'

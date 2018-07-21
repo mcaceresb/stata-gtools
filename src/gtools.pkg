@@ -1,4 +1,4 @@
-v 0.14.1
+v 0.14.2
 d
 d 'GTOOLS': Faster group operations using C plugins
 d
@@ -42,7 +42,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20180719
+d Distribution-Date: 20180721
 d
 f _gtools_internal.ado
 f gcollapse.ado

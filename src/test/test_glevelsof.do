@@ -44,6 +44,44 @@ program checks_levelsof
     gen x = _n
     cap glevelsof x in 1 / 10000 if mod(x, 3) == 0
     assert _rc == 0
+
+    clear
+    set obs 10
+    gen x = string(_n)
+    gen y = cond(mod(_n, 2), "a", "b")
+    gen z = _n
+    gen w = runiform()
+    gen strL s = "s"
+    expand 3
+
+    cap glevelsof x,     gen(z, replace) nolocal
+    assert _rc == 198
+    cap glevelsof x,     gen(a, replace) nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(z b)   nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(a b)   nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(a b z) nolocal
+    assert _rc == 198
+
+    cap glevelsof x y w, gen(a b c) nolocal
+    assert _rc == 0
+    cap glevelsof x y,   gen(z)
+    assert _rc == 0
+    cap glevelsof x y,   gen(a) nolocal
+    assert _rc == 0
+
+    cap glevelsof s, gen(a) nolocal
+    assert _rc == 17002
+
+    clear
+    set obs 10000
+    gen x = "a long string appeared" + string(_n)
+    cap glevelsof x
+    assert _rc == 920
+    cap glevelsof x, gen(uniq) nolocal
+    assert _rc == 0
 end
 
 capture program drop checks_inner_levelsof

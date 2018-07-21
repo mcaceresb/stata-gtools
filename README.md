@@ -106,10 +106,10 @@ general-purpose sort. It is just inefficient for processing data by group. We
 have implemented a hash-based sorting command, `hashsort`. While at times this
 is faster than Stata's `sort`, it can also often be slower:
 
-| Function  | Replaces | Speedup (IC / MP)    | Unsupported | Extras               |
-| --------- | -------- | -------------------- | ----------- | -------------------- |
-| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |             | Group (hash) sorting |
-|           | gsort    | 2 to 18 / 1 to 6     | `mfirst`    | Sorts are stable     |
+| Function  | Replaces | Speedup (IC / MP)    | Unsupported            | Extras               |
+| --------- | -------- | -------------------- | ---------------------- | -------------------- |
+| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |                        | Group (hash) sorting |
+|           | gsort    | 2 to 18 / 1 to 6     | `mfirst` (see `mlast`) | Sorts are stable     |
 
 The overhead involves copying the by variables, hashing, sorting the hash,
 sorting the groups, copying a sort index back to Stata, and having Stata do
@@ -170,20 +170,6 @@ net install gtools, from(`github'/mcaceresb/stata-gtools/develop/build/)
 * adoupdate, update
 * ado uninstall gtools
 ```
-
-### Known Issues
-
-The plugin works on most systems and Stata versions; however, the
-following are known issues:
-
-- On some versions of Windows Server, `spookyhash.dll` fails to load.
-  See [issue 35](https://github.com/mcaceresb/stata-gtools/issues/35).
-
-- On some versions of Linux, the plugin seems to temporarily modify Stata internals.
-  See [issue 40](https://github.com/mcaceresb/stata-gtools/issues/40).
-
-If you experience any of these problems, please add a comment to the
-relevant issue.
 
 ### Examples
 

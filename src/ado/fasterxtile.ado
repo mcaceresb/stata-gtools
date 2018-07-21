@@ -1,4 +1,4 @@
-*! version 0.6.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -31,16 +31,14 @@ program define fasterxtile
         hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
                                     ///
+        forcestrl                   ///
+        compress                    ///
+        debug(passthru)             ///
         GROUPid(passthru)           ///
         tag(passthru)               ///
         counts(passthru)            ///
         fill(passthru)              ///
     ]
-
-	if ( `"`weight'"' != "" ) {
-		di in err "weights are planned for a future release"
-        exit 198
-    }
 
 	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
 		di in err "altdef option cannot be used with weights"
@@ -82,7 +80,11 @@ program define fasterxtile
                  `hashlib'        ///
                  `oncollision'    ///
                  `hashmethod'     ///
+                 `compress'       ///
+                 `forcestrl'      ///
+                 `replace'        ///
                  `groupid'        ///
+                 `debug'          ///
                  `tag'            ///
                  `counts'         ///
                  `fill'

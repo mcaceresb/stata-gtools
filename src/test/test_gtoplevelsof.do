@@ -23,6 +23,13 @@ program checks_toplevelsof
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+    }
+
     clear
     gen x = 1
     gtoplevelsof x
@@ -85,8 +92,9 @@ capture program drop compare_toplevelsof
 program compare_toplevelsof
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000) random(2)
+    qui `noisily' gen_data, n(1000)
     qui expand 100
+    qui `noisily' random_draws, random(2)
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options'" _n(1) "{hline 80}" _n(1)
@@ -101,11 +109,18 @@ program compare_toplevelsof
 
     compare_inner_gtoplevelsof -int1,           `options' tol(`tol')
     compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 int2  int3, `options' tol(`tol')
+    compare_inner_gtoplevelsof int1 -int2 int3, `options' tol(`tol')
 
     compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol')
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol')
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl'
+    }
 end
 
 capture program drop compare_inner_gtoplevelsof
@@ -137,14 +152,17 @@ end
 
 capture program drop _compare_inner_gtoplevelsof
 program _compare_inner_gtoplevelsof
-    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    syntax [anything] [if] [in], [tol(real 1e-6) contract *]
+
+    if ( "`contract'" == "" ) local contract gcontract
 
     * cf(Cum) p(Pct) cp(PctCum)
     local opts freq(N)
     preserve
         qui {
-            `noisily' gcontract `anything' `if' `in', `opts'
-            local r_N = `r(N)'
+            `noisily' `contract' `anything' `if' `in', `opts'
+            qui sum N, meanonly
+            local r_N = `r(sum)'
             hashsort -N `anything'
             keep in 1/10
             set obs 11
@@ -228,8 +246,9 @@ capture program drop bench_toplevelsof
 program bench_toplevelsof
     syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
 
-    qui gen_data, n(`n') random(1) double
+    qui gen_data, n(`n')
     qui expand `=100 * `bench''
+    qui `noisily' random_draws, random(1) double
     qui hashsort random1
 
     local N = trim("`: di %15.0gc _N'")

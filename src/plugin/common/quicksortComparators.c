@@ -2,6 +2,32 @@
 #define BaseCompareChar(a, b) ( strcmp(a, b) )
 
 /*********************************************************************
+ *                        Check if is sorted                         *
+ *********************************************************************/
+
+int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
+int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
+{
+	char *pm;
+    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
+        if ( cmp(pm - es, pm, thunk) > 0 ) return (0);
+    }
+    return (1);
+}
+
+
+int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
+int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
+{
+    int rc;
+	char *pm;
+    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
+        if ( (rc = cmp(pm, pm - es, thunk)) <= 0 ) return (rc);
+    }
+    return (1);
+}
+
+/*********************************************************************
  *                              Doubles                              *
  *********************************************************************/
 
@@ -21,6 +47,21 @@ int MultiCompareNum2Invert (const void *a, const void *b, void *thunk)
     ST_double aa   = *((ST_double *)a + kstart);
     ST_double bb   = *((ST_double *)b + kstart);
     return BaseCompareNum(bb, aa);
+}
+
+int MultiCompareNum2InvertMlast (const void *a, const void *b, void *thunk);
+int MultiCompareNum2InvertMlast (const void *a, const void *b, void *thunk)
+{
+    GT_size kstart = *(GT_size *)thunk;
+    ST_double aa   = *((ST_double *)a + kstart);
+    ST_double bb   = *((ST_double *)b + kstart);
+
+    if ( SF_is_missing(aa) == SF_is_missing(bb) ) {
+        return BaseCompareNum(bb, aa);
+    }
+    else {
+        return BaseCompareNum(aa, bb);
+    }
 }
 
 /*********************************************************************
@@ -65,6 +106,22 @@ int AltCompareNumInvert (const void *a, const void *b, void *thunk)
     ST_double bb   = *(ST_double *)(b + kstart);
 // printf("\tcmp(%.4f, %.4f) = %d\n", bb, aa, BaseCompareNum(bb, aa));
     return BaseCompareNum(bb, aa);
+}
+
+int AltCompareNumInvertMlast (const void *a, const void *b, void *thunk);
+int AltCompareNumInvertMlast (const void *a, const void *b, void *thunk)
+{
+    GT_size kstart = *(GT_size *)thunk;
+    ST_double aa   = *(ST_double *)(a + kstart);
+    ST_double bb   = *(ST_double *)(b + kstart);
+// printf("\tcmp(%.4f, %.4f) = %d\n", bb, aa, BaseCompareNum(bb, aa));
+
+    if ( SF_is_missing(aa) == SF_is_missing(bb) ) {
+        return BaseCompareNum(bb, aa);
+    }
+    else {
+        return BaseCompareNum(aa, bb);
+    }
 }
 
 /*********************************************************************

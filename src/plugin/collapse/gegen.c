@@ -318,6 +318,10 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }
+                else if ( (statcode[k] == -15) &  (end < 2) ) { // semean
+                    // Standard deviation requires at least 2 observations
+                    output[offset_output + k] = SV_missval;
+                }
                 else { // etc
                     // Otherwise compute the requested summary stat
                     output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + end);
@@ -632,6 +636,10 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     }
                 }
                 else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                    // Standard deviation requires at least 2 observations
+                    output[offset_output + k] = SV_missval;
+                }
+                else if ( (statcode[k] == -15) &  (end < 2) ) { // semean
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }

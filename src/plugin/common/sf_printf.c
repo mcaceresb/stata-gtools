@@ -11,8 +11,8 @@ void sf_printf_debug (const char *fmt, ...)
     va_start (args, fmt);
     char buf[BUF_MAX];
     vsprintf (buf, fmt, args);
-    SF_display (buf);
     printf ("%s", buf);
+    SF_display (buf);
     va_end (args);
 }
 

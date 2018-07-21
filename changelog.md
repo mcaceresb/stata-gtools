@@ -1,6 +1,57 @@
 Change Log
 ==========
 
+## gtools-0.14.1 (2018-07-19)
+
+### Features
+
+* `fasterxtile` and `gquantiles` now accept weights (including `by()`)
+* Note that stata might not handle weights accurately in pctile
+  and xtile (or, at the very least, it does not seem to follow its
+  documented formulas in all cases).
+* Option `compress` tries to recast strL variables as str#
+* Option `forcestrl` ignores binary values check (use with caution).
+
+### Bug Fixes
+
+* `semean` returns missing with fewer than 2 observations.
+* If `strL` contains binary data `gtools` functions now throw an error.
+* `strL` missing values now read correctly.
+* `strL` partial support for OSX (long strings only).
+* Added `strL`-specific tests
+* All tests passing in Stata 13 in Linux, Windows
+* All tests passing in Stata 15 in Linux
+* All tests passing in Stata 14 in OSX
+
+## gtools-0.14.0 (2018-07-17)
+
+### Bug Fixes
+
+* Closes https://github.com/mcaceresb/stata-gtools/issues/39 `strL`
+  partial support (OSX pending).
+* Closes https://github.com/mcaceresb/stata-gtools/issues/41 `wild` with
+  existing variables gets a warning.
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/42 `gunique` typo.
+
+## gtools-0.13.3 (2018-05-06)
+
+### Features
+
+* Adds `gduplicates` as a replacement of `duplicates`. This is
+  basically a wrapper for `gegen tag` and `gegen count`.
+
+### Enhancements
+
+* `_gtools_internals.ado` exits when `GTOOLS_CALLER` is empty.
+
+## gtools-0.13.2 (2018-05-03)
+
+### Features
+
+* Fixes https://github.com/mcaceresb/stata-gtools/issues/31
+  (added option `mlast` to `hashsort` to imitate `gsort` when sorting
+  numbers in inverse order and they contain missing values).
+
 ## gtools-0.13.1 (2018-05-02)
 
 ### Pending

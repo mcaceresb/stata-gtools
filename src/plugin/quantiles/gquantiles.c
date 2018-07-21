@@ -5,7 +5,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level);
 ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 {
 
-    ST_double z, nqdbl, xmin, xmax;
+    ST_double z, w, nqdbl, xmin, xmax;
     ST_double *xptr, *qptr, *optr, *gptr, *ixptr, *xptr2;
     GT_bool failmiss = 0, sorted = 0;
     GT_size i, q, sel, obs, N, qtot;
@@ -35,6 +35,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size kpctile = pctile + pctpct + genpct;
     GT_size xstart  = kgen + kpctile;
 
+    GT_bool weights  = st_info->wcode > 0;
     GT_bool altdef   = st_info->xtile_altdef;
     GT_bool minmax   = st_info->xtile_minmax;
     GT_bool bincount = st_info->xtile_bincount;
@@ -51,6 +52,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size start_cutvars  = start_xtile   + xstart;
     GT_size start_qvars    = start_cutvars + cutvars;
     GT_size start_xsources = start_qvars   + qvars;
+    GT_size wpos           = st_info->wpos;
 
     GT_size in1   = st_info->in1;
     GT_size Nread = st_info->Nread;
@@ -74,20 +76,21 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         sf_printf_debug("\tqvars:             "GT_size_cfmt"\n",  qvars);
         sf_printf_debug("\tnpoints:           "GT_size_cfmt"\n",  npoints);
         sf_printf_debug("\tnquants:           "GT_size_cfmt"\n",  nquants);
-        sf_printf_debug("\n");                                   
+        sf_printf_debug("\n");
         sf_printf_debug("\tkgen:              "GT_size_cfmt"\n",  kgen);
         sf_printf_debug("\tpctile:            %u\n",              pctile);
         sf_printf_debug("\tgenpct:            %u\n",              genpct);
         sf_printf_debug("\tpctpct:            %u\n",              pctpct);
         sf_printf_debug("\tkpctile:           "GT_size_cfmt"\n",  kpctile);
         sf_printf_debug("\txstart:            "GT_size_cfmt"\n",  xstart);
-        sf_printf_debug("\n");                                   
+        sf_printf_debug("\n");
+        sf_printf_debug("\tweights:           %u\n",              weights);
         sf_printf_debug("\taltdef:            %u\n",              altdef);
         sf_printf_debug("\tminmax:            %u\n",              minmax);
         sf_printf_debug("\tbincount:          %u\n",              bincount);
         sf_printf_debug("\t_pctile:           %u\n",              _pctile);
         sf_printf_debug("\tdebug:             %u\n",              debug);
-        sf_printf_debug("\n");                                   
+        sf_printf_debug("\n");
         sf_printf_debug("\tkvars:             "GT_size_cfmt"\n",  kvars);
         sf_printf_debug("\tksources:          "GT_size_cfmt"\n",  ksources);
         sf_printf_debug("\tktargets:          "GT_size_cfmt"\n",  ktargets);
@@ -104,7 +107,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
      *                         Memory Allocation                         *
      *********************************************************************/
 
-    GT_size kx = kgen? 3: 1;
+    GT_size kx = kgen? (3 + weights): (1 + weights);
     GT_size xmem_sources = kx * Nread;
     GT_size xmem_quant   = nout;
     GT_size xmem_points  = cutvars? (st_info->xtile_cutifin? Nread + 1: SF_nobs() + 1): 1;
@@ -351,7 +354,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         m_ratio = m1_etime / m2_etime;
     }
 
-    if ( method == 0 ) {
+    if ( (method == 0) & !weights ) {
         if ( m_ratio > 0 ) {
             method  = (m_ratio > 1)? 2: 1;
             if ( st_info->verbose ) {
@@ -375,16 +378,16 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             method = 1;
         }
     }
-    else if ( (method != 1) & (method != 2) ) {
+    else if ( (method != 2) | weights ) {
         method = 1;
     }
 
     if ( debug ) {
-        sf_printf_debug("debug 15 (sf_xtile): Chose execution method.\n");
+        sf_printf_debug("debug 15 (sf_xtile): Chose execution method %u.\n", method);
     }
 
     // method = 0; // expected optimal
-    // method = 1; // qsort, default
+    // method = 1; // qsort, fallback
     // method = 2; // qselect
 
     /*********************************************************************
@@ -454,9 +457,95 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
         }
     }
+    else if ( weights ) {
+        if ( debug ) {
+            sf_printf_debug("debug 17 (sf_xtile): Read sources (method 1; weighted)\n");
+        }
+
+        if ( st_info->any_if ) {
+            if ( kgen ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+
+                        if ( (rc = SF_vdata(wpos,
+                                            i + in1,
+                                            &w)) ) goto error;
+                        if ( SF_is_missing(w) ) continue;
+
+                        sel = kx * obs++;
+                        xsources[sel] = z;
+                        xsources[sel + 1] = w;
+                        xsources[sel + 2] = i;
+                        xsources[sel + 3] = obs - 1;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
+                    if ( SF_ifobs(i + in1) ) {
+                        if ( (rc = SF_vdata(start_xsources,
+                                            i + in1,
+                                            &z)) ) goto error;
+                        if ( SF_is_missing(z) ) continue;
+
+                        if ( (rc = SF_vdata(wpos,
+                                            i + in1,
+                                            &w)) ) goto error;
+                        if ( SF_is_missing(w) ) continue;
+
+                        sel = kx * obs++;
+                        xsources[sel]     = z;
+                        xsources[sel + 1] = w;
+                    }
+                }
+            }
+        }
+        else {
+            if ( kgen ) {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+
+                    if ( (rc = SF_vdata(wpos,
+                                        i + in1,
+                                        &w)) ) goto error;
+                    if ( SF_is_missing(w) ) continue;
+
+                    sel = kx * obs++;
+                    xsources[sel] = z;
+                    xsources[sel + 1] = w;
+                    xsources[sel + 2] = i;
+                    xsources[sel + 3] = obs - 1;
+                }
+            }
+            else {
+                for (i = 0; i < Nread; i++) {
+                    if ( (rc = SF_vdata(start_xsources,
+                                        i + in1,
+                                        &z)) ) goto error;
+                    if ( SF_is_missing(z) ) continue;
+
+                    if ( (rc = SF_vdata(wpos,
+                                        i + in1,
+                                        &w)) ) goto error;
+                    if ( SF_is_missing(w) ) continue;
+
+                    sel = kx * obs++;
+                    xsources[sel]     = z;
+                    xsources[sel + 1] = w;
+                }
+            }
+        }
+    }
     else {
         if ( debug ) {
-            sf_printf_debug("debug 17 (sf_xtile): Read sources (method 1)\n");
+            sf_printf_debug("debug 17 (sf_xtile): Read sources (method 1; unweighted)\n");
         }
 
         if ( st_info->any_if ) {
@@ -552,14 +641,32 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     GT_size xmem_count  = (pctpct | bincount)? nout: 1;
     GT_size xmem_output = (kgen & (method != 2))? N: 1;
 
-    GT_size   *xcount   = calloc(xmem_count,   sizeof *xcount);
-    ST_double *xoutput  = calloc(xmem_output,  sizeof *xoutput);
+    GT_size   *xcount;
+    ST_double *wcount;
+    ST_double *xoutput;
 
-    if ( xcount   == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
-    if ( xoutput  == NULL ) return(sf_oom_error("sf_quantiles", "xoutput"));
+    if ( weights ) {
+        wcount = calloc(xmem_count, sizeof *wcount);
+        xcount = malloc(sizeof(xcount));
+    }
+    else {
+        wcount = malloc(sizeof(wcount));
+        xcount = calloc(xmem_count, sizeof *xcount);
+    }
+    xoutput = calloc(xmem_output,  sizeof *xoutput);
 
-    for (i = 0; i < xmem_count; i++)
-        xcount[i] = 0;
+    if ( wcount  == NULL ) return(sf_oom_error("sf_quantiles", "wcount"));
+    if ( xcount  == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
+    if ( xoutput == NULL ) return(sf_oom_error("sf_quantiles", "xoutput"));
+
+    if ( weights ) {
+        for (i = 0; i < xmem_count; i++)
+            wcount[i] = 0;
+    }
+    else {
+        for (i = 0; i < xmem_count; i++)
+            xcount[i] = 0;
+    }
 
     /*********************************************************************
      *                               Sort!                               *
@@ -580,9 +687,27 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     i++;
 
+    GT_size invert[2]; invert[0] = 0; invert[1] = 0;
     if ( method == 2 ) {
         if ( i >= N ) {
             sorted = 2;
+            if ( debug ) {
+                sf_printf_debug("debug 20.1 (sf_xtile): already sorted; method 2.\n");
+            }
+        }
+    }
+    else if ( weights ) {
+        MultiQuicksortDbl(
+            xsources,
+            N,
+            0,
+            1,
+            kx * sizeof(xsources),
+            invert
+        );
+        sorted = 1;
+        if ( debug ) {
+            sf_printf_debug("debug 20.2 (sf_xtile): multi-sorted (weights); method 1.\n");
         }
     }
     else {
@@ -595,9 +720,15 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 NULL
             );
             sorted = 1;
+            if ( debug ) {
+                sf_printf_debug("debug 20.2 (sf_xtile): sorted; method 1.\n");
+            }
         }
         else {
             sorted = 2;
+            if ( debug ) {
+                sf_printf_debug("debug 20.3 (sf_xtile): already sorted; method 1.\n");
+            }
         }
     }
 
@@ -646,6 +777,11 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         qptr[npoints] = (method == 1)? xsources[kx * N - kx]: gf_array_dmax_range(xptr2, 0, N);
     }
     else if ( altdef ) {
+        // altdef and weights not allowed
+        // if ( weights ) {
+        //     rc = 198;
+        //     goto error;
+        // }
         if ( (method == 2) & (sorted < 2) ) {
             if ( nquants > 0 ) {
                 gf_quantiles_qselect_altdef (xquants, xptr2, xquants, nquants, N);
@@ -687,6 +823,20 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             }
             else if ( nq > 0 ) {
                 gf_quantiles_nq_qselect (xquant, xptr2, nq, N);
+                qptr = xquant;
+            }
+        }
+        else if ( weights ) {
+            if ( nquants > 0 ) {
+                gf_quantiles_w (xquants, xsources, xquants, nquants, N, kx);
+                qptr = xquants;
+            }
+            else if ( nq2 > 0 ) {
+                gf_quantiles_w (xquant, xsources, st_info->xtile_quantiles, nq2, N, kx);
+                qptr = xquant;
+            }
+            else if ( nq > 0 ) {
+                gf_quantiles_nq_w (xquant, xsources, nq, N, kx);
                 qptr = xquant;
             }
         }
@@ -812,19 +962,38 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
                 sf_printf_debug("debug 25 (sf_xtile): xtile method 1\n");
             }
 
-            if ( bincount | pctpct ) {
-                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                    while ( *xptr > qptr[q] ) q++;
-                    xcount[q]++;
-                    xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
-                    // xptr[0] = q + 1;
+            if ( weights ) {
+                if ( bincount | pctpct ) {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        while ( *xptr > qptr[q] ) q++;
+                        wcount[q] += *(xptr + 1);
+                        xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                        // xptr[0] = q + 1;
+                    }
+                }
+                else {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        while ( *xptr > qptr[q] ) q++;
+                        xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                        // xptr[0] = q + 1;
+                    }
                 }
             }
             else {
-                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                    while ( *xptr > qptr[q] ) q++;
-                    xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
-                    // xptr[0] = q + 1;
+                if ( bincount | pctpct ) {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        while ( *xptr > qptr[q] ) q++;
+                        xcount[q]++;
+                        xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                        // xptr[0] = q + 1;
+                    }
+                }
+                else {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        while ( *xptr > qptr[q] ) q++;
+                        xoutput[(GT_size) *(xptr + kx - 1)] = q + 1;
+                        // xptr[0] = q + 1;
+                    }
                 }
             }
 
@@ -836,8 +1005,15 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             // }
 
             if ( N < Nread ) {
-                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                    xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
+                if ( weights ) {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 2);
+                    }
+                }
+                else {
+                    for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                        xsources[kx * ((GT_size) *(xptr + kx - 1))] = *(xptr + 1);
+                    }
                 }
 
                 if ( st_info->benchmark > 2 )
@@ -869,17 +1045,34 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             sf_printf_debug("debug 26 (sf_xtile): no xtile; only counts and such.\n");
         }
 
-        if ( sorted ) {
-            for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                while ( *xptr > qptr[q] ) q++;
-                xcount[q]++;
+        if ( weights ) {
+            if ( sorted ) {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    while ( *xptr > qptr[q] ) q++;
+                    wcount[q] += *(xptr + 1);
+                }
+            }
+            else {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    q = 0;
+                    while ( *xptr > qptr[q] ) q++;
+                    wcount[q] += *(xptr + 1);
+                }
             }
         }
         else {
-            for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
-                q = 0;
-                while ( *xptr > qptr[q] ) q++;
-                xcount[q]++;
+            if ( sorted ) {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    while ( *xptr > qptr[q] ) q++;
+                    xcount[q]++;
+                }
+            }
+            else {
+                for (xptr = xsources; xptr < xsources + kx * N; xptr += kx) {
+                    q = 0;
+                    while ( *xptr > qptr[q] ) q++;
+                    xcount[q]++;
+                }
             }
         }
     }
@@ -901,9 +1094,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     if ( pctile ) {
         if ( pctpct ) {
-            for (q = 0; q < qtot; q++) {
-                if ( (rc = SF_vstore(start_xtile + kgen,     q + 1, qptr[q])) ) goto exit;
-                if ( (rc = SF_vstore(start_xtile + kgen + 1, q + 1, xcount[q])) ) goto exit;
+            if ( weights ) {
+                for (q = 0; q < qtot; q++) {
+                    if ( (rc = SF_vstore(start_xtile + kgen,     q + 1, qptr[q])) ) goto exit;
+                    if ( (rc = SF_vstore(start_xtile + kgen + 1, q + 1, wcount[q])) ) goto exit;
+                }
+            }
+            else {
+                for (q = 0; q < qtot; q++) {
+                    if ( (rc = SF_vstore(start_xtile + kgen,     q + 1, qptr[q])) ) goto exit;
+                    if ( (rc = SF_vstore(start_xtile + kgen + 1, q + 1, xcount[q])) ) goto exit;
+                }
             }
         }
         else {
@@ -913,16 +1114,31 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
         }
     }
     else if ( pctpct ) {
-        for (q = 0; q < qtot; q++) {
-            if ( (rc = SF_vstore(start_xtile + kgen, q + 1, xcount[q])) ) goto exit;
+        if ( weights ) {
+            for (q = 0; q < qtot; q++) {
+                if ( (rc = SF_vstore(start_xtile + kgen, q + 1, wcount[q])) ) goto exit;
+            }
+        }
+        else {
+            for (q = 0; q < qtot; q++) {
+                if ( (rc = SF_vstore(start_xtile + kgen, q + 1, xcount[q])) ) goto exit;
+            }
         }
     }
 
     if ( ncuts > 0 ) {
         if ( bincount ) {
-            for (q = 0; q < ncuts; q++) {
-                if ( (rc = SF_mat_store("__gtools_xtile_cutoffs", 1, q + 1, qptr[q])   )) goto exit;
-                if ( (rc = SF_mat_store("__gtools_xtile_cutbin",  1, q + 1, xcount[q]) )) goto exit;
+            if ( weights ) {
+                for (q = 0; q < ncuts; q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_cutoffs", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_cutbin",  1, q + 1, wcount[q]) )) goto exit;
+                }
+            }
+            else {
+                for (q = 0; q < ncuts; q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_cutoffs", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_cutbin",  1, q + 1, xcount[q]) )) goto exit;
+                }
             }
         }
         else {
@@ -934,9 +1150,17 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     if ( nq2 > 0 ) {
         if ( bincount ) {
-            for (q = 0; q < nq2; q++) {
-                if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
-                if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+            if ( weights ) {
+                for (q = 0; q < nq2; q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, wcount[q]) )) goto exit;
+                }
+            }
+            else {
+                for (q = 0; q < nq2; q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+                }
             }
         }
         else {
@@ -947,14 +1171,29 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
     else if ( (nq > 0) & bincount & (pctpct == 0) ) {
         if ( _pctile ) {
-            for (q = 0; q < (nq - 1); q++) {
-                if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
-                if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+            if ( weights ) {
+                for (q = 0; q < (nq - 1); q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, wcount[q]) )) goto exit;
+                }
+            }
+            else {
+                for (q = 0; q < (nq - 1); q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantiles", 1, q + 1, qptr[q])   )) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+                }
             }
         }
         else {
-            for (q = 0; q < (nq - 1); q++) {
-                if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+            if ( weights ) {
+                for (q = 0; q < (nq - 1); q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, wcount[q]) )) goto exit;
+                }
+            }
+            else {
+                for (q = 0; q < (nq - 1); q++) {
+                    if ( (rc = SF_mat_store("__gtools_xtile_quantbin",  1, q + 1, xcount[q]) )) goto exit;
+                }
             }
         }
     }
@@ -1003,6 +1242,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
     }
 
 exit:
+    free (wcount);
     free (xcount);
     free (xoutput);
 

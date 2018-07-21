@@ -1,10 +1,13 @@
-*! version 0.7.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
-* rc 17001
+* rc 17001 - no observations
 * rc 17002 - strL variables and version < 14
 * rc 17003 - strL variables and version >= 14
+* rc 17004 - strL variables could not be compressed
+* rc 17005 - strL contains binary data
+* rc 17006 - strL variables uknown error
 * rc 17459
 * rc 17900
 * rc 17999
@@ -28,9 +31,10 @@ program _gtools_internal, rclass
                          gunique      ///
                          gtoplevelsof ///
                          gcontract    /// 8
-                         gquantiles
+                         gquantiles   ///
+                         ghash
 
-    if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') ) {
+    if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
         di as err "_gtools_internal is not meant to be called directly." ///
                   " See {help gtools}"
         clean_all 198
@@ -64,10 +68,13 @@ program _gtools_internal, rclass
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
+        compress                  /// Try to compress strL variables
+        forcestrl                 /// Force reading strL variables (stata 14 and above only)
                                   ///
                                   /// General options
                                   /// ---------------
                                   ///
+                                  /// keeptouse(str) /// generate sample indicator
         seecount                  /// print group info to console
         COUNTonly                 /// report group info and exit
         MISSing                   /// Include missing values
@@ -118,6 +125,7 @@ program _gtools_internal, rclass
         sortindex(str)            /// keep sort index in memory
         sortgen                   /// sort by generated variable (hashsort only)
         skipcheck                 /// skip is sorted check
+        mlast                     /// sort missing values last, as a group
                                   ///
                                   /// glevelsof options
                                   /// -----------------
@@ -173,6 +181,7 @@ program _gtools_internal, rclass
         local gopts3 `gopts3' sortindex(`sortindex')
         local gopts3 `gopts3' `sortgen'
         local gopts3 `gopts3' `skipcheck'
+        local gopts3 `gopts3' `mlast'
 
         local gopts4 glevelsof(`glevelsof')
         local gopts4 `gopts4' separate(`separate')
@@ -190,6 +199,8 @@ program _gtools_internal, rclass
         disp as txt `"    gfunction:        `gfunction'"'
         disp as txt `"    GTOOLS_CALLER:    $GTOOLS_CALLER"'
         disp as txt `""'
+        disp as txt `"    compress:         `compress'"'
+        disp as txt `"    forcestrl:        `forcestrl'"'
         disp as txt `"    verbose:          `verbose'"'
         disp as txt `"    benchmark:        `benchmark'"'
         disp as txt `"    hashmethod:       `hashmethod'"'
@@ -236,7 +247,7 @@ program _gtools_internal, rclass
     * ---------------------------------------------------
 
     local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-    local url `url'/master/spookyhash.dll
+    local url `url'/master/lib/windows/spookyhash.dll
 
     if ( `"`hashlib'"' == "" ) {
         local hashlib `c(sysdir_plus)'s/spookyhash.dll
@@ -642,6 +653,7 @@ program _gtools_internal, rclass
     scalar __gtools_countmiss   = ( "`countmiss'"    != "" )
     scalar __gtools_invertix    = ( "`invertinmata'" == "" )
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
+    scalar __gtools_mlast       = ( "`mlast'"        != "" )
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
@@ -699,10 +711,10 @@ program _gtools_internal, rclass
     * before moving to capturing each caller's options.
 
     if ( `"`separate'"' == "" ) local sep `" "'
-	else local sep `"`separate'"'
+    else local sep `"`separate'"'
 
     if ( `"`colseparate'"' == "" ) local colsep `" | "'
-	else local colsep `"`colseparate'"'
+    else local colsep `"`colseparate'"'
 
     if ( `"`numfmt'"' == "" ) {
         local numfmt `"%.16g"'
@@ -983,7 +995,7 @@ program _gtools_internal, rclass
         }
     }
 
-    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything')
+    cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `compress' `forcestrl'
     if ( _rc ) {
         local rc = _rc
         clean_all `rc'
@@ -994,6 +1006,7 @@ program _gtools_internal, rclass
     local byvars = "`r(varlist)'"
     local bynum  = "`r(varnum)'"
     local bystr  = "`r(varstr)'"
+    local bystrL = "`r(varstrL)'"
 
     * Unfortunately, the number of by variables we can process is
     * limited by the number of entries we can store in a Stata matrix.
@@ -1254,7 +1267,7 @@ program _gtools_internal, rclass
             else if ( !`invert' & (`contained' == `:list sizeof byvars') ) {
                 * If the first k sorted variables equal byvars, just call sort
                 if ( "`verbose'" != "" ) di as txt "(already sorted)"
-                sort `byvars' // , stable
+                sort `byvars', `:disp cond("`bystrL'" == "", "", "stable")'
                 clean_all 0
                 exit 0
             }
@@ -1314,15 +1327,15 @@ program _gtools_internal, rclass
                         local sortvars `sortvars' `:word `i' of `byvars''
                     }
                     scalar drop __gtools_first_inverted
-                    sort `sortvars' // , stable
+                    sort `sortvars', `:disp cond("`bystrL'" == "", "", "stable")'
                 }
             }
             else {
-                sort `byvars' // , stable
+                sort `byvars', `:disp cond("`bystrL'" == "", "", "stable")'
             }
         }
         else if ( ("`gen_name'" != "") & ("`sortgen'" != "") ) {
-            sort `gen_name' // , stable
+            sort `gen_name', `:disp cond("`bystrL'" == "", "", "stable")'
         }
 
         local msg "Stata reshuffle"
@@ -1383,6 +1396,7 @@ program _gtools_internal, rclass
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', ///
             collapse `anything' `"`fname'"'
+
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
         if ( _rc ) {
             local rc = _rc
@@ -1479,9 +1493,15 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "levelsof") ) {
             local 0, `glevelsof'
-            syntax, [noLOCALvar freq(str) store(str)]
+            syntax, [noLOCALvar freq(str) store(str) gen(str)]
             local gcall `gfunction'
             scalar __gtools_levels_return = ( "`localvar'" == "" )
+
+            if ( "`gen'" != "" ) {
+                di as err "gen() is planned for a future release."
+                clean_all 198
+                exit 198
+            }
 
             if ( "`store'" != "" ) {
                 di as err "store() is planned for a future release."
@@ -1493,6 +1513,29 @@ program _gtools_internal, rclass
                 di as err "freq() is planned for a future release."
                 clean_all 198
                 exit 198
+            }
+
+            local 0 `gen'
+            syntax [anything], [rename]
+
+            local k1: list sizeof anything
+            local k2: list sizeof byvars
+
+            if ( "`rename'" != "" ) {
+                cap assert (`k1') == (`k2')
+                if ( _rc ) {
+                    disp as err "gen() must specify one name per target (found `k1'; expected `k2')."
+                    clean_all 198
+                    exit 198
+                }
+            }
+            else if ( `k1' > 1 ) {
+                cap assert (`k1') == (`k2')
+                if ( _rc ) {
+                    disp as err "gen() must specify a single prefix or one name per target."
+                    clean_all 198
+                    exit 198
+                }
             }
 
             local 0, `store'
@@ -1924,6 +1967,13 @@ program _gtools_internal, rclass
                 }
             }
 
+            * So, I don't really know why I imposed this restriction or
+            * why I thought it was a good idea. If you request binfreq
+            * you should get the matrix, and you should only not get it
+            * if the number of quantiles is not allowed by matsize...
+            * But throughout the code I consistently only allow either
+            * binfreq OR binfreqvar!
+
             local xbin_any = ("`binfreq'" != "") & ("`binfreqvar'" == "")
             if ( (`nquantiles' > 0) & `xbin_any' ) {
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
@@ -1938,6 +1988,9 @@ program _gtools_internal, rclass
                     J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
                 local __gtools_xtile_nq_extra bin
             }
+            else if ( "`binfreq'" != "" ) {
+                disp as txt "(option binfreq ignored)"
+            }
 
             if ( (`nquantiles' > 0) & ("`_pctile'" != "") ) {
                 cap noi check_matsize, nvars(`=`nquantiles' - 1')
@@ -1951,6 +2004,9 @@ program _gtools_internal, rclass
                 matrix __gtools_xtile_quantiles = ///
                     J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
                 local __gtools_xtile_nq_extra `__gtools_xtile_nq_extra' quantiles
+            }
+            else if ( "`_pctile'" != "" ) {
+                disp as txt "(option _pctile ignored)"
             }
 
             scalar __gtools_xtile_size = `nquantiles'
@@ -1988,14 +2044,17 @@ program _gtools_internal, rclass
                         if ( "`xgen'" == "xgen_p"  ) local qvar `pctile'
                         if ( "`xgen'" == "xgen_gp" ) local qvar `genp'
                         if ( "`xgen'" == "xgen_bf" ) {
-                            if ( `=_N' < maxbyte() ) {
-                                local qtype byte
-                            }
-                            else if ( `=_N' < maxint() ) {
-                                local qtype int
-                            }
-                            else if ( `=_N' < maxlong() ) {
-                                local qtype long
+                            if ( "`wvar'" == "" ) {
+                                if ( `=_N' < maxbyte() ) {
+                                    local qtype byte
+                                }
+                                else if ( `=_N' < maxint() ) {
+                                    local qtype int
+                                }
+                                else if ( `=_N' < maxlong() ) {
+                                    local qtype long
+                                }
+                                else local qtype double
                             }
                             else local qtype double
                             local qvar `binfreqvar'
@@ -2028,7 +2087,7 @@ program _gtools_internal, rclass
         else local gcall `gfunction'
 
         local plugvars `byvars' `etargets' `extravars' `contractvars' `xvars'
-        scalar __gtools_weight_pos  = `:list sizeof plugvars' + 1
+        scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
         local rc = _rc
@@ -2167,6 +2226,7 @@ program _gtools_internal, rclass
     return scalar knum  = `=scalar(__gtools_kvars_num)'
     return scalar kint  = `=scalar(__gtools_kvars_int)'
     return scalar kstr  = `=scalar(__gtools_kvars_str)'
+    return scalar kstrL = `=scalar(__gtools_kvars_strL)'
 
     return local byvars = "`byvars'"
     return local bynum  = "`bynum'"
@@ -2271,6 +2331,7 @@ program clean_all
     cap scalar drop __gtools_replace
     cap scalar drop __gtools_countmiss
     cap scalar drop __gtools_skipcheck
+    cap scalar drop __gtools_mlast
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
@@ -2323,6 +2384,7 @@ program clean_all
     cap scalar drop __gtools_kvars_num
     cap scalar drop __gtools_kvars_int
     cap scalar drop __gtools_kvars_str
+    cap scalar drop __gtools_kvars_strL
 
     cap scalar drop __gtools_group_data
     cap scalar drop __gtools_group_fill
@@ -2347,6 +2409,7 @@ program clean_all
     cap matrix drop __gtools_weight_smat
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
+    cap matrix drop __gtools_strL
     cap matrix drop __gtools_numpos
     cap matrix drop __gtools_strpos
 
@@ -2391,27 +2454,31 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in], [clean_anything(str)]
+    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl]
 
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0
+        matrix __gtools_strL   = 0
 
         return local invert  = 0
         return local varlist = ""
         return local varnum  = ""
         return local varstr  = ""
+        return local varstrL = ""
 
-        scalar __gtools_kvars     = 0
-        scalar __gtools_kvars_int = 0
-        scalar __gtools_kvars_num = 0
-        scalar __gtools_kvars_str = 0
+        scalar __gtools_kvars      = 0
+        scalar __gtools_kvars_int  = 0
+        scalar __gtools_kvars_num  = 0
+        scalar __gtools_kvars_str  = 0
+        scalar __gtools_kvars_strL = 0
 
         exit 0
     }
 
     cap matrix drop __gtools_invert
     cap matrix drop __gtools_bylens
+    cap matrix drop __gtools_strL
 
     * Parse whether to invert sort order
     * ----------------------------------
@@ -2457,12 +2524,136 @@ program parse_by_types, rclass
         matrix __gtools_invert = J(1, max(`:list sizeof varlist', 1), 0)
     }
 
+    * Compress strL variables if requested
+    * ------------------------------------
+
+    local GTOOLS_CALLER $GTOOLS_CALLER
+    local GTOOLS_STRL   gcollapse gcontract
+    local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
+
+    local varstrL ""
+    if ( "`varlist'" != "" ) {
+        cap confirm variable `varlist'
+        if ( _rc ) {
+            di as err "{opt varlist} requried but received: `varlist'"
+            exit 198
+        }
+
+        foreach byvar of varlist `varlist' {
+            if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
+                if (regexs(1) == "L") {
+                    local varstrL `varstrL' `byvar'
+                }
+            }
+        }
+    }
+
+    local need_compress = `GTOOLS_STRL_FAIL' | (`c(stata_version)' < 14)
+    if ( ("`varstrL'" != "") & `need_compress' & ("`compress'" != "") ) {
+        qui compress `varstrL', nocoalesce
+    }
+
+    local varstrL ""
+    if ( "`varlist'" != "" ) {
+        cap confirm variable `varlist'
+        if ( _rc ) {
+            di as err "{opt varlist} requried but received: `varlist'"
+            exit 198
+        }
+
+        foreach byvar of varlist `varlist' {
+            if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
+                if (regexs(1) == "L") {
+                    local varstrL `varstrL' `byvar'
+                }
+            }
+        }
+    }
+
+    local cpass = cond("`GTOOLS_CALLER'" == "gduplicates", "gtools(compress)", "compress")
+    if ( ("`varstrL'" != "") & `need_compress' & ("`compress'" != "") ) {
+        if ( `GTOOLS_STRL_FAIL' ) {
+            disp as err _n(1) "{cmd:`GTOOLS_CALLER'} does not support strL variables. I tried"         ///
+                        _n(1) ""                                                                       ///
+                        _n(1) "    {stata compress `varstrL'}"                                         ///
+                        _n(1) ""                                                                       ///
+                        _n(1) "But these variables could not be recast as str#. This limitation comes" ///
+                        _n(1) "from the Stata Plugin Interface, which does not allow writing to strL"  ///
+                        _n(1) "variables from a plugin."
+        }
+        else if ( `c(stata_version)' < 14 ) {
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"         ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "    {stata compress `varstrL'}"                                                   ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse}" ///
+                        _n(1) "and {cmd:gcontract} do not support strL variables in any Stata version."          ///
+                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."       ///
+                        _n(1) ""                                                                                 ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"          ///
+                        _n(1) "and above can read strL variables in Stata 14 or later."
+        }
+        exit 17004
+    }
+    else if ( ("`varstrL'" != "") & `need_compress' ) {
+        if ( `GTOOLS_STRL_FAIL' ) {
+            disp as err _n(1) "{cmd:`GTOOLS_CALLER'} does not support strL variables. If your strL variables are str#, try" ///
+                        _n(1) ""                                                                                            ///
+                        _n(1) "    {stata compress `varstrL'}"                                                              ///
+                        _n(1) ""                                                                                            ///
+                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. If this does not work or if you have"     ///
+                        _n(1) "have binary data, you will not be able to use {opt `GTOOLS_CALLER'}. This limitation"        ///
+                        _n(1) "comes from the Stata Plugin Interface, which does not allow writing to"                      ///
+                        _n(1) "strL variables from a plugin."
+        }
+        else if ( `c(stata_version)' < 14 ) {
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                            ///
+                        _n(1) "strL variables are string-only, try"                                                                 ///
+                        _n(1) ""                                                                                                    ///
+                        _n(1) "    {stata compress `varstrL'}"                                                                      ///
+                        _n(1) ""                                                                                                    ///
+                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse} and {cmd:gcontract} " ///
+                        _n(1) "do not support strL variables in any Stata version. Further, binary"                                 ///
+                        _n(1) "strL variables are not yet supported in any Stata version."                                          ///
+                        _n(1) ""                                                                                                    ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools"                                  ///
+                        _n(1) "0.14 and above can read strL variables in Stata 14 or later."
+        }
+        exit 17002
+    }
+    else if ( ("`varstrL'" != "") & (`c(stata_version)' >= 14) & ("`forcestrl'" == "") ) {
+        scalar __gtools_k_strL = `:list sizeof varstrL'
+        cap noi plugin call gtools_plugin `varstrL', checkstrL
+        if ( _rc ) {
+            cap scalar drop __gtools_k_strL
+            disp as err _n(1) "gtools does not yet support binary data in strL variables."
+            if ( strpos(lower("`c(os)'"), "windows") ) {
+                disp as txt                                                                                    ///
+                      _n(1) "On some Windows systems Stata detects binary data in strL variables even"         ///
+                      _n(1) "when there is none. You can try the experimental option {opt forcestrl} to skip"  ///
+                      _n(1) "the binary data check. {opt Forcing gtools to work with binary data gives wrong}" ///
+                      _n(1) "results, so only use this option if you are certain your strL variables"          ///
+                      _n(1) "do no contain binary data."
+            }
+            exit 17005
+        }
+        cap scalar drop __gtools_k_strL
+    }
+    else if ( ("`varstrL'" != "") & ("`forcestrl'" == "") ) {
+        disp as err _n(1) "gtools failed to parse strL variables."
+        exit 17006
+    }
+
+    tempvar strlen
+    if ( "`varstrL'" != "" ) qui gen long `strlen' = .
+
     * Check how many of each variable type we have
     * --------------------------------------------
 
     local kint  = 0
     local knum  = 0
     local kstr  = 0
+    local kstrL = 0
     local kvars = 0
 
     local varint  ""
@@ -2484,11 +2675,13 @@ program parse_by_types, rclass
                 local ++knum
                 local varint `varint' `byvar'
                 local varnum `varnum' `byvar'
+                matrix __gtools_strL   = nullmat(__gtools_strL),   0
                 matrix __gtools_bylens = nullmat(__gtools_bylens), 0
             }
             else if inlist("`:type `byvar''", "float", "double") {
                 local ++knum
                 local varnum `varnum' `byvar'
+                matrix __gtools_strL   = nullmat(__gtools_strL),   0
                 matrix __gtools_bylens = nullmat(__gtools_bylens), 0
             }
             else {
@@ -2496,14 +2689,16 @@ program parse_by_types, rclass
                 local varstr `varstr' `byvar'
                 if regexm("`:type `byvar''", "str([1-9][0-9]*|L)") {
                     if (regexs(1) == "L") {
+                        local ++kstrL
                         local varstrL `varstrL' `byvar'
-                        tempvar strlen
-                        gen long `strlen' = length(`byvar')
+                        qui replace `strlen' = length(`byvar')
                         qui sum `strlen', meanonly
+                        matrix __gtools_strL   = nullmat(__gtools_strL), 1
                         matrix __gtools_bylens = nullmat(__gtools_bylens), ///
-                                                 `r(max)'
+                                                 `=r(max) + 1'
                     }
                     else {
+                        matrix __gtools_strL   = nullmat(__gtools_strL), 0
                         matrix __gtools_bylens = nullmat(__gtools_bylens), ///
                                                  `:di regexs(1)'
                     }
@@ -2524,37 +2719,14 @@ program parse_by_types, rclass
         }
     }
 
-    * if ( ("`varstrL'" != "") & (_caller() < 14) ) {
-    *     disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your" ///
-    *                 _n(1) "strL variables are string-only, try"                                      ///
-    *                 _n(2) "    {stata compress `varstrL'}"                                           ///
-    *                 _n(2) "If this does not work or if you have binary data, you will need to use"   ///
-    *                 _n(1) "Stata 14 or newer. This limitation comes from the Stata Plugin Interface" ///
-    *                 _n(1) "(SPI) 2.0 that was used to write gtools. gtools 0.14 integrated 3.0"      ///
-    *                 _n(1) "(Stata 14 and above only), which added support for strL variables."
-    *     exit 17002
-    * }
-    * else if ( "`varstrL'" != "" ) {
-    if ( "`varstrL'" != "" ) {
-        disp as err _n(1) "gtools 0.13.x does not support strL variables. If your strL variables"   ///
-                    _n(1) "are string-only, try"                                                    ///
-                    _n(2) "    {stata compress `varstrL'}"                                          ///
-                    _n(2) "If this does not work or if you have binary data, then you will have to" ///
-                    _n(1) "wait for the next release of gtools (0.14)."                             ///
-                    _n(2) "This limitation comes from the Stata Plugin Interface (SPI) 2.0"         ///
-                    _n(1) "that was used to write gtools. 3.0 (Stata 14 and above only) added"      ///
-                    _n(1) "support for strL variables. gtools will add strL support in its next"    ///
-                    _n(1) "relase (0.14)."
-        exit 17003
-    }
-
     * Parse which hashing strategy to use
     * -----------------------------------
 
-    scalar __gtools_kvars     = `kvars'
-    scalar __gtools_kvars_int = `kint'
-    scalar __gtools_kvars_num = `knum'
-    scalar __gtools_kvars_str = `kstr'
+    scalar __gtools_kvars      = `kvars'
+    scalar __gtools_kvars_int  = `kint'
+    scalar __gtools_kvars_num  = `knum'
+    scalar __gtools_kvars_str  = `kstr'
+    scalar __gtools_kvars_strL = `kstrL'
 
     * Return hash info
     * ----------------
@@ -2563,6 +2735,7 @@ program parse_by_types, rclass
     return local varlist = "`varlist'"
     return local varnum  = "`varnum'"
     return local varstr  = "`varstr'"
+    return local varstrL = "`varstrL'"
 end
 
 ***********************************************************************
@@ -2875,8 +3048,11 @@ end
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
+if ( `c(stata_version)' < 14 ) local spiver v2
+else local spiver v3
+
 cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'.plugin")
+program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")
 
 * Windows hack
 if ( "`c_os_'" == "windows" ) {
@@ -2886,7 +3062,7 @@ if ( "`c_os_'" == "windows" ) {
         if ( _rc ) {
             local rc = _rc
             local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-            local url `url'/master/spookyhash.dll
+            local url `url'/master/lib/windows/spookyhash.dll
             di as err `"gtools: `hashlib' not found."' _n(1)     ///
                       `"gtools: download {browse "`url'":here}"' ///
                       `" or run {opt gtools, dependencies}"'
@@ -2937,10 +3113,10 @@ if ( "`c_os_'" == "windows" ) {
 
 cap program drop gtools_plugin
 if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {
-    cap program gtools_plugin, plugin using("gtools_`c_os_'_multi.plugin")
+    cap program gtools_plugin, plugin using("gtools_`c_os_'_multi_`spiver'.plugin")
     if ( _rc ) {
         global GTOOLS_FORCE_PARALLEL 17900
-        program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+        program gtools_plugin, plugin using("gtools_`c_os_'_`spiver'.plugin")
     }
 }
-else program gtools_plugin, plugin using("gtools_`c_os_'.plugin")
+else program gtools_plugin, plugin using("gtools_`c_os_'_`spiver'.plugin")

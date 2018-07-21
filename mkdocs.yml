@@ -12,6 +12,7 @@ pages:
         - gdistinct:    usage/gdistinct.md
         - gegen:        usage/gegen.md
         - gisid:        usage/gisid.md
+        - gduplicates:  usage/gduplicates.md
         - glevelsof:    usage/glevelsof.md
         - gtools:       usage/gtools.md
         - gtoplevelsof: usage/gtoplevelsof.md

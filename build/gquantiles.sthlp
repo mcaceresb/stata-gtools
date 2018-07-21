@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.6.1 02May2018}{...}
+{* *! version 0.7.1 19Jul2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -34,6 +34,7 @@ Create variable containing percentiles (equivalent to {cmd:pctile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 pctile
 [{opth nquantiles(int)}
@@ -47,6 +48,7 @@ Create variable containing quantile categories (equivalent to {cmd:xtile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 xtile
 [{opth nquantiles(int)}
@@ -57,6 +59,7 @@ xtile
 {cmd:fasterxtile}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 [{opth nquantiles(int)}
 {opth cutpoints(varname)}
@@ -69,6 +72,7 @@ Compute percentiles and store them in r() (equivalent to {cmd:_pctile})
 {cmd:gquantiles}
 {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 _pctile
 [{opth nquantiles(int)}
@@ -82,6 +86,7 @@ The full syntax, however, is
 {cmd:gquantiles}
 [{newvar} {cmd:=}] {it:{help exp}}
 {ifin}
+[{it:{help pctile##weight:weight}}]
 {cmd:,}
 {c -(}{cmd:pctile}{c |}{cmd:xtile}{c |}{cmd:_pctile}{c )-}
 {it:{help gquantiles##quantiles_method:quantiles_method}}
@@ -152,31 +157,45 @@ The full syntax, however, is
 {p_end}
 
 {syntab:Gtools}
+{synopt :{opth compress}}Try to compress strL to str#.
+{p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
+{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+{synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}
 
 {synoptline}
 {p2colreset}{...}
 {p 4 6 2}
 
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, and {opt pweight}s are allowed (see
+{manhelp weight U:11.1.6 weight}), except with option {opt altdef}, in
+which case no weights are allowed.
+{p_end}
+
 {marker description}{...}
 {title:Description}
 
 {pstd}
 {cmd:gquantiles} replaces {cmd:xtile}, {cmd:pctile}, and {cmd:_pctile}.
-While weights are not yet supported, gquantiles offers several additional
-options above the three built-in Stata commands. gquantiles is also faster
-than the user-written fastxtile, so an alias, fasterxtile, is also provided.
+gquantiles offers several additional options above the three built-in
+Stata commands: an arbitrary number of quantiles, arbitrary cutoffs,
+frequency counts of the xtile categories, computing {cmd:pctile} and
+{cmd:xtile} at the same time, and so on.
 
 {pstd}
-Weights are currently not supported. But {cmd:gquantiles} can compute an 
-arbitrary number of quantiles, can deal with arbitrary cutoffs, can compute
-frequency counts of the categories, can compute {cmd:pctile} and {cmd:xtile}
-at the same time, and so on.
+gquantiles is also faster than the user-written fastxtile, so an alias,
+fasterxtile, is provided.
 
 {pstd}
 {opt gquantiles} is part of the {manhelp gtools R:gtools} project.
@@ -238,7 +257,8 @@ this option is otherwise equivalent to its behavior when passing
 specifies a new variable to be generated
 containing the percentages corresponding to the percentiles.
 
-{phang}{opt altdef} uses an alternative formula for calculating percentiles.
+{phang}{opt altdef} uses an alternative formula for calculating percentiles
+(not with weights).
 The default method is to invert the empirical distribution function by using
 averages, where the function is flat (the default is the same method used by
 {cmd:summarize}; see {manhelp summarize R}).
@@ -279,11 +299,12 @@ computations in the style of {cmd:xtile}. This can be combined with other
 options listed in this section.
 
 {phang}
-{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}] Store the frequency counts of the
-source variable in the quantile categories in {it:newvar}. If {it:newvar}
-is not specified, this is stored in {hi:r(quantiles_bincount)} or
-{hi:r(cutoffs_bincount)}. This can be combined with other
-options listed in this section.
+{cmd:binfreq}[{cmd:(}{newvar}{cmd:)}] Store the frequency counts of
+the source variable in the quantile categories in {it:newvar}. When
+weights are specified, this stores the sum of the weights within
+that category. If {it:newvar} is not specified, this is stored in
+{hi:r(quantiles_bincount)} or {hi:r(cutoffs_bincount)}. This can be
+combined with other options listed in this section.
 
 {dlgtab:Switches}
 
@@ -334,11 +355,28 @@ is sensible, but for {opt xtile} it is artificial. It exists because it uses
 {dlgtab:Gtools}
 
 {phang}
+{opt compress} Try to compress strL to str#. The Stata Plugin Interface
+has only limited support for strL variables. In Stata 13 and earlier
+(version 2.0) there is no support, and in Stata 14 and later (version
+3.0) there is read-only support. The user can try to compress strL
+variables using this option.
+
+{phang} 
+{opt forcestrl} Skip binary variable check and force gtools to read strL
+variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
+This option was included because on some windows systems Stata detects
+binary data even when there is none. Only use this option if you are
+sure you do not have binary data in your strL variables.
+
+{phang}
 {opt verbose} prints some useful debugging info to the console.
 
 {phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute.
+{opt bench:mark} and {opt bench:marklevel(int)} print how long in
+seconds various parts of the program take to execute. The user can also
+pass {opth bench(int)} for finer control. {opt bench(1)} is the same
+as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
+internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem
@@ -347,6 +385,16 @@ gtools and required for the plugin to run correctly. The best thing a Windows
 user can do is run {opt gtools, dependencies} at the start of their Stata
 session, but if Stata cannot find the plugin the user can specify a path
 manually here.
+
+{phang}
+{opth hashmethod(str)} Hash method to use. {opt default} automagically
+chooses the algorithm. {opt biject} tries to biject the inputs into the
+natural numbers. {opt spooky} hashes the data and then uses the hash.
+
+{phang}
+{opth oncollision(str)} How to handle collisions. A collision should never
+happen but just in case it does {opt gtools} will try to use native commands.
+The user can specify it throw an error instead by passing {opt oncollision(error)}.
 
 {marker example}{...}
 {title:Examples}

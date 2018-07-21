@@ -24,6 +24,13 @@ program checks_isid
     checks_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        checks_inner_isid strL1,             `options' `forcestrl'
+        checks_inner_isid strL1 strL2,       `options' `forcestrl'
+        checks_inner_isid strL1 strL2 strL3, `options' `forcestrl'
+    }
+
     clear
     gen x = 1
     cap gisid x
@@ -105,6 +112,13 @@ program compare_isid
     compare_inner_isid int1 str_32 double1,                                        `options'
     compare_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_isid strL1,             `options' `forcestrl'
+        compare_inner_isid strL1 strL2,       `options' `forcestrl'
+        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl'
+    }
 end
 
 capture program drop compare_inner_isid
@@ -359,10 +373,16 @@ program versus_isid, rclass
         timer clear
         timer on 44
         cap fisid `varlist' `ix', missok
-        assert inlist(_rc, 0, 459)
-        timer off 44
-        qui timer list
-        local time_fisid = r(t44)
+        if ( inlist(_rc, 0, 459) ) {
+            timer off 44
+            qui timer list
+            local time_fisid = r(t44)
+        }
+        else {
+            di "(note: fisid failed)"
+            timer off 44
+            local time_fisid = .
+        }
     restore
     }
     else {

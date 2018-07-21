@@ -2,10 +2,10 @@
 
 Faster Stata for big data. This packages provides a hash-based
 implementation of collapse, pctile, xtile, contract, egen, isid,
-levelsof, and unique/distinct using C plugins for a massive speed
-improvement.
+levelsof, duplicates, and unique/distinct using C plugins for a massive
+speed improvement.
 
-`version 0.13.1 02May2018`
+`version 0.14.1 19Jul2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -19,18 +19,20 @@ caveats and details on the plugin.
 
 __*Gtools commands with a Stata equivalent*__
 
-(_**NOTE:**_ `strL` variables are not yet supported; see [issue 39](https://github.com/mcaceresb/stata-gtools/issues/39))
+(_**NOTE:**_ `strL` variables only partially supported on Stata 14 and
+above; `gcollapse` and `gcontract` do not support `strL` by variabes).
 
-| Function     | Replaces | Speedup (IC / MP)        | Unsupported     | Extras                                  |
-| ------------ | -------- | ------------------------ | --------------- | --------------------------------------- |
-| gcollapse    | collapse |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
-| gegen        | egen     |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
-| gcontract    | contract |  5 to 7   / 2.5 to 4     |                 |                                         |
-| gisid        | isid     |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
-| gquantiles   | xtile    |  10 to 30 / 13 to 25 (-) | Weights         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile   |  13 to 38 / 3 to 5 (-)   | Ibid.           | Ibid.                                   |
-|              | \_pctile |  25 to 40 / 3 to 5       | Ibid.           | Ibid.                                   |
+| Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
+| ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
+| gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
+| gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
+| gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
+| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
+| gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
+| gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
+|              | \_pctile   |  25 to 40 / 3 to 5       |                 | Ibid.                                   |
 
 <small>(+) The upper end of the speed improvements for gcollapse are for
 quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -45,14 +47,14 @@ or thousands of times faster.</small>
 
 __*Gtools extras*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                                 |
-| ------------------- | ------------------ | ----------------------- | ------------------------------------- |
-| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`; weights not supported |
-|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                                       |
-|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                                       |
-| gunique             | unique             |  4 to 26 / 4 to 12      |                                       |
-| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix          |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)                   |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                        |
+| ------------------- | ------------------ | ----------------------- | ---------------------------- |
+| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
+|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
+|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
+| gunique             | unique             |  4 to 26 / 4 to 12      |                              |
+| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
+| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -96,10 +98,10 @@ general-purpose sort. It is just inefficient for processing data by group. We
 have implemented a hash-based sorting command, `hashsort`. While at times this
 is faster than Stata's `sort`, it can also often be slower:
 
-| Function  | Replaces | Speedup (IC / MP)    | Unsupported | Extras               |
-| --------- | -------- | -------------------- | ----------- | -------------------- |
-| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |             | Group (hash) sorting |
-|           | gsort    | 2 to 18 / 1 to 6     | `mfirst`    | Sorts are stable     |
+| Function  | Replaces | Speedup (IC / MP)    | Unsupported            | Extras               |
+| --------- | -------- | -------------------- | ---------------------- | -------------------- |
+| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |                        | Group (hash) sorting |
+|           | gsort    | 2 to 18 / 1 to 6     | `mfirst` (see `mlast`) | Sorts are stable     |
 
 The overhead involves copying the by variables, hashing, sorting the hash,
 sorting the groups, copying a sort index back to Stata, and having Stata do
@@ -184,6 +186,10 @@ gegen p2_5  = pctile(price), by(foreign) p(2.5)
 * gisid varlist [if] [in], [options]
 gisid make, missok
 gisid price in 1
+
+* gduplicates varlist [if] [in], [options]
+gduplicates report foreign
+gduplicates report rep78 if foreign
 
 * glevelsof varlist [if] [in], [options]
 glevelsof rep78, local(levels) sep(" | ")
@@ -308,8 +314,7 @@ Differences from `collapse`
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
-- No support for weights.
-- Adds support for `by()`
+- Adds support for `by()` (including weights)
 - Does not ignore `altdef` with `xtile` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1417198-typo-in-xtile-ado-with-option-altdef))
 - Category frequencies can also be requested via `binfreq[()]`.
 - `xtile`, `pctile`, and `_pctile` can be combined via `xtile(newvar)` and
@@ -322,7 +327,7 @@ Differences from `xtile`, `pctile`, and `_pctile`
 - The user has control over the behavior of `cutpoints()` and `cutquantiles()`.
   They obey `if` `in` with option `cutifin`, they can be group-specific with
   option `cutby`, and they can be de-duplicated via `dedup`.
-- Fixes numerical precision issues with `pctile, altdef` (see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se); this is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not).
+- Fixes numerical precision issues with `pctile, altdef` (e.g. see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se), which is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not; also see [this thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1454409-weights-in-pctile)).
 
 Differences from `egen`
 
@@ -355,7 +360,14 @@ Differences from `isid`
 
 Differences from `gsort`
 
-- `hashsort` behaves as if `mfirst` was always passed.
+- `hashsort` behaves as if `mfirst` was passed. To recover the default
+  behavior of `gsort` pass option `mlast`.
+
+Differences from `duplicates`
+
+- `gduplicates` does not sort `examples` or `list` by default. This massively
+  enhances performance but it might be harder to read. Pass option `sort`
+  (`sorted`) to mimic `duplicates` behavior and sort the list. 
 
 __*The Stata GUI freezes when running Gtools commands*__
 
@@ -377,17 +389,17 @@ TODO
 
 Features that might make it to 1.0 (but I make no promises)
 
-- Have `mlast` option for hashsort?
-    - Or switch its behavior and have `mfirst` do what it does now.
 - Add option to save glevelsof in a variable/matrix (incl freq).
 
 These are options/features I would like to support, but I don't have an
 ETA for them (and they almost surely won't make it to the 1.0 release):
 
+- Improve debugging info.
+- Improve code comments when you write the API!
+- Minimize memory use.
 - Add option to control how to treat missing values in gcollapse
     - anymissing()
     - allmissing()
-- Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.

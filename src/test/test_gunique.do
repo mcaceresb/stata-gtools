@@ -23,6 +23,19 @@ program checks_unique
     checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options' by(int3 str_4 double3) replace
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+
+        * This is for the benefit of gtop, which can only handle strings that are so long
+        qui `noisily' gen_data, n(50)
+        qui expand 200
+        gen long ix = _n
+
+        checks_inner_unique strL1,             `options' `forcestrl'
+        checks_inner_unique strL1 strL2,       `options' `forcestrl' by(strL3) replace
+        checks_inner_unique strL1 strL2 strL3, `options' `forcestrl'
+    }
+
     clear
     gen x = 1
     cap gunique x
@@ -95,6 +108,13 @@ program compare_unique
     compare_inner_unique int1 str_32 double1,                                        `options'
     compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_unique strL1,             `options' `forcestrl' shuffle
+        compare_inner_unique strL1 strL2,       `options' `forcestrl' 
+        compare_inner_unique strL1 strL2 strL3, `options' `forcestrl' sort
+    }
 end
 
 capture program drop compare_inner_unique
@@ -309,6 +329,13 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl' unique
+        versus_unique strL1 strL2,       `options' `forcestrl' unique
+        versus_unique strL1 strL2 strL3, `options' `forcestrl' unique
+    }
+
     if ( ("`distunique'" != "") & ("`joint'" != "") ) {
         di as txt _n(1)
         di as txt "Benchmark vs `dstr'`dj' obs = `N', J = `J' (in seconds)"
@@ -349,6 +376,13 @@ program bench_unique
     versus_unique int1 str_32 double1,                                        `options'
     versus_unique int1 str_32 double1 int2 str_12 double2,                    `options'
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        versus_unique strL1,             `options' `forcestrl'
+        versus_unique strL1 strL2,       `options' `forcestrl'
+        versus_unique strL1 strL2 strL3, `options' `forcestrl'
+    }
 
     di as txt _n(1) "{hline 80}" _n(1) "bench_unique, `options'" _n(1) "{hline 80}" _n(1)
 end
@@ -422,28 +456,27 @@ end
 * Prototype of -unique-
 * ---------------------
 
-cap mata: mata drop funique()
-mata:
-mata set matastrict off
-void funique(string scalar varlist, real scalar detail)
-{
-	class Factor scalar F
-	F = factor(varlist)
-	printf("{txt}Number of unique values of turn is {res}%-11.0f{txt}\n", F.num_levels)
-	printf("{txt}Number of records is {res}%-11.0f{txt}\n", F.num_obs)
-	if (detail) {
-		(void) st_addvar("long", tempvar=st_tempname())
-		st_store(1::F.num_levels, tempvar, F.counts)
-		st_varlabel(tempvar, "Records per " + invtokens(F.varlist))
-		stata("su " + tempvar + ", detail")
-	}
-}
-end
-
-cap program drop funique
-program funique
-	syntax varlist [if] [in], [Detail]
-	
-	mata: funique("`varlist'", "`detail'"!="")
-end
-
+* cap mata: mata drop funique()
+* mata:
+* mata set matastrict off
+* void funique(string scalar varlist, real scalar detail)
+* {
+* 	class Factor scalar F
+* 	F = factor(varlist)
+* 	printf("{txt}Number of unique values of turn is {res}%-11.0f{txt}\n", F.num_levels)
+* 	printf("{txt}Number of records is {res}%-11.0f{txt}\n", F.num_obs)
+* 	if (detail) {
+* 		(void) st_addvar("long", tempvar=st_tempname())
+* 		st_store(1::F.num_levels, tempvar, F.counts)
+* 		st_varlabel(tempvar, "Records per " + invtokens(F.varlist))
+* 		stata("su " + tempvar + ", detail")
+* 	}
+* }
+* end
+*
+* cap program drop funique
+* program funique
+* 	syntax varlist [if] [in], [Detail]
+* 	
+* 	mata: funique("`varlist'", "`detail'"!="")
+* end

@@ -3,6 +3,7 @@
 #include <string.h>
 #include "quicksort.c"
 #include "quicksortComparators.c"
+#include "quicksortMultiLevelMlast.c"
 
 // All the multi-sort and multi-level checks follow the same logic. I
 // only detail the logic once, in MultiIsIDCheckDbl (for numeric only)
@@ -239,16 +240,6 @@ loop:
  *                             Is sorted                             *
  *********************************************************************/
 
-int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
-int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
-{
-	char *pm;
-    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
-        if ( cmp(pm - es, pm, thunk) > 0 ) return (0);
-    }
-    return (1);
-}
-
 int MultiSortCheckMC (
     void *start,
     GT_size N,
@@ -414,17 +405,6 @@ loop:
 /*********************************************************************
  *                               Is ID                               *
  *********************************************************************/
-
-int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
-int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
-{
-    int rc;
-	char *pm;
-    for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
-        if ( (rc = cmp(pm, pm - es, thunk)) <= 0 ) return (rc);
-    }
-    return (1);
-}
 
 int MultiIsIDCheckMC (
     void *start,

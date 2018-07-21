@@ -1,4 +1,4 @@
-equantiles
+gquantiles
 ==========
 
 Efficiently compute percentiles, quantiles, categories, and frequency counts.
@@ -8,9 +8,7 @@ that offers several additional features, like computing arbitrary
 quantiles (and an arbitrary number), frequency counts, and more (see the
 [examples](#examples) below).
 
-While weights are not yet supported, gquantiles offers several
-additional options above the three built-in Stata commands. gquantiles
-is also faster than the user-written fastxtile, so an alias,
+gquantiles is also faster than the user-written fastxtile, so an alias,
 fasterxtile, is also provided.
 
 _Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
@@ -54,6 +52,13 @@ gquantiles exp [if] [in], _pctile [nquantiles(#) percentiles(numlist) altdef]
 The options and behavior of the above largely mimic that of the Stata native
 commands. You only need to read the rest of the documentation if you wish to
 use some of the additional features that gquantiles provides.
+
+Weights
+-------
+
+aweight, fweight, and pweight are allowed and mimic the weights in
+`pctile`, `xtile`, or `_pctile` (see `help weight` and the weights
+section in `help pctile`). Weights are not allowed with `altdef`.
 
 Options
 -------
@@ -178,9 +183,12 @@ __*Extras*__
 <br><br>
 
 - `binfreq` (Not with by.) or `binfreq(newvar)` Stores the frequency counts of the source variable
-  within the bins defined by the quantiles or the cuoffs. If `newvar` is passed then
-  the frequency counts are stored in `newvar`; otherwise they are stored in the matrix
+  within the bins defined by the quantiles or the cuoffs. When
+  weights are specified, this stores the sum of the weights within
+  that category. If `newvar` is passed then the frequency counts
+  are stored in `newvar`; otherwise they are stored in the matrix
   `r(quantiles_bincount)` or `r(cutoffs_bincount)`.
+
 <br><br>
 
 __*Switches*__
@@ -240,6 +248,19 @@ __*Switches*__
 
 (Note: These are common to every gtools command.)
 
+- `compress` Try to compress strL to str#. The Stata Plugin Interface has
+            only limited support for strL variables. In Stata 13 and
+            earlier (version 2.0) there is no support, and in Stata 14
+            and later (version 3.0) there is read-only support. The user
+            can try to compress strL variables using this option.
+
+- `forcestrl` Skip binary variable check and force gtools to read strL variables
+            (14 and above only). __Gtools gives incorrect results when there is
+            binary data in strL variables__. This option was included because on
+            some windows systems Stata detects binary data even when there is none.
+            Only use this option if you are sure you do not have binary data in your
+            strL variables.
+
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
@@ -252,6 +273,16 @@ __*Switches*__
             thing a Windows user can do is run gtools, dependencies at the start
             of their Stata session, but if Stata cannot find the plugin the user
             can specify a path manually here.
+
+- `hashmethod(str)` Hash method to use. `default` automagically chooses the
+            algorithm. `biject` tries to biject the inputs into the
+            natural numbers. `spooky` hashes the data and then uses the
+            hash.
+
+- `oncollision(str)` How to handle collisions. A collision should never happen
+            but just in case it does `gtools` will try to use native
+            commands. The user can specify it throw an error instead by
+            passing `oncollision(error)`.
 
 Stored results
 --------------

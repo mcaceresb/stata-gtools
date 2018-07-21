@@ -61,11 +61,19 @@ final data.
 {p_end}
 
 {syntab:Gtools}
+{synopt :{opth compress}}Try to compress strL to str#.
+{p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
+{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+{synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}
 
 {synoptline}

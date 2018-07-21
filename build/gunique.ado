@@ -1,4 +1,4 @@
-*! version 0.7.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -18,6 +18,8 @@ program gunique, rclass
         GENerate(name)         /// Store uniques in generate (default _Unique)
         replace                /// Replace variable specifyed by generate if it exists
                                ///
+        compress               /// Try to compress strL variables
+        forcestrl              /// Force reading strL variables (stata 14 and above only)
         Verbose                /// Print info during function execution
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
@@ -67,7 +69,7 @@ program gunique, rclass
     }
 
     global GTOOLS_CALLER gunique
-    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `seecount' `gopts'
+    local opts `missing' `compress' `forcestrl' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `seecount' `gopts'
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)

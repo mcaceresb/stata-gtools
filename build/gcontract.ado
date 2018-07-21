@@ -1,4 +1,4 @@
-*! version 0.7.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -25,6 +25,8 @@ program gcontract, rclass
         fast                        /// Do not preserve and restore the original dataset. Saves speed
                                     /// but leaves data unusable if the user hits Break.
         unsorted                    /// Do not sort the data; faster
+        compress                    /// Try to compress strL variables
+        forcestrl                   /// Force reading strL variables (stata 14 and above only)
                                     ///
         Verbose                     /// Print info during function execution
         BENCHmark                   /// Benchmark function
@@ -179,7 +181,7 @@ program gcontract, rclass
     * ---------------
 
     local opts `missing' `verbose' `unsorted' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights' `compress' `forcestrl'
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 

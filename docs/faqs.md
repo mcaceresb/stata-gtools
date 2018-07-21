@@ -10,6 +10,21 @@ are not internally implemented cannot do weights either).
 
 However, weights have not been implemented for `gquantiles`.
 
+### Why do I get an error with strL variables?
+
+`strL` variables in stata allow storing up to 2GB (note that is _not_
+quite the same as GiB) of data in each entry. This is great, but the
+Stata Plugin Interface has limited support for them. Version 2.0, which
+is used in Stata 13 and earlier, does not support `strL` variables at
+all, and version 3.0, which is used in Stata 14 and later, only supports
+reading from `strL` variables.
+
+This means that `gtools` can only support `strL` variables in Stata 14
+and later for some commands. In particular `gcollapse` and `gcontract`
+do not support `strL` variables because those commands have to write
+values to Stata, and that is not possible for `strL` variables using
+plugins.
+
 ### My computer has a 32-bit CPU
 
 This uses 128-bit hashes split into 2 64-bit parts. As far as I know, it
@@ -96,10 +111,11 @@ discussion.
 
 ### Memory management with gcollapse
 
-C cannot create or drop variables. This creates a problem for `gcollapse` when
-N is large and the number of groups J is small. For examplle, N = 100M means
-about 800MiB per variable and J = 1,000 means barely 8KiB per variable. Adding
-variables after the collapse is trivial and before the collapse it may take
+C cannot create or drop variables. This creates a problem for
+`gcollapse` (and possibly `gcontract`) when N is large and the number
+of groups J is small. For examplle, N = 100M means about 800MiB per
+variable and J = 1,000 means barely 8KiB per variable. Adding variables
+after the collapse is trivial and before the collapse it may take
 several seconds.
 
 The function tries to be smart about this: Variables are only created if the

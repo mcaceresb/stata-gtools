@@ -654,12 +654,15 @@ bycopy:
 
     if ( (level > 0) & (skipbycopy == 0) ) {
         if ( kstr > 0 ) {
-            st_info->st_by_numx  = malloc(sizeof(ST_double));
-            st_info->st_by_charx = calloc(st_info->J, rowbytes);
+            st_info->strL_bybytes = malloc(sizeof(st_info->strL_bybytes));;
+            st_info->st_by_numx   = malloc(sizeof(st_info->st_by_numx));
+            st_info->st_by_charx  = calloc(st_info->J, rowbytes);
 
-            if ( st_info->st_by_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
-            if ( st_info->st_by_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
+            if ( st_info->strL_bybytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bybytes"));
+            if ( st_info->st_by_numx   == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
+            if ( st_info->st_by_charx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
 
+            GTOOLS_GC_ALLOCATED("st_info->strL_bybytes")
             GTOOLS_GC_ALLOCATED("st_info->st_by_numx")
             GTOOLS_GC_ALLOCATED("st_info->st_by_charx")
 
@@ -688,12 +691,15 @@ bycopy:
             }
         }
         else {
-            st_info->st_by_numx  = calloc(st_info->J * (kvars + 1), sizeof(st_info->st_by_numx));
-            st_info->st_by_charx = malloc(sizeof(char));
+            st_info->strL_bybytes = malloc(sizeof(st_info->strL_bybytes));;
+            st_info->st_by_numx   = calloc(st_info->J * (kvars + 1), sizeof(st_info->st_by_numx));
+            st_info->st_by_charx  = malloc(sizeof(st_info->st_by_charx));
 
-            if ( st_info->st_by_numx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
-            if ( st_info->st_by_charx == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
+            if ( st_info->strL_bybytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bybytes"));
+            if ( st_info->st_by_numx   == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
+            if ( st_info->st_by_charx  == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_charx"));
 
+            GTOOLS_GC_ALLOCATED("st_info->strL_bybytes")
             GTOOLS_GC_ALLOCATED("st_info->st_by_numx")
             GTOOLS_GC_ALLOCATED("st_info->st_by_charx")
 
@@ -724,22 +730,44 @@ bycopy:
 
         if ( (level > 1) &  multisort ) {
             if ( kstr > 0 ) {
-                MultiQuicksortMC (st_info->st_by_charx,
-                                  st_info->J,
-                                  0,
-                                  kvars - 1,
-                                  rowbytes,
-                                  st_info->byvars_lens,
-                                  st_info->invert,
-                                  st_info->positions);
+                if ( st_info->mlast ) {
+                    MultiQuicksortMCMlast (st_info->st_by_charx,
+                                           st_info->J,
+                                           0,
+                                           kvars - 1,
+                                           rowbytes,
+                                           st_info->byvars_lens,
+                                           st_info->invert,
+                                           st_info->positions);
+                }
+                else {
+                    MultiQuicksortMC (st_info->st_by_charx,
+                                      st_info->J,
+                                      0,
+                                      kvars - 1,
+                                      rowbytes,
+                                      st_info->byvars_lens,
+                                      st_info->invert,
+                                      st_info->positions);
+                }
             }
             else {
-                MultiQuicksortDbl(st_info->st_by_numx,
-                                  st_info->J,
-                                  0,
-                                  kvars - 1,
-                                  (kvars + 1) * sizeof(ST_double),
-                                  st_info->invert);
+                if ( st_info->mlast ) {
+                    MultiQuicksortDblMlast(st_info->st_by_numx,
+                                           st_info->J,
+                                           0,
+                                           kvars - 1,
+                                           (kvars + 1) * sizeof(ST_double),
+                                           st_info->invert);
+                }
+                else {
+                    MultiQuicksortDbl(st_info->st_by_numx,
+                                      st_info->J,
+                                      0,
+                                      kvars - 1,
+                                      (kvars + 1) * sizeof(ST_double),
+                                      st_info->invert);
+                }
             }
 
             if ( st_info->benchmark > 2 )

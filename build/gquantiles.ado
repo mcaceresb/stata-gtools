@@ -1,8 +1,10 @@
-*! version 0.6.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
 program gquantiles, rclass
+    version 13
+
     if ( `=_N < 1' ) {
         error 2000
     }
@@ -61,6 +63,8 @@ program gquantiles, rclass
                                         /// -----------------------
                                         ///
         debug(passthru)                 /// Print debugging info to console
+        compress                        /// Try to compress strL variables
+        forcestrl                       /// Force reading strL variables (stata 14 and above only)
         Verbose                         /// Print info during function execution
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
@@ -74,14 +78,11 @@ program gquantiles, rclass
         fill(passthru)                  ///
     ]
 
-	if ( `"`weight'"' != "" ) {
-		di in err "weights are planned for a future release"
-        exit 198
-    }
-
-    local if0  `if'
-    local in0  `in'
-    local ifin `if' `in'
+    local if0     `if'
+    local in0     `in'
+    local ifin    `if' `in'
+    local weight0 `weight'
+    local exp0    `"`exp'"'
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -313,13 +314,13 @@ program gquantiles, rclass
     * Pass arguments to internals
     * ---------------------------
 
-	if ( `"`weight'"' != "" ) {
+	if ( `"`weight0'"' != "" ) {
 		tempvar touse w
-		qui gen double `w' `exp' `if' `in'
-		local wgt `"[`weight'=`w']"'
-        local weights weights(`weight' `w')
-        mark `touse' `if' `in' `wgt'
-        local ifin if `touse' `in'
+		qui gen double `w' `exp0' `ifin'
+		local wgt `"[`weight0'=`w']"'
+        local weights weights(`weight0' `w')
+        mark `touse' `ifin' `wgt'
+        local ifin if `touse' `in0'
 	}
     else local weights
 
@@ -334,7 +335,7 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug'
+    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug' `compress' `forcestrl'
     local   opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
     local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'

@@ -1,5 +1,5 @@
-#ifndef GTOOLS_GQUANTILES_MATH
-#define GTOOLS_GQUANTILES_MATH
+#ifndef GQUANTILES_MATH
+#define GQUANTILES_MATH
 
 void gf_quantiles_nq (
     ST_double *qout,

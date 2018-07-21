@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.1  02May2018}{...}
+{* *! version 0.9.1  19Jul2018}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -58,14 +58,22 @@ To change the sort order of the results.
 {syntab:Extras}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
 {synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
-{synopt:{opt unsorted}}do not sort levels{p_end}
+{synopt:{opt unsorted}}do not sort levels (ignored if inputs are integers){p_end}
 
 {syntab:Gtools}
+{synopt :{opth compress}}Try to compress strL to str#.
+{p_end}
+{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench:mark}}Benchmark various steps of the plugin.
+{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
+{p_end}
+{synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}
 
 {synoptline}
@@ -126,22 +134,40 @@ the number format here. Only "%.#g|f" and "%#.#g|f" are accepted
 since this is formated internally in C.
 
 {phang}
-{opth unsorted} Do not sort levels. This option is experimental and only
-affects the output when the input is not an integer (for integers, the
-levels are sorted internally regardless). While not sorting the levels
-is faster, {cmd:glevelsof} is typically used when the number of levels
-is small (10s, 100s, 1000s) and thus speed savings will be minimal.
+{opth unsorted} Do not sort levels. This option is experimental and
+only affects the output when the input is not an integer (for integers,
+the levels are sorted internally regardless; the user would request the
+spooky hash method via {opt hash()}, which obeys the {opt unsorted}
+option, but this is intended for debugging). While not sorting the
+levels is faster, {cmd:glevelsof} is typically used when the number
+of levels is small (10s, 100s, 1000s) and thus speed savings will be
+minimal.
 
 {dlgtab:Gtools}
+
+{phang}
+{opt compress} Try to compress strL to str#. The Stata Plugin Interface
+has only limited support for strL variables. In Stata 13 and earlier
+(version 2.0) there is no support, and in Stata 14 and later (version
+3.0) there is read-only support. The user can try to compress strL
+variables using this option.
+
+{phang} 
+{opt forcestrl} Skip binary variable check and force gtools to read strL
+variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
+This option was included because on some windows systems Stata detects
+binary data even when there is none. Only use this option if you are
+sure you do not have binary data in your strL variables.
 
 {phang}
 {opt verbose} prints some useful debugging info to the console.
 
 {phang}
-{opt benchmark} prints how long in seconds various parts of the program
-take to execute. The user can also pass {opth bench(int)} for finer control.
-{opt bench(1)} is the same as benchmark but {opt bench(2)} 2 additionally
-prints benchmarks for internal plugin steps.
+{opt bench:mark} and {opt bench:marklevel(int)} print how long in
+seconds various parts of the program take to execute. The user can also
+pass {opth bench(int)} for finer control. {opt bench(1)} is the same
+as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
+internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem
@@ -150,6 +176,16 @@ gtools and required for the plugin to run correctly. The best thing a Windows
 user can do is run {opt gtools, dependencies} at the start of their Stata
 session, but if Stata cannot find the plugin the user can specify a path
 manually here.
+
+{phang}
+{opth hashmethod(str)} Hash method to use. {opt default} automagically
+chooses the algorithm. {opt biject} tries to biject the inputs into the
+natural numbers. {opt spooky} hashes the data and then uses the hash.
+
+{phang}
+{opth oncollision(str)} How to handle collisions. A collision should never
+happen but just in case it does {opt gtools} will try to use native commands.
+The user can specify it throw an error instead by passing {opt oncollision(error)}.
 
 
 {marker remarks}{...}

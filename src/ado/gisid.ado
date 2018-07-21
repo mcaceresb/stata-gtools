@@ -1,4 +1,4 @@
-*! version 0.8.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.9.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid
@@ -10,6 +10,8 @@ program gisid
         [if] [in] ,           /// [if condition] [in start / end]
     [                         ///
         Missok                /// Missing values in varlist are OK
+        compress              /// Try to compress strL variables
+        forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
@@ -37,7 +39,7 @@ program gisid
         local miss missing
     }
 
-    local opts `miss' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local opts `miss' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)
     local rc = _rc
     global GTOOLS_CALLER ""

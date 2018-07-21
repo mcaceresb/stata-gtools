@@ -15,5 +15,6 @@ script:
 - make clean
 - ALL_CFLAGS+=-fPIC make
 - cd -
-- make clean && make SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 # - "./lib/travis_build_push.sh"

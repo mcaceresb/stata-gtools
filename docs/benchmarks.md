@@ -349,6 +349,44 @@ Benchmark vs isid, obs = 10,000,000, J = 10,000 (in seconds)
 |   18 |     . |  1.98 |        9.09 |           . | int1 str_32 double1 int2 str_12 double2
 | 19.8 |     . |  2.37 |        8.35 |           . | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
+### gduplicates
+
+`gduplicates` is 8-16 times faster than `duplicates`.
+Benchmark vs duplicates report, obs = 10,000,000, J = 10,000 (in seconds)
+
+| duplicates | gduplicates | ratio (g/h) | varlist
+| ---------- | ----------- | ----------- | -------
+|         74 |        7.87 |         9.4 | str_12
+|       76.3 |        8.89 |        8.58 | str_12 str_32
+|       77.8 |        9.13 |        8.52 | str_12 str_32 str_4
+|       55.7 |        5.65 |        9.86 | double1
+|       61.6 |        5.95 |        10.4 | double1 double2
+|       59.4 |        5.98 |        9.94 | double1 double2 double3
+|       67.7 |        4.37 |        15.5 | int1
+|       69.9 |        5.25 |        13.3 | int1 int2
+|         70 |         6.3 |        11.1 | int1 int2 int3
+|       62.1 |        7.86 |         7.9 | int1 str_32 double1
+|       70.1 |        9.41 |        7.45 | int1 str_32 double1 int2 str_12 double2
+|       78.4 |        11.9 |        6.56 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+
+Benchmark vs duplicates drop, obs = 10,000,000, J = 10,000
+(in seconds; output compared via cf)
+
+| duplicates | gduplicates | ratio (g/h) | varlist
+| ---------- | ----------- | ----------- | -------
+|       41.2 |        3.94 |        10.5 | str_12
+|       44.9 |        4.79 |        9.39 | str_12 str_32
+|       47.8 |        6.27 |        7.63 | str_12 str_32 str_4
+|       34.1 |        2.18 |        15.6 | double1
+|       36.6 |         2.5 |        14.6 | double1 double2
+|       38.1 |        2.45 |        15.6 | double1 double2 double3
+|       32.9 |        1.42 |        23.2 | int1
+|       36.6 |        1.55 |        23.6 | int1 int2
+|       39.8 |        2.63 |        15.2 | int1 int2 int3
+|       41.5 |        4.47 |        9.27 | int1 str_32 double1
+|       48.4 |        7.77 |        6.23 | int1 str_32 double1 int2 str_12 double2
+|       57.7 |         6.7 |        8.61 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+
 ### glevelsof
 
 glevelsof` ~3-13 times faster than `levelsof` and ~1.5-13 times `faster than
@@ -765,6 +803,44 @@ Benchmark vs isid, obs = 10,000,000, J = 10,000 (in seconds)
 | 9.97 |  1.94 |        5.13 | int1 str_32 double1
 | 10.6 |  2.41 |        4.41 | int1 str_32 double1 int2 str_12 double2
 | 11.9 |  2.86 |        4.18 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+
+### gduplicates
+
+`gduplicates` is 3-10 times faster than `duplicates`.
+Benchmark vs duplicates report, obs = 10,000,000, J = 10,000 (in seconds)
+
+| duplicates | gduplicates | ratio (g/h) | varlist
+| ---------- | ----------- | ----------- | -------
+|       94.4 |        10.7 |        8.84 | str_12
+|       96.3 |        12.5 |        7.67 | str_12 str_32
+|       97.9 |        13.6 |        7.18 | str_12 str_32 str_4
+|       73.7 |        8.85 |        8.33 | double1
+|       74.6 |        9.16 |        8.15 | double1 double2
+|       74.4 |        9.25 |        8.05 | double1 double2 double3
+|       93.5 |        8.41 |        11.1 | int1
+|         92 |        9.45 |        9.73 | int1 int2
+|       92.6 |        10.7 |        8.66 | int1 int2 int3
+|       80.8 |        12.6 |        6.42 | int1 str_32 double1
+|       84.7 |        13.7 |         6.2 | int1 str_32 double1 int2 str_12 double2
+|       87.7 |        16.8 |        5.22 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
+
+Benchmark vs duplicates drop, obs = 10,000,000, J = 10,000
+(in seconds; output compared via cf)
+
+| duplicates | gduplicates | ratio (g/h) | varlist
+| ---------- | ----------- | ----------- | -------
+|       35.1 |        7.96 |        4.41 | str_12
+|       37.4 |        8.67 |        4.31 | str_12 str_32
+|       40.1 |        10.5 |        3.82 | str_12 str_32 str_4
+|       31.4 |        4.75 |        6.61 | double1
+|       32.8 |         5.8 |        5.66 | double1 double2
+|       32.9 |        5.45 |        6.04 | double1 double2 double3
+|       33.2 |        4.18 |        7.95 | int1
+|       35.3 |        3.83 |        9.22 | int1 int2
+|       36.8 |        6.37 |        5.78 | int1 int2 int3
+|       37.9 |        8.06 |         4.7 | int1 str_32 double1
+|       41.6 |        10.8 |        3.84 | int1 str_32 double1 int2 str_12 double2
+|       45.3 |        12.4 |        3.64 | int1 str_32 double1 int2 str_12 double2 int3 str_4 double3
 
 ### glevelsof
 

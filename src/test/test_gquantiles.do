@@ -39,8 +39,9 @@ program checks_gquantiles
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gquantiles, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(5000) random(2) skipstr
+    qui `noisily' gen_data, n(5000) skipstr
     qui expand 2
+    qui `noisily' random_draws, random(2)
     gen long   ix = _n
     gen double ru = runiform() * 100
     gen double rn = rnormal() * 100
@@ -65,59 +66,64 @@ program checks_gquantiles
     checks_inner_gquantiles ix,   `options' method(2)
 
     checks_inner_gquantiles int1^2 + 3 * double1,          `options' method(2)
-    checks_inner_gquantiles 2 * int1 + log(double1),       `options'
-    checks_inner_gquantiles int1 * double3 + exp(double3), `options' method(1)
+    checks_inner_gquantiles log(double1) + 2 * int1,       `options'
+    checks_inner_gquantiles exp(double3) + int1 * double3, `options' method(1)
 end
 
 capture program drop checks_inner_gquantiles
 program checks_inner_gquantiles
-    syntax anything, [tol(real 1e-6) NOIsily *]
+    syntax anything, [tol(real 1e-6) NOIsily wgt(str)  *]
     cap drop __*
     local qui = cond("`noisily'" == "", "qui", "noisily")
 
+    local 0 `anything' `wgt', `options'
+    syntax anything [aw fw pw], [*]
+
     `qui' {
-        gquantiles __p1 = `anything', pctile `options' nq(10)
+        gquantiles __p1 = `anything' `wgt', pctile `options' nq(10)
         l in 1/10
 
-        gquantiles __p2 = `anything', pctile `options' cutpoints(__p1)
-        gquantiles __p3 = `anything', pctile `options' quantiles(10 30 50 70 90)
-        gquantiles __p4 = `anything', pctile `options' cutoffs(10 30 50 70 90)
-        cap gquantiles __p5 = `anything', pctile `options' cutquantiles(rn)
+        gquantiles __p2 = `anything' `wgt', pctile `options' cutpoints(__p1)
+        gquantiles __p3 = `anything' `wgt', pctile `options' quantiles(10 30 50 70 90)
+        gquantiles __p4 = `anything' `wgt', pctile `options' cutoffs(10 30 50 70 90)
+        cap gquantiles __p5 = `anything' `wgt', pctile `options' cutquantiles(rn)
         assert _rc == 198
-        gquantiles __p5 = `anything', pctile `options' cutquantiles(ru)
+        gquantiles __p5 = `anything' `wgt', pctile `options' cutquantiles(ru)
 
 
-        fasterxtile __fx1 = `anything', `options' nq(10)
-        fasterxtile __fx2 = `anything', `options' cutpoints(__p1)
-        fasterxtile __fx3 = `anything', `options' cutpoints(__p1) altdef
-        fasterxtile __fx4 = `anything', `options' nq(10) altdef
+        fasterxtile __fx1 = `anything' `wgt', `options' nq(10)
+        fasterxtile __fx2 = `anything' `wgt', `options' cutpoints(__p1)
+        fasterxtile __fx3 = `anything',       `options' cutpoints(__p1) altdef
+        fasterxtile __fx4 = `anything',       `options' nq(10) altdef
 
 
-        gquantiles __x1 = `anything', xtile `options' nq(10)
-        gquantiles __x2 = `anything', xtile `options' cutpoints(__p1)
-        gquantiles __x3 = `anything', xtile `options' quantiles(10 30 50 70 90)
-        gquantiles __x4 = `anything', xtile `options' cutoffs(10 30 50 70 90)
-        cap gquantiles __x5 = `anything', xtile `options' cutquantiles(rn)
+        gquantiles __x1 = `anything' `wgt', xtile `options' nq(10)
+        gquantiles __x2 = `anything' `wgt', xtile `options' cutpoints(__p1)
+        gquantiles __x3 = `anything' `wgt', xtile `options' quantiles(10 30 50 70 90)
+        gquantiles __x4 = `anything' `wgt', xtile `options' cutoffs(10 30 50 70 90)
+        cap gquantiles __x5 = `anything' `wgt', xtile `options' cutquantiles(rn)
         assert _rc == 198
-        gquantiles __x5 = `anything', xtile `options' cutquantiles(ru)
+        gquantiles __x5 = `anything' `wgt', xtile `options' cutquantiles(ru)
 
-        gquantiles `anything', _pctile `options' nq(10)
+        gquantiles `anything' `wgt', _pctile `options' nq(10)
 
 
-        cap gquantiles `anything', _pctile `options' cutpoints(__p1)
+        cap gquantiles `anything' `wgt', _pctile `options' cutpoints(__p1)
         assert _rc == 198
-        gquantiles `anything', _pctile `options' cutpoints(__p1) pctile(__p2) replace
+        gquantiles `anything' `wgt', _pctile `options' cutpoints(__p1) pctile(__p2) replace
 
-        gquantiles `anything', _pctile `options' quantiles(10 30 50 70 90)
+        gquantiles `anything' `wgt', _pctile `options' quantiles(10 30 50 70 90)
 
-        cap gquantiles `anything', _pctile `options' cutoffs(10 30 50 70 90)
+        cap gquantiles `anything' `wgt', _pctile `options' cutoffs(10 30 50 70 90)
         assert _rc == 198
-        gquantiles `anything', _pctile `options' cutoffs(10 30 50 70 90) binfreq
+        gquantiles `anything' `wgt', _pctile `options' cutoffs(10 30 50 70 90) binfreq
 
-        cap gquantiles `anything', _pctile `options' cutquantiles(ru)
+        cap gquantiles `anything' `wgt', _pctile `options' cutquantiles(ru)
         assert _rc == 198
-        gquantiles `anything', _pctile `options' cutpoints(__p1)  xtile(__x5) replace
+        gquantiles `anything' `wgt', _pctile `options' cutpoints(__p1)  xtile(__x5) replace
     }
+
+    if ( "`wgt'" != "" ) exit 0
 
     `qui' {
         gquantiles __p1 = `anything', pctile altdef binfreq `options' nq(10) replace
@@ -228,38 +234,54 @@ end
 
 capture program drop compare_gquantiles
 program compare_gquantiles
-    syntax, [NOIsily noaltdef *]
+    syntax, [NOIsily noaltdef wgt(str) *]
     local options `options' `noisily'
 
-    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options'
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "mix" ) {
+        local wcall_a "[aw = unif_0_100]"
+        local wcall_f "[fw = int_unif_0_100]"
+        local wcall_p "[pw = float_unif_0_1]"
+        local wgen_a qui gen unif_0_100 = 100 * runiform() if mod(_n, 100)
+        local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+        local wgen_p qui gen float_unif_0_1 = runiform() if mod(_n, 100)
+    }
+
+    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options' wgt(`wcall_a') wgen(`wgen_a')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000) random(2) double skipstr
+    qui `noisily' gen_data, n(10000) skipstr
     qui expand 10
+    qui `noisily' random_draws, random(2) double
     gen long   ix = _n
     gen double ru = runiform() * 100
     qui replace ix = . if mod(_n, 10000) == 0
     qui replace ru = . if mod(_n, 10000) == 0
     qui sort random1
+    `wgen_a'
+    `wgen_f'
+    `wgen_p'
 
-    _consistency_inner_gquantiles, `options'
-    _consistency_inner_gquantiles in 1 / 5, `options' corners
-
-    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
-    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
-    local from = cond(`in1' < `in2', `in1', `in2')
-    local to   = cond(`in1' > `in2', `in1', `in2')
-    _consistency_inner_gquantiles in `from' / `to', `options'
-
-    _consistency_inner_gquantiles if random2 > 0, `options'
+    _consistency_inner_gquantiles, `options' wgt(`wcall_f')
+    _consistency_inner_gquantiles in 1 / 5, `options' corners wgt(`wcall_p')
 
     local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
     local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
     local from = cond(`in1' < `in2', `in1', `in2')
     local to   = cond(`in1' > `in2', `in1', `in2')
-    _consistency_inner_gquantiles `anything' if random2 < 0 in `from' / `to', `options'
+    _consistency_inner_gquantiles in `from' / `to', `options' wgt(`wcall_a')
+
+    _consistency_inner_gquantiles if random2 > 0, `options' wgt(`wcall_p')
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    _consistency_inner_gquantiles `anything' if random2 < 0 in `from' / `to', `options' wgt(`wcall_f')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_internals, N = `N', `options'" _n(1) "{hline 80}" _n(1)
@@ -279,8 +301,8 @@ program _consistency_inner_gquantiles
     _consistency_inner_full ix   `if' `in', `options'
 
     _consistency_inner_full int1^2 + 3 * double1          `if' `in', `options'
-    _consistency_inner_full 2 * int1 + log(double1)       `if' `in', `options'
-    _consistency_inner_full int1 * double3 + exp(double3) `if' `in', `options'
+    _consistency_inner_full log(double1) + 2 * int1       `if' `in', `options'
+    _consistency_inner_full exp(double3) + int1 * double3 `if' `in', `options'
     }
     else {
     _consistency_inner_full double1 `if' `in', `options'
@@ -292,7 +314,11 @@ end
 
 capture program drop _consistency_inner_full
 program  _consistency_inner_full
-    syntax anything [if] [in], [*]
+    syntax anything [if] [in], [wgt(str) *]
+
+    if ( "`wgt'" != "" ) {
+        local wtxt " `wgt'"
+    }
 
     if ( "`if'`in'" != "" ) {
         local ifinstr ""
@@ -300,14 +326,16 @@ program  _consistency_inner_full
         if ( "`in'" != "" ) local ifinstr `ifinstr' [`in']
     }
 
-    local hlen = length("Internal consistency for gquantiles `anything', `ifinstr'")
-    di as txt _n(1) "Internal consistency for gquantiles `anything', `ifinstr'" _n(1) "{hline `hlen'}" _n(1)
+    local hlen = length("Internal consistency for gquantiles `anything', `ifinstr'`wtxt'")
+    di as txt _n(1) "Internal consistency for gquantiles `anything', `ifinstr'`wtxt'" _n(1) "{hline `hlen'}" _n(1)
 
-    _consistency_inner_nq `anything' `if' `in', `options' nq(2)
-    _consistency_inner_nq `anything' `if' `in', `options' nq(10)
-    _consistency_inner_nq `anything' `if' `in', `options' nq(100)
-    _consistency_inner_nq `anything' `if' `in', `options' nq(801)
-    _consistency_inner_nq `anything' `if' `in', `options' nq(`=_N + 1')
+    _consistency_inner_nq `anything' `if' `in', `options' wgt(`wgt') nq(2)
+    _consistency_inner_nq `anything' `if' `in', `options' wgt(`wgt') nq(10)
+    _consistency_inner_nq `anything' `if' `in', `options' wgt(`wgt') nq(100)
+    _consistency_inner_nq `anything' `if' `in', `options' wgt(`wgt') nq(801)
+    _consistency_inner_nq `anything' `if' `in', `options' wgt(`wgt') nq(`=_N + 1')
+
+    if ( `"`wgt'"' != "" ) exit 0
 
     _consistency_inner_nq `anything' `if' `in', altdef `options' nq(2)
     _consistency_inner_nq `anything' `if' `in', altdef `options' nq(10)
@@ -318,29 +346,29 @@ end
 
 capture program drop _consistency_inner_nq
 program _consistency_inner_nq
-    syntax anything [if] [in], [tol(real 1e-15) tolmat(real 1e-6) nq(real 2) *]
+    syntax anything [if] [in], [tol(real 1e-15) tolmat(real 1e-6) nq(real 2) wgt(str) *]
     cap drop __*
     local rc = 0
 
     qui {
-    gquantiles __p1 = `anything' `if' `in', pctile `options' nq(`nq') genp(__g1) binfreq(__f1) xtile(__x1)
-    gquantiles __p2 = `anything' `if' `in', pctile `options' cutpoints(__p1) binfreq(__f2) xtile(__x2)
+    gquantiles __p1 = `anything' `if' `in' `wgt', pctile `options' nq(`nq') genp(__g1) binfreq(__f1) xtile(__x1)
+    gquantiles __p2 = `anything' `if' `in' `wgt', pctile `options' cutpoints(__p1) binfreq(__f2) xtile(__x2)
     if ( `nq' <= 801 ) {
         if ( `nq' > 10 ) set matsize `=`nq' - 1'
         mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
         mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
 
-        gquantiles __p3 = `anything' `if' `in', pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) xtile(__x3)
+        gquantiles __p3 = `anything' `if' `in' `wgt', pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) xtile(__x3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
 
-        gquantiles __p4 = `anything' `if' `in', pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) xtile(__x4)
+        gquantiles __p4 = `anything' `if' `in' `wgt', pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) xtile(__x4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
     }
-    gquantiles __p5 = `anything' `if' `in', pctile `options' cutquantiles(__g1) binfreq(__f5) xtile(__x5)
+    gquantiles __p5 = `anything' `if' `in' `wgt', pctile `options' cutquantiles(__g1) binfreq(__f5) xtile(__x5)
     }
 
     * NOTE(mauricio): At one point I do exp(X) which blows this up.
@@ -374,24 +402,24 @@ program _consistency_inner_nq
 
     qui {
     cap drop __*
-    gquantiles __x1 = `anything' `if' `in', xtile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1)
-    gquantiles __x2 = `anything' `if' `in', xtile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2)
+    gquantiles __x1 = `anything' `if' `in' `wgt', xtile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1)
+    gquantiles __x2 = `anything' `if' `in' `wgt', xtile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2)
     if ( `nq' <= 801 ) {
         if ( `nq' > 10 ) set matsize `=`nq' - 1'
         mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
         mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
 
-        gquantiles __x3 = `anything' `if' `in', xtile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3)
+        gquantiles __x3 = `anything' `if' `in' `wgt', xtile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3)
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
 
-        gquantiles __x4 = `anything' `if' `in', xtile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4)
+        gquantiles __x4 = `anything' `if' `in' `wgt', xtile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4)
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
     }
-    gquantiles __x5 = `anything' `if' `in', xtile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5)
+    gquantiles __x5 = `anything' `if' `in' `wgt', xtile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5)
     }
 
     _compare_inner_nqvars `tol' `tolmat' `nq'
@@ -423,20 +451,20 @@ program _consistency_inner_nq
         mkmat __g1 in 1 / `=`nq' - 1', mat(__mg1)
         mkmat __p1 in 1 / `=`nq' - 1', mat(__mp1)
 
-        gquantiles `anything' `if' `in', _pctile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1) xtile(__x1) replace
-        gquantiles `anything' `if' `in', _pctile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2) xtile(__x2) replace
+        gquantiles `anything' `if' `in' `wgt', _pctile `options' nq(`nq') genp(__g1) binfreq(__f1) pctile(__p1) xtile(__x1) replace
+        gquantiles `anything' `if' `in' `wgt', _pctile `options' cutpoints(__p1) binfreq(__f2) pctile(__p2) xtile(__x2) replace
 
-        gquantiles `anything' `if' `in', _pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3) xtile(__x3) replace
+        gquantiles `anything' `if' `in' `wgt', _pctile `options' quantmatrix(__mg1) binfreq binfreq(__f3) pctile(__p3) xtile(__x3) replace
         scalar ___s3   = r(nqused)
         matrix ___mp3  = r(quantiles_used)
         matrix ___mf3  = r(quantiles_binfreq)
 
-        gquantiles `anything' `if' `in', _pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4) xtile(__x4) replace
+        gquantiles `anything' `if' `in' `wgt', _pctile `options' cutmatrix(__mp1) binfreq binfreq(__f4) pctile(__p4) xtile(__x4) replace
         scalar ___s4   = r(nqused)
         matrix ___mp4  = r(cutoffs_used)
         matrix ___mf4  = r(cutoffs_binfreq)
 
-        gquantiles `anything' `if' `in', _pctile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5) xtile(__x5) replace
+        gquantiles `anything' `if' `in' `wgt', _pctile `options' cutquantiles(__g1) binfreq(__f5) pctile(__p5) xtile(__x5) replace
 
         _compare_inner_nqvars `tol' `tolmat' `nq'
         if ( `rc' ) {
@@ -449,14 +477,14 @@ program _consistency_inner_nq
                 local rc = max(`rc', _rc)
             }
             if ( `rc' ) {
-                di as err "    consistency_internal_gquantiles (failed): __pctile via nq(`nq') `options' not all equal"
+                di as err "    consistency_internal_gquantiles (failed): _pctile via nq(`nq') `options' not all equal"
                 exit `rc'
             }
             else {
                 qui su `relcmp'
                 _compare_inner_nqvars `tol' `=r(max)' `nq'
                 if ( `rc' ) {
-                    di as err "    consistency_internal_gquantiles (failed): __pctile via nq(`nq') `options' not all equal"
+                    di as err "    consistency_internal_gquantiles (failed): _pctile via nq(`nq') `options' not all equal"
                     exit `rc'
                 }
             }
@@ -591,16 +619,18 @@ end
 
 capture program drop compare_inner_quantiles
 program compare_inner_quantiles
-    syntax, [bench(int 5) n(real 100000) benchmode *]
+    syntax, [bench(int 5) n(real 100000) benchmode wgen(str) *]
     local options `options' `benchmode'
 
-    qui `noisily' gen_data, n(`n') random(2) double skipstr
+    qui `noisily' gen_data, n(`n') skipstr
     qui expand `bench'
+    qui `noisily' random_draws, random(2) double
     gen long   ix = _n
     gen double ru = runiform() * 100
     qui replace ix = . if mod(_n, `n') == 0
     qui replace ru = . if mod(_n, `n') == 0
     qui sort random1
+    `wgen'
 
     _compare_inner_gquantiles, `options'
 
@@ -629,7 +659,7 @@ end
 
 capture program drop _compare_inner_gquantiles
 program _compare_inner_gquantiles
-    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) qwhich(str) benchmode table corners *]
+    syntax [if] [in], [tol(real 1e-6) NOIsily qopts(str) qwhich(str) benchmode table corners wgt(str) *]
 
     if ( "`if'`in'" != "" ) {
         local ifinstr ""
@@ -642,14 +672,15 @@ program _compare_inner_gquantiles
         }
     }
 
-    local options `options' `benchmode' `table' qopts(`qopts')
+    local options `options' `benchmode' `table' qopts(`qopts') wgt(`wgt')
 
     local N = trim("`: di %15.0gc _N'")
     di as txt _n(1)
     di as txt "Compare `qwhich'"
-    di as txt "     - opts:  `qopts'"
-    di as txt "     - if in: `ifinstr'"
-    di as txt "     - obs:   `N'"
+    di as txt "     - opts:   `qopts'"
+    di as txt "     - if in:  `ifinstr'"
+    di as txt "     - weight: `wgt'"
+    di as txt "     - obs:    `N'"
     if ( ("`benchmode'" != "") | ("`table'" != "") ) {
     if ( "`qwhich'" == "xtile" ) {
     di as txt "    xtile | fastxtile | gquantiles | ratio (x/g) | ratio (f/g) | varlist"
@@ -675,8 +706,8 @@ program _compare_inner_gquantiles
     _compare_inner_`qwhich' ix   `if' `in', `options' note("discrete (few missings, unique)")
 
     _compare_inner_`qwhich' int1^2 + 3 * double1          `if' `in', `options'
-    _compare_inner_`qwhich' 2 * int1 + log(double1)       `if' `in', `options'
-    _compare_inner_`qwhich' int1 * double3 + exp(double3) `if' `in', `options'
+    _compare_inner_`qwhich' log(double1) + 2 * int1       `if' `in', `options'
+    _compare_inner_`qwhich' exp(double3) + int1 * double3 `if' `in', `options'
     }
     else {
     _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
@@ -692,7 +723,7 @@ end
 
 capture program drop _compare_inner_xtile
 program _compare_inner_xtile
-    syntax anything [if] [in], [note(str) benchmode table qopts(str) sorted *]
+    syntax anything [if] [in], [note(str) benchmode table qopts(str) sorted wgt(str) *]
     tempvar xtile fxtile gxtile
 
     if ( "`sorted'" != "" ) {
@@ -706,21 +737,21 @@ program _compare_inner_xtile
 
     timer clear
     timer on 43
-    qui gquantiles `gxtile' = `anything' `if' `in', xtile `qopts' `options'
+    qui gquantiles `gxtile' = `anything' `if' `in' `wgt', xtile `qopts' `options'
     timer off 43
     qui timer list
     local time_gxtile = r(t43)
 
     timer clear
     timer on 42
-    qui xtile `xtile' = `anything' `if' `in', `qopts'
+    qui xtile `xtile' = `anything' `if' `in' `wgt', `qopts'
     timer off 42
     qui timer list
     local time_xtile = r(t42)
 
     timer clear
     timer on 44
-    cap fastxtile `fxtile' = `anything' `if' `in', `qopts'
+    cap fastxtile `fxtile' = `anything' `if' `in' `wgt', `qopts'
     local rc_f = _rc
     timer off 44
     qui timer list
@@ -730,11 +761,12 @@ program _compare_inner_xtile
         di "(note: fastxtile failed where xtile succeeded)"
     }
 
+    local warnings 0
     cap assert `xtile' == `gxtile'
     if ( _rc ) {
         tempvar diff
-        gen `diff' = `xtile' - `gxtile'
-        gtoplevelsof `diff'
+        qui gen `diff' = `xtile' - `gxtile'
+        gtoplevelsof `diff', nowarn
         if ( strpos("`qopts'", "altdef") ) {
             local qopts: subinstr local qopts "altdef" " ", all
             qui gquantiles `anything' `if' `in', xtile(`gxtile') `qopts' replace
@@ -747,6 +779,7 @@ program _compare_inner_xtile
                 di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
                 di as err ""
                 di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
+                count if `xtile' != `gxtile'
                 sum `xtile' `gxtile' `diff'
                 l `xtile' `gxtile' `diff' in 1/20
             }
@@ -762,14 +795,27 @@ program _compare_inner_xtile
             exit 198
         }
         else {
-            di as err "    compare_xtile (failed): gquantiles xtile = `anything' gave different levels to xtile"
-            cap assert `xtile' == `fxtile'
-            if ( _rc & (`rc_f' == 0) ) {
-                di as txt "    (note: fastxtile also gave different levels)"
+            qui count if `xtile' != `gxtile'
+            local fail = `r(N)'
+            local warnings 1
+            if ( `=max(`=`fail' / _N' < 0.05, `fail' == 1)' & ("`wgt'" != "") ) {
+                di as err "    compare_xtile (warning): gquantiles xtile = `anything' gave different levels to xtile"
+                di as err ""
+                di as err "using weights in xtile seems to give incorrect results under some" ///
+                    _n(1) "circumstances. Only `fail' / `=_N' xtiles were off."
+                di as err ""
             }
-            sum `xtile' `gxtile' `diff'
-            l `xtile' `gxtile' `diff' in 1/20
-            exit 198
+            else {
+                di as err "    compare_xtile (failed): gquantiles xtile = `anything' gave different levels to xtile"
+                cap assert `xtile' == `fxtile'
+                if ( _rc & (`rc_f' == 0) ) {
+                    di as txt "    (note: fastxtile also gave different levels)"
+                }
+                count if `xtile' != `gxtile'
+                sum `xtile' `gxtile' `diff'
+                l `xtile' `gxtile' `diff' in 1/20
+                exit 198
+            }
         }
     }
 
@@ -778,7 +824,7 @@ program _compare_inner_xtile
         di as txt "    (note: fastxtile gave different levels to xtile)"
     }
 
-    if ( "`benchmode'" == "" ) {
+    if ( ("`benchmode'" == "") & (`warnings' == 0) ) {
         di as txt "    compare_xtile (passed): gquantiles xtile = `anything' was the same as xtile"
         exit 0
     }
@@ -792,7 +838,7 @@ end
 
 capture program drop _compare_inner_pctile
 program _compare_inner_pctile
-    syntax anything [if] [in], [benchmode table qopts(str) reltol(real 1e-9) tol(real 1e-6) note(str) sorted *]
+    syntax anything [if] [in], [benchmode table qopts(str) reltol(real 1e-8) tol(real 1e-6) note(str) sorted wgt(str) *]
     tempvar pctile pctpct gpctile gpctpct
 
     if ( "`sorted'" != "" ) {
@@ -815,22 +861,24 @@ program _compare_inner_pctile
 
     timer clear
     timer on 43
-    qui gquantiles `gpctile' = `anything' `if' `in', pctile `gqopts' `options'
+    qui gquantiles `gpctile' = `anything' `if' `in' `wgt', pctile `gqopts' `options'
     timer off 43
     qui timer list
     local time_gpctile = r(t43)
 
     timer clear
     timer on 42
-    qui pctile `pctile' = `anything' `if' `in', `qopts'
+    qui pctile `pctile' = `anything' `if' `in' `wgt', `qopts'
     timer off 42
     qui timer list
     local time_pctile = r(t42)
 
+    local warnings 0
     tempvar comp
-    qui gen double `comp' = `pctile' * `reltol' if !mi(`pctile')
-    qui replace `comp'    = cond(`comp' < `tol', `tol', `comp') if !mi(`pctile')
-    cap assert abs(`pctile' - `gpctile') < `tol' | ( mi(`pctile') & mi(`gpctile'))
+    qui gen double `comp' = .
+    * qui gen double `comp' = `pctile' * `reltol' if !mi(`pctile')
+    * qui replace `comp'    = cond(`comp' < `tol', `tol', `comp') if !mi(`pctile')
+    cap assert abs(`pctile' - `gpctile') < `tol' | (mi(`pctile') & mi(`gpctile'))
     if ( _rc ) {
         di as err "    compare_pctile (warning): gquantiles pctile = `anything' gave different percentiles to pctile (tol = `:di %6.2g `tol'')"
         if ( strpos("`qopts'", "altdef") ) {
@@ -844,12 +892,37 @@ program _compare_inner_pctile
 
         tempvar gpctile2
         qui gen `:type `pctile'' `gpctile2' = `gpctile'
-        cap assert abs(`pctile' - `gpctile2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
+        qui replace `comp' = abs(1 - `gpctile2' / `pctile') if !mi(`pctile') & !mi(`gpctile')
+        cap assert abs(`comp') < `reltol' | (mi(`pctile') & mi(`gpctile'))
+        * cap assert abs(`pctile' - `gpctile2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
         if ( _rc ) {
-            di as err "    compare_pctile (failed): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `:di %6.2g `reltol'')"
-            sum `pctile' `gpctile' `comp'
-            l `pctile' `gpctile' in 1/20
-            exit 198
+            local warnings 1
+            qui sum `comp' if !(abs(`comp') < `reltol' | (mi(`pctile') & mi(`gpctile')))
+            local error: disp %9.3g `r(mean)'
+            local error `error'
+            qui count if !mi(`pctile') | !mi(`gpctile')
+            local total = `r(N)'
+            qui count if !(abs(`comp') < `reltol' | (mi(`pctile') & mi(`gpctile')))
+            local fail = `r(N)'
+            if ( `=max(`=`fail' / `total'' < 0.1, `fail' == 1)' & ("`wgt'" != "") ) {
+                di as err "    compare_pctile (warning): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `:di %6.2g `reltol'')"
+                di as err ""
+                di as err "using weights in pctile seems to give incorrect results under some"     ///
+                    _n(1) "circumstances. Only `fail' / `total' pctiles were off by an average of" ///
+                    _n(1) "`error'. This is likely due to this quirk in pctile rather than an"     ///
+                    _n(1) "error in your code (pay special attention to the weighted gcollapse"    ///
+                    _n(1) "comparison to check)"
+                di as err ""
+            }
+            else {
+                di as err "    compare_pctile (failed): gquantiles pctile = `anything' gave different percentiles to pctile (reltol = `:di %6.2g `reltol'')"
+                di as err "`fail' / `total' failed"
+                drop if mi(`pctile') & mi(`gpctile')
+                hashsort -`comp' -`pctile' -`gpctile'
+                sum `pctile' `gpctile' `comp'
+                l `pctile' `gpctile' `comp' in 1/20
+                exit 198
+            }
         }
     }
 
@@ -858,20 +931,24 @@ program _compare_inner_pctile
         if ( _rc ) {
             tempvar gpctpct2
             qui gen `:type `pctpct'' `gpctpct2' = `gpctpct'
-            qui replace `comp' = `pctpct' * `reltol' if !mi(`pctpct')
-            qui replace `comp' = cond(`comp' < `tol', `tol', `comp') if !mi(`pctpct')
-            cap assert abs(`pctpct' - `gpctpct2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
+            * qui replace `comp' = `pctpct' * `reltol' if !mi(`pctpct')
+            * qui replace `comp' = cond(`comp' < `tol', `tol', `comp') if !mi(`pctpct')
+            * cap assert abs(`pctpct' - `gpctpct2') < `comp' | ( mi(`pctile') & mi(`gpctile'))
+            qui replace `comp' = abs(1 - `gpctpct2' / `pctpct') if !mi(`pctpct') & !mi(`gpctpct')
+            cap assert abs(`comp') < `reltol' | (mi(`pctpct') & mi(`gpctpct'))
             if ( _rc ) {
                 di as err "    compare_pctile (failed): gquantiles pctile = `anything', genp() gave different percentages to pctile, genp()"
+                drop if mi(`pctpct') & mi(`gpctpct')
+                hashsort -`comp'
                 sum `pctpct' `gpctpct' `comp'
                 l `pctpct' `gpctpct' in 1/20
                 exit 198
             }
-            else {
+            else if ( `warnings' == 0 ) {
                 di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
             }
         }
-        else {
+        else if ( `warnings' == 0 ) {
             di as txt "    compare_pctile (passed): gquantiles pctile = `anything', genp() gave similar results to pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
         }
     }
@@ -884,7 +961,7 @@ end
 
 capture program drop _compare_inner__pctile
 program _compare_inner__pctile
-    syntax anything [if] [in], [benchmode table qopts(str) reltol(real 1e-9) tol(real 1e-6) note(str) sorted *]
+    syntax anything [if] [in], [benchmode table qopts(str) reltol(real 1e-8) tol(real 1e-6) note(str) sorted wgt(str) *]
     tempvar exp
     qui gen double `exp' = `anything'
 
@@ -894,7 +971,7 @@ program _compare_inner__pctile
 
     timer clear
     timer on 43
-    qui gquantiles `exp' `if' `in', _pctile `qopts' `options'
+    qui gquantiles `exp' `if' `in' `wgt', _pctile `qopts' `options'
     timer off 43
     qui timer list
     local time_gpctile = r(t43)
@@ -905,7 +982,7 @@ program _compare_inner__pctile
 
     timer clear
     timer on 42
-    qui _pctile `exp' `if' `in', `qopts'
+    qui _pctile `exp' `if' `in' `wgt', `qopts'
     timer off 42
     qui timer list
     local time_pctile = r(t42)
@@ -913,31 +990,42 @@ program _compare_inner__pctile
         scalar r_`q' = `r(r`q')'
     }
 
+    local warnings 0
     forvalues q = 1 / `nq' {
         if ( abs(scalar(qr_`q') - scalar(r_`q')) > `tol' ) {
-            di as err "    compare__pctile (warning): gquantiles `anything', _pctile gave different percentiles to _pctile (tol = `:di %6.2g `tol'')"
-            if ( strpos("`qopts'", "altdef") ) {
-                di as err ""
-                di as err `"Stata's built-in _pctile, altdef can sometimes be imprecise. See"'
-                di as err ""
-                di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
-                di as err ""
-                di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
+
+            if ( "`wgt'" == "" ) {
+                di as err "    compare__pctile (warning): gquantiles `anything', _pctile gave different percentiles to _pctile (tol = `:di %6.2g `tol'')"
+                if ( strpos("`qopts'", "altdef") ) {
+                    di as err ""
+                    di as err `"Stata's built-in _pctile, altdef can sometimes be imprecise. See"'
+                    di as err ""
+                    di as err `"    {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732"}"'
+                    di as err ""
+                    di as err `"Add option {cmd:noaltdef} to compare_gquantiles to skip this check."'
+                }
             }
 
-            scalar comp = `=scalar(r_`q')' * `reltol'
-            scalar comp = cond(scalar(comp) < `tol', `tol', scalar(comp))
-            if ( abs(scalar(qr_`q') - scalar(r_`q')) > `comp' ) {
-                di as err "    compare__pctile (failed): gquantiles `anything', _pctile gave different percentiles to _pctile (reltol = `:di %6.2g `reltol'')"
-                qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(1)
-                local q1r_`q' = `r(r`q')'
-                qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(2)
-                local q2r_`q' = `r(r`q')'
-                disp "_pctile r(`q') = `=scalar(r_`q')'"
-                disp "gquantiles r(`q') = `=scalar(qr_`q')'"
-                disp "gquantiles, method(1) r(`q') = `q1r_`q''"
-                disp "gquantiles, method(2) r(`q') = `q2r_`q''"
-                exit 198
+            * scalar comp = `=scalar(r_`q')' * `reltol'
+            * scalar comp = cond(scalar(comp) < `tol', `tol', scalar(comp))
+            * if ( abs(scalar(qr_`q') - scalar(r_`q')) > `comp' ) {
+            if ( abs(1 - scalar(qr_`q') / scalar(r_`q')) > `reltol' ) {
+                if ( "`wgt'" != "" ) {
+                    local ++warnings
+                    di as err "        compare__pctile (warning): `=scalar(r_`q')' (_pctile) vs `=scalar(qr_`q')'"
+                }
+                else {
+                    di as err "    compare__pctile (failed): gquantiles `anything', _pctile gave different percentiles to _pctile (reltol = `:di %6.2g `reltol'')"
+                    qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(1)
+                    local q1r_`q' = `r(r`q')'
+                    qui gquantiles `exp' `if' `in', _pctile `qopts' `options' method(2)
+                    local q2r_`q' = `r(r`q')'
+                    disp "_pctile r(`q') = `=scalar(r_`q')'"
+                    disp "gquantiles r(`q') = `=scalar(qr_`q')'"
+                    disp "gquantiles, method(1) r(`q') = `q1r_`q''"
+                    disp "gquantiles, method(2) r(`q') = `q2r_`q''"
+                    exit 198
+                }
             }
         }
         cap scalar drop qr_`q'
@@ -946,7 +1034,18 @@ program _compare_inner__pctile
     }
 
     if ( "`benchmode'" == "" ) {
-        di as txt "    compare__pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
+        if ( `warnings' ) {
+            di as txt "    compare__pctile (warning): gquantiles `anything', _pctile gave different results to _pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
+            di as err ""
+            di as err "using weights in _pctile seems to give incorrect results under some"    ///
+                _n(1) "circumstances. The `warnings' _pctiles that were off are likely due to" ///
+                _n(1) "this quirk in pctile rather than an error in your code (pay special"    ///
+                _n(1) "attention to the weighted gcollapse comparison to check)"
+            di as err ""
+        }
+        else {
+            di as txt "    compare__pctile (passed): gquantiles `anything', _pctile gave similar results to _pctile (reltol = `:di %6.2g `reltol'', tol = `:di %6.2g `tol'')"
+        }
     }
 
     if ( ("`table'" != "") | ("`benchmode'" != "") ) {

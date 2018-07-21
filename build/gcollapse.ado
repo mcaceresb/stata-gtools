@@ -1,4 +1,4 @@
-*! version 0.13.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.14.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -21,6 +21,8 @@ program gcollapse, rclass
                                      ///
         merge                        /// Merge statistics back to original data, replacing if applicable
         replace                      /// Allow replacing existing variables with output with merge
+        compress                     /// Try to compress strL variables
+        forcestrl                    /// Force reading strL variables (stata 14 and above only)
         freq(passthru)               /// Include frequency count with observations per group
                                      ///
         LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
@@ -98,6 +100,8 @@ program gcollapse, rclass
         disp as txt `""'
         disp as txt `"    merge:              `merge'"'
         disp as txt `"    replace:            `replace'"'
+        disp as txt `"    compress:           `compress'"'
+        disp as txt `"    forcestrl:          `forcestrl'"'
         disp as txt `"    freq:               `freq'"'
         disp as txt `"    labelformat:        `labelformat'"'
         disp as txt `"    labelprogram:       `labelprogram'"'
@@ -339,6 +343,8 @@ program gcollapse, rclass
         disp as txt `"    merge:              `merge'"'
         disp as txt `"    double:             `double'"'
         disp as txt `"    replace:            `replace'"'
+        disp as txt `"    compress:           `compress'"'
+        disp as txt `"    forcestrl:          `forcestrl'"'
         disp as txt `"    replaceby:          `replaceby'"'
         disp as txt `""'
         disp as txt `"    __gtools_gc_targets:    `__gtools_gc_targets'"'
@@ -475,7 +481,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing'
+    local opts     missing replace `keepmissing' `compress' `forcestrl'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
     local opts     `opts' `anymissing' `allmissing' `rawstat'
     local action   `sources' `targets' `stats'
@@ -1462,7 +1468,11 @@ program ParseListWild
         * Parse bulk rename if applicable
         unab usources : `vars'
         if ( "`eqsign'" == "=" ) {
-            rename `vars' `target'
+            cap noi rename `vars' `target'
+            if ( _rc ) {
+                disp as err "Targets cannot exist with option {opt wildparse}."
+                exit `=_rc'
+            }
             unab utargets : `target'
             rename (`utargets') (`usources')
 

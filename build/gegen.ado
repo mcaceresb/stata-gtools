@@ -1,4 +1,4 @@
-*! version 0.13.1 02May2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.14.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -136,6 +136,8 @@ program define gegen, byable(onecall) rclass
                           HASHmethod(passthru)     ///
                           oncollision(passthru)    ///
                           Verbose                  ///
+                          compress                 ///
+                          forcestrl                ///
                           BENCHmark                ///
                           BENCHmarklevel(passthru) ///
                           gtools_capture(str)
@@ -148,7 +150,7 @@ program define gegen, byable(onecall) rclass
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `benchmark' `benchmarklevel')
+            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `compress' `forcestrl' `benchmark' `benchmarklevel')
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
             cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
             exit _rc
@@ -177,6 +179,8 @@ program define gegen, byable(onecall) rclass
                                  ///
         replace                  /// Replace target variable with output, if target already exists
                                  ///
+        compress                 /// Try to compress strL variables
+        forcestrl                /// Force reading strL variables (stata 14 and above only)
         Verbose                  /// Print info during function execution
         BENCHmark                /// Benchmark function
         BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
@@ -304,7 +308,7 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -392,6 +396,8 @@ program define gegen, byable(onecall) rclass
                               `hashlib'        ///
                               `oncollision'    ///
                               `verbose'        ///
+                              `compress'       ///
+                              `forcestrl'      ///
                               `benchmark'      ///
                               `benchmarklevel' ///
                               `gtools_capture'
@@ -400,13 +406,23 @@ program define gegen, byable(onecall) rclass
             exit 0
         }
         else if ( `rc' == 17001 ) {
-            if ( `=_N' > 0 ) `noobs'
-            `rename'
-            exit 0
+            if ( "${GTOOLS_DUPS}" == "" ) {
+                if ( `=_N' > 0 ) `noobs'
+                `rename'
+                exit 0
+            }
+            else {
+                error 2000
+            }
         }
         else if ( `rc' ) {
             exit `rc'
         }
+
+        return scalar N    = `r(N)'
+        return scalar J    = `r(J)'
+        return scalar minJ = `r(minJ)'
+        return scalar maxJ = `r(maxJ)'
 
         `rename'
         exit 0
@@ -540,6 +556,8 @@ program define gegen, byable(onecall) rclass
                           `hashlib'        ///
                           `oncollision'    ///
                           `verbose'        ///
+                          `compress'       ///
+                          `forcestrl'      ///
                           `benchmark'      ///
                           `benchmarklevel' ///
                           `gtools_capture'
@@ -548,8 +566,13 @@ program define gegen, byable(onecall) rclass
         exit 0
     }
     else if ( `rc' == 17001 ) {
-        `rename'
-        exit 0
+        if ( "${GTOOLS_DUPS}" == "" ) {
+            `rename'
+            exit 0
+        }
+        else {
+            error 2000
+        }
     }
     else if ( `rc' ) exit `rc'
 
@@ -708,6 +731,8 @@ program collision_fallback
                       HASHmethod(passthru)     ///
                       oncollision(passthru)    ///
                       Verbose                  ///
+                      compress                 ///
+                      forcestrl                ///
                       BENCHmark                ///
                       BENCHmarklevel(passthru) ///
                       gtools_capture(str)

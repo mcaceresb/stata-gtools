@@ -23,6 +23,17 @@ program checks_levelsof
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        qui `noisily' gen_data, n(50)
+        qui expand 200
+        gen long ix = _n
+
+        checks_inner_levelsof strL1,             `options' `forcestrl'
+        checks_inner_levelsof strL1 strL2,       `options' `forcestrl'
+        checks_inner_levelsof strL1 strL2 strL3, `options' `forcestrl'
+    }
+
     clear
     gen x = 1
     cap glevelsof x
@@ -38,7 +49,7 @@ end
 capture program drop checks_inner_levelsof
 program checks_inner_levelsof
     syntax varlist, [*]
-    cap noi glevelsof `varlist', `options' v bench clean
+    cap glevelsof `varlist', `options' v bench clean
     assert _rc == 0
 
     cap glevelsof `varlist' in 1, `options' miss
@@ -78,6 +89,13 @@ program compare_levelsof
     compare_inner_levelsof int1, `options' shuffle
     compare_inner_levelsof int2, `options'
     compare_inner_levelsof int3, `options' sort
+
+    if ( `c(stata_version)' >= 14 ) {
+        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+        compare_inner_levelsof strL1, `options' `forcestrl'
+        compare_inner_levelsof strL2, `options' `forcestrl'
+        compare_inner_levelsof strL3, `options' `forcestrl'
+    }
 end
 
 capture program drop compare_inner_levelsof
@@ -88,6 +106,11 @@ program compare_inner_levelsof
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
     if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+
+    *  levelsof `varlist', s(_n(1)) local(l_stata)
+    * glevelsof `varlist', s(_n(1)) local(l_gtools) `options'
+    * disp `l_stata'
+    * disp `l_gtools'
 
     cap  levelsof `varlist', s(" | ") local(l_stata)
     cap glevelsof `varlist', s(" | ") local(l_gtools) `options'

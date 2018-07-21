@@ -78,6 +78,21 @@ git:
 	git submodule add https://github.com/centaurean/spookyhash lib/spookyhash
 	git submodule update --init --recursive
 
+## Download latest OSX plugin
+osx_plugins:
+	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/env_set_macosx_v2.plugin
+	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/env_set_macosx_v3.plugin
+	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/gtools_macosx_v3.plugin
+	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/gtools_macosx_v2.plugin
+	cp -f env_set_macosx_v2.plugin build/env_set_macosx_v2.plugin
+	cp -f env_set_macosx_v3.plugin build/env_set_macosx_v3.plugin
+	cp -f gtools_macosx_v3.plugin  build/gtools_macosx_v3.plugin
+	cp -f gtools_macosx_v2.plugin  build/gtools_macosx_v2.plugin
+	mv -f env_set_macosx_v2.plugin lib/plugin/env_set_macosx_v2.plugin
+	mv -f env_set_macosx_v3.plugin lib/plugin/env_set_macosx_v3.plugin
+	mv -f gtools_macosx_v3.plugin  lib/plugin/gtools_macosx_v3.plugin
+	mv -f gtools_macosx_v2.plugin  lib/plugin/gtools_macosx_v2.plugin
+
 # ---------------------------------------------------------------------
 # Rules
 

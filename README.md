@@ -402,9 +402,9 @@ pagefile/swap space directly.
 TODO
 ----
 
-`gtools` is feature-frozen. No new features will be added until version
-1.0. All that remains is improving the coverage of the debug checks
-before submitting to SSC.
+`gtools` is feature-frozen. Other than bug fixes, no new features will
+be added until version 1.0. All that remains is improving the coverage
+of the debug checks before submitting to SSC.
 
 Roadmap to 1.0
 

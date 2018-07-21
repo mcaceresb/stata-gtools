@@ -158,15 +158,15 @@ program checks_gquantiles
     assert gx3 == gx4
 
     drop gx*
-    gquantiles cp = x, nq(10)
+    gquantiles cp = x, nq(10) xtile
 
     fasterxtile gx0 = x , c(cp)
     fasterxtile gx1 = log(x) + 1 if mod(_n , 10) in 20 / 80, c(cp)
 
-    fasterxtile gx2 = x [w = w]      if mod(_n , 10) in 20 / 80 , nq(7) by(a b) c(cp) method(1)
-    fasterxtile gx3 = x [aw = w]     if mod(_n , 10) in 20 / 80 , nq(7) by(a b) c(cp) method(2)
-    fasterxtile gx4 = x [pw = w]     if mod(_n , 10) in 20 / 80 , nq(7) by(a b) c(cp) method(0)
-    cap fasterxtile gx5 = x [fw = w] if mod(_n , 10) in 20 / 80 , nq(7) by(b a) c(cp)
+    fasterxtile gx2 = x [w = w]      if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(1)
+    fasterxtile gx3 = x [aw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(2)
+    fasterxtile gx4 = x [pw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(0)
+    cap fasterxtile gx5 = x [fw = w] if mod(_n , 10) in 20 / 80 , by(b a) c(cp)
     assert _rc == 401
     fasterxtile gx5 = x [fw = int(w)], nq(108) by(-a b)
 
@@ -174,7 +174,7 @@ program checks_gquantiles
 
     fasterxtile gx0 = x in 1
     cap fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80, strict nq(100)
-    disp _rc
+    assert _rc == 198
     fasterxtile gx2 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(a) strict nq(100)
     assert gx2 == .
 end

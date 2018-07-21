@@ -49,17 +49,29 @@ program main
     * --------------
 
     cap noi {
-        * qui do test_gquantiles_by.do
-        * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
+        * qui do test_gduplicates.do
         * qui do test_gegen.do
         * qui do test_gisid.do
-        * qui do test_gduplicates.do
         * qui do test_glevelsof.do
+        * qui do test_gquantiles.do
+        * qui do test_gquantiles_by.do
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
+
+        * qui do docs/examples/gcollapse.do
+        * qui do docs/examples/gcontract.do
+        * qui do docs/examples/gdistinct.do
+        * qui do docs/examples/gduplicates.do
+        * qui do docs/examples/gquantiles.do
+        * qui do docs/examples/gtoplevelsof.do
+        * qui do docs/examples/gunique.do
+        * qui do docs/examples/hashsort.do
+        * qui do docs/examples/gegen.do, nostop
+        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/glevelsof.do, nostop
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha

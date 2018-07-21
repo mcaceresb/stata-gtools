@@ -84,7 +84,7 @@ program checks_levelsof
     clear
     set obs 100000
     gen x = "a long string appeared" + string(_n)
-    qui glevelsof x
+    cap glevelsof x
     assert _rc == 920
     cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0

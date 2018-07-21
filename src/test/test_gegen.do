@@ -73,7 +73,7 @@ program checks_gegen
     clear
     cap gegen
     assert _rc == 100
-    gegen x = group(y)
+    cap gegen x = group(y)
     assert _rc == 111
     set obs 10
     gen x = .

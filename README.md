@@ -431,4 +431,4 @@ License
 
 Gtools is [MIT-licensed](https://github.com/mcaceresb/stata-gtools/blob/master/LICENSE).
 `./lib/spookyhash` and `./src/plugin/common/quicksort.c` belong to their respective
-authors and are BSD-licensed.
+authors and are BSD-licensed. Also see `gtools, licenses`.

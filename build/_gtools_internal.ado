@@ -2057,6 +2057,9 @@ program _gtools_internal, rclass
                     J(1, max(`=scalar(__gtools_xtile_nq2)', `nquantiles' - 1), 0)
                 local __gtools_xtile_nq_extra `__gtools_xtile_nq_extra' quantiles
             }
+            else if ( (`=scalar(__gtools_xtile_nq2)' > 0) & ("`_pctile'" != "") ) {
+                * matsize for nq2 was already checked
+            }
             else if ( "`_pctile'" != "" ) {
                 disp as txt "(option _pctile ignored)"
             }

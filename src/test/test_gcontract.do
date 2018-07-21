@@ -61,6 +61,34 @@ program checks_gcontract
     checks_inner_contract -int1 -str_32 -double1,                                         `options'
     checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    set obs 10
+    gen x = _n
+    gen y = string(mod(_n, 2))
+    gcontract x y , zero
+
+    clear
+    cap gcontract
+    assert _rc == 2000
+    set obs 10
+    cap gcontract
+    assert _rc == 100
+    gen x = .
+    gcontract x
+
+    clear
+    set obs 10
+    gen x = .
+    gen w = .
+    cap gcontract x [w = w]
+    assert _rc == 2000
+    cap gcontract x if w == 0
+    assert _rc == 2000
 end
 
 capture program drop checks_inner_contract

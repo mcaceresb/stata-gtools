@@ -18,6 +18,7 @@ program gisid
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
+        debug(passthru)       /// Print debugging info to console
                               ///
                               /// Unsupported isid options
                               /// ------------------------
@@ -39,7 +40,9 @@ program gisid
         local miss missing
     }
 
-    local opts `miss' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local opts `miss' `compress' `forcestrl'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)
     local rc = _rc
     global GTOOLS_CALLER ""

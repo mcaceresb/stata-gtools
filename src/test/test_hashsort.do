@@ -39,7 +39,6 @@ program checks_hashsort
     hashsort foreign rep78 mpg,        `options'
     hashsort idx,                      `options' v bench
 
-
     * https://github.com/mcaceresb/stata-gtools/issues/31
     qui {
         clear
@@ -60,6 +59,26 @@ program checks_hashsort
         hashsort x -y, mlast
         cf * using "`a'"
     }
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    gen x = 1
+    hashsort x
+
+    clear
+    set obs 10
+    gen x = _n
+    expand 3
+    hashsort x, gen(y) sortgen
+    assert "`:sortedby'" == "y"
+    hashsort x, v
+    assert "`:sortedby'" == "x"
+    hashsort x, skipcheck v
+    hashsort x, gen(y) replace
+    assert "`:sortedby'" == "x"
 end
 
 capture program drop checks_inner_hashsort
@@ -184,7 +203,7 @@ program compare_sort, rclass
         cf * using `file_sort'
         * if ( _rc ) {
         *     qui ds *
-        *     local memvars `r(varlist)' 
+        *     local memvars `r(varlist)'
         *     local firstvar: word 1 of `varlist'
         *     local compvars: list memvars - firstvar
         *     if ( "`compvars'" != "" ) {
@@ -214,7 +233,7 @@ program compare_sort, rclass
         cf * using `file_sort'
         * if ( _rc ) {
         *     qui ds *
-        *     local memvars `r(varlist)' 
+        *     local memvars `r(varlist)'
         *     local firstvar: word 1 of `varlist'
         *     local compvars: list memvars - firstvar
         *     if ( "`compvars'" != "" ) {

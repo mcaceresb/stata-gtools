@@ -403,18 +403,15 @@ TODO
 ----
 
 `gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until version 1.0. All that remains is improving the coverage
-of the debug checks before submitting to SSC.
+be added until version 1.0.
 
-Roadmap to 1.0
-
-- [ ] Improve coverage of debug checks.
+- [X] Improve coverage of debug checks.
     - [X] Test `nunique` for gegen and gcollapse (vs `gunique`)
-    - [ ] Have corner cases for ALL commands
-    - [ ] Test all the options in every command
-    - [ ] Test errors (i.e. make sure commands fail as expected).
-    - [ ] Test weights in `gtop`.
-    - [ ] Test `gen` and `nolocal` in `glevelsof`.
+    - [X] Have corner cases for ALL commands
+    - [X] Test all the options in every command
+    - [X] Test errors (i.e. make sure commands fail as expected).
+    - [X] Test weights in `gtop`.
+    - [X] Test `gen` and `nolocal` in `glevelsof`.
 - [X] Weights in `gquantiles`.
 - [X] Add (partial) support for `strL` variables.
 - [X] Add support for `by` in `gunique`
@@ -436,7 +433,7 @@ Roadmap to 1.0
 - [X] Add weights in `gtop`.
 
 These are options/features I would like to support, but I don't have an
-ETA for them (and they almost surely won't make it to the 1.0 release).
+ETA for them (and they won't make it to the 1.0 release).
 
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.

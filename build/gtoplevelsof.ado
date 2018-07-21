@@ -156,7 +156,10 @@ program gtoplevelsof, rclass
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl' `debug'
+    local sopts `compress' `forcestrl'
+    local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
+    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+
     local gopts gen(`group') `tag' `counts' `replace' `weights'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 
@@ -245,7 +248,8 @@ void function __gtools_parse_topmat(real scalar kvars,
                                    string scalar sep,
                                    string scalar colsep)
 {
-    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, nmap, knum, kstr, valabbrev, weights
+    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
+    real scalar nmap, knum, kstr, valabbrev, weights
     real scalar pctlen, wlen, dlen
     real matrix gmat, nmat
     real colvector si, si_miss, si_other, fmtix
@@ -253,7 +257,8 @@ void function __gtools_parse_topmat(real scalar kvars,
     string matrix grows, gparse
     string colvector _grows, gprint, fmtbak
     string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
-    string scalar sepfmt, ghead, headfmt, mlab, olab, pctfmt, ppctfmt, cpctfmt, numvar, strvar
+    string scalar sepfmt, ghead, headfmt, mlab, olab
+    string scalar pctfmt, ppctfmt, cpctfmt, numvar, strvar
     transmorphic t
 
     weights = st_local("weights") != ""

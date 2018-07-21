@@ -26,7 +26,7 @@ program define gegen, byable(onecall) rclass
     version 13
 
     local 00 `0'
-    syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
+    qui syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
     local byvars `by'
     local 0 `00'
 
@@ -165,36 +165,36 @@ program define gegen, byable(onecall) rclass
 
     * gegen [type] varname = fun(args) [if] [in], [options]
 
-    syntax                       /// Main call was parsed manually
-        [if] [in]                /// [if condition] [in start / end]
-        [aw fw iw pw] ,          /// [weight type = exp]
-    [                            ///
-        by(str)                  /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
-                                 ///
-        p(real 50)               /// Percentile to compute, #.# (only with pctile). e.g. 97.5
-                                 ///
-        missing                  /// for group(), tag(); does not get rid of missing values
-        counts(passthru)         /// for group(), tag(); create `counts' with group counts
-        fill(str)                /// for group(), tag(); fills rest of group with `fill'
-                                 ///
-        replace                  /// Replace target variable with output, if target already exists
-                                 ///
-        compress                 /// Try to compress strL variables
-        forcestrl                /// Force reading strL variables (stata 14 and above only)
-        Verbose                  /// Print info during function execution
-        BENCHmark                /// Benchmark function
-        BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
-        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
-        gtools_capture(passthru) /// Ignored (captures fcn options if fcn is not known)
-                                 ///
-                                 /// Unsupported egen options
-                                 /// ------------------------
-                                 ///
-        Label                    ///
-        lname(passthru)          ///
-        Truncate(passthru)       ///
+    syntax                        /// Main call was parsed manually
+        [if] [in]                 /// [if condition] [in start / end]
+        [aw fw iw pw] ,           /// [weight type = exp]
+    [                             ///
+        by(str)                   /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
+                                  ///
+        p(real 50)                /// Percentile to compute, #.# (only with pctile). e.g. 97.5
+                                  ///
+        missing                   /// for group(), tag(); does not get rid of missing values
+        counts(passthru)          /// for group(), tag(); create `counts' with group counts
+        fill(str)                 /// for group(), tag(); fills rest of group with `fill'
+                                  ///
+        replace                   /// Replace target variable with output, if target already exists
+                                  ///
+        compress                  /// Try to compress strL variables
+        forcestrl                 /// Force reading strL variables (stata 14 and above only)
+        Verbose                   /// Print info during function execution
+        BENCHmark                 /// print function benchmark info
+        BENCHmarklevel(int 0)     /// print plugin benchmark info
+        HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
+        gtools_capture(passthru)  /// Ignored (captures fcn options if fcn is not known)
+                                  ///
+                                  /// Unsupported egen options
+                                  /// ------------------------
+                                  ///
+        Label                     ///
+        lname(passthru)           ///
+        Truncate(passthru)        ///
    ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
@@ -287,18 +287,21 @@ program define gegen, byable(onecall) rclass
         tempvar dummy
         local rename rename `dummy' `name'
         local addvar qui mata: st_addvar("`type'", "`dummy'")
+        local retype = `retype' & 1
     }
     else {
         cap confirm new variable `name'
         if ( _rc ) {
             local dummy `name'
             local rename ""
-            local addvar ""
+            local addvar qui replace `dummy' = .
+            local retype = `retype' & 0
         }
         else {
             tempvar dummy
             local rename rename `dummy' `name'
             local addvar qui mata: st_addvar("`type'", "`dummy'")
+            local retype = `retype' & 1
         }
     }
 
@@ -308,7 +311,9 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local  opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local opts  `compress' `forcestrl'
+    local opts  `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts  `opts' `hashlib' `oncollision' `hashmethod'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -366,7 +371,8 @@ program define gegen, byable(onecall) rclass
         if ( "`fcn'" == "group" ) {
             local action gen(`type' `dummy') gfunction(hash) countmiss
             if ( `=_N' > 1 ) local s s
-            local noobs di as txt "(`=_N' missing value`i' generated)"
+            local noobs qui replace `dummy' = .
+            local notxt di as txt "(`=_N' missing value`s' generated)"
         }
 
         if ( "`fcn'" == "count" ) {
@@ -374,7 +380,8 @@ program define gegen, byable(onecall) rclass
             local fill fill(group)
             local action counts(`type' `dummy') gfunction(hash) countmiss unsorted
             if ( `=_N' > 1 ) local s s
-            local noobs di as txt "(`=_N' missing value`i' generated)"
+            local noobs qui replace `dummy' = .
+            local notxt di as txt "(`=_N' missing value`s' generated)"
         }
 
         if ( ("`byvars'" != "") & inlist("`fcn'", "tag", "group") ) {
@@ -407,7 +414,10 @@ program define gegen, byable(onecall) rclass
         }
         else if ( `rc' == 17001 ) {
             if ( "${GTOOLS_DUPS}" == "" ) {
-                if ( `=_N' > 0 ) `noobs'
+                if ( `=_N' > 0 ) {
+                    `noobs'
+                    `notxt'
+                }
                 `rename'
                 exit 0
             }
@@ -488,7 +498,8 @@ program define gegen, byable(onecall) rclass
     * Parse target type
     * -----------------
 
-    if ( ("`addvar'" != "") & `retype' ) {
+    * if ( ("`addvar'" != "") & `retype' ) {
+    if ( `retype' ) {
         parse_target_type `sources', fcn(`ofcn') sametype(`sametype')
         local type = "`r(retype)'"
         local addvar qui mata: st_addvar("`type'", "`dummy'")
@@ -648,7 +659,9 @@ program gtools_timer, rclass
         qui timer list
         return scalar t`timer' = `r(t`timer')'
         return local pretty`timer' = trim("`:di %21.4gc r(t`timer')'")
-        if ( `prints' ) di `"`msg'`:di trim("`:di %21.4gc r(t`timer')'")' seconds"'
+        if ( `prints' ) {
+            di `"`msg'`:di trim("`:di %21.4gc r(t`timer')'")' seconds"'
+        }
         timer off `timer'
         timer clear `timer'
         timer on `timer'

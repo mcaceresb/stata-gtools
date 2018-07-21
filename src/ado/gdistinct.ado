@@ -11,22 +11,23 @@ program gdistinct, rclass
     }
 
     global GTOOLS_CALLER gunique
-    syntax [varlist] [if] [in] , ///
-    [                            ///
-        MISSing                  /// Include missing values
-        Joint                    /// Report distinct values for varlist jointly
-        MINimum(int 0)           /// Report distinct only for groups with at least min
-        MAXimum(int -1)          /// Report distinct only for groups with at most max
-        Abbrev(int -1)           /// Abbrev print of var names
-                                 ///
-        compress                 /// Try to compress strL variables
-        forcestrl                /// Force reading strL variables (stata 14 and above only)
-        Verbose                  /// Print info during function execution
-        BENCHmark                /// Benchmark function
-        BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
-        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)        /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
+    syntax [varlist] [if] [in] ,  ///
+    [                             ///
+        MISSing                   /// Include missing values
+        Joint                     /// Report distinct values for varlist jointly
+        MINimum(int 0)            /// Report distinct only for groups with at least min
+        MAXimum(int -1)           /// Report distinct only for groups with at most max
+        Abbrev(int -1)            /// Abbrev print of var names
+                                  ///
+        debug(passthru)           ///
+        compress                  /// Try to compress strL variables
+        forcestrl                 /// Force reading strL variables (stata 14 and above only)
+        Verbose                   /// Print info during function execution
+        BENCHmark                 /// Benchmark function
+        BENCHmarklevel(int 0)     /// Benchmark various steps of the plugin
+        HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
@@ -44,14 +45,18 @@ program gdistinct, rclass
     local keepvars ""
     tempname ndistinct
 
-    local opts `missing' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local opts `missing' `compress' `forcestrl' countonly unsorted
+    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+
 	if ( "`joint'" != "" ) {
-        cap noi _gtools_internal `varlist' `if' `in', countonly unsorted `opts' gfunction(unique)
+        cap noi _gtools_internal `varlist' `if' `in', `opts' gfunction(unique)
 
         local rc  = _rc
         global GTOOLS_CALLER ""
         if ( `rc' == 17999 ) {
-            distinct `varlist' `if' `in', `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
+            distinct `varlist' `if' `in', ///
+                `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
             exit 0
         }
         else if ( `rc' == 17001 ) {
@@ -97,12 +102,13 @@ program gdistinct, rclass
         mata: __gtools_distinct  = J(2, `:list sizeof varlist', "")
 
 		foreach v of local varlist {
-            cap noi _gtools_internal `v' `if' `in', countonly unsorted `opts' gfunction(unique)
+            cap noi _gtools_internal `v' `if' `in', `opts' gfunction(unique)
 
             local rc  = _rc
             if ( `rc' == 17999 ) {
                 global GTOOLS_CALLER ""
-                distinct `varlist' `if' `in', `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
+                distinct `varlist' `if' `in', ///
+                    `missing' `joint' min(`minimum') max(`maximum') a(`abbrev')
             }
             else if ( `rc' == 17001 ) {
                 local r_N         = 0

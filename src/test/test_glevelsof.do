@@ -35,6 +35,12 @@ program checks_levelsof
     }
 
     clear
+    set obs 10
+    gen x = _n
+    glevelsof x if 0
+    glevelsof x if 0, gen(z)
+
+    clear
     gen x = 1
     cap glevelsof x
     assert _rc == 2000
@@ -76,9 +82,9 @@ program checks_levelsof
     assert _rc == 17002
 
     clear
-    set obs 10000
+    set obs 100000
     gen x = "a long string appeared" + string(_n)
-    cap glevelsof x
+    qui glevelsof x
     assert _rc == 920
     cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0
@@ -134,6 +140,29 @@ program compare_levelsof
         compare_inner_levelsof strL2, `options' `forcestrl'
         compare_inner_levelsof strL3, `options' `forcestrl'
     }
+
+    qui `noisily' gen_data, n(1000)
+    qui expand 100
+
+    local N    = trim("`: di %15.0gc _N'")
+    local hlen = 24 + length("`options'") + length("`N'")
+    di _n(1) "{hline 80}" _n(1) "compare_levelsof_gen, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_levelsof_gen str_12,              `options' sort
+    compare_inner_levelsof_gen str_12 str_32,       `options' shuffle
+    compare_inner_levelsof_gen str_12 str_32 str_4, `options'
+
+    compare_inner_levelsof_gen double1,                 `options'
+    compare_inner_levelsof_gen double1 double2,         `options' sort
+    compare_inner_levelsof_gen double1 double2 double3, `options' shuffle
+
+    compare_inner_levelsof_gen int1,           `options' shuffle
+    compare_inner_levelsof_gen int1 int2,      `options'
+    compare_inner_levelsof_gen int1 int2 int3, `options' sort
+
+    compare_inner_levelsof_gen int1 str_32 double1,                                        `options'
+    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 end
 
 capture program drop compare_inner_levelsof
@@ -144,11 +173,6 @@ program compare_inner_levelsof
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
     if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
-
-    *  levelsof `varlist', s(_n(1)) local(l_stata)
-    * glevelsof `varlist', s(_n(1)) local(l_gtools) `options'
-    * disp `l_stata'
-    * disp `l_gtools'
 
     cap  levelsof `varlist', s(" | ") local(l_stata)
     cap glevelsof `varlist', s(" | ") local(l_gtools) `options'
@@ -386,6 +410,49 @@ program compare_inner_levelsof
     di _n(1)
 end
 
+capture program drop compare_inner_levelsof_gen
+program compare_inner_levelsof_gen
+    syntax varlist, [shuffle sort *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+
+    local ifin1
+    local ifin2 if _n < `=_N / 2'
+    local ifin3 in `=ceil(`=_N / 2')' / `=_N'
+    local ifin4 if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
+
+    local iftxt1
+    local iftxt2 " [if]"
+    local iftxt3 " [in]"
+    local iftxt4 " [if] [in]"
+
+    forvalues i = 1 / 4 {
+        preserve
+            keep `varlist'
+            glevelsof `varlist' `ifin`i'', nolocal gen(, replace) missing `options'
+            qui keep in 1 / `r(J)'
+            tempfile glevels
+            qui save `"`glevels'"'
+        restore, preserve
+            if  ( "`ifin`i''" != "" ) qui keep `ifin`i''
+            keep `varlist'
+            qui duplicates drop
+            cap merge 1:1 `varlist' using `"`glevels'"', assert(3) nogen
+            if ( _rc ) {
+                di as err "    compare_levelsof (failed): glevelsof `varlist'`iftxt`i'', gen(, replace) returned different levels to duplicates drop"
+            }
+            else {
+                di as err "    compare_levelsof (passed): glevelsof `varlist'`iftxt`i'', gen(, replace) returned the same levels as  duplicates drop"
+            }
+        restore
+    }
+
+    di _n(1)
+end
+
 ***********************************************************************
 *                             Benchmarks                              *
 ***********************************************************************
@@ -446,7 +513,7 @@ program versus_levelsof, rclass
         qui glevelsof `varlist' `ix', `options'
         timer off 43
         qui timer list
-        local time_glevelsof = r(t43) 
+        local time_glevelsof = r(t43)
     restore
 
     if ( "`flevelsof'" == "flevelsof" ) {

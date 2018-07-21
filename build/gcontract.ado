@@ -11,29 +11,30 @@ program gcontract, rclass
     }
 
     global GTOOLS_CALLER gcontract
-    syntax anything [if] [in] [fw], /// [if condition] [in start / end] [fw = exp]
-    [                               ///
-        Freq(string)                /// Name of frequency variable
-        CFreq(name)                 /// Add cummulative frequency in cfreq
-        Percent(name)               /// Add percentages in percent
-        CPercent(name)              /// Add cummulative percentages in cpercent
-        FLOAT                       /// Store percentages in float variables
-        FORMat(string)              /// Format for percentage variables
-        Zero                        /// Include varlist combinations with 0 frequency
-        noMISS                      /// Exclude rows with missing values in varlist
-                                    ///
-        fast                        /// Do not preserve and restore the original dataset. Saves speed
-                                    /// but leaves data unusable if the user hits Break.
-        unsorted                    /// Do not sort the data; faster
-        compress                    /// Try to compress strL variables
-        forcestrl                   /// Force reading strL variables (stata 14 and above only)
-                                    ///
-        Verbose                     /// Print info during function execution
-        BENCHmark                   /// Benchmark function
-        BENCHmarklevel(int 0)       /// Benchmark various steps of the plugin
-        HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
-        oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
+    syntax anything [if] [in] [fw],  /// [if condition] [in start / end] [fw = exp]
+    [                                ///
+        Freq(string)                 /// Name of frequency variable
+        CFreq(name)                  /// Add cummulative frequency in cfreq
+        Percent(name)                /// Add percentages in percent
+        CPercent(name)               /// Add cummulative percentages in cpercent
+        FLOAT                        /// Store percentages in float variables
+        FORMat(string)               /// Format for percentage variables
+        Zero                         /// Include varlist combinations with 0 frequency
+        noMISS                       /// Exclude rows with missing values in varlist
+                                     ///
+        fast                         /// Do not preserve and restore the original dataset. Saves speed
+                                     /// but leaves data unusable if the user hits Break.
+        unsorted                     /// Do not sort the data; faster
+                                     ///
+        debug(passthru)              ///
+        compress                     /// Try to compress strL variables
+        forcestrl                    /// Force reading strL variables (stata 14 and above only)
+        Verbose                      /// Print info during function execution
+        BENCHmark                    /// print function benchmark info
+        BENCHmarklevel(int 0)        /// print plugin benchmark info
+        HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
+        oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
@@ -180,8 +181,10 @@ program gcontract, rclass
     * Call the plugin
     * ---------------
 
-    local opts `missing' `verbose' `unsorted' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `weights' `compress' `forcestrl'
+    local opts `weights' `missing' `unsorted' `compress' `forcestrl'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'
 
@@ -193,7 +196,14 @@ program gcontract, rclass
             exit 17000
         }
         else {
-            local copts f(`freq') cf(`cfreq') p(`percent') cp(`cpercent') `float' format(`format') `zero' `miss'
+            local copts f(`freq')        ///
+                        cf(`cfreq')      ///
+                        p(`percent')     ///
+                        cp(`cpercent')   ///
+                        `float'          ///
+                        format(`format') ///
+                        `zero'           ///
+                        `miss'
             contract `varlist', `copts'
             if ( "`fast'" == "" ) restore, not
             exit 0

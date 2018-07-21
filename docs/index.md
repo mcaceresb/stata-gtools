@@ -393,11 +393,10 @@ TODO
 ----
 
 `gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until version 1.0. All that remains is improving the coverage
-of the debug checks before submitting to SSC.
+be added until version 1.0.
 
 These are options/features I would like to support, but I don't have an
-ETA for them (and they almost surely won't make it to the 1.0 release).
+ETA for them (and they won't make it to the 1.0 release).
 
 - Add support for binary `strL` variables.
 - Improve debugging info.

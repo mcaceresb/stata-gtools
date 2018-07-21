@@ -23,8 +23,8 @@ program glevelsof, rclass
         unsorted              /// Do not sort levels (faster)
         noLOCALvar            /// Do not store levels in a local macro (or in r(levels))
         numfmt(passthru)      /// Number format
-        freq(passthru)        /// compute frequency counts
-        store(passthru)       /// Number format
+        freq(passthru)        /// (not implemented) compute frequency counts
+        store(passthru)       /// (not implemented) store in matrix or mata object
         gen(passthru)         /// Save unique levels in varlist
                               ///
         debug(passthru)       /// Print debugging info to console
@@ -66,9 +66,14 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean' `unsorted'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `compress' `forcestrl'
-    local sopts `sopts' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
-    local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store' `gen')
+
+    local sopts `colseparate' `numfmt' `compress' `forcestrl'
+    local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
+    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+
+    local gopts gen(`groupid') `tag' `counts' `replace'
+    local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')
+
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
     global GTOOLS_CALLER ""

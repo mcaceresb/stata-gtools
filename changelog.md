@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-1.0.0 (2018-07-21)
+
+First official release! This will go on SSC once all the tests have
+passed. Final TODOs:
+
+[ ] Tests from github 1.0 tag
+    [ ] Linux with Stata 13
+    [ ] Windows with Stata 13
+    [ ] Windows with Stata 15
+    [ ] Linux with Stata 15
+    [ ] OSX with Stata 14
+[ ] Read the documentation (Stata)
+[ ] Read the documentation (online)
+
+------------------------------------------------------------------------
+
 ## gtools-0.14.2 (2018-07-21)
 
 Feature freeze!
@@ -16,6 +32,11 @@ Feature freeze!
 * Added weights to the quick showcase in the README
 * Added `gen()` to the quick `glevelsof' showcase
 * Added `gen()` to the `glevelsof' usage page and examples.
+* Added tests for `gtop [weight]` and `glevelsof, gen()`
+
+### Bug Fixes
+
+* `gegen()` with `replace` sets missing values outside `if in` range.
 
 ## gtools-0.14.1 (2018-07-19)
 
@@ -48,6 +69,8 @@ Feature freeze!
 * Closes https://github.com/mcaceresb/stata-gtools/issues/41 `wild` with
   existing variables gets a warning.
 * Fixes https://github.com/mcaceresb/stata-gtools/issues/42 `gunique` typo.
+
+------------------------------------------------------------------------
 
 ## gtools-0.13.3 (2018-05-06)
 
@@ -104,6 +127,8 @@ right-exclusive, would give the wrong quantile.
    or when all observations are the same.
 - `skew`, `kurt` give the correct answer when the group is a singleton
    or when all observations are the same.
+
+------------------------------------------------------------------------
 
 ## gtools-0.12.8 (2018-04-23)
 
@@ -192,6 +217,8 @@ requests them with weights, the weighted version will still be called
   (OSX pending). gegen does not support weights with multiple
   sources (e.g. `sum(x y z)`).
 
+------------------------------------------------------------------------
+
 ## gtools-0.11.5 (2018-01-16)
 
 ### Features
@@ -279,6 +306,8 @@ requests them with weights, the weighted version will still be called
   more characters than contained in the numfmt local macro. This
   could cause problems on some systems.
 
+------------------------------------------------------------------------
+
 ## gtools-0.10.3 (2017-11-12)
 
 ### Bug fixes
@@ -327,6 +356,8 @@ requests them with weights, the weighted version will still be called
 - Fixes https://github.com/mcaceresb/stata-gtools/issues/27
 - Fixed numerical precision issue with quantiles.
   Now ((ST_double) N / 100) is computed first.
+
+------------------------------------------------------------------------
 
 ## gtools-0.9.4 (2017-11-03)
 
@@ -396,6 +427,8 @@ requests them with weights, the weighted version will still be called
 - `gisid` now sient w/o benchmark or verbose; fixes https://github.com/mcaceresb/stata-gtools/issues/20
 - Added quotes to `cd cwd` in `gtools`; fixes https://github.com/mcaceresb/stata-gtools/issues/22
 - `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23 
+
+------------------------------------------------------------------------
 
 ## gtools-0.8.5 (2017-10-30)
 
@@ -476,6 +509,8 @@ requests them with weights, the weighted version will still be called
 * Fixes https://github.com/mcaceresb/stata-gtools/issues/18
 * Fixes https://github.com/mcaceresb/stata-gtools/issues/11
 
+------------------------------------------------------------------------
+
 ## gtools-0.7.5 (2017-10-08)
 
 ### Features
@@ -544,6 +579,8 @@ requests them with weights, the weighted version will still be called
 ### Backwards-incompatible
 
 * `gcollapse, unsorted` no longer supported (due to internal sorting)
+
+------------------------------------------------------------------------
 
 ## gtools-0.6.17 (2017-09-17); fixes #15
 
@@ -761,7 +798,7 @@ requests them with weights, the weighted version will still be called
   the implementation this may be slower because adding variables takes
   longer with more variables in memory.)
 
----
+------------------------------------------------------------------------
 
 ## gtools-0.5.2 (2017-06-15)
 
@@ -870,7 +907,7 @@ requests them with weights, the weighted version will still be called
 * If you sort the data in C, then assert the sort is unique and
   print "(hashed correctly grouped observations: resulting sort is unique)"
 
----
+------------------------------------------------------------------------
 
 ## gtools-0.4.1 (2017-05-29)
 
@@ -929,7 +966,8 @@ requests them with weights, the weighted version will still be called
   print "(hashed correctly grouped observations: resulting sort is unique)"
 * Be smart about memory management when J is small relative to N.
 
----
+------------------------------------------------------------------------
+
 
 ## gtools-0.3.3 (2017-05-21)
 

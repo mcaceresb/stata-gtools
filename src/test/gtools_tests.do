@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jul 20 18:16:33 EDT 2018
+* Updated: Sat Jul 21 16:40:33 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 0.14.2
 * Manual:  help gtools
@@ -124,11 +124,12 @@ program main
             compare_isid,          `noisily' oncollision(error)
             compare_duplicates,    `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
-            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_unique,        `noisily' oncollision(error) distinct
             compare_hashsort,      `noisily' oncollision(error)
             compare_egen,          `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)

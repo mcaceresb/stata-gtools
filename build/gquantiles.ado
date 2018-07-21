@@ -99,6 +99,10 @@ program gquantiles, rclass
         exit 198
     }
 
+    if ( ("`pctilevar'" == "") & ("`xtilevar'" == "") & ("`_pctile'" == "") & (strpos(`"`anything'"', "=") == 0) ) {
+		di in txt "(note: no targets will be generated)"
+    }
+
     local early_rc = 0
 	if ( (`"`weight'"' != "") & ("`altdef'" != "") ) {
 		di in err "altdef option cannot be used with weights"
@@ -335,12 +339,18 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local   opts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `debug' `compress' `forcestrl'
-    local   opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
-    local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp' `binadd' `binaddvar'
-    local gqopts `gqopts' `nquantiles' `quantiles' `cutoffs' `cutpoints' `quantmatrix' `cutmatrix' `cutquantiles'
-    local gqopts `gqopts' `cutifin' `cutby' `dedup' `replace' `altdef' `method' `strict' `minmax'
-    local gqopts `gqopts' returnlimit(`returnlimit')
+    local opts `compress' `forcestrl'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
+
+    local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp'
+    local gqopts `gqopts' `binadd' `binaddvar' `nquantiles' `quantiles'
+    local gqopts `gqopts' `cutoffs' `cutpoints' `quantmatrix'
+    local gqopts `gqopts' `cutmatrix' `cutquantiles' `cutifin' `cutby'
+    local gqopts `gqopts' `dedup' `replace' `altdef' `method' `strict'
+    local gqopts `gqopts' `minmax' returnlimit(`returnlimit')
+
     cap noi _gtools_internal `by' `ifin', missing unsorted `opts' gquantiles(`gqopts') gfunction(quantiles)
     local rc = _rc
 

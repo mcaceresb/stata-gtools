@@ -25,6 +25,33 @@ program checks_gcollapse
     checks_inner_collapse -int1 -str_32 -double1,                                         `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    cap gcollapse
+    assert _rc == 198
+    set obs 10
+    cap gcollapse
+    assert _rc == 198
+    gen x = .
+    gcollapse x
+
+    clear
+    set obs 10
+    gen x = .
+    gen w = .
+    cap gcollapse x [w = w]
+    assert _rc == 2000
+    cap gcollapse x if w == 0
+    assert _rc == 2000
+
+    * untested here; run the examples
+    * replace with merge
+    * labelformat
+    * labelprogram
 end
 
 capture program drop checks_inner_collapse

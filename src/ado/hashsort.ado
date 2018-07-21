@@ -59,7 +59,9 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local  opts `verbose' `debug' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local opts  `compress' `forcestrl'
+    local opts  `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts  `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local eopts `invertinmata' `sortgen' `skipcheck'
     local gopts `generate' `tag' `counts' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)
@@ -75,6 +77,9 @@ program define hashsort
             sort `anything'
             exit 0
         }
+    }
+    else if ( `rc' == 17001 ) {
+        exit 0
     }
     else if ( `rc' ) exit `rc'
 end

@@ -42,9 +42,9 @@
 {p_end}
 {synopt :{opt bench:marklevel(int)}}Benchmark various steps of the plugin.
 {p_end}
-{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
-{p_end}
 {synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
 {synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}

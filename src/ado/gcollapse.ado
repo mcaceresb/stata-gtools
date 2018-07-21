@@ -484,7 +484,7 @@ program gcollapse, rclass
     local targets  targets(`__gtools_gc_targets')
     local opts     missing replace `keepmissing' `compress' `forcestrl'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod'
-    local opts     `hashlib' `oncollision' debug(`debug_level')
+    local opts     `opts' `hashlib' `oncollision' debug(`debug_level')
     local opts     `opts' `anymissing' `allmissing' `rawstat'
     local action   `sources' `targets' `stats'
 

@@ -6878,4 +6878,4 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, dependencies basic_checks comparisons switches bench_test
+* main, dependencies basic_checks comparisons switches bench_test

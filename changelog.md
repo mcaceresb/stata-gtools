@@ -14,6 +14,7 @@ Change Log
 
 ### Bug Fixes
 
+* `semean` returns missing with fewer than 2 observations.
 * If `strL` contains binary data `gtools` functions now throw an error.
 * `strL` missing values now read correctly.
 * `strL` partial support for OSX (long strings only).

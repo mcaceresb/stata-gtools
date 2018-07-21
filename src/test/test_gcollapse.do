@@ -538,6 +538,7 @@ program _compare_inner_gcollapse_gegen
                 cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
                 if ( _rc ) {
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
+                    save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"

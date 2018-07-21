@@ -609,7 +609,7 @@ program _compare_inner_xtile_by
     cap assert `gxtile' == `fxtile'
     if ( _rc & (`rc_f' == 0) ) {
         if ( "`forcecmp'" == "" ) {
-            tempfile diff
+            tempvar diff
             qui gen `diff' = `fxtile' - `gxtile'
             gtoplevelsof `diff', nowarn
             qui count if `fxtile' != `gxtile'

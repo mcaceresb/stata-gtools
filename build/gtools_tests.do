@@ -1029,6 +1029,7 @@ program _compare_inner_gcollapse_gegen
                 cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
                 if ( _rc ) {
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
+                    save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
@@ -3811,7 +3812,7 @@ program _compare_inner_xtile_by
     cap assert `gxtile' == `fxtile'
     if ( _rc & (`rc_f' == 0) ) {
         if ( "`forcecmp'" == "" ) {
-            tempfile diff
+            tempvar diff
             qui gen `diff' = `fxtile' - `gxtile'
             gtoplevelsof `diff', nowarn
             qui count if `fxtile' != `gxtile'

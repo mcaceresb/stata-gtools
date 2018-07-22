@@ -3,10 +3,11 @@ gtoplevelsof
 
 Quickly tabulate most common levels of variable list.
 
-gtoplevelsof displays a table with the frequency counts, percentages, and
-cummulative counts and %s of the most common levels of varlist that occur in
-the data.  It is similar to the user-written group with the select otpion or
-to contract after keeping only the largest frequency counts.
+gtoplevelsof (alias gtop) displays a table with the frequency counts,
+percentages, and cummulative counts and %s of the most common levels of
+varlist that occur in the data. It is similar to the user-written group
+with the select otpion or to contract after keeping only the largest
+frequency counts.
 
 Unlike contract, it does not modify the original data and instead prints the
 resulting table to the console. It also stores a matrix with the frequency
@@ -239,7 +240,7 @@ You can download the raw code for the examples below
        1 |   6,200  223,440       2.8         100.0 
 
 
-. gtoplevelsof rep78 [w = gear_ratio]
+. gtop rep78 [w = gear_ratio]
 (analytic weights assumed)
 
    rep78 |     W   Cum   Pct (%)   Cum Pct (%) 
@@ -252,7 +253,7 @@ You can download the raw code for the examples below
        1 |  5.81   223       2.6         100.0 
 
 
-. gtoplevelsof rep78,   missrow
+. gtop rep78,   missrow
 
     rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
@@ -266,7 +267,7 @@ You can download the raw code for the examples below
                                               
 
 
-. gtoplevelsof rep78,   colsep(", ")
+. gtop rep78,   colsep(", ")
 
    rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
@@ -278,7 +279,7 @@ You can download the raw code for the examples below
        1 |    2   74       2.7           100 
 
 
-. gtoplevelsof rep78,   pctfmt(%7.3f)
+. gtop rep78,   pctfmt(%7.3f)
 
    rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
@@ -290,7 +291,7 @@ You can download the raw code for the examples below
        1 |    2   74     2.703       100.000 
 
 
-. gtoplevelsof mpg,     numfmt(%7.3f)
+. gtop mpg,     numfmt(%7.3f)
 
      mpg |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
@@ -309,7 +310,7 @@ You can download the raw code for the examples below
                                              
 
 
-. gtoplevelsof foreign
+. gtop foreign
 
    foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ----------------------------------------------
@@ -317,7 +318,7 @@ You can download the raw code for the examples below
    Foreign |   22   74        30           100 
 
 
-. gtoplevelsof foreign, colmax(3)
+. gtop foreign, colmax(3)
 
   foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
@@ -325,7 +326,7 @@ You can download the raw code for the examples below
    For... |   22   74        30           100 
 
 
-. gtoplevelsof foreign, novaluelab
+. gtop foreign, novaluelab
 
   foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
@@ -333,7 +334,7 @@ You can download the raw code for the examples below
         1 |   22   74        30           100 
 
 
-. gtoplevelsof foreign rep78, ntop(4) missrow colstrmax(2)
+. gtop foreign rep78, ntop(4) missrow colstrmax(2)
 
    foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
@@ -346,7 +347,7 @@ You can download the raw code for the examples below
                                                        
 
 
-. gtoplevelsof foreign rep78, ntop(4) missrow groupmiss
+. gtop foreign rep78, ntop(4) missrow groupmiss
 
    foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
@@ -360,7 +361,7 @@ You can download the raw code for the examples below
                                                        
 
 
-. gtoplevelsof foreign rep78, ntop(4) missrow groupmiss noother
+. gtop foreign rep78, ntop(4) missrow groupmiss noother
 
    foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
@@ -373,7 +374,7 @@ You can download the raw code for the examples below
                                                        
 
 
-. gtoplevelsof foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
+. gtop foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
 
    foreign<< rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------

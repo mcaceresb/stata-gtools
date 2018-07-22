@@ -4,28 +4,28 @@ gtoplevelsof rep78
 
 gtoplevelsof rep78 [fw = weight]
 
-gtoplevelsof rep78 [w = gear_ratio]
+gtop rep78 [w = gear_ratio]
 
-gtoplevelsof rep78,   missrow
+gtop rep78,   missrow
 
-gtoplevelsof rep78,   colsep(", ")
+gtop rep78,   colsep(", ")
 
-gtoplevelsof rep78,   pctfmt(%7.3f)
+gtop rep78,   pctfmt(%7.3f)
 
-gtoplevelsof mpg,     numfmt(%7.3f)
+gtop mpg,     numfmt(%7.3f)
 
-gtoplevelsof foreign
+gtop foreign
 
-gtoplevelsof foreign, colmax(3)
+gtop foreign, colmax(3)
 
-gtoplevelsof foreign, novaluelab
+gtop foreign, novaluelab
 
-gtoplevelsof foreign rep78, ntop(4) missrow colstrmax(2)
+gtop foreign rep78, ntop(4) missrow colstrmax(2)
 
-gtoplevelsof foreign rep78, ntop(4) missrow groupmiss
+gtop foreign rep78, ntop(4) missrow groupmiss
 
-gtoplevelsof foreign rep78, ntop(4) missrow groupmiss noother
+gtop foreign rep78, ntop(4) missrow groupmiss noother
 
-gtoplevelsof foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
+gtop foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
 
 matrix list lvl

@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Jul 21 16:40:33 EDT 2018
+* Updated: Sun Jul 22 11:39:18 EDT 2018
 * Purpose: Unit tests for gtools
 * Version: 1.0.0
 * Manual:  help gtools

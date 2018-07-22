@@ -48,10 +48,36 @@ program checks_gcollapse
     cap gcollapse x if w == 0
     assert _rc == 2000
 
-    * untested here; run the examples
-    * replace with merge
-    * labelformat
-    * labelprogram
+    clear
+    set obs 10
+    gen x = _n
+    gen y = 1
+    gcollapse (kurt) mx = x, merge
+    cap gcollapse (kurt) mx = x, merge
+    assert _rc == 110
+    gcollapse mx = x, merge replace
+    gcollapse mx = x, merge by(y) replace
+    cap gcollapse y = x,  merge by(y)
+    assert _rc == 110
+    cap gcollapse y = x,  merge by(y) replace
+    assert _rc == 110
+    gcollapse y = x,  merge by(y) debug_replaceby
+    cap gcollapse x = x,  merge by(y)
+    assert _rc == 110
+    gcollapse x = x,  merge by(y) replace
+    cap gcollapse mx = x,  merge by(y)
+    assert _rc == 110
+
+    * Weird stuff happens when you try to use tempvar names without
+    * calling tempvar. DON'T!
+
+    * clear
+    * set obs 10
+    * gen x = _n
+    * gen y = 1
+    * gcollapse __000000 = x __000001 = x __000002 = x,         merge by(y)
+    * gcollapse __000000 = x __000001 = x __000002 = x if 1,    merge by(y)
+    * gcollapse __000000 = x __000001 = x __000002 = x [w = y], merge by(y)
 end
 
 capture program drop checks_inner_collapse
@@ -981,7 +1007,7 @@ program _compare_inner_gcollapse_skew
     local checks `checks' `maxid'
 
     qui gcollapse (skew) skew = random1 (kurt) kurt = random1 (nunique) nq = random1 ///
-        `ifin' `wgt_gc', by(id) benchmark verbose `options' double
+        `ifin' `wgt_gc', by(id) benchmark verbose `options' double freq(f)
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -994,19 +1020,37 @@ program _compare_inner_gcollapse_skew
     * result to be -1 or 1 when it should really be missing. Internally
     * 0 / 0 is computed as ε / ε for some ε small.
 
+    tempvar ix
+    gen `ix' = _n
     foreach fun in kurt skew {
         local imprecise 0
         foreach j in `checks' {
-            * disp "`j'"
-            cap assert ``fun'_`j'' == `fun'[`j'] | abs(``fun'_`j'' - `fun'[`j']) < `tol'
-            if ( _rc & (nq[`j'] > 1) ) {
-                cap noi assert 0
-                di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
-                disp "``fun'_`j'' vs `=`fun'[`j']'; diff `=abs(``fun'_`j'' - `fun'[`j'])'"
-                exit _rc
+            local ok 1
+            if ( `j' != `=id[`j']' ) {
+                qui sum `ix' if id == `j'
+                if ( `r(N)' == 0 ) {
+                    cap assert ``fun'_`j'' == . | "``fun'_`j''" == ""
+                    if ( _rc ) {
+                        di as txt "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded a result and gcollapse did not"
+                        exit _rc
+                    }
+                    local ok 0
+                }
+                local jj = `ix'[r(min)]
             }
-            else if ( _rc & (nq[`j'] == 1) ) {
-                local ++imprecise
+            else local jj `j'
+
+            if ( `ok' ) {
+                cap assert ``fun'_`j'' == `fun'[`jj'] | abs(``fun'_`j'' - `fun'[`jj']) < `tol'
+                if ( _rc & (nq[`j'] > 1) ) {
+                    cap noi assert 0
+                    di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
+                    disp "``fun'_`j'' vs `=`fun'[`j']'; diff `=abs(``fun'_`j'' - `fun'[`j'])', N = `=f[`j']'"
+                    exit _rc
+                }
+                else if ( _rc & (nq[`j'] == 1) ) {
+                    local ++imprecise
+                }
             }
         }
 

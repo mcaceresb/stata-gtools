@@ -85,6 +85,13 @@ sure you do not have binary data in your strL variables.
 {opt verbose} prints some useful debugging info to the console.
 
 {phang}
+{opt bench:mark} and {opt bench:marklevel(int)} print how long in
+seconds various parts of the program take to execute. The user can also
+pass {opth bench(int)} for finer control. {opt bench(1)} is the same
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
+
+{phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem
 because Stata was unable to find {it:spookyhash.dll}, which is bundled with
 gtools and required for the plugin to run correctly. The best thing a Windows

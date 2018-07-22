@@ -264,8 +264,8 @@ __*Switches*__
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
-            program take to execute. Level 1 is the same as `benchmark`. Level 2
-            additionally prints benchmarks for internal plugin steps.
+            program take to execute. Level 1 is the same as `benchmark`. Levels
+            2 and 3 additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -341,10 +341,12 @@ on for each way to specify quantiles and cutoffs). Now we have
     |   NQ - 1 | (q(NQ - 2), q(NQ - 1)] |
     |       NQ | (q(NQ - 1), Inf)       |
 
-In theory there is no reason to limit NQ. For example, the question "Where
-do these 4 values fit in these 1000 categories?" is a well-defined question.
-Even if there will be at least 996 categories contain no values, there is no
-reason to limit the number of categories to 4.
+In theory there is no reason to limit NQ. For example, the question
+"Where do these 4 values fit in these 1000 categories?" is a
+well-defined question. Even if there will be at least 996 categories
+contain no values, there is no reason to limit the number of categories
+to 4 (of course, since the 1000 categories are created from those 4
+values, in practice this might not be adviseable).
 
 So why does the limit exist in `xtile`? It is actually a limit in `pctile`,
 which is used internally. Since `pctile` stores the percentiles in a variable

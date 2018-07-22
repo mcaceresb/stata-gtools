@@ -25,6 +25,7 @@ program define hashsort
                                ///
         tag(passthru)          ///
         counts(passthru)       ///
+        fill(passthru)         ///
         invertinmata           ///
                                ///
                                /// Unsupported sort options
@@ -63,7 +64,7 @@ program define hashsort
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
     local opts  `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local eopts `invertinmata' `sortgen' `skipcheck'
-    local gopts `generate' `tag' `counts' `replace' `mlast'
+    local gopts `generate' `tag' `counts' `fill' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)
     global GTOOLS_CALLER ""
     local rc = _rc

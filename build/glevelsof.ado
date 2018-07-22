@@ -40,16 +40,21 @@ program glevelsof, rclass
         GROUPid(str)          ///
         tag(passthru)         ///
         counts(passthru)      ///
+        fill(passthru)        ///
         replace               ///
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
+    if ( (`"`localvar'"' != "") & (`"`local'"' != "") ) {
+        disp as txt "(option {opt local} ignored with option {nolocalvar})"
+    }
+
     * Get varlist
     * -----------
 
-    if ( "`anything'" != "" ) {
+    if ( `"`anything'"' != "" ) {
         local varlist `anything'
         local varlist: subinstr local varlist "+" "", all
         local varlist: subinstr local varlist "-" "", all
@@ -71,7 +76,7 @@ program glevelsof, rclass
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
     local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
 
-    local gopts gen(`groupid') `tag' `counts' `replace'
+    local gopts gen(`groupid') `tag' `counts' `fill' `replace'
     local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')
 
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
@@ -106,7 +111,7 @@ program glevelsof, rclass
     }
     else if ( `rc' ) exit `rc'
 
-    if ( "`localvar'" == "" ) {
+    if ( `"`localvar'"' == "" ) {
         if ( `:list sizeof varlist' == 1 ) {
             cap confirm numeric variable `varlist'
             if ( _rc == 0 ) {

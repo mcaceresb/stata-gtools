@@ -1139,7 +1139,16 @@ program parse_keep_drop, rclass
         if ( "`replace'" == "" ) {
             local intersection: list __gtools_gc_targets & __gtools_gc_vars
             if ( "`intersection'" != "" ) {
-                di as error "targets also sources with no replace: `intersection'"
+                di as error "merge targets also sources with no replace: `intersection'"
+                error 110
+            }
+
+            unab memvars: _all
+            local intersection: list memvars - __gtools_gc_vars
+            local intersection: list intersection - by
+            local intersection: list __gtools_gc_targets & intersection
+            if ( "`intersection'" != "" ) {
+                di as error "merge targets exist with no replace: `intersection'"
                 error 110
             }
         }
@@ -1148,7 +1157,7 @@ program parse_keep_drop, rclass
     local intersection: list __gtools_gc_targets & by
     if ( "`intersection'" != "" ) {
         if ( "`replaceby'" == "" ) {
-            di as error "targets also in by() with no replaceby: `intersection'"
+            di as error "targets also in by(): `intersection'"
             error 110
         }
     }

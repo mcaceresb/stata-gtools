@@ -46,6 +46,16 @@ Options
             values of the returned list.  The default is a space.  A useful
             alternative is a comma.
 
+### Extras
+
+- `nolocal` Do not store `varlist` levels in a local macro. This is
+            specially useful with `gen()`
+
+- `gen([prefix], [replace])` Store the unique levels of `varlist`
+            in a new varlist prefixed by `prefix` **or** `replace` the
+            `varlist` with its unique levels. The two optoins are
+            mutually exclusive.
+
 - `colseparate(separator)` specifies a separator to serve as punctuation for
             the columns of the returned list.  The default is a pipe.  Specifying
             a varlist instead of a varname is only useful for double loops or for
@@ -83,8 +93,8 @@ Options
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
-            program take to execute. Level 1 is the same as `benchmark`. Level 2
-            additionally prints benchmarks for internal plugin steps.
+            program take to execute. Level 1 is the same as `benchmark`. Levels
+            2 and 3 additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled
@@ -190,6 +200,7 @@ try gen(prefix) nolocal; see help glevelsof for details
 r(920);
 
 . glevelsof x, gen(uniq_) nolocal
+. gisid uniq_* in 1 / `r(J)'
 ```
 
 The user can also replace the source variables if need be. This is

@@ -13,7 +13,7 @@ program gtools
         exit 198
     }
 
-    syntax, [LICENSEs Verbose Dependencies Install_latest Upgrade replace dll hashlib(str)]
+    syntax, [LICENSEs Verbose Dependencies Install_latest Upgrade replace dll hashlib(str) showcase examples]
     local cwd `c(pwd)'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
 
@@ -27,10 +27,10 @@ program gtools
         disp `"The implementation of spookyhash used is authored by Guillaume Voirin and is {browse "https://github.com/centaurean/spookyhash/blob/master/LICENSE.md":BSD3-licensed}."'
 
         if ( "`verbose'" != "" ) {
-            print_licenses
+            gtools_licenses
         }
 
-        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'"' == `""' ) {
+        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
             exit 0
         }
     }
@@ -72,7 +72,7 @@ program gtools
         di as txt "Success!"
         cd `"`cwd'"'
 
-        if ( `"`hashlib'`install_latest'`upgrade'`dll'"' == `""' ) {
+        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
             exit 0
         }
     }
@@ -151,11 +151,16 @@ program gtools
         exit 0
     }
 
-    display "Nothing to do. Specify: licenses, dependencies, dll (Windows), hasblib (Windows), upgrade."
+    if ( "`showcase'`examples'" != "" ) {
+        gtools_showcase
+        exit 0
+    }
+
+    display "Nothing to do. Specify: licenses, dependencies, dll (Windows), hasblib (Windows), upgrade, or examples."
 end
 
-capture program drop print_licenses
-program print_licenses
+capture program drop gtools_licenses
+program gtools_licenses
     disp _n(1) `"{hline 79}"'                                                                     ///
          _n(1) `"gtools license"'                                                                 ///
          _n(1) `""'                                                                               ///
@@ -411,6 +416,71 @@ program print_licenses
          _n(1) `"apply, that proxy's public statement of acceptance of any version is"'           ///
          _n(1) `"permanent authorization for you to choose that version for the"'                 ///
          _n(1) `"Library."'
+end
+
+capture program drop gtools_showcase
+program gtools_showcase
+    * preserve
+    gtools_cmd  sysuse auto, clear
+
+    gtools_head gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
+    gtools_cmd  gquantiles 2 * price, _pctile nq(10)
+    gtools_cmd  gquantiles p10 = 2 * price, pctile nq(10)
+    gtools_cmd  gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
+    gtools_cmd  fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
+
+    gtools_head hashsort varlist, [options]
+    gtools_cmd  hashsort -make
+    gtools_cmd  hashsort foreign -rep78, benchmark verbose mlast
+
+    gtools_head gegen target = stat(source) [if] [in] [weight], by(varlist) [options]
+    gtools_cmd  gegen tag   = tag(foreign)
+    gtools_cmd  gegen group = tag(-price make)
+    gtools_cmd  gegen p2_5  = pctile(price) [w = weight], by(foreign) p(2.5)
+
+    gtools_head gisid varlist [if] [in], [options]
+    gtools_cmd  gisid make, missok
+    gtools_cmd  gisid price in 1 / 2
+
+    gtools_head gduplicates varlist [if] [in], [options gtools(gtools_options)]
+    gtools_cmd  gduplicates report foreign
+    gtools_cmd  gduplicates report rep78 if foreign, gtools(bench(3))
+
+    gtools_head glevelsof varlist [if] [in], [options]
+    gtools_cmd  glevelsof rep78, local(levels) sep(" | ")
+    gtools_cmd  glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
+    gtools_cmd  glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
+
+    gtools_head gtop varlist [if] [in] [weight], [options]
+    disp        "gtoplevelsof varlist [if] [in] [weight], [options]" _n(1)
+    gtools_cmd  gtoplevelsof foreign rep78
+    gtools_cmd  gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
+
+    gtools_head gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
+    gtools_cmd  gen h1 = headroom
+    gtools_cmd  gen h2 = headroom
+    gtools_cmd  local lbl labelformat(#stat:pretty# #sourcelabel#)
+    gtools_cmd
+    gtools_cmd  gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v `lbl'
+    disp        `"disp "\`:var label mean', \`:var label p50'""'
+    gtools_cmd  gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2) wild
+
+    gtools_head gcontract varlist [if] [if] [fweight], [options]
+    gtools_cmd  gcontract foreign [fw = turn], freq(f) percent(p)
+    * restore
+end
+
+capture program drop gtools_head
+program gtools_head
+    gettoken cmd _: 0
+    disp _n(1) `"`cmd'"' _n(1) `"{hline `=length(`"`cmd'"')'}"' _n(2) `"`0'"' _n(1)
+end
+
+capture program drop gtools_cmd
+program gtools_cmd
+    disp `"`0'"'
+    * `0'
+    * disp ""
 end
 
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx

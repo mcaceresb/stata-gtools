@@ -67,8 +67,8 @@ Options
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
-            program take to execute. Level 1 is the same as `benchmark`. Level 2
-            additionally prints benchmarks for internal plugin steps.
+            program take to execute. Level 1 is the same as `benchmark`. Levels
+            2 and 3 additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled

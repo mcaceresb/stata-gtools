@@ -57,6 +57,7 @@ program gtoplevelsof, rclass
         group(str)            ///
         tag(passthru)         ///
         counts(passthru)      ///
+        fill(passthru)        ///
         replace               ///
     ]
 
@@ -160,7 +161,7 @@ program gtoplevelsof, rclass
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
     local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
 
-    local gopts gen(`group') `tag' `counts' `replace' `weights'
+    local gopts gen(`group') `tag' `counts' `fill' `replace' `weights'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 
     local rc = _rc

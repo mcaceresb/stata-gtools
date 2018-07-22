@@ -20,6 +20,7 @@ gen x = "a long string appeared" + string(mod(_n, 10000))
 gen y = int(10 * runiform())
 glevelsof x
 glevelsof x, gen(uniq_) nolocal
+gisid uniq_* in 1 / `r(J)'
 
 * The user can also replace the source variables if need be. This is
 * faster and saves memory, but it dispenses with the original variables.

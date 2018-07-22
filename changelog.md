@@ -6,14 +6,25 @@ Change Log
 First official release! This will go on SSC once all the tests have
 passed. Final TODOs:
 
-[ ] Tests from github 1.0 tag
-    [ ] Linux with Stata 13
-    [ ] Windows with Stata 13
-    [ ] Windows with Stata 15
-    [ ] Linux with Stata 15
+[X] Tests from github 0.14.2 tag
+    [X] Linux with Stata 13
+    [X] Windows with Stata 13
+    [X] Windows with Stata 15
+    [X] Linux with Stata 15
     [ ] OSX with Stata 14
-[ ] Read the documentation (Stata)
-[ ] Read the documentation (online)
+[X] Read the documentation (Stata)
+[X] Read the documentation (online)
+
+### Enhancements
+
+* `gtools, license v` prints the licenses of the open source projects
+  used in gtools.
+
+### Bug fixes
+
+* Fixed typos in test script
+* `gcollapse, merge` no longer replces targets without `replace`
+* `glevelsof, gen(, replace)` no longer conflicts with `replace`
 
 ------------------------------------------------------------------------
 

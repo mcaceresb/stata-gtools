@@ -121,13 +121,13 @@ user press {hi:Break}
 {p_end}
 
 {syntab:Gtools}
-{synopt :{opth compress}}Try to compress strL to str#.
+{synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
-{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{synopt :{opt forcestrl}}Skip binary variable check and force gtools to read strL variables.
 {p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
+{synopt :{cmd:bench}[{cmd:(}{int}{cmd:)}]}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
@@ -223,7 +223,7 @@ palceholders in the source label are also replaced.
 
 {phang}
 {opth labelprogram(str)} Specifies the program to use with #stat:pretty#.
-Thisis an {opt rclass} that must set {opt prettystat} as a return value. The
+This is an {opt rclass} that must set {opt prettystat} as a return value. The
 program must specify a value for each summary stat or return #default# to
 use the default engine. The programm is passed the requested stat by {opt gcollapse}.
 
@@ -245,7 +245,7 @@ be faster.
 
 {phang}
 {opt forcemem} The opposite of {opt forceio}. The check for whether to use
-memory or disk check involvesforceio some overhead, so if J is known to
+memory or disk check involves some overhead, so if J is known to
 be large {opt forcemem} will be faster.
 
 {phang}
@@ -274,8 +274,8 @@ sure you do not have binary data in your strL variables.
 {opt bench:mark} and {opt bench:marklevel(int)} print how long in
 seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
-as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
-internal plugin steps.
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

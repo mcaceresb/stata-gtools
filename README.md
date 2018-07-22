@@ -28,7 +28,7 @@ caveats and details on the plugin (including some extra features!).
 __*Gtools commands with a Stata equivalent*__
 
 (_**NOTE:**_ `strL` variables only partially supported on Stata 14 and
-above; `gcollapse` and `gcontract` do not support `strL` by variabes).
+above; `gcollapse` and `gcontract` do not support `strL` variabes).
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
@@ -36,7 +36,7 @@ above; `gcollapse` and `gcontract` do not support `strL` by variabes).
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables                      |
+| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables, arbitrary levels    |
 | gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
 | gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
@@ -92,12 +92,13 @@ Commands that take this type of input include:
 
 __*Hashing*__
 
-The key insight is that hashing the data and sorting a hash is a lot faster
-than sorting the data to then process it by group. Sorting a hash can be
-achieved in linear O(N) time, whereas the best sorts take O(N log(N))
-time. Sorting the groups would then be achievable in O(J log(J)) time
-(with J groups). Hence the speed improvements are largest when N / J is
-largest. Further, compiled C code is much faster than Stata commands.
+The key insight is that hashing the data and sorting a hash is a lot
+faster than sorting the data to then process it by group. Sorting a hash
+can be achieved in linear O(N) time, whereas the best general-purpose
+sorts take O(N log(N)) time. Sorting the groups would then be achievable
+in O(J log(J)) time (with J groups). Hence the speed improvements are
+largest when N / J is largest. Further, compiled C code is much faster
+than Stata commands.
 
 __*Sorting*__
 
@@ -178,7 +179,7 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
-* gquantiles [newvarname =] exp [weight], {_pctile|xtile|pctile} [options]
+* gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
 gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
@@ -186,20 +187,20 @@ fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
 
 * hashsort varlist, [options]
 hashsort -make
-hashsort foreign -rep78, benchmark verbose
+hashsort foreign -rep78, benchmark verbose mlast
 
-* gegen target  = stat(source), by(varlist) [options]
+* gegen target  = stat(source) [if] [in] [weight], by(varlist) [options]
 gegen tag   = tag(foreign)
 gegen group = tag(-price make)
-gegen p2_5  = pctile(price), by(foreign) p(2.5)
+gegen p2_5  = pctile(price) [w = weight], by(foreign) p(2.5)
 
 * gisid varlist [if] [in], [options]
 gisid make, missok
-gisid price in 1
+gisid price in 1 / 2
 
-* gduplicates varlist [if] [in], [options]
+* gduplicates varlist [if] [in], [options gtools(gtools_options)]
 gduplicates report foreign
-gduplicates report rep78 if foreign
+gduplicates report rep78 if foreign, gtools(bench(3))
 
 * glevelsof varlist [if] [in], [options]
 glevelsof rep78, local(levels) sep(" | ")
@@ -208,12 +209,17 @@ glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
 
 * gtop varlist [if] [in] [weight], [options]
 * gtoplevelsof varlist [if] [in] [weight], [options]
-gtop foreign rep78
-gtoplevelsof foreign rep78 [w = weight], ntop(2) missrow groupmiss pctfmt(%6.4g) colmax(3)
+gtoplevelsof foreign rep78
+gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
 
 * gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
-gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v
-gcollapse (nunique) turn (p97.5) mpg (iqr) headroom, by(foreign rep78) benchmark
+gen h1 = headroom
+gen h2 = headroom
+local lbl labelformat(#stat:pretty# #sourcelabel#)
+
+gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v `lbl'
+disp "`:var label mean', `:var label p50'"
+gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2) wild
 
 * gcontract varlist [if] [if] [fweight], [options]
 gcontract foreign [fw = turn], freq(f) percent(p)
@@ -342,7 +348,8 @@ Differences from `xtile`, `pctile`, and `_pctile`
 - The user has control over the behavior of `cutpoints()` and `cutquantiles()`.
   They obey `if` `in` with option `cutifin`, they can be group-specific with
   option `cutby`, and they can be de-duplicated via `dedup`.
-- Fixes numerical precision issues with `pctile, altdef` (e.g. see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se), which is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not; also see [this thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1454409-weights-in-pctile)).
+- Fixes numerical precision issues with `pctile, altdef` (e.g. see [this Statalist thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1418732-numerical-precision-issues-with-stata-s-pctile-and-altdef-in-ic-and-se), which is a very minor thing so Stata and fellow users maintain it's not an issue, but I think it is because Stata/MP gives what I think is the correct answer whereas IC and SE do not).
+- Fixes a possible issue with the weights implementation in `_pctile`; see [this thread](https://www.statalist.org/forums/forum/general-stata-discussion/general/1454409-weights-in-pctile).
 
 Differences from `egen`
 
@@ -365,6 +372,10 @@ Differences from `levelsof`
 - It can take a `varlist` and not just a `varname`; in that case it prints
   all unique combinations of the varlist. The user can specify column and row
   separators.
+- It can deduplicate an arbitrary number of levels and store the results in a
+  new variable list or replace the old variable list via `gen(prefix)` and
+  `gen(replace)`, respectively. If the user runs up against the maximum macro
+  variable length, add option `nolocal`.
 
 Differences from `isid`
 

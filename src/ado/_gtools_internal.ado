@@ -1123,7 +1123,7 @@ program _gtools_internal, rclass
 
         parse_targets, sources(`sources') ///
                        targets(`targets') ///
-                       stats(`stats') `k_exist'
+                       stats(`stats') `k_exist' `replace'
 
         if ( _rc ) {
             local rc = _rc
@@ -1512,6 +1512,7 @@ program _gtools_internal, rclass
                 exit 198
             }
 
+            local replace_ `replace'
             local 0 `gen'
             syntax [anything], [replace]
 
@@ -1604,6 +1605,8 @@ program _gtools_internal, rclass
             * store(data prefix(prefix) [truncate]) <- prefix; must be valid stata names
             * freq(matrix(name))
             * freq(mata(name))
+
+            local replace `replace_'
         }
         else if ( inlist("`gfunction'",  "top") ) {
             local 0, `gtop'
@@ -2377,7 +2380,8 @@ program clean_all
     cap scalar drop __gtools_benchmark
     cap scalar drop __gtools_countonly
     cap scalar drop __gtools_seecount
-    cap matrix drop __gtools_unsorted
+    cap scalar drop __gtools_unsorted
+    cap scalar drop __gtools_invertix
     cap scalar drop __gtools_nomiss
     cap scalar drop __gtools_keepmiss
     cap scalar drop __gtools_missing
@@ -2947,6 +2951,8 @@ program check_matsize
     }
 end
 
+* NOTE(mauricio): Replace does nothing here atm; it shouldn't because
+* _gtools_internal expects everything to exist already!
 capture program drop parse_targets
 program parse_targets
     syntax, sources(str) targets(str) stats(str) [replace k_exist(str)]

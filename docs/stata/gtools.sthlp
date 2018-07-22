@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.14.1 19Jul2018}{...}
+{* *! version 1.0.0 21Jul2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -19,7 +19,8 @@ maintenance.
 
 {pstd}
 {opt gtools} is a suite of commands that use hashes for a speedup over
-traditional stata commands. The following are available as part of gtools:
+traditional stata commands. The following are available as part of gtools
+(also see {stata gtools, examples}):
 
 {p 8 17 2}
 {manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
@@ -65,7 +66,7 @@ traditional stata commands. The following are available as part of gtools:
 {p_end}
 {synopt :{opt u:pgrade}}Install latest version from Github.
 {p_end}
-{synopt :{opt i:nstall_latest}}alias for {opt upgrade}.
+{synopt :{opt i:nstall_latest}}Alias for {opt upgrade}.
 {p_end}
 {synopt :{opt replace}}Replace dependencies if already found.
 {p_end}
@@ -73,6 +74,15 @@ traditional stata commands. The following are available as part of gtools:
 {p_end}
 {synopt :{opth hashlib(str)}}Custom path to {it:spookyhash.dll}.
 {p_end}
+{synopt :{opt license:s}}Prints the open source projects used in gtools
+{p_end}
+{synopt :{opt v:erbose}}With {opt licenses}, prints the licenses of the open source projects used in gtools
+{p_end}
+{synopt :{opt examples}}Print examples of how to use various gtools functions.
+{p_end}
+{synopt :{opt showcase}}Alias for {opt examples}.
+{p_end}
+
 
 {synoptline}
 {p2colreset}{...}
@@ -114,7 +124,15 @@ is required for the plugin to execute correctly.
 {opt dll} Add path to {it:spookyhash.dll} to system path.
 
 {phang}
-{opth hashlib(str)}Custom path to {it:spookyhash.dll}.
+{opth hashlib(str)} Custom path to {it:spookyhash.dll}.
+
+{phang}
+{opt license} Prints the open source projects used in {cmd gtools}. With
+{opt verbose} it also prints the licenses.
+
+{phang}
+{opt examples} (alias {opt showcase}) prints examples of how to use
+various gtools functions.
 
 {marker author}{...}
 {title:Author}

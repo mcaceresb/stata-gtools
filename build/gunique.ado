@@ -1,4 +1,4 @@
-*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
@@ -26,6 +26,7 @@ program gunique, rclass
         HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
+        debug(passthru)        /// Print debugging info to console
     ]
     local seecount  seecount
     local unsorted  unsorted
@@ -69,7 +70,10 @@ program gunique, rclass
     }
 
     global GTOOLS_CALLER gunique
-    local opts `missing' `compress' `forcestrl' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `seecount' `gopts'
+    local opts `missing' `seecount' `compress' `forcestrl'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug' `gopts'
+
     if ( "`detail'" != "" ) {
         tempvar count
         local dopts counts(`count') fill(data)

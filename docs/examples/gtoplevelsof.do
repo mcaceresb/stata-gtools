@@ -2,6 +2,10 @@ sysuse auto, clear
 
 gtoplevelsof rep78
 
+gtoplevelsof rep78 [fw = weight]
+
+gtoplevelsof rep78 [w = gear_ratio]
+
 gtoplevelsof rep78,   missrow
 
 gtoplevelsof rep78,   colsep(", ")

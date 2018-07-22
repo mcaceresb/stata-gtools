@@ -81,9 +81,9 @@ Options
 
 ### Extras
 
-- `rawsum(varlist)` Sequence of target names for which to ignore weights,
-        except observations with a weight of zero or missing, which are
-        excluded. This is a generalization of {opt rawsum}, but it is
+- `rawstat(varlist)` Sequence of target names for which to ignore weights,
+        except observations with a weight of zero or missing, which
+        are excluded. This is a generalization of rawsum, but it is
         specified for each individual target (if no target is specified,
         the source variable name is what we call target).
 
@@ -91,8 +91,8 @@ Options
           a group are also missing.
 
 - `merge` merges the collapsed data back to the original data set.  Note that
-          if you want to replace the source variable(s) then you need to
-          specify replace.
+          if you want to replace the source or target variable(s) then you need
+          to specify `replace`.
 
 - `wildparse` specifies that the function call should be parsed assuming
               targets are named using rename-stle syntax. For example,
@@ -114,7 +114,7 @@ Options
             replaced.
 
 - `labelprogram(str)` Specifies the program to use with #stat:pretty#.
-            Thisis an rclass that must set prettystat as a return value. The
+            This is an rclass that must set prettystat as a return value. The
             program must specify a value for each summary stat or return
             #default# to use the default engine. The programm is passed the
             requested stat by gcollapse.
@@ -130,11 +130,11 @@ Options
             collapsing the data to disk and reading them back after keeping only
             the first J observations (assuming J is the number of groups). For J
             small relative to N, collapsing to disk will be faster. This check
-            involves some overhead, however, so if J is known to be small forceio
+            involves some overhead, however, so if J is known to be small `forceio`
             will be faster.
 
-- `forcemem` The opposite of forceio. The check for whether to use memory or
-            disk check involvesforceio some overhead, so if J is known to be
+- `forcemem` The opposite of `forceio`. The check for whether to use memory or
+            disk check involves some overhead, so if J is known to be
             large forcemem will be faster.
 
 - `double` stores data in double precision.
@@ -159,8 +159,8 @@ Options
 - `verbose` prints some useful debugging info to the console.
 
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
-            program take to execute. Level 1 is the same as `benchmark`. Level 2
-            additionally prints benchmarks for internal plugin steps.
+            program take to execute. Level 1 is the same as `benchmark`. Levels
+            2 and 3 additionally prints benchmarks for internal plugin steps.
 
 - `hashlib(str)` On earlier versions of gtools Windows users had a problem
             because Stata was unable to find spookyhash.dll, which is bundled

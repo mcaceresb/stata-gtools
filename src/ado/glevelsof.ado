@@ -1,4 +1,4 @@
-*! version 0.9.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -23,8 +23,8 @@ program glevelsof, rclass
         unsorted              /// Do not sort levels (faster)
         noLOCALvar            /// Do not store levels in a local macro (or in r(levels))
         numfmt(passthru)      /// Number format
-        freq(passthru)        /// compute frequency counts
-        store(passthru)       /// Number format
+        freq(passthru)        /// (not implemented) compute frequency counts
+        store(passthru)       /// (not implemented) store in matrix or mata object
         gen(passthru)         /// Save unique levels in varlist
                               ///
         debug(passthru)       /// Print debugging info to console
@@ -40,16 +40,21 @@ program glevelsof, rclass
         GROUPid(str)          ///
         tag(passthru)         ///
         counts(passthru)      ///
+        fill(passthru)        ///
         replace               ///
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
+    if ( (`"`localvar'"' != "") & (`"`local'"' != "") ) {
+        disp as txt "(option {opt local} ignored with option {nolocalvar})"
+    }
+
     * Get varlist
     * -----------
 
-    if ( "`anything'" != "" ) {
+    if ( `"`anything'"' != "" ) {
         local varlist `anything'
         local varlist: subinstr local varlist "+" "", all
         local varlist: subinstr local varlist "-" "", all
@@ -66,9 +71,14 @@ program glevelsof, rclass
     * ------------
 
     local opts  `separate' `missing' `clean' `unsorted'
-    local sopts `colseparate' `verbose' `benchmark' `benchmarklevel' `compress' `forcestrl'
-    local sopts `sopts' `hashlib' `oncollision' `numfmt' `hashmethod' `debug'
-    local gopts gen(`groupid') `tag' `counts' `replace' glevelsof(`localvar' `freq' `store' `gen')
+
+    local sopts `colseparate' `numfmt' `compress' `forcestrl'
+    local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
+    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+
+    local gopts gen(`groupid') `tag' `counts' `fill' `replace'
+    local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')
+
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
     global GTOOLS_CALLER ""
@@ -76,6 +86,10 @@ program glevelsof, rclass
     if ( `rc' == 17999 ) {
         if ( `:list sizeof varlist' > 1 ) {
             di as err "Cannot use fallback with more than one variable."
+            exit 17000
+        }
+        else if ( `"`localvar'`gen'`numfmt'"' != "" ) {
+            di as err `"Cannot use fallback with option(s): `localvar' `gen' `numfmt'."'
             exit 17000
         }
         else if strpos("`anything'", "-") {
@@ -91,32 +105,39 @@ program glevelsof, rclass
         di as txt "(no observations)"
         exit 0
     }
+    else if ( `rc' == 920 ) {
+        disp as err _n(1) "try {opt gen(prefix)} {opt nolocal}; see {help glevelsof:help glevelsof} for details"
+        exit `rc'
+    }
     else if ( `rc' ) exit `rc'
 
-    if ( `:list sizeof varlist' == 1 ) {
-        cap confirm numeric variable `varlist'
-        if ( _rc == 0 ) {
-            local vals `"`r(levels)'"'
-            local vals: subinstr local vals " 0." " .", all
-            local vals: subinstr local vals "-0." "-.", all
-            if ( "`local'"  != "" ) c_local `local' `"`vals'"'
-            if ( "`silent'" == "" ) di as txt `"`vals'"'
-            return local levels `"`vals'"'
+    if ( `"`localvar'"' == "" ) {
+        if ( `:list sizeof varlist' == 1 ) {
+            cap confirm numeric variable `varlist'
+            if ( _rc == 0 ) {
+                local vals `"`r(levels)'"'
+                local vals: subinstr local vals " 0." " .", all
+                local vals: subinstr local vals "-0." "-.", all
+                if ( "`local'"  != "" ) c_local `local' `"`vals'"'
+                if ( "`silent'" == "" ) di as txt `"`vals'"'
+                return local levels `"`vals'"'
+            }
+            else {
+                if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
+                if ( "`silent'" == "" ) di as txt `"`r(levels)'"'
+                return local levels `"`r(levels)'"'
+            }
         }
         else {
             if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
             if ( "`silent'" == "" ) di as txt `"`r(levels)'"'
             return local levels `"`r(levels)'"'
         }
-    }
-    else {
-        if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
-        if ( "`silent'" == "" ) di as txt `"`r(levels)'"'
-        return local levels `"`r(levels)'"'
+
+        return local sep    `"`r(sep)'"'
+        return local colsep `"`r(colsep)'"'
     }
 
-    return local sep    `"`r(sep)'"'
-    return local colsep `"`r(colsep)'"'
     return scalar N      = `r(N)'
     return scalar J      = `r(J)'
     return scalar minJ   = `r(minJ)'

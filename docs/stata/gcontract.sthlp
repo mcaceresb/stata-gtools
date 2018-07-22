@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.8.1 19Jul2018}{...}
+{* *! version 1.0.0 21Jul2018}{...}
 {viewerdialog gcontract "dialog gcontract"}{...}
 {vieweralsosee "[R] gcontract" "mansection R gcontract"}{...}
 {viewerjumpto "Syntax" "gcontract##syntax"}{...}
@@ -60,13 +60,13 @@ final data.
 {synopt :{opt fast}} Mirrors the same option in {opt collapse}. Do not preserve and restore the original dataset; saves speed but leaves the data in an unusable state shall the user press {hi:Break} {p_end}
 
 {syntab:Gtools}
-{synopt :{opth compress}}Try to compress strL to str#.
+{synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
-{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{synopt :{opt forcestrl}}Skip binary variable check and force gtools to read strL variables.
 {p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
+{synopt :{cmd:bench}[{cmd:(}{int}{cmd:)}]}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
@@ -174,8 +174,8 @@ sure you do not have binary data in your strL variables.
 {opt bench:mark} and {opt bench:marklevel(int)} print how long in
 seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
-as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
-internal plugin steps.
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

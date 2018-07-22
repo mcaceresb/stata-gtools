@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.14.1 19Jul2018}{...}
+{* *! version 1.0.0 21Jul2018}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -32,9 +32,9 @@
 {synopthdr}
 {synoptline}
 {syntab:Gtools}
-{synopt :{opth compress}}Try to compress strL to str#.
+{synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
-{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{synopt :{opt forcestrl}}Skip binary variable check and force gtools to read strL variables.
 {p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
@@ -42,9 +42,9 @@
 {p_end}
 {synopt :{opt bench:marklevel(int)}}Benchmark various steps of the plugin.
 {p_end}
-{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
-{p_end}
 {synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
+{p_end}
+{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
 {synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}

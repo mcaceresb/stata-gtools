@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jul 20 18:16:33 EDT 2018
+* Updated: Sun Jul 22 11:39:18 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.14.1
+* Version: 1.0.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -49,17 +49,29 @@ program main
     * --------------
 
     cap noi {
-        * qui do test_gquantiles_by.do
-        * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
+        * qui do test_gduplicates.do
         * qui do test_gegen.do
         * qui do test_gisid.do
-        * qui do test_gduplicates.do
         * qui do test_glevelsof.do
+        * qui do test_gquantiles.do
+        * qui do test_gquantiles_by.do
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
+
+        * qui do docs/examples/gcollapse.do
+        * qui do docs/examples/gcontract.do
+        * qui do docs/examples/gdistinct.do
+        * qui do docs/examples/gduplicates.do
+        * qui do docs/examples/gquantiles.do
+        * qui do docs/examples/gtoplevelsof.do
+        * qui do docs/examples/gunique.do
+        * qui do docs/examples/hashsort.do
+        * qui do docs/examples/gegen.do, nostop
+        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/glevelsof.do, nostop
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
@@ -124,11 +136,12 @@ program main
             compare_isid,          `noisily' oncollision(error)
             compare_duplicates,    `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
-            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_unique,        `noisily' oncollision(error) distinct
             compare_hashsort,      `noisily' oncollision(error)
             compare_egen,          `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)

@@ -3,27 +3,38 @@ FAQs
 
 ### Have weights been implemented yet?
 
-Yes for `gcollapse`, which can match all the weight options in
-`collapse`, as well as `gegen`, which can do weights for internally
-impemented functions (`egen` does not take weights, so functions that
-are not internally implemented cannot do weights either).
+Yes! Several `gtools` commands accept weights:
 
-However, weights have not been implemented for `gquantiles`.
+* `gcollapse` and `gcontract`, which can match all the weight options in
+  `collapse` and `contract`, respectively.
+
+* `gegen`, which can do weights for internally impemented functions
+  (`egen` does not take weights, so functions that are not internally
+  implemented cannot do weights either).
+
+* `gquantiles` and `fasterxtile` (which fix some possible issues with
+   the weights implementation in `pctile` and `xtile`)
+
+* `gtop` and `gtoplevelsof`
 
 ### Why do I get an error with strL variables?
 
-`strL` variables in stata allow storing up to 2GB (note that is _not_
-quite the same as GiB) of data in each entry. This is great, but the
-Stata Plugin Interface has limited support for them. Version 2.0, which
-is used in Stata 13 and earlier, does not support `strL` variables at
-all, and version 3.0, which is used in Stata 14 and later, only supports
-reading from `strL` variables.
+`strL` variables in stata allow storing up to 2GB of data in each entry
+(note that is _not_ quite the same as GiB and _not_ quite the same as a
+string of that length).
+
+This is great, but the Stata Plugin Interface has limited support for
+them. Version 2.0, which is used in Stata 13 and earlier, does not
+support `strL` variables at all, and version 3.0, which is used in Stata
+14 and later, only supports reading from `strL` variables.
 
 This means that `gtools` can only support `strL` variables in Stata 14
 and later for some commands. In particular `gcollapse` and `gcontract`
 do not support `strL` variables because those commands have to write
 values to Stata, and that is not possible for `strL` variables using
-plugins.
+plugins. Further, `strL` variabes can store binary data, which would
+require re-writing various portions of `gtools`; binary data support is
+planned for a future release but does not have an ETA.
 
 ### My computer has a 32-bit CPU
 

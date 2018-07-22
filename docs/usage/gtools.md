@@ -16,7 +16,7 @@ it became apparent that I would need to include a DLL with the package
 automatically, I ran into enough problems while developing the plugin that I
 felt compelled to include this program.
 
-_Note for Windows users:_ It may be necessary to run gtools, dependencies at
+_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
 the start of your Stata session.
 
 Syntax
@@ -26,18 +26,24 @@ Syntax
 gtools [, options]
 ```
 
+See `gtools, examples` for examples of hwo to use available gtools functions.
+
 Options
 -------
 
 - `dependencies` Installs the hash library, spookyhash.dll, which is required
             for the plugin to execute correctly.
 
-- `upgrade` Upgrades gtools to the latest github version.
-
-- `install_latest` Alias for upgrade.
+- `upgrade` (alias `install_latest`) Upgrades gtools to the latest github version.
 
 - `replace` Replace spookyhash.dll if already installed.
 
 - `dll` Add path to spookyhash.dll to system path.
 
 - `hashlib(str)Custom` path to spookyhash.dll.
+
+- `licenses` Prints the open source projects used in `gtools`
+
+- `verbose` With `licenses`, prints the licenses of the open source projects used in `gtools`
+
+- `examples` (alias `showcase`) print examples of how to use available gtools functions.

@@ -1,4 +1,4 @@
-*! version 0.2.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -duplicates- implementation using -gegen tag- for faster processing
 
 capture program drop gduplicates
@@ -237,9 +237,10 @@ program examplesListUnsorted
     tempvar example Ngroup freq surplus dgroup order
 
     global GTOOLS_CALLER ghash
-    local opts missing gfunction(hash) `gtools'
+    local  opts missing gfunction(hash) `gtools'
+    local gopts gen(`dgroup') counts(`Ngroup') tag(`example')
 
-    cap noi _gtools_internal `varlist' `ifin', gen(`dgroup') counts(`Ngroup') tag(`example') `opts'
+    cap noi _gtools_internal `varlist' `ifin', `gopts' `opts'
     global GTOOLS_CALLER ""
 
     if ( _rc == 17999 ) {
@@ -267,10 +268,14 @@ program examplesListUnsorted
         char `dgroup'[varname] "group:"
         char `Ngroup'[varname] "#"
         if ( `r(J)' ) > 1 {
-            list `dgroup' `Ngroup' `order' `varlist' if `example' & `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `dgroup' `Ngroup' `order' `varlist'
+            list `lvars' if `example' & `dgroup', `lopts'
         }
         else {
-            list `Ngroup' `order' `varlist' if `example' & `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `Ngroup' `order' `varlist'
+            list `lvars' if `example' & `dgroup', `lopts'
         }
     }
     else if ( "`cmd'" == "list" ) {
@@ -278,7 +283,9 @@ program examplesListUnsorted
         char `dgroup'[varname] "group:"
         * char `order'[varname] "obs:"
         if ( `r(J)' > 1 ) {
-            list `dgroup' `order' `varlist' if `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `dgroup' `order' `varlist'
+            list `lvars' if `dgroup', `lopts'
         }
         else {
             list `order' `varlist' if `dgroup', subvarname noobs `options'
@@ -295,9 +302,10 @@ program examplesList, sortpreserve
     tempvar example Ngroup freq surplus dgroup order
 
     global GTOOLS_CALLER ghash
-    local opts missing gfunction(hash) `gtools'
+    local  opts missing gfunction(hash) `gtools'
+    local gopts gen(`dgroup') counts(`Ngroup') tag(`example')
 
-    cap noi _gtools_internal `varlist' `ifin', gen(`dgroup') counts(`Ngroup') tag(`example') `opts'
+    cap noi _gtools_internal `varlist' `ifin', `gopts' `opts'
     global GTOOLS_CALLER ""
 
     if ( _rc == 17999 ) {
@@ -326,10 +334,14 @@ program examplesList, sortpreserve
         char `dgroup'[varname] "group:"
         char `Ngroup'[varname] "#"
         if ( `r(J)' ) > 1 {
-            list `dgroup' `Ngroup' `order' `varlist' if `example' & `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `dgroup' `Ngroup' `order' `varlist'
+            list `lvars' if `example' & `dgroup', `lopts'
         }
         else {
-            list `Ngroup' `order' `varlist' if `example' & `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `Ngroup' `order' `varlist'
+            list `lvars' if `example' & `dgroup', `lopts'
         }
     }
     else if ( "`cmd'" == "list" ) {
@@ -337,10 +349,14 @@ program examplesList, sortpreserve
         char `dgroup'[varname] "group:"
         * char `order'[varname] "obs:"
         if ( `r(J)' > 1 ) {
-            list `dgroup' `order' `varlist' if `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `dgroup' `order' `varlist'
+            list `lvars' if `dgroup', `lopts'
         }
         else {
-            list `order' `varlist' if `dgroup', subvarname noobs `options'
+            local lopts subvarname noobs `options'
+            local lvars `order' `varlist'
+            list `lvars' if `dgroup', `lopts'
         }
     }
 

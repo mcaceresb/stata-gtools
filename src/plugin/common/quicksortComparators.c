@@ -157,3 +157,11 @@ int xtileCompareIndex (const void *a, const void *b, void *thunk)
     ST_double bb = *((ST_double *)b + 1);
     return BaseCompareNum(aa, bb);
 }
+
+int xtileCompareInvert (const void *a, const void *b, void *thunk);
+int xtileCompareInvert (const void *a, const void *b, void *thunk)
+{
+    ST_double aa = *((ST_double *)a);
+    ST_double bb = *((ST_double *)b);
+    return BaseCompareNum(bb, aa);
+}

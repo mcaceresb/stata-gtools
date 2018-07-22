@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.9.1  19Jul2018}{...}
+{* *! version 1.0.0  21Jul2018}{...}
 {viewerdialog hashsort "dialog sort, message(-hashsort-)"}{...}
 {vieweralsosee "[D] hashsort" "mansection D hashsort"}{...}
 {vieweralsosee "" "--"}{...}
@@ -99,8 +99,8 @@ sure you do not have binary data in your strL variables.
 {opt bench:mark} and {opt bench:marklevel(int)} print how long in
 seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
-as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
-internal plugin steps.
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

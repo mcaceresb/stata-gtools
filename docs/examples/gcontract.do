@@ -25,7 +25,7 @@ sysuse auto, clear
 gen long id = _n * 1000
 expand id
 gcontract foreign rep78, ///
-    freq(f) cfreq(cf) percent(p) cpercent(cp) bench(2) zero
+    freq(f) cfreq(cf) percent(p) cpercent(cp) bench(3) zero
 
 l
 

@@ -1,4 +1,4 @@
-*! version 0.14.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -21,8 +21,6 @@ program gcollapse, rclass
                                      ///
         merge                        /// Merge statistics back to original data, replacing if applicable
         replace                      /// Allow replacing existing variables with output with merge
-        compress                     /// Try to compress strL variables
-        forcestrl                    /// Force reading strL variables (stata 14 and above only)
         freq(passthru)               /// Include frequency count with observations per group
                                      ///
         LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
@@ -40,16 +38,18 @@ program gcollapse, rclass
         forcemem                     /// Use memory for writing/reading collapsed data
         double                       /// Generate all targets as doubles
                                      ///
+        compress                     /// Try to compress strL variables
+        forcestrl                    /// Force reading strL variables (stata 14 and above only)
         Verbose                      /// Print info during function execution
         BENCHmark                    /// print function benchmark info
         BENCHmarklevel(int 0)        /// print plugin benchmark info
-                                     ///
         HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+                                     ///
         hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
                                      ///
-        debug                        /// (internal) Allow replacing by variables with output
-        DEBUG_level(int 0)           /// (internal) Allow replacing by variables with output
+        debug                        /// (internal) Debug
+        DEBUG_level(int 0)           /// (internal) Debug (passed to internals)
         debug_replaceby              /// (internal) Allow replacing by variables with output
         debug_io_read(int 1)         /// (internal) Read IO data using mata or C
         debug_io_check(real 1e6)     /// (internal) Threshold to check for I/O speed gains
@@ -395,7 +395,8 @@ program gcollapse, rclass
 
         qui mata: st_addvar(__gtools_gc_recasttypes, __gtools_gc_recastvars, 1)
         if ( `=_N > 0' ) {
-            cap noi _gtools_internal, recast(targets(`gtools_recastvars') sources(`gtools_recastsrc'))
+            cap noi _gtools_internal, ///
+                recast(targets(`gtools_recastvars') sources(`gtools_recastsrc'))
             if ( _rc ) {
                 local rc = _rc
                 CleanExit
@@ -482,12 +483,15 @@ program gcollapse, rclass
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
     local opts     missing replace `keepmissing' `compress' `forcestrl'
-    local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod'
+    local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod'
+    local opts     `opts' `hashlib' `oncollision' debug(`debug_level')
     local opts     `opts' `anymissing' `allmissing' `rawstat'
     local action   `sources' `targets' `stats'
 
     local switch = (`=scalar(__gtools_gc_k_extra)' > 3) & (`debug_io_check' < `=_N')
-    local mem    = ("`forcemem'" != "") | ("`merge'" != "") | (`=scalar(__gtools_gc_k_extra)' == 0)
+    local mem    = ("`forcemem'" != "") ///
+                 | ("`merge'"    != "") ///
+                 | (`=scalar(__gtools_gc_k_extra)' == 0)
     local io     = ("`forceio'"  != "") & (`=scalar(__gtools_gc_k_extra)' > 0)
 
     if ( `io' ) {
@@ -518,7 +522,10 @@ program gcollapse, rclass
         * Benchmark adding 2 variables to gauge how long it might take to
         * add __gtools_gc_k_extra variables.
         tempvar __gtools_gc_index __gtools_gc_ix __gtools_gc_info
-        cap noi benchmark_memvars, index(`__gtools_gc_index') ix(`__gtools_gc_ix') info(`__gtools_gc_info')
+        cap noi benchmark_memvars,     ///
+            index(`__gtools_gc_index') ///
+            ix(`__gtools_gc_ix')       ///
+            info(`__gtools_gc_info')
         if ( _rc ) {
             local rc = _rc
             CleanExit
@@ -561,10 +568,14 @@ program gcollapse, rclass
         gtools_timer info 97 `"`msg'"', prints(`bench')
 
         if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_gc_k_extra)' == 0) ) {
-            if ( `verb' ) di as text "(ignored -forceio- because sources are being used as targets)"
+            if ( `verb' ) {
+                di as text "(ignored -forceio- because sources are being used as targets)"
+            }
         }
 
-        if ( "`added'" != "" ) qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
+        if ( "`added'" != "" ) {
+            qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
+        }
         local msg "Generated additional targets"
         gtools_timer info 97 `"`msg'"', prints(`bench')
 
@@ -672,7 +683,10 @@ program gcollapse, rclass
         * If we collapsed to disk, read back the data
         * -------------------------------------------
 
-        if ( (`=_N > 0') & (`=scalar(__gtools_gc_k_extra)' > 0) & ( `used_io' | ("`forceio'" == "forceio") ) ) {
+        local ifcond (`=_N > 0')                          ///
+                   & (`=scalar(__gtools_gc_k_extra)' > 0) ///
+                   & ( `used_io' | ("`forceio'" == "forceio") ) 
+        if ( `ifcond' ) {
             gtools_timer on 97
 
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
@@ -805,7 +819,10 @@ end
 
 cap mata: mata drop gtools_get_collapsed()
 mata
-real matrix function gtools_get_collapsed(string scalar fname, real scalar nrow, real scalar ncol)
+real matrix function gtools_get_collapsed(
+    string scalar fname,
+    real scalar nrow,
+    real scalar ncol)
 {
     real scalar fh
     real matrix X
@@ -1122,7 +1139,16 @@ program parse_keep_drop, rclass
         if ( "`replace'" == "" ) {
             local intersection: list __gtools_gc_targets & __gtools_gc_vars
             if ( "`intersection'" != "" ) {
-                di as error "targets also sources with no replace: `intersection'"
+                di as error "merge targets also sources with no replace: `intersection'"
+                error 110
+            }
+
+            unab memvars: _all
+            local intersection: list memvars - __gtools_gc_vars
+            local intersection: list intersection - by
+            local intersection: list __gtools_gc_targets & intersection
+            if ( "`intersection'" != "" ) {
+                di as error "merge targets exist with no replace: `intersection'"
                 error 110
             }
         }
@@ -1131,7 +1157,7 @@ program parse_keep_drop, rclass
     local intersection: list __gtools_gc_targets & by
     if ( "`intersection'" != "" ) {
         if ( "`replaceby'" == "" ) {
-            di as error "targets also in by() with no replaceby: `intersection'"
+            di as error "targets also in by(): `intersection'"
             error 110
         }
     }
@@ -1212,7 +1238,11 @@ program parse_keep_drop, rclass
         else {
             * We only recast integers. Floats and doubles are preserved unless
             * requested or the target is a sum.
-            parse_ok_astarget, sourcevar(`var') targetvar(`var') stat(`collstat') `double' `weights'
+            parse_ok_astarget,   ///
+                sourcevar(`var') ///
+                targetvar(`var') ///
+                stat(`collstat') ///
+                `double' `weights'
             local recast = !(`r(ok_astarget)')
 
             if ( `recast' ) {

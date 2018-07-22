@@ -86,6 +86,10 @@ struct StataInfo {
     GT_size   top_lother;
     GT_size   top_lmiss;
     //
+    GT_bool   levels_return;
+    GT_size   levels_gen;
+    GT_bool   levels_replace;
+    //
     GT_size xtile_xvars;
     GT_size xtile_nq;
     GT_size xtile_nq2;

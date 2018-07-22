@@ -31,6 +31,16 @@ program checks_toplevelsof
     }
 
     clear
+    set obs 10
+    gen x = _n
+    gen w = runiform()
+    gtoplevelsof x [w = w]
+    gtop x [w = w]
+    gtop x [w = .]
+    gtop x [w = 0]
+    gtop x if 0
+
+    clear
     gen x = 1
     gtoplevelsof x
 
@@ -90,69 +100,82 @@ end
 
 capture program drop compare_toplevelsof
 program compare_toplevelsof
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily wgt(str) *]
+
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "f" ) {
+        local wcall_f "[fw = int_unif_0_100]"
+        local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+    }
 
     qui `noisily' gen_data, n(1000)
     qui expand 100
     qui `noisily' random_draws, random(2)
+    `wgen_f'
 
     local N = trim("`: di %15.0gc _N'")
-    di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options' `wgt'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_gtoplevelsof -str_12,              `options' tol(`tol')
-    compare_inner_gtoplevelsof str_12 -str_32,       `options' tol(`tol')
-    compare_inner_gtoplevelsof str_12 -str_32 str_4, `options' tol(`tol')
+    compare_inner_gtoplevelsof -str_12,              `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof str_12 -str_32,       `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof str_12 -str_32 str_4, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -double1,                 `options' tol(`tol')
-    compare_inner_gtoplevelsof double1 -double2,         `options' tol(`tol')
-    compare_inner_gtoplevelsof double1 -double2 double3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -double1,                 `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof double1 -double2,         `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof double1 -double2 double3, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -int1,           `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -int2 int3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -int1,           `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -int2 int3, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') wgt(`wcall_f')
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl'
-        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl'
-        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
+        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
+        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
     }
 end
 
 capture program drop compare_inner_gtoplevelsof
 program compare_inner_gtoplevelsof
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) wgt(str) *]
+
+    if ( "`wgt'" != "" ) {
+        local wtxt "; `wgt'"
+    }
 
     local N = trim("`: di %15.0gc _N'")
-    local hlen = 35 + length("`anything'") + length("`N'")
-    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+    local hlen = 36 + length("`anything'") + length("`N'") + length("`wtxt'")
+    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'`wtxt'" _n(1) "{hline `hlen'}"
 
     preserve
-        _compare_inner_gtoplevelsof `anything', `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything', `options' tol(`tol') wgt(`wgt')
     restore, preserve
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gtoplevelsof  `anything' in `from' / `to', `options' tol(`tol')
+        _compare_inner_gtoplevelsof  `anything' in `from' / `to', `options' tol(`tol') wgt(`wgt')
     restore, preserve
-        _compare_inner_gtoplevelsof `anything' if random2 > 0, `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything' if random2 > 0, `options' tol(`tol') wgt(`wgt')
     restore, preserve
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gtoplevelsof `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything' if random2 < 0 in `from' / `to', `options' tol(`tol') wgt(`wgt')
     restore
 end
 
 capture program drop _compare_inner_gtoplevelsof
 program _compare_inner_gtoplevelsof
-    syntax [anything] [if] [in], [tol(real 1e-6) contract *]
+    syntax [anything] [if] [in], [tol(real 1e-6) contract wgt(str) *]
 
     if ( "`contract'" == "" ) local contract gcontract
 
@@ -160,7 +183,7 @@ program _compare_inner_gtoplevelsof
     local opts freq(N)
     preserve
         qui {
-            `noisily' `contract' `anything' `if' `in', `opts'
+            `noisily' `contract' `anything' `if' `in' `wgt', `opts'
             qui sum N, meanonly
             local r_N = `r(sum)'
             hashsort -N `anything'
@@ -184,7 +207,7 @@ program _compare_inner_gtoplevelsof
     tempname gmat
     preserve
         qui {
-            `noisily' gtoplevelsof `anything' `if' `in', mat(`gmat')
+            `noisily' gtoplevelsof `anything' `if' `in' `wgt', mat(`gmat')
             clear
             svmat `gmat', names(col)
             gen long ix = _n

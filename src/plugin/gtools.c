@@ -5,7 +5,7 @@
  * Updated: Mon Apr 23 20:54:30 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 0.14.0
+ * Version: 1.0.0
  *********************************************************************/
 
 /**
@@ -332,6 +332,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             top_other,
             top_lmiss,
             top_lother,
+            levels_return,
+            levels_gen,
+            levels_replace,
             xtile_xvars,
             xtile_nq,
             xtile_nq2,
@@ -465,6 +468,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_top_other",      &top_other)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lmiss",      &top_lmiss)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lother",     &top_lother)     )) goto exit;
+
+    if ( (rc = sf_scalar_size("__gtools_levels_return",  &levels_return)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_gen",     &levels_gen)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_replace", &levels_replace) )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_xtile_xvars",    &xtile_xvars)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_nq",       &xtile_nq)       )) goto exit;
@@ -646,6 +653,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->top_other      = top_other;
     st_info->top_lmiss      = top_lmiss;
     st_info->top_lother     = top_lother;
+
+    st_info->levels_return  = levels_return;
+    st_info->levels_gen     = levels_gen;
+    st_info->levels_replace = levels_replace;
 
     st_info->xtile_xvars    = xtile_xvars;
     st_info->xtile_nq       = xtile_nq;

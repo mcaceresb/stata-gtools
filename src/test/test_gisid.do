@@ -45,6 +45,10 @@ program checks_isid
     replace x = 2 in 3/4
     gisid x y z, v
 
+    gisid x y z if 0, v
+    gisid x y z if x, v
+    gisid x y z in 1, v
+
     replace y = x
     replace z = 1 in 1/2
     cap noi gisid x y z, v

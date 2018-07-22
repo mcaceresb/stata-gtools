@@ -8,10 +8,12 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    ST_double z;
-    GT_size j, k, l;
+    ST_double z, wsum;
+    GT_size i, j, k, l, start, end;
     GT_size sel, numpos;
     GT_size numwidth = st_info->numfmt_max > 18? st_info->numfmt_max + 5: 23;
+    GT_bool weights  = st_info->wcode > 0;
+    GT_bool wpos     = st_info->wpos;
     GT_bool invert   = st_info->top_ntop < 0;
     GT_size kvars    = st_info->kvars_by;
     GT_size ntop     = (GT_size) (invert? -st_info->top_ntop: st_info->top_ntop);
@@ -32,6 +34,7 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
         sf_printf_debug("\n");
         sf_printf_debug("\tkvars:        "GT_size_cfmt"\n", kvars);
         sf_printf_debug("\tnumwidth:     "GT_size_cfmt"\n", numwidth);
+        sf_printf_debug("\tweights:      %u\n",             weights);
         sf_printf_debug("\tinvert:       %u\n",             invert);
         sf_printf_debug("\ntop:          "GT_size_cfmt"\n", ntop);
         sf_printf_debug("\tnrows:        "GT_size_cfmt"\n", nrows);
@@ -44,75 +47,130 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_double *toptop = calloc(5 * nalloc, sizeof *toptop);
-    GT_size   *topall = calloc(st_info->J, sizeof *topall);
+    ST_double *topwgt = calloc(weights? st_info->J: 1, sizeof *topwgt);
+    GT_size   *topall = calloc(weights? 1: st_info->J, sizeof *topall);
     GT_size   *topix  = calloc(st_info->J, sizeof *topix);
 
     if ( toptop == NULL ) sf_oom_error("sf_top", "toptop");
+    if ( topwgt == NULL ) sf_oom_error("sf_top", "topwgt");
     if ( topall == NULL ) sf_oom_error("sf_top", "topall");
     if ( topix  == NULL ) sf_oom_error("sf_top", "topix");
 
     GTOOLS_GC_ALLOCATED("toptop")
-    GTOOLS_GC_ALLOCATED("topall")
+    GTOOLS_GC_ALLOCATED("topwgt")
     GTOOLS_GC_ALLOCATED("topix")
+    GTOOLS_GC_ALLOCATED("topall")
 
     if ( debug ) {
         sf_printf_debug("debug 2 (sf_top): Memory allocation.\n");
     }
 
-    // Read group sizes as N - size so we sort in ascending order
-    if ( invert ) {
+    // Read weights, if requested
+    wsum = 0;
+    if ( weights ) {
+        ST_double *sumwgt = calloc(2 * st_info->J, sizeof *sumwgt);
+        if ( sumwgt == NULL ) sf_oom_error("sf_top", "sumwgt");
+
         for (j = 0; j < st_info->J; j++) {
-            l = st_info->ix[j];
-            topall[j] = st_info->info[l + 1] - st_info->info[l];
-            topix[j]  = j;
+            sumwgt[2 * j]     = 0;
+            sumwgt[2 * j + 1] = j;
+            l     = st_info->ix[j];
+            start = st_info->info[l];
+            end   = st_info->info[l + 1];
+            for (i = start; i < end; i++) {
+                sel = st_info->index[i] + st_info->in1;
+                if ( (rc = SF_vdata(wpos, sel, &z)) ) goto errorw;
+                sumwgt[2 * j] += z;
+                wsum += z;
+            }
+        }
+
+        if ( debug ) {
+            sf_printf_debug("debug 3 (sf_top): Top levels by weight.\n");
+        }
+
+        // We sort by xtileCompareInvert by default to get stuff in
+        // descending order (largest to smallest).
+
+        quicksort_bsd (
+            sumwgt,
+            st_info->J,
+            2 * sizeof(sumwgt),
+            invert? xtileCompare: xtileCompareInvert,
+            NULL
+        );
+
+        for (j = 0; j < st_info->J; j++) {
+            topwgt[j] = sumwgt[2 * j];
+            topix[j]  = (GT_size) sumwgt[2 * j + 1];
+        }
+
+errorw:
+        free (sumwgt);
+        if ( rc ) {
+            goto error;
+        }
+
+        if ( debug ) {
+            sf_printf_debug("debug 4 (sf_top): Sorted levels by weight.\n");
         }
     }
     else {
-        for (j = 0; j < st_info->J; j++) {
-            l = st_info->ix[j];
-            topall[j] = st_info->N - (st_info->info[l + 1] - st_info->info[l]);
-            topix[j]  = j;
+        // Read group sizes as N - size so we sort in ascending order
+        if ( invert ) {
+            for (j = 0; j < st_info->J; j++) {
+                l = st_info->ix[j];
+                topall[j] = st_info->info[l + 1] - st_info->info[l];
+                topix[j]  = j;
+            }
         }
-    }
+        else {
+            for (j = 0; j < st_info->J; j++) {
+                l = st_info->ix[j];
+                topall[j] = st_info->N - (st_info->info[l + 1] - st_info->info[l]);
+                topix[j]  = j;
+            }
+        }
 
-    for (j = 0; j < nrows; j++) {
-        for (k = 0; k < 5; k++)
-            toptop[j * 5 + k] = (ST_double) 0;
-    }
+        for (j = 0; j < nrows; j++) {
+            for (k = 0; k < 5; k++)
+                toptop[j * 5 + k] = (ST_double) 0;
+        }
 
-    GT_size min   = invert? st_info->nj_min: st_info->N - st_info->nj_max;
-    GT_size max   = invert? st_info->nj_max: st_info->N - st_info->nj_min;
-    GT_size range = (st_info->nj_max - st_info->nj_min);
-    GT_size ctol  = pow(2, 24);
+        if ( debug ) {
+            sf_printf_debug("debug 3 (sf_top): Top (or bottom) levels by count.\n");
+        }
 
-    if ( debug ) {
-        sf_printf_debug("debug 3 (sf_top): Top (or bottom) levels by count.\n");
-    }
+        // Sort in ascending order, which is descending group order
+        GT_size min   = invert? st_info->nj_min: st_info->N - st_info->nj_max;
+        GT_size max   = invert? st_info->nj_max: st_info->N - st_info->nj_min;
+        GT_size range = (st_info->nj_max - st_info->nj_min);
+        GT_size ctol  = pow(2, 24);
 
-    // Sort in ascending order, which is descending group order
-    if ( range < ctol ) {
-        if ( (rc = gf_counting_sort (topall, topix, st_info->J, min, max)) )
-            goto error;
-    }
-    else {
-        if ( (rc = gf_radix_sort16 (topall, topix, st_info->J)) )
-            goto error;
-    }
+        if ( range < ctol ) {
+            if ( (rc = gf_counting_sort (topall, topix, st_info->J, min, max)) )
+                goto error;
+        }
+        else {
+            if ( (rc = gf_radix_sort16 (topall, topix, st_info->J)) )
+                goto error;
+        }
 
-    // Back to frequencies
-    if ( !invert ) {
-        for (j = 0; j < st_info->J; j++)
-            topall[j] = st_info->N - topall[j];
-    }
+        // Back to frequencies
+        if ( !invert ) {
+            for (j = 0; j < st_info->J; j++)
+                topall[j] = st_info->N - topall[j];
+        }
 
-    if ( debug ) {
-        sf_printf_debug("debug 4 (sf_top): Sorted levels by count.\n");
+        if ( debug ) {
+            sf_printf_debug("debug 4 (sf_top): Sorted levels by count.\n");
+        }
     }
 
     /*********************************************************************
      *            Step 3: Set up variables to print to levels            *
      *********************************************************************/
-    
+
     char *strpos;
     char *sprintfmt = st_info->cleanstr? strdup("%s"): strdup("`\"%s\"'");
 
@@ -172,159 +230,318 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     GT_size rowbytes = (st_info->rowbytes + sizeof(GT_size));
 
     strpos = macrobuffer;
-    if ( st_info->kvars_by_str > 0 ) {
-        if ( st_info->top_miss ) {
-            for (j = 0; j < st_info->J; j++) {
-                rowmiss = 0;
-                for (k = 0; k < kvars; k++) {
-                    sel = topix[j] * rowbytes + st_info->positions[k];
-                    if ( st_info->byvars_lens[k] > 0 ) {
-                        if ( strcmp(st_info->st_by_charx + sel, "") == 0 ) {
-                            rowmiss++;
-                            if ( st_info->top_groupmiss )
-                                goto countmiss_char;
+    if ( weights ) {
+        if ( st_info->kvars_by_str > 0 ) {
+            if ( st_info->top_miss ) {
+                for (j = 0; j < st_info->J; j++) {
+                    rowmiss = 0;
+                    for (k = 0; k < kvars; k++) {
+                        sel = topix[j] * rowbytes + st_info->positions[k];
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( strcmp(st_info->st_by_charx + sel, "") == 0 ) {
+                                rowmiss++;
+                                if ( st_info->top_groupmiss )
+                                    goto countmiss_charw;
+                            }
+                        }
+                        else {
+                            z = *((ST_double *) (st_info->st_by_charx + sel));
+                            if ( SF_is_missing(z) ) {
+                                rowmiss++;
+                                if ( st_info->top_groupmiss )
+                                    goto countmiss_charw;
+                            }
                         }
                     }
-                    else {
-                        z = *((ST_double *) (st_info->st_by_charx + sel));
-                        if ( SF_is_missing(z) ) {
-                            rowmiss++;
-                            if ( st_info->top_groupmiss )
-                                goto countmiss_char;
-                        }
+
+                    if ( st_info->top_miss & (rowmiss == kvars) )
+                        goto countmiss_charw;
+
+                    if ( topprint < ntop ) {
+                        toptop[topprint * 5 + 1] = topwgt[j];
+                        toptop[topprint * 5 + 3] = topwgt[j] * 100 / wsum;
+
+                        if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                             (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                            continue;
+
+                        toptop[topprint * 5] = (ST_double) j;
+                        topprint++;
                     }
+                    continue;
+
+countmiss_charw:
+                    totmiss += topwgt[j];
                 }
+            }
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( topprint >= ntop ) break;
 
-                if ( st_info->top_miss & (rowmiss == kvars) )
-                    goto countmiss_char;
+                    toptop[topprint * 5 + 1] = topwgt[j];
+                    toptop[topprint * 5 + 3] = topwgt[j] * 100 / wsum;
 
-                if ( topprint < ntop ) {
-                    toptop[topprint * 5 + 1] = (ST_double) topall[j];
-                    toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
-
-                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) | 
+                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
                          (toptop[topprint * 5 + 1] < st_info->top_freq) )
                         continue;
 
                     toptop[topprint * 5] = (ST_double) j;
                     topprint++;
                 }
-                continue;
+            }
 
-countmiss_char:
-                totmiss += topall[j];
+            for (j = 0; j < topprint; j++) {
+                numpos = 0;
+                l = (GT_size) toptop[j * 5];
+                toptop[j * 5] = (ST_double) 1;
+                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
+                for (k = 0; k < kvars; k++) {
+                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                    sel = topix[l] * rowbytes + st_info->positions[k];
+                    if ( st_info->byvars_lens[k] > 0 ) {
+                        strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
+                    }
+                    else {
+                        z = *((ST_double *) (st_info->st_by_charx + sel));
+                        if ( SF_is_missing(z) ) {
+                            GTOOLS_SWITCH_MISSING
+                        }
+                        else {
+                            strpos += sprintf(strpos, numfmt, z);
+                        }
+                        numpos++;
+                        if ( (rc = SF_mat_store("__gtools_top_num", j + 1, numpos, z)) ) goto exit;
+                    }
+                }
+                if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
             }
         }
         else {
-            for (j = 0; j < st_info->J; j++) {
-                if ( topprint >= ntop ) break;
+            if ( st_info->top_miss ) {
+                for (j = 0; j < st_info->J; j++) {
+                    rowmiss = 0;
+                    for (k = 0; k < kvars; k++) {
+                        sel = topix[j] * (kvars + 1) + k;
+                        if ( SF_is_missing(st_info->st_by_numx[sel]) ) {
+                            rowmiss++;
+                            if ( st_info->top_groupmiss )
+                                goto countmiss_dblw;
+                        }
+                    }
 
-                toptop[topprint * 5 + 1] = (ST_double) topall[j];
-                toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
+                    if ( st_info->top_miss & (rowmiss == kvars) )
+                        goto countmiss_dblw;
 
-                if ( (toptop[topprint * 5 + 3] < st_info->top_pct) | 
-                     (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                    if ( topprint < ntop ) {
+                        toptop[topprint * 5 + 1] = topwgt[j];
+                        toptop[topprint * 5 + 3] = topwgt[j] * 100 / wsum;
+
+                        if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                             (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                            continue;
+
+                        toptop[topprint * 5] = (ST_double) j;
+                        topprint++;
+                    }
                     continue;
 
-                toptop[topprint * 5] = (ST_double) j;
-                topprint++;
-            }
-        }
-
-        for (j = 0; j < topprint; j++) {
-            numpos = 0;
-            l = (GT_size) toptop[j * 5];
-            toptop[j * 5] = (ST_double) 1;
-            if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-            if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
-            for (k = 0; k < kvars; k++) {
-                if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
-                sel = topix[l] * rowbytes + st_info->positions[k];
-                if ( st_info->byvars_lens[k] > 0 ) {
-                    strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
+countmiss_dblw:
+                    totmiss += topwgt[j];
                 }
-                else {
-                    z = *((ST_double *) (st_info->st_by_charx + sel));
+            }
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( topprint >= ntop ) break;
+
+                    toptop[topprint * 5 + 1] = topwgt[j];
+                    toptop[topprint * 5 + 3] = topwgt[j] * 100 / wsum;
+
+                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                         (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                        continue;
+
+                    toptop[topprint * 5] = (ST_double) j;
+                    topprint++;
+                }
+            }
+
+            for (j = 0; j < topprint; j++) {
+                l = (GT_size) toptop[j * 5];
+                toptop[j * 5] = (ST_double) 1;
+                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
+                for (k = 0; k < kvars; k++) {
+                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                    sel = topix[l] * (kvars + 1) + k;
+                    z  = st_info->st_by_numx[sel];
                     if ( SF_is_missing(z) ) {
                         GTOOLS_SWITCH_MISSING
                     }
                     else {
                         strpos += sprintf(strpos, numfmt, z);
                     }
-                    numpos++;
-                    if ( (rc = SF_mat_store("__gtools_top_num", j + 1, numpos, z)) ) goto exit;
+                    if ( (rc = SF_mat_store("__gtools_top_num", j + 1, k + 1, z)) ) goto exit;
                 }
+                if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
             }
-            if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
         }
     }
     else {
-        if ( st_info->top_miss ) {
-            for (j = 0; j < st_info->J; j++) {
-                rowmiss = 0;
-                for (k = 0; k < kvars; k++) {
-                    sel = topix[j] * (kvars + 1) + k;
-                    if ( SF_is_missing(st_info->st_by_numx[sel]) ) {
-                        rowmiss++;
-                        if ( st_info->top_groupmiss )
-                            goto countmiss_dbl;
+        if ( st_info->kvars_by_str > 0 ) {
+            if ( st_info->top_miss ) {
+                for (j = 0; j < st_info->J; j++) {
+                    rowmiss = 0;
+                    for (k = 0; k < kvars; k++) {
+                        sel = topix[j] * rowbytes + st_info->positions[k];
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( strcmp(st_info->st_by_charx + sel, "") == 0 ) {
+                                rowmiss++;
+                                if ( st_info->top_groupmiss )
+                                    goto countmiss_char;
+                            }
+                        }
+                        else {
+                            z = *((ST_double *) (st_info->st_by_charx + sel));
+                            if ( SF_is_missing(z) ) {
+                                rowmiss++;
+                                if ( st_info->top_groupmiss )
+                                    goto countmiss_char;
+                            }
+                        }
                     }
+
+                    if ( st_info->top_miss & (rowmiss == kvars) )
+                        goto countmiss_char;
+
+                    if ( topprint < ntop ) {
+                        toptop[topprint * 5 + 1] = (ST_double) topall[j];
+                        toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
+
+                        if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                             (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                            continue;
+
+                        toptop[topprint * 5] = (ST_double) j;
+                        topprint++;
+                    }
+                    continue;
+
+countmiss_char:
+                    totmiss += topall[j];
                 }
+            }
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( topprint >= ntop ) break;
 
-                if ( st_info->top_miss & (rowmiss == kvars) )
-                    goto countmiss_dbl;
-
-                if ( topprint < ntop ) {
                     toptop[topprint * 5 + 1] = (ST_double) topall[j];
                     toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
 
-                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) | 
+                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
                          (toptop[topprint * 5 + 1] < st_info->top_freq) )
                         continue;
 
                     toptop[topprint * 5] = (ST_double) j;
                     topprint++;
                 }
-                continue;
+            }
 
-countmiss_dbl:
-                totmiss += topall[j];
+            for (j = 0; j < topprint; j++) {
+                numpos = 0;
+                l = (GT_size) toptop[j * 5];
+                toptop[j * 5] = (ST_double) 1;
+                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
+                for (k = 0; k < kvars; k++) {
+                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                    sel = topix[l] * rowbytes + st_info->positions[k];
+                    if ( st_info->byvars_lens[k] > 0 ) {
+                        strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
+                    }
+                    else {
+                        z = *((ST_double *) (st_info->st_by_charx + sel));
+                        if ( SF_is_missing(z) ) {
+                            GTOOLS_SWITCH_MISSING
+                        }
+                        else {
+                            strpos += sprintf(strpos, numfmt, z);
+                        }
+                        numpos++;
+                        if ( (rc = SF_mat_store("__gtools_top_num", j + 1, numpos, z)) ) goto exit;
+                    }
+                }
+                if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
             }
         }
         else {
-            for (j = 0; j < st_info->J; j++) {
-                if ( topprint >= ntop ) break;
+            if ( st_info->top_miss ) {
+                for (j = 0; j < st_info->J; j++) {
+                    rowmiss = 0;
+                    for (k = 0; k < kvars; k++) {
+                        sel = topix[j] * (kvars + 1) + k;
+                        if ( SF_is_missing(st_info->st_by_numx[sel]) ) {
+                            rowmiss++;
+                            if ( st_info->top_groupmiss )
+                                goto countmiss_dbl;
+                        }
+                    }
 
-                toptop[topprint * 5 + 1] = (ST_double) topall[j];
-                toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
+                    if ( st_info->top_miss & (rowmiss == kvars) )
+                        goto countmiss_dbl;
 
-                if ( (toptop[topprint * 5 + 3] < st_info->top_pct) | 
-                     (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                    if ( topprint < ntop ) {
+                        toptop[topprint * 5 + 1] = (ST_double) topall[j];
+                        toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
+
+                        if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                             (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                            continue;
+
+                        toptop[topprint * 5] = (ST_double) j;
+                        topprint++;
+                    }
                     continue;
 
-                toptop[topprint * 5] = (ST_double) j;
-                topprint++;
+countmiss_dbl:
+                    totmiss += topall[j];
+                }
             }
-        }
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( topprint >= ntop ) break;
 
-        for (j = 0; j < topprint; j++) {
-            l = (GT_size) toptop[j * 5];
-            toptop[j * 5] = (ST_double) 1;
-            if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-            if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
-            for (k = 0; k < kvars; k++) {
-                if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
-                sel = topix[l] * (kvars + 1) + k;
-                z  = st_info->st_by_numx[sel];
-                if ( SF_is_missing(z) ) {
-                    GTOOLS_SWITCH_MISSING
+                    toptop[topprint * 5 + 1] = (ST_double) topall[j];
+                    toptop[topprint * 5 + 3] = (ST_double) topall[j] * 100 / Ndbl;
+
+                    if ( (toptop[topprint * 5 + 3] < st_info->top_pct) |
+                         (toptop[topprint * 5 + 1] < st_info->top_freq) )
+                        continue;
+
+                    toptop[topprint * 5] = (ST_double) j;
+                    topprint++;
                 }
-                else {
-                    strpos += sprintf(strpos, numfmt, z);
-                }
-                if ( (rc = SF_mat_store("__gtools_top_num", j + 1, k + 1, z)) ) goto exit;
             }
-            if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
+
+            for (j = 0; j < topprint; j++) {
+                l = (GT_size) toptop[j * 5];
+                toptop[j * 5] = (ST_double) 1;
+                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                if ( kvars > 1 ) strpos += sprintf(strpos, "`\"");
+                for (k = 0; k < kvars; k++) {
+                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                    sel = topix[l] * (kvars + 1) + k;
+                    z  = st_info->st_by_numx[sel];
+                    if ( SF_is_missing(z) ) {
+                        GTOOLS_SWITCH_MISSING
+                    }
+                    else {
+                        strpos += sprintf(strpos, numfmt, z);
+                    }
+                    if ( (rc = SF_mat_store("__gtools_top_num", j + 1, k + 1, z)) ) goto exit;
+                }
+                if ( kvars > 1 ) strpos += sprintf(strpos, "\"'");
+            }
         }
     }
 
@@ -336,6 +553,7 @@ countmiss_dbl:
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote top levels to Stata macro");
 
+    if ( weights ) Ndbl = wsum;
     if ( totmiss > 0 ) {
         toptop[topprint * 5 + 0] = 2;
         toptop[topprint * 5 + 1] = totmiss;
@@ -392,10 +610,12 @@ exit:
 
 error:
     free (toptop);
+    free (topwgt);
     free (topall);
     free (topix);
 
     GTOOLS_GC_FREED("toptop")
+    GTOOLS_GC_FREED("topwgt")
     GTOOLS_GC_FREED("topall")
     GTOOLS_GC_FREED("topix")
 

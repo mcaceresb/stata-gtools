@@ -1,4 +1,4 @@
-version: "generic-0.8.0-{build}"
+version: "generic-1.0.0-{build}"
 
 environment:
   matrix:

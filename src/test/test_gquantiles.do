@@ -68,6 +68,115 @@ program checks_gquantiles
     checks_inner_gquantiles int1^2 + 3 * double1,          `options' method(2)
     checks_inner_gquantiles log(double1) + 2 * int1,       `options'
     checks_inner_gquantiles exp(double3) + int1 * double3, `options' method(1)
+
+    *****************
+    *  Misc checks  *
+    *****************
+
+    clear
+    cap fasterxtile
+    assert _rc == 2000
+
+    clear
+    gen z = 1
+    cap fasterxtile x = z
+    assert _rc == 2000
+
+    clear
+    set obs 10
+    gen z = _n
+    cap fasterxtile x = z if 0
+    assert _rc == 2000
+    cap fasterxtile x = z if 1 [w = .]
+    assert _rc == 2000
+    cap fasterxtile x = z if 1 [w = 0]
+    assert _rc == 2000
+
+    clear
+    set obs 100
+    gen x = runiform()
+    gen w = 10 * runiform()
+    gen z = 10 * rnormal()
+    gen a = mod(_n, 7)
+    gen b = "str" + string(mod(_n, 3))
+    gen c = x in 1/5
+
+    matrix qq = 1, 10, 70, 1
+    matrix cc = 0.1, 0.05, 0.1000, 0.9
+    gquantiles x, p(1 10 70) _pctile
+    gquantiles x, q(1 10 70) _pctile
+    gquantiles x, _pctile quantmatrix(qq)
+    cap gquantiles x, cutq(x) _pctile
+    assert _rc == 198
+    cap gquantiles x, cut(x) _pctile
+    assert _rc == 198
+    cap gquantiles x, cut(x) _pctile
+    assert _rc == 198
+
+    clear
+    set obs 100
+    gen x = runiform()
+    gen w = 10 * runiform()
+    gen z = 10 * rnormal()
+    gen a = mod(_n, 7)
+    gen b = "str" + string(mod(_n, 3))
+
+    fasterxtile gx0 = x
+    fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80
+    fasterxtile gx2 = x [w = w],  nq(7) method(1)
+    fasterxtile gx3 = x [aw = w], nq(7) method(2)
+    fasterxtile gx4 = x [pw = w], nq(7) method(0)
+    cap fasterxtile gx5 = x [fw = w], nq(7)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108)
+    cap fasterxtile gx6 = x [fw = int(w)], altdef
+    assert _rc == 198
+
+    assert gx2 == gx3
+    assert gx3 == gx4
+
+    drop gx*
+
+    fasterxtile gx0 = x, by(a)
+    fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(b)
+    fasterxtile gx2 = x [w = w],  nq(7) by(a b)
+    fasterxtile gx3 = x [aw = w], nq(7) by(a b)
+    fasterxtile gx4 = x [pw = w], nq(7) by(a b)
+    cap fasterxtile gx5 = x [fw = w], nq(7) by(b a)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108) by(-a b)
+
+    fasterxtile gx6 = x [fw = int(w)], by(-a b) method(1)
+    fasterxtile gx7 = x [fw = int(w)], by(-a b) method(2)
+    fasterxtile gx8 = x [fw = int(w)], by(-a b) method(0)
+
+    fasterxtile gx9 = x, by(-a b) method(1) altdef
+    fasterxtile gx10 = x, by(-a b) method(0) altdef
+    fasterxtile gx11 = x, by(-a b) method(2) altdef
+
+    assert gx2 == gx3
+    assert gx3 == gx4
+
+    drop gx*
+    gquantiles cp = x, nq(10) xtile
+
+    fasterxtile gx0 = x , c(cp)
+    fasterxtile gx1 = log(x) + 1 if mod(_n , 10) in 20 / 80, c(cp)
+
+    fasterxtile gx2 = x [w = w]      if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(1)
+    fasterxtile gx3 = x [aw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(2)
+    fasterxtile gx4 = x [pw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(0)
+    cap fasterxtile gx5 = x [fw = w] if mod(_n , 10) in 20 / 80 , by(b a) c(cp)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108) by(-a b)
+
+    drop gx*
+
+    fasterxtile gx0 = x in 1
+    cap fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80, strict nq(100)
+    assert _rc == 198
+    fasterxtile gx2 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(a) strict nq(100)
+    assert gx2 == .
 end
 
 capture program drop checks_inner_gquantiles
@@ -127,7 +236,7 @@ program checks_inner_gquantiles
 
     `qui' {
         gquantiles __p1 = `anything', pctile altdef binfreq `options' nq(10) replace
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
         drop __*
         cap gquantiles __p1 = `anything' in 1/5, pctile altdef binfreq `options' nq(10) replace strict
@@ -152,11 +261,11 @@ program checks_inner_gquantiles
 
 
         gquantiles __p3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
 
         gquantiles __p4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
-        matrix list r(cutoffs_binfreq) 
+        matrix list r(cutoffs_binfreq)
 
 
         cap gquantiles __p5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
@@ -165,7 +274,7 @@ program checks_inner_gquantiles
         gquantiles __p5 = `anything', pctile altdef binfreq(__f5) `options' cutquantiles(ru) replace
 
         gquantiles __x1 = `anything', pctile altdef binfreq `options' nq(10) replace
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
 
 
@@ -181,10 +290,10 @@ program checks_inner_gquantiles
         gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) `options' cutpoints(__p1) replace
 
         gquantiles __x3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
         gquantiles __x4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
-        matrix list r(cutoffs_binfreq) 
+        matrix list r(cutoffs_binfreq)
 
         cap gquantiles __x5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
         assert _rc == 198
@@ -1062,7 +1171,7 @@ capture program drop gquantiles_switch_sanity
 program gquantiles_switch_sanity
     args ver
 
-    di _n(1) "{hline 80}" 
+    di _n(1) "{hline 80}"
     if ( "`ver'" == "v1" ) {
         di "gquantiles_switch_sanity (many duplicates)"
     }

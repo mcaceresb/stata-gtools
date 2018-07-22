@@ -1,4 +1,4 @@
-*! version 0.9.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -25,6 +25,7 @@ program define hashsort
                                ///
         tag(passthru)          ///
         counts(passthru)       ///
+        fill(passthru)         ///
         invertinmata           ///
                                ///
                                /// Unsupported sort options
@@ -59,9 +60,11 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local  opts `verbose' `debug' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
+    local opts  `compress' `forcestrl'
+    local opts  `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts  `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local eopts `invertinmata' `sortgen' `skipcheck'
-    local gopts `generate' `tag' `counts' `replace' `mlast'
+    local gopts `generate' `tag' `counts' `fill' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)
     global GTOOLS_CALLER ""
     local rc = _rc
@@ -75,6 +78,9 @@ program define hashsort
             sort `anything'
             exit 0
         }
+    }
+    else if ( `rc' == 17001 ) {
+        exit 0
     }
     else if ( `rc' ) exit `rc'
 end

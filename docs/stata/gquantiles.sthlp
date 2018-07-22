@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.7.1 19Jul2018}{...}
+{* *! version 1.0.0 21Jul2018}{...}
 {viewerdialog gquantiles "dialog gquantiles"}{...}
 {vieweralsosee "[R] gquantiles" "mansection R gquantiles"}{...}
 {viewerjumpto "Syntax" "gquantiles##syntax"}{...}
@@ -34,7 +34,7 @@ Create variable containing percentiles (equivalent to {cmd:pctile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 pctile
 [{opth nquantiles(int)}
@@ -48,7 +48,7 @@ Create variable containing quantile categories (equivalent to {cmd:xtile})
 {cmd:gquantiles}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 xtile
 [{opth nquantiles(int)}
@@ -59,7 +59,7 @@ xtile
 {cmd:fasterxtile}
 {newvar} {cmd:=} {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 [{opth nquantiles(int)}
 {opth cutpoints(varname)}
@@ -72,7 +72,7 @@ Compute percentiles and store them in r() (equivalent to {cmd:_pctile})
 {cmd:gquantiles}
 {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 _pctile
 [{opth nquantiles(int)}
@@ -86,7 +86,7 @@ The full syntax, however, is
 {cmd:gquantiles}
 [{newvar} {cmd:=}] {it:{help exp}}
 {ifin}
-[{it:{help pctile##weight:weight}}]
+[{it:{help gquantiles##weight:weight}}]
 {cmd:,}
 {c -(}{cmd:pctile}{c |}{cmd:xtile}{c |}{cmd:_pctile}{c )-}
 {it:{help gquantiles##quantiles_method:quantiles_method}}
@@ -157,13 +157,13 @@ The full syntax, however, is
 {p_end}
 
 {syntab:Gtools}
-{synopt :{opth compress}}Try to compress strL to str#.
+{synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
-{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{synopt :{opt forcestrl}}Skip binary variable check and force gtools to read strL variables.
 {p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
+{synopt :{cmd:bench}[{cmd:(}{int}{cmd:)}]}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
@@ -375,8 +375,8 @@ sure you do not have binary data in your strL variables.
 {opt bench:mark} and {opt bench:marklevel(int)} print how long in
 seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
-as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
-internal plugin steps.
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

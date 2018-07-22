@@ -1,4 +1,4 @@
-*! version 0.8.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -14,47 +14,51 @@ program gtoplevelsof, rclass
     }
 
     global GTOOLS_CALLER gtoplevelsof
-    syntax anything [if] [in],   ///
-    [                            ///
-        ntop(int 10)             /// Number of levels to display
-        freqabove(real 0)        /// Only include above this count
-        pctabove(real 0)         /// Only include above this pct
-                                 ///
-        noOTHer                  /// Do not add summary row with "other" group to table
-        missrow                  /// Incldue missings as a sepparate row
-        GROUPMISSing             /// Count as missing if any variable is missing
-        noMISSing                /// Exclude missing values
-                                 ///
-        OTHerlabel(str)          /// Label for "other" row
-        MISSROWlabel(str)        /// Count as missing if any variable is missing
-        pctfmt(str)              /// How to format percentages
-                                 ///
-        noVALUELABels            /// Do (not) map value labels
-        HIDECONTlevels           /// Hide level name previous level is the same
-        VARABBrev(int -1)        /// Abbrev print of var names
-        colmax(numlist)          /// Maximum number of characters to print per column
-        colstrmax(numlist)       /// Maximum number of characters to print per column (strings)
-        numfmt(passthru)         /// How to format numbers
-                                 ///
-        Separate(passthru)       /// Levels sepparator
-        COLSeparate(passthru)    /// Columns sepparator (only with 2+ vars)
-        LOCal(str)               /// Store variable levels in local
-        MATrix(str)              /// Store result in matrix
-                                 ///
-        noWARNing                /// Do not warn about how tab might sometimes be faster
-        compress                 /// Try to compress strL variables
-        forcestrl                /// Force reading strL variables (stata 14 and above only)
-        Verbose                  /// debugging
-        BENCHmark                /// Benchmark function
-        BENCHmarklevel(int 0)    /// Benchmark various steps of the plugin
-        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)        /// path to hash library (Windows)
-        oncollision(passthru)    /// On collision, fall back or error
-                                 ///
-        group(str)               ///
-        tag(passthru)            ///
-        counts(passthru)         ///
-        replace                  ///
+    syntax anything           ///
+        [if] [in]             /// [if condition] [in start / end]
+        [aw fw pw] ,          /// [weight type = exp]
+    [                         ///
+        ntop(int 10)          /// Number of levels to display
+        freqabove(real 0)     /// Only include above this count
+        pctabove(real 0)      /// Only include above this pct
+                              ///
+        noOTHer               /// Do not add summary row with "other" group to table
+        missrow               /// Incldue missings as a sepparate row
+        GROUPMISSing          /// Count as missing if any variable is missing
+        noMISSing             /// Exclude missing values
+                              ///
+        OTHerlabel(str)       /// Label for "other" row
+        MISSROWlabel(str)     /// Count as missing if any variable is missing
+        pctfmt(str)           /// How to format percentages
+                              ///
+        noVALUELABels         /// Do (not) map value labels
+        HIDECONTlevels        /// Hide level name previous level is the same
+        VARABBrev(int -1)     /// Abbrev print of var names
+        colmax(numlist)       /// Maximum number of characters to print per column
+        colstrmax(numlist)    /// Maximum number of characters to print per column (strings)
+        numfmt(passthru)      /// How to format numbers
+                              ///
+        Separate(passthru)    /// Levels sepparator
+        COLSeparate(passthru) /// Columns sepparator (only with 2+ vars)
+        LOCal(str)            /// Store variable levels in local
+        MATrix(str)           /// Store result in matrix
+                              ///
+        noWARNing             /// Do not warn about how tab might sometimes be faster
+        debug(passthru)       /// Print debugging info to console
+        compress              /// Try to compress strL variables
+        forcestrl             /// Force reading strL variables (stata 14 and above only)
+        Verbose               /// debugging
+        BENCHmark             /// Benchmark function
+        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
+        HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        hashlib(passthru)     /// path to hash library (Windows)
+        oncollision(passthru) /// On collision, fall back or error
+                              ///
+        group(str)            ///
+        tag(passthru)         ///
+        counts(passthru)      ///
+        fill(passthru)        ///
+        replace               ///
     ]
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
@@ -139,12 +143,25 @@ program gtoplevelsof, rclass
 
     local gtop gtop(`ntop' `pct' `groupmiss' `otherlab' `freq')
 
+	if ( `"`weight'"' != "" ) {
+		tempvar touse w
+		qui gen double `w' `exp' `if' `in'
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+        mark `touse' `if` 'in' `wgt'
+        local if if `touse'
+	}
+    else local weights
+
     * Call the internals
     * ------------------
 
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
-    local sopts `verbose' `benchmark' `benchmarklevel' `hashlib' `oncollision' `hashmethod' `compress' `forcestrl'
-    local gopts gen(`group') `tag' `counts' `replace'
+    local sopts `compress' `forcestrl'
+    local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
+    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+
+    local gopts gen(`group') `tag' `counts' `fill' `replace' `weights'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)
 
     local rc = _rc
@@ -232,7 +249,8 @@ void function __gtools_parse_topmat(real scalar kvars,
                                    string scalar sep,
                                    string scalar colsep)
 {
-    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, nmap, knum, kstr, valabbrev
+    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
+    real scalar nmap, knum, kstr, valabbrev, weights
     real scalar pctlen, wlen, dlen
     real matrix gmat, nmat
     real colvector si, si_miss, si_other, fmtix
@@ -240,10 +258,12 @@ void function __gtools_parse_topmat(real scalar kvars,
     string matrix grows, gparse
     string colvector _grows, gprint, fmtbak
     string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
-    string scalar sepfmt, ghead, headfmt, mlab, olab, pctfmt, ppctfmt, cpctfmt, numvar, strvar
+    string scalar sepfmt, ghead, headfmt, mlab, olab
+    string scalar pctfmt, ppctfmt, cpctfmt, numvar, strvar
     transmorphic t
 
-    pctfmt = st_local("pctfmt")
+    weights = st_local("weights") != ""
+    pctfmt  = st_local("pctfmt")
     if ( regexm(pctfmt, "%([0-9]+)\.([0-9]+)") ) {
         wlen   = strtoreal(regexs(1))
         dlen   = strtoreal(regexs(2)) + 4
@@ -392,9 +412,17 @@ void function __gtools_parse_topmat(real scalar kvars,
             }
         }
 
-        for (i = 1; i <= rows(gmat); i++) {
-            gparse[i, 1] = strtrim(sprintf("%21.0gc", gmat[i, 2]))
-            gparse[i, 2] = strtrim(sprintf("%21.0gc", gmat[i, 3]))
+        if ( weights ) {
+            for (i = 1; i <= rows(gmat); i++) {
+                gparse[i, 1] = strtrim(sprintf("%9.3gc", gmat[i, 2]))
+                gparse[i, 2] = strtrim(sprintf("%9.3gc", gmat[i, 3]))
+            }
+        }
+        else {
+            for (i = 1; i <= rows(gmat); i++) {
+                gparse[i, 1] = strtrim(sprintf("%21.0gc", gmat[i, 2]))
+                gparse[i, 2] = strtrim(sprintf("%21.0gc", gmat[i, 3]))
+            }
         }
 
         gnummax = (colmax(strlen(gparse)))
@@ -475,7 +503,7 @@ void function __gtools_parse_topmat(real scalar kvars,
             ghead = ghead + sprintf(sepfmt + gstrfmt[k], colsep, abbrevlist[k])
         }
         ghead   = ghead + " | "
-        ghead   = ghead + sprintf(gnumfmt[1], "N")
+        ghead   = ghead + sprintf(gnumfmt[1], weights? "W": "N")
         ghead   = ghead + sprintf(gnumfmt[2], "Cum")
         ghead   = ghead + sprintf(ppctfmt,    "Pct (%)")
         ghead   = ghead + sprintf(cpctfmt,    "Cum Pct (%)")

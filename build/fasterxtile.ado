@@ -1,4 +1,4 @@
-*! version 0.7.1 19Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -24,15 +24,16 @@ program define fasterxtile
                                     ///
         method(passthru)            /// Quantile method: (1) qsort, (2) qselect
         strict                      /// Exit if nquantiles > # non-missing obs
+                                    ///
+        compress                    /// Try to compress strL variables
+        forcestrl                   /// Force reading strL variables (stata 14 and above only)
         Verbose                     /// Print info during function execution
-        BENCHmark                   /// Benchmark function
-        BENCHmarklevel(passthru)    /// Benchmark various steps of the plugin
-        HASHmethod(passthru)        /// Hashing method: 1 (biject), 2 (spooky)
+        BENCHmark                   /// print function benchmark info
+        BENCHmarklevel(passthru)    /// print plugin benchmark info
+        HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
         hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
                                     ///
-        forcestrl                   ///
-        compress                    ///
         debug(passthru)             ///
         GROUPid(passthru)           ///
         tag(passthru)               ///

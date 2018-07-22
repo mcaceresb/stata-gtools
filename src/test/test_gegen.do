@@ -69,6 +69,48 @@ program checks_gegen
     else {
         assert _rc == 17005
     }
+
+    clear
+    cap gegen
+    assert _rc == 100
+    cap gegen x = group(y)
+    assert _rc == 111
+    set obs 10
+    gen x = .
+    gegen y = group(x)
+    assert y == .
+    gegen y = group(x), missing replace
+    assert y == 1
+
+    clear
+    set obs 10
+    gen x = _n
+    gegen y = group(x) if 0
+    assert y == .
+    gegen z = group(x) if 1
+    assert z == x
+    gegen z = group(x) in 1 / 3, replace
+    assert z == x | mi(z)
+    gegen z = group(x) in 8, replace
+    assert z == 1 | mi(z)
+
+    gegen z = sum(x) in 1 / 3, by(x) replace
+    assert z == x | mi(z)
+    gegen z = sum(x) if x == 7, by(x) replace
+    assert z == x | mi(z)
+    gegen z = count(x) if x == 8, by(x) replace
+    assert z == 1 | mi(z)
+
+    clear
+    set obs 10
+    gen x = 1
+    gen w = .
+    gegen z = sum(x) [w = w]
+    drop z
+    replace w = 0
+    gegen z = sum(x) [w = w]
+    drop z
+    gegen z = sum(x) [w = w] if w == 3.14
 end
 
 capture program drop checks_inner_egen

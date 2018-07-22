@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.9.1  19Jul2018}{...}
+{* *! version 1.0.0  21Jul2018}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}
@@ -45,7 +45,7 @@ Instead of {varlist}, it is possible to specify
 {pstd}
 To change the sort order of the results.
 
-{synoptset 23 tabbed}{...}
+{synoptset 25 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
@@ -56,18 +56,20 @@ To change the sort order of the results.
 {synopt:{opt s:eparate(separator)}}separator to serve as punctuation for the values of returned list; default is a space{p_end}
 
 {syntab:Extras}
+{synopt:{opt nolocal:var}}Do not store the levels of {opt varlist} in a local macro.{p_end}
+{synopt:{opt gen([prefix], [replace])}}Store the levels of {it:varlist} in new varlist ({opt prefix}) or {opt replace} {it:varlist} with its levels{p_end}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
 {synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
 {synopt:{opt unsorted}}do not sort levels (ignored if inputs are integers){p_end}
 
 {syntab:Gtools}
-{synopt :{opth compress}}Try to compress strL to str#.
+{synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
-{synopt :{opth forcestrl}}Skip binary variable check and force gtools to read strL variables.
+{synopt :{opt forcestrl}}Skip binary variable check and force gtools to read strL variables.
 {p_end}
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
-{synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
+{synopt :{cmd:bench}[{cmd:(}{int}{cmd:)}]}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
 {synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
@@ -143,6 +145,15 @@ levels is faster, {cmd:glevelsof} is typically used when the number
 of levels is small (10s, 100s, 1000s) and thus speed savings will be
 minimal.
 
+{phang}
+{opt nolocalvar}Do not store the levels of {opt varlist} in a local macro.
+This is specially useful with option {opt gen()}.
+
+{phang}
+{opt gen([prefix], [replace])} Store the levels of {it:varlist} in new
+varlist ({opt prefix}) or {opt replace} {it:varlist} with its levels.
+These options are mutually exclusive.
+
 {dlgtab:Gtools}
 
 {phang}
@@ -166,8 +177,8 @@ sure you do not have binary data in your strL variables.
 {opt bench:mark} and {opt bench:marklevel(int)} print how long in
 seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
-as benchmark but {opt bench(2)} 2 additionally prints benchmarks for
-internal plugin steps.
+as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
+benchmarks for internal plugin steps.
 
 {phang}
 {opth hashlib(str)} On earlier versions of gtools Windows users had a problem

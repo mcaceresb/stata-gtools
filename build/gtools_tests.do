@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Jul 20 18:16:33 EDT 2018
+* Updated: Sun Jul 22 11:39:18 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 0.14.1
+* Version: 1.0.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -49,17 +49,29 @@ program main
     * --------------
 
     cap noi {
-        * qui do test_gquantiles_by.do
-        * qui do test_gquantiles.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
+        * qui do test_gduplicates.do
         * qui do test_gegen.do
         * qui do test_gisid.do
-        * qui do test_gduplicates.do
         * qui do test_glevelsof.do
+        * qui do test_gquantiles.do
+        * qui do test_gquantiles_by.do
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
+
+        * qui do docs/examples/gcollapse.do
+        * qui do docs/examples/gcontract.do
+        * qui do docs/examples/gdistinct.do
+        * qui do docs/examples/gduplicates.do
+        * qui do docs/examples/gquantiles.do
+        * qui do docs/examples/gtoplevelsof.do
+        * qui do docs/examples/gunique.do
+        * qui do docs/examples/hashsort.do
+        * qui do docs/examples/gegen.do, nostop
+        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/glevelsof.do, nostop
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
@@ -124,11 +136,12 @@ program main
             compare_isid,          `noisily' oncollision(error)
             compare_duplicates,    `noisily' oncollision(error)
             compare_levelsof,      `noisily' oncollision(error)
-            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_unique,        `noisily' oncollision(error) distinct
             compare_hashsort,      `noisily' oncollision(error)
             compare_egen,          `noisily' oncollision(error)
             compare_gcontract,     `noisily' oncollision(error)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
+            compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -516,6 +529,59 @@ program checks_gcollapse
     checks_inner_collapse -int1 -str_32 -double1,                                         `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    cap gcollapse
+    assert _rc == 198
+    set obs 10
+    cap gcollapse
+    assert _rc == 198
+    gen x = .
+    gcollapse x
+
+    clear
+    set obs 10
+    gen x = .
+    gen w = .
+    cap gcollapse x [w = w]
+    assert _rc == 2000
+    cap gcollapse x if w == 0
+    assert _rc == 2000
+
+    clear
+    set obs 10
+    gen x = _n
+    gen y = 1
+    gcollapse (kurt) mx = x, merge
+    cap gcollapse (kurt) mx = x, merge
+    assert _rc == 110
+    gcollapse mx = x, merge replace
+    gcollapse mx = x, merge by(y) replace
+    cap gcollapse y = x,  merge by(y)
+    assert _rc == 110
+    cap gcollapse y = x,  merge by(y) replace
+    assert _rc == 110
+    gcollapse y = x,  merge by(y) debug_replaceby
+    cap gcollapse x = x,  merge by(y)
+    assert _rc == 110
+    gcollapse x = x,  merge by(y) replace
+    cap gcollapse mx = x,  merge by(y)
+    assert _rc == 110
+
+    * Weird stuff happens when you try to use tempvar names without
+    * calling tempvar. DON'T!
+
+    * clear
+    * set obs 10
+    * gen x = _n
+    * gen y = 1
+    * gcollapse __000000 = x __000001 = x __000002 = x,         merge by(y)
+    * gcollapse __000000 = x __000001 = x __000002 = x if 1,    merge by(y)
+    * gcollapse __000000 = x __000001 = x __000002 = x [w = y], merge by(y)
 end
 
 capture program drop checks_inner_collapse
@@ -1445,7 +1511,7 @@ program _compare_inner_gcollapse_skew
     local checks `checks' `maxid'
 
     qui gcollapse (skew) skew = random1 (kurt) kurt = random1 (nunique) nq = random1 ///
-        `ifin' `wgt_gc', by(id) benchmark verbose `options' double
+        `ifin' `wgt_gc', by(id) benchmark verbose `options' double freq(f)
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -1458,19 +1524,37 @@ program _compare_inner_gcollapse_skew
     * result to be -1 or 1 when it should really be missing. Internally
     * 0 / 0 is computed as ε / ε for some ε small.
 
+    tempvar ix
+    gen `ix' = _n
     foreach fun in kurt skew {
         local imprecise 0
         foreach j in `checks' {
-            * disp "`j'"
-            cap assert ``fun'_`j'' == `fun'[`j'] | abs(``fun'_`j'' - `fun'[`j']) < `tol'
-            if ( _rc & (nq[`j'] > 1) ) {
-                cap noi assert 0
-                di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
-                disp "``fun'_`j'' vs `=`fun'[`j']'; diff `=abs(``fun'_`j'' - `fun'[`j'])'"
-                exit _rc
+            local ok 1
+            if ( `j' != `=id[`j']' ) {
+                qui sum `ix' if id == `j'
+                if ( `r(N)' == 0 ) {
+                    cap assert ``fun'_`j'' == . | "``fun'_`j''" == ""
+                    if ( _rc ) {
+                        di as txt "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded a result and gcollapse did not"
+                        exit _rc
+                    }
+                    local ok 0
+                }
+                local jj = `ix'[r(min)]
             }
-            else if ( _rc & (nq[`j'] == 1) ) {
-                local ++imprecise
+            else local jj `j'
+
+            if ( `ok' ) {
+                cap assert ``fun'_`j'' == `fun'[`jj'] | abs(``fun'_`j'' - `fun'[`jj']) < `tol'
+                if ( _rc & (nq[`j'] > 1) ) {
+                    cap noi assert 0
+                    di as err "    compare_`fun'_gcollapse (failed): sum`wtxt' yielded different results (tol = `tol')"
+                    disp "``fun'_`j'' vs `=`fun'[`j']'; diff `=abs(``fun'_`j'' - `fun'[`j'])', N = `=f[`j']'"
+                    exit _rc
+                }
+                else if ( _rc & (nq[`j'] == 1) ) {
+                    local ++imprecise
+                }
             }
         }
 
@@ -1671,6 +1755,34 @@ program checks_gcontract
     checks_inner_contract -int1 -str_32 -double1,                                         `options'
     checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_contract int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    set obs 10
+    gen x = _n
+    gen y = string(mod(_n, 2))
+    gcontract x y , zero
+
+    clear
+    cap gcontract
+    assert _rc == 2000
+    set obs 10
+    cap gcontract
+    assert _rc == 100
+    gen x = .
+    gcontract x
+
+    clear
+    set obs 10
+    gen x = .
+    gen w = .
+    cap gcontract x [w = w]
+    assert _rc == 2000
+    cap gcontract x if w == 0
+    assert _rc == 2000
 end
 
 capture program drop checks_inner_contract
@@ -1970,6 +2082,115 @@ program checks_gquantiles
     checks_inner_gquantiles int1^2 + 3 * double1,          `options' method(2)
     checks_inner_gquantiles log(double1) + 2 * int1,       `options'
     checks_inner_gquantiles exp(double3) + int1 * double3, `options' method(1)
+
+    *****************
+    *  Misc checks  *
+    *****************
+
+    clear
+    cap fasterxtile
+    assert _rc == 2000
+
+    clear
+    gen z = 1
+    cap fasterxtile x = z
+    assert _rc == 2000
+
+    clear
+    set obs 10
+    gen z = _n
+    cap fasterxtile x = z if 0
+    assert _rc == 2000
+    cap fasterxtile x = z if 1 [w = .]
+    assert _rc == 2000
+    cap fasterxtile x = z if 1 [w = 0]
+    assert _rc == 2000
+
+    clear
+    set obs 100
+    gen x = runiform()
+    gen w = 10 * runiform()
+    gen z = 10 * rnormal()
+    gen a = mod(_n, 7)
+    gen b = "str" + string(mod(_n, 3))
+    gen c = x in 1/5
+
+    matrix qq = 1, 10, 70, 1
+    matrix cc = 0.1, 0.05, 0.1000, 0.9
+    gquantiles x, p(1 10 70) _pctile
+    gquantiles x, q(1 10 70) _pctile
+    gquantiles x, _pctile quantmatrix(qq)
+    cap gquantiles x, cutq(x) _pctile
+    assert _rc == 198
+    cap gquantiles x, cut(x) _pctile
+    assert _rc == 198
+    cap gquantiles x, cut(x) _pctile
+    assert _rc == 198
+
+    clear
+    set obs 100
+    gen x = runiform()
+    gen w = 10 * runiform()
+    gen z = 10 * rnormal()
+    gen a = mod(_n, 7)
+    gen b = "str" + string(mod(_n, 3))
+
+    fasterxtile gx0 = x
+    fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80
+    fasterxtile gx2 = x [w = w],  nq(7) method(1)
+    fasterxtile gx3 = x [aw = w], nq(7) method(2)
+    fasterxtile gx4 = x [pw = w], nq(7) method(0)
+    cap fasterxtile gx5 = x [fw = w], nq(7)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108)
+    cap fasterxtile gx6 = x [fw = int(w)], altdef
+    assert _rc == 198
+
+    assert gx2 == gx3
+    assert gx3 == gx4
+
+    drop gx*
+
+    fasterxtile gx0 = x, by(a)
+    fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(b)
+    fasterxtile gx2 = x [w = w],  nq(7) by(a b)
+    fasterxtile gx3 = x [aw = w], nq(7) by(a b)
+    fasterxtile gx4 = x [pw = w], nq(7) by(a b)
+    cap fasterxtile gx5 = x [fw = w], nq(7) by(b a)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108) by(-a b)
+
+    fasterxtile gx6 = x [fw = int(w)], by(-a b) method(1)
+    fasterxtile gx7 = x [fw = int(w)], by(-a b) method(2)
+    fasterxtile gx8 = x [fw = int(w)], by(-a b) method(0)
+
+    fasterxtile gx9 = x, by(-a b) method(1) altdef
+    fasterxtile gx10 = x, by(-a b) method(0) altdef
+    fasterxtile gx11 = x, by(-a b) method(2) altdef
+
+    assert gx2 == gx3
+    assert gx3 == gx4
+
+    drop gx*
+    gquantiles cp = x, nq(10) xtile
+
+    fasterxtile gx0 = x , c(cp)
+    fasterxtile gx1 = log(x) + 1 if mod(_n , 10) in 20 / 80, c(cp)
+
+    fasterxtile gx2 = x [w = w]      if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(1)
+    fasterxtile gx3 = x [aw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(2)
+    fasterxtile gx4 = x [pw = w]     if mod(_n , 10) in 20 / 80 , by(a b) c(cp) method(0)
+    cap fasterxtile gx5 = x [fw = w] if mod(_n , 10) in 20 / 80 , by(b a) c(cp)
+    assert _rc == 401
+    fasterxtile gx5 = x [fw = int(w)], nq(108) by(-a b)
+
+    drop gx*
+
+    fasterxtile gx0 = x in 1
+    cap fasterxtile gx1 = log(x) + 1 if mod(_n, 10) in 20 / 80, strict nq(100)
+    assert _rc == 198
+    fasterxtile gx2 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(a) strict nq(100)
+    assert gx2 == .
 end
 
 capture program drop checks_inner_gquantiles
@@ -2029,7 +2250,7 @@ program checks_inner_gquantiles
 
     `qui' {
         gquantiles __p1 = `anything', pctile altdef binfreq `options' nq(10) replace
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
         drop __*
         cap gquantiles __p1 = `anything' in 1/5, pctile altdef binfreq `options' nq(10) replace strict
@@ -2054,11 +2275,11 @@ program checks_inner_gquantiles
 
 
         gquantiles __p3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
 
         gquantiles __p4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
-        matrix list r(cutoffs_binfreq) 
+        matrix list r(cutoffs_binfreq)
 
 
         cap gquantiles __p5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
@@ -2067,7 +2288,7 @@ program checks_inner_gquantiles
         gquantiles __p5 = `anything', pctile altdef binfreq(__f5) `options' cutquantiles(ru) replace
 
         gquantiles __x1 = `anything', pctile altdef binfreq `options' nq(10) replace
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
 
 
@@ -2083,10 +2304,10 @@ program checks_inner_gquantiles
         gquantiles __x2 = `anything', pctile altdef binfreq(__xf2) `options' cutpoints(__p1) replace
 
         gquantiles __x3 = `anything', pctile altdef binfreq `options' quantiles(10 30 50 70 90)
-        matrix list r(quantiles_binfreq) 
+        matrix list r(quantiles_binfreq)
 
         gquantiles __x4 = `anything', pctile altdef binfreq `options' cutoffs(10 30 50 70 90)
-        matrix list r(cutoffs_binfreq) 
+        matrix list r(cutoffs_binfreq)
 
         cap gquantiles __x5 = `anything', pctile altdef binfreq `options' cutquantiles(ru)
         assert _rc == 198
@@ -2964,7 +3185,7 @@ capture program drop gquantiles_switch_sanity
 program gquantiles_switch_sanity
     args ver
 
-    di _n(1) "{hline 80}" 
+    di _n(1) "{hline 80}"
     if ( "`ver'" == "v1" ) {
         di "gquantiles_switch_sanity (many duplicates)"
     }
@@ -3922,6 +4143,48 @@ program checks_gegen
     else {
         assert _rc == 17005
     }
+
+    clear
+    cap gegen
+    assert _rc == 100
+    cap gegen x = group(y)
+    assert _rc == 111
+    set obs 10
+    gen x = .
+    gegen y = group(x)
+    assert y == .
+    gegen y = group(x), missing replace
+    assert y == 1
+
+    clear
+    set obs 10
+    gen x = _n
+    gegen y = group(x) if 0
+    assert y == .
+    gegen z = group(x) if 1
+    assert z == x
+    gegen z = group(x) in 1 / 3, replace
+    assert z == x | mi(z)
+    gegen z = group(x) in 8, replace
+    assert z == 1 | mi(z)
+
+    gegen z = sum(x) in 1 / 3, by(x) replace
+    assert z == x | mi(z)
+    gegen z = sum(x) if x == 7, by(x) replace
+    assert z == x | mi(z)
+    gegen z = count(x) if x == 8, by(x) replace
+    assert z == 1 | mi(z)
+
+    clear
+    set obs 10
+    gen x = 1
+    gen w = .
+    gegen z = sum(x) [w = w]
+    drop z
+    replace w = 0
+    gegen z = sum(x) [w = w]
+    drop z
+    gegen z = sum(x) [w = w] if w == 3.14
 end
 
 capture program drop checks_inner_egen
@@ -4305,6 +4568,11 @@ program checks_unique
     set obs 10
     gen x = 1
     cap gunique x if x < 0
+    assert _rc == 0
+    cap gunique x if 0
+    assert _rc == 0
+    replace x = .
+    cap gunique x if 0
     assert _rc == 0
 end
 
@@ -4777,6 +5045,12 @@ program checks_levelsof
     }
 
     clear
+    set obs 10
+    gen x = _n
+    glevelsof x if 0
+    glevelsof x if 0, gen(z)
+
+    clear
     gen x = 1
     cap glevelsof x
     assert _rc == 2000
@@ -4785,6 +5059,44 @@ program checks_levelsof
     set obs 100000
     gen x = _n
     cap glevelsof x in 1 / 10000 if mod(x, 3) == 0
+    assert _rc == 0
+
+    clear
+    set obs 10
+    gen x = string(_n)
+    gen y = cond(mod(_n, 2), "a", "b")
+    gen z = _n
+    gen w = runiform()
+    gen strL s = "s"
+    expand 3
+
+    cap glevelsof x,     gen(z, replace) nolocal
+    assert _rc == 198
+    cap glevelsof x,     gen(a, replace) nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(z b)   nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(a b)   nolocal
+    assert _rc == 198
+    cap glevelsof x y w, gen(a b z) nolocal
+    assert _rc == 198
+
+    cap glevelsof x y w, gen(a b c) nolocal
+    assert _rc == 0
+    cap glevelsof x y,   gen(z)
+    assert _rc == 0
+    cap glevelsof x y,   gen(a) nolocal
+    assert _rc == 0
+
+    cap glevelsof s, gen(a) nolocal
+    assert _rc == 17002
+
+    clear
+    set obs 100000
+    gen x = "a long string appeared" + string(_n)
+    cap glevelsof x
+    assert _rc == 920
+    cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0
 end
 
@@ -4838,6 +5150,29 @@ program compare_levelsof
         compare_inner_levelsof strL2, `options' `forcestrl'
         compare_inner_levelsof strL3, `options' `forcestrl'
     }
+
+    qui `noisily' gen_data, n(1000)
+    qui expand 100
+
+    local N    = trim("`: di %15.0gc _N'")
+    local hlen = 24 + length("`options'") + length("`N'")
+    di _n(1) "{hline 80}" _n(1) "compare_levelsof_gen, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_levelsof_gen str_12,              `options' sort
+    compare_inner_levelsof_gen str_12 str_32,       `options' shuffle
+    compare_inner_levelsof_gen str_12 str_32 str_4, `options'
+
+    compare_inner_levelsof_gen double1,                 `options'
+    compare_inner_levelsof_gen double1 double2,         `options' sort
+    compare_inner_levelsof_gen double1 double2 double3, `options' shuffle
+
+    compare_inner_levelsof_gen int1,           `options' shuffle
+    compare_inner_levelsof_gen int1 int2,      `options'
+    compare_inner_levelsof_gen int1 int2 int3, `options' sort
+
+    compare_inner_levelsof_gen int1 str_32 double1,                                        `options'
+    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2,                    `options'
+    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 end
 
 capture program drop compare_inner_levelsof
@@ -4848,11 +5183,6 @@ program compare_inner_levelsof
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
     if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
-
-    *  levelsof `varlist', s(_n(1)) local(l_stata)
-    * glevelsof `varlist', s(_n(1)) local(l_gtools) `options'
-    * disp `l_stata'
-    * disp `l_gtools'
 
     cap  levelsof `varlist', s(" | ") local(l_stata)
     cap glevelsof `varlist', s(" | ") local(l_gtools) `options'
@@ -5090,6 +5420,49 @@ program compare_inner_levelsof
     di _n(1)
 end
 
+capture program drop compare_inner_levelsof_gen
+program compare_inner_levelsof_gen
+    syntax varlist, [shuffle sort *]
+
+    tempvar rsort
+    if ( "`shuffle'" != "" ) gen `rsort' = runiform()
+    if ( "`shuffle'" != "" ) sort `rsort'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+
+    local ifin1
+    local ifin2 if _n < `=_N / 2'
+    local ifin3 in `=ceil(`=_N / 2')' / `=_N'
+    local ifin4 if _n > `=_N / 4' in `=ceil(`=_N / 1.5')' / `=_N'
+
+    local iftxt1
+    local iftxt2 " [if]"
+    local iftxt3 " [in]"
+    local iftxt4 " [if] [in]"
+
+    forvalues i = 1 / 4 {
+        preserve
+            keep `varlist'
+            glevelsof `varlist' `ifin`i'', nolocal gen(, replace) missing `options'
+            qui keep in 1 / `r(J)'
+            tempfile glevels
+            qui save `"`glevels'"'
+        restore, preserve
+            if  ( "`ifin`i''" != "" ) qui keep `ifin`i''
+            keep `varlist'
+            qui duplicates drop
+            cap merge 1:1 `varlist' using `"`glevels'"', assert(3) nogen
+            if ( _rc ) {
+                di as err "    compare_levelsof (failed): glevelsof `varlist'`iftxt`i'', gen(, replace) returned different levels to duplicates drop"
+            }
+            else {
+                di as err "    compare_levelsof (passed): glevelsof `varlist'`iftxt`i'', gen(, replace) returned the same levels as  duplicates drop"
+            }
+        restore
+    }
+
+    di _n(1)
+end
+
 ***********************************************************************
 *                             Benchmarks                              *
 ***********************************************************************
@@ -5150,7 +5523,7 @@ program versus_levelsof, rclass
         qui glevelsof `varlist' `ix', `options'
         timer off 43
         qui timer list
-        local time_glevelsof = r(t43) 
+        local time_glevelsof = r(t43)
     restore
 
     if ( "`flevelsof'" == "flevelsof" ) {
@@ -5202,6 +5575,16 @@ program checks_toplevelsof
         checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
         checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
     }
+
+    clear
+    set obs 10
+    gen x = _n
+    gen w = runiform()
+    gtoplevelsof x [w = w]
+    gtop x [w = w]
+    gtop x [w = .]
+    gtop x [w = 0]
+    gtop x if 0
 
     clear
     gen x = 1
@@ -5263,69 +5646,82 @@ end
 
 capture program drop compare_toplevelsof
 program compare_toplevelsof
-    syntax, [tol(real 1e-6) NOIsily *]
+    syntax, [tol(real 1e-6) NOIsily wgt(str) *]
+
+    gettoken wfun wfoo: wgt
+    local wfun `wfun'
+    local wfoo `wfoo'
+    if ( `"`wfoo'"' == "f" ) {
+        local wcall_f "[fw = int_unif_0_100]"
+        local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+    }
 
     qui `noisily' gen_data, n(1000)
     qui expand 100
     qui `noisily' random_draws, random(2)
+    `wgen_f'
 
     local N = trim("`: di %15.0gc _N'")
-    di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "consistency_gtoplevelsof_gcontract, N = `N', `options' `wgt'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_gtoplevelsof -str_12,              `options' tol(`tol')
-    compare_inner_gtoplevelsof str_12 -str_32,       `options' tol(`tol')
-    compare_inner_gtoplevelsof str_12 -str_32 str_4, `options' tol(`tol')
+    compare_inner_gtoplevelsof -str_12,              `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof str_12 -str_32,       `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof str_12 -str_32 str_4, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -double1,                 `options' tol(`tol')
-    compare_inner_gtoplevelsof double1 -double2,         `options' tol(`tol')
-    compare_inner_gtoplevelsof double1 -double2 double3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -double1,                 `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof double1 -double2,         `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof double1 -double2 double3, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -int1,           `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -int2 int3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -int1,           `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -int2,      `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -int2 int3, `options' tol(`tol') wgt(`wcall_f')
 
-    compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol')
-    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol')
+    compare_inner_gtoplevelsof -int1 -str_32 -double1,                                         `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol') wgt(`wcall_f')
+    compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') wgt(`wcall_f')
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl'
-        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl'
-        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl'
+        compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
+        compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
+        compare_inner_gtoplevelsof strL1 strL2 strL3, `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
     }
 end
 
 capture program drop compare_inner_gtoplevelsof
 program compare_inner_gtoplevelsof
-    syntax [anything], [tol(real 1e-6) *]
+    syntax [anything], [tol(real 1e-6) wgt(str) *]
+
+    if ( "`wgt'" != "" ) {
+        local wtxt "; `wgt'"
+    }
 
     local N = trim("`: di %15.0gc _N'")
-    local hlen = 35 + length("`anything'") + length("`N'")
-    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+    local hlen = 36 + length("`anything'") + length("`N'") + length("`wtxt'")
+    di as txt _n(2) "Checking contract. N = `N'; varlist = `anything'`wtxt'" _n(1) "{hline `hlen'}"
 
     preserve
-        _compare_inner_gtoplevelsof `anything', `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything', `options' tol(`tol') wgt(`wgt')
     restore, preserve
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gtoplevelsof  `anything' in `from' / `to', `options' tol(`tol')
+        _compare_inner_gtoplevelsof  `anything' in `from' / `to', `options' tol(`tol') wgt(`wgt')
     restore, preserve
-        _compare_inner_gtoplevelsof `anything' if random2 > 0, `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything' if random2 > 0, `options' tol(`tol') wgt(`wgt')
     restore, preserve
         local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
         local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
         local from = cond(`in1' < `in2', `in1', `in2')
         local to   = cond(`in1' > `in2', `in1', `in2')
-        _compare_inner_gtoplevelsof `anything' if random2 < 0 in `from' / `to', `options' tol(`tol')
+        _compare_inner_gtoplevelsof `anything' if random2 < 0 in `from' / `to', `options' tol(`tol') wgt(`wgt')
     restore
 end
 
 capture program drop _compare_inner_gtoplevelsof
 program _compare_inner_gtoplevelsof
-    syntax [anything] [if] [in], [tol(real 1e-6) contract *]
+    syntax [anything] [if] [in], [tol(real 1e-6) contract wgt(str) *]
 
     if ( "`contract'" == "" ) local contract gcontract
 
@@ -5333,7 +5729,7 @@ program _compare_inner_gtoplevelsof
     local opts freq(N)
     preserve
         qui {
-            `noisily' `contract' `anything' `if' `in', `opts'
+            `noisily' `contract' `anything' `if' `in' `wgt', `opts'
             qui sum N, meanonly
             local r_N = `r(sum)'
             hashsort -N `anything'
@@ -5357,7 +5753,7 @@ program _compare_inner_gtoplevelsof
     tempname gmat
     preserve
         qui {
-            `noisily' gtoplevelsof `anything' `if' `in', mat(`gmat')
+            `noisily' gtoplevelsof `anything' `if' `in' `wgt', mat(`gmat')
             clear
             svmat `gmat', names(col)
             gen long ix = _n
@@ -5562,6 +5958,10 @@ program checks_isid
     replace y = 1 in 1/2
     replace x = 2 in 3/4
     gisid x y z, v
+
+    gisid x y z if 0, v
+    gisid x y z if x, v
+    gisid x y z in 1, v
 
     replace y = x
     replace z = 1 in 1/2
@@ -6231,7 +6631,6 @@ program checks_hashsort
     hashsort foreign rep78 mpg,        `options'
     hashsort idx,                      `options' v bench
 
-
     * https://github.com/mcaceresb/stata-gtools/issues/31
     qui {
         clear
@@ -6252,6 +6651,26 @@ program checks_hashsort
         hashsort x -y, mlast
         cf * using "`a'"
     }
+
+    ****************
+    *  Misc tests  *
+    ****************
+
+    clear
+    gen x = 1
+    hashsort x
+
+    clear
+    set obs 10
+    gen x = _n
+    expand 3
+    hashsort x, gen(y) sortgen
+    assert "`:sortedby'" == "y"
+    hashsort x, v
+    assert "`:sortedby'" == "x"
+    hashsort x, skipcheck v
+    hashsort x, gen(y) replace
+    assert "`:sortedby'" == "x"
 end
 
 capture program drop checks_inner_hashsort
@@ -6376,7 +6795,7 @@ program compare_sort, rclass
         cf * using `file_sort'
         * if ( _rc ) {
         *     qui ds *
-        *     local memvars `r(varlist)' 
+        *     local memvars `r(varlist)'
         *     local firstvar: word 1 of `varlist'
         *     local compvars: list memvars - firstvar
         *     if ( "`compvars'" != "" ) {
@@ -6406,7 +6825,7 @@ program compare_sort, rclass
         cf * using `file_sort'
         * if ( _rc ) {
         *     qui ds *
-        *     local memvars `r(varlist)' 
+        *     local memvars `r(varlist)'
         *     local firstvar: word 1 of `varlist'
         *     local compvars: list memvars - firstvar
         *     if ( "`compvars'" != "" ) {

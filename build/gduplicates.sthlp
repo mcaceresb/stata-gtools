@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.1  19Jul2018}{...}
+{* *! version 1.0.0  21Jul2018}{...}
 {viewerdialog gduplicates "dialog gduplicates"}{...}
 {vieweralsosee "[D] gduplicates" "mansection D gduplicates"}{...}
 {viewerjumpto "Syntax" "gduplicates##syntax"}{...}

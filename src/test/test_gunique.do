@@ -46,6 +46,11 @@ program checks_unique
     gen x = 1
     cap gunique x if x < 0
     assert _rc == 0
+    cap gunique x if 0
+    assert _rc == 0
+    replace x = .
+    cap gunique x if 0
+    assert _rc == 0
 end
 
 capture program drop checks_inner_unique

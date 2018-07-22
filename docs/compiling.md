@@ -6,9 +6,9 @@ wish to speed up gtools. I ran the Stata/MP benchmarks on a server that used
 the plugin I compiled locally. This was because most people will have that
 experience (i.e. they will not compile the plugin themselves).
 
-However, if I compile the plugin on the server then gtools can be up to 2
-times faster. This is because the optimization flags of the compiler perform
-different optimizations in different hardware.
+However, if I compile the plugin on the server then gtools can be up to
+2 times faster (YMMV). This is because the optimization flags of the
+compiler perform different optimizations in different hardware.
 
 ### Requirements
 
@@ -41,9 +41,10 @@ If you also want to compile SpookyHash on Windows yourself, you will also need
   so I would recommend you install the least you can to get the
   Developer Prompt).
 
-I keep a copy of `spookyhash.dll` in `./lib/windows` so there is no need to
-re-compile SpookyHash. In fact, I would advise **against** trying to recompile
-SpookyHash on Windows.
+I keep a copy of `spookyhash.dll` in `./lib/windows` so there is no need
+to re-compile SpookyHash. In fact, I would advise **against** trying to
+recompile SpookyHash on Windows unless you are using Windows Server (see
+[this bug report](https://github.com/mcaceresb/stata-gtools/issues/35)).
 
 ### Compilation
 

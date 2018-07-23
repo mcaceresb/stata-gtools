@@ -3,7 +3,7 @@
 
 capture program drop hashsort
 program define hashsort
-    version 13
+    version 13.1
 
     global GTOOLS_CALLER hashsort
     syntax anything,           /// Variables to sort by: [+|-]varname [[+|-]varname ...]

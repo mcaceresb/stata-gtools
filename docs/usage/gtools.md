@@ -47,3 +47,5 @@ Options
 - `verbose` With `licenses`, prints the licenses of the open source projects used in `gtools`
 
 - `examples` (alias `showcase`) print examples of how to use available gtools functions.
+
+- `test` or `test(branch)` runs the gtools unit tests (1-3h) from the specified github branch (default master).

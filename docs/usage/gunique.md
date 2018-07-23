@@ -36,7 +36,8 @@ Options
             if it exists.
 
 - `detail` request summary statistics on the number of records which are
-            present for unique values of the varlist.
+            present for unique values of the varlist. With `by()`, it also
+            prints the levels with the most unique values.
 
 ### Gtools options
 
@@ -131,10 +132,4 @@ N = 69; 69 balanced groups of size 1
 
 'rep78' had 5 unique values in 69 observations.
 Variable _Unique has the number of unique values of 'rep78' by 'foreign'.
-The frequency counts of _Unique for the levels of 'foreign' are
-
-   foreign   _Unique |    N  Cum   Pct (%)   Cum Pct (%) 
- --------------------------------------------------------
-  Domestic         5 |   52   52        70            70 
-   Foreign         3 |   22   74        30           100 
 ```

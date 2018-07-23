@@ -6,7 +6,7 @@
 cap program drop gtoplevelsof
 program gtoplevelsof, rclass
     global GTOP_RC 0
-    version 13
+    version 13.1
 
     if ( `=_N < 1' ) {
         di as txt "no observations"

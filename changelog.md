@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+## gtools-1.0.1 (2018-07-23)
+
+### Bug fixes
+
+* `gegen, replace` gave the wrong result if the source was also the target
+  (`tag` and `group` worked, but all other stats did not).
+* `gunique, by()` was affected by this bug and now works correctly.
+
+### Enhancements
+
+* `gunique, by()` no longer prints the top unique levels by default unless
+  the user asks for them via `detail`.
+
 ## gtools-1.0.0 (2018-07-21)
 
 First official release! This will go on SSC once all the tests have

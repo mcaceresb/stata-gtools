@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0 21Jul2018}{...}
+{* *! version 1.0.1 23Jul2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -81,6 +81,8 @@ traditional stata commands. The following are available as part of gtools
 {synopt :{opt examples}}Print examples of how to use various gtools functions.
 {p_end}
 {synopt :{opt showcase}}Alias for {opt examples}.
+{p_end}
+{synopt :{cmd:test}[{cmd:(}{branch}{cmd:)}]}Run gtools unit tests (1-3h) from the specified github branch (default is master).
 {p_end}
 
 

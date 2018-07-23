@@ -1,9 +1,9 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -unique- implementation using C for faster processing
 
 capture program drop gunique
 program gunique, rclass
-    version 13
+    version 13.1
 
     if ( `=_N < 1' ) {
         di as err "no observations"
@@ -130,21 +130,22 @@ program gunique, rclass
     }
 
     if ( "`by'" != "" ) {
-        gegen `type' `generate' = tag(`by' `id') `ifid', missing replace
-        gegen `generate' = sum(`generate'), by(`by') replace
+        gegen `id' = tag(`by' `id') `ifid', missing replace
+        gegen `type' `generate' = sum(`id'), by(`by') replace
 
         di as txt ""
         di as txt "'`varlist'' had `r_Jdisp' unique values in `r_Ndisp' observations."
         di as txt "Variable `generate' has the number of unique values of '`varlist'' by '`by''."
 
-        if ( `=`nunique'' > 5 ) {
-            local header = `"The top 5 frequency counts of `generate' for the levels of '`by'' are"'
+        if ( "`detail'" != "" ) {
+            if ( `=`nunique'' > 5 ) {
+                local header = `"The top 5 frequency counts of `generate' for the levels of '`by'' are"'
+            }
+            else {
+                local header = `"The frequency counts of `generate' for the levels of '`by'' are"'
+            }
+            di as txt `"`header'"'
+            gtoplevelsof `by' `generate' if `generate' > 0, ntop(5)
         }
-        else {
-            local header = `"The frequency counts of `generate' for the levels of '`by'' are"'
-        }
-        di as txt `"`header'"'
-        gtoplevelsof `by' `generate' if `generate' > 0, ntop(5)
-
     }
 end

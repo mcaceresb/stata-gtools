@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0  21Jul2018}{...}
+{* *! version 1.0.1  23Jul2018}{...}
 {viewerdialog gunique "dialog gunique"}{...}
 {vieweralsosee "[D] gunique" "mansection D gunique"}{...}
 {viewerjumpto "Syntax" "gunique##syntax"}{...}
@@ -63,7 +63,8 @@ generate}, if it exists.
 
 {phang}
 {opt detail} request summary statistics on the number of records which are
-present for unique values of the varlist.
+present for unique values of the varlist. With {opt by()}, it also prints
+the levels with the most unique values.
 
 {dlgtab:Gtools}
 

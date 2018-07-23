@@ -3,7 +3,7 @@
 
 capture program drop gdistinct
 program gdistinct, rclass
-    version 13
+    version 13.1
 
     if ( `=_N < 1' ) {
         di as err "no observations"

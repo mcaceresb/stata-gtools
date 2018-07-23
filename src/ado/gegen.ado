@@ -1,4 +1,4 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -23,7 +23,7 @@
 
 capture program drop gegen
 program define gegen, byable(onecall) rclass
-    version 13
+    version 13.1
 
     local 00 `0'
     qui syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
@@ -464,6 +464,12 @@ program define gegen, byable(onecall) rclass
             if ( _rc ) {
                 global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
                 exit _rc
+            }
+
+            if ( "`:list sources & dummy'" != "" ) { 
+                if ( "`replace'" != "" ) local extra " even with -replace-"
+                di as error "Variable `dummy' canot be a source and a target`extra'"
+                exit 198
             }
         }
     }

@@ -3,7 +3,7 @@
 
 capture program drop gcollapse
 program gcollapse, rclass
-    version 13
+    version 13.1
     global GTOOLS_USER_VARABBREV `c(varabbrev)'
     local 00 `0'
 

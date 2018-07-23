@@ -51,6 +51,33 @@ program checks_unique
     replace x = .
     cap gunique x if 0
     assert _rc == 0
+
+    clear
+    set obs 10
+    gen x = mod(_n, 3)
+    gen y = mod(_n, 4)
+    gunique x
+    gunique y
+    gunique y, by(x)
+    cap gunique y, by(x)
+    assert _rc == 110
+    gen `:type _Unique' _Unique2 = _Unique
+    gunique y, by(x) replace
+    assert _Unique == _Unique2
+    replace y = 0
+    gunique y, by(x) replace
+    assert _Unique == 1
+
+    drop _U*
+    gunique y, by(x) gen(nuniq)
+    cap gunique y, by(x) gen(nuniq)
+    assert _rc == 110
+    gen `:type nuniq' nuniq2 = nuniq
+    gunique y, by(x) gen(nuniq) replace
+    assert nuniq == nuniq2
+    replace y = 0
+    gunique y, by(x) gen(nuniq) replace
+    assert nuniq == 1
 end
 
 capture program drop checks_inner_unique

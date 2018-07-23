@@ -137,11 +137,11 @@ gtools_ssc = [
 gtools_zip = [
     "changelog.md",
     "gtools.pkg",
-    "stata.toc"
+    "stata.toc",
 ] + gtools_ssc
 
 gtools_build = gtools_zip + [
-    "tests.do"
+    "gtools_tests.do"
 ]
 
 # ---------------------------------------------------------------------

@@ -1,9 +1,9 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
 program gtools
-    version 13
+    version 13.1
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
     else local c_os_: di lower("`c(os)'")
@@ -13,7 +13,21 @@ program gtools
         exit 198
     }
 
-    syntax, [LICENSEs Verbose Dependencies Install_latest Upgrade replace dll hashlib(str) showcase examples]
+    syntax, [           ///
+        LICENSEs        ///
+        Verbose         ///
+        Dependencies    ///
+        Install_latest  ///
+        Upgrade         ///
+        replace         ///
+        dll             ///
+        hashlib(str)    ///
+        showcase        ///
+        examples        ///
+        test            ///
+        TESTbranch(str) ///
+    ]
+
     local cwd `c(pwd)'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
 
@@ -30,7 +44,7 @@ program gtools
             gtools_licenses
         }
 
-        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
+        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`testbranch'"' == `""' ) {
             exit 0
         }
     }
@@ -72,7 +86,7 @@ program gtools
         di as txt "Success!"
         cd `"`cwd'"'
 
-        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
+        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`testbranch'"' == `""' ) {
             exit 0
         }
     }
@@ -80,7 +94,7 @@ program gtools
     if ( ("`install_latest'" == "install_latest") | ("`upgrade'" == "upgrade") ) {
         net install gtools, from(`github'/build) replace
         gtools, dependencies replace
-        if ( `"`hashlib'`dll'"' == `""' ) {
+        if ( `"`hashlib'`dll'`showcase'`examples'`test'`testbranch'"' == `""' ) {
             exit 0
         }
     }
@@ -144,19 +158,37 @@ program gtools
             }
         }
         else local hashlib spookyhash.dll
-        exit 0
+        if ( `"`showcase'`examples'`test'`testbranch'"' == `""' ) {
+            exit 0
+        }
     }
     else if ( `hashusr' | ("`dll'" == "dll") ) {
         di as txt "-gtools, hashlib()- and -gtools, dll- only on Windows."
-        exit 0
+        if ( `"`showcase'`examples'`test'`testbranch'"' == `""' ) {
+            exit 0
+        }
     }
 
     if ( "`showcase'`examples'" != "" ) {
         gtools_showcase
-        exit 0
+        if ( "`test'`testbranch'" != "" ) {
+            exit 0
+        }
     }
 
-    display "Nothing to do. Specify: licenses, dependencies, dll (Windows), hasblib (Windows), upgrade, or examples."
+    if ( "`test'`testbranch'" != "" ) {
+        if ( "`testbranch'" == "" ) local testbranch master
+        disp as txt "{bf:WARNING:} Unit tests from branch `testbranch' take 1-3 hours!"
+        disp as txt "Hit the break button if you don't have time (tests will start in 5 seconds)."
+        sleep 8000
+
+        local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/`testbranch'
+        cap noi do `github'/build/gtools_tests.do
+        exit _rc
+    }
+
+    display "Nothing to do. See {stata help gtools} for usage. Version info:"
+    which gtools
 end
 
 capture program drop gtools_licenses

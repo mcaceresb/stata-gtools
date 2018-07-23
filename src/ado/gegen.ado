@@ -290,11 +290,30 @@ program define gegen, byable(onecall) rclass
         local retype = `retype' & 1
     }
     else {
+
+        * NOTE: Addvar should be "" with replace; the problem was that
+        * the internals did not empty the variable before writing to
+        * it. With if/in conditions, this caused problems because the
+        * variable was not set to missing outside the range, as it
+        * should.
+        *
+        * As a quickfix I thought I could just empty it before calling
+        * internals. However, this causesd two issues: The variable
+        * would be missing on error, and if the target is also a source,
+        * the source would be all misssing when read by the plugin!
+        *
+        * The easiest fix was to require the target to not be in the
+        * sources, but there was an easier fix! I already empty the
+        * targets fot gcollapse, so I simply set that boolean to true
+        * (init_targ) when gegen was called with replace! This impacts
+        * the check in lines 489-492.
+
         cap confirm new variable `name'
         if ( _rc ) {
             local dummy `name'
             local rename ""
-            local addvar qui replace `dummy' = .
+            local addvar ""
+            * local addvar qui replace `dummy' = .
             local retype = `retype' & 0
         }
         else {
@@ -466,11 +485,12 @@ program define gegen, byable(onecall) rclass
                 exit _rc
             }
 
-            if ( "`:list sources & dummy'" != "" ) { 
-                if ( "`replace'" != "" ) local extra " even with -replace-"
-                di as error "Variable `dummy' canot be a source and a target`extra'"
-                exit 198
-            }
+            * See notes in lines 294-310
+            * if ( "`:list sources & dummy'" != "" ) { 
+            *     if ( "`replace'" != "" ) local extra " even with -replace-"
+            *     di as error "Variable `dummy' canot be a source and a target`extra'"
+            *     exit 198
+            * }
         }
     }
     else if ( `rc' == 0 ) {

@@ -130,8 +130,8 @@ program gunique, rclass
     }
 
     if ( "`by'" != "" ) {
-        gegen `id' = tag(`by' `id') `ifid', missing replace
-        gegen `type' `generate' = sum(`id'), by(`by') replace
+        gegen `type' `generate' = tag(`by' `id') `ifid', missing `replace'
+        gegen `generate' = sum(`generate'), by(`by') replace
 
         di as txt ""
         di as txt "'`varlist'' had `r_Jdisp' unique values in `r_Ndisp' observations."

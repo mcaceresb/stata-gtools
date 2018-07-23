@@ -1,4 +1,4 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
 
 * rc 17000
@@ -1385,7 +1385,7 @@ program _gtools_internal, rclass
         scalar __gtools_used_io   = 0
         scalar __gtools_ixfinish  = 0
         scalar __gtools_J         = _N
-        scalar __gtools_init_targ = ( "`ifin'" != "" ) & ("`merge'" != "")
+        scalar __gtools_init_targ = ("`ifin'" != "") & ("`merge'" != "")
 
         if inlist("`anything'", "forceio", "switch") {
             local extravars `__gtools_sources' `__gtools_sources' `freq'
@@ -1481,9 +1481,16 @@ program _gtools_internal, rclass
         *     2. Sort indexed hash
         *     3. Determine group sizes and cut points
         *     4. Use index and group info to compute the function
+        *
+        * NOTE: If there are targets (as with egen, collapse, or generic
+        * hash), they are replaced with missing values internally right
+        * before writing the output. Special functions tag, group,
+        * and count are initialized as well, should they have been
+        * requested.
 
-        if ( inlist("`gfunction'", "unique", "egen") ) {
+        if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
+            scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
         }
         else if ( inlist("`gfunction'",  "contract") ) {
             local 0 `gcontract'

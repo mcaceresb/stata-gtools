@@ -82,7 +82,9 @@ traditional stata commands. The following are available as part of gtools
 {p_end}
 {synopt :{opt showcase}}Alias for {opt examples}.
 {p_end}
-{synopt :{cmd:test}[{cmd:(}{branch}{cmd:)}]}Run gtools unit tests (1-3h) from the specified github branch (default is master).
+{synopt :{opt test}}Run gtools unit tests (1-3h) from the specified github branch (default is master).
+{p_end}
+{synopt :{opth branch(str)}}Github branch to use (defualt is master).
 {p_end}
 
 

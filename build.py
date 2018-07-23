@@ -380,7 +380,7 @@ if args["replace"]:
             f.write(linesep)
             f.write("cap net uninstall gtools")
             f.write(linesep)
-            f.write("net install gtools, from($builddir)")
+            f.write("net install gtools, from($builddir) replace")
             f.write(linesep)
 
         chdir(statadir)

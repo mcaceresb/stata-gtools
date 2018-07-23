@@ -115,6 +115,12 @@ program checks_gegen
     assert z == 3 | inlist(_n, 1, 10)
     gegen z = sum(x* z*) in 2 / 9, replace
     assert z == `=4 * (2 + 9) + 8 * 3' | inlist(_n, 1, 10)
+    gegen z = sum(x* z*) if 0, replace
+    assert z == .
+    gegen z = sum(x* z*) if 1, replace
+    assert z != .
+    cap gegen z = sum(x* z*) if 1
+    assert _rc == 110
 
     clear
     set obs 10

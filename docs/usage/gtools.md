@@ -34,18 +34,20 @@ Options
 - `dependencies` Installs the hash library, spookyhash.dll, which is required
             for the plugin to execute correctly.
 
-- `upgrade` (alias `install_latest`) Upgrades gtools to the latest github version.
+- `upgrade` (alias `install_latest`) Upgrades gtools to the latest github version (default is master).
 
 - `replace` Replace spookyhash.dll if already installed.
 
 - `dll` Add path to spookyhash.dll to system path.
 
-- `hashlib(str)Custom` path to spookyhash.dll.
+- `hashlib(str)` Custom path to spookyhash.dll.
 
 - `licenses` Prints the open source projects used in `gtools`
 
 - `verbose` With `licenses`, prints the licenses of the open source projects used in `gtools`
 
-- `examples` (alias `showcase`) print examples of how to use available gtools functions.
+- `examples` (alias `showcase`) Print examples of how to use available gtools functions.
 
-- `test` or `test(branch)` runs the gtools unit tests (1-3h) from the specified github branch (default master).
+- `test` Runs the gtools unit tests (1-3h) from the specified github branch (default is master).
+
+- `branch(str)` Github branch to use (default is master).

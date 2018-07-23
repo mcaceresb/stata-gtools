@@ -8,6 +8,7 @@ Change Log
 * `gegen, replace` gave the wrong result if the source was also the target
   (`tag` and `group` worked, but all other stats did not).
 * `gunique, by()` was affected by this bug and now works correctly.
+* `gcollapse, merge` exits with error if there are no observations matching `if' `in'.
 
 ### Enhancements
 

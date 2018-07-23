@@ -287,6 +287,7 @@ program define gegen, byable(onecall) rclass
         tempvar dummy
         local rename rename `dummy' `name'
         local addvar qui mata: st_addvar("`type'", "`dummy'")
+        local noobs  ""
         local retype = `retype' & 1
     }
     else {
@@ -313,13 +314,14 @@ program define gegen, byable(onecall) rclass
             local dummy `name'
             local rename ""
             local addvar ""
-            * local addvar qui replace `dummy' = .
+            local noobs qui replace `dummy' = .
             local retype = `retype' & 0
         }
         else {
             tempvar dummy
             local rename rename `dummy' `name'
             local addvar qui mata: st_addvar("`type'", "`dummy'")
+            local noobs  ""
             local retype = `retype' & 1
         }
     }
@@ -604,6 +606,7 @@ program define gegen, byable(onecall) rclass
     }
     else if ( `rc' == 17001 ) {
         if ( "${GTOOLS_DUPS}" == "" ) {
+            `noobs'
             `rename'
             exit 0
         }

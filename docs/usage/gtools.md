@@ -26,7 +26,7 @@ Syntax
 gtools [, options]
 ```
 
-See `gtools, examples` for examples of hwo to use available gtools functions.
+See `gtools, examples` for examples of how to use available gtools functions.
 
 Options
 -------

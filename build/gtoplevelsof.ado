@@ -219,8 +219,8 @@ program gtoplevelsof, rclass
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
     if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
 
-    if ( `c(MP)' & (`r(J)' < 50) & ("`warning'" != "nowarning") ) {
-        disp as txt "(Note: {cmd:tab} is often faster than {cmd:gtop} with few groups.)"
+    if ( `c(MP)' & (`r(J)' < 20) & ("`warning'" != "nowarning") & (`:list sizeof varlist' == 1) ) {
+        disp as txt "(Note: {cmd:tab} can be faster than {cmd:gtop} with few groups.)"
     }
 
     return local levels    `"`r(levels)'"'

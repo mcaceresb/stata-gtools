@@ -2729,6 +2729,7 @@ program parse_by_types, rclass
             exit 17005
         }
         cap scalar drop __gtools_k_strL
+        * disp as txt "(note: performance with strL variables is not optimized)"
     }
     else if ( ("`varstrL'" != "") & ("`forcestrl'" == "") ) {
         disp as err _n(1) "gtools failed to parse strL variables."

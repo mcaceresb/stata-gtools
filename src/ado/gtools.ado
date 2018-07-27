@@ -8,11 +8,6 @@ program gtools
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
     else local c_os_: di lower("`c(os)'")
 
-    if inlist("`c_os_'", "macosx") {
-        di as err "Not available for MacOSX."
-        exit 198
-    }
-
     syntax, [          ///
         LICENSEs       ///
         Verbose        ///
@@ -96,7 +91,7 @@ program gtools
     if ( ("`install_latest'" == "install_latest") | ("`upgrade'" == "upgrade") ) {
         cap net uninstall gtools
         net install gtools, from(`github'/build) replace
-        gtools, dependencies replace
+        * gtools, dependencies replace
         if ( `"`hashlib'`dll'`showcase'`examples'`test'"' == `""' ) {
             exit 0
         }
@@ -180,12 +175,16 @@ program gtools
 
     if ( "`test'" != "" ) {
         disp as txt "{bf:WARNING:} Unit tests from branch `branch' take 1-3 hours!"
-        disp as txt "Are you sure you want to run them? (yes/no)", _request(yesno)
-        if inlist("`yesno'", "y", "yes") {
+        disp as txt "Are you sure you want to run them? (yes/no)", _request(GTOOLS_TESTS)
+        if inlist(`"${GTOOLS_TESTS}"', "y", "yes") {
+            global GTOOLS_TESTS
             cap noi do `github'/build/gtools_tests.do
             exit _rc
         }
-        else exit 0
+        else exit {
+            global GTOOLS_TESTS
+            0
+        }
     }
 
     display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"

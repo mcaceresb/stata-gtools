@@ -1,21 +1,32 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
 program gtools
-    version 13
+    version 13.1
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
     else local c_os_: di lower("`c(os)'")
 
-    if inlist("`c_os_'", "macosx") {
-        di as err "Not available for MacOSX."
-        exit 198
-    }
+    syntax, [          ///
+        LICENSEs       ///
+        Verbose        ///
+        Dependencies   ///
+        Install_latest ///
+        Upgrade        ///
+        replace        ///
+        dll            ///
+        hashlib(str)   ///
+        showcase       ///
+        examples       ///
+        test           ///
+        branch(str)    ///
+    ]
 
-    syntax, [LICENSEs Verbose Dependencies Install_latest Upgrade replace dll hashlib(str) showcase examples]
+    if ( "`branch'" == "" ) local branch master
+
     local cwd `c(pwd)'
-    local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/master
+    local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/`branch'
 
     if ( "`licenses'" == "licenses" ) {
         disp `"gtools is {browse "https://github.com/mcaceresb/stata-gtools/blob/master/LICENSE":MIT-licensed }"'
@@ -30,7 +41,7 @@ program gtools
             gtools_licenses
         }
 
-        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
+        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'"' == `""' ) {
             exit 0
         }
     }
@@ -72,15 +83,16 @@ program gtools
         di as txt "Success!"
         cd `"`cwd'"'
 
-        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'"' == `""' ) {
+        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'"' == `""' ) {
             exit 0
         }
     }
 
     if ( ("`install_latest'" == "install_latest") | ("`upgrade'" == "upgrade") ) {
+        cap net uninstall gtools
         net install gtools, from(`github'/build) replace
-        gtools, dependencies replace
-        if ( `"`hashlib'`dll'"' == `""' ) {
+        * gtools, dependencies replace
+        if ( `"`hashlib'`dll'`showcase'`examples'`test'"' == `""' ) {
             exit 0
         }
     }
@@ -98,8 +110,7 @@ program gtools
             if ( _rc | `hashusr' ) {
                 cap confirm file `"`hashlib'"'
                 if ( _rc ) {
-                    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-                    local url `url'/master/spookyhash.dll
+                    local url `github'/build/spookyhash.dll
                     di as err `"'`hashlib'' not found."'
                     di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
                     exit _rc
@@ -144,19 +155,40 @@ program gtools
             }
         }
         else local hashlib spookyhash.dll
-        exit 0
+        if ( `"`showcase'`examples'`test'"' == `""' ) {
+            exit 0
+        }
     }
     else if ( `hashusr' | ("`dll'" == "dll") ) {
         di as txt "-gtools, hashlib()- and -gtools, dll- only on Windows."
-        exit 0
+        if ( `"`showcase'`examples'`test'"' == `""' ) {
+            exit 0
+        }
     }
 
     if ( "`showcase'`examples'" != "" ) {
         gtools_showcase
-        exit 0
+        if ( "`test'" == "" ) {
+            exit 0
+        }
     }
 
-    display "Nothing to do. Specify: licenses, dependencies, dll (Windows), hasblib (Windows), upgrade, or examples."
+    if ( "`test'" != "" ) {
+        disp as txt "{bf:WARNING:} Unit tests from branch `branch' take 1-3 hours!"
+        disp as txt "Are you sure you want to run them? (yes/no)", _request(GTOOLS_TESTS)
+        if inlist(`"${GTOOLS_TESTS}"', "y", "yes") {
+            global GTOOLS_TESTS
+            cap noi do `github'/build/gtools_tests.do
+            exit _rc
+        }
+        else exit {
+            global GTOOLS_TESTS
+            0
+        }
+    }
+
+    display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"
+    which gtools
 end
 
 capture program drop gtools_licenses

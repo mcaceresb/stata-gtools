@@ -101,6 +101,27 @@ program checks_gegen
     gegen z = count(x) if x == 8, by(x) replace
     assert z == 1 | mi(z)
 
+    gegen z = count(z) if x == 8, by(z) replace
+    assert z[8] == 1
+    assert mi(z) | _n == 8
+    gegen z = group(z) in 8 / 9, replace missing
+    assert z == (x - 7) | mi(z)
+    gegen z = tag(z) in 7 / 10, replace missing
+    assert z[7] == 1
+    assert z[8] == 1
+    assert z[9] == 1
+    assert (z == 0) | z == 1
+    gegen z = sum(z) in 2 / 9, replace
+    assert z == 3 | inlist(_n, 1, 10)
+    gegen z = sum(x* z*) in 2 / 9, replace
+    assert z == `=4 * (2 + 9) + 8 * 3' | inlist(_n, 1, 10)
+    gegen z = sum(x* z*) if 0, replace
+    assert z == .
+    gegen z = sum(x* z*) if 1, replace
+    assert z != .
+    cap gegen z = sum(x* z*) if 1
+    assert _rc == 110
+
     clear
     set obs 10
     gen x = 1

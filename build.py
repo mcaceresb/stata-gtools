@@ -137,11 +137,11 @@ gtools_ssc = [
 gtools_zip = [
     "changelog.md",
     "gtools.pkg",
-    "stata.toc"
+    "stata.toc",
 ] + gtools_ssc
 
 gtools_build = gtools_zip + [
-    "tests.do"
+    "gtools_tests.do"
 ]
 
 # ---------------------------------------------------------------------
@@ -380,7 +380,7 @@ if args["replace"]:
             f.write(linesep)
             f.write("cap net uninstall gtools")
             f.write(linesep)
-            f.write("net install gtools, from($builddir)")
+            f.write("net install gtools, from($builddir) replace")
             f.write(linesep)
 
         chdir(statadir)

@@ -1,4 +1,4 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -23,7 +23,7 @@
 
 capture program drop gegen
 program define gegen, byable(onecall) rclass
-    version 13
+    version 13.1
 
     local 00 `0'
     qui syntax anything(equalok) [if] [in] [aw fw iw pw], [by(str) *]
@@ -287,20 +287,41 @@ program define gegen, byable(onecall) rclass
         tempvar dummy
         local rename rename `dummy' `name'
         local addvar qui mata: st_addvar("`type'", "`dummy'")
+        local noobs  ""
         local retype = `retype' & 1
     }
     else {
+
+        * NOTE: Addvar should be "" with replace; the problem was that
+        * the internals did not empty the variable before writing to
+        * it. With if/in conditions, this caused problems because the
+        * variable was not set to missing outside the range, as it
+        * should.
+        *
+        * As a quickfix I thought I could just empty it before calling
+        * internals. However, this causesd two issues: The variable
+        * would be missing on error, and if the target is also a source,
+        * the source would be all misssing when read by the plugin!
+        *
+        * The easiest fix was to require the target to not be in the
+        * sources, but there was an easier fix! I already empty the
+        * targets fot gcollapse, so I simply set that boolean to true
+        * (init_targ) when gegen was called with replace! This impacts
+        * the check in lines 489-492.
+
         cap confirm new variable `name'
         if ( _rc ) {
             local dummy `name'
             local rename ""
-            local addvar qui replace `dummy' = .
+            local addvar ""
+            local noobs qui replace `dummy' = .
             local retype = `retype' & 0
         }
         else {
             tempvar dummy
             local rename rename `dummy' `name'
             local addvar qui mata: st_addvar("`type'", "`dummy'")
+            local noobs  ""
             local retype = `retype' & 1
         }
     }
@@ -465,6 +486,13 @@ program define gegen, byable(onecall) rclass
                 global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
                 exit _rc
             }
+
+            * See notes in lines 294-310
+            * if ( "`:list sources & dummy'" != "" ) { 
+            *     if ( "`replace'" != "" ) local extra " even with -replace-"
+            *     di as error "Variable `dummy' canot be a source and a target`extra'"
+            *     exit 198
+            * }
         }
     }
     else if ( `rc' == 0 ) {
@@ -578,6 +606,7 @@ program define gegen, byable(onecall) rclass
     }
     else if ( `rc' == 17001 ) {
         if ( "${GTOOLS_DUPS}" == "" ) {
+            `noobs'
             `rename'
             exit 0
         }

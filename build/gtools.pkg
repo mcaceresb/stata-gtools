@@ -1,11 +1,14 @@
-v 1.0.0
+v 1.0.1
 d
-d 'GTOOLS': Faster group operations using C plugins
+d 'GTOOLS': Faster implementation of common Stata commands optimized for large datasets
 d
-d This package provides a fast C-based implementations of Stata commands,
-d such as collapse, pctile, xtile, contract, egen, isid, levelsof, top
-d levelsof, unique/distinct, duplicates via gcollapse, gegen, and so on.
-d This package was inspired d by Sergio Correia's ftools.
+d Faster Stata for big data. Gtools provides a hash-based implementation
+d of common Stata commands using C plugins for a massive speed
+d improvement. Gtools implements gcollapse, gquantiles (pctile, xtile,
+d and _pctile), gcontract, gegen, gisid, glevelsof, gunique, gdistinct,
+d gduplicates, and gtop. Syntax is largely analogous to their native
+d counterparts (see help gtools for details). This package was inspired
+d by Sergio Correia's ftools.
 d
 d KW: plugin
 d KW: gtools
@@ -42,7 +45,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20180721
+d Distribution-Date: 20180723
 d
 f _gtools_internal.ado
 f gcollapse.ado

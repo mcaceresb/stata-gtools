@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sun Jul 22 11:39:18 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 1.0.0
+* Version: 1.0.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -4175,6 +4175,27 @@ program checks_gegen
     gegen z = count(x) if x == 8, by(x) replace
     assert z == 1 | mi(z)
 
+    gegen z = count(z) if x == 8, by(z) replace
+    assert z[8] == 1
+    assert mi(z) | _n == 8
+    gegen z = group(z) in 8 / 9, replace missing
+    assert z == (x - 7) | mi(z)
+    gegen z = tag(z) in 7 / 10, replace missing
+    assert z[7] == 1
+    assert z[8] == 1
+    assert z[9] == 1
+    assert (z == 0) | z == 1
+    gegen z = sum(z) in 2 / 9, replace
+    assert z == 3 | inlist(_n, 1, 10)
+    gegen z = sum(x* z*) in 2 / 9, replace
+    assert z == `=4 * (2 + 9) + 8 * 3' | inlist(_n, 1, 10)
+    gegen z = sum(x* z*) if 0, replace
+    assert z == .
+    gegen z = sum(x* z*) if 1, replace
+    assert z != .
+    cap gegen z = sum(x* z*) if 1
+    assert _rc == 110
+
     clear
     set obs 10
     gen x = 1
@@ -4574,6 +4595,33 @@ program checks_unique
     replace x = .
     cap gunique x if 0
     assert _rc == 0
+
+    clear
+    set obs 10
+    gen x = mod(_n, 3)
+    gen y = mod(_n, 4)
+    gunique x
+    gunique y
+    gunique y, by(x)
+    cap gunique y, by(x)
+    assert _rc == 110
+    gen `:type _Unique' _Unique2 = _Unique
+    gunique y, by(x) replace
+    assert _Unique == _Unique2
+    replace y = 0
+    gunique y, by(x) replace
+    assert _Unique == 1
+
+    drop _U*
+    gunique y, by(x) gen(nuniq)
+    cap gunique y, by(x) gen(nuniq)
+    assert _rc == 110
+    gen `:type nuniq' nuniq2 = nuniq
+    gunique y, by(x) gen(nuniq) replace
+    assert nuniq == nuniq2
+    replace y = 0
+    gunique y, by(x) gen(nuniq) replace
+    assert nuniq == 1
 end
 
 capture program drop checks_inner_unique

@@ -3,7 +3,7 @@
 
 capture program drop gduplicates
 program gduplicates, rclass
-    version 13
+    version 13.1
 
     local 00 `0'
     gettoken cmd 0 : 0, parse(" ,")

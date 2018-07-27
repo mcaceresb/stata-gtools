@@ -1,9 +1,9 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
 program gcollapse, rclass
-    version 13
+    version 13.1
     global GTOOLS_USER_VARABBREV `c(varabbrev)'
     local 00 `0'
 
@@ -626,6 +626,11 @@ program gcollapse, rclass
         syntax [anything(equalok)] [if] [in] , [ by(passthru) cw fast *]
         collapse `anything' `if' `in', `by' `cw' `fast'
         exit 0
+    }
+    else if ( _rc == 17001 ) {
+        local rc = _rc
+        CleanExit
+        error 2000
     }
     else if ( _rc ) {
         local rc = _rc

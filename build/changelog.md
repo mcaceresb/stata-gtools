@@ -25,7 +25,7 @@ passed. Final TODOs:
     [X] Windows with Stata 13
     [X] Windows with Stata 15
     [X] Linux with Stata 15
-    [ ] OSX with Stata 14
+    [X] OSX with Stata 14
 [X] Read the documentation (Stata)
 [X] Read the documentation (online)
 

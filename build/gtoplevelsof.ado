@@ -219,9 +219,9 @@ program gtoplevelsof, rclass
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
     if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
 
-    if ( `c(MP)' & (`r(J)' < 20) & ("`warning'" != "nowarning") & (`:list sizeof varlist' == 1) ) {
-        disp as txt "(Note: {cmd:tab} can be faster than {cmd:gtop} with few groups.)"
-    }
+    * if ( `c(MP)' & (`r(J)' < 11) & ("`warning'" != "nowarning") & (`:list sizeof varlist' == 1) ) {
+    *     disp as txt "(Note: {cmd:tab} can be faster than {cmd:gtop} with few groups.)"
+    * }
 
     return local levels    `"`r(levels)'"'
     return scalar N         = `r(N)'
@@ -414,8 +414,8 @@ void function __gtools_parse_topmat(real scalar kvars,
 
         if ( weights ) {
             for (i = 1; i <= rows(gmat); i++) {
-                gparse[i, 1] = strtrim(sprintf("%9.3gc", gmat[i, 2]))
-                gparse[i, 2] = strtrim(sprintf("%9.3gc", gmat[i, 3]))
+                gparse[i, 1] = strtrim(sprintf("%21.3gc", gmat[i, 2]))
+                gparse[i, 2] = strtrim(sprintf("%21.3gc", gmat[i, 3]))
             }
         }
         else {

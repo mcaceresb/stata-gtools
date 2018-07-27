@@ -158,12 +158,6 @@ Installation
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 ```stata
-ssc install gtools
-* ssc uninstall gtools
-```
-
-To download the latest version
-```stata
 local github "https://raw.githubusercontent.com"
 net install gtools, from(`github'/mcaceresb/stata-gtools/master/build/)
 * adoupdate, update

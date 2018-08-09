@@ -181,9 +181,9 @@ program gtools
             cap noi do `github'/build/gtools_tests.do
             exit _rc
         }
-        else exit {
+        else {
             global GTOOLS_TESTS
-            0
+            exit 0
         }
     }
 

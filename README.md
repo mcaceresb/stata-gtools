@@ -166,10 +166,18 @@ Installation
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 ```stata
+ssc install gtools
+```
+
+To upgrade to the latest github version, type
+```stata
+gtools, upgrade branch(develop)
+```
+
+You can also install the github version directly
+```stata
 local github "https://raw.githubusercontent.com"
 net install gtools, from(`github'/mcaceresb/stata-gtools/develop/build/)
-* adoupdate, update
-* ado uninstall gtools
 ```
 
 ### Examples
@@ -413,11 +421,8 @@ pagefile/swap space directly.
 TODO
 ----
 
-`gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until after it has been submitted to SSC.
-
 These are options/features I would like to support, but I don't have an
-ETA for them (and they won't make it to the 1.0 release).
+ETA for them:
 
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.

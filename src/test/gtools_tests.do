@@ -505,4 +505,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, dependencies basic_checks comparisons switches bench_test
+if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
+main, `0'

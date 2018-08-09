@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-1.0.2 (2018-08-08)
+
+### Enhancements
+
+* Specify that you can install via `ssc` and upgrade via `gtools, upgrade`
+* Can selectively specify tests in `gtools_tests.do`
+
+### Bug fixes
+
+* Fixed minor bug in `gtools.ado` (`else exit {` is now `else {`)
+
 ## gtools-1.0.1 (2018-07-23)
 
 ### Bug fixes

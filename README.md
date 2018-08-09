@@ -1,6 +1,6 @@
 <img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
-[Overview](#faster-stata-for-group-operations)
+[Overview](#faster-stata-for-common-operations)
 | [Installation](#installation)
 | [Remarks](#remarks)
 | [FAQs <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://gtools.readthedocs.io/en/latest/faqs/index.html)
@@ -13,12 +13,12 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 1.0.1 23Jul2018`
+`version 1.0.2 08Aug2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
-Faster Stata for Group Operations
----------------------------------
+Faster Stata for Common Operations
+----------------------------------
 
 This package's aim is to provide a fast implementation of various Stata
 commands using hashes and C plugins.  If you plan to use the plugin

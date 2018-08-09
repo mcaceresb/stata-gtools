@@ -5,7 +5,7 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 1.0.1 23Jul2018`
+`version 1.0.2 08Aug2018`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
@@ -158,10 +158,18 @@ Installation
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
 ```stata
+ssc install gtools
+```
+
+To upgrade to the latest github version, type
+```stata
+gtools, upgrade
+```
+
+You can also install the github version directly
+```stata
 local github "https://raw.githubusercontent.com"
 net install gtools, from(`github'/mcaceresb/stata-gtools/master/build/)
-* adoupdate, update
-* ado uninstall gtools
 ```
 
 ### Examples
@@ -405,11 +413,8 @@ pagefile/swap space directly.
 TODO
 ----
 
-`gtools` is feature-frozen. Other than bug fixes, no new features will
-be added until after it has been submitted to SSC.
-
 These are options/features I would like to support, but I don't have an
-ETA for them (and they won't make it to the 1.0 release).
+ETA for them:
 
 - Add support for binary `strL` variables.
 - Improve debugging info.

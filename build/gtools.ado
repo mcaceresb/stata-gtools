@@ -1,4 +1,4 @@
-*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.2 08Aug2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -181,9 +181,9 @@ program gtools
             cap noi do `github'/build/gtools_tests.do
             exit _rc
         }
-        else exit {
+        else {
             global GTOOLS_TESTS
-            0
+            exit 0
         }
     }
 

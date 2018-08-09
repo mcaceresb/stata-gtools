@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Jul 22 11:39:18 EDT 2018
+* Updated: Wed Aug  8 21:34:14 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 1.0.1
+* Version: 1.0.2
 * Manual:  help gtools
 
 * Stata start-up options
@@ -505,4 +505,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-main, dependencies basic_checks comparisons switches bench_test
+if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
+main, `0'

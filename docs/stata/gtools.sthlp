@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.1 23Jul2018}{...}
+{* *! version 1.0.2 08Aug2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -96,9 +96,9 @@ traditional stata commands. The following are available as part of gtools
 {title:Description}
 
 {pstd}
-{opt gtools} is a Stata package that provides a fast implementation of common
-group commands like collapse, egen, isid, levelsof, contract, distinct, and
-so on using C plugins for a massive speed improvement.
+{opt gtools} is a Stata package that provides a fast implementation of
+common commands like collapse, egen, xtile, isid, levelsof, contract,
+distinct, and so on using C plugins for a massive speed improvement.
 
 {pstd}
 This program helps the user manage their gtools installation. While

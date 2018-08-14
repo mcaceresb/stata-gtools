@@ -701,6 +701,82 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( debug ) {
         printf("debug 5: Stored all internal variables in st_info\n");
+        sf_printf_debug("\tin1:            "GT_size_cfmt"\n",  in1           );
+        sf_printf_debug("\tin2:            "GT_size_cfmt"\n",  in2           );
+        sf_printf_debug("\tN:              "GT_size_cfmt"\n",  N             );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\tdebug:          "GT_size_cfmt"\n",  debug         );
+        sf_printf_debug("\tverbose:        "GT_size_cfmt"\n",  verbose       );
+        sf_printf_debug("\tbenchmark:      "GT_size_cfmt"\n",  benchmark     );
+        sf_printf_debug("\tcountonly:      "GT_size_cfmt"\n",  countonly     );
+        sf_printf_debug("\tseecount:       "GT_size_cfmt"\n",  seecount      );
+        sf_printf_debug("\tkeepmiss:       "GT_size_cfmt"\n",  keepmiss      );
+        sf_printf_debug("\tmissing:        "GT_size_cfmt"\n",  missing       );
+        sf_printf_debug("\tnomiss:         "GT_size_cfmt"\n",  nomiss        );
+        sf_printf_debug("\tunsorted:       "GT_size_cfmt"\n",  unsorted      );
+        sf_printf_debug("\tencode:         "GT_size_cfmt"\n",  encode        );
+        sf_printf_debug("\tcleanstr:       "GT_size_cfmt"\n",  cleanstr      );
+        sf_printf_debug("\tnumfmt_max:     "GT_size_cfmt"\n",  numfmt_max    );
+        sf_printf_debug("\tnumfmt_len:     "GT_size_cfmt"\n",  numfmt_len    );
+        sf_printf_debug("\tcolsep_len:     "GT_size_cfmt"\n",  colsep_len    );
+        sf_printf_debug("\tsep_len:        "GT_size_cfmt"\n",  sep_len       );
+        sf_printf_debug("\tinit_targ:      "GT_size_cfmt"\n",  init_targ     );
+        sf_printf_debug("\tinvertix:       "GT_size_cfmt"\n",  invertix      );
+        sf_printf_debug("\tskipcheck:      "GT_size_cfmt"\n",  skipcheck     );
+        sf_printf_debug("\tmlast:          "GT_size_cfmt"\n",  mlast         );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\ttop_miss:       "GT_size_cfmt"\n",  top_miss      );
+        sf_printf_debug("\ttop_groupmiss:  "GT_size_cfmt"\n",  top_groupmiss );
+        sf_printf_debug("\ttop_other:      "GT_size_cfmt"\n",  top_other     );
+        sf_printf_debug("\ttop_lmiss:      "GT_size_cfmt"\n",  top_lmiss     );
+        sf_printf_debug("\ttop_lother:     "GT_size_cfmt"\n",  top_lother    );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\tlevels_return:  "GT_size_cfmt"\n",  levels_return );
+        sf_printf_debug("\tlevels_gen:     "GT_size_cfmt"\n",  levels_gen    );
+        sf_printf_debug("\tlevels_replace: "GT_size_cfmt"\n",  levels_replace);
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\txtile_xvars:    "GT_size_cfmt"\n",  xtile_xvars   );
+        sf_printf_debug("\txtile_nq:       "GT_size_cfmt"\n",  xtile_nq      );
+        sf_printf_debug("\txtile_nq2:      "GT_size_cfmt"\n",  xtile_nq2     );
+        sf_printf_debug("\txtile_cutvars:  "GT_size_cfmt"\n",  xtile_cutvars );
+        sf_printf_debug("\txtile_ncuts:    "GT_size_cfmt"\n",  xtile_ncuts   );
+        sf_printf_debug("\txtile_qvars:    "GT_size_cfmt"\n",  xtile_qvars   );
+        sf_printf_debug("\txtile_gen:      "GT_size_cfmt"\n",  xtile_gen     );
+        sf_printf_debug("\txtile_pctile:   "GT_size_cfmt"\n",  xtile_pctile  );
+        sf_printf_debug("\txtile_genpct:   "GT_size_cfmt"\n",  xtile_genpct  );
+        sf_printf_debug("\txtile_pctpct:   "GT_size_cfmt"\n",  xtile_pctpct  );
+        sf_printf_debug("\txtile_altdef:   "GT_size_cfmt"\n",  xtile_altdef  );
+        sf_printf_debug("\txtile_missing:  "GT_size_cfmt"\n",  xtile_missing );
+        sf_printf_debug("\txtile_strict:   "GT_size_cfmt"\n",  xtile_strict  );
+        sf_printf_debug("\txtile_minmax:   "GT_size_cfmt"\n",  xtile_minmax  );
+        sf_printf_debug("\txtile_method:   "GT_size_cfmt"\n",  xtile_method  );
+        sf_printf_debug("\txtile_bincount: "GT_size_cfmt"\n",  xtile_bincount);
+        sf_printf_debug("\txtile__pctile:  "GT_size_cfmt"\n",  xtile__pctile );
+        sf_printf_debug("\txtile_dedup:    "GT_size_cfmt"\n",  xtile_dedup   );
+        sf_printf_debug("\txtile_cutifin:  "GT_size_cfmt"\n",  xtile_cutifin );
+        sf_printf_debug("\txtile_cutby:    "GT_size_cfmt"\n",  xtile_cutby   );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\thash_method:    "GT_size_cfmt"\n",  hash_method   );
+        sf_printf_debug("\twcode:          "GT_size_cfmt"\n",  wcode         );
+        sf_printf_debug("\twpos:           "GT_size_cfmt"\n",  wpos          );
+        sf_printf_debug("\twselective:     "GT_size_cfmt"\n",  wselective    );
+        sf_printf_debug("\tnunique:        "GT_size_cfmt"\n",  nunique       );
+        sf_printf_debug("\tany_if:         "GT_size_cfmt"\n",  any_if        );
+        sf_printf_debug("\tcountmiss:      "GT_size_cfmt"\n",  countmiss     );
+        sf_printf_debug("\treplace:        "GT_size_cfmt"\n",  replace       );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\tgroup_data:     "GT_size_cfmt"\n",  group_data    );
+        sf_printf_debug("\tgroup_fill:     "GT_size_cfmt"\n",  group_fill    );
+        sf_printf_debug("\n");                                                
+        sf_printf_debug("\tkvars_stats:    "GT_size_cfmt"\n",  kvars_stats   );
+        sf_printf_debug("\tkvars_targets:  "GT_size_cfmt"\n",  kvars_targets );
+        sf_printf_debug("\tkvars_sources:  "GT_size_cfmt"\n",  kvars_sources );
+        sf_printf_debug("\tkvars_group:    "GT_size_cfmt"\n",  kvars_group   );
+        sf_printf_debug("\tkvars_by:       "GT_size_cfmt"\n",  kvars_by      );
+        sf_printf_debug("\tkvars_by_int:   "GT_size_cfmt"\n",  kvars_by_int  );
+        sf_printf_debug("\tkvars_by_num:   "GT_size_cfmt"\n",  kvars_by_num  );
+        sf_printf_debug("\tkvars_by_str:   "GT_size_cfmt"\n",  kvars_by_str  );
+        sf_printf_debug("\tkvars_by_strL:  "GT_size_cfmt"\n",  kvars_by_strL );
     }
 
     st_info->free = 1;
@@ -892,7 +968,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("index")
 
     if ( st_info->debug ) {
-        printf("debug 7: No special processing for singleton group; allocated inex\n");
+        printf("debug 7: No special processing for singleton group; allocated index\n");
     }
 
     /*********************************************************************

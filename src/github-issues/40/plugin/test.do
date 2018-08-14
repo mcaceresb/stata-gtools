@@ -9,6 +9,7 @@ plugin call test2
 syntax, [foo(cilevel)]
 disp "`foo'"
 
+set obs 1
 global GTOOLS_CALLER ghash
 _gtools_internal
 syntax, [foo(cilevel)]

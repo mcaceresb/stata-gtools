@@ -96,11 +96,15 @@ cd -
 To finish, compile the plugin
 
 ```bash
+make clean SPI=2.0 SPIVER=v2
+make clean SPI=2.0 SPIVER=v2
+SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+
 # Stata 13 and earlier
-make clean SPI=2.0 SPIVER=v2 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+make all SPI=2.0 SPIVER=v2 SPOOKYPATH=${SPOOKYPATH}
 
 # Stata 14 and later
-make clean SPI=3.0 SPIVER=v3 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+make all SPI=3.0 SPIVER=v3 SPOOKYPATH=${SPOOKYPATH}
 ```
 
 ### Unit tests

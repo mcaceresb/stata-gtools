@@ -1,5 +1,5 @@
-*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Encode varlist using Jenkin's 128-bit spookyhash via C plugins
+*! version 1.0.3 18Aug2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! gtools function internals
 
 * rc 17000
 * rc 17001 - no observations
@@ -8,6 +8,7 @@
 * rc 17004 - strL variables could not be compressed
 * rc 17005 - strL contains binary data
 * rc 17006 - strL variables uknown error
+* rc 17800 - More than 2^31-1 obs
 * rc 17459
 * rc 17900
 * rc 17999
@@ -45,6 +46,17 @@ program _gtools_internal, rclass
         di as err "no observations"
         clean_all 17001
         exit 17001
+    }
+
+    if ( `=_N > 2^31-1' ) {
+        local nmax = trim("`: disp %21.0gc 2^31-1'")
+        di as err `"too many observations"'
+        di as err `""'
+        di as err `"A Stata bug prevents gtools from working with more than `nmax' observations."'
+        di as err `"See {browse "https://www.statalist.org/forums/forum/general-stata-discussion/general/1457637"}"'
+        di as err `"and {browse "https://github.com/mcaceresb/stata-gtools/issues/43"}"'
+        clean_all 17800
+        exit 17800
     }
 
     local 00 `0'

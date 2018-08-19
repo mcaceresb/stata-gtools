@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.0.3 (2018-08-18)
+
+### Bug fixes
+
+* Gtools exits with error if `_N > 2^31-1` and points the user to the
+  pertinent bug report.
+
 ## gtools-1.0.2 (2018-08-08)
 
 ### Enhancements

@@ -20,10 +20,15 @@ program gtools
         showcase       ///
         examples       ///
         test           ///
+        TESTs(str)     ///
         branch(str)    ///
     ]
 
-    if ( "`branch'" == "" ) local branch master
+    if ( `"`branch'"' == "" ) local branch master
+    if !inlist(`"`branch'"', "develop", "master", "osx") {
+        disp as err "unknown branch `branch'; available: develop master osx"
+        exit 198
+    }
 
     local cwd `c(pwd)'
     local github https://raw.githubusercontent.com/mcaceresb/stata-gtools/`branch'
@@ -41,7 +46,7 @@ program gtools
             gtools_licenses
         }
 
-        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'"' == `""' ) {
+        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
@@ -83,7 +88,7 @@ program gtools
         di as txt "Success!"
         cd `"`cwd'"'
 
-        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'"' == `""' ) {
+        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
@@ -92,7 +97,7 @@ program gtools
         cap net uninstall gtools
         net install gtools, from(`github'/build) replace
         * gtools, dependencies replace
-        if ( `"`hashlib'`dll'`showcase'`examples'`test'"' == `""' ) {
+        if ( `"`hashlib'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
@@ -155,30 +160,55 @@ program gtools
             }
         }
         else local hashlib spookyhash.dll
-        if ( `"`showcase'`examples'`test'"' == `""' ) {
+        if ( `"`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
     else if ( `hashusr' | ("`dll'" == "dll") ) {
         di as txt "-gtools, hashlib()- and -gtools, dll- only on Windows."
-        if ( `"`showcase'`examples'`test'"' == `""' ) {
+        if ( `"`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
 
     if ( "`showcase'`examples'" != "" ) {
         gtools_showcase
-        if ( "`test'" == "" ) {
+        if ( "`test'`tests'" == "" ) {
             exit 0
         }
     }
 
-    if ( "`test'" != "" ) {
-        disp as txt "{bf:WARNING:} Unit tests from branch `branch' take 1-3 hours!"
+    if ( "`test'`tests'" != "" ) {
+        local t_hours comparisons
+        local t_days  bench_full
+        local t_known dependencies basic_checks comparisons switches bench_test bench_full
+        local t_extra: list tests - t_known
+
+        if ( `:list sizeof t_extra' ) {
+            disp `"(uknown tests detected: `t_extra'; will try to run anyway)"'
+        }
+
+        if ( "`tests'" == "" ) {
+            disp as txt "{bf:WARNING:} Default unit tests from branch `branch' can take several"
+            disp as txt "hours. See {help gtools:help gtools} for details on unit testing."
+        }
+        else if ( `:list t_hours in tests' ) {
+            disp as txt "{bf:WARNING:} Unit tests"
+            disp as txt _n(1) "    `tests'" _n(1)
+            disp as txt "from branch master can take several hours. See {help gtools:help gtools} for details."
+        }
+        else if ( `:list t_days in tests' ) {
+            disp as txt "{bf:WARNING:} Unit tests"
+            disp as txt _n(1) "    `tests'" _n(1)
+            disp as txt "from branch master can take more than a day. See {help gtools:help gtools} for details."
+        }
+        else {
+            disp as txt "{bf:Note:} Unit tests '`tests'' from branch `branch'."
+        }
         disp as txt "Are you sure you want to run them? (yes/no)", _request(GTOOLS_TESTS)
         if inlist(`"${GTOOLS_TESTS}"', "y", "yes") {
             global GTOOLS_TESTS
-            cap noi do `github'/build/gtools_tests.do
+            cap noi do `github'/build/gtools_tests.do `tests'
             exit _rc
         }
         else {

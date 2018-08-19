@@ -43,44 +43,51 @@ else:
     minor = int(args['minor'])
     patch = int(args['patch'])
 
-main = [path.join("src", "gtools.pkg"),
-        path.join("src", "stata.toc"),
-        path.join("src", "ado", "_gtools_internal.ado"),
-        path.join("src", "ado", "gcollapse.ado"),
-        path.join("src", "ado", "gcontract.ado"),
-        path.join("src", "ado", "gegen.ado"),
-        path.join("src", "ado", "gunique.ado"),
-        path.join("src", "ado", "gdistinct.ado"),
-        path.join("src", "ado", "glevelsof.ado"),
-        path.join("src", "ado", "gtop.ado"),
-        path.join("src", "ado", "gtoplevelsof.ado"),
-        path.join("src", "ado", "gisid.ado"),
-        path.join("src", "ado", "gduplicates.ado"),
-        path.join("src", "ado", "gquantiles.ado"),
-        path.join("src", "ado", "fasterxtile.ado"),
-        path.join("src", "ado", "hashsort.ado"),
-        path.join("src", "ado", "gtools.ado"),
-        path.join("docs", "stata", "gcollapse.sthlp"),
-        path.join("docs", "stata", "gcontract.sthlp"),
-        path.join("docs", "stata", "gegen.sthlp"),
-        path.join("docs", "stata", "gunique.sthlp"),
-        path.join("docs", "stata", "gdistinct.sthlp"),
-        path.join("docs", "stata", "glevelsof.sthlp"),
-        path.join("docs", "stata", "gtoplevelsof.sthlp"),
-        path.join("docs", "stata", "gisid.sthlp"),
-        path.join("docs", "stata", "gduplicates.sthlp"),
-        path.join("docs", "stata", "gquantiles.sthlp"),
-        path.join("docs", "stata", "hashsort.sthlp"),
-        path.join("docs", "stata", "gtools.sthlp"),
-        path.join(".appveyor.yml"),
-        path.join("README.md"),
-        path.join("docs", "index.md")]
+base = [
+    path.join("src", "gtools.pkg"),
+    path.join("src", "stata.toc"),
+    path.join("src", "ado", "_gtools_internal.ado"),
+    path.join("src", "ado", "gtools.ado"),
+    path.join("docs", "stata", "gtools.sthlp"),
+    path.join(".appveyor.yml"),
+    path.join("README.md"),
+    path.join("docs", "index.md")]
+main = [
+    path.join("src", "ado", "gcollapse.ado"),
+    path.join("src", "ado", "gcontract.ado"),
+    path.join("src", "ado", "gegen.ado"),
+    path.join("src", "ado", "gunique.ado"),
+    path.join("src", "ado", "gdistinct.ado"),
+    path.join("src", "ado", "glevelsof.ado"),
+    path.join("src", "ado", "gtop.ado"),
+    path.join("src", "ado", "gtoplevelsof.ado"),
+    path.join("src", "ado", "gisid.ado"),
+    path.join("src", "ado", "gduplicates.ado"),
+    path.join("src", "ado", "gquantiles.ado"),
+    path.join("src", "ado", "fasterxtile.ado"),
+    path.join("src", "ado", "hashsort.ado"),
+    path.join("docs", "stata", "gcollapse.sthlp"),
+    path.join("docs", "stata", "gcontract.sthlp"),
+    path.join("docs", "stata", "gegen.sthlp"),
+    path.join("docs", "stata", "gunique.sthlp"),
+    path.join("docs", "stata", "gdistinct.sthlp"),
+    path.join("docs", "stata", "glevelsof.sthlp"),
+    path.join("docs", "stata", "gtoplevelsof.sthlp"),
+    path.join("docs", "stata", "gisid.sthlp"),
+    path.join("docs", "stata", "gduplicates.sthlp"),
+    path.join("docs", "stata", "gquantiles.sthlp"),
+    path.join("docs", "stata", "hashsort.sthlp")]
 test = [path.join("src", "test", "gtools_tests.do")]
 plug = [path.join("src", "plugin", "gtools.c")]
 
 callok = False
+todo   = base
+if "base" in args['set']:
+    callok = True
+
 todo   = main
 if "main" in args['set']:
+    todo += main
     callok = True
 
 if "test" in args['set']:
@@ -91,7 +98,7 @@ if "plug" in args['set']:
     callok = True
 
 if "all" in args['set']:
-    todo = main + test + plug
+    todo = base + main + test + plug
     callok = True
 
 if not callok:

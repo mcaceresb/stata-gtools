@@ -48,6 +48,16 @@ Options
 
 - `examples` (alias `showcase`) Print examples of how to use available gtools functions.
 
-- `test` Runs the gtools unit tests (1-3h) from the specified github branch (default is master).
+- `test[(str)]` Run unit tests, optionally specifying which tests to run.  Tests
+    available are: `dependencies`, `basic_checks`, `bench_test`,
+    `comparisons`, `switches`, `bench_full`.  A good set of "small" tests
+    which take 10-20 minutes are `dependencies basic_checks bench_test`.  By
+    default, however, the first 5 tests are run, which take 1-3h. The bulk
+    of that time is from `comparisons`, which compares the results from
+    gtools to that of various native counterparts under several different
+    conditions. `bench_full` is not run by default because this benchmarks
+    gtools against stata using modestly-sized data (millions).  Some stata
+    commands are very slow under some of the benchmarks, meaning this can
+    take well over a day.
 
 - `branch(str)` Github branch to use (default is master).

@@ -402,7 +402,14 @@ There are two key insights to the massive speedups of Gtools:
   log(J)) time (with J groups). Hence the speed improvements are largest
   when N / J is largest.
 
-2. Compiled C code is much faster than Stata commands.
+2. Compiled C code is much faster than Stata commands. While it is true
+   that many of Stata's underpinnings are compiled code, several
+   operations are written in `ado` files without much thought given
+   to optimization. If you're working with tens of thousands of
+   observations you might barely notice (and the difference between
+   5 seconds and 0.5 seconds might not be particularly important).
+   However, with tens of millions or hundreds of millions of rows, the
+   difference between half a day and an hour can matter quite a lot.
 
 __*Stata Sorting*__
 

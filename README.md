@@ -13,9 +13,12 @@ implementation of collapse, pctile, xtile, contract, egen, isid,
 levelsof, duplicates, and unique/distinct using C plugins for a massive
 speed improvement.
 
-`version 1.0.3 18Aug2018`
-Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=develop)](https://travis-ci.org/mcaceresb/stata-gtools),
-Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/develop?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+
+![Dev Version](https://img.shields.io/badge/latest-v1.0.3-blue.svg?longCache=true&style=flat-square)
+![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+<!-- `version 1.0.3 18Aug2018` -->
+Builds: Linux, OSX [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square)](https://travis-ci.org/mcaceresb/stata-gtools),
+Windows (Cygwin) [![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Common Operations
 ----------------------------------

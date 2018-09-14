@@ -7,8 +7,9 @@
 * rc 17003 - strL variables and version >= 14
 * rc 17004 - strL variables could not be compressed
 * rc 17005 - strL contains binary data
-* rc 17006 - strL variables uknown error
+* rc 17006 - strL variables unknown error
 * rc 17800 - More than 2^31-1 obs
+* rc 17801 - gtools has not been compiled for a X-bit architecture
 * rc 17459
 * rc 17900
 * rc 17999
@@ -21,6 +22,12 @@ program _gtools_internal, rclass
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
+    }
+
+    if ( `c(bit)' != 64 ) {
+        di as err "(warning: gtools has not been tested on a `c(bit)'-bit architecture)"
+        * di as err "gtools has not been compiled on a `c(bit)'-bit architecture"
+        * exit 17801
     }
 
     local GTOOLS_CALLER $GTOOLS_CALLER

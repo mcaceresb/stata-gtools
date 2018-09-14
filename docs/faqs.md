@@ -38,9 +38,17 @@ planned for a future release but does not have an ETA.
 
 ### My computer has a 32-bit CPU
 
-This uses 128-bit hashes split into 2 64-bit parts. As far as I know, it
-will not work with a 32-bit processor. If you try to force it to run,
-you will see integer overflows and pretty bad errors.
+I have only compiled gtools for 64-bit CPUs. gtools uses 128-bit hashes
+split into 2 64-bit parts and the machines I have access to use 64-bit
+CPUs, so this seemed quite natural to me.
+
+However, my understanding is that it should be possible to compile
+gtools to support 64-bit math on a 32-bit processor. Unfortunately, I do
+not have access to 32-bit machines, and I will not post a plugin as part
+of the package without adequate testing.
+
+If you need to run gtools in a 32-bit machine consider trying to
+[compile the plugin](compiling) yourself on the machine in question.
 
 ### Why use platform-dependent plugins?
 
@@ -104,10 +112,10 @@ sort, each sorting 16 bits at a time; if the groups are not unique after
 sorting on the first 64 bits we sort on the full 128 bits.)
 
 Given `K` by variables, `by_1` to `by_K`, where `by_k` belongs the set `B_k`,
-the general problem is to devise a function `f` such that `f:  B_1 x ... x
-B_K -> N`, where `N` are the natural (whole) numbers. Given `B_k` can be
-integers, floats, and strings, the natural way of doing this is to use a
-hash: A function that takes an arbitrary sequence of data and outputs data of
+the general problem is to devise a function `f` such that `f:  B_1 x ... x B_K -> N`,
+where `N` are the natural (whole) numbers. Given `B_k` can be integers,
+floats, and strings, the natural way of doing this is to use a hash: A
+function that takes an arbitrary sequence of data and outputs data of
 fixed size.
 
 In particular I use the [Spooky Hash](http://burtleburtle.net/bob/hash/spooky.html)

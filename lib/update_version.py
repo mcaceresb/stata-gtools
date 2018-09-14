@@ -141,16 +141,17 @@ for fname in todo:
 
                 continue
 
-            v = search('(^v|[Vv]ersion).+(\d+\.?){3,3}', line)
+            v = search(r'((^|\b)v|[Vv]ersion).*?(?P<version>(\d+\.?){3,3})', line)
             s = search('Stata version', line)
             if v and not s:
                 try:
-                    res = findall('(\d+)(\.| |$)', line)
+                    rep = v.groupdict()['version']
+                    res = findall('(\d+)([^\d]|$)', rep)
                     new_major = int(res[0][0]) + major
                     new_minor = 0 if major else int(res[1][0]) + minor
                     new_patch = 0 if major or minor else int(res[2][0]) + patch
                     new = "{0}.{1}.{2}".format(new_major, new_minor, new_patch)
-                    oline = sub('(\d+\.?)+', new, line, 1)
+                    oline = line.replace(rep, new)
                     if search("\d+" + remonths + "\d\d+", line):
                         today_day   = datetime.strftime(datetime.now(), "%d")
                         today_month = datetime.strftime(datetime.now(), "%B")

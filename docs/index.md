@@ -1,9 +1,9 @@
 <img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
-Faster Stata for big data. This packages provides a hash-based
-implementation of collapse, pctile, xtile, contract, egen, isid,
-levelsof, duplicates, and unique/distinct using C plugins for a massive
-speed improvement.
+Faster Stata for big data. This packages uses C plugins and hashes
+to provide a massive speed improvements to common Stata commands,
+including: collapse, pctile, xtile, contract, egen, isid, levelsof,
+duplicates, and unique/distinct.
 
 ![Dev Version](https://img.shields.io/badge/beta-v1.0.3-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
@@ -25,9 +25,6 @@ extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
 caveats and details on the plugin (including some extra features!).
 
 __*Gtools commands with a Stata equivalent*__
-
-(_**NOTE:**_ `strL` variables only partially supported on Stata 14 and
-above; `gcollapse` and `gcontract` do not support `strL` variabes).
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
@@ -52,7 +49,7 @@ number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
 slow due to the way they are written; in that case gquantiles is hundreds
 or thousands of times faster.</small>
 
-__*Gtools extras*__
+__*Extra commands*__
 
 | Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                        |
 | ------------------- | ------------------ | ----------------------- | ---------------------------- |
@@ -74,6 +71,19 @@ has a plethora of features and that one is somewhat incidental. As such, the
 benchmark is not equivalent and `gtoplevelsof` does not attempt to implement
 the features of 'groups'</small>
 
+__*Extra features*__
+
+Several commands offer additional features on top of the massive
+speedup. See the [remarks](#remarks) section below for an overview; for
+details and examples, see each command's help page:
+
+- [gcollapse](usage/gcollapse#examples)
+- [gquantiles](usage/gquantiles#examples)
+- [gtoplevelsof](usage/gtoplevelsof#examples)
+- [gegen](usage/gegen#examples)
+- [glevelsof](usage/glevelsof#examples)
+- [gdistinct](usage/gdistinct#examples)
+
 In addition, several commands take gsort-style input, that is
 
 ```stata
@@ -89,50 +99,13 @@ Commands that take this type of input include:
 - glevelsof
 - gtop (gtoplevelsof)
 
-__*Hashing*__
-
-The key insight is that hashing the data and sorting a hash is a lot
-faster than sorting the data to then process it by group. Sorting a hash
-can be achieved in linear O(N) time, whereas the best general-purpose
-sorts take O(N log(N)) time. Sorting the groups would then be achievable
-in O(J log(J)) time (with J groups). Hence the speed improvements are
-largest when N / J is largest. Further, compiled C code is much faster
-than Stata commands.
-
-__*Sorting*__
-
-It should be noted that Stata's sorting mechanism is not inefficient as a
-general-purpose sort. It is just inefficient for processing data by group. We
-have implemented a hash-based sorting command, `hashsort`. While at times this
-is faster than Stata's `sort`, it can also often be slower:
-
-| Function  | Replaces | Speedup (IC / MP)    | Unsupported            | Extras               |
-| --------- | -------- | -------------------- | ---------------------- | -------------------- |
-| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |                        | Group (hash) sorting |
-|           | gsort    | 2 to 18 / 1 to 6     | `mfirst` (see `mlast`) | Sorts are stable     |
-
-The overhead involves copying the by variables, hashing, sorting the hash,
-sorting the groups, copying a sort index back to Stata, and having Stata do
-the final swaps. The plugin runs fast, but the copy overhead plus the Stata
-swaps often make the function be slower than Stata's native `sort`.
-
-The reason that the other functions are faster is because they don't deal with
-all that overhead.  By contrast, Stata's `gsort` is not efficient. To sort
-data, you need to make pair-wise comparisons. For real numbers, this is just
-`a > b`. However, a generic comparison function can be written as `compare(a, b) > 0`.
-This is true if a is greater than b and false otherwise. To invert
-the sort order, one need only use `compare(b, a) > 0`, which is what gtools
-does internally.
-
-However, Stata creates a variable that is the inverse of the sort variable.
-This is equivalent, but the overhead makes it slower than `hashsort`.
-
 __*Ftools*__
 
-The commands here are also faster than the commands provided by `ftools`;
-further, `gtools` commands take a mix of string and numeric variables,
-which is a limitation of `ftools`. (Note I could not get several parts
-of `ftools` working on the Linux server where I have access to Stata/MP.)
+The commands here are also faster than the commands provided by
+`ftools`; further, `gtools` commands take a mix of string and numeric
+variables, which is a limitation of `ftools`. (Note I could not get
+several parts of `ftools` working on the Linux server where I have
+access to Stata/MP; hence the IC benchmarks.)
 
 | Gtools    | Ftools        | Speedup (IC) |
 | --------- | ------------- | ------------ |
@@ -149,6 +122,35 @@ speed gain is still 3-23, even without multi-threading. See the [old collapse
 benchmarks](benchmarks#old-collapse-benchmarks)</small>
 
 <small>(.) Only egen group was benchmarked rigorously.</small>
+
+__*Limitations*__
+
+- `strL` variables only partially supported on Stata 14 and above;
+  `gcollapse` and `gcontract` do not support `strL` variabes.
+
+- Due to a Stata bug, gtools cannot support more
+  than `2^31-1` (2.1 billion) observations. See [this
+  issue](https://github.com/mcaceresb/stata-gtools/issues/43)
+
+- Due to limitations in the Stata Plugin Interface, gtools can only
+  handle as many variables as the largest `matsize` in the user's Stata
+  version. For MP this is more than 10,000 variables but in IC this is
+  only 800.
+
+- Gtools uses compiled C code to achieve it's massive increases in
+  speed. This has two effects users might notice: First, it is sometimes
+  not possible to break the program's execution.  While this is already
+  true for at least some parts of most Stata commands, there are fewer
+  opportunities to break Gtools commands relative to their Stata
+  counterparts.
+
+  Second, the Stata GUI might appear frozen when running Gtools
+  commands.  If the system then runs out of RAM (memory), it could look
+  like Stata has crashed (it may show a "(Not Responding)" message on
+  Windows or it may darken on \*nix systems). However, the program has
+  not crashed; it is merely trying to swap memory.  To check this is the
+  case, the user can monitor disk activity or monitor their system's
+  pagefile or swap space directly.
 
 Acknowledgements
 ----------------
@@ -235,20 +237,6 @@ gcontract foreign [fw = turn], freq(f) percent(p)
 See the [FAQs](faqs) or the respective documentation for a list of supported
 `gcollapse` and `gegen` functions.
 
-Extra features
---------------
-
-gtools commands support most of the options of their native counterparts, but
-not all. To compensate, they also offer several features on top the massive
-speedup. In particulat, see:
-
-- [gcollapse](usage/gcollapse#examples)
-- [gquantiles](usage/gquantiles#examples)
-- [gtoplevelsof](usage/gtoplevelsof#examples)
-- [gegen](usage/gegen#examples)
-- [glevelsof](usage/glevelsof#examples)
-- [gdistinct](usage/gdistinct#examples)
-
 Remarks
 -------
 
@@ -324,7 +312,7 @@ but preserving the original sort order. In case an `egen` option might
 conflict with a gtools option, the user can pass `gtools_capture(fcn_options)`
 to `gegen`.
 
-__*Differences from Stata counterparts*__
+__*Differences and Extras*__
 
 Differences from `collapse`
 
@@ -402,20 +390,47 @@ Differences from `duplicates`
   enhances performance but it might be harder to read. Pass option `sort`
   (`sorted`) to mimic `duplicates` behavior and sort the list. 
 
-__*The Stata GUI freezes when running Gtools commands*__
+Hashing and Sorting
+-------------------
 
-When Stata is executing the plugin, the user will not be able to interact
-with the Stata GUI. Because of this, Stata may appear unresponsive when it is
-merely executing the plugin.
+There are two key insights to the massive speedups of Gtools:
 
-There is at least one known instance where this can cause a confusion for
-the user: If the system runs out of RAM, the program will attempt to use the
-pagefile/swap space. In doing, so, Stata may appear unresponsive (it may show
-a "(Not Responding)" message on Windows or it may darken on \*nix systems).
+1. Hashing the data and sorting a hash is a lot faster than sorting
+  the data to then process it by group. Sorting a hash can be achieved
+  in linear O(N) time, whereas the best general-purpose sorts take O(N
+  log(N)) time. Sorting the groups would then be achievable in O(J
+  log(J)) time (with J groups). Hence the speed improvements are largest
+  when N / J is largest.
 
-The program has not crashed; it is merely trying to swap memory.  To
-check this is the case, the user can monitor disk activity or monitor the
-pagefile/swap space directly.
+2. Compiled C code is much faster than Stata commands.
+
+__*Stata Sorting*__
+
+It should be noted that Stata's sorting mechanism is not inefficient as a
+general-purpose sort. It is just inefficient for processing data by group. We
+have implemented a hash-based sorting command, `hashsort`. While at times this
+is faster than Stata's `sort`, it can also often be slower:
+
+| Function  | Replaces | Speedup (IC / MP)    | Unsupported            | Extras               |
+| --------- | -------- | -------------------- | ---------------------- | -------------------- |
+| hashsort  | sort     | 2.5 to 4 / .8 to 1.3 |                        | Group (hash) sorting |
+|           | gsort    | 2 to 18 / 1 to 6     | `mfirst` (see `mlast`) | Sorts are stable     |
+
+The overhead involves copying the by variables, hashing, sorting the hash,
+sorting the groups, copying a sort index back to Stata, and having Stata do
+the final swaps. The plugin runs fast, but the copy overhead plus the Stata
+swaps often make the function be slower than Stata's native `sort`.
+
+The reason that the other functions are faster is because they don't deal with
+all that overhead.  By contrast, Stata's `gsort` is not efficient. To sort
+data, you need to make pair-wise comparisons. For real numbers, this is just
+`a > b`. However, a generic comparison function can be written as `compare(a, b) > 0`.
+This is true if a is greater than b and false otherwise. To invert
+the sort order, one need only use `compare(b, a) > 0`, which is what gtools
+does internally.
+
+However, Stata creates a variable that is the inverse of the sort variable.
+This is equivalent, but the overhead makes it slower than `hashsort`.
 
 TODO
 ----
@@ -424,9 +439,9 @@ These are options/features I would like to support, but I don't have an
 ETA for them:
 
 - Add support for binary `strL` variables.
+- Minimize memory use.
 - Improve debugging info.
 - Improve code comments when you write the API!
-- Minimize memory use.
 - Add option to control how to treat missing values in gcollapse
     - anymissing()
     - allmissing()
@@ -446,4 +461,4 @@ License
 
 Gtools is [MIT-licensed](https://github.com/mcaceresb/stata-gtools/blob/master/LICENSE).
 `./lib/spookyhash` and `./src/plugin/common/quicksort.c` belong to their respective
-authors and are BSD-licensed.
+authors and are BSD-licensed. Also see `gtools, licenses`.

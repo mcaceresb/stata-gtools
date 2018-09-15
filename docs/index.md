@@ -132,10 +132,11 @@ __*Limitations*__
   than `2^31-1` (2.1 billion) observations. See [this
   issue](https://github.com/mcaceresb/stata-gtools/issues/43)
 
-- Due to limitations in the Stata Plugin Interface, gtools can only
-  handle as many variables as the largest `matsize` in the user's Stata
-  version. For MP this is more than 10,000 variables but in IC this is
-  only 800.
+- Due to limitations in the Stata Plugin Interface, gtools
+  can only handle as many variables as the largest `matsize`
+  in the user's Stata version. For MP this is more than
+  10,000 variables but in IC this is only 800. See [this
+  issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
 - Gtools uses compiled C code to achieve it's massive increases in
   speed. This has two effects users might notice: First, it is sometimes

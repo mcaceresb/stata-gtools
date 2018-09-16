@@ -13,20 +13,31 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/stable-v1.0.3-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/stable-v1.0.4-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
-<!-- `version 1.0.3 18Aug2018` -->
+<!-- `version 1.0.4 16Sep2018` -->
 
 Faster Stata for Big Data
 -------------------------
 
-This package's aim is to provide a fast implementation of various Stata
-commands using hashes and C plugins.  If you plan to use the plugin
-extensively, check out the [remarks](#remarks) below and the [FAQs](faqs) for
-caveats and details on the plugin (including some extra features!).
+This package provides a fast implementation of various Stata commands
+using hashes and C plugins. The syntax and purpose is largely
+analogous to their stata counterparts: For example, you can replace
+`collapse` with `gcollapse`, `egen` with `gegen`, and so on. For a
+comprehensive list of differences (including some extra features!)
+see the [remarks](#remarks) below; for details and examples see [the
+official project page](https://gtools.readthedocs.io).
+
+__*Quickstart*__
+
+```stata
+ssc install gtools
+gtools, upgrade
+help gtools
+```
 
 __*Gtools commands with a Stata equivalent*__
 
@@ -171,16 +182,18 @@ Installation
 ------------
 
 I only have access to Stata 13.1, so I impose that to be the minimum.
+You can install `gtools` from Stata via SSC:
 ```stata
 ssc install gtools
 ```
 
-To upgrade to the latest github version, type
+To upgrade to the latest (github) version, type
 ```stata
 gtools, upgrade
 ```
 
-You can also install the github version directly
+By default this syncs to the master branch, which is stable. To install
+the latest version directly, type:
 ```stata
 local github "https://raw.githubusercontent.com"
 net install gtools, from(`github'/mcaceresb/stata-gtools/master/build/)

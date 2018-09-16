@@ -1,10 +1,11 @@
 {smcl}
-{* *! version 1.0.3 18Aug2018}{...}
+{* *! version 1.0.4 16Sep2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
 {viewerjumpto "Description" "gtools##description"}{...}
 {viewerjumpto "Options" "gtools##options"}{...}
+{viewerjumpto "Examples" "gtools##examples"}{...}
 {title:Title}
 
 {p2colset 5 18 23 2}{...}
@@ -12,15 +13,16 @@
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: Please run {opt gtools, dependencies} before
-using any of the programs provided by gtools. The {opt gtools} command
-is merely a wrapper for some high-level operations to do with package
-maintenance.
+{it:Note for Windows users}: Please run {stata gtools, dependencies}
+before using any of the programs provided by gtools. The {opt gtools}
+command is merely a wrapper for some high-level operations to do with
+package maintenance.
 
 {pstd}
-{opt gtools} is a suite of commands that use hashes for a speedup over
-traditional stata commands. The following are available as part of gtools
-(also see {stata gtools, examples}):
+{opt gtools} is a suite of commands that use hashes for a speedup
+over traditional stata commands. Syntax is largely analogous to each
+command's Stata counterparts. The following are available as part of
+gtools (also see the {help gtools##examples:examples} below):
 
 {p 8 17 2}
 {manhelp gcollapse R:gcollapse} and {manhelp gcontract R:gcontract} as {opt collapse} and {opt contract} replacements. {p_end}
@@ -82,7 +84,7 @@ traditional stata commands. The following are available as part of gtools
 {p_end}
 {synopt :{opt showcase}}Alias for {opt examples}.
 {p_end}
-{synopt :{opt test[(tests)]}}Run unit tests, optionally specifying which tests to run.
+{synopt :{bf:test[({it:tests})]}}Run unit tests, optionally specifying which tests to run.
 {p_end}
 {synopt :{opth branch(str)}}Github branch to use (defualt is master).
 {p_end}
@@ -139,8 +141,7 @@ is required for the plugin to execute correctly.
 various gtools functions.
 
 {phang}
-
-{opt test[(tests)]} Run unit tests, optionally specifying which tests
+{bf:test[({it:tests})]} Run unit tests, optionally specifying which tests
 to run.  Tests available are: dependencies, basic_checks, bench_test,
 comparisons, switches, bench_full.  A good set of "small" tests which
 take 10-20 minutes are {cmd: dependencies basic_checks bench_test}.
@@ -154,6 +155,65 @@ this can take well over a day.
 
 {phang}
 {opth branch(str)} Github branch to use (defualt is master).
+
+{marker examples}{...}
+{title:Examples}
+
+{p 4 4 2}{stata sysuse auto, clear}{p_end}
+
+{p 4 4 2}{it:gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]}{p_end}
+
+{p 8 4 2}{stata gquantiles 2 * price, _pctile nq(10)                                }{p_end}
+{p 8 4 2}{stata gquantiles p10 = 2 * price, pctile nq(10)                           }{p_end}
+{p 8 4 2}{stata gquantiles x10 = 2 * price, xtile nq(10) by(rep78)                  }{p_end}
+{p 8 4 2}{stata fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)}{p_end}
+
+{p 4 4 2}{it:hashsort varlist, [options]                        }{p_end}
+
+{p 8 4 2}{stata hashsort -make                                  }{p_end}
+{p 8 4 2}{stata hashsort foreign -rep78, benchmark verbose mlast}{p_end}
+
+{p 4 4 2}{it:gegen target = stat(source) [if] [in] [weight], by(varlist) [options]}{p_end}
+
+{p 8 4 2}{stata gegen tag = tag(foreign)                                          }{p_end}
+{p 8 4 2}{stata gegen group = tag(-price make)                                    }{p_end}
+{p 8 4 2}{stata gegen p2_5 = pctile(price) [w = weight], by(foreign) p(2.5)       }{p_end}
+
+{p 4 4 2}{it:gisid varlist [if] [in], [options]                                   }{p_end}
+
+{p 8 4 2}{stata gisid make, missok                                                }{p_end}
+{p 8 4 2}{stata gisid price in 1 / 2                                              }{p_end}
+
+{p 4 4 2}{it:gduplicates varlist [if] [in], [options gtools(gtools_options)]      }{p_end}
+
+{p 8 4 2}{stata gduplicates report foreign                                        }{p_end}
+{p 8 4 2}{stata gduplicates report rep78 if foreign, gtools(bench(3))             }{p_end}
+
+{p 4 4 2}{it:glevelsof varlist [if] [in], [options]                                                     }{p_end}
+          
+{p 8 4 2}{stata glevelsof rep78, local(levels) sep(" | ")                                               }{p_end}
+{p 8 4 2}{stata glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")                 }{p_end}
+{p 8 4 2}{stata glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal                                    }{p_end}
+          
+{p 4 4 2}{it:gtop varlist [if] [in] [weight], [options]                                                 }{p_end}
+{p 4 4 2}{it:gtoplevelsof varlist [if] [in] [weight], [options]                                         }{p_end}
+          
+{p 8 4 2}{stata gtoplevelsof foreign rep78                                                              }{p_end}
+{p 8 4 2}{stata gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)      }{p_end}
+          
+{p 4 4 2}{it:gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]}{p_end}
+          
+{p 8 4 2}{stata gen h1 = headroom                                                                       }{p_end}
+{p 8 4 2}{stata gen h2 = headroom                                                                       }{p_end}
+{p 8 4 2}{stata pretty# #sourcelabel#)                                                                  }{p_end}
+
+{p 8 4 2}{stata gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v               }{p_end}
+{p 8 4 2}{stata disp "`:var label mean', `:var label p50'"                                              }{p_end}
+{p 8 4 2}{stata gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2) wild   }{p_end}
+
+{p 4 4 2}{it:gcontract varlist [if] [if] [fweight], [options]}{p_end}
+
+{p 8 4 2}{stata gcontract foreign [fw = turn], freq(f) percent(p)}{p_end}
 
 {marker author}{...}
 {title:Author}

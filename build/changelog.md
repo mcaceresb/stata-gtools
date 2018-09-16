@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.0.4 (2018-09-16)
+
+### Enhancements
+
+* Typo fixes and improvements to gtools help file.
+
 ## gtools-1.0.3 (2018-08-18)
 
 ### Bug fixes

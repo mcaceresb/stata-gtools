@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Aug  8 21:34:14 EDT 2018
+* Updated: Thu Sep 20 12:18:29 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 1.0.2
+* Version: 1.0.5
 * Manual:  help gtools
 
 * Stata start-up options
@@ -641,6 +641,28 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * e-mail issue #0
+    qui {
+        clear
+        set more off
+        set seed 1
+        set obs 2
+        g y = 1.23
+        preserve
+            gcollapse (count) cy = y (first) fy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (count) y (first) fy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (first) fy = y (count) y , freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (first) fy = y (count) cy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore
+    }
 
     * https://github.com/mcaceresb/stata-gtools/issues/39
     qui {

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0 20Sep2018}{...}
+{* *! version 1.0.1  25Sep2018}{...}
 {viewerdialog gcontract "dialog gcontract"}{...}
 {vieweralsosee "[R] gcontract" "mansection R gcontract"}{...}
 {viewerjumpto "Syntax" "gcontract##syntax"}{...}
@@ -13,8 +13,9 @@
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: It may be necessary to run
-{opt gtools, dependencies} at the start of your Stata session.
+{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
+the latest stable version.  {it:Windows users:} If the plugin fails to load,
+please run {stata gtools, dependencies} at the start of your Stata session.
 
 {marker syntax}{...}
 {title:Syntax}

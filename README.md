@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.0.5-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.0.6-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -153,11 +153,10 @@ __*Limitations*__
   issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
 - Gtools uses compiled C code to achieve it's massive increases in
-  speed. This has two effects users might notice: First, it is sometimes
-  not possible to break the program's execution.  While this is already
-  true for at least some parts of most Stata commands, there are fewer
-  opportunities to break Gtools commands relative to their Stata
-  counterparts.
+  speed. This has two side-effects users might notice: First, it is sometimes
+  not possible to break the program's execution.  While this is already true
+  for at least some parts of most Stata commands, there are fewer opportunities
+  to break Gtools commands relative to their Stata counterparts.
 
   Second, the Stata GUI might appear frozen when running Gtools
   commands.  If the system then runs out of RAM (memory), it could look
@@ -184,10 +183,6 @@ I only have access to Stata 13.1, so I impose that to be the minimum.
 You can install `gtools` from Stata via SSC:
 ```stata
 ssc install gtools
-```
-
-To upgrade to the latest (github) version, type
-```stata
 gtools, upgrade
 ```
 

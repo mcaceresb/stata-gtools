@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.5 20Sep2018}{...}
+{* *! version 1.0.6 25Sep2018}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -13,10 +13,9 @@
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: Please run {stata gtools, dependencies}
-before using any of the programs provided by gtools. The {opt gtools}
-command is merely a wrapper for some high-level operations to do with
-package maintenance.
+{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
+the latest stable version.  {it:Windows users:} If the plugin fails to load,
+please run {stata gtools, dependencies} at the start of your Stata session.
 
 {pstd}
 {opt gtools} is a suite of commands that use hashes for a speedup

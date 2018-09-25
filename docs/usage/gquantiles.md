@@ -11,8 +11,9 @@ quantiles (and an arbitrary number), frequency counts, and more (see the
 gquantiles is also faster than the user-written fastxtile, so an alias,
 fasterxtile, is also provided.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

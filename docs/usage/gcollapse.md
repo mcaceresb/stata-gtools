@@ -7,8 +7,9 @@ gcollapse converts the dataset in memory into a dataset of means, sums,
 medians, etc., similar to collapse. Unlike collapse, however, first,
 last, firstnm, lastnm for string variables are not supported.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

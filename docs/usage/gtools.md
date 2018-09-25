@@ -16,8 +16,9 @@ it became apparent that I would need to include a DLL with the package
 automatically, I ran into enough problems while developing the plugin that I
 felt compelled to include this program.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

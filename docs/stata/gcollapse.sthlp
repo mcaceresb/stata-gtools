@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.5 20Sep2018}{...}
+{* *! version 1.0.6 25Sep2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -14,8 +14,9 @@ make dataset of summary statistics using C.{p_end}
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: It may be necessary to run
-{opt gtools, dependencies} at the start of your Stata session.
+{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
+the latest stable version.  {it:Windows users:} If the plugin fails to load,
+please run {stata gtools, dependencies} at the start of your Stata session.
 
 {marker syntax}{...}
 {title:Syntax}

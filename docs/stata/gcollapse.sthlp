@@ -368,7 +368,7 @@ for examples.
 {marker author}{...}
 {title:Author}
 
-{pstd}Mauricio Caceres{p_end}
+{pstd}Mauricio Caceres Bravo{p_end}
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 

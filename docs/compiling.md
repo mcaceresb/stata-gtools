@@ -53,8 +53,6 @@ to fail on some systems, so we delete them (they are meant to check the git
 executable exists).
 
 ```bash
-bash
-
 git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
@@ -97,7 +95,7 @@ To finish, compile the plugin
 
 ```bash
 make clean SPI=2.0 SPIVER=v2
-make clean SPI=2.0 SPIVER=v2
+make clean SPI=3.0 SPIVER=v3
 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 
 # Stata 13 and earlier

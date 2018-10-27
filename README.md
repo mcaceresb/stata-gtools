@@ -185,10 +185,6 @@ I only have access to Stata 13.1, so I impose that to be the minimum.
 You can install `gtools` from Stata via SSC:
 ```stata
 ssc install gtools
-```
-
-To upgrade to the latest (github) version, type
-```stata
 gtools, upgrade
 ```
 
@@ -334,7 +330,7 @@ __*Differences and Extras*__
 
 Differences from `collapse`
 
-- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
+- String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `nunique` is supported.
 - `rawstat` allows selectively applying weights.

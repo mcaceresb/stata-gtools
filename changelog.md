@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-1.0.6 (2018-09-25)
+
+### Enhancements
+
+- All the help files (and the readme) ask the user to run `gtools, upgrade`
+
+## gtools-1.0.5 (2018-09-20)
+
+### Bug fixes
+
+- `gcollapse` no longer gives wrong results when `count` is the first of
+  multiple stats requested for a given source variable. Previous versions
+  wrongly recast the source as long.
+
 ## gtools-1.0.4 (2018-09-16)
 
 ### Enhancements

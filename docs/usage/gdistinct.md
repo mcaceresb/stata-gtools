@@ -14,8 +14,9 @@ values.  Optionally, variables can be considered jointly so that the
 number of distinct groups defined by the values of variables in varlist
 is reported.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

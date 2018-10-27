@@ -10,8 +10,9 @@ options. For example, this supports the `by(varlist)` option that also appears
 in the unique command, but does not support computing the number of unique
 values for variables individually.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

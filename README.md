@@ -13,19 +13,18 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.0.4-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.0.6-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
-<!-- `version 1.0.4 16Sep2018` -->
 
 Faster Stata for Big Data
 -------------------------
 
 This package provides a fast implementation of various Stata commands
 using hashes and C plugins. The syntax and purpose is largely
-analogous to their stata counterparts: For example, you can replace
+analogous to their Stata counterparts: For example, you can replace
 `collapse` with `gcollapse`, `egen` with `gegen`, and so on. For a
 comprehensive list of differences (including some extra features!)
 see the [remarks](#remarks) below; for details and examples see [the
@@ -154,11 +153,10 @@ __*Limitations*__
   issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
 - Gtools uses compiled C code to achieve it's massive increases in
-  speed. This has two effects users might notice: First, it is sometimes
-  not possible to break the program's execution.  While this is already
-  true for at least some parts of most Stata commands, there are fewer
-  opportunities to break Gtools commands relative to their Stata
-  counterparts.
+  speed. This has two side-effects users might notice: First, it is sometimes
+  not possible to break the program's execution.  While this is already true
+  for at least some parts of most Stata commands, there are fewer opportunities
+  to break Gtools commands relative to their Stata counterparts.
 
   Second, the Stata GUI might appear frozen when running Gtools
   commands.  If the system then runs out of RAM (memory), it could look
@@ -476,6 +474,26 @@ ETA for them:
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen
 - [ ] Add "Open Source Licenses" section
+
+About
+-----
+
+Hi! I'm [Mauricio Caceres Bravo](https://mcaceresb.github.io); I made gtools
+after some of my Stata jobs were taking literally days to run because of repeat
+calls to `egen`, `collapse`, and similar on data with over 100M rows.  Feedback
+and comments are welcome! I hope you find this package as useful as I do.
+
+Along those lines, here are some other Stata projects I find useful:
+
+* [`ftools`](https://github.com/sergiocorreia/ftools): The main inspiration for
+  gtools. Not as fast, but it has a rich feature set; its mata API in
+  particular is very useful.
+
+* [`reghdfe`](https://github.com/sergiocorreia/reghdfe): The fastest way to run
+  a regression with multiple fixed effects (as far as I know).
+
+* [`stata_kernel`](https://kylebarron.github.io/stata_kernel): A Stata kernel
+  for Jupyter; extremely useful for interacting with Stata.
 
 License
 -------

@@ -137,6 +137,28 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * e-mail issue #0
+    qui {
+        clear
+        set more off
+        set seed 1
+        set obs 2
+        g y = 1.23
+        preserve
+            gcollapse (count) cy = y (first) fy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (count) y (first) fy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (first) fy = y (count) y , freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore, preserve
+            gcollapse (first) fy = y (count) cy = y, freq(z)
+            assert abs(fy - 1.23) < 1e-6
+        restore
+    }
+
     * https://github.com/mcaceresb/stata-gtools/issues/39
     qui {
         clear

@@ -1,4 +1,4 @@
-*! version 1.0.0 21Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST

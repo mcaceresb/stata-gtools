@@ -8,8 +8,9 @@ all combinations of varlist that exist in the data and a new variable
 that contains the frequency of each combination. The user can optionally
 request percentages and cumulative counts and percentages.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

@@ -1,4 +1,4 @@
-*! version 1.0.1 23Jul2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.5 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -1185,6 +1185,12 @@ program parse_keep_drop, rclass
     c_local __gtools_gc_vars      `__gtools_gc_vars'
     c_local __gtools_gc_uniq_vars `__gtools_gc_keepvars'
 
+    * If any of the other requested stats are not counts or freq, upgrade!
+    * Otherwise you'll get the wrong result.
+    local upgrade_list freq count
+    local upgrade_list: list __gtools_gc_stats - upgrade_list
+    local upgrade = `:list sizeof upgrade_list' > 0
+
     local check_recast ""
     foreach var of local __gtools_gc_targets {
         gettoken sourcevar __gtools_gc_vars:  __gtools_gc_vars
@@ -1198,7 +1204,7 @@ program parse_keep_drop, rclass
         else if ( inlist("`collstat'", "freq") & ( `=_N < maxlong()' ) ) {
             * freqs can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
-            local targettype long
+            local targettype = cond(`upgrade', "double", "long")
         }
         else if ( inlist("`collstat'", "freq") & !( `=_N < maxlong()' ) ) {
             local targettype double
@@ -1211,7 +1217,7 @@ program parse_keep_drop, rclass
             * (largest signed integer in long variables can be 2^31-1).
             * With weights, however, count is sum w_i, so the rules are
             * as with sums in that case.
-            local targettype long
+            local targettype = cond(`upgrade', "double", "long")
         }
         else if ( inlist("`collstat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
             local targettype double

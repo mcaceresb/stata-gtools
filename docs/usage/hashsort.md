@@ -8,8 +8,9 @@ when the resulting sort will be unique or when the user has access to
 Stata/MP. Hence it is considered an experimental command, even though it is
 generally faster than gsort even in Stata/MP.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

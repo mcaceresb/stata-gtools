@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0  21Jul2018}{...}
+{* *! version 1.0.1  25Sep2018}{...}
 {vieweralsosee "[P] gtoplevelsof" "mansection P gtoplevelsof"}{...}
 {viewerjumpto "Syntax" "gtoplevelsof##syntax"}{...}
 {viewerjumpto "Description" "gtoplevelsof##description"}{...}
@@ -303,7 +303,7 @@ respectively.
 {marker author}{...}
 {title:Author}
 
-{pstd}Mauricio Caceres{p_end}
+{pstd}Mauricio Caceres Bravo{p_end}
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 

@@ -21,7 +21,7 @@ Overview
 
 This package provides a fast implementation of various Stata commands
 using hashes and C plugins. The syntax and purpose is largely
-analogous to their state counterparts; for example, you can replace
+analogous to their Stata counterparts; for example, you can replace
 `collapse` with `gcollapse`, `egen` with `gegen`, and so on. See the
 [remarks](#remarks) below for a comprehensive list of differences
 (including some extra features!) and each command's usage page for
@@ -473,7 +473,7 @@ ETA for them:
 - Print # of missings for gegen
 - Add "Open Source Licenses" section
 
-Plugs
+About
 -----
 
 Hi! I'm [Mauricio Caceres Bravo](https://mcaceresb.github.io); I made gtools
@@ -481,7 +481,7 @@ after some of my Stata jobs were taking literally days to run because of repeat
 calls to `egen`, `collapse`, and similar on data with over 100M rows.  Feedback
 and comments are welcome! I hope you find this package as useful as I do.
 
-Along those lines, here are some other Stata projects I like:
+Along those lines, here are some other Stata projects I find useful:
 
 * [`ftools`](https://github.com/sergiocorreia/ftools): The main inspiration for
   gtools. Not as fast, but it has a rich feature set; its mata API in

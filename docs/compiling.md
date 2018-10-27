@@ -62,7 +62,7 @@ make clean
 sed -i.bak -e '37,40d' lib/spookyhash/build/premake5.lua
 ```
 
-If you are on Windows, of if `premake5` is installed and in your system's
+If you are on Windows, or if `premake5` is installed and in your system's
 `PATH`, run
 
 ```bash
@@ -97,7 +97,7 @@ To finish, compile the plugin
 
 ```bash
 make clean SPI=2.0 SPIVER=v2
-make clean SPI=2.0 SPIVER=v2
+make clean SPI=3.0 SPIVER=v3
 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
 
 # Stata 13 and earlier
@@ -114,8 +114,9 @@ From a stata session, run
 do build/gtools_tests.do
 ```
 
-If successful, all tests should report to be passing and the exit message
-should be "tests finished running" followed by the start and end time.
+(Note this can take several hours.)  If successful, all tests should report to
+be passing and the exit message should be "tests finished running" followed by
+the start and end time.
 
 ### Troubleshooting
 
@@ -161,12 +162,12 @@ MinGW version of gcc and SpookyHash was built using visual studio. That is,
 - `premake5 vs2013`, and
 - `msbuild SpookyHash.sln` for SpookyHash
 
-Again, you can find the dll pre-built in `./lib/windows/spookyhash.dll`,
-but if you are set on re-compiling SpookyHash, you have to force `premake5`
-to generate project files for a 64-bit version only (otherwise `gcc` will
-complain about compatibility issues). Further, the target folder has not
-always been consistent in testing. While this may be due to an error on my
-part, I have found the compiled `spookyhash.dll` in
+Again, you can find the dll pre-built in `./lib/windows/spookyhash.dll`; but if
+you neet to re-compile SpookyHash, you have to force `premake5` to generate
+project files for a 64-bit version only (otherwise `gcc` will complain about
+compatibility issues). Further, the target folder has not always been
+consistent in testing. While this may be due to an error on my part, I have
+found the compiled `spookyhash.dll` in
 
 - `./lib/spookyhash/build/bin`
 - `./lib/spookyhash/build/bin/x86_64/Release`

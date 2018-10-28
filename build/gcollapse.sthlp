@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.5 20Sep2018}{...}
+{* *! version 1.0.7 27Oct2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -14,8 +14,9 @@ make dataset of summary statistics using C.{p_end}
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: It may be necessary to run
-{opt gtools, dependencies} at the start of your Stata session.
+{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
+the latest stable version.  {it:Windows users:} If the plugin fails to load,
+please run {stata gtools, dependencies} at the start of your Stata session.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -118,6 +119,8 @@ user press {hi:Break}
 {synopt :{opt forcemem}}Use memory for writing/reading collapsed data.
 {p_end}
 {synopt :{opt double}}Generate all targets as doubles.
+{p_end}
+{synopt :{opt sumcheck}}Check whether byte, int, or long sum will overflow.
 {p_end}
 
 {syntab:Gtools}
@@ -251,6 +254,12 @@ be large {opt forcemem} will be faster.
 {phang}
 {opt double} stores data in double precision.
 
+{phang}
+{opt sumcheck} Check whether byte, int, or long sum will overflow.  By
+default sum targets are double; in this case, sum targets check the
+smallest integer type that will be suitable and only assigns a double if
+the sum would overflow.
+
 {dlgtab:Gtools}
 
 {phang}
@@ -367,7 +376,7 @@ for examples.
 {marker author}{...}
 {title:Author}
 
-{pstd}Mauricio Caceres{p_end}
+{pstd}Mauricio Caceres Bravo{p_end}
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 

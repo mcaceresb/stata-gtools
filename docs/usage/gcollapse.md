@@ -140,6 +140,12 @@ Options
 
 - `double` stores data in double precision.
 
+- `sumcheck` Check whether byte, int, or long sum will overflow.  By
+            default sum targets are double; in this case, sum targets
+            check the smallest integer type that will be suitable and
+            only assigns a double if the sum would overflow.
+
+
 ### Gtools options
 
 (Note: These are common to every gtools command.)

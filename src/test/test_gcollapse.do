@@ -137,6 +137,73 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/44
+    qui {
+        * 1. byte, int, long upgraded to int, long, double
+        * 2. byte, int, long preserved
+        * 3. float always upgraded
+        * 4. float, double never downgraded
+        * 5. Overflow warning
+        clear
+        set obs 10
+        gen byte    b1 = 1
+        gen int     i1 = 2
+        gen long    l1 = 3
+        gen float   f1 = 3.14
+        gen double  d1 = 3.141592
+        gen byte    b2 = maxbyte()
+        gen int     i2 = maxint()
+        gen long    l2 = maxlong()
+        gen float   f2 = maxfloat()
+        gen double  d2 = maxdouble()
+        preserve
+            gcollapse (sum) *
+            foreach var of varlist * {
+                assert "`:type `var''" == "double"
+            }
+        restore, preserve
+            gcollapse (sum) *, sumcheck
+            foreach var of varlist f1 d1 l2 f2 d2 {
+                assert "`:type `var''" == "double"
+            }
+            assert "`:type b1'" == "byte"
+            assert "`:type i1'" == "int"
+            assert "`:type l1'" == "long"
+            assert "`:type b2'" == "int"
+            assert "`:type i2'" == "long"
+        restore, preserve
+            gcollapse (mean) m_* = * (sum) * (max) mx_* = *, sumcheck wild
+            foreach var of varlist f1 d1 l2 f2 d2 {
+                assert "`:type `var''" == "double"
+            }
+            assert "`:type b1'" == "byte"
+            assert "`:type i1'" == "int"
+            assert "`:type l1'" == "long"
+            assert "`:type b2'" == "int"
+            assert "`:type i2'" == "long"
+        restore, preserve
+            gcollapse (sum) s_* = * (mean) m_* = * (max) mx_* = *, sumcheck wild
+            foreach var of varlist s_f1 s_d1 s_l2 s_f2 s_d2 {
+                assert "`:type `var''" == "double"
+            }
+            assert "`:type s_b1'" == "byte"
+            assert "`:type s_i1'" == "int"
+            assert "`:type s_l1'" == "long"
+            assert "`:type s_b2'" == "int"
+            assert "`:type s_i2'" == "long"
+        restore, preserve
+            gcollapse (sum) s_* = * (mean) * (max) mx_* = *, sumcheck wild
+            foreach var of varlist s_f1 s_d1 s_l2 s_f2 s_d2 {
+                assert "`:type `var''" == "double"
+            }
+            assert "`:type s_b1'" == "byte"
+            assert "`:type s_i1'" == "byte"
+            assert "`:type s_l1'" == "byte"
+            assert "`:type s_b2'" == "int"
+            assert "`:type s_i2'" == "long"
+        restore
+    }
+
     * e-mail issue #0
     qui {
         clear

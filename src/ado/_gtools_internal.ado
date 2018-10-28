@@ -1,4 +1,4 @@
-*! version 1.0.3 18Aug2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.5 27Oct2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -122,6 +122,7 @@ program _gtools_internal, rclass
         gcollapse(str)            /// options for gcollapse (to parse later)
         gtop(str)                 /// options for gtop (to parse later)
         recast(str)               /// bulk recast
+        sumcheck(str)             /// absolute sum
         weights(str)              /// weight_type weight_var
                                   ///
                                   /// gegen group options
@@ -253,6 +254,7 @@ program _gtools_internal, rclass
         disp as txt `"    gcollapse:        `gcollapse'"'
         disp as txt `"    gtop:             `gtop'"'
         disp as txt `"    recast:           `recast'"'
+        disp as txt `"    sumcheck:         `sumcheck'"'
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
@@ -323,6 +325,34 @@ program _gtools_internal, rclass
             }
         }
         else local hashlib spookyhash.dll
+    }
+
+    ***********************************************************************
+    *                       Sum of absolute values                        *
+    ***********************************************************************
+
+    if ( "`sumcheck'" != "" ) {
+        local 0  , checkvars(`sumcheck')
+        syntax, checkvars(varlist)
+
+        if ( `debug_level' ) {
+            disp as txt `""'
+            disp as txt "{cmd:_gtools_internal/sumcheck} (debug level `debug_level')"
+            disp as txt "{hline 72}"
+            disp as txt `""'
+            disp as txt `"    checkvars:      `checkvars'"'
+            disp as txt `"    __gtools_sum_k: `:list sizeof checkvars'"'
+        }
+
+        scalar __gtools_sum_k    = `:list sizeof checkvars'
+        matrix __gtools_sumcheck = J(1, `:list sizeof checkvars', .)
+        cap noi plugin call gtools_plugin `checkvars', sumcheck
+        local rc = _rc
+        return matrix sumcheck = __gtools_sumcheck
+        cap scalar drop __gtools_sum_k
+        cap matrix drop __gtools_sumcheck
+        clean_all `rc'
+        exit `rc'
     }
 
     ***********************************************************************

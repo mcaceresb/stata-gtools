@@ -109,6 +109,36 @@ STDLL stata_call(int argc, char *argv[])
     if ( strcmp(todo, "check") == 0 ) {
         goto exit;
     }
+    if ( strcmp(todo, "sumcheck") == 0 ) {
+        ST_double z, *sum, *sumptr;
+        GT_size sum_k, i, k;
+
+        if ( (rc = sf_scalar_size("__gtools_sum_k", &sum_k) )) goto exit;
+        sum = calloc(sum_k, sizeof sum);
+
+        for (k = 0; k < sum_k; k++)
+            sum[k] = 1;
+
+        for (i = SF_in1(); i <= SF_in2(); i++) {
+            sumptr = sum;
+            for (k = 1; k <= sum_k; k++, sumptr++) {
+                if ( (rc = SF_vdata(k, i, &z)) ) goto exit;
+                if ( (fabs(z) < SV_missval) && (*sumptr > 0) ) *sumptr += fabs(z);
+            }
+        }
+
+        for (k = 0; k < sum_k; k++) {
+            if ( sum[k] < 0 ) {
+                sum[k] = SV_missval;
+            }
+            else {
+                sum[k] -= 1;
+            }
+            if ( (rc = SF_mat_store("__gtools_sumcheck", 1, k + 1, sum[k]) )) goto exit;
+        }
+
+        goto exit;
+    }
     else if ( strcmp(todo, "recast") == 0 ) {
         ST_double z ;
         GT_size kvars_recast, i, k;

@@ -1,4 +1,4 @@
-*! version 1.0.5 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.7 27Oct2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -37,6 +37,7 @@ program gcollapse, rclass
         forceio                      /// Use disk temp drive for writing/reading collapsed data
         forcemem                     /// Use memory for writing/reading collapsed data
         double                       /// Generate all targets as doubles
+        sumcheck                     /// Check whether sum will overflow
                                      ///
         compress                     /// Try to compress strL variables
         forcestrl                    /// Force reading strL variables (stata 14 and above only)
@@ -271,13 +272,13 @@ program gcollapse, rclass
     * source variables as their first target to save memory)
 
     set varabbrev off
-    cap noi parse_keep_drop,                                  ///
-        by(`clean_by') `merge' `double' `replace' `replaceby' ///
-        `=cond("`weights'" == "", "", "weights")'             ///
-        __gtools_gc_targets(`__gtools_gc_targets')            ///
-        __gtools_gc_vars(`__gtools_gc_vars')                  ///
-        __gtools_gc_stats(`__gtools_gc_stats')                ///
-        __gtools_gc_uniq_vars(`__gtools_gc_uniq_vars')        ///
+    cap noi parse_keep_drop, by(`clean_by')               ///
+        `merge' `double' `replace' `replaceby' `sumcheck' ///
+        `=cond("`weights'" == "", "", "weights")'         ///
+        __gtools_gc_targets(`__gtools_gc_targets')        ///
+        __gtools_gc_vars(`__gtools_gc_vars')              ///
+        __gtools_gc_stats(`__gtools_gc_stats')            ///
+        __gtools_gc_uniq_vars(`__gtools_gc_uniq_vars')    ///
         __gtools_gc_uniq_stats(`__gtools_gc_uniq_stats')
 
     set varabbrev ${GTOOLS_USER_VARABBREV}
@@ -1054,6 +1055,7 @@ program parse_keep_drop, rclass
         replaceby                   ///
         merge                       ///
         double                      ///
+        sumcheck                    ///
         by(varlist)                 ///
         __gtools_gc_targets(str)    ///
         __gtools_gc_vars(str)       ///
@@ -1185,28 +1187,85 @@ program parse_keep_drop, rclass
     c_local __gtools_gc_vars      `__gtools_gc_vars'
     c_local __gtools_gc_uniq_vars `__gtools_gc_keepvars'
 
-    * If any of the other requested stats are not counts or freq, upgrade!
-    * Otherwise you'll get the wrong result.
-    local upgrade_list freq count
-    local upgrade_list: list __gtools_gc_stats - upgrade_list
-    local upgrade = `:list sizeof upgrade_list' > 0
+    * If any of the other requested stats are not counts, freq, or
+    * nunique, upgrade! Otherwise you'll get the wrong result.
+
+    local __gtools_upgrade
+    local __gtools_upgrade_vars
+    local __gtools_upgrade_list freq count nunique
+    forvalues i = 1 / `:list sizeof __gtools_gc_targets' {
+        local src:  word `i' of `__gtools_gc_vars'
+        local stat: word `i' of `__gtools_gc_stats'
+        if ( !`:list stat in __gtools_upgrade_list' ) {
+            local __gtools_upgrade_vars `__gtools_upgrade_vars' `src'
+        }
+    }
+    local __gtools_upgrade_vars: list uniq __gtools_upgrade_vars
+
+    * If requested, check whether sum will overflow. Assign smallest
+    * possible type given sum.
+
+    local __gtools_sumok
+    local __gtools_sumcheck
+    if ( "`sumcheck'" != "" ) {
+        foreach var in `: list uniq __gtools_gc_vars' {
+            if ( inlist("`:type `var''", "byte", "int", "long") ) {
+                local __gtools_sumcheck `__gtools_sumcheck' `var'
+            }
+        }
+
+        if ( `:list sizeof __gtools_sumcheck' > 0 ) {
+            cap noi _gtools_internal, sumcheck(`__gtools_sumcheck')
+            if ( _rc ) {
+                local rc = _rc
+                CleanExit
+                exit `rc'
+            }
+
+            matrix __gtools_sumcheck = r(sumcheck)
+            forvalues i = 1 / `:list sizeof __gtools_sumcheck' {
+                local s = __gtools_sumcheck[1, `i']
+                if ( `s' > maxlong() ) {
+                    local __gtools_sumok `__gtools_sumok' double
+                    if ( mi(`s') ) {
+                        disp as err "{bf:Overflow warning:} (sum) `:word `i' of `__gtools_sumcheck''"
+                    }
+                }
+                else if ( `s' > maxint() ) {
+                    local __gtools_sumok `__gtools_sumok' long
+                }
+                else if ( `s' > maxbyte() ) {
+                    local __gtools_sumok `__gtools_sumok' int
+                }
+                else {
+                    local __gtools_sumok `__gtools_sumok' byte
+                }
+            }
+        }
+    }
+
+    * Loop through all the targets to determine which type is most
+    * appropriate. Also check whether we can the source variable for the
+    * first target; if not, we will recast the source variable.
 
     local check_recast ""
     foreach var of local __gtools_gc_targets {
         gettoken sourcevar __gtools_gc_vars:  __gtools_gc_vars
         gettoken collstat  __gtools_gc_stats: __gtools_gc_stats
+        local upgrade = `:list sourcevar in __gtools_upgrade_vars'
+        local sumtype = "double"
 
         * I try to match Stata's types when possible
         if regexm("`collstat'", "first|last|min|max") {
             * First, last, min, max can preserve type, clearly
             local targettype: type `sourcevar'
         }
-        else if ( inlist("`collstat'", "freq") & ( `=_N < maxlong()' ) ) {
+        else if ( inlist("`collstat'", "freq", "nunique") & ( `=_N < maxlong()' ) ) {
             * freqs can be long if we have fewer than 2^31 observations
             * (largest signed integer in long variables can be 2^31-1)
             local targettype = cond(`upgrade', "double", "long")
         }
-        else if ( inlist("`collstat'", "freq") & !( `=_N < maxlong()' ) ) {
+        else if ( inlist("`collstat'", "freq", "nunique") & !( `=_N < maxlong()' ) ) {
             local targettype double
         }
         else if ( "`double'" != "" ) {
@@ -1222,9 +1281,20 @@ program parse_keep_drop, rclass
         else if ( inlist("`collstat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
             local targettype double
         }
-        else if ( ("`collstat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
-            * Sums are double so we don't overflow; some operations on long
-            * variables with target float can be inaccurate
+        else if ( "`collstat'" == "sum" ) {
+            * Sums are double so we don't overflow; however, if the
+            * user requested sumcheck we assign byte, int, and long the
+            * smallest possible type.
+            local targettype double
+            if ( `:list sourcevar in __gtools_sumcheck' ) {
+                local pos: list posof "`sourcevar'" in __gtools_sumcheck
+                local targettype: word `pos' of `__gtools_sumok'
+            }
+            local sumtype: copy local targettype
+        }
+        else if ( "`:type `sourcevar''" == "long" ) {
+            * Some operations on long variables with target float can be
+            * inaccurate
             local targettype double
         }
         else if inlist("`:type `sourcevar''", "double") {
@@ -1249,10 +1319,11 @@ program parse_keep_drop, rclass
         else {
             * We only recast integers. Floats and doubles are preserved unless
             * requested or the target is a sum.
-            parse_ok_astarget,   ///
-                sourcevar(`var') ///
-                targetvar(`var') ///
-                stat(`collstat') ///
+            parse_ok_astarget,     ///
+                sourcevar(`var')   ///
+                targetvar(`var')   ///
+                stat(`collstat')   ///
+                sumtype(`sumtype') ///
                 `double' `weights'
             local recast = !(`r(ok_astarget)')
 
@@ -1271,7 +1342,7 @@ end
 
 capture program drop parse_ok_astarget
 program parse_ok_astarget, rclass
-    syntax, sourcevar(varlist) targetvar(str) stat(str) [double weights]
+    syntax, sourcevar(varlist) targetvar(str) stat(str) sumtype(str) [double weights]
     local ok_astarget = 0
     local sourcetype  = "`:type `sourcevar''"
 
@@ -1285,11 +1356,11 @@ program parse_ok_astarget, rclass
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
     }
-    else if ( inlist("`stat'", "freq") & ( `=_N < maxlong()' ) ) {
+    else if ( inlist("`stat'", "freq", "nunique") & ( `=_N < maxlong()' ) ) {
         local targettype long
         local ok_astarget = inlist("`:type `sourcevar''", "long", "double")
     }
-    else if ( inlist("`stat'", "freq") & !( `=_N < maxlong()' ) ) {
+    else if ( inlist("`stat'", "freq", "nunique") & !( `=_N < maxlong()' ) ) {
         local targettype double
     }
     else if ( inlist("`stat'", "count") & (`=_N < maxlong()') & ("`weights'" == "") ) {
@@ -1299,11 +1370,31 @@ program parse_ok_astarget, rclass
     else if ( inlist("`stat'", "count") & !((`=_N < maxlong()') & ("`weights'" == "")) ) {
         local targettype double
     }
-    else if ( ("`stat'" == "sum") | ("`:type `sourcevar''" == "long") ) {
-        * Sums are double so we don't overflow. Floats can't handle some
-        * perations on long variables properly.
+    else if ( "`stat'" == "sum" ) {
+        * Sums are double so we don't overflow; however, if the
+        * user requested sumcheck we assign byte, int, and long the
+        * smallest possible type.
         local targettype double
         local ok_astarget = ("`:type `sourcevar''" == "double")
+        if ( !`ok_astarget' & ("`sumtype'" != "double") & ("`:type `sourcevar''" != "float") ) {
+            if ( ("`:type `sourcevar''" == "long") & inlist("`sumtype'", "byte", "int", "long") ) {
+                local ok_astarget = 1
+            }
+            else if ( ("`:type `sourcevar''" == "int") & inlist("`sumtype'", "byte", "int") ) {
+                local ok_astarget = 1
+            }
+            else if ( ("`:type `sourcevar''" == "byte") & inlist("`sumtype'", "byte") ) {
+                local ok_astarget = 1
+            }
+            else {
+                local ok_astarget = 0
+            }
+        }
+    }
+    else if ( "`:type `sourcevar''" == "long" ) {
+        * Some operations on long variables with target float can be
+        * inaccurate
+        local targettype double
     }
     else if inlist("`:type `sourcevar''", "double") {
         local targettype double

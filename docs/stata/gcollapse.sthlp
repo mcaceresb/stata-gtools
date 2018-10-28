@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.6 25Sep2018}{...}
+{* *! version 1.0.7 27Oct2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -119,6 +119,8 @@ user press {hi:Break}
 {synopt :{opt forcemem}}Use memory for writing/reading collapsed data.
 {p_end}
 {synopt :{opt double}}Generate all targets as doubles.
+{p_end}
+{synopt :{opt sumcheck}}Check whether byte, int, or long sum will overflow.
 {p_end}
 
 {syntab:Gtools}
@@ -251,6 +253,12 @@ be large {opt forcemem} will be faster.
 
 {phang}
 {opt double} stores data in double precision.
+
+{phang}
+{opt sumcheck} Check whether byte, int, or long sum will overflow.  By
+default sum targets are double; in this case, sum targets check the
+smallest integer type that will be suitable and only assigns a double if
+the sum would overflow.
 
 {dlgtab:Gtools}
 

@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.0.7 (2018-10-27)
+
+### Features
+
+- Added option `sumcheck` to create sum targers from integer source
+  as the smallest type that reasonable given the total sum.
+
+### Enhancements
+
+- Recast upgrade (bug fix from 1.0.5) now done per-variable.
+- Added about section to readme, with some plugs (good idea? bad idea?)
+
 ## gtools-1.0.6 (2018-09-25)
 
 ### Enhancements

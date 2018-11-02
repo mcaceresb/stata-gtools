@@ -8,6 +8,7 @@ Change Log
 - `gisid` no longer gives wrong results when the data is partially
   ordered. Partially (weakly) sorted data would be incorrectly counted
   as totally sorted.
+- Closes #45
 
 ## gtools-1.0.7 (2018-10-27)
 
@@ -15,6 +16,7 @@ Change Log
 
 - Added option `sumcheck` to create sum targers from integer source
   as the smallest type that reasonable given the total sum.
+- Closes #44
 
 ### Enhancements
 

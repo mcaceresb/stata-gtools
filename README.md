@@ -338,6 +338,7 @@ Differences from `collapse`
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
 - `gcollapse, missing` outputs a missing value for sums if all inputs are missing.
+- `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -477,16 +478,16 @@ ETA for them:
 About
 -----
 
-Hi! I'm [Mauricio Caceres Bravo](https://mcaceresb.github.io); I made gtools
+Hi! I'm [Mauricio Caceres](https://mcaceresb.github.io); I made gtools
 after some of my Stata jobs were taking literally days to run because of repeat
 calls to `egen`, `collapse`, and similar on data with over 100M rows.  Feedback
 and comments are welcome! I hope you find this package as useful as I do.
 
-Along those lines, here are some other Stata projects I find useful:
+Along those lines, here are some other Stata projects I like:
 
 * [`ftools`](https://github.com/sergiocorreia/ftools): The main inspiration for
   gtools. Not as fast, but it has a rich feature set; its mata API in
-  particular is very useful.
+  particular is excellent.
 
 * [`reghdfe`](https://github.com/sergiocorreia/reghdfe): The fastest way to run
   a regression with multiple fixed effects (as far as I know).

@@ -1,9 +1,9 @@
-*! version 1.0.7 27Oct2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.0 02Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
 program gtools
-    version 13.1
+    version 13.2.0
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
     else local c_os_: di lower("`c(os)'")

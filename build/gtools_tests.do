@@ -643,6 +643,41 @@ program checks_corners
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
     * https://github.com/mcaceresb/stata-gtools/issues/45
+    qui {
+        clear
+        set obs 5
+        gen long id1 = 0
+        gen int id2  = 0
+        replace id1 = 3 in 1
+        replace id1 = 3 in 2
+        replace id1 = 9 in 3
+        replace id1 = 4 in 4
+        replace id1 = 9 in 5
+        replace id2 = 6 in 1
+        replace id2 = 7 in 2
+        replace id2 = 1 in 3
+        replace id2 = 1 in 4
+        replace id2 = 1 in 5
+        gen id3 = _n
+        tostring id1 id2, gen(sid1 sid2)
+        cap noi gisid id1 id2, v
+        assert _rc == 459
+        cap noi gisid sid1 sid2, v
+        assert _rc == 459
+
+        sort id1 id2
+        cap noi gisid id1 id2, v
+        assert _rc == 459
+        sort sid1 sid2
+        cap noi gisid sid1 sid2, v
+        assert _rc == 459
+
+        gen sid3 = string(_n)
+        cap noi gisid id1 id2 id3, v
+        assert _rc == 0
+        cap noi gisid sid1 sid2 sid3, v
+        assert _rc == 0
+    }
 
     * https://github.com/mcaceresb/stata-gtools/issues/44
     qui {

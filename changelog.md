@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.1.0 (2018-11-02)
+
+### Bug fixes
+
+- `gisid` no longer gives wrong results when the data is partially
+  ordered. Partially (weakly) sorted data would be incorrectly counted
+  as totally sorted.
+
 ## gtools-1.0.7 (2018-10-27)
 
 ### Features

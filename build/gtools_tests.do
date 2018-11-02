@@ -642,6 +642,8 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * https://github.com/mcaceresb/stata-gtools/issues/45
+
     * https://github.com/mcaceresb/stata-gtools/issues/44
     qui {
         * 1. byte, int, long upgraded to int, long, double

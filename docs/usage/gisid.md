@@ -6,8 +6,9 @@ option to Stata's isid. It checks whether a set of variables uniquely
 identifies observations in a dataset. It can additionally take `if` and
 `in` but it cannot check an external data set or sort the data.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

@@ -85,7 +85,6 @@ todo   = base
 if "base" in args['set']:
     callok = True
 
-todo   = main
 if "main" in args['set']:
     todo += main
     callok = True

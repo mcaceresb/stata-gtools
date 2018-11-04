@@ -75,7 +75,7 @@ program checks_inner_isid
 
     preserve
     sort `varlist'
-    cap gisid `varlist' ix, `options' v bench missok
+    cap noi gisid `varlist' ix, `options' v bench missok
     assert _rc == 0
 
     qui replace ix  = _n

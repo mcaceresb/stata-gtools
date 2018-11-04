@@ -12,8 +12,9 @@ Note that for sub-commands `examples` and `list` the output is _**NOT**_
 sorted by default. To mimic duplicates entirely, pass option `sorted`
 when using those sub-commands.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

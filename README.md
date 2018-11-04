@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/stable-v1.0.5-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.1.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -24,7 +24,7 @@ Faster Stata for Big Data
 
 This package provides a fast implementation of various Stata commands
 using hashes and C plugins. The syntax and purpose is largely
-analogous to their stata counterparts: For example, you can replace
+analogous to their Stata counterparts: For example, you can replace
 `collapse` with `gcollapse`, `egen` with `gegen`, and so on. For a
 comprehensive list of differences (including some extra features!)
 see the [remarks](#remarks) below; for details and examples see [the
@@ -35,7 +35,6 @@ __*Quickstart*__
 ```stata
 ssc install gtools
 gtools, upgrade
-help gtools
 ```
 
 __*Gtools commands with a Stata equivalent*__
@@ -52,8 +51,8 @@ __*Gtools commands with a Stata equivalent*__
 |              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
 |              | \_pctile   |  25 to 40 / 3 to 5       |                 | Ibid.                                   |
 
-<small>(+) The upper end of the speed improvements for gcollapse are for
-quantiles (e.g. median, iqr, p90) and few groups. Weights have not been
+<small>(+) The upper end of the speed improvements are for quantiles
+(e.g. median, iqr, p90) and few groups. Weights have not been
 benchmarked.</small>
 
 <small>(.) Only gegen group was benchmarked rigorously.</small>
@@ -61,7 +60,7 @@ benchmarked.</small>
 <small>(-) Benchmarks computed 10 quantiles. When computing a large
 number of quantiles (e.g. thousands) `pctile` and `xtile` are prohibitively
 slow due to the way they are written; in that case gquantiles is hundreds
-or thousands of times faster.</small>
+or thousands of times faster, but this is an edge case.</small>
 
 __*Extra commands*__
 
@@ -153,11 +152,10 @@ __*Limitations*__
   issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
 - Gtools uses compiled C code to achieve it's massive increases in
-  speed. This has two effects users might notice: First, it is sometimes
-  not possible to break the program's execution.  While this is already
-  true for at least some parts of most Stata commands, there are fewer
-  opportunities to break Gtools commands relative to their Stata
-  counterparts.
+  speed. This has two side-effects users might notice: First, it is sometimes
+  not possible to break the program's execution.  While this is already true
+  for at least some parts of most Stata commands, there are fewer opportunities
+  to break Gtools commands relative to their Stata counterparts.
 
   Second, the Stata GUI might appear frozen when running Gtools
   commands.  If the system then runs out of RAM (memory), it could look
@@ -184,10 +182,6 @@ I only have access to Stata 13.1, so I impose that to be the minimum.
 You can install `gtools` from Stata via SSC:
 ```stata
 ssc install gtools
-```
-
-To upgrade to the latest (github) version, type
-```stata
 gtools, upgrade
 ```
 
@@ -279,11 +273,15 @@ Stata counterparts. The following are implemented internally in C:
 | total       |           |   X     |
 | nunique     |     X     |   X     |
 | sum         |     X     |   X     |
+| nansum      |     X     |   X     |
+| rawsum      |     X     |         |
+| rawnansum   |     X     |         |
 | mean        |     X     |   X     |
 | sd          |     X     |   X     |
 | max         |     X     |   X     |
 | min         |     X     |   X     |
 | count       |     X     |   X     |
+| nmissing    |     X     |   X     |
 | median      |     X     |   X     |
 | iqr         |     X     |   X     |
 | percent     |     X     |   X     |
@@ -333,9 +331,10 @@ __*Differences and Extras*__
 
 Differences from `collapse`
 
-- String variables are nor allowed for `first`, `last`, `min`, `max`, etc.
+- String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `nunique` is supported.
+- `nmissing` is supported.
 - `rawstat` allows selectively applying weights.
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
@@ -343,7 +342,9 @@ Differences from `collapse`
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
-- `gcollapse, missing` outputs a missing value for sums if all inputs are missing.
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
+  value for sums if all inputs are missing (instead of 0).
+- `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -466,9 +467,6 @@ ETA for them:
 - [ ] Minimize memory use.
 - [ ] Improve debugging info.
 - [ ] Improve code comments when you write the API!
-- [ ] Add option to control how to treat missing values in gcollapse
-    - [ ] anymissing()
-    - [ ] allmissing()
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
@@ -478,7 +476,30 @@ ETA for them:
 - [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Clean exit from `gcollapse`, `gegen` on error.
 - [ ] Print # of missings for gegen
-- [ ] Add "Open Source Licenses" section
+- [X] Add "Open Source Licenses" section
+
+About
+-----
+
+Hi! I'm [Mauricio Caceres](https://mcaceresb.github.io); I made gtools
+after some of my Stata jobs were taking literally days to run because of repeat
+calls to `egen`, `collapse`, and similar on data with over 100M rows.  Feedback
+and comments are welcome! I hope you find this package as useful as I do.
+
+Along those lines, here are some other Stata projects I like:
+
+* [`ftools`](https://github.com/sergiocorreia/ftools): The main inspiration for
+  gtools. Not as fast, but it has a rich feature set; its mata API in
+  particular is excellent.
+
+* [`reghdfe`](https://github.com/sergiocorreia/reghdfe): The fastest way to run
+  a regression with multiple fixed effects (as far as I know).
+
+* [`ivreghdfe`](https://github.com/sergiocorreia/ivreghdfe): A combination of
+  [`ivreg2`](https://ideas.repec.org/c/boc/bocode/s425401.html) and `reghdfe`.
+
+* [`stata_kernel`](https://kylebarron.github.io/stata_kernel): A Stata kernel
+  for Jupyter; extremely useful for interacting with Stata.
 
 License
 -------

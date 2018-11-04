@@ -256,6 +256,9 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                 else if ( statcode[k] == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
+                else if ( statcode[k] == -22 ) { // nmissing
+                    output[offset_output + k] = nj - end;
+                }
                 else if ( statcode[k] == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
@@ -299,11 +302,11 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     ) ) return (rc);
                 }
                 else if ( end == 0 ) { // no obs
-                    // If everything is missing, write a missing value, Except
-                    // for sums, which go to 0 for some reason (this is the
-                    // behavior of collapse), and min/max (which pick out the
-                    // min/max missing value).
-                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
+                    // If everything is missing, write a missing value, Except for
+                    // sum and rawsum, which go to 0 for some frankly bizarre reason
+                    // (this is the behavior of collapse), and min/max (which pick
+                    // out the min/max missing value).
+                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
@@ -576,6 +579,9 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                 else if ( statcode[k] == -14 ) { // freq
                     output[offset_output + k] = nj * ksources;
                 }
+                else if ( statcode[k] == -22 ) { // nmissing
+                    output[offset_output + k] = nj * ksources - end;
+                }
                 else if ( statcode[k] == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
@@ -620,11 +626,11 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     ) ) return (rc);
                 }
                 else if ( end == 0 ) { // no obs
-                    // If everything is missing, write a missing value, Except
-                    // for sums, which go to 0 for some reason (this is the
-                    // behavior of collapse), and min/max (which pick out the
-                    // min/max missing value).
-                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
+                    // If everything is missing, write a missing value, Except for
+                    // sum and rawsum, which go to 0 for some frankly bizarre reason
+                    // (this is the behavior of collapse), and min/max (which pick
+                    // out the min/max missing value).
+                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
                     else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max

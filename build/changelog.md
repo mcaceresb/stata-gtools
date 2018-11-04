@@ -1,6 +1,51 @@
 Change Log
 ==========
 
+## gtools-1.1.0 (2018-11-02)
+
+### Features
+
+- `gcollapse (nmissing)` counts the number of missing values (weights
+  allowed).
+
+### Enhancements
+
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` preserve missing
+  value (NaN) information: If all entries are missing, the output is also
+  missing (instead of 0). This is a more flexible version of the previous
+  implementation, `gcollapse, missing`.
+
+### Bug fixes
+
+- `gisid` no longer gives wrong results when the data is partially
+  ordered. Partially (weakly) sorted data would be incorrectly counted
+  as totally sorted.
+- `gcollapse (rawsum)` gives 0 if all entries are missing.
+- `gcollapse` and `gegen` correctly parse types with weights for counts
+  and sums. This includes `gcollapse, sumcheck`
+- Closes #45
+- Closes #46
+- Closes #47
+
+## gtools-1.0.7 (2018-10-27)
+
+### Features
+
+- Added option `sumcheck` to create sum targers from integer source
+  as the smallest type that reasonable given the total sum.
+- Closes #44
+
+### Enhancements
+
+- Recast upgrade (bug fix from 1.0.5) now done per-variable.
+- Added about section to readme, with some plugs (good idea? bad idea?)
+
+## gtools-1.0.6 (2018-09-25)
+
+### Enhancements
+
+- All the help files (and the readme) ask the user to run `gtools, upgrade`
+
 ## gtools-1.0.5 (2018-09-20)
 
 ### Bug fixes

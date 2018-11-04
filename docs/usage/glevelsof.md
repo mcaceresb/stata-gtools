@@ -7,8 +7,9 @@ glevelsof displays a sorted list of the distinct values of varlist.  It is
 meant to be a fast replacement of levelsof. Unlike levelsof, it can take a
 single variable or multiple variables.
 
-_Note for Windows users:_ It may be necessary to run `gtools, dependencies` at
-the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
+stable version.  _Windows users:_ If the plugin fails to load, please run
+`gtools, dependencies` at the start of your Stata session.
 
 Syntax
 ------

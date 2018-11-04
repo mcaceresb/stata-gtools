@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.5 20Sep2018}{...}
+{* *! version 1.1.0 03Nov2018}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -14,8 +14,9 @@ make dataset of summary statistics using C.{p_end}
 {p2colreset}{...}
 
 {pstd}
-{it:Note for Windows users}: It may be necessary to run
-{opt gtools, dependencies} at the start of your Stata session.
+{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
+the latest stable version.  {it:Windows users:} If the plugin fails to load,
+please run {stata gtools, dependencies} at the start of your Stata session.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -61,6 +62,8 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
 {p2col :{opt sum}}sums{p_end}
 {p2col :{opt rawsum}}sums, ignoring optionally specified weight except observations with a weight of zero are excluded{p_end}
+{p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
 {p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
 {p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
@@ -68,6 +71,7 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt skewness}}Skewness{p_end}
 {p2col :{opt kurtosis}}Kurtosis{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
+{p2col :{opt nmissing}}number of missing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt max}}maximums{p_end}
 {p2col :{opt min}}minimums{p_end}
@@ -95,8 +99,6 @@ user press {hi:Break}
 {syntab:Extras}
 {synopt :{opth rawstat(varlist)}}Sequence of target names for which to ignore weights.
 {p_end}
-{synopt :{opt missing}}Sums are set to missing when all inputs in group are also missing.
-{p_end}
 {synopt :{opt merge}}Merge statistics back to original data, replacing if applicable.
 {p_end}
 {synopt :{opt wild:parse}}Allow rename-style syntax in target naming
@@ -118,6 +120,8 @@ user press {hi:Break}
 {synopt :{opt forcemem}}Use memory for writing/reading collapsed data.
 {p_end}
 {synopt :{opt double}}Generate all targets as doubles.
+{p_end}
+{synopt :{opt sumcheck}}Check whether byte, int, or long sum will overflow.
 {p_end}
 
 {syntab:Gtools}
@@ -187,10 +191,6 @@ for each individual target (if no target is specified, the source
 variable name is what we call target).
 
 {phang}
-{opt missing} Sums are set to missing (instead of 0) when all input
-values within a group are also missing.
-
-{phang}
 {opt merge} merges the collapsed data back to the original data set.
 Note that if you want to replace the source variable(s) then you need
 to specify {opt replace}.
@@ -250,6 +250,12 @@ be large {opt forcemem} will be faster.
 
 {phang}
 {opt double} stores data in double precision.
+
+{phang}
+{opt sumcheck} Check whether byte, int, or long sum will overflow.  By
+default sum targets are double; in this case, sum targets check the
+smallest integer type that will be suitable and only assigns a double if
+the sum would overflow.
 
 {dlgtab:Gtools}
 
@@ -367,7 +373,7 @@ for examples.
 {marker author}{...}
 {title:Author}
 
-{pstd}Mauricio Caceres{p_end}
+{pstd}Mauricio Caceres Bravo{p_end}
 {pstd}{browse "mailto:mauricio.caceres.bravo@gmail.com":mauricio.caceres.bravo@gmail.com }{p_end}
 {pstd}{browse "https://mcaceresb.github.io":mcaceresb.github.io}{p_end}
 

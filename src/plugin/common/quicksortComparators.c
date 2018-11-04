@@ -15,16 +15,25 @@ int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
     return (1);
 }
 
-
 int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
 int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
 {
-    int rc;
+    int sorted = -1, strict = 1;
 	char *pm;
     for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
-        if ( (rc = cmp(pm, pm - es, thunk)) <= 0 ) return (rc);
+        // If -1, then it is for sure not sorted; if 1 then it is sorted
+        // in strict order. If 0 then it might be sorted in weak order.
+        sorted = cmp(pm, pm - es, thunk);
+        if ( sorted < 0 ) {
+            return (sorted);
+        }
+        else if ( sorted == 0 ) {
+            strict = 0;
+        }
     }
-    return (1);
+    // If the function exited, then rc >= 0 for all i, which means
+    // that it is either strictly or weakly sorted.
+    return (strict && sorted);
 }
 
 /*********************************************************************

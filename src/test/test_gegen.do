@@ -132,6 +132,26 @@ program checks_gegen
     gegen z = sum(x) [w = w]
     drop z
     gegen z = sum(x) [w = w] if w == 3.14
+
+    clear
+    set obs 10
+    gen byte x = _n
+    replace x = . in 1/5
+    gen y = mi(x)
+    gegen s = nansum(x)    , by(y)
+    gegen ns = sum(x)      , by(y)
+    gegen nm = nmissing(x) , by(y)
+    gegen f_s = nansum(x)    [fw = 1314], by(y)
+    gegen f_ns = sum(x)      [fw = 1314], by(y)
+    gegen f_nm = nmissing(x) [fw = 1314], by(y)
+    gegen a_s = nansum(x)    [aw = 13.14], by(y)
+    gegen a_ns = sum(x)      [aw = 13.14], by(y)
+    gegen a_nm = nmissing(x) [aw = 13.14], by(y)
+    gegen p_s = nansum(x)    [pw = 987654321], by(y)
+    gegen p_ns = sum(x)      [pw = 987654321], by(y)
+    gegen p_nm = nmissing(x) [pw = 987654321], by(y)
+    assert cond(mi(x), mi(s) & mi(f_s) & mi(a_s), !mi(s) & !mi(f_s) & !mi(a_s))
+    assert cond(mi(x), (nm == 5) & (a_nm == 5) & (f_nm == 5 * 1314) & (p_nm == 5 * 987654321), (nm == 0) & (a_nm == 0) & (f_nm == 0) & (p_nm == 0))
 end
 
 capture program drop checks_inner_egen
@@ -142,7 +162,7 @@ program checks_inner_egen
     syntax [anything] [aw fw iw pw], [*]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson

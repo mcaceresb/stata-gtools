@@ -23,20 +23,22 @@ ST_double gf_switch_fun_code_unw (
     GT_size vcount,
     ST_double *p_buffer)
 {
-         if ( fcode == -1  )  return (gf_array_drawsum_weighted    (v, N));                          // sum
-    else if ( fcode == -2  )  return (gf_array_dmean_unweighted    (v, N));                          // mean
-    else if ( fcode == -3  )  return ((vcount > 1)? gf_array_dsd_unweighted (v, N): SV_missval);     // sd)
-    else if ( fcode == -4  )  return (gf_array_dmax_weighted       (v, N));                          // max
-    else if ( fcode == -5  )  return (gf_array_dmin_range          (v, 0, N));                       // min
-    else if ( fcode == -9  )  return (gf_array_diqr_unweighted     (v, N, p_buffer));                // iqr
-    else if ( fcode == -15 )  return ((vcount > 1)? gf_array_dsemean_unweighted (v, N): SV_missval); // semean
-    else if ( fcode == -16 )  return (gf_array_dsebinom_unweighted (v, N));                          // sebinomial
-    else if ( fcode == -17 )  return (gf_array_dsepois_unweighted  (v, N));                          // sepoisson
-    else if ( fcode == -19 )  return (gf_array_dskew_unweighted    (v, N));                          // skewness
-    else if ( fcode == -20 )  return (gf_array_dkurt_unweighted    (v, N));                          // kurtosis
-    else if ( fcode == -21 )  return (gf_array_drawsum_weighted    (v, N));                          // rawsum
+         if ( fcode == -1   ) return (gf_array_drawsum_weighted    (v, N));                          // sum
+    else if ( fcode == -101 ) return (gf_array_drawsum_weighted    (v, N));                          // sum (keepmissing)
+    else if ( fcode == -2   ) return (gf_array_dmean_unweighted    (v, N));                          // mean
+    else if ( fcode == -3   ) return ((vcount > 1)? gf_array_dsd_unweighted (v, N): SV_missval);     // sd)
+    else if ( fcode == -4   ) return (gf_array_dmax_weighted       (v, N));                          // max
+    else if ( fcode == -5   ) return (gf_array_dmin_range          (v, 0, N));                       // min
+    else if ( fcode == -9   ) return (gf_array_diqr_unweighted     (v, N, p_buffer));                // iqr
+    else if ( fcode == -15  ) return ((vcount > 1)? gf_array_dsemean_unweighted (v, N): SV_missval); // semean
+    else if ( fcode == -16  ) return (gf_array_dsebinom_unweighted (v, N));                          // sebinomial
+    else if ( fcode == -17  ) return (gf_array_dsepois_unweighted  (v, N));                          // sepoisson
+    else if ( fcode == -19  ) return (gf_array_dskew_unweighted    (v, N));                          // skewness
+    else if ( fcode == -20  ) return (gf_array_dkurt_unweighted    (v, N));                          // kurtosis
+    else if ( fcode == -21  ) return (gf_array_drawsum_weighted    (v, N));                          // rawsum
+    else if ( fcode == -121 ) return (gf_array_drawsum_weighted    (v, N));                          // rawsum (keepmissing)
     else {
-        return (gf_array_dquantile_unweighted(v, N, fcode, p_buffer));                // percentiles
+        return (gf_array_dquantile_unweighted(v, N, fcode, p_buffer));  // percentiles
     }
 }
 

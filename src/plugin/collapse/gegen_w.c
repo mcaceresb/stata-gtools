@@ -260,6 +260,19 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                 else if ( statcode[k] == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
+                else if ( statcode[k] == -22 ) { // nmissing
+                    // count number missing; freq - count only with aweights
+                    if ( aweights )  {
+                        output[offset_output + k] = nj - all_xcount[startw];
+                    }
+                    else {
+                        output[offset_output + k] = gf_array_dnmissing_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight
+                        );
+                    }
+                }
                 else if ( statcode[k] == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
@@ -299,11 +312,11 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     ) ) return (rc);
                 }
                 else if ( endwraw == SV_missval ) { // all missing values
-                    // If everything is missing, write a missing value, Except
-                    // for sums, which go to 0 for some reason (this is the
-                    // behavior of collapse), and min/max (which pick out the
-                    // min/max missing value).
-                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
+                    // If everything is missing, write a missing value, Except for
+                    // sum and rawsum, which go to 0 for some frankly bizarre reason
+                    // (this is the behavior of collapse), and min/max (which pick
+                    // out the min/max missing value).
+                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
                     else if ( statcode[k] == -4 ) { // max
@@ -380,6 +393,19 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                 else if ( statcode[k] == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
+                else if ( statcode[k] == -22 ) { // nmissing
+                    // count number missing; freq - count only with aweights or with wselmat
+                    if ( st_info->wselmat[k] || aweights )  {
+                        output[offset_output + k] = nj - all_xcount[startw];
+                    }
+                    else {
+                        output[offset_output + k] = gf_array_dnmissing_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight
+                        );
+                    }
+                }
                 else if ( statcode[k] == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
@@ -419,11 +445,11 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     ) ) return (rc);
                 }
                 else if ( endwraw == SV_missval ) { // all missing values
-                    // If everything is missing, write a missing value, Except
-                    // for sums, which go to 0 for some reason (this is the
-                    // behavior of collapse), and min/max (which pick out the
-                    // min/max missing value).
-                    if ( (statcode[k] == -1) & (st_info->keepmiss == 0) ) { // sum
+                    // If everything is missing, write a missing value, Except for
+                    // sum and rawsum, which go to 0 for some frankly bizarre reason
+                    // (this is the behavior of collapse), and min/max (which pick
+                    // out the min/max missing value).
+                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
                     else if ( statcode[k] == -4 ) { // max

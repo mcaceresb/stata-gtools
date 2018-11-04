@@ -42,6 +42,8 @@ or any combination of the varlist or target_var forms, and stat is one of
 | p99        | 99th percentile
 | sum        | sums
 | rawsum     | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
+| nansum     | sum; returns . instead of 0 if all entries are missing
+| rawnansum  | rawsum; returns . instead of 0 if all entries are missing
 | sd         | standard deviation
 | semean     | standard error of the mean (sd/sqrt(n))
 | sebinomial | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
@@ -49,6 +51,7 @@ or any combination of the varlist or target_var forms, and stat is one of
 | skewness   | Skewness
 | kurtosis   | Kurtosis
 | count      | number of nonmissing observations
+| nmissing   | number of missing observations
 | percent    | percentage of nonmissing observations
 | max        | maximums
 | min        | minimums
@@ -87,9 +90,6 @@ Options
         are excluded. This is a generalization of rawsum, but it is
         specified for each individual target (if no target is specified,
         the source variable name is what we call target).
-
-- `missing` Sums are set to missing (instead of 0) when all input values within
-          a group are also missing.
 
 - `merge` merges the collapsed data back to the original data set.  Note that
           if you want to replace the source or target variable(s) then you need

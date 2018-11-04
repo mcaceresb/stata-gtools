@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Sep 20 12:18:29 EDT 2018
+* Updated: Sat Nov  3 17:09:17 EDT 2018
 * Purpose: Unit tests for gtools
-* Version: 1.0.5
+* Version: 1.1.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -583,6 +583,64 @@ program checks_gcollapse
     * gcollapse __000000 = x __000001 = x __000002 = x,         merge by(y)
     * gcollapse __000000 = x __000001 = x __000002 = x if 1,    merge by(y)
     * gcollapse __000000 = x __000001 = x __000002 = x [w = y], merge by(y)
+
+    clear
+    set obs 10
+    gen byte x = _n
+    replace x = . in 1/5
+    gen y = mi(x)
+    preserve
+        gcollapse (nmissing) nm = x ///
+                  (sum) s = x       ///
+                  (rawsum) rs = x   ///
+                  (nansum) ns = x   ///
+                  (rawnansum) rns = x, by(y)
+        l
+        assert !mi(s) & !mi(rs)
+        assert  mi(ns[2]) &  mi(rns[2])
+        assert !mi(ns[1]) & !mi(rns[1])
+        assert (nm[1] == 0) & (nm[2] == 5)
+    restore, preserve
+        gcollapse (nmissing) nm = x ///
+                  (sum) s = x       ///
+                  (rawsum) rs = x   ///
+                  (nansum) ns = x   ///
+                  (rawnansum) rns = x [fw = 9123], by(y)
+        assert !mi(s) & !mi(rs)
+        assert  mi(ns[2]) &  mi(rns[2])
+        assert !mi(ns[1]) & !mi(rns[1])
+        assert (nm[1] == 0) & (nm[2] == 5 * 9123)
+    restore, preserve
+        gcollapse (nmissing) nm = x ///
+                  (sum) s = x       ///
+                  (rawsum) rs = x   ///
+                  (nansum) ns = x   ///
+                  (rawnansum) rns = x [pw = 987654321], by(y)
+        assert !mi(s) & !mi(rs)
+        assert  mi(ns[2]) &  mi(rns[2])
+        assert !mi(ns[1]) & !mi(rns[1])
+        assert (nm[1] == 0) & (nm[2] == 5 * 987654321)
+    restore, preserve
+        gcollapse (nmissing) nm = x ///
+                  (sum) s = x       ///
+                  (rawsum) rs = x   ///
+                  (nansum) ns = x   ///
+                  (rawnansum) rns = x [aw = 2323.412], by(y)
+        assert !mi(s) & !mi(rs)
+        assert  mi(ns[2]) &  mi(rns[2])
+        assert !mi(ns[1]) & !mi(rns[1])
+        assert (nm[1] == 0) & (nm[2] == 5)
+    restore
+    gcollapse (nmissing) nm = x ///
+              (sum) s = x       ///
+              (rawsum) rs = x   ///
+              (nansum) ns = x   ///
+              (rawnansum) rns = x, by(y) missing
+    assert s == ns
+    assert rs == rns
+    assert  mi(ns[2]) &  mi(rns[2])
+    assert !mi(ns[1]) & !mi(rns[1])
+    assert (nm[1] == 0) & (nm[2] == 5)
 end
 
 capture program drop checks_inner_collapse
@@ -593,7 +651,7 @@ program checks_inner_collapse
     syntax [anything] [aw fw iw pw], [*]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local stats nunique sum mean max min count percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean max min count percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -698,6 +756,7 @@ program checks_corners
         gen long    l2 = maxlong()
         gen float   f2 = maxfloat()
         gen double  d2 = maxdouble()
+
         preserve
             gcollapse (sum) *
             foreach var of varlist * {
@@ -743,6 +802,17 @@ program checks_corners
             assert "`:type s_l1'" == "byte"
             assert "`:type s_b2'" == "int"
             assert "`:type s_i2'" == "long"
+        restore, preserve
+            gcollapse (sum) b1 [fw = i2], sumcheck
+            assert "`:type b1'" == "long"
+        restore, preserve
+            gcollapse (sum) b1 [fw = d2], sumcheck
+            assert "`:type b1'" == "double"
+        restore, preserve
+            gen n = _n
+            gcollapse (sum) b1 [fw = d2], by(n) sumcheck
+            assert "`:type b1'" == "double"
+            assert b1 == maxdouble()
         restore
     }
 
@@ -1128,7 +1198,7 @@ program _compare_inner_gcollapse_gegen
     local options  `options_'
 
     local sestats
-    local stats nunique sum mean max min percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean max min percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd
         local sestats `sestats' sd
@@ -1144,24 +1214,25 @@ program _compare_inner_gcollapse_gegen
 
     gegen id = group(`anything'), missing
 
-    gegen double nunique = nunique (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double percent = percent (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double mean    = mean    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double sum     = sum     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double median  = median  (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double min     = min     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double max     = max     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double iqr     = iqr     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double first   = first   (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double last    = last    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double firstnm = firstnm (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double lastnm  = lastnm  (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double skew    = skew    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double kurt    = kurt    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double q10     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(10.5)
-    gegen double q30     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(30)
-    gegen double q70     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(70)
-    gegen double q90     = pctile  (random1) `ifin' `wgt_ge',  by(`anything') p(90.5)
+    gegen double nmissing = nmissing (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double nunique  = nunique  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double percent  = percent  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double mean     = mean     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double sum      = sum      (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double median   = median   (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double min      = min      (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double max      = max      (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double iqr      = iqr      (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double first    = first    (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double last     = last     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double firstnm  = firstnm  (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double lastnm   = lastnm   (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double skew     = skew     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double kurt     = kurt     (random1) `ifin' `wgt_ge',  by(`anything')
+    gegen double q10      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(10.5)
+    gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(30)
+    gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(70)
+    gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(90.5)
 
     local gextra
     foreach extra of local sestats {
@@ -1170,7 +1241,8 @@ program _compare_inner_gcollapse_gegen
     }
 
     qui `noisily' {
-        gcollapse (nunique)    g_nunique    = random1 ///
+        gcollapse (nmissing)   g_nmissing   = random1 ///
+                  (nunique)    g_nunique    = random1 ///
                   (percent)    g_percent    = random1 ///
                   (mean)       g_mean       = random1 ///
                   (sum)        g_sum        = random1 ///
@@ -4333,6 +4405,26 @@ program checks_gegen
     gegen z = sum(x) [w = w]
     drop z
     gegen z = sum(x) [w = w] if w == 3.14
+
+    clear
+    set obs 10
+    gen byte x = _n
+    replace x = . in 1/5
+    gen y = mi(x)
+    gegen s = nansum(x)    , by(y)
+    gegen ns = sum(x)      , by(y)
+    gegen nm = nmissing(x) , by(y)
+    gegen f_s = nansum(x)    [fw = 1314], by(y)
+    gegen f_ns = sum(x)      [fw = 1314], by(y)
+    gegen f_nm = nmissing(x) [fw = 1314], by(y)
+    gegen a_s = nansum(x)    [aw = 13.14], by(y)
+    gegen a_ns = sum(x)      [aw = 13.14], by(y)
+    gegen a_nm = nmissing(x) [aw = 13.14], by(y)
+    gegen p_s = nansum(x)    [pw = 987654321], by(y)
+    gegen p_ns = sum(x)      [pw = 987654321], by(y)
+    gegen p_nm = nmissing(x) [pw = 987654321], by(y)
+    assert cond(mi(x), mi(s) & mi(f_s) & mi(a_s), !mi(s) & !mi(f_s) & !mi(a_s))
+    assert cond(mi(x), (nm == 5) & (a_nm == 5) & (f_nm == 5 * 1314) & (p_nm == 5 * 987654321), (nm == 0) & (a_nm == 0) & (f_nm == 0) & (p_nm == 0))
 end
 
 capture program drop checks_inner_egen
@@ -4343,7 +4435,7 @@ program checks_inner_egen
     syntax [anything] [aw fw iw pw], [*]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats nunique total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -6147,26 +6239,33 @@ end
 capture program drop checks_inner_isid
 program checks_inner_isid
     syntax varlist, [*]
+disp "debug1"
     cap gisid `varlist', `options' v bench missok
     assert _rc == 459
 
+disp "debug2"
     cap gisid `varlist' in 1, `options' missok
     assert _rc == 0
 
+disp "debug3"
     cap gisid `varlist' if _n == 1, `options' missok
     assert _rc == 0
 
+disp "debug4"
     cap gisid `varlist' if _n < 10 in 5, `options' missok
     assert _rc == 0
 
+disp "debug5"
     cap gisid ix `varlist', `options' v bench missok
     assert _rc == 0
 
+disp "debug6"
     preserve
     sort `varlist'
-    cap gisid `varlist' ix, `options' v bench missok
+    cap noi gisid `varlist' ix, `options' v bench missok
     assert _rc == 0
 
+disp "debug7"
     qui replace ix  = _n
     qui replace ix  = 1 in 1/2
     qui replace ind = 1 in 3/4
@@ -7096,5 +7195,3 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
-main, `0'

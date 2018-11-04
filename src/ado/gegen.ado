@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.0 03Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -81,6 +81,7 @@ program define gegen, byable(onecall) rclass
                 group      ///
                 total      ///
                 sum        ///
+                nansum     ///
                 mean       ///
                 sd         ///
                 max        ///
@@ -98,6 +99,7 @@ program define gegen, byable(onecall) rclass
                 sepoisson  ///
                 pctile     ///
                 nunique    ///
+                nmissing   ///
                 skewness   ///
                 kurtosis
 
@@ -248,6 +250,7 @@ program define gegen, byable(onecall) rclass
 
 		local wgt `"[`weight'=`w']"'
         local weights weights(`weight' `w')
+        local anywgt anywgt
 
         mark `touse' `if' `in' `wgt'
         local ifin if `touse' `in'
@@ -255,6 +258,7 @@ program define gegen, byable(onecall) rclass
     else {
 		local wgt
         local weights
+        local anywgt
         local ifin `if' `in'
     }
 
@@ -528,7 +532,7 @@ program define gegen, byable(onecall) rclass
 
     * if ( ("`addvar'" != "") & `retype' ) {
     if ( `retype' ) {
-        parse_target_type `sources', fcn(`ofcn') sametype(`sametype')
+        parse_target_type `sources', fcn(`ofcn') sametype(`sametype') `anywgt'
         local type = "`r(retype)'"
         local addvar qui mata: st_addvar("`type'", "`dummy'")
     }
@@ -704,7 +708,7 @@ end
 
 capture program drop parse_target_type
 program parse_target_type, rclass
-    syntax varlist, fcn(str) sametype(int)
+    syntax varlist, fcn(str) sametype(int) [anywgt]
 
     gettoken var restvars: varlist
 
@@ -728,13 +732,14 @@ program parse_target_type, rclass
     if ( "`maxtype'" == "double" ) local retype_B double
     else local retype_B: set type
 
-    if ( `=_N < maxlong()' ) local retype_C long
+    if ( `=_N < maxlong()' & ("`anywgt'" == "") ) local retype_C long
     else local retype_C double
 
     if ( "`fcn'" == "tag"        ) return local retype = "byte"
     if ( "`fcn'" == "group"      ) return local retype = "`retype_C'"
     if ( "`fcn'" == "total"      ) return local retype = "double"
     if ( "`fcn'" == "sum"        ) return local retype = "double"
+    if ( "`fcn'" == "nansum"     ) return local retype = "double"
     if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
     if ( "`fcn'" == "max"        ) return local retype = "`retype_A'"
@@ -752,6 +757,7 @@ program parse_target_type, rclass
     if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
     if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
     if ( "`fcn'" == "nunique"    ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "nmissing"   ) return local retype = "`retype_C'"
     if ( "`fcn'" == "skewness"   ) return local retype = "`retype_B'"
     if ( "`fcn'" == "kurtosis"   ) return local retype = "`retype_B'"
 end

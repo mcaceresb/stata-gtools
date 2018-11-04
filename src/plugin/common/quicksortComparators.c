@@ -15,7 +15,6 @@ int gf_is_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
     return (1);
 }
 
-
 int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk);
 int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
 {
@@ -24,10 +23,11 @@ int gf_isid_sorted (void *a, GT_size n, GT_size es, cmp_t *cmp, void *thunk)
     for (pm = (char *)a + es; pm < (char *)a + n * es; pm += es) {
         // If -1, then it is for sure not sorted; if 1 then it is sorted
         // in strict order. If 0 then it might be sorted in weak order.
-        if ( (sorted = cmp(pm, pm - es, thunk)) && (sorted < 0) ) {
+        sorted = cmp(pm, pm - es, thunk);
+        if ( sorted < 0 ) {
             return (sorted);
         }
-        else {
+        else if ( sorted == 0 ) {
             strict = 0;
         }
     }

@@ -271,11 +271,15 @@ Stata counterparts. The following are implemented internally in C:
 | total       |           |   X     |
 | nunique     |     X     |   X     |
 | sum         |     X     |   X     |
+| nansum      |     X     |   X     |
+| rawsum      |     X     |         |
+| rawnansum   |     X     |         |
 | mean        |     X     |   X     |
 | sd          |     X     |   X     |
 | max         |     X     |   X     |
 | min         |     X     |   X     |
 | count       |     X     |   X     |
+| nmissing    |     X     |   X     |
 | median      |     X     |   X     |
 | iqr         |     X     |   X     |
 | percent     |     X     |   X     |
@@ -328,6 +332,7 @@ Differences from `collapse`
 - String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
 - `nunique` is supported.
+- `nmissing` is supported.
 - `rawstat` allows selectively applying weights.
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
@@ -335,7 +340,8 @@ Differences from `collapse`
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
-- `gcollapse, missing` outputs a missing value for sums if all inputs are missing.
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
+  value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `xtile`, `pctile`, and `_pctile`
@@ -459,9 +465,6 @@ ETA for them:
 - Minimize memory use.
 - Improve debugging info.
 - Improve code comments when you write the API!
-- Add option to control how to treat missing values in gcollapse
-    - anymissing()
-    - allmissing()
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.

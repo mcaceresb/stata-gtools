@@ -1,4 +1,4 @@
-*! version 1.1.0 02Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.0 03Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -110,8 +110,6 @@ program _gtools_internal, rclass
         stats(str)                /// stats, 1 per target. w/multiple targets,
                                   /// # targets must = # sources
         freq(str)                 /// also collapse frequencies to variable
-        ANYMISSing(str)           /// Value if any missing per stat per group
-        ALLMISSing(str)           /// Value if all missing per stat per group
         rawstat(str)              /// Ignore weights for these targets
                                   ///
                                   /// Capture options
@@ -240,8 +238,6 @@ program _gtools_internal, rclass
         disp as txt `"    stats:            `stats'"'
         disp as txt `"    freq:             `freq'"'
         disp as txt `"    rawstat:          `rawstat'"'
-        disp as txt `"    anymissing:       `anymissing'"'
-        disp as txt `"    allmissing:       `allmissing'"'
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
@@ -332,6 +328,9 @@ program _gtools_internal, rclass
     ***********************************************************************
 
     if ( "`sumcheck'" != "" ) {
+        gettoken wtype wvar: weights
+        local wtype `wtype'
+        local wvar `wvar'
         local 0  , checkvars(`sumcheck')
         syntax, checkvars(varlist)
 
@@ -345,9 +344,13 @@ program _gtools_internal, rclass
         }
 
         scalar __gtools_sum_k    = `:list sizeof checkvars'
+        scalar __gtools_sum_w    = "`wvar'" != ""
         matrix __gtools_sumcheck = J(1, `:list sizeof checkvars', .)
-        cap noi plugin call gtools_plugin `checkvars', sumcheck
-        local rc = _rc
+        if ( inlist(`"`wtype'"', "fweight", "") ) {
+            cap noi plugin call gtools_plugin `checkvars' `wvar', sumcheck
+            local rc = _rc
+        }
+        else rc = 0
         return matrix sumcheck = __gtools_sumcheck
         cap scalar drop __gtools_sum_k
         cap matrix drop __gtools_sumcheck
@@ -1172,7 +1175,8 @@ program _gtools_internal, rclass
 
         parse_targets, sources(`sources') ///
                        targets(`targets') ///
-                       stats(`stats') `k_exist' `replace'
+                       stats(`stats')     ///
+                       `k_exist' `replace' `keepmissing'
 
         if ( _rc ) {
             local rc = _rc
@@ -1215,21 +1219,6 @@ program _gtools_internal, rclass
 
     local msg "Parsed by variables"
     gtools_timer info 98 `"`msg'"', prints(`benchmark')
-
-    * Custom handle any missing or all missing values
-    * -----------------------------------------------
-
-    if ( "`anymissing'" != "" ) {
-        di as err "anymissing() is planned for a future release."
-        clean_all 198
-        exit 198
-    }
-
-    if ( "`allmissing'" != "" ) {
-        di as err "allmissing() is planned for a future release."
-        clean_all 198
-        exit 198
-    }
 
     ***********************************************************************
     *                               Debug!                                *
@@ -3012,7 +3001,7 @@ end
 * _gtools_internal expects everything to exist already!
 capture program drop parse_targets
 program parse_targets
-    syntax, sources(str) targets(str) stats(str) [replace k_exist(str)]
+    syntax, sources(str) targets(str) stats(str) [replace k_exist(str) KEEPMISSing]
     local k_vars    = `:list sizeof sources'
     local k_targets = `:list sizeof targets'
     local k_stats   = `:list sizeof stats'
@@ -3053,6 +3042,7 @@ program parse_targets
 
     local stats: subinstr local stats "total" "sum", all
     local allowed sum        ///
+                  nansum     ///
                   mean       ///
                   sd         ///
                   max        ///
@@ -3070,9 +3060,11 @@ program parse_targets
                   sebinomial ///
                   sepoisson  ///
                   nunique    ///
+                  nmissing   ///
                   skewness   ///
                   kurtosis   ///
-                  rawsum
+                  rawsum     ///
+                  rawnansum
 
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
@@ -3102,13 +3094,14 @@ program parse_targets
     cap noi check_matsize `targets'
     if ( _rc ) exit _rc
 
+    local keepadd = cond("`keepmissing'" == "", 0, 100)
     forvalues k = 1 / `k_targets' {
         local src: word `k' of `sources'
         local trg: word `k' of `targets'
         local st:  word `k' of `stats'
 
         if ( `:list st in allowed' ) {
-            encode_stat `st'
+            encode_stat `st' `keepadd'
             mata: __gtools_stats[`k'] = `r(statcode)'
         }
         else if regexm("`st'", "^p([0-9][0-9]?(\.[0-9]+)?)$") {
@@ -3160,27 +3153,31 @@ end
 
 capture program drop encode_stat
 program encode_stat, rclass
-    if ( "`0'" == "sum"       ) local statcode -1
-    if ( "`0'" == "mean"      ) local statcode -2
-    if ( "`0'" == "sd"        ) local statcode -3
-    if ( "`0'" == "max"       ) local statcode -4
-    if ( "`0'" == "min"       ) local statcode -5
-    if ( "`0'" == "count"     ) local statcode -6
-    if ( "`0'" == "percent"   ) local statcode -7
-    if ( "`0'" == "median"    ) local statcode 50
-    if ( "`0'" == "iqr"       ) local statcode -9
-    if ( "`0'" == "first"     ) local statcode -10
-    if ( "`0'" == "firstnm"   ) local statcode -11
-    if ( "`0'" == "last"      ) local statcode -12
-    if ( "`0'" == "lastnm"    ) local statcode -13
-    if ( "`0'" == "freq"      ) local statcode -14
-    if ( "`0'" == "semean"    ) local statcode -15
-    if ( "`0'" == "sebinomial") local statcode -16
-    if ( "`0'" == "sepoisson" ) local statcode -17
-    if ( "`0'" == "nunique"   ) local statcode -18
-    if ( "`0'" == "skewness"  ) local statcode -19
-    if ( "`0'" == "kurtosis"  ) local statcode -20
-    if ( "`0'" == "rawsum"    ) local statcode -21
+    args stat keepadd
+    if ( "`stat'" == "sum"       ) local statcode = -1 - `keepadd'
+    if ( "`stat'" == "nansum"    ) local statcode = -101
+    if ( "`stat'" == "mean"      ) local statcode = -2
+    if ( "`stat'" == "sd"        ) local statcode = -3
+    if ( "`stat'" == "max"       ) local statcode = -4
+    if ( "`stat'" == "min"       ) local statcode = -5
+    if ( "`stat'" == "count"     ) local statcode = -6
+    if ( "`stat'" == "percent"   ) local statcode = -7
+    if ( "`stat'" == "median"    ) local statcode = 50
+    if ( "`stat'" == "iqr"       ) local statcode = -9
+    if ( "`stat'" == "first"     ) local statcode = -10
+    if ( "`stat'" == "firstnm"   ) local statcode = -11
+    if ( "`stat'" == "last"      ) local statcode = -12
+    if ( "`stat'" == "lastnm"    ) local statcode = -13
+    if ( "`stat'" == "freq"      ) local statcode = -14
+    if ( "`stat'" == "semean"    ) local statcode = -15
+    if ( "`stat'" == "sebinomial") local statcode = -16
+    if ( "`stat'" == "sepoisson" ) local statcode = -17
+    if ( "`stat'" == "nunique"   ) local statcode = -18
+    if ( "`stat'" == "nmissing"  ) local statcode = -22
+    if ( "`stat'" == "skewness"  ) local statcode = -19
+    if ( "`stat'" == "kurtosis"  ) local statcode = -20
+    if ( "`stat'" == "rawsum"    ) local statcode = -21 - `keepadd'
+    if ( "`stat'" == "rawnansum" ) local statcode = -121
     return scalar statcode = `statcode'
 end
 

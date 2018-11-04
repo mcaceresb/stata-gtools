@@ -32,20 +32,22 @@ ST_double gf_switch_fun_code_w (
     GT_bool   aw,
     ST_double *p_buffer)
 {
-         if ( fcode == -1  )  return (aw? vsum * vcount / wsum: vsum);                               // sum
-    else if ( fcode == -2  )  return (wsum == 0? SV_missval: vsum / wsum);                           // mean
-    else if ( fcode == -3  )  return (gf_array_dsd_weighted      (v, N, w, vsum, wsum, vcount, aw)); // sd)
-    else if ( fcode == -4  )  return (gf_array_dmax_weighted     (v, N));                            // max
-    else if ( fcode == -5  )  return (gf_array_dmin_range        (v, 0, N));                         // min
-    else if ( fcode == -9  )  return (gf_array_diqr_weighted     (v, N, w, wsum, vcount, p_buffer)); // iqr
-    else if ( fcode == -15 )  return (gf_array_dsemean_weighted  (v, N, w, vsum, wsum, vcount, aw)); // semean
-    else if ( fcode == -16 )  return (gf_array_dsebinom_weighted (v, N, w, vsum, wsum, vcount));     // sebinomial
-    else if ( fcode == -17 )  return (gf_array_dsepois_weighted  (v, N, w, vsum, wsum, vcount));     // sepoisson
-    else if ( fcode == -19 )  return (gf_array_dskew_weighted    (v, N, w, vsum, wsum, vcount));     // skewness
-    else if ( fcode == -20 )  return (gf_array_dkurt_weighted    (v, N, w, vsum, wsum, vcount));     // kurtosis
-    else if ( fcode == -21 )  return (gf_array_drawsum_weighted  (v, N));                            // rawsum
+         if ( fcode == -1   ) return (aw? vsum * vcount / wsum: vsum);                                // sum
+    else if ( fcode == -101 ) return (aw? vsum * vcount / wsum: vsum);                                // sum (keepmissing)
+    else if ( fcode == -2   ) return (wsum == 0? SV_missval: vsum / wsum);                            // mean
+    else if ( fcode == -3   ) return (gf_array_dsd_weighted       (v, N, w, vsum, wsum, vcount, aw)); // sd)
+    else if ( fcode == -4   ) return (gf_array_dmax_weighted      (v, N));                            // max
+    else if ( fcode == -5   ) return (gf_array_dmin_range         (v, 0, N));                         // min
+    else if ( fcode == -9   ) return (gf_array_diqr_weighted      (v, N, w, wsum, vcount, p_buffer)); // iqr
+    else if ( fcode == -15  ) return (gf_array_dsemean_weighted   (v, N, w, vsum, wsum, vcount, aw)); // semean
+    else if ( fcode == -16  ) return (gf_array_dsebinom_weighted  (v, N, w, vsum, wsum, vcount));     // sebinomial
+    else if ( fcode == -17  ) return (gf_array_dsepois_weighted   (v, N, w, vsum, wsum, vcount));     // sepoisson
+    else if ( fcode == -19  ) return (gf_array_dskew_weighted     (v, N, w, vsum, wsum, vcount));     // skewness
+    else if ( fcode == -20  ) return (gf_array_dkurt_weighted     (v, N, w, vsum, wsum, vcount));     // kurtosis
+    else if ( fcode == -21  ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum
+    else if ( fcode == -121 ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum (keepmissing)
     else {
-        return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                // percentiles
+        return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                 // percentiles
     }
 }
 
@@ -679,3 +681,28 @@ GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N) {
 
     return (1);
 }
+
+/**
+ * @brief Weighted count missing values
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @return Returns sum(w_i) if values are missing
+ */
+ST_double gf_array_dnmissing_weighted (
+    ST_double *v,
+    GT_size   N,
+    ST_double *w)
+{
+    ST_double *vptr = v;
+    ST_double *wptr = w;
+    ST_double _msum = 0;
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr >= SV_missval ) _msum += *wptr;
+    }
+
+    return (_msum);
+}
+

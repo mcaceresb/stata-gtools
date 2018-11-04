@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Mon Apr 23 20:54:30 EDT 2018
+ * Updated: Sat Nov  3 17:08:29 EDT 2018
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.0.0
+ * Version: 1.1.0
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 25 Apr 2018
+ * @date 3 Nov 2018
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -93,6 +93,7 @@ STDLL stata_call(int argc, char *argv[])
      *                                                                        *
      *     - check:     Exit with 0 status. This just tests the plugin can be *
      *                  called from Stata without crashing.                   *
+     *     - sumcheck:  Sum if integer check will overflow                    *
      *     - checkstrL: Check if strL variables have binary data              *
      *     - recast:    Bulk copy sources into targets.                       *
      *     - hash:      Generic (read, hash, sort, generate, summary stats).  *
@@ -110,20 +111,53 @@ STDLL stata_call(int argc, char *argv[])
         goto exit;
     }
     if ( strcmp(todo, "sumcheck") == 0 ) {
-        ST_double z, *sum, *sumptr;
-        GT_size sum_k, i, k;
+        ST_double z, w, v, *sum, *sumptr;
+        GT_size sum_k, sum_w, i, k;
 
+        if ( (rc = sf_scalar_size("__gtools_sum_w", &sum_w) )) goto exit;
         if ( (rc = sf_scalar_size("__gtools_sum_k", &sum_k) )) goto exit;
         sum = calloc(sum_k, sizeof sum);
 
         for (k = 0; k < sum_k; k++)
             sum[k] = 1;
 
-        for (i = SF_in1(); i <= SF_in2(); i++) {
-            sumptr = sum;
-            for (k = 1; k <= sum_k; k++, sumptr++) {
-                if ( (rc = SF_vdata(k, i, &z)) ) goto exit;
-                if ( (fabs(z) < SV_missval) && (*sumptr > 0) ) *sumptr += fabs(z);
+        // This assumes that the weights are either 1 or frequency
+        // weights. Missing values are ignored because they are ignored
+        // in sums.
+
+        if ( sum_w ) {
+            for (i = SF_in1(); i <= SF_in2(); i++) {
+                sumptr = sum;
+                if ( (rc = SF_vdata(sum_k + 1, i, &w)) ) goto exit;
+                for (k = 1; k <= sum_k; k++, sumptr++) {
+                    if ( *sumptr > 0 ) {
+                        if ( (rc = SF_vdata(k, i, &z)) ) goto exit;
+                        v = fabs(z * w);
+                        if ( v < SV_missval ) {
+                            *sumptr += v;
+                        }
+                        else if ( !SF_is_missing(z) && !SF_is_missing(w) ) {
+                            *sumptr = -1;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            for (i = SF_in1(); i <= SF_in2(); i++) {
+                sumptr = sum;
+                for (k = 1; k <= sum_k; k++, sumptr++) {
+                    if ( *sumptr > 0 ) {
+                        if ( (rc = SF_vdata(k, i, &z)) ) goto exit;
+                        v = fabs(z);
+                        if ( v < SV_missval ) {
+                            *sumptr += v;
+                        }
+                        else if ( !SF_is_missing(z) ) {
+                            *sumptr = -1;
+                        }
+                    }
+                }
             }
         }
 

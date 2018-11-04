@@ -361,35 +361,6 @@ ST_double gf_array_dkurt_range (const ST_double v[], const GT_size start, const 
 }
 
 /**
- * @brief Wrapper to choose summary function using a string
- *
- * @param fname Character with name of funtion to apply to @v
- * @param v vector of doubles containing the current group's variables
- * @param start summaryze starting at the @start-th entry
- * @param end summaryze until the (@end - 1)-th entry
- * @return @fname(@v[@start to @end])
- */
-ST_double gf_switch_fun (char * fname, ST_double v[], const GT_size start, const GT_size end)
-{
-         if ( strcmp (fname, "sum")        == 0 ) return (gf_array_dsum_range     (v, start, end));
-    else if ( strcmp (fname, "mean")       == 0 ) return (gf_array_dmean_range    (v, start, end));
-    else if ( strcmp (fname, "sd")         == 0 ) return (gf_array_dsd_range      (v, start, end));
-    else if ( strcmp (fname, "max")        == 0 ) return (gf_array_dmax_range     (v, start, end));
-    else if ( strcmp (fname, "min")        == 0 ) return (gf_array_dmin_range     (v, start, end));
-    else if ( strcmp (fname, "median")     == 0 ) return (gf_array_dmedian_range  (v, start, end));
-    else if ( strcmp (fname, "iqr")        == 0 ) return (gf_array_diqr_range     (v, start, end));
-    else if ( strcmp (fname, "semean")     == 0 ) return (gf_array_dsemean_range  (v, start, end));
-    else if ( strcmp (fname, "sebinomial") == 0 ) return (gf_array_dsebinom_range (v, start, end));
-    else if ( strcmp (fname, "sepoisson ") == 0 ) return (gf_array_dsepois_range  (v, start, end));
-    else if ( strcmp (fname, "skewness")   == 0 ) return (gf_array_dskew_range    (v, start, end));
-    else if ( strcmp (fname, "kurtosis")   == 0 ) return (gf_array_dkurt_range    (v, start, end));
-    else {
-        ST_double q = (ST_double) atof(fname);
-        return (q > 0? gf_array_dquantile_range(v, start, end, q): 0);
-    }
-}
-
-/**
  * @brief Wrapper to encode summary function using an integer
  *
  * We use negative numbers so that we can return quantiles as is.
@@ -399,26 +370,29 @@ ST_double gf_switch_fun (char * fname, ST_double v[], const GT_size start, const
  */
 ST_double gf_code_fun (char * fname)
 {
-         if ( strcmp (fname, "sum")        == 0 ) return (-1);  // sum
-    else if ( strcmp (fname, "mean")       == 0 ) return (-2);  // mean
-    else if ( strcmp (fname, "sd")         == 0 ) return (-3);  // sd
-    else if ( strcmp (fname, "max")        == 0 ) return (-4);  // max
-    else if ( strcmp (fname, "min")        == 0 ) return (-5);  // min
-    else if ( strcmp (fname, "count")      == 0 ) return (-6);  // count
-    else if ( strcmp (fname, "percent")    == 0 ) return (-7);  // percent
-    else if ( strcmp (fname, "median")     == 0 ) return (50);  // median
-    else if ( strcmp (fname, "iqr")        == 0 ) return (-9);  // iqr
-    else if ( strcmp (fname, "first")      == 0 ) return (-10); // first
-    else if ( strcmp (fname, "firstnm")    == 0 ) return (-11); // firstnm
-    else if ( strcmp (fname, "last")       == 0 ) return (-12); // last
-    else if ( strcmp (fname, "lastnm")     == 0 ) return (-13); // lastnm
-    else if ( strcmp (fname, "semean")     == 0 ) return (-15); // semean
-    else if ( strcmp (fname, "sebinomial") == 0 ) return (-16); // sebinomial
-    else if ( strcmp (fname, "sepoisson ") == 0 ) return (-17); // sepoisson
-    else if ( strcmp (fname, "skewness")   == 0 ) return (-19); // skewness
-    else if ( strcmp (fname, "kurtosis")   == 0 ) return (-20); // kurtosis
-    else {
-        ST_double q = (ST_double) atof(fname);                  // quantile
+         if ( strcmp (fname, "sum")        == 0 ) return (-1);   // sum
+    else if ( strcmp (fname, "nansum")     == 0 ) return (-101); // sum (keepmissing)
+    else if ( strcmp (fname, "mean")       == 0 ) return (-2);   // mean
+    else if ( strcmp (fname, "sd")         == 0 ) return (-3);   // sd
+    else if ( strcmp (fname, "max")        == 0 ) return (-4);   // max
+    else if ( strcmp (fname, "min")        == 0 ) return (-5);   // min
+    else if ( strcmp (fname, "count")      == 0 ) return (-6);   // count
+    else if ( strcmp (fname, "percent")    == 0 ) return (-7);   // percent
+    else if ( strcmp (fname, "median")     == 0 ) return (50);   // median
+    else if ( strcmp (fname, "iqr")        == 0 ) return (-9);   // iqr
+    else if ( strcmp (fname, "first")      == 0 ) return (-10);  // first
+    else if ( strcmp (fname, "firstnm")    == 0 ) return (-11);  // firstnm
+    else if ( strcmp (fname, "last")       == 0 ) return (-12);  // last
+    else if ( strcmp (fname, "lastnm")     == 0 ) return (-13);  // lastnm
+    else if ( strcmp (fname, "semean")     == 0 ) return (-15);  // semean
+    else if ( strcmp (fname, "sebinomial") == 0 ) return (-16);  // sebinomial
+    else if ( strcmp (fname, "sepoisson ") == 0 ) return (-17);  // sepoisson
+    else if ( strcmp (fname, "skewness")   == 0 ) return (-19);  // skewness
+    else if ( strcmp (fname, "kurtosis")   == 0 ) return (-20);  // kurtosis
+    else if ( strcmp (fname, "rawsum")     == 0 ) return (-21);  // rawsum
+    else if ( strcmp (fname, "rawnansum")  == 0 ) return (-121); // rawsum (keepmissing)
+    else {                                                       
+        ST_double q = (ST_double) atof(fname);                   // quantile
         return (q > 0? q: 0);
     }
 }
@@ -436,18 +410,20 @@ ST_double gf_code_fun (char * fname)
  */
 ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size start, const GT_size end)
 {
-         if ( fcode == -1  )  return (gf_array_dsum_range     (v, start, end)); // sum
-    else if ( fcode == -2  )  return (gf_array_dmean_range    (v, start, end)); // mean
-    else if ( fcode == -3  )  return (gf_array_dsd_range      (v, start, end)); // sd)
-    else if ( fcode == -4  )  return (gf_array_dmax_range     (v, start, end)); // max
-    else if ( fcode == -5  )  return (gf_array_dmin_range     (v, start, end)); // min
-    else if ( fcode == -9  )  return (gf_array_diqr_range     (v, start, end)); // iqr
-    else if ( fcode == -15 )  return (gf_array_dsemean_range  (v, start, end)); // semean
-    else if ( fcode == -16 )  return (gf_array_dsebinom_range (v, start, end)); // sebinomial
-    else if ( fcode == -17 )  return (gf_array_dsepois_range  (v, start, end)); // sepoisson
-    else if ( fcode == -19 )  return (gf_array_dskew_range    (v, start, end)); // skewness
-    else if ( fcode == -20 )  return (gf_array_dkurt_range    (v, start, end)); // kurtosis
-    else if ( fcode == -21 )  return (gf_array_dsum_range     (v, start, end)); // rawsum
+         if ( fcode == -1   ) return (gf_array_dsum_range     (v, start, end)); // sum
+    else if ( fcode == -101 ) return (gf_array_dsum_range     (v, start, end)); // sum (keepmissing)
+    else if ( fcode == -2   ) return (gf_array_dmean_range    (v, start, end)); // mean
+    else if ( fcode == -3   ) return (gf_array_dsd_range      (v, start, end)); // sd)
+    else if ( fcode == -4   ) return (gf_array_dmax_range     (v, start, end)); // max
+    else if ( fcode == -5   ) return (gf_array_dmin_range     (v, start, end)); // min
+    else if ( fcode == -9   ) return (gf_array_diqr_range     (v, start, end)); // iqr
+    else if ( fcode == -15  ) return (gf_array_dsemean_range  (v, start, end)); // semean
+    else if ( fcode == -16  ) return (gf_array_dsebinom_range (v, start, end)); // sebinomial
+    else if ( fcode == -17  ) return (gf_array_dsepois_range  (v, start, end)); // sepoisson
+    else if ( fcode == -19  ) return (gf_array_dskew_range    (v, start, end)); // skewness
+    else if ( fcode == -20  ) return (gf_array_dkurt_range    (v, start, end)); // kurtosis
+    else if ( fcode == -21  ) return (gf_array_dsum_range     (v, start, end)); // rawsum
+    else if ( fcode == -121 ) return (gf_array_dsum_range     (v, start, end)); // rawsum (keepmissing)
     else {
         return (gf_array_dquantile_range(v, start, end, fcode));                // percentiles
     }

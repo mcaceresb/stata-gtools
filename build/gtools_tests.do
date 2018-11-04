@@ -6239,33 +6239,26 @@ end
 capture program drop checks_inner_isid
 program checks_inner_isid
     syntax varlist, [*]
-disp "debug1"
     cap gisid `varlist', `options' v bench missok
     assert _rc == 459
 
-disp "debug2"
     cap gisid `varlist' in 1, `options' missok
     assert _rc == 0
 
-disp "debug3"
     cap gisid `varlist' if _n == 1, `options' missok
     assert _rc == 0
 
-disp "debug4"
     cap gisid `varlist' if _n < 10 in 5, `options' missok
     assert _rc == 0
 
-disp "debug5"
     cap gisid ix `varlist', `options' v bench missok
     assert _rc == 0
 
-disp "debug6"
     preserve
     sort `varlist'
     cap noi gisid `varlist' ix, `options' v bench missok
     assert _rc == 0
 
-disp "debug7"
     qui replace ix  = _n
     qui replace ix  = 1 in 1/2
     qui replace ind = 1 in 3/4
@@ -7195,3 +7188,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
+if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
+main, `0'

@@ -1,4 +1,4 @@
-*! version 1.1.0 03Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.1 14Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -40,6 +40,7 @@ program gcollapse, rclass
         compress                     /// Try to compress strL variables
         forcestrl                    /// Force reading strL variables (stata 14 and above only)
         Verbose                      /// Print info during function execution
+        _subtract                    /// (Undocumented) Subtract result from source variable
         BENCHmark                    /// print function benchmark info
         BENCHmarklevel(int 0)        /// print plugin benchmark info
         HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -490,7 +491,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing' `compress' `forcestrl'
+    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod'
     local opts     `opts' `hashlib' `oncollision' debug(`debug_level') `rawstat'
     local action   `sources' `targets' `stats'

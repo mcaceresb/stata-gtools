@@ -391,6 +391,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             invertix,
             skipcheck,
             mlast,
+            subtract,
             top_miss,
             top_groupmiss,
             top_other,
@@ -506,6 +507,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_invertix",       &invertix)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_mlast",          &mlast)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_subtract",       &subtract)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
@@ -691,6 +693,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->invertix       = invertix;
     st_info->skipcheck      = skipcheck;
     st_info->mlast          = mlast;
+    st_info->subtract       = subtract;
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
@@ -788,6 +791,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tinvertix:       "GT_size_cfmt"\n",  invertix      );
         sf_printf_debug("\tskipcheck:      "GT_size_cfmt"\n",  skipcheck     );
         sf_printf_debug("\tmlast:          "GT_size_cfmt"\n",  mlast         );
+        sf_printf_debug("\tsubtract:       "GT_size_cfmt"\n",  subtract      );
         sf_printf_debug("\n");                                                
         sf_printf_debug("\ttop_miss:       "GT_size_cfmt"\n",  top_miss      );
         sf_printf_debug("\ttop_groupmiss:  "GT_size_cfmt"\n",  top_groupmiss );

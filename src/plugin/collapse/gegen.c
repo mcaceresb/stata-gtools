@@ -703,7 +703,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
      *********************************************************************/
 
     ST_retcode rc = 0;
-    ST_double z;
+    ST_double z, w;
 
     GT_size i, j, k, l;
     GT_size start, end, out, within, missval;
@@ -732,15 +732,32 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
     within   = (st_info->group_data == 0);
     missval  = (st_info->group_fill == 1);
     if ( within ) {
-        for (j = 0; j < st_info->J; j++) {
-            l     = st_info->ix[j];
-            start = st_info->info[l];
-            end   = st_info->info[l + 1];
-            for (i = start; i < (missval? (start + 1): end); i++) {
-                out = st_info->index[i] + st_info->in1;
-                for (k = 0; k < ktargets; k++) {
-                    z = st_info->output[j * ktargets + k];
-                    if ( (rc = SF_vstore(pos_targets[k], out, z)) ) goto exit;
+        if ( st_info->subtract ) {
+            for (j = 0; j < st_info->J; j++) {
+                l     = st_info->ix[j];
+                start = st_info->info[l];
+                end   = st_info->info[l + 1];
+                for (i = start; i < (missval? (start + 1): end); i++) {
+                    out = st_info->index[i] + st_info->in1;
+                    for (k = 0; k < ktargets; k++) {
+                        if ( (rc = SF_vdata(start_sources + st_info->pos_targets[k], out, &w)) ) goto exit;
+                        z = w - st_info->output[j * ktargets + k];
+                        if ( (rc = SF_vstore(pos_targets[k], out, z)) ) goto exit;
+                    }
+                }
+            }
+        }
+        else {
+            for (j = 0; j < st_info->J; j++) {
+                l     = st_info->ix[j];
+                start = st_info->info[l];
+                end   = st_info->info[l + 1];
+                for (i = start; i < (missval? (start + 1): end); i++) {
+                    out = st_info->index[i] + st_info->in1;
+                    for (k = 0; k < ktargets; k++) {
+                        z = st_info->output[j * ktargets + k];
+                        if ( (rc = SF_vstore(pos_targets[k], out, z)) ) goto exit;
+                    }
                 }
             }
         }

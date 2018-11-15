@@ -1,4 +1,4 @@
-*! version 1.1.0 03Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.1 14Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -138,6 +138,7 @@ program define gegen, byable(onecall) rclass
                           HASHmethod(passthru)     ///
                           oncollision(passthru)    ///
                           Verbose                  ///
+                          _subtract                ///
                           compress                 ///
                           forcestrl                ///
                           BENCHmark                ///
@@ -152,7 +153,7 @@ program define gegen, byable(onecall) rclass
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `compress' `forcestrl' `benchmark' `benchmarklevel')
+            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `_subtract' `compress' `forcestrl' `benchmark' `benchmarklevel')
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
             cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
             exit _rc
@@ -184,6 +185,7 @@ program define gegen, byable(onecall) rclass
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
         Verbose                   /// Print info during function execution
+        _subtract                 /// (Undocumented) Subtract result from source variable
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -336,7 +338,7 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local opts  `compress' `forcestrl'
+    local opts  `compress' `forcestrl' `_subtract'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
     local opts  `opts' `hashlib' `oncollision' `hashmethod'
     local sopts `counts'
@@ -428,6 +430,7 @@ program define gegen, byable(onecall) rclass
                               `hashlib'        ///
                               `oncollision'    ///
                               `verbose'        ///
+                              `_subtract'      ///
                               `compress'       ///
                               `forcestrl'      ///
                               `benchmark'      ///
@@ -599,6 +602,7 @@ program define gegen, byable(onecall) rclass
                           `hashlib'        ///
                           `oncollision'    ///
                           `verbose'        ///
+                          `_subtract'      ///
                           `compress'       ///
                           `forcestrl'      ///
                           `benchmark'      ///
@@ -779,6 +783,7 @@ program collision_fallback
                       HASHmethod(passthru)     ///
                       oncollision(passthru)    ///
                       Verbose                  ///
+                      _subtract                ///
                       compress                 ///
                       forcestrl                ///
                       BENCHmark                ///

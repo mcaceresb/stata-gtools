@@ -2,6 +2,7 @@ capture program drop checks_gcollapse
 program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
+    local options `options' `tol'
 
     qui `noisily' gen_data, n(5000)
     qui expand 2
@@ -25,6 +26,42 @@ program checks_gcollapse
     checks_inner_collapse -int1 -str_32 -double1,                                         `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_collapse int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+
+    **************************
+    *  Undocumented options  *
+    **************************
+
+    clear
+    set obs 100
+    gen x = _n
+    gen y = mod(_n, 13)
+    gen z = mod(_n, 3)
+    gegen dmx = mean(x), _subtract
+    gegen dmy = mean(y), _subtract
+    gegen  mx = mean(x)
+    gegen  my = mean(y)
+    assert abs(dmx - (x - mx)) < `tol'
+    assert abs(dmy - (y - my)) < `tol'
+
+    drop *m?
+    gcollapse (mean) dmx = x dmy = y, merge _subtract
+    gcollapse (mean)  mx = x  my = y, merge
+    assert abs(dmx - (x - mx)) < `tol'
+    assert abs(dmy - (y - my)) < `tol'
+
+    drop *m?
+    gegen dmx = mean(x), by(z) _subtract
+    gegen dmy = mean(y), by(z) _subtract
+    gegen  mx = mean(x), by(z)
+    gegen  my = mean(y), by(z)
+    assert abs(dmx - (x - mx)) < `tol'
+    assert abs(dmy - (y - my)) < `tol'
+
+    drop *m?
+    gcollapse (mean) dmx = x dmy = y, by(z) merge _subtract
+    gcollapse (mean)  mx = x  my = y, by(z) merge
+    assert abs(dmx - (x - mx)) < `tol'
+    assert abs(dmy - (y - my)) < `tol'
 
     ****************
     *  Misc tests  *

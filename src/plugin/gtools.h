@@ -121,6 +121,7 @@ struct StataInfo {
     GT_bool   invertix;
     GT_bool   skipcheck;
     GT_bool   mlast;
+    GT_bool   subtract;
     GT_bool   verbose;
     GT_bool   debug;
     GT_bool   benchmark;

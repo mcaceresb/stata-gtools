@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.1.1 (2018-11-14)
+
+### Features
+
+- `gcollapse, merge` and `gegen` now accept the undocumented option
+  `_subtract` to subtract the result from the source variable. This is
+  an undocumented option meant for advanced users, so no additional
+  checks have been added. If you use it then you know what you're doing.
+
 ## gtools-1.1.0 (2018-11-02)
 
 ### Features

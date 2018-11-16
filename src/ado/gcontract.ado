@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -21,6 +21,7 @@ program gcontract, rclass
         FORMat(string)               /// Format for percentage variables
         Zero                         /// Include varlist combinations with 0 frequency
         noMISS                       /// Exclude rows with missing values in varlist
+        NODS DS                      /// Parse - as varlist (ds) or negative (nods)
                                      ///
         fast                         /// Do not preserve and restore the original dataset. Saves speed
                                      /// but leaves data unusable if the user hits Break.
@@ -40,6 +41,11 @@ program gcontract, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
     local missing = cond("`miss'" == "nomiss", "", "missing")
+
+    if ( ("`ds'" != "") & ("`nods'" != "") ) {
+        di as err "-ds- and -nods- mutually exclusive"
+        exit 198
+    }
 
 	* Set type and format for generated numeric variables
 	* ---------------------------------------------------
@@ -136,19 +142,64 @@ program gcontract, rclass
     * Get varlist
     * -----------
 
-    if ( "`anything'" != "" ) {
-        local varlist `anything'
-        local varlist: subinstr local varlist "+" "", all
-        local varlist: subinstr local varlist "-" "", all
-        cap ds `varlist'
-        if ( _rc | ("`varlist'" == "") ) {
-            local rc = _rc
-            di as err "Malformed call: '`anything''"
-            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
-            exit 111
+    if ( `"`anything'"' != "" ) {
+        local varlist: copy local anything
+        local varlist: subinstr local varlist "+" " ", all
+        if ( strpos(`"`varlist'"', "-") & ("`ds'`nods'" == "") ) {
+            disp as txt "'-' interpreted as negative; use option -ds- to interpret as varlist"
+            disp as txt "(to suppress this warning, use option -nods-)"
         }
-        local varlist `r(varlist)'
+        if ( "`ds'" != "" ) {
+            local varlist `varlist'
+            cap ds `varlist'
+            if ( _rc | ("`varlist'" == "") ) {
+                di as err "Invalid varlist: `anything'"
+                exit 198
+            }
+            local varlist `r(varlist)'
+        }
+        else {
+            local varlist: subinstr local varlist "-" " ", all
+            local varlist `varlist'
+            if ( "`varlist'" == "" ) {
+                di as err "Invalid list: `anything'"
+                di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                exit 198
+            }
+            cap ds `varlist'
+            if ( _rc ) {
+                local notname
+                local notfound
+                foreach var of local varlist {
+                    cap confirm var `var'
+                    if ( _rc  ) {
+                        cap confirm name `var'
+                        if ( _rc ) {
+                            local notname `notfound' `var'
+                        }
+                        else {
+                            local notfound `notfound' `var'
+                        }
+                    }
+                }
+                if ( `:list sizeof notfound' > 0 ) {
+                    if ( `:list sizeof notfound' > 1 ) {
+                        di as err "Variables not found: `notfound'"
+                    }
+                    else {
+                        di as err "Variable `notfound' not found"
+                    }
+                }
+                if ( `:list sizeof notname' > 0 ) {
+                    di as err "Invalid names: `notname'"
+                }
+                exit 111
+            }
+            qui ds `varlist'
+            local varlist `r(varlist)'
+        }
     }
+    if ( "`ds'" == "" ) local nods nods
 
     * Create variables
     * ----------------
@@ -181,7 +232,7 @@ program gcontract, rclass
     * Call the plugin
     * ---------------
 
-    local opts `weights' `missing' `unsorted' `compress' `forcestrl'
+    local opts `weights' `missing' `unsorted' `compress' `forcestrl' `ds' `nods'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
     local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
 
@@ -191,7 +242,7 @@ program gcontract, rclass
     local rc = _rc
     global GTOOLS_CALLER ""
     if ( `rc' == 17999 ) {
-        if strpos("`anything'", "-") {
+        if ( strpos("`anything'", "-") & ("`ds'" == "") ) {
             di as err "Cannot use fallback with inverted sorting."
             exit 17000
         }

@@ -1,4 +1,4 @@
-*! version 1.1.1 14Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -36,6 +36,7 @@ program gcollapse, rclass
         forcemem                     /// Use memory for writing/reading collapsed data
         double                       /// Generate all targets as doubles
         sumcheck                     /// Check whether sum will overflow
+        NODS DS                      /// Parse - as varlist (ds) or negative (nods)
                                      ///
         compress                     /// Try to compress strL variables
         forcestrl                    /// Force reading strL variables (stata 14 and above only)
@@ -71,24 +72,75 @@ program gcollapse, rclass
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
     local gfallbackok = `"`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`rawstat'"' == `""'
 
+    if ( ("`ds'" != "") & ("`nods'" != "") ) {
+        di as err "-ds- and -nods- mutually exclusive"
+        exit 198
+    }
+
     * Parse by call (make sure varlist is valid)
     * ------------------------------------------
 
-    if ( "`by'" != "" ) {
-        local clean_by `by'
-        local clean_by: subinstr local clean_by "+" "", all
-        local clean_by: subinstr local clean_by "-" "", all
-        local clean_by `clean_by'
-        cap ds `clean_by'
-        if ( _rc | ("`clean_by'" == "") ) {
-            local rc = _rc
-            di as err "Malformed call: by(`by')"
-            di as err "Syntax: by([+|-]varname [[+|-]varname ...])"
-            CleanExit
-            exit 111
+    if ( `"`by'"' != "" ) {
+        local clean_by: copy local by
+        local clean_by: subinstr local clean_by "+" " ", all
+        if ( strpos(`"`clean_by'"', "-") & ("`ds'`nods'" == "") ) {
+            disp as txt "'-' interpreted as negative; use option -ds- to interpret as varlist"
+            disp as txt "(to suppress this warning, use option -nods-)"
         }
-        local clean_by `r(varlist)'
+        if ( "`ds'" != "" ) {
+            local clean_by `clean_by'
+            cap ds `clean_by'
+            if ( _rc | ("`clean_by'" == "") ) {
+                di as err "Invalid varlist: `by'"
+                CleanExit
+                exit 198
+            }
+            local clean_by `r(varlist)'
+        }
+        else {
+            local clean_by: subinstr local clean_by "-" " ", all
+            local clean_by `clean_by'
+            if ( "`clean_by'" == "" ) {
+                di as err "Invalid list: `by'"
+                di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                CleanExit
+                exit 198
+            }
+            cap ds `clean_by'
+            if ( _rc ) {
+                local notname
+                local notfound
+                foreach var of local clean_by {
+                    cap confirm var `var'
+                    if ( _rc  ) {
+                        cap confirm name `var'
+                        if ( _rc ) {
+                            local notname `notfound' `var'
+                        }
+                        else {
+                            local notfound `notfound' `var'
+                        }
+                    }
+                }
+                if ( `:list sizeof notfound' > 0 ) {
+                    if ( `:list sizeof notfound' > 1 ) {
+                        di as err "Variables not found: `notfound'"
+                    }
+                    else {
+                        di as err "Variable `notfound' not found"
+                    }
+                }
+                if ( `:list sizeof notname' > 0 ) {
+                    di as err "Invalid names: `notname'"
+                }
+                CleanExit
+                exit 111
+            }
+            qui ds `clean_by'
+            local clean_by `r(varlist)'
+        }
     }
+    if ( "`ds'" == "" ) local nods nods
 
     if ( `debug_level' ) {
         disp as txt `""'
@@ -170,6 +222,15 @@ program gcollapse, rclass
         di as err "Repeat targets not allowed: `:list uniq nonunique'"
         CleanExit
         exit 198
+    }
+
+    foreach var of local __gtools_gc_uniq_vars {
+        cap noi confirm numeric variable `var'
+        if ( _rc ) {
+            local rc = _rc
+            CleanExit
+            exit `rc'
+        }
     }
 
     if ( `debug_level' ) {
@@ -491,7 +552,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract'
+    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract' `ds' `nods'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod'
     local opts     `opts' `hashlib' `oncollision' debug(`debug_level') `rawstat'
     local action   `sources' `targets' `stats'

@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-1.1.2 (2018-11-16)
+
+### Enhancements
+
+- Improved variable parsing in general.
+- Error message when variable not found now explicit.
+- If `-` is found, warning message noting the default is to 
+  interpret that as negative, not part of a varlist.
+- `ds` and `nods` control parsing options for `-`
+
 ## gtools-1.1.1 (2018-11-14)
 
 ### Features

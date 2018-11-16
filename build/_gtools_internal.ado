@@ -1,4 +1,4 @@
-*! version 1.1.1 14Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -102,6 +102,7 @@ program _gtools_internal, rclass
         unsorted                  /// Do not sort hash values; faster
         countmiss                 /// count # missing in output
                                   /// (only w/certain targets)
+        NODS DS                   /// Parse - as varlist (ds) or negative (nods)
                                   ///
                                   /// Generic stats options
                                   /// ---------------------
@@ -1027,22 +1028,68 @@ program _gtools_internal, rclass
     * internally later on.
     *
     * Last, we parse whether or not to invert the sort orner of a given
-    * by variable ("-" preceding it).
+    * by variable ("-" preceding it). If option -ds- is passed, then "-"
+    * is interpret as the "to" operator in Stata's varlist notation.
 
-    if ( "`anything'" != "" ) {
-        local clean_anything `anything'
-        local clean_anything: subinstr local clean_anything "+" "", all
-        local clean_anything: subinstr local clean_anything "-" "", all
-        local clean_anything `clean_anything'
-        cap ds `clean_anything'
-        if ( _rc | ("`clean_anything'" == "") ) {
-            local rc = _rc
-            di as err "Invalid call/varlist: '`anything''"
-            di as err "Syntax: {+|-}varname [{+|-}varname ...]"
-            clean_all 111
-            exit 111
+    if ( `"`anything'"' != "" ) {
+        local clean_anything: copy local anything
+        local clean_anything: subinstr local clean_anything "+" " ", all
+        if ( strpos(`"`clean_anything'"', "-") & ("`ds'`nods'" == "") ) {
+            disp as txt "'-' interpreted as negative; use option -ds- to interpret as varlist"
+            disp as txt "(to suppress this warning, use option -nods-)"
         }
-        local clean_anything `r(varlist)'
+        if ( "`ds'" != "" ) {
+            local clean_anything `clean_anything'
+            cap ds `clean_anything'
+            if ( _rc | ("`clean_anything'" == "") ) {
+                di as err "Invalid varlist: `anything'"
+                clean_all 198
+                exit 198
+            }
+            local clean_anything `r(varlist)'
+        }
+        else {
+            local clean_anything: subinstr local clean_anything "-" " ", all
+            local clean_anything `clean_anything'
+            if ( "`clean_anything'" == "" ) {
+                di as err "Invalid list: '`anything''"
+                di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                clean_all 198
+                exit 198
+            }
+            cap ds `clean_anything'
+            if ( _rc ) {
+                local notname
+                local notfound
+                foreach var of local clean_anything {
+                    cap confirm var `var'
+                    if ( _rc  ) {
+                        cap confirm name `var'
+                        if ( _rc ) {
+                            local notname `notfound' `var'
+                        }
+                        else {
+                            local notfound `notfound' `var'
+                        }
+                    }
+                }
+                if ( `:list sizeof notfound' > 0 ) {
+                    if ( `:list sizeof notfound' > 1 ) {
+                        di as err "Variables not found: `notfound'"
+                    }
+                    else {
+                        di as err "Variable `notfound' not found"
+                    }
+                }
+                if ( `:list sizeof notname' > 0 ) {
+                    di as err "Invalid names: `notname'"
+                }
+                clean_all 111
+                exit 111
+            }
+            qui ds `clean_anything'
+            local clean_anything `r(varlist)'
+        }
         cap noi check_matsize `clean_anything'
         if ( _rc ) {
             local rc = _rc
@@ -1050,8 +1097,9 @@ program _gtools_internal, rclass
             exit `rc'
         }
     }
+    if ( "`ds'" == "" ) local nods nods
 
-    local opts `compress' `forcestrl' glevelsof(`glevelsof')
+    local opts `compress' `forcestrl' glevelsof(`glevelsof') `ds'
     cap noi parse_by_types `anything' `ifin', clean_anything(`clean_anything') `opts'
     if ( _rc ) {
         local rc = _rc
@@ -2566,7 +2614,7 @@ end
 
 capture program drop parse_by_types
 program parse_by_types, rclass
-    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl glevelsof(str)]
+    syntax [anything] [if] [in], [clean_anything(str) compress forcestrl glevelsof(str) ds]
 
     local ifin `if' `in'
     if ( "`anything'" == "" ) {
@@ -2600,7 +2648,7 @@ program parse_by_types, rclass
     local varlist  ""
     local skip   = 0
     local invert = 0
-    if ( strpos("`anything'", "-") ) {
+    if ( strpos("`anything'", "-") & ("`ds'" == "") ) {
         while ( trim("`parse'") != "" ) {
             gettoken var parse: parse, p(" -+")
             if inlist("`var'", "-", "+") {

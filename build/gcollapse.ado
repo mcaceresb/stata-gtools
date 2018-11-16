@@ -89,11 +89,17 @@ program gcollapse, rclass
         }
         if ( "`ds'" != "" ) {
             local clean_by `clean_by'
-            cap ds `clean_by'
-            if ( _rc | ("`clean_by'" == "") ) {
+            if ( "`clean_by'" == "" ) {
                 di as err "Invalid varlist: `by'"
-                CleanExit
+                clean_all 198
                 exit 198
+            }
+            cap ds `clean_by'
+            if ( _rc ) {
+                cap noi ds `clean_by'
+                local rc = _rc
+                clean_all `rc'
+                exit `rc'
             }
             local clean_by `r(varlist)'
         }
@@ -108,18 +114,11 @@ program gcollapse, rclass
             }
             cap ds `clean_by'
             if ( _rc ) {
-                local notname
                 local notfound
                 foreach var of local clean_by {
                     cap confirm var `var'
                     if ( _rc  ) {
-                        cap confirm name `var'
-                        if ( _rc ) {
-                            local notname `notfound' `var'
-                        }
-                        else {
-                            local notfound `notfound' `var'
-                        }
+                        local notfound `notfound' `var'
                     }
                 }
                 if ( `:list sizeof notfound' > 0 ) {
@@ -129,9 +128,6 @@ program gcollapse, rclass
                     else {
                         di as err "Variable `notfound' not found"
                     }
-                }
-                if ( `:list sizeof notname' > 0 ) {
-                    di as err "Invalid names: `notname'"
                 }
                 CleanExit
                 exit 111

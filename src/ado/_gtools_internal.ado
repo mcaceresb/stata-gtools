@@ -1040,11 +1040,17 @@ program _gtools_internal, rclass
         }
         if ( "`ds'" != "" ) {
             local clean_anything `clean_anything'
-            cap ds `clean_anything'
-            if ( _rc | ("`clean_anything'" == "") ) {
+            if ( "`clean_anything'" == "" ) {
                 di as err "Invalid varlist: `anything'"
                 clean_all 198
                 exit 198
+            }
+            cap ds `clean_anything'
+            if ( _rc ) {
+                cap noi ds `clean_anything'
+                local rc = _rc
+                clean_all `rc'
+                exit `rc'
             }
             local clean_anything `r(varlist)'
         }
@@ -1059,18 +1065,11 @@ program _gtools_internal, rclass
             }
             cap ds `clean_anything'
             if ( _rc ) {
-                local notname
                 local notfound
                 foreach var of local clean_anything {
                     cap confirm var `var'
                     if ( _rc  ) {
-                        cap confirm name `var'
-                        if ( _rc ) {
-                            local notname `notfound' `var'
-                        }
-                        else {
-                            local notfound `notfound' `var'
-                        }
+                        local notfound `notfound' `var'
                     }
                 }
                 if ( `:list sizeof notfound' > 0 ) {
@@ -1080,9 +1079,6 @@ program _gtools_internal, rclass
                     else {
                         di as err "Variable `notfound' not found"
                     }
-                }
-                if ( `:list sizeof notname' > 0 ) {
-                    di as err "Invalid names: `notname'"
                 }
                 clean_all 111
                 exit 111

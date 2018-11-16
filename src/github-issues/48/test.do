@@ -8,6 +8,7 @@ gen c = 1
 
 gcontract color
 gcontract color pink
+gcontract color _.pink
 
 preserve
     gcollapse x
@@ -46,21 +47,21 @@ restore, preserve
 restore, preserve
     gcontract a-zz
 restore, preserve
-    gcontract a-zz nods
+    gcontract a-zz, nods
 restore, preserve
-    gcontract a-zz ds
+    gcontract a-zz, ds
 restore, preserve
     gcontract a-c
 restore, preserve
-    gcontract a-c nods
+    gcontract a-c, nods
 restore, preserve
-    gcontract a-c ds
+    gcontract a-c, ds
 restore, preserve
     gcontract a - c
 restore, preserve
-    gcontract a - c nods
+    gcontract a - c, nods
 restore, preserve
-    gcontract a - c ds
+    gcontract a - c, ds
 restore
 
 glevelsof a
@@ -88,3 +89,4 @@ gtop a-c, ds
 gtop a - c,
 gtop a - c, nods
 gtop a - c, ds
+gtop a*c

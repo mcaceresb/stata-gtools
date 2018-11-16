@@ -69,10 +69,14 @@ program glevelsof, rclass
         }
         if ( "`ds'" != "" ) {
             local varlist `varlist'
-            cap ds `varlist'
-            if ( _rc | ("`varlist'" == "") ) {
+            if ( "`varlist'" == "" ) {
                 di as err "Invalid varlist: `anything'"
                 exit 198
+            }
+            cap ds `varlist'
+            if ( _rc ) {
+                cap noi ds `varlist'
+                exit _rc
             }
             local varlist `r(varlist)'
         }
@@ -86,18 +90,11 @@ program glevelsof, rclass
             }
             cap ds `varlist'
             if ( _rc ) {
-                local notname
                 local notfound
                 foreach var of local varlist {
                     cap confirm var `var'
                     if ( _rc  ) {
-                        cap confirm name `var'
-                        if ( _rc ) {
-                            local notname `notfound' `var'
-                        }
-                        else {
-                            local notfound `notfound' `var'
-                        }
+                        local notfound `notfound' `var'
                     }
                 }
                 if ( `:list sizeof notfound' > 0 ) {
@@ -107,9 +104,6 @@ program glevelsof, rclass
                     else {
                         di as err "Variable `notfound' not found"
                     }
-                }
-                if ( `:list sizeof notname' > 0 ) {
-                    di as err "Invalid names: `notname'"
                 }
                 exit 111
             }

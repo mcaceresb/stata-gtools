@@ -507,7 +507,7 @@ capture program drop checks_gcollapse
 program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gcollapse, `options'" _n(1) "{hline 80}" _n(1)
-    local options `options' `tol'
+    local options `options' tol(`tol')
 
     qui `noisily' gen_data, n(5000)
     qui expand 2

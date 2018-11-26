@@ -1,4 +1,4 @@
-*! version 1.1.1 14Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -490,7 +490,8 @@ program define gegen, byable(onecall) rclass
             local sources `r(varlist)'
             cap confirm numeric v `sources'
             if ( _rc ) {
-                global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+                global GTOOLS_CALLER ""
+                di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
                 exit _rc
             }
 
@@ -513,7 +514,8 @@ program define gegen, byable(onecall) rclass
     *     local sources `r(varlist)'
     *     cap confirm numeric v `sources'
     *     if ( _rc ) {
-    *         global GTOOLS_CALLER "" di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
+    *         global GTOOLS_CALLER ""
+    *         di as err "{opth `ofcn'(varlist)} must call a numeric variable list."
     *         exit _rc
     *     }
     * }

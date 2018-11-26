@@ -60,7 +60,7 @@ program define hashsort
 
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
-    local opts  `compress' `forcestrl'
+    local opts  `compress' `forcestrl' nods
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
     local opts  `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local eopts `invertinmata' `sortgen' `skipcheck'

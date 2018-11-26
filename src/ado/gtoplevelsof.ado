@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -26,6 +26,7 @@ program gtoplevelsof, rclass
         missrow               /// Incldue missings as a sepparate row
         GROUPMISSing          /// Count as missing if any variable is missing
         noMISSing             /// Exclude missing values
+        NODS DS               /// Parse - as varlist (ds) or negative (nods)
                               ///
         OTHerlabel(str)       /// Label for "other" row
         MISSROWlabel(str)     /// Count as missing if any variable is missing
@@ -73,22 +74,66 @@ program gtoplevelsof, rclass
         exit 198
     }
 
+    if ( ("`ds'" != "") & ("`nods'" != "") ) {
+        di as err "-ds- and -nods- mutually exclusive"
+        exit 198
+    }
+
     * Get varlist
     * -----------
 
-    if ( "`anything'" != "" ) {
-        local varlist `anything'
-        local varlist: subinstr local varlist "+" "", all
-        local varlist: subinstr local varlist "-" "", all
-        cap ds `varlist'
-        if ( _rc | ("`varlist'" == "") ) {
-            local rc = _rc
-            di as err "Malformed call: '`anything''"
-            di as err "Syntax: [+|-]varname [[+|-]varname ...]"
-            exit 111
+    if ( `"`anything'"' != "" ) {
+        local varlist: copy local anything
+        local varlist: subinstr local varlist "+" " ", all
+        if ( strpos(`"`varlist'"', "-") & ("`ds'`nods'" == "") ) {
+            disp as txt "'-' interpreted as negative; use option -ds- to interpret as varlist"
+            disp as txt "(to suppress this warning, use option -nods-)"
         }
-        local varlist `r(varlist)'
+        if ( "`ds'" != "" ) {
+            local varlist `varlist'
+            if ( "`varlist'" == "" ) {
+                di as err "Invalid varlist: `anything'"
+                exit 198
+            }
+            cap ds `varlist'
+            if ( _rc ) {
+                cap noi ds `varlist'
+                exit _rc
+            }
+            local varlist `r(varlist)'
+        }
+        else {
+            local varlist: subinstr local varlist "-" " ", all
+            local varlist `varlist'
+            if ( "`varlist'" == "" ) {
+                di as err "Invalid list: `anything'"
+                di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                exit 198
+            }
+            cap ds `varlist'
+            if ( _rc ) {
+                local notfound
+                foreach var of local varlist {
+                    cap confirm var `var'
+                    if ( _rc  ) {
+                        local notfound `notfound' `var'
+                    }
+                }
+                if ( `:list sizeof notfound' > 0 ) {
+                    if ( `:list sizeof notfound' > 1 ) {
+                        di as err "Variables not found: `notfound'"
+                    }
+                    else {
+                        di as err "Variable `notfound' not found"
+                    }
+                }
+                exit 111
+            }
+            qui ds `varlist'
+            local varlist `r(varlist)'
+        }
     }
+    if ( "`ds'" == "" ) local nods nods
 
     * Parse options
     * -------------
@@ -156,7 +201,7 @@ program gtoplevelsof, rclass
     * Call the internals
     * ------------------
 
-    local opts  `separate' `colseparate' `missing' `gtop' `numfmt'
+    local opts  `separate' `colseparate' `missing' `gtop' `numfmt' `ds' `nods'
     local sopts `compress' `forcestrl'
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
     local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'

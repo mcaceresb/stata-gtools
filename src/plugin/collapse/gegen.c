@@ -160,6 +160,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
         l      = st_info->ix[j];
         start  = st_info->info[l];
         end    = st_info->info[l + 1];
+
         offsets_buffer[j] = start * ksources;
         nj_buffer[j]      = end - start;
         for (i = start; i < end; i++)

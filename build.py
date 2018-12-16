@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Tue Oct 31 14:48:08 EDT 2017
+# Updated: Sun Dec 16 08:15:53 EST 2018
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -113,6 +113,7 @@ gtools_ssc = [
     "gtop.ado",
     "gtoplevelsof.ado",
     "gisid.ado",
+    "gstats.ado",
     "gduplicates.ado",
     "gquantiles.ado",
     "fasterxtile.ado",
@@ -127,6 +128,7 @@ gtools_ssc = [
     "gtop.sthlp",
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
+    "gstats.sthlp",
     "gduplicates.sthlp",
     "gquantiles.sthlp",
     "fasterxtile.sthlp",
@@ -234,6 +236,7 @@ files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_glevelsof.do"),
             path.join("src", "test", "test_gtoplevelsof.do"),
             path.join("src", "test", "test_gisid.do"),
+            path.join("src", "test", "test_gstats.do"),
             path.join("src", "test", "test_gduplicates.do"),
             path.join("src", "test", "test_hashsort.do")]
 
@@ -265,6 +268,7 @@ copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
 copy2(path.join("docs", "stata", "gtop.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
 copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gstats.sthlp"),       gdir)
 copy2(path.join("docs", "stata", "gduplicates.sthlp"),  gdir)
 copy2(path.join("docs", "stata", "gquantiles.sthlp"),   gdir)
 copy2(path.join("docs", "stata", "fasterxtile.sthlp"),  gdir)
@@ -281,6 +285,7 @@ copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
 copy2(path.join("src", "ado", "gtop.ado"),             gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
+copy2(path.join("src", "ado", "gstats.ado"),           gdir)
 copy2(path.join("src", "ado", "gduplicates.ado"),      gdir)
 copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)
 copy2(path.join("src", "ado", "fasterxtile.ado"),      gdir)

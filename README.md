@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.1.2-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.2.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -463,6 +463,14 @@ TODO
 These are options/features I would like to support, but I don't have an
 ETA for them:
 
+- [ ] `gstats`
+    - [ ] `./docs/stata/gstats.sthlp`
+    - [ ] `./docs/usage/gstats.md`
+    - [ ] `./docs/examples/gstats.do`
+    - [ ] `./src/test/test_gstats.do`
+    - [ ] 0 and 100 for min/max
+    - [ ] README and index for gstats.
+    - [ ] Each gstats subcommand will get its own help file.
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.
 - [ ] Improve debugging info.

@@ -49,6 +49,9 @@ gtools (also see the {help gtools##examples:examples} below):
 {manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct}: Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
+{manhelp gstats R:gstats}: Wrapper for several statistical functions and transformations. {p_end}
+
+{p 8 17 2}
 {manhelp hashsort R:hashsort}: (Experimental) Hash-based sorting. {p_end}
 
 {marker syntax}{...}

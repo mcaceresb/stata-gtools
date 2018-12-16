@@ -1,4 +1,4 @@
-v 1.1.2
+v 1.2.0
 d
 d 'GTOOLS': Faster implementation of common Stata commands optimized for large datasets
 d
@@ -39,6 +39,7 @@ d KW: gtoplevelsof
 d KW: gunique
 d KW: gdistinct
 d KW: hashsort
+d KW: winsor
 d
 d Requires: Stata version 13.1
 d
@@ -61,6 +62,7 @@ f gtoplevelsof.ado
 f gisid.ado
 f gduplicates.ado
 f hashsort.ado
+f gstats.ado
 f gtools.ado
 f gcollapse.sthlp
 f gcontract.sthlp
@@ -75,6 +77,7 @@ f gtoplevelsof.sthlp
 f gisid.sthlp
 f gduplicates.sthlp
 f hashsort.sthlp
+f gstats.sthlp
 f gtools.sthlp
 f gtools_windows_v2.plugin
 f env_set_windows_v2.plugin

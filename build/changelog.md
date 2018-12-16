@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.2.0 (2018-12-16)
+
+### Features
+
+- `gstats` general-purpose wrapper for misc functions.
+- `gstats winsor` for Winsorizing and trimming data.
+
 ## gtools-1.1.2 (2018-11-16)
 
 ### Enhancements

@@ -23,14 +23,14 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 {it:subcommand}
 {varlist}
 {ifin}
-[{cmd:,} {opth:by(varlist)} {it:{help gstats##table_options:subcommand_options}}]
+[{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:subcommand_options}}]
 
 {phang}
 {opt gstats} is a wrapper for various statistical functions and
 transformations, including:
 
 {p 8 17 2}
-{it:gstats winsor} as a {opt winsor} and {opt winsor2} alternative. {p_end}
+{it:gstats winsor} as a {opt winsor2} alternative. {p_end}
 
 {synoptset 19 tabbed}{...}
 {marker table_options}{...}
@@ -124,5 +124,4 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p 4 13 2}
 help for 
 {help gtools};
-{help winsor} (if installed), 
 {help winsor2} (if installed)

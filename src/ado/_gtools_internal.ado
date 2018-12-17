@@ -3370,7 +3370,7 @@ program gstats_winsor
         mata: (void) st_addvar(tokens(`"`gentypes'"'), tokens(`"`genvars'"'))
     }
 
-    * Label if applicable
+    * Add to label if applicable
     if ( substr("`cutl'", 1, 1) == "." ) local cutl 0`cutl'
     if ( substr("`cuth'", 1, 1) == "." ) local cuth 0`cuth'
     if ( "`label'" != "" ) {
@@ -3381,23 +3381,19 @@ program gstats_winsor
             local glab `" - Winsor (p`cutl', p`cuth')"'
         }
     }
-    else local glab
-    forvalues i = 1 / `kvars' {
-        local var:  word `i' of `varlist'
-        local gvar: word `i' of `genvars'
-        local vlab: var label `var'
-        if ( `"`vlab'"' == "" ) local vlab `var'
-        label var `gvar' `"`vlab'`glab'"'
-    }
+    else local glab `""'
 
-    * Copy formats
+    * Label and copy formats
     forvalues i = 1 / `kvars' {
         local var:  word `i' of `varlist'
         local gvar: word `i' of `targetvars'
+        local vlab: var label `var'
+        if ( `"`vlab'"' == "" ) local vlab `var'
+        label var `gvar' `"`=`"`vlab'"' + `"`glab'"''"'
         format `:format `var'' `gvar' 
     }
 
-    c_local varlist `varlist' `genvars'
+    c_local varlist `varlist' `targetvars'
 end
 
 

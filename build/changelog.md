@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.2.1 (2018-12-16)
+
+### Bug fixes
+
+- `gstats winsor` no longer crashes with multiple variables.
+- `gstats winsor, trim` correctly copies the source to the target.
+
 ## gtools-1.2.0 (2018-12-16)
 
 ### Features

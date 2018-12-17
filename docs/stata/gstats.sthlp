@@ -23,7 +23,7 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 {it:subcommand}
 {varlist}
 {ifin}
-[{cmd:,} {opth:by(varlist)} {it:{help gstats##table_options:subcommand_options}}]
+[{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:subcommand_options}}]
 
 {phang}
 {opt gstats} is a wrapper for various statistical functions and

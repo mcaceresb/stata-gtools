@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  16Dec2018}{...}
+{* *! version 0.1.2  18Dec2018}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}
@@ -30,7 +30,7 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 transformations, including:
 
 {p 8 17 2}
-{it:gstats winsor} as a {opt winsor2} alternative. {p_end}
+{it:gstats winsor} as a {opt winsor2} alternative (accepts weights). {p_end}
 
 {synoptset 19 tabbed}{...}
 {marker table_options}{...}

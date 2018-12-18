@@ -2399,6 +2399,12 @@ program _gtools_internal, rclass
     return local bynum  = "`bynum'"
     return local bystr  = "`bystr'"
 
+    * gstats
+    if ( inlist("`gfunction'",  "stats") ) {
+        return scalar gstats_winsor_cutlow  = __gtools_winsor_cutl
+        return scalar gstats_winsor_cuthigh = __gtools_winsor_cuth
+    }
+
     * levelsof
     if ( inlist("`gfunction'", "levelsof", "top") & `=scalar(__gtools_levels_return)' ) {
         return local levels `"`vals'"'
@@ -3256,10 +3262,10 @@ capture program drop gstats_scalars
 program gstats_scalars
     scalar __gtools_gstats_code = .
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_winsor_trim  = .
-        scalar __gtools_winsor_cutl  = .
-        scalar __gtools_winsor_cuth  = .
-        scalar __gtools_winsor_kvars = .
+        scalar __gtools_winsor_trim    = .
+        scalar __gtools_winsor_cutl    = .
+        scalar __gtools_winsor_cuth    = .
+        scalar __gtools_winsor_kvars   = .
     }
     else {
         cap scalar drop __gtools_gstats_code
@@ -3293,11 +3299,11 @@ program gstats_winsor
     }
     local kvars: list sizeof varlist
 
-    scalar __gtools_winsor_trim  = `trim'
-    scalar __gtools_winsor_cutl  = `cutl'
-    scalar __gtools_winsor_cuth  = `cuth'
-    scalar __gtools_winsor_kvars = `kvars'
-    scalar __gtools_gstats_code  = 1
+    scalar __gtools_winsor_trim    = `trim'
+    scalar __gtools_winsor_cutl    = `cutl'
+    scalar __gtools_winsor_cuth    = `cuth'
+    scalar __gtools_winsor_kvars   = `kvars'
+    scalar __gtools_gstats_code    = 1
 
     * Default is to generate vars with suffix (_w or _tr)
     if ( `"`prefix'`suffix'`generate'"' == "" ) {

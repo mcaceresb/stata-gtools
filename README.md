@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, pctile, xtile, contract, egen, isid, levelsof,
 duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.2.0-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.2.2-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -69,6 +69,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
 |                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
+| gstats winsor       | winsor2            |  10 to 40 / 10 to 40    | Can use weights              |
 | gunique             | unique             |  4 to 26 / 4 to 12      |                              |
 | gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
 | gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |

@@ -1,4 +1,4 @@
-*! version 0.1.0 14Dec2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.0 16Dec2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats
@@ -29,7 +29,8 @@ program gstats, rclass
     }
 
     syntax varlist            /// Variables to check
-        [if] [in] ,           /// [if condition] [in start / end]
+        [if] [in]             /// [if condition] [in start / end]
+        [aw fw pw iw] ,       /// [weight type = exp]
     [                         ///
         *                     /// Options for subprograms
         by(varlist)           /// Winsorize options
@@ -48,7 +49,17 @@ program gstats, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
-    local opts   `compress' `forcestrl' nods unsorted
+	if ( `"`weight'"' != "" ) {
+		tempvar touse w
+		qui gen double `w' `exp' `if' `in'
+		local wgt `"[`weight'=`w']"'
+        local weights weights(`weight' `w')
+        mark `touse' `if' `in' `wgt'
+        local if if `touse'
+	}
+    else local weights
+
+    local opts   `weights' `compress' `forcestrl' nods unsorted
     local opts   `opts' `verbose' `benchmark' `benchmarklevel'
     local opts   `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')
@@ -56,6 +67,15 @@ program gstats, rclass
     cap noi _gtools_internal `by' `if' `in', `opts' `gstats'
     local rc = _rc
     global GTOOLS_CALLER ""
+
+    return scalar N      = `r(N)'
+    return scalar J      = `r(J)'
+    return scalar minJ   = `r(minJ)'
+    return scalar maxJ   = `r(maxJ)'
+    if ( `"`stat'"' == "winsor" ) {
+        return scalar cutlow  = r(gstats_winsor_cutlow)
+        return scalar cuthigh = r(gstats_winsor_cuthigh)
+    }
 
     if ( `rc' == 17999 ) {
         exit 17000

@@ -1,10 +1,6 @@
 ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
 {
 
-    // if ( st_info->wcode ) {
-    //     return (sf_stats_winsor_w (st_info, level));
-    // }
-
     GT_bool debug = st_info->debug;
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_stats_winsor): Starting gstats winsor.\n");
@@ -43,7 +39,6 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
             nj_max = (st_info->info[j + 1] - st_info->info[j]);
     }
 
-    // ST_double *gsrc_byrow   = calloc(ksources * Nread,  sizeof *gsrc_byrow);
     ST_double *gsrc_bycol   = calloc(ksources * Nread,  sizeof *gsrc_bycol);
     ST_double *gsrc_weight  = calloc(weights? Nread: 1, sizeof *gsrc_weight);
     ST_double *gsrc_buffer  = calloc(weights? 2 * nj_max: 1,   sizeof *gsrc_buffer);
@@ -255,7 +250,7 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
                     zl = st_info->output[offset_output + 2 * k + 0];
                     zh = st_info->output[offset_output + 2 * k + 1];
                     if ( (rc = SF_vdata(kvars + k + 1, out, &w)) ) goto exit;
-                    if ( w < zl || w > zh ) {
+                    if ( (w < SV_missval) && (w < zl || w > zh) ) {
                         if ( (rc = SF_vstore(kstart + k, out, SV_missval)) ) goto exit;
                     }
                     else {
@@ -278,10 +273,10 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
                     zh = st_info->output[offset_output + 2 * k + 1];
                     if ( (rc = SF_vdata(kvars + k + 1, out, &w)) ) goto exit;
                     // sf_printf_debug("%9.4f (%ld, %ld): [%9.4f, %9.4f]\n", w, i, k, zl, zh);
-                    if ( w > zh ) {
+                    if ( (w < SV_missval) && (w > zh) ) {
                         if ( (rc = SF_vstore(kstart + k, out, zh)) ) goto exit;
                     }
-                    else if ( w < zl ) {
+                    else if ( (w < SV_missval) && (w < zl) ) {
                         if ( (rc = SF_vstore(kstart + k, out, zl)) ) goto exit;
                     }
                     else {
@@ -302,7 +297,6 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
     }
 
 exit:
-    // free(gsrc_byrow);
     free(gsrc_bycol);
     free(gsrc_weight);
     free(gsrc_buffer);

@@ -6648,9 +6648,14 @@ program checks_gstats
     assert abs(x_w1 - x_w2) < 1e-6
     assert abs(y_w1 - y_w2) < 1e-6
 
-    replace y = . if mod(_n, 123)
-    replace x = . if mod(_n, 321)
+    replace y = . if mod(_n, 123) == 0
+    replace x = . if mod(_n, 321) == 0
     gstats winsor x [w=y], by(id) s(_w3)
+    gstats winsor x [w=y], by(id) s(_w5) trim 
+    gegen p1  = pctile(x) [aw = y], by(id) p(1) 
+    gegen p99 = pctile(x) [aw = y], by(id) p(99) 
+    gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
+    assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
     exit 12345
 end
 

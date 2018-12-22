@@ -11,6 +11,22 @@ open:
 	dolphin --split ~/todo/now/stata-gtools \
 					~/todo/now/stata-gtools/src &
 
+# Update!
+# -------
+#
+# ./README.md
+# ./docs/index.md
+# ./docs/stata/gtools.sthlp
+# ./src/ado/gtools.ado
+# ./src/ado/_gtools_internal.ado
+# ./src/plugin/gtools.c
+# ./src/test/gtools_tests.do
+# ./src/gtools.pkg
+# ./src/stata.toc
+# ./.appveyor.yml
+# ./.travis.yml
+# ./build.py
+
 # ---------------------------------------------------------------------
 # Gtools flags
 

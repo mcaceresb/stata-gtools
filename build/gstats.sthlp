@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  16Dec2018}{...}
+{* *! version 0.1.2  18Dec2018}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}
@@ -23,6 +23,7 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 {it:subcommand}
 {varlist}
 {ifin}
+[{it:{help gstats##weight:weight}}]
 [{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:subcommand_options}}]
 
 {phang}
@@ -30,7 +31,7 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 transformations, including:
 
 {p 8 17 2}
-{it:gstats winsor} as a {opt winsor2} alternative. {p_end}
+{it:gstats winsor} as a fast {opt winsor2} alternative (accepts weights). {p_end}
 
 {synoptset 19 tabbed}{...}
 {marker table_options}{...}
@@ -72,6 +73,12 @@ transformations, including:
 {p2colreset}{...}
 {p 4 6 2}
 
+{marker weight}{...}
+{p 4 6 2}
+{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are
+allowed (see {manhelp weight U:11.1.6 weight} for more on the way Stata
+uses weights).
+
 {marker description}{...}
 {title:Description}
 
@@ -85,7 +92,7 @@ is written to be more flexible and allow arbitrary functions and
 transformations.
 
 {pstd}
-Weights are currently not supported but are planned for a future release.
+Weights are supported for the following subcommands: {it:winsor}.
 
 {marker example}{...}
 {title:Examples}

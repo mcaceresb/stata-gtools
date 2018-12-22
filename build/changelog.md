@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.2.2 (2018-12-18)
+
+### Features
+
+- `gstats winsor` now takes weights.
+
 ## gtools-1.2.1 (2018-12-16)
 
 ### Bug fixes

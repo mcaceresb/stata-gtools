@@ -21,7 +21,7 @@
  */
 
 #include "gtools.h"
-#include "spookyhash/src/spookyhash_api.h"
+#include "spookyhash_api.h"
 
 #include "common/sf_wrappers.c"
 #include "common/fixes.c"

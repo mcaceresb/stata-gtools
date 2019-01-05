@@ -8,13 +8,9 @@ os:
 - linux
 - osx
 script:
-- cd lib/spookyhash/build
-- sed -i.bak -e '37,40d' premake5.lua
-- "../../travis_build_premake.sh"
-- "./premake5 gmake"
 - make clean
 - ALL_CFLAGS+=-fPIC make
 - cd -
-- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
-- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2
+- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3
 # - "./lib/travis_build_push.sh"

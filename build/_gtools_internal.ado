@@ -3296,6 +3296,27 @@ program gstats_winsor
 	}
     else {
         gettoken cutl cuth: cuts
+        cap noi confirm number `cutl'
+        if ( _rc ) {
+            disp "You must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        cap noi confirm number `cuth'
+        if ( _rc ) {
+            disp "You must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        if ( (`cutl' < 0) | (`cutl' > 100) | (`cuth' < 0) | (`cuth' > 100) ) {
+            disp as err "Percentiles in -cuts()- must be between 0 and 100"
+            exit 198
+        }
+
+        if ( `cutl' > `cuth' ) {
+            disp as err "Specify the lower cutpoint first in -cuts()-"
+            exit 198
+        }
     }
     local kvars: list sizeof varlist
 
@@ -3401,7 +3422,6 @@ program gstats_winsor
 
     c_local varlist `varlist' `targetvars'
 end
-
 
 ***********************************************************************
 *                             Load plugin                             *

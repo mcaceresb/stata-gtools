@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.2.3 (2018-12-22)
+
+### Bug fixes
+
+- Fixes #50: `gstats winsor` no longer fills in missing values as the
+  high percentile.
+
 ## gtools-1.2.2 (2018-12-18)
 
 ### Features

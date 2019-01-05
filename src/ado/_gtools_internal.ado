@@ -1,4 +1,4 @@
-*! version 1.2.2 16Dec2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.4 05Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -3296,6 +3296,27 @@ program gstats_winsor
 	}
     else {
         gettoken cutl cuth: cuts
+        cap noi confirm number `cutl'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        cap noi confirm number `cuth'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        if ( (`cutl' < 0) | (`cutl' > 100) | (`cuth' < 0) | (`cuth' > 100) ) {
+            disp as err "percentiles in -cuts()- must be between 0 and 100"
+            exit 198
+        }
+
+        if ( `cutl' > `cuth' ) {
+            disp as err "specify the lower cutpoint first in -cuts()-"
+            exit 198
+        }
     }
     local kvars: list sizeof varlist
 
@@ -3402,7 +3423,6 @@ program gstats_winsor
     c_local varlist `varlist' `targetvars'
 end
 
-
 ***********************************************************************
 *                             Load plugin                             *
 ***********************************************************************
@@ -3410,7 +3430,7 @@ end
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
-if ( `c(stata_version)' < 14 ) local spiver v2
+if ( `c(stata_version)' < 14.1 ) local spiver v2
 else local spiver v3
 
 cap program drop env_set

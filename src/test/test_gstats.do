@@ -2,6 +2,16 @@ capture program drop checks_gstats
 program checks_gstats
     sysuse auto, clear
 
+    cap noi gstats winsor price, by(foreign) cuts(10)
+    cap noi gstats winsor price, by(foreign) cuts(90)
+    cap noi gstats winsor price, by(foreign) cuts(. 90)
+    cap noi gstats winsor price, by(foreign) cuts(10 .)
+    cap noi gstats winsor price, by(foreign) cuts(-1 10)
+    cap noi gstats winsor price, by(foreign) cuts(10 101)
+    * gstats winsor price, by(foreign) cuts(0 10) gen(x)
+    * gstats winsor price, by(foreign) cuts(10 100) gen(y)
+    * gstats winsor price, by(foreign) cuts(100 100) gen(zz)
+    * gstats winsor price, by(foreign) cuts(0 0) gen(yy)
     gstats winsor price, by(foreign)
     winsor2 price, by(foreign) replace
 

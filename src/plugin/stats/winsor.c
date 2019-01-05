@@ -170,25 +170,55 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
                     gsrc_xcount + start
                 );
 
-                output[offset_output + 2 * k + 0] = gf_array_dquantile_weighted(
-                    gsrc_bycol + offset_buffer + nj * k,
-                    nj,
-                    gsrc_weight + offset_weight,
-                    st_info->winsor_cutl,
-                    gsrc_wsum[start],
-                    gsrc_xcount[start],
-                    gsrc_buffer
-                );
+                if ( st_info->winsor_cutl == 0 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmin_range(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        0,
+                        nj
+                    );
+                }
+                else if ( st_info->winsor_cutl == 100 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmax_weighted(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        nj
+                    );
+                }
+                else {
+                    output[offset_output + 2 * k + 0] = gf_array_dquantile_weighted(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        nj,
+                        gsrc_weight + offset_weight,
+                        st_info->winsor_cutl,
+                        gsrc_wsum[start],
+                        gsrc_xcount[start],
+                        gsrc_buffer
+                    );
+                }
 
-                output[offset_output + 2 * k + 1] = gf_array_dquantile_weighted(
-                    gsrc_bycol + offset_buffer + nj * k,
-                    nj,
-                    gsrc_weight + offset_weight,
-                    st_info->winsor_cuth,
-                    gsrc_wsum[start],
-                    gsrc_xcount[start],
-                    gsrc_buffer
-                );
+                if ( st_info->winsor_cuth == 0 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmin_range(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        0,
+                        nj
+                    );
+                }
+                else if ( st_info->winsor_cuth == 100 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmax_weighted(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        nj
+                    );
+                }
+                else {
+                    output[offset_output + 2 * k + 1] = gf_array_dquantile_weighted(
+                        gsrc_bycol + offset_buffer + nj * k,
+                        nj,
+                        gsrc_weight + offset_weight,
+                        st_info->winsor_cuth,
+                        gsrc_wsum[start],
+                        gsrc_xcount[start],
+                        gsrc_buffer
+                    );
+                }
             }
         }
     }
@@ -204,19 +234,52 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
             for (k = 0; k < ktargets; k++) {
                 start = offset_buffer + nj * k;
                 end   = all_nonmiss[offset_source + k];
-                output[offset_output + 2 * k + 0] = gf_array_dquantile_range(
-                    gsrc_bycol,
-                    start,
-                    start + end,
-                    st_info->winsor_cutl
-                );
 
-                output[offset_output + 2 * k + 1] = gf_array_dquantile_range(
-                    gsrc_bycol,
-                    start,
-                    start + end,
-                    st_info->winsor_cuth
-                );
+                if ( st_info->winsor_cutl == 0 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmin_range(
+                        gsrc_bycol + start,
+                        0,
+                        end
+                    );
+                }
+                else if ( st_info->winsor_cutl == 100 ) {
+                    output[offset_output + 2 * k + 0] = gf_array_dmax_range(
+                        gsrc_bycol + start,
+                        0,
+                        end
+                    );
+                }
+                else {
+                    output[offset_output + 2 * k + 0] = gf_array_dquantile_range(
+                        gsrc_bycol + start,
+                        0,
+                        end,
+                        st_info->winsor_cutl
+                    );
+                }
+
+                if ( st_info->winsor_cuth == 0 ) {
+                    output[offset_output + 2 * k + 1] = gf_array_dmin_range(
+                        gsrc_bycol + start,
+                        0,
+                        end
+                    );
+                }
+                else if ( st_info->winsor_cuth == 100 ) {
+                    output[offset_output + 2 * k + 1] = gf_array_dmax_range(
+                        gsrc_bycol + start,
+                        0,
+                        end
+                    );
+                }
+                else {
+                    output[offset_output + 2 * k + 1] = gf_array_dquantile_range(
+                        gsrc_bycol + start,
+                        0,
+                        end,
+                        st_info->winsor_cuth
+                    );
+                }
 
                 // sf_printf_debug("%ld (%ld, %ld): [%9.4f, %9.4f]\n",
                 //                 offset_output + 2 * k + 1,

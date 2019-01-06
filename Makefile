@@ -11,6 +11,22 @@ open:
 	dolphin --split ~/todo/now/stata-gtools \
 					~/todo/now/stata-gtools/src &
 
+# Update!
+# -------
+#
+# ./README.md
+# ./docs/index.md
+# ./docs/stata/gtools.sthlp
+# ./src/ado/gtools.ado
+# ./src/ado/_gtools_internal.ado
+# ./src/plugin/gtools.c
+# ./src/test/gtools_tests.do
+# ./src/gtools.pkg
+# ./src/stata.toc
+# ./.appveyor.yml
+# ./.travis.yml
+# ./build.py
+
 # ---------------------------------------------------------------------
 # Gtools flags
 
@@ -64,6 +80,7 @@ git:
 	git init
 	git submodule add https://github.com/centaurean/spookyhash lib/spookyhash
 	git submodule update --init --recursive
+	cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
 
 ## Download latest OSX plugin
 osx_plugins:
@@ -90,23 +107,25 @@ links:
 	ln -sf ../../lib 	  src/plugin/lib
 	ln -sf lib/spi-$(SPI) src/plugin/spi
 
-## Build gtools plugin
-
 GTOOLS_SRC=src/plugin/gtools.c \
 	src/plugin/spi/stplugin.c
 
 GTOOLS_E_SRC=src/plugin/spi/stplugin.c \
 	src/plugin/env_set.c
+
 SPOOKYHASH_SRC=lib/spookyhash/src/context.c \
 	lib/spookyhash/src/globals.c \
 	lib/spookyhash/src/spookyhash.c
+
 SPOOKYHASH_INC=-Ilib/spookyhash/src
 
+## Build gtools plugin
 gtools: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
 	mkdir -p ./build
 	$(GCC) $(CFLAGS) -o $(OUT) $(SPOOKYHASH_INC) $^
 	cp build/*plugin lib/plugin/
 
+## Build environment switch
 gtools_e: $(GTOOLS_E_SRC)
 	mkdir -p ./build
 	$(GCC) $(CFLAGS) -o $(OUTE) $^

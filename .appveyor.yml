@@ -9,4 +9,6 @@ environment:
 
 build_script:
   - git submodule update --init --recursive
-  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make spooky; make'"
+  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; cd lib/spookyhash; git checkout spookyhash-1.0.6; cd -'"
+  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make clean SPI=2.0 SPIVER=v2; make all SPI=2.0 SPIVER=v2'"
+  - "%CYGWIN%\\bin\\bash -lc 'set -eux; cd /cygdrive/c/projects/%APPVEYOR_PROJECT_NAME%; make clean SPI=3.0 SPIVER=v3; make all SPI=3.0 SPIVER=v3'"

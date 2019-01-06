@@ -14,7 +14,6 @@ addons:
     packages:
       - gcc-7
 script:
-- /usr/bin/gcc-7 -v
 - cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export GCC=gcc; else export GCC=/usr/bin/gcc-7; fi
 - make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=$GCC

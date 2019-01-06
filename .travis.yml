@@ -14,8 +14,8 @@ addons:
     packages:
       - gcc-7
 script:
-- ln -s /usr/bin/gcc-7 /usr/local/bin/gcc && export CC=/usr/bin/gcc-7
-- gcc -v
-- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2
-- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3
+- /usr/bin/gcc-7 -v
+- cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
+- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=/usr/bin/gcc-7
+- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=/usr/bin/gcc-7
 # - "./lib/travis_build_push.sh"

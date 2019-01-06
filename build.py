@@ -307,8 +307,7 @@ plugins = [
     "env_set_macosx_v3.plugin",
     "gtools_unix_v3.plugin",
     "gtools_windows_v3.plugin",
-    "gtools_macosx_v3.plugin",
-    "spookyhash.dll"
+    "gtools_macosx_v3.plugin"
 ]
 
 plugbak = plugins[:]

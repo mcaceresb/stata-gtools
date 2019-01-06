@@ -80,6 +80,7 @@ git:
 	git init
 	git submodule add https://github.com/centaurean/spookyhash lib/spookyhash
 	git submodule update --init --recursive
+	cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
 
 ## Download latest OSX plugin
 osx_plugins:

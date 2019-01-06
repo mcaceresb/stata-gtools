@@ -7,7 +7,15 @@ compiler:
 os:
 - linux
 - osx
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
 script:
+- ln -s /usr/bin/gcc-7 /usr/local/bin/gcc && export CC=/usr/bin/gcc-7
+- gcc -v
 - make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2
 - make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3
 # - "./lib/travis_build_push.sh"

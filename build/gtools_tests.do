@@ -7393,4 +7393,4 @@ end
 * Run the things
 
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
-main, basic_checks
+main, `0'

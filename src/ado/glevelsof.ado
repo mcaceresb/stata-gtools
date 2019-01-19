@@ -27,6 +27,7 @@ program glevelsof, rclass
         store(passthru)       /// (not implemented) store in matrix or mata object
         gen(passthru)         /// Save unique levels in varlist
         NODS DS               /// Parse - as varlist (ds) or negative (nods)
+        silent                /// Do not try to display levels in console
                               ///
         debug(passthru)       /// Print debugging info to console
         compress              /// Try to compress strL variables

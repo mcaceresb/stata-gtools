@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.2.4 (2019-01-05)
+
+### Bug fixes
+
+- Stata 14.0 no longer tries to load SPI version 3 (loads version 2).
+- Fixes #51: `gstats winsor` no longer fails with percentiles not strictly
+  between 0 and 100.
+
 ## gtools-1.2.3 (2018-12-22)
 
 ### Bug fixes

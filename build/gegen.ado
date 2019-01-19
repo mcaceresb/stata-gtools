@@ -139,6 +139,7 @@ program define gegen, byable(onecall) rclass
                           oncollision(passthru)    ///
                           Verbose                  ///
                           _subtract                ///
+                          _CTOLerance(passthru)    ///
                           compress                 ///
                           forcestrl                ///
                           BENCHmark                ///
@@ -153,9 +154,12 @@ program define gegen, byable(onecall) rclass
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `_subtract' `compress' `forcestrl' `benchmark' `benchmarklevel')
+
+            local gopts `hashlib' `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
+            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel'
+
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
-            cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
+            cap noi egen_fallback `if' `in', kwargs(`gopts') `popts' `options' `gtools_capture'
             exit _rc
         }
     }
@@ -186,6 +190,7 @@ program define gegen, byable(onecall) rclass
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
         Verbose                   /// Print info during function execution
         _subtract                 /// (Undocumented) Subtract result from source variable
+        _CTOLerance(passthru)     /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -338,7 +343,7 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local opts  `compress' `forcestrl' `_subtract'
+    local opts  `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
     local opts  `opts' `hashlib' `oncollision' `hashmethod'
     local sopts `counts'
@@ -431,6 +436,7 @@ program define gegen, byable(onecall) rclass
                               `oncollision'    ///
                               `verbose'        ///
                               `_subtract'      ///
+                              `_ctolerance'    ///
                               `compress'       ///
                               `forcestrl'      ///
                               `benchmark'      ///
@@ -605,6 +611,7 @@ program define gegen, byable(onecall) rclass
                           `oncollision'    ///
                           `verbose'        ///
                           `_subtract'      ///
+                          `_ctolerance'    ///
                           `compress'       ///
                           `forcestrl'      ///
                           `benchmark'      ///
@@ -786,6 +793,7 @@ program collision_fallback
                       oncollision(passthru)    ///
                       Verbose                  ///
                       _subtract                ///
+                      _CTOLerance(passthru)    ///
                       compress                 ///
                       forcestrl                ///
                       BENCHmark                ///

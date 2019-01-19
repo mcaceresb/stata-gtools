@@ -13,6 +13,7 @@ program gisid
         compress              /// Try to compress strL variables
         forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
+        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -40,7 +41,7 @@ program gisid
         local miss missing
     }
 
-    local opts `miss' `compress' `forcestrl'
+    local opts `miss' `compress' `forcestrl' `_ctolerance'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
     local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)

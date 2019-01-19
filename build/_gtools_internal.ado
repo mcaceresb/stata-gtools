@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.5 19Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -40,6 +40,7 @@ program _gtools_internal, rclass
                          gtoplevelsof ///
                          gcontract    /// 8
                          gquantiles   ///
+                         gstats       ///
                          ghash
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
@@ -81,6 +82,7 @@ program _gtools_internal, rclass
         DEBUG_level(int 0)        /// debugging
         Verbose                   /// info
         _subtract                 /// (Undocumented) Subtract result from source variabes
+        _CTOLerance(real 0)       /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(str)           /// hashing method
@@ -117,6 +119,7 @@ program _gtools_internal, rclass
                                   /// Capture options
                                   /// ---------------
                                   ///
+        gstats(str)               /// options for gquantiles (to parse later)
         gquantiles(str)           /// options for gquantiles (to parse later)
         gcontract(str)            /// options for gcontract (to parse later)
         gcollapse(str)            /// options for gcollapse (to parse later)
@@ -249,6 +252,7 @@ program _gtools_internal, rclass
         disp as txt `"    glevelsof:        `gopts4'"'
         disp as txt `"    gquantiles:       `gquantiles'"'
         disp as txt `"    gcontract:        `gcontract'"'
+        disp as txt `"    gstats:           `gstats'"'
         disp as txt `"    gcollapse:        `gcollapse'"'
         disp as txt `"    gtop:             `gtop'"'
         disp as txt `"    recast:           `recast'"'
@@ -408,6 +412,7 @@ program _gtools_internal, rclass
                          collapse ///
                          top      ///
                          contract ///
+                         stats    ///
                          quantiles
 
     if ( "`gfunction'" == "" ) local gfunction hash
@@ -709,6 +714,7 @@ program _gtools_internal, rclass
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
     scalar __gtools_mlast       = ( "`mlast'"        != "" )
     scalar __gtools_subtract    = ( "`_subtract'"    != "" )
+    scalar __gtools_ctolerance  = `_ctolerance'
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
@@ -760,6 +766,8 @@ program _gtools_internal, rclass
     matrix __gtools_xtile_cutoffs   = J(1, 1, .)
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
     matrix __gtools_xtile_cutbin    = J(1, 1, .)
+
+    gstats_scalars init
 
     * Parse glevelsof options
     * -----------------------
@@ -1576,6 +1584,17 @@ program _gtools_internal, rclass
             local gcall hash
             scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
         }
+        else if ( inlist("`gfunction'",  "stats") ) {
+            local gcall `gfunction'
+            gettoken gstat gstats: gstats
+            cap noi gstats_`gstat' `gstats'
+            if ( _rc ) {
+                local rc = _rc
+                clean_all `rc'
+                exit `rc'
+            }
+            local statvars `varlist'
+        }
         else if ( inlist("`gfunction'",  "contract") ) {
             local 0 `gcontract'
             syntax varlist, contractwhich(numlist)
@@ -2235,7 +2254,7 @@ program _gtools_internal, rclass
         }
         else local gcall `gfunction'
 
-        local plugvars `byvars' `etargets' `extravars' `level_targets' `contractvars' `xvars'
+        local plugvars `byvars' `etargets' `extravars' `level_targets' `statvars' `contractvars' `xvars'
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
@@ -2258,6 +2277,7 @@ program _gtools_internal, rclass
             disp as txt `"    gcall:            `gcall'"'
             disp as txt `""'
             disp as txt `"    contractvars:     `contractvars'"'
+            disp as txt `"    statvars:         `statvars'"'
             disp as txt `""'
             disp as txt `"    nolocalvar:       `nolocalvar'"'
             disp as txt `"    freq:             `freq'"'
@@ -2381,6 +2401,12 @@ program _gtools_internal, rclass
     return local bynum  = "`bynum'"
     return local bystr  = "`bystr'"
 
+    * gstats
+    if ( inlist("`gfunction'",  "stats") ) {
+        return scalar gstats_winsor_cutlow  = __gtools_winsor_cutl
+        return scalar gstats_winsor_cuthigh = __gtools_winsor_cuth
+    }
+
     * levelsof
     if ( inlist("`gfunction'", "levelsof", "top") & `=scalar(__gtools_levels_return)' ) {
         return local levels `"`vals'"'
@@ -2483,6 +2509,7 @@ program clean_all
     cap scalar drop __gtools_skipcheck
     cap scalar drop __gtools_mlast
     cap scalar drop __gtools_subtract
+    cap scalar drop __gtools_ctolerance
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
@@ -2571,6 +2598,8 @@ program clean_all
 
     cap matrix drop __gtools_stats
     cap matrix drop __gtools_pos_targets
+
+    gstats_scalars drop
 
     * NOTE(mauricio): You had the urge to make sure you were dropping
     * variables at one point. Don't. This is fine for gquantiles but not so
@@ -3229,13 +3258,182 @@ program encode_stat, rclass
 end
 
 ***********************************************************************
+*                               gstats                                *
+***********************************************************************
+
+capture program drop gstats_scalars
+program gstats_scalars
+    scalar __gtools_gstats_code = .
+    if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
+        scalar __gtools_winsor_trim    = .
+        scalar __gtools_winsor_cutl    = .
+        scalar __gtools_winsor_cuth    = .
+        scalar __gtools_winsor_kvars   = .
+    }
+    else {
+        cap scalar drop __gtools_gstats_code
+        cap scalar drop __gtools_winsor_trim
+        cap scalar drop __gtools_winsor_cutl
+        cap scalar drop __gtools_winsor_cuth
+        cap scalar drop __gtools_winsor_kvars
+    }
+end
+
+capture program drop gstats_winsor
+program gstats_winsor
+    syntax varlist(numeric), [ ///
+        Suffix(str)            ///
+        Prefix(str)            ///
+        GENerate(str)          ///
+        Trim                   ///
+        Cuts(str)              ///
+        Label                  ///
+        replace                ///
+    ]
+
+    * Default is winsorize or trim 1st or 99th pctile
+    local trim = ( `"`trim'"' != "" )
+	if ( `"`cuts'"' == "" ) {
+		local cutl = 1
+		local cuth = 99
+	}
+    else {
+        gettoken cutl cuth: cuts
+        cap noi confirm number `cutl'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        cap noi confirm number `cuth'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        if ( (`cutl' < 0) | (`cutl' > 100) | (`cuth' < 0) | (`cuth' > 100) ) {
+            disp as err "percentiles in -cuts()- must be between 0 and 100"
+            exit 198
+        }
+
+        if ( `cutl' > `cuth' ) {
+            disp as err "specify the lower cutpoint first in -cuts()-"
+            exit 198
+        }
+    }
+    local kvars: list sizeof varlist
+
+    scalar __gtools_winsor_trim    = `trim'
+    scalar __gtools_winsor_cutl    = `cutl'
+    scalar __gtools_winsor_cuth    = `cuth'
+    scalar __gtools_winsor_kvars   = `kvars'
+    scalar __gtools_gstats_code    = 1
+
+    * Default is to generate vars with suffix (_w or _tr)
+    if ( `"`prefix'`suffix'`generate'"' == "" ) {
+        local ngen = 0
+        if ( `trim' ) {
+            local suffix _tr
+        }
+        else {
+            local suffix _w
+        }
+    }
+    else local ngen = (`"`prefix'`suffix'"' != "") + (`"`generate'"' != "")
+
+    * Can only generate variables in one way
+    if ( `ngen' > 1 ) {
+        disp as err "Specify only one of prefix()/suffix() or generate."
+        exit 198
+    }
+
+    * Generate same targets as sources
+    if ( (`"`replace'"' != "") & (`ngen' == 0) ) {
+        local targetvars: copy local varlist
+    }
+    else {
+        if ( `"`replace'"' == "" ) local noi noi
+        if ( `"`prefix'`suffix'"' != "" ) {
+            local genvars
+            local gentypes
+            local targetvars
+            foreach var of varlist `varlist' {
+                local targetvars `targetvars' `prefix'`var'`suffix'
+                cap `noi' confirm new var `prefix'`var'`suffix'
+                if ( _rc & (`"`replace'"' == "") ) {
+                    exit _rc
+                }
+                else if ( _rc == 0 ) {
+                    local genvars  `genvars' `prefix'`var'`suffix'
+                    local gentypes `gentypes' `:type `var''
+                }
+            }
+        }
+        else if ( `"`generate'"' != "" ) {
+            local kgen: list sizeof generate
+            if ( `kgen' != `kvars' ) {
+                disp as err "Specify the same number of targets as sources with -generate()-"
+                exit 198
+            }
+
+            local targetvars: copy local generate
+            local genvars
+            local gentypes
+            forvalues i = 1 / `kvars' {
+                local var:  word `i' of `varlist'
+                local gvar: word `i' of `generate'
+                cap `noi' confirm new var `gvar'
+                if ( _rc & (`"`replace'"' == "") ) {
+                    exit _rc
+                }
+                else if ( _rc == 0 ) {
+                    local genvars  `genvars'  `gvar'
+                    local gentypes `gentypes' `:type `var''
+                }
+            }
+        }
+        else {
+            disp as err "Invalid call in gtools/gstats/winsor"
+            exit 198
+        }
+
+        mata: (void) st_addvar(tokens(`"`gentypes'"'), tokens(`"`genvars'"'))
+    }
+
+    * Add to label if applicable
+    if ( substr("`cutl'", 1, 1) == "." ) local cutl 0`cutl'
+    if ( substr("`cuth'", 1, 1) == "." ) local cuth 0`cuth'
+    if ( "`label'" != "" ) {
+        if ( `trim' ) {
+            local glab `" - Trimmed (p`cutl', p`cuth')"'
+        }
+        else {
+            local glab `" - Winsor (p`cutl', p`cuth')"'
+        }
+    }
+    else local glab `""'
+
+    * Label and copy formats
+    forvalues i = 1 / `kvars' {
+        local var:  word `i' of `varlist'
+        local gvar: word `i' of `targetvars'
+        local vlab: var label `var'
+        if ( `"`vlab'"' == "" ) local vlab `var'
+        label var `gvar' `"`=`"`vlab'"' + `"`glab'"''"'
+        format `:format `var'' `gvar' 
+    }
+
+    c_local varlist `varlist' `targetvars'
+end
+
+***********************************************************************
 *                             Load plugin                             *
 ***********************************************************************
 
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
-if ( `c(stata_version)' < 14 ) local spiver v2
+if ( `c(stata_version)' < 14.1 ) local spiver v2
 else local spiver v3
 
 cap program drop env_set

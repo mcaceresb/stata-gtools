@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.2 16Nov2018}{...}
+{* *! version 1.2.5 19Jan2019}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -47,6 +47,9 @@ gtools (also see the {help gtools##examples:examples} below):
 
 {p 8 17 2}
 {manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct}: Count unique levels of a set of variables. {p_end}
+
+{p 8 17 2}
+{manhelp gstats R:gstats}: Wrapper for several statistical functions and transformations. {p_end}
 
 {p 8 17 2}
 {manhelp hashsort R:hashsort}: (Experimental) Hash-based sorting. {p_end}

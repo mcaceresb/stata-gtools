@@ -66,6 +66,7 @@ program gquantiles, rclass
         compress                        /// Try to compress strL variables
         forcestrl                       /// Force reading strL variables (stata 14 and above only)
         Verbose                         /// Print info during function execution
+        _CTOLerance(passthru)           /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
         HASHmethod(passthru)            /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -339,7 +340,7 @@ program gquantiles, rclass
     local msg "Parsed quantile call"
     gtools_timer info 97 `"`msg'"', prints(`bench') off
 
-    local opts `compress' `forcestrl'
+    local opts `compress' `forcestrl' `_ctolerance'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
     local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'

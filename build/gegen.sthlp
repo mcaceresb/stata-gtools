@@ -255,11 +255,19 @@ code; another option is to re-write egen the data in segments (the easiest
 way to do this would be to egen a portion of all rows at a time and
 perform a series of append statements at the end.)
 
+If you have no memory cap imposed on your user, the likely scenario is
+that your system cannot allocate enough memory for {it:gegen}. At this
+point you can try {it:fegen} or {it:egen}, which are slower but using
+either should require a trivial one-letter change to the code.  Note,
+however, that replacing {it:gegen} with {it:fegen} or plain {it:egen}
+is not guaranteed to use less memory. I have not benchmarked memory use
+very extensively, so {it:gegen} might use less memory (I doubt that is
+the case in most scenarios, but it is possible).
+
 {pstd}
-Replacing {it:gegen} with {it:fegen} or plain {it:egen} is not guaranteed to
-work. I have not benchmarked memory use very extensively, but it is possible
-that the latter use less memory. If all fail, you will have to perform the
-task on segments of the data.
+You can also try to process the data by segments. However, if you are
+doing group operations you would need to first sort the data and make
+sure you are not splitting groups apart.
 
 {marker example}{...}
 {title:Examples}

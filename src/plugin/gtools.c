@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat Nov  3 17:08:29 EDT 2018
+ * Updated: Sat Jan 19 17:17:18 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.1.0
+ * Version: 1.2.5
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 3 Nov 2018
+ * @date 19 Jan 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -53,6 +53,7 @@
 #include "extra/hashsort.c"
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
+#include "stats/gstats.c"
 
 #include "quantiles/gquantiles_math.c"
 #include "quantiles/gquantiles_math_w.c"
@@ -104,6 +105,7 @@ STDLL stata_call(int argc, char *argv[])
      *     - hashsort:  Sort data by variables.                               *
      *     - quantiles: Percentiles, xtile, bin counts, and more.             *
      *     - collapse:  Summary stat by group.                                *
+     *     - stats:     Several stat functions and transforms.                *
      *                                                                        *
      **************************************************************************/
 
@@ -344,6 +346,12 @@ STDLL stata_call(int argc, char *argv[])
             if ( (rc = sf_xtile_by    (st_info, 0))  ) goto exit;
         }
     }
+    else if ( strcmp(todo, "stats") == 0 ) {
+        if ( (rc = sf_parse_info  (st_info, 0))  ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 0))  ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, 22)) ) goto exit; // (Note: discards by copy)
+        if ( (rc = sf_stats       (st_info, 0))  ) goto exit;
+    }
     else {
         sf_printf ("Nothing to do\n");
         rc = 198; goto exit;
@@ -392,6 +400,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             skipcheck,
             mlast,
             subtract,
+            ctolerance,
             top_miss,
             top_groupmiss,
             top_other,
@@ -420,6 +429,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile_dedup,
             xtile_cutifin,
             xtile_cutby,
+            gstats_code,
+            winsor_trim,
+            winsor_cutl,
+            winsor_cuth,
+            winsor_kvars,
             hash_method,
             wcode,
             wpos,
@@ -508,6 +522,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_skipcheck",      &skipcheck)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_mlast",          &mlast)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_subtract",       &subtract)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_ctolerance",     &ctolerance)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hash_method",    &hash_method)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_code",    &wcode)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
@@ -559,6 +574,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_xtile_dedup",    &xtile_dedup)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",  &xtile_cutifin)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_cutby",    &xtile_cutby)    )) goto exit;
+
+    if ( (rc = sf_scalar_size("__gtools_gstats_code",    &gstats_code)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_trim",    &winsor_trim)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_cutl",    &winsor_cutl)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_cuth",    &winsor_cuth)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_kvars",   &winsor_kvars)   )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
@@ -694,6 +715,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->skipcheck      = skipcheck;
     st_info->mlast          = mlast;
     st_info->subtract       = subtract;
+    st_info->ctolerance     = ctolerance;
     st_info->hash_method    = hash_method;
     st_info->wcode          = wcode;
     st_info->wpos           = wpos;
@@ -746,6 +768,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutifin  = xtile_cutifin;
     st_info->xtile_cutby    = xtile_cutby;
 
+    st_info->gstats_code    = gstats_code;
+    st_info->winsor_trim    = winsor_trim;
+    st_info->winsor_cutl    = winsor_cutl;
+    st_info->winsor_cuth    = winsor_cuth;
+    st_info->winsor_kvars   = winsor_kvars;
+
     st_info->encode         = encode;
     st_info->group_data     = group_data;
     st_info->group_fill     = group_fill;
@@ -792,6 +820,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tskipcheck:      "GT_size_cfmt"\n",  skipcheck     );
         sf_printf_debug("\tmlast:          "GT_size_cfmt"\n",  mlast         );
         sf_printf_debug("\tsubtract:       "GT_size_cfmt"\n",  subtract      );
+        sf_printf_debug("\tctolerance:     "GT_size_cfmt"\n",  ctolerance    );
         sf_printf_debug("\n");                                                
         sf_printf_debug("\ttop_miss:       "GT_size_cfmt"\n",  top_miss      );
         sf_printf_debug("\ttop_groupmiss:  "GT_size_cfmt"\n",  top_groupmiss );
@@ -1621,6 +1650,8 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
                 st_info->index[i] = index[st_info->ix[i] = ix[i]];
 
             free (ix);
+            free (index);
+            GTOOLS_GC_FREED("index")
             GTOOLS_GC_FREED("ix")
 
             if ( st_info->debug ) {
@@ -1628,14 +1659,18 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             }
         }
         else {
-            st_info->index = calloc(st_info->N, sizeof(st_info->index));
-            if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
-            GTOOLS_GC_ALLOCATED("st_info->index")
+            // st_info->index = calloc(st_info->N, sizeof(st_info->index));
+            // if ( st_info->index == NULL ) sf_oom_error("sf_hash_byvars", "st_info->index");
+            // GTOOLS_GC_ALLOCATED("st_info->index")
+            //
+            // for (i = 0; i < st_info->N; i++)
+            //     st_info->index[i] = index[i];
 
-            for (i = 0; i < st_info->N; i++)
-                st_info->index[i] = index[i];
-
+            st_info->index = index;
             st_info->ix = st_info->index;
+
+            GTOOLS_GC_FREED("index")
+            GTOOLS_GC_ALLOCATED("st_info->index")
 
             if ( st_info->debug ) {
                 printf("debug 44: Copy index as is.\n");
@@ -1669,9 +1704,6 @@ error:
      *********************************************************************/
 
 exit:
-
-    free (index);
-    GTOOLS_GC_FREED("index")
 
     return (rc);
 }

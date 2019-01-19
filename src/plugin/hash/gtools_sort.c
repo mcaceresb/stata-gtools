@@ -6,9 +6,9 @@
  * Perform a counting or radix sort on an array of 64-bit integers. The radix
  * sort performs 64 / d passes of the counting sort, where the set of integers
  * is sorted d-bits at a time. In order to achiave this, we sort
- * 
+ *
  *     kth bit chunk = (x[i] >> d * k) & 0xff
- *     
+ *
  * The 0th d-bit chunk, then the 1st, and so on. We sort 16 bits at a time.
  * An 8-bit at a time version is also available.
  *
@@ -23,7 +23,8 @@ ST_retcode gf_sort_hash (
     uint64_t *hash,
     GT_size *index,
     GT_size N,
-    GT_bool verbose)
+    GT_bool verbose,
+    GT_size ctol)
 {
     GT_size i;
     ST_retcode rc = 0;
@@ -32,7 +33,7 @@ ST_retcode gf_sort_hash (
     GTOOLS_MAX (hash, N, max, i)
 
     uint64_t range = max - min + 1;
-    uint64_t ctol  = pow(2, 24);
+    // uint64_t ctol  = pow(2, 24);
 
     if ( range < ctol ) {
         if ( (rc = gf_counting_sort (hash, index, N, min, max)) ) return(rc);
@@ -42,10 +43,28 @@ ST_retcode gf_sort_hash (
                       GT_size_cfmt"\n", min, max);
         }
     }
+    else if ( max < pow(2, 16) ) {
+        if ( (rc = gf_radix_sort8_16 (hash, index, N)) ) return(rc);
+        if ( verbose ) {
+            sf_printf("Radix sort on 16-bit hash (8-bits at a time)\n");
+        }
+    }
+    else if ( max < pow(2, 24) ) {
+        if ( (rc = gf_radix_sort12_24 (hash, index, N)) ) return(rc);
+        if ( verbose ) {
+            sf_printf("Radix sort on 24-bit hash (12-bits at a time)\n");
+        }
+    }
+    else if ( max < pow(2, 32) ) {
+        if ( (rc = gf_radix_sort16_32 (hash, index, N)) ) return(rc);
+        if ( verbose ) {
+            sf_printf("Radix sort on 32-bit hash (16-bits at a time)\n");
+        }
+    }
     else {
         if ( (rc = gf_radix_sort16 (hash, index, N)) ) return(rc);
         if ( verbose ) {
-            sf_printf("Radix sort on hash (16-bits at a time)\n");
+            sf_printf("Radix sort on 64-bit hash (16-bits at a time)\n");
         }
     }
 
@@ -346,6 +365,294 @@ ST_retcode gf_radix_sort16 (
 }
 
 /**
+ * @brief Radix sort with index (16-bit for up to 32-bit integers)
+ *
+ * Perform radix sort, additionally storing data shuffle in index
+ *
+ * @param hash integer to sort (max 32-bit)
+ * @param index Hash sort index
+ * @param N number of elements
+ * @return Radix sort on integer array (up to 32 bits).
+ */
+ST_retcode gf_radix_sort16_32(
+    uint64_t *hash,
+    GT_size *index,
+    GT_size N)
+{
+    GT_size size = 65536;
+
+    // Allocate space for index and hash copies
+    // ----------------------------------------
+
+    GT_size i;
+	uint64_t *hcopy  = (uint64_t *) calloc(N, sizeof(uint64_t));
+	uint64_t *ixcopy = (uint64_t *) calloc(N, sizeof(uint64_t));
+
+    if ( hcopy  == NULL ) return (sf_oom_error("radixSort", "hcopy"));
+    if ( ixcopy == NULL ) return (sf_oom_error("radixSort", "ixcopy"));
+
+	uint32_t byte2,
+             byte1;
+
+    uint32_t offset2 = 0,
+             offset1 = 0;
+
+    // Initialize counts to 0
+    // ----------------------
+
+    struct radixCounts16_32 *counts = malloc(sizeof(*counts));
+	counts->c2 = calloc(size, sizeof(uint32_t));
+	counts->c1 = calloc(size, sizeof(uint32_t));
+
+    for (i = 0; i < size; i++) {
+        counts->c2[0] = 0;
+        counts->c1[0] = 0;
+    }
+
+	// Calculate counts
+	// ----------------
+
+	for(i = 0; i < N; i++) {
+		byte2 =  hash[i]        & 0xffff;
+		byte1 = (hash[i] >> 16) & 0xffff;
+
+		counts->c2[byte2]++;
+		counts->c1[byte1]++;
+	}
+
+	// Convert counts to offsets
+	// -------------------------
+
+	for(i = 0; i < size; i++) {
+		byte2 = offset2 + counts->c2[i];
+		byte1 = offset1 + counts->c1[i];
+
+		counts->c2[i] = offset2;
+		counts->c1[i] = offset1;
+
+		offset2 = byte2;
+		offset1 = byte1;
+	}
+
+	// Radix bit
+	// ---------
+
+	for(i = 0; i < N; i++) {
+		byte2 = hash[i] & 0xffff;
+		hcopy[counts->c2[byte2]]  = hash[i];
+		ixcopy[counts->c2[byte2]] = index[i];
+		counts->c2[byte2]++;
+	}
+
+	for(i = 0; i < N; i++) {
+		byte1 = (hcopy[i] >> 16) & 0xffff;
+		hash[counts->c1[byte1]]  = hcopy[i];
+		index[counts->c1[byte1]] = ixcopy[i];
+		counts->c1[byte1]++;
+	}
+
+	free(counts->c1);
+	free(counts->c2);
+	free(counts);
+	free(hcopy);
+	free(ixcopy);
+
+    return (0);
+}
+
+/**
+ * @brief Radix sort with index (12-bit for up to 24-bit integers)
+ *
+ * Perform radix sort, additionally storing data shuffle in index
+ *
+ * @param hash integer to sort (max 24-bit)
+ * @param index Hash sort index
+ * @param N number of elements
+ * @return Radix sort on integer array (up to 24 bits).
+ */
+ST_retcode gf_radix_sort12_24(
+    uint64_t *hash,
+    GT_size *index,
+    GT_size N)
+{
+    GT_size size = 4096;
+
+    // Allocate space for index and hash copies
+    // ----------------------------------------
+
+    GT_size i;
+    uint64_t *hcopy  = (uint64_t *) calloc(N, sizeof(uint64_t));
+    uint64_t *ixcopy = (uint64_t *) calloc(N, sizeof(uint64_t));
+
+    if ( hcopy  == NULL ) return (sf_oom_error("radixSort", "hcopy"));
+    if ( ixcopy == NULL ) return (sf_oom_error("radixSort", "ixcopy"));
+
+    uint32_t byte2,
+             byte1;
+
+    uint32_t offset2 = 0,
+             offset1 = 0;
+
+    // Initialize counts to 0
+    // ----------------------
+
+    struct radixCounts12_24 *counts = malloc(sizeof(*counts));
+    counts->c2 = calloc(size, sizeof(uint32_t));
+    counts->c1 = calloc(size, sizeof(uint32_t));
+
+    for (i = 0; i < size; i++) {
+        counts->c2[0] = 0;
+        counts->c1[0] = 0;
+    }
+
+    // Calculate counts
+    // ----------------
+
+    for(i = 0; i < N; i++) {
+        byte2 =  hash[i]        & 0xfff;
+        byte1 = (hash[i] >> 12) & 0xfff;
+
+        counts->c2[byte2]++;
+        counts->c1[byte1]++;
+    }
+
+    // Convert counts to offsets
+    // -------------------------
+
+	for(i = 0; i < size; i++) {
+		byte2 = offset2 + counts->c2[i];
+		byte1 = offset1 + counts->c1[i];
+
+		counts->c2[i] = offset2;
+		counts->c1[i] = offset1;
+
+		offset2 = byte2;
+		offset1 = byte1;
+	}
+
+    // Radix bit
+    // ---------
+
+    for(i = 0; i < N; i++) {
+        byte2 = hash[i] & 0xfff;
+        hcopy[counts->c2[byte2]]  = hash[i];
+        ixcopy[counts->c2[byte2]] = index[i];
+        counts->c2[byte2]++;
+    }
+
+    for(i = 0; i < N; i++) {
+        byte1 = (hcopy[i] >> 12) & 0xfff;
+        hash[counts->c1[byte1]]  = hcopy[i];
+        index[counts->c1[byte1]] = ixcopy[i];
+        counts->c1[byte1]++;
+    }
+
+    free(counts->c1);
+    free(counts->c2);
+    free(counts);
+    free(hcopy);
+    free(ixcopy);
+
+    return (0);
+}
+
+/**
+ * @brief Radix sort with index (8-bit for up to 16-bit integers)
+ *
+ * Perform radix sort, additionally storing data shuffle in index
+ *
+ * @param hash integer to sort (max 16-bit)
+ * @param index Hash sort index
+ * @param N number of elements
+ * @return Radix sort on integer array (up to 16 bits).
+ */
+ST_retcode gf_radix_sort8_16(
+    uint64_t *hash,
+    GT_size *index,
+    GT_size N)
+{
+    GT_size size = 256;
+
+    // Allocate space for index and hash copies
+    // ----------------------------------------
+
+    GT_size i;
+    uint64_t *hcopy  = (uint64_t *) calloc(N, sizeof(uint64_t));
+    uint64_t *ixcopy = (uint64_t *) calloc(N, sizeof(uint64_t));
+
+    if ( hcopy  == NULL ) return (sf_oom_error("radixSort", "hcopy"));
+    if ( ixcopy == NULL ) return (sf_oom_error("radixSort", "ixcopy"));
+
+    uint32_t byte2,
+             byte1;
+
+    uint32_t offset2 = 0,
+             offset1 = 0;
+
+    // Initialize counts to 0
+    // ----------------------
+
+    struct radixCounts8_16 *counts = malloc(sizeof(*counts));
+    counts->c2 = calloc(size, sizeof(uint32_t));
+    counts->c1 = calloc(size, sizeof(uint32_t));
+
+    for (i = 0; i < size; i++) {
+        counts->c2[0] = 0;
+        counts->c1[0] = 0;
+    }
+
+    // Calculate counts
+    // ----------------
+
+    for(i = 0; i < N; i++) {
+        byte2 =  hash[i]       & 0xff;
+        byte1 = (hash[i] >> 8) & 0xff;
+
+        counts->c2[byte2]++;
+        counts->c1[byte1]++;
+    }
+
+    // Convert counts to offsets
+    // -------------------------
+
+	for(i = 0; i < size; i++) {
+		byte2 = offset2 + counts->c2[i];
+		byte1 = offset1 + counts->c1[i];
+
+		counts->c2[i] = offset2;
+		counts->c1[i] = offset1;
+
+		offset2 = byte2;
+		offset1 = byte1;
+	}
+
+    // Radix bit
+    // ---------
+
+    for(i = 0; i < N; i++) {
+        byte2 = hash[i] & 0xff;
+        hcopy[counts->c2[byte2]]  = hash[i];
+        ixcopy[counts->c2[byte2]] = index[i];
+        counts->c2[byte2]++;
+    }
+
+    for(i = 0; i < N; i++) {
+        byte1 = (hcopy[i] >> 8) & 0xff;
+        hash[counts->c1[byte1]]  = hcopy[i];
+        index[counts->c1[byte1]] = ixcopy[i];
+        counts->c1[byte1]++;
+    }
+
+    free(counts->c1);
+    free(counts->c2);
+    free(counts);
+    free(hcopy);
+    free(ixcopy);
+
+    return (0);
+}
+
+/**
  * @brief Counting sort with index
  *
  * Perform counting sort, additionally storing data shuffle
@@ -366,11 +673,12 @@ ST_retcode gf_counting_sort (
     uint64_t max)
 {
 
-    // GT_size i;
-    GT_size s;
+    GT_size i, j, offset = 0;
     uint64_t range = max - min + 1;
 
-    // Allocate space for x, index copies and x mod
+    // Allocate space for x, index copies, and freq
+    // --------------------------------------------
+
     uint64_t *xcopy = calloc(N, sizeof *xcopy);
     GT_size  *icopy = calloc(N, sizeof *icopy);
     GT_size  *count = calloc(range + 1, sizeof *count);
@@ -382,46 +690,39 @@ ST_retcode gf_counting_sort (
     uint64_t *xptr;
     uint64_t *hptr;
     GT_size  *iptr;
-    GT_size  *ixptr;
     GT_size  *cptr;
 
-    // Initialize count as 0s
-    // for (i = 0; i < range + 1; i++)
-    //     count[i] = 0;
-    for (cptr = count; cptr < count + range + 1; cptr++)
-        *cptr = 0;
+    // Counting sort
+    // -------------
 
-    // Freq count of hash
-    // for (i = 0; i < N; i++) {
-    //     count[ xcopy[i] = (hash[i] + 1 - min) ]++;
-    //     icopy[i] = index[i];
-    // }
-    xptr  = xcopy;
-    iptr  = icopy;
-    ixptr = index;
-    for (hptr  = hash; hptr < hash + N; hptr++, xptr++, iptr++, ixptr++) {
-        count[ *xptr = (*hptr + 1 - min) ]++;
-        *iptr = *ixptr;
+    // Initialize count as 0s
+    for (i = 0; i < range + 1; i++)
+        count[i] = 0;
+
+    // Copy hash, index
+    memcpy(xcopy, hash,  N * sizeof(uint64_t));
+    memcpy(icopy, index, N * sizeof(uint64_t));
+
+    // Frequency count of hash
+    for (hptr = hash; hptr < hash + N; hptr++)
+        count[*hptr + 1 - min]++;
+
+    // Sort the hash
+    cptr = count + 1;
+    for (i = 0; i < range; i++, cptr++) {
+        if ( *cptr ) {
+            for (j = 0; j < *cptr; j++, offset++) {
+                hash[offset] = i + min;
+            }
+            *cptr = offset;
+        }
     }
 
-    // Cummulative freq count (position in output)
-    // for (i = 1; i < range; i++)
-    //     count[i] += count[i - 1];
-    for (cptr = count + 1; cptr < count + range; cptr++)
-        *cptr += *(cptr - 1);
-
-    // Copy back in stable sorted order
-    // for (i = N - 1; i >= 0; i--) {
-    // for (i = 0; i < N; i++) {
-    //     index[ s = count[xcopy[i] - 1]++ ] = icopy[i];
-    //     hash[s] = xcopy[i] - 1 + min;
-    // }
+    // Copy the shuffled index
     xptr = xcopy;
     iptr = icopy;
-    for (hptr  = hash; hptr < hash + N; hptr++, xptr++, iptr++) {
-        index[ s = count[*xptr - 1]++ ] = *iptr;
-        hash[s]  = *xptr - 1 + min;
-    }
+    for (i = 0; i < N; i++, xptr++, iptr++)
+        index[count[*xptr - min]++] = *iptr;
 
     // Free space
     free (count);

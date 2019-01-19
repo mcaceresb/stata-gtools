@@ -69,6 +69,7 @@ struct StataInfo {
     GT_size   colsep_len;
     GT_size   numfmt_max;
     GT_size   numfmt_len;
+    GT_size   ctolerance;
     //
     GT_size   biject;
     GT_size   encode;
@@ -110,6 +111,12 @@ struct StataInfo {
     GT_bool xtile_dedup;
     GT_bool xtile_cutifin;
     GT_bool xtile_cutby;
+    //
+    GT_size   gstats_code;
+    GT_bool   winsor_trim;
+    ST_double winsor_cutl;
+    ST_double winsor_cuth;
+    GT_size   winsor_kvars;
     //
     GT_bool   hash_method;
     GT_bool   wcode;

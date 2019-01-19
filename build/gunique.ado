@@ -21,6 +21,7 @@ program gunique, rclass
         compress               /// Try to compress strL variables
         forcestrl              /// Force reading strL variables (stata 14 and above only)
         Verbose                /// Print info during function execution
+        _CTOLerance(passthru)  /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
         HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -71,7 +72,7 @@ program gunique, rclass
 
     global GTOOLS_CALLER gunique
     local opts `missing' `seecount' `compress' `forcestrl'
-    local opts `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts `opts' `hashlib' `oncollision' `hashmethod' `debug' `gopts'
 
     if ( "`detail'" != "" ) {

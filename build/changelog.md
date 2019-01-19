@@ -1,6 +1,52 @@
 Change Log
 ==========
 
+## gtools-1.2.5 (2019-01-19)
+
+### Enhancements
+
+- Faster hash sort with integer bijection (two-pass radix sorts for
+  smaller integers; undocumented option `_ctolerance()` allows the user
+  to force the regular counting sort).
+
+- Faster index copy when every observation is read (simply assign the
+  index pointer to `st_info->index`)
+
+## gtools-1.2.4 (2019-01-05)
+
+### Bug fixes
+
+- Stata 14.0 no longer tries to load SPI version 3 (loads version 2).
+- Fixes #51: `gstats winsor` no longer fails with percentiles not strictly
+  between 0 and 100.
+
+## gtools-1.2.3 (2018-12-22)
+
+### Bug fixes
+
+- Fixes #50: `gstats winsor` no longer fills in missing values as the
+  high percentile.
+
+## gtools-1.2.2 (2018-12-18)
+
+### Features
+
+- `gstats winsor` now takes weights.
+
+## gtools-1.2.1 (2018-12-16)
+
+### Bug fixes
+
+- `gstats winsor` no longer crashes with multiple variables.
+- `gstats winsor, trim` correctly copies the source to the target.
+
+## gtools-1.2.0 (2018-12-16)
+
+### Features
+
+- `gstats` general-purpose wrapper for misc functions.
+- `gstats winsor` for Winsorizing and trimming data.
+
 ## gtools-1.1.2 (2018-11-16)
 
 ### Enhancements

@@ -62,6 +62,7 @@ main = [
     path.join("src", "ado", "gtop.ado"),
     path.join("src", "ado", "gtoplevelsof.ado"),
     path.join("src", "ado", "gisid.ado"),
+    path.join("src", "ado", "gstats.ado"),
     path.join("src", "ado", "gduplicates.ado"),
     path.join("src", "ado", "gquantiles.ado"),
     path.join("src", "ado", "fasterxtile.ado"),
@@ -74,6 +75,7 @@ main = [
     path.join("docs", "stata", "glevelsof.sthlp"),
     path.join("docs", "stata", "gtoplevelsof.sthlp"),
     path.join("docs", "stata", "gisid.sthlp"),
+    path.join("docs", "stata", "gstats.sthlp"),
     path.join("docs", "stata", "gduplicates.sthlp"),
     path.join("docs", "stata", "gquantiles.sthlp"),
     path.join("docs", "stata", "hashsort.sthlp")]

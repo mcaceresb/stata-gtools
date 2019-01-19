@@ -1780,7 +1780,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
     }
 
     if ( st_info->debug ) {
-        printf("debug 47: Determine if we will write variables to disk.\n");
+        printf("debug 47: Determine whether to write variables to disk.\n");
     }
 
     if ( st_info->verbose ) {

@@ -40,13 +40,8 @@ PTHREADS = -lpthread -DGMULTI=1
 # OS parsing
 
 ifeq ($(OS),Windows_NT)
-	SPOOKYLIB = spookyhash.dll
-	SPOOKYPATH = lib/spookyhash/build/bin/Release
-	SPOOKY = -L./$(SPOOKYPATH) -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	OSFLAGS = -shared
-	# GCC = x86_64-w64-mingw32-gcc-5.4.0.exe
 	GCC = x86_64-w64-mingw32-gcc.exe
-	PREMAKE = premake5.exe
 	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
 	OUTM = build/gtools_windows_multi$(LEGACY)_$(SPIVER).plugin
 	OUTE = build/env_set_windows$(LEGACY)_$(SPIVER).plugin
@@ -57,25 +52,17 @@ else
 		OUT = build/gtools_unix$(LEGACY)_$(SPIVER).plugin
 		OUTM = build/gtools_unix_multi$(LEGACY)_$(SPIVER).plugin
 		OUTE = build/env_set_unix$(LEGACY)_$(SPIVER).plugin
-		SPOOKYLIB = libspookyhash.a
-		SPOOKYPATH = lib/spookyhash/build/bin/Release
-		SPOOKY = -L./$(SPOOKYPATH) -L./lib/spookyhash/build -l:$(SPOOKYLIB)
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY)_$(SPIVER).plugin
 		OUTM = build/gtools_macosx_multi$(LEGACY)_$(SPIVER).plugin
 		OUTE = build/env_set_macosx$(LEGACY)_$(SPIVER).plugin
-		SPOOKYLIB = libspookyhash.a
-		SPOOKYPATH = lib/spookyhash/build/bin/Release
-		SPOOKY = $(SPOOKYPATH)/$(SPOOKYLIB)
 	endif
 	GCC = gcc
-	PREMAKE = premake5
 endif
 
 ifeq ($(EXECUTION),windows)
-	SPOOKYLIB = spookyhash.dll
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
 	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
@@ -86,13 +73,14 @@ endif
 # Main
 
 ## Compile directory
-all: clean links gtools
+all: clean links gtools gtools_e
 
 ## Initialize git and pull sub-modules
 git:
 	git init
 	git submodule add https://github.com/centaurean/spookyhash lib/spookyhash
 	git submodule update --init --recursive
+	cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
 
 ## Download latest OSX plugin
 osx_plugins:
@@ -112,61 +100,37 @@ osx_plugins:
 # ---------------------------------------------------------------------
 # Rules
 
-ifeq ($(OS),Windows_NT)
-## Build spooky hash
-spooky:
-	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
-	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-	echo -e "\nTo re-compile SpookyHash, run from the Visual Studio Developer Command Prompt:" \
-	     "\n    copy /Y lib\\\\windows\\\\spookyhash-premake5.lua lib\\\\spookyhash\\\\build\\\\premake5.lua" \
-	     "\n    cd lib\\\\spookyhash\\\\build" \
-	     "\n    $(PREMAKE) vs2013" \
-	     "\n    msbuild SpookyHash.sln" \
-	     "\nSee 'Building#Troubleshooting' in README.md for details."
-else ifeq ($(EXECUTION),windows)
-spooky:
-	cp -f ./lib/windows/spookyhash.dll ./build/spookyhash.dll
-	cp -f ./lib/windows/spookyhash.dll ./lib/spookyhash/build/spookyhash.dll
-else ifeq ($(UNAME_S),Darwin)
-spooky:
-	cd lib/spookyhash/build && $(PREMAKE) gmake
-	cd lib/spookyhash/build && make clean
-	cd lib/spookyhash/build && make
-	mkdir -p ./build
-else ifeq ($(UNAME_S),Linux)
-ifeq ($(LEGACY),_legacy)
-spooky:
-	# cd lib/spookyhash/build && $(PREMAKE) gmake
-	cd lib/spookyhash/build && make clean
-	cd lib/spookyhash/build && CFLAGS+=-fPIC make
-else
-spooky:
-	cd lib/spookyhash/build && $(PREMAKE) gmake
-	cd lib/spookyhash/build && make clean
-	cd lib/spookyhash/build && make
-endif
-endif
-
-## Test spookyhash
-spookytest:
-	cd lib/spookyhash/build && ./bin/Release/spookyhash-test
-
 ## Build gtools library links
 links:
 	rm -f  src/plugin/lib
 	rm -f  src/plugin/spi
-	rm -f  src/plugin/spookyhash
 	ln -sf ../../lib 	  src/plugin/lib
 	ln -sf lib/spi-$(SPI) src/plugin/spi
-	ln -sf lib/spookyhash src/plugin/spookyhash
+
+GTOOLS_SRC=src/plugin/gtools.c \
+	src/plugin/spi/stplugin.c
+
+GTOOLS_E_SRC=src/plugin/spi/stplugin.c \
+	src/plugin/env_set.c
+
+SPOOKYHASH_SRC=lib/spookyhash/src/context.c \
+	lib/spookyhash/src/globals.c \
+	lib/spookyhash/src/spookyhash.c
+
+SPOOKYHASH_INC=-Ilib/spookyhash/src
 
 ## Build gtools plugin
-gtools: src/plugin/gtools.c src/plugin/spi/stplugin.c
+gtools: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
 	mkdir -p ./build
-	mkdir -p ./lib/spookyhash/build/bin/Release
-	$(GCC) $(CFLAGS) -o $(OUT)  src/plugin/spi/stplugin.c src/plugin/gtools.c $(SPOOKY)
-	$(GCC) $(CFLAGS) -o $(OUTE) src/plugin/spi/stplugin.c src/plugin/env_set.c
+	$(GCC) $(CFLAGS) -o $(OUT) $(SPOOKYHASH_INC) $^
 	cp build/*plugin lib/plugin/
+
+## Build environment switch
+gtools_e: $(GTOOLS_E_SRC)
+	mkdir -p ./build
+	$(GCC) $(CFLAGS) -o $(OUTE) $^
+	cp build/*plugin lib/plugin/
+
 
 .PHONY: clean
 clean:

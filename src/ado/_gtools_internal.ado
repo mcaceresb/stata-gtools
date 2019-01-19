@@ -1,4 +1,4 @@
-*! version 1.2.5 19Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.6 19Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000

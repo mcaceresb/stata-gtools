@@ -28,6 +28,7 @@ program define fasterxtile
         compress                    /// Try to compress strL variables
         forcestrl                   /// Force reading strL variables (stata 14 and above only)
         Verbose                     /// Print info during function execution
+        _CTOLerance(passthru)       /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                   /// print function benchmark info
         BENCHmarklevel(passthru)    /// print plugin benchmark info
         HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -76,6 +77,7 @@ program define fasterxtile
     }
 
     local   opts `verbose'        ///
+                 `_ctolerance'    ///
                  `benchmark'      ///
                  `benchmarklevel' ///
                  `hashlib'        ///

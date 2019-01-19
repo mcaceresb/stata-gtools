@@ -43,7 +43,8 @@ ST_retcode gf_hash (
             if ( (rc = gf_sort_hash (h1,
                                      ix,
                                      st_info->N,
-                                     st_info->verbose)) ) goto exit;
+                                     st_info->verbose,
+                                     st_info->ctolerance)) ) goto exit;
 
             if ( st_info->benchmark > 2 )
                 sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
@@ -97,7 +98,8 @@ ST_retcode gf_hash (
             if ( (rc = gf_sort_hash (h1,
                                      ix,
                                      st_info->N,
-                                     st_info->verbose)) ) goto exit;
+                                     st_info->verbose,
+                                     st_info->ctolerance)) ) goto exit;
 
             for (i = 0; i < st_info->N; i++) {
                 h2[i] = h3[ix[i]];

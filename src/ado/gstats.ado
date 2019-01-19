@@ -38,6 +38,7 @@ program gstats, rclass
         compress              /// Try to compress strL variables
         forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
+        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -60,7 +61,7 @@ program gstats, rclass
     else local weights
 
     local opts   `weights' `compress' `forcestrl' nods unsorted
-    local opts   `opts' `verbose' `benchmark' `benchmarklevel'
+    local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `hashlib' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')
 

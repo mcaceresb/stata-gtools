@@ -1,4 +1,4 @@
-*! version 1.2.4 05Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.5 19Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -82,6 +82,7 @@ program _gtools_internal, rclass
         DEBUG_level(int 0)        /// debugging
         Verbose                   /// info
         _subtract                 /// (Undocumented) Subtract result from source variabes
+        _CTOLerance(real 0)       /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(str)           /// hashing method
@@ -713,6 +714,7 @@ program _gtools_internal, rclass
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
     scalar __gtools_mlast       = ( "`mlast'"        != "" )
     scalar __gtools_subtract    = ( "`_subtract'"    != "" )
+    scalar __gtools_ctolerance  = `_ctolerance'
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
@@ -2507,6 +2509,7 @@ program clean_all
     cap scalar drop __gtools_skipcheck
     cap scalar drop __gtools_mlast
     cap scalar drop __gtools_subtract
+    cap scalar drop __gtools_ctolerance
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos

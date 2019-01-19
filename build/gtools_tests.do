@@ -6733,6 +6733,55 @@ program versus_gstats_winsor, rclass
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
     drop *_w?
 end
+
+***********************************************************************
+*                      Scratch for sorting speed                      *
+***********************************************************************
+
+* exit 17123
+*
+* sysuse auto, clear
+* mata: F = factor("turn", "", 1, "", 0, 0, ., 0)
+*
+* clear
+* set obs 10000000
+* gen long i0 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777215, 0)
+* gen long i1 = ceil(runiform() * 100) + 16777215
+* gen long i2 = ceil(runiform() * 10000) + 16777215
+* gen long i3 = ceil(runiform() * 65536) + 16777215
+* gen long i4 = ceil(runiform() * 1000000) + 16777215
+* gen long i5 = ceil(runiform() * 10000000) + 16777215
+* gen long i6 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777204, 0)
+* set rmsg on
+*
+* mata: F = factor("i0",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i1",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i2",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i3",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i4",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i5",  "", 1, "", 0, 0, ., 0)
+* mata: F = factor("i6",  "", 1, "", 0, 0, ., 0)
+*
+* gunique i0
+* gunique i1
+* gunique i2
+* gunique i3
+* gunique i4
+* gunique i5
+* gunique i6
+*
+* clear
+* set obs 33554432
+* * set obs 16777216
+* gen long i = 3 * _N - _n
+* gen double r = rnormal()
+* sort r
+* set rmsg on
+* mata: F = factor("i", "", 1, "", 0, 0, ., 0)
+* mata: F.num_levels
+* gunique i, v bench(3)
+* gunique i, v bench(3) _ctol(`=2^25')
+* exit 17123
 capture program drop checks_duplicates
 program checks_duplicates
     syntax, [tol(real 1e-6) NOIsily *]
@@ -7344,4 +7393,4 @@ end
 * Run the things
 
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
-main, `0'
+main, basic_checks

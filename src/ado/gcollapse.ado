@@ -42,6 +42,7 @@ program gcollapse, rclass
         forcestrl                    /// Force reading strL variables (stata 14 and above only)
         Verbose                      /// Print info during function execution
         _subtract                    /// (Undocumented) Subtract result from source variable
+        _CTOLerance(passthru)        /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                    /// print function benchmark info
         BENCHmarklevel(int 0)        /// print plugin benchmark info
         HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
@@ -548,8 +549,8 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract' `ds' `nods'
-    local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod'
+    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract' `_ctolerance'
+    local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod' `ds' `nods'
     local opts     `opts' `hashlib' `oncollision' debug(`debug_level') `rawstat'
     local action   `sources' `targets' `stats'
 

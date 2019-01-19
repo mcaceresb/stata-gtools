@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-1.2.5 (2019-01-19)
+
+### Enhancements
+
+- Faster hash sort with integer bijection (two-pass radix sorts for
+  smaller integers; undocumented option `_ctolerance()` allows the user
+  to force the regular counting sort).
+
+- Faster index copy when every observation is read (simply assign the
+  index pointer to `st_info->index`)
+
 ## gtools-1.2.4 (2019-01-05)
 
 ### Bug fixes

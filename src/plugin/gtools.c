@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat Jan 19 18:55:32 EST 2019
+ * Updated: Wed Jan 23 10:16:09 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.2.6
+ * Version: 1.2.7
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 19 Jan 2019
+ * @date 23 Jan 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -27,16 +27,7 @@
 #include "common/fixes.c"
 #include "common/quicksortMultiLevel.c"
 #include "common/readWrite.c"
-
-#if GMULTI
-#    define GTOOLS_THREADS 4
-#    include <pthread.h>
-#    include <assert.h>
-#    include "parallel/hash/gtools_hash.c"
-#else
-#    include "hash/gtools_hash.c"
-#endif
-
+#include "hash/gtools_hash.c"
 #include "common/encode.c"
 
 #include "collapse/gtools_math.c"

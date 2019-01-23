@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of xtile and fastxtile using C for faster processing
 *! (note: this is a wrapper for gquantiles)
 
@@ -32,7 +32,6 @@ program define fasterxtile
         BENCHmark                   /// print function benchmark info
         BENCHmarklevel(passthru)    /// print plugin benchmark info
         HASHmethod(passthru)        /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)           /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)       /// error|fallback: On collision, use native command or throw error
                                     ///
         debug(passthru)             ///
@@ -80,7 +79,6 @@ program define fasterxtile
                  `_ctolerance'    ///
                  `benchmark'      ///
                  `benchmarklevel' ///
-                 `hashlib'        ///
                  `oncollision'    ///
                  `hashmethod'     ///
                  `compress'       ///

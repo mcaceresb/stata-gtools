@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.3  22Dec2018}{...}
+{* *! version 0.1.4  23Jan2019}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}
@@ -12,8 +12,7 @@
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+the latest stable version.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -61,8 +60,6 @@ transformations, including:
 {synopt :{opt v:erbose}}Print info during function execution.
 {p_end}
 {synopt :{opt bench}{it:[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
-{p_end}
-{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
 {synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
 {p_end}

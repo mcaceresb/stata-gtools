@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.1  25Sep2018}{...}
+{* *! version 1.0.2  23Jan2019}{...}
 {viewerdialog g[command] "dialog g[command]"}{...}
 {vieweralsosee "[R] g[command]" "mansection R g[command]"}{...}
 {viewerjumpto "Syntax" "g[command]##syntax"}{...}
@@ -14,8 +14,7 @@
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+the latest stable version.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -70,8 +69,6 @@ final data.
 {p_end}
 {synopt :{opt bench[(int)]}}Benchmark various steps of the plugin. Optionally specify depth level.
 {p_end}
-{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
-{p_end}
 {synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
 {p_end}
 {synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
@@ -122,14 +119,6 @@ final data.
 {phang}
 {opt benchmark} prints how long in seconds various parts of the program
 take to execute.
-
-{phang}
-{opth hashlib(str)} On earlier versions of gtools Windows users had a problem
-because Stata was unable to find {it:spookyhash.dll}, which is bundled with
-gtools and required for the plugin to run correctly. The best thing a Windows
-user can do is run {opt gtools, dependencies} at the start of their Stata
-session, but if Stata cannot find the plugin the user can specify a path
-manually here.
 
 {marker example}{...}
 {title:Examples}

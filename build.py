@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sat Dec 22 12:38:51 EST 2018
+# Updated: Wed Jan 23 10:16:51 EST 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -91,11 +91,6 @@ parser.add_argument('--test',
                     dest     = 'test',
                     action   = 'store_true',
                     help     = "Run tests",
-                    required = False)
-parser.add_argument('--windows',
-                    dest     = 'windows',
-                    action   = 'store_true',
-                    help     = "Compile for Windows from Unix environment.",
                     required = False)
 args = vars(parser.parse_args())
 
@@ -210,13 +205,6 @@ if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     rc = system("make all SPI=2.0 SPIVER=v2 {0}".format(make_flags))
     rc = system("make all SPI=3.0 SPIVER=v3 {0}".format(make_flags))
     print("Success!" if rc == 0 else "Failed.")
-    if args['windows']:
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows clean")
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows spooky")
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows {0}".format(make_flags))
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows clean")
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows spooky")
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows {0}".format(make_flags))
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
     exit(198)
@@ -301,15 +289,9 @@ with open(path.join("src", "ado", "gtools.ado"), 'r') as f:
     version = search('(\d+\.?)+', line).group(0)
 
 plugins = [
-    "env_set_unix_v2.plugin",
-    "env_set_windows_v2.plugin",
-    "env_set_macosx_v2.plugin",
     "gtools_unix_v2.plugin",
     "gtools_windows_v2.plugin",
     "gtools_macosx_v2.plugin",
-    "env_set_unix_v3.plugin",
-    "env_set_windows_v3.plugin",
-    "env_set_macosx_v3.plugin",
     "gtools_unix_v3.plugin",
     "gtools_windows_v3.plugin",
     "gtools_macosx_v3.plugin"

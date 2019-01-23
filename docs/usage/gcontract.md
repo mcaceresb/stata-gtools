@@ -8,9 +8,8 @@ all combinations of varlist that exist in the data and a new variable
 that contains the frequency of each combination. The user can optionally
 request percentages and cumulative counts and percentages.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
-stable version.  _Windows users:_ If the plugin fails to load, please run
-`gtools, dependencies` at the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the
+latest stable version.
 
 Syntax
 ------
@@ -94,13 +93,6 @@ Options
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
             program take to execute. Level 1 is the same as `benchmark`. Levels
             2 and 3 additionally prints benchmarks for internal plugin steps.
-
-- `hashlib(str)` On earlier versions of gtools Windows users had a problem
-            because Stata was unable to find spookyhash.dll, which is bundled
-            with gtools and required for the plugin to run correctly. The best
-            thing a Windows user can do is run gtools, dependencies at the start
-            of their Stata session, but if Stata cannot find the plugin the user
-            can specify a path manually here.
 
 - `hashmethod(str)` Hash method to use. `default` automagically chooses the
             algorithm. `biject` tries to biject the inputs into the

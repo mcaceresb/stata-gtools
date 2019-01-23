@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.0  02Nov2018}{...}
+{* *! version 1.1.1  23Jan2019}{...}
 {viewerdialog gisid "dialog gisid"}{...}
 {vieweralsosee "[D] gisid" "mansection D gisid"}{...}
 {viewerjumpto "Syntax" "gisid##syntax"}{...}
@@ -14,8 +14,7 @@
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+the latest stable version.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -73,14 +72,6 @@ seconds various parts of the program take to execute. The user can also
 pass {opth bench(int)} for finer control. {opt bench(1)} is the same
 as benchmark but {opt bench(2)} and {opt bench(3)} additionally print
 benchmarks for internal plugin steps.
-
-{phang}
-{opth hashlib(str)} On earlier versions of gtools Windows users had a problem
-because Stata was unable to find {it:spookyhash.dll}, which is bundled with
-gtools and required for the plugin to run correctly. The best thing a Windows
-user can do is run {opt gtools, dependencies} at the start of their Stata
-session, but if Stata cannot find the plugin the user can specify a path
-manually here.
 
 {phang}
 {opth hashmethod(str)} Hash method to use. {opt default} automagically

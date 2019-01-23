@@ -33,8 +33,6 @@ open:
 SPI = 2.0
 SPIVER = v2
 CFLAGS = -Wall -O3 $(OSFLAGS)
-OPENMP = -fopenmp -DGMULTI=1
-PTHREADS = -lpthread -DGMULTI=1
 
 # ---------------------------------------------------------------------
 # OS parsing
@@ -43,21 +41,15 @@ ifeq ($(OS),Windows_NT)
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc.exe
 	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
-	OUTM = build/gtools_windows_multi$(LEGACY)_$(SPIVER).plugin
-	OUTE = build/env_set_windows$(LEGACY)_$(SPIVER).plugin
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix$(LEGACY)_$(SPIVER).plugin
-		OUTM = build/gtools_unix_multi$(LEGACY)_$(SPIVER).plugin
-		OUTE = build/env_set_unix$(LEGACY)_$(SPIVER).plugin
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY)_$(SPIVER).plugin
-		OUTM = build/gtools_macosx_multi$(LEGACY)_$(SPIVER).plugin
-		OUTE = build/env_set_macosx$(LEGACY)_$(SPIVER).plugin
 	endif
 	GCC = gcc
 endif
@@ -66,14 +58,13 @@ ifeq ($(EXECUTION),windows)
 	OSFLAGS = -shared
 	GCC = x86_64-w64-mingw32-gcc
 	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
-	OUTE = build/env_set_windows$(LEGACY)_$(SPIVER).plugin
 endif
 
 # ---------------------------------------------------------------------
 # Main
 
 ## Compile directory
-all: clean links gtools gtools_e
+all: clean links gtools
 
 ## Initialize git and pull sub-modules
 git:
@@ -84,16 +75,10 @@ git:
 
 ## Download latest OSX plugin
 osx_plugins:
-	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/env_set_macosx_v2.plugin
-	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/env_set_macosx_v3.plugin
 	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/gtools_macosx_v3.plugin
 	wget https://raw.githubusercontent.com/mcaceresb/stata-gtools/osx/build/gtools_macosx_v2.plugin
-	cp -f env_set_macosx_v2.plugin build/env_set_macosx_v2.plugin
-	cp -f env_set_macosx_v3.plugin build/env_set_macosx_v3.plugin
 	cp -f gtools_macosx_v3.plugin  build/gtools_macosx_v3.plugin
 	cp -f gtools_macosx_v2.plugin  build/gtools_macosx_v2.plugin
-	mv -f env_set_macosx_v2.plugin lib/plugin/env_set_macosx_v2.plugin
-	mv -f env_set_macosx_v3.plugin lib/plugin/env_set_macosx_v3.plugin
 	mv -f gtools_macosx_v3.plugin  lib/plugin/gtools_macosx_v3.plugin
 	mv -f gtools_macosx_v2.plugin  lib/plugin/gtools_macosx_v2.plugin
 
@@ -110,9 +95,6 @@ links:
 GTOOLS_SRC=src/plugin/gtools.c \
 	src/plugin/spi/stplugin.c
 
-GTOOLS_E_SRC=src/plugin/spi/stplugin.c \
-	src/plugin/env_set.c
-
 SPOOKYHASH_SRC=lib/spookyhash/src/context.c \
 	lib/spookyhash/src/globals.c \
 	lib/spookyhash/src/spookyhash.c
@@ -125,16 +107,9 @@ gtools: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
 	$(GCC) $(CFLAGS) -o $(OUT) $(SPOOKYHASH_INC) $^
 	cp build/*plugin lib/plugin/
 
-## Build environment switch
-gtools_e: $(GTOOLS_E_SRC)
-	mkdir -p ./build
-	$(GCC) $(CFLAGS) -o $(OUTE) $^
-	cp build/*plugin lib/plugin/
-
-
 .PHONY: clean
 clean:
-	rm -f $(OUT) $(OUTE)
+	rm -f $(OUT)
 
 #######################################################################
 #                                                                     #

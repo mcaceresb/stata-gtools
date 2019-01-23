@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.3 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -46,8 +46,6 @@ program gcollapse, rclass
         BENCHmark                    /// print function benchmark info
         BENCHmarklevel(int 0)        /// print plugin benchmark info
         HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-                                     ///
-        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
                                      ///
         debug                        /// (internal) Debug
@@ -167,7 +165,6 @@ program gcollapse, rclass
         disp as txt `"    benchmark:          `benchmark'"'
         disp as txt `"    benchmarklevel:     `benchmarklevel'"'
         disp as txt `"    hashmethod:         `hashmethod'"'
-        disp as txt `"    hashlib:            `hashlib'"'
         disp as txt `"    oncollision:        `oncollision'"'
         disp as txt `""'
         disp as txt `"    debug_replaceby:    `debug_replaceby'"'
@@ -551,7 +548,7 @@ program gcollapse, rclass
     local targets  targets(`__gtools_gc_targets')
     local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod' `ds' `nods'
-    local opts     `opts' `hashlib' `oncollision' debug(`debug_level') `rawstat'
+    local opts     `opts' `oncollision' debug(`debug_level') `rawstat'
     local action   `sources' `targets' `stats'
 
     local switch = (`=scalar(__gtools_gc_k_extra)' > 3) & (`debug_io_check' < `=_N')

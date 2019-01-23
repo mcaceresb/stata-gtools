@@ -1,4 +1,4 @@
-*! version 0.1.3 22Dec2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.4 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats
@@ -42,7 +42,6 @@ program gstats, rclass
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
         debug(passthru)       /// Print debugging info to console
     ]
@@ -62,7 +61,7 @@ program gstats, rclass
 
     local opts   `weights' `compress' `forcestrl' nods unsorted
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
-    local opts   `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts   `opts' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')
 
     cap noi _gtools_internal `by' `if' `in', `opts' `gstats'

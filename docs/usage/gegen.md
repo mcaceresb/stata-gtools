@@ -3,9 +3,8 @@ gegen
 
 Efficient implementation of by-able egen functions using C.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
-stable version.  _Windows users:_ If the plugin fails to load, please run
-`gtools, dependencies` at the start of your Stata session.
+_Important:_ Please run `gtools, upgrade` to update `gtools` to the
+latest stable version.
 
 Syntax
 ------
@@ -27,8 +26,6 @@ Syntax
 - `benchmark` prints how long in seconds various parts of the program take to execute.
 
 - `benchmarklevel(int)` depth of benchmark.
-
-- `hashlib(str)` Custom path to spookyhash.dll
 
 - `hashmethod(str)` For debugging: default, biject, or spooky.
 

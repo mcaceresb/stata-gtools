@@ -1,4 +1,4 @@
-*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -53,7 +53,6 @@ program gtoplevelsof, rclass
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)     /// path to hash library (Windows)
         oncollision(passthru) /// On collision, fall back or error
                               ///
         group(str)            ///
@@ -205,7 +204,7 @@ program gtoplevelsof, rclass
     local opts  `separate' `colseparate' `missing' `gtop' `numfmt' `ds' `nods'
     local sopts `compress' `forcestrl' `_ctolerance'
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
-    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+    local sopts `sopts' `oncollision' `hashmethod' `debug'
 
     local gopts gen(`group') `tag' `counts' `fill' `replace' `weights'
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(top)

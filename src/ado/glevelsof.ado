@@ -1,4 +1,4 @@
-*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -37,7 +37,6 @@ program glevelsof, rclass
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
                               ///
         GROUPid(str)          ///
@@ -122,7 +121,7 @@ program glevelsof, rclass
 
     local sopts `colseparate' `numfmt' `compress' `forcestrl'
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
-    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+    local sopts `sopts' `oncollision' `hashmethod' `debug'
 
     local gopts gen(`groupid') `tag' `counts' `fill' `replace'
     local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')

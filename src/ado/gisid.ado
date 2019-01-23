@@ -1,4 +1,4 @@
-*! version 1.1.0 02Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -isid- implementation using C for faster processing
 
 capture program drop gisid
@@ -17,7 +17,6 @@ program gisid
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
         debug(passthru)       /// Print debugging info to console
                               ///
@@ -43,7 +42,7 @@ program gisid
 
     local opts `miss' `compress' `forcestrl' `_ctolerance'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts `opts' `oncollision' `hashmethod' `debug'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)
     local rc = _rc
     global GTOOLS_CALLER ""

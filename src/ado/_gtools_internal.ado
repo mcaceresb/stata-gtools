@@ -1,4 +1,4 @@
-*! version 1.2.6 19Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.7 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -86,7 +86,6 @@ program _gtools_internal, rclass
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(str)           /// hashing method
-        hashlib(str)              /// path to hash library (Windows only)
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
@@ -227,7 +226,6 @@ program _gtools_internal, rclass
         disp as txt `"    verbose:          `verbose'"'
         disp as txt `"    benchmark:        `benchmark'"'
         disp as txt `"    hashmethod:       `hashmethod'"'
-        disp as txt `"    hashlib:          `hashlib'"'
         disp as txt `"    oncollision:      `oncollision'"'
         disp as txt `"    replace:          `replace'"'
         disp as txt `""'
@@ -260,73 +258,6 @@ program _gtools_internal, rclass
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
-    }
-
-    ***********************************************************************
-    *                               debug!                                *
-    ***********************************************************************
-
-    * Check you will find the hash library (Windows only)
-    * ---------------------------------------------------
-
-    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-    local url `url'/master/lib/windows/spookyhash.dll
-
-    if ( `"`hashlib'"' == "" ) {
-        local hashlib `c(sysdir_plus)'s/spookyhash.dll
-        local hashusr 0
-    }
-    else local hashusr 1
-
-    if ( (`"`c_os_'"' == "windows") & `hashusr' ) {
-        cap confirm file spookyhash.dll
-        if ( _rc | `hashusr' ) {
-            cap findfile spookyhash.dll
-            if ( _rc | `hashusr' ) {
-                cap confirm file `"`hashlib'"'
-                if ( _rc ) {
-                    di as err `"'`hashlib'' not found."'
-                    di as err `"Download {browse "`url'":here}"' ///
-                              `" or run {opt gtools, dependencies}"'
-                    clean_all 198
-                    exit 198
-                }
-            }
-            else local hashlib `r(fn)'
-            mata: __gtools_hashpath = ""
-            mata: __gtools_dll = ""
-            mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
-            mata: st_local("__gtools_hashpath", __gtools_hashpath)
-            mata: mata drop __gtools_hashpath
-            mata: mata drop __gtools_dll
-            local path: env PATH
-            if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
-            }
-            local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
-            local newpath `"`path';`__gtools_hashpath'"'
-            local truncate 2048
-            if ( `:length local newpath' > `truncate' ) {
-                local loops = ceil(`:length local newpath' / `truncate')
-                mata: __gtools_pathpieces = J(1, `loops', "")
-                mata: __gtools_pathcall   = ""
-                mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
-                mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
-                mata: st_local("pathcall", __gtools_pathcall)
-                mata: mata drop __gtools_pathcall __gtools_pathpieces
-                cap plugin call env_set, PATH `pathcall'
-            }
-            else {
-                cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-            }
-            if ( _rc ) {
-                local rc = _rc
-                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
-                clean_all `rc'
-                exit `rc'
-            }
-        }
-        else local hashlib spookyhash.dll
     }
 
     ***********************************************************************
@@ -3435,66 +3366,6 @@ else local c_os_: di lower("`c(os)'")
 
 if ( `c(stata_version)' < 14.1 ) local spiver v2
 else local spiver v3
-
-cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")
-
-* Windows hack
-if ( "`c_os_'" == "windows" ) {
-    cap confirm file spookyhash.dll
-    if ( _rc ) {
-        cap findfile spookyhash.dll
-        if ( _rc ) {
-            local rc = _rc
-            local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-            local url `url'/master/lib/windows/spookyhash.dll
-            di as err `"gtools: `hashlib' not found."' _n(1)     ///
-                      `"gtools: download {browse "`url'":here}"' ///
-                      `" or run {opt gtools, dependencies}"'
-            exit `rc'
-        }
-        mata: __gtools_hashpath = ""
-        mata: __gtools_dll = ""
-        mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-        mata: st_local("__gtools_hashpath", __gtools_hashpath)
-        mata: mata drop __gtools_hashpath
-        mata: mata drop __gtools_dll
-        local path: env PATH
-        if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-            mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
-        }
-        local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
-        local newpath `"`path';`__gtools_hashpath'"'
-        local truncate 2048
-        if ( `:length local newpath' > `truncate' ) {
-            local loops = ceil(`:length local newpath' / `truncate')
-            mata: __gtools_pathpieces = J(1, `loops', "")
-            mata: __gtools_pathcall   = ""
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
-            mata: st_local("pathcall", __gtools_pathcall)
-            mata: mata drop __gtools_pathcall __gtools_pathpieces
-            cap plugin call env_set, PATH `pathcall'
-        }
-        else {
-            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-        }
-        if ( _rc ) {
-            cap confirm file spookyhash.dll
-            if ( _rc ) {
-                cap plugin call env_set, PATH `"`__gtools_hashpath'"'
-                if ( _rc ) {
-                    local rc = _rc
-                    di as err `"gtools: Unable to add '`__gtools_hashpath''"' ///
-                              `"to system PATH."'                             ///
-                        _n(1) `"gtools: download {browse "`url'":here}"'      ///
-                              `" or run {opt gtools, dependencies}"'
-                    exit `rc'
-                }
-            }
-        }
-    }
-}
 
 cap program drop gtools_plugin
 if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {

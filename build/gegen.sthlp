@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.0 03Nov2018}{...}
+{* *! version 1.1.1 23Jan2019}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -14,8 +14,7 @@
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+the latest stable version.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -44,8 +43,6 @@ please run {stata gtools, dependencies} at the start of your Stata session.
 {synopt :{opt bench:marklevel(int)}}Benchmark various steps of the plugin.
 {p_end}
 {synopt :{opth hash:method(str)}}Hash method (default, biject, or spooky). Intended for debugging.
-{p_end}
-{synopt :{opth hashlib(str)}}(Windows only) Custom path to {it:spookyhash.dll}.
 {p_end}
 {synopt :{opth oncollision(str)}}Collision handling (fallback or error). Intended for debugging.
 {p_end}

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.1  25Sep2018}{...}
+{* *! version 1.0.2  23Jan2019}{...}
 {viewerdialog gduplicates "dialog gduplicates"}{...}
 {vieweralsosee "[D] gduplicates" "mansection D gduplicates"}{...}
 {viewerjumpto "Syntax" "gduplicates##syntax"}{...}
@@ -16,8 +16,7 @@
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+the latest stable version.
 
 {marker syntax}{...}
 {title:Syntax}

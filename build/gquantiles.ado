@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! faster implementation of pctile, xtile, and _pctile using C plugins
 
 capture program drop gquantiles
@@ -70,7 +70,6 @@ program gquantiles, rclass
         BENCHmark                       /// Benchmark function
         BENCHmarklevel(int 0)           /// Benchmark various steps of the plugin
         HASHmethod(passthru)            /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)               /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)           /// error|fallback: On collision, use native command or throw error
                                         ///
         GROUPid(str)                    ///
@@ -342,7 +341,7 @@ program gquantiles, rclass
 
     local opts `compress' `forcestrl' `_ctolerance'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts `opts' `oncollision' `hashmethod' `debug'
     local opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
 
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp'

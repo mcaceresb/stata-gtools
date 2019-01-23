@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.3 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -134,8 +134,7 @@ program define gegen, byable(onecall) rclass
             unab args : _all
         }
 
-        local gtools_args hashlib(passthru)        ///
-                          HASHmethod(passthru)     ///
+        local gtools_args HASHmethod(passthru)     ///
                           oncollision(passthru)    ///
                           Verbose                  ///
                           _subtract                ///
@@ -155,7 +154,7 @@ program define gegen, byable(onecall) rclass
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
 
-            local gopts `hashlib' `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
+            local gopts `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
             local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel'
 
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
@@ -194,7 +193,6 @@ program define gegen, byable(onecall) rclass
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
         gtools_capture(passthru)  /// Ignored (captures fcn options if fcn is not known)
                                   ///
@@ -345,7 +343,7 @@ program define gegen, byable(onecall) rclass
 
     local opts  `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts  `opts' `hashlib' `oncollision' `hashmethod'
+    local opts  `opts' `oncollision' `hashmethod'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -432,7 +430,6 @@ program define gegen, byable(onecall) rclass
 
         if ( `rc' == 17999 ) {
             local gtools_args `hashmethod'     ///
-                              `hashlib'        ///
                               `oncollision'    ///
                               `verbose'        ///
                               `_subtract'      ///
@@ -607,7 +604,6 @@ program define gegen, byable(onecall) rclass
             exit 17000
         }
         local gtools_args `hashmethod'     ///
-                          `hashlib'        ///
                           `oncollision'    ///
                           `verbose'        ///
                           `_subtract'      ///
@@ -788,8 +784,7 @@ end
 
 capture program drop collision_fallback
 program collision_fallback
-    local gtools_args hashlib(passthru)        ///
-                      HASHmethod(passthru)     ///
+    local gtools_args HASHmethod(passthru)     ///
                       oncollision(passthru)    ///
                       Verbose                  ///
                       _subtract                ///

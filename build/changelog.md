@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.2.7 (2019-01-23)
+
+### Enhancements
+
+- Deleted all ancillary files and code related to `spookyhash.dll`
+
+## gtools-1.2.6 (2019-01-19)
+
+### Enhancements
+
+- SpookyHash code compiled directly as part of the plugin. Might fix #35
+
 ## gtools-1.2.5 (2019-01-19)
 
 ### Enhancements

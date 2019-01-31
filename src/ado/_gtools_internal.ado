@@ -41,6 +41,7 @@ program _gtools_internal, rclass
                          gcontract    /// 8
                          gquantiles   ///
                          gstats       ///
+                         greshape     ///
                          ghash
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
@@ -118,7 +119,8 @@ program _gtools_internal, rclass
                                   /// Capture options
                                   /// ---------------
                                   ///
-        gstats(str)               /// options for gquantiles (to parse later)
+        greshape(str)             /// options for greshape (to parse later)
+        gstats(str)               /// options for gstats (to parse later)
         gquantiles(str)           /// options for gquantiles (to parse later)
         gcontract(str)            /// options for gcontract (to parse later)
         gcollapse(str)            /// options for gcollapse (to parse later)
@@ -251,6 +253,7 @@ program _gtools_internal, rclass
         disp as txt `"    gquantiles:       `gquantiles'"'
         disp as txt `"    gcontract:        `gcontract'"'
         disp as txt `"    gstats:           `gstats'"'
+        disp as txt `"    greshape:         `greshape'"'
         disp as txt `"    gcollapse:        `gcollapse'"'
         disp as txt `"    gtop:             `gtop'"'
         disp as txt `"    recast:           `recast'"'
@@ -344,6 +347,7 @@ program _gtools_internal, rclass
                          top      ///
                          contract ///
                          stats    ///
+                         reshape  ///
                          quantiles
 
     if ( "`gfunction'" == "" ) local gfunction hash
@@ -698,7 +702,8 @@ program _gtools_internal, rclass
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
     matrix __gtools_xtile_cutbin    = J(1, 1, .)
 
-    gstats_scalars init
+    gstats_scalars   init
+    greshape_scalars init
 
     * Parse glevelsof options
     * -----------------------
@@ -1515,6 +1520,35 @@ program _gtools_internal, rclass
             local gcall hash
             scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
         }
+        else if ( inlist("`gfunction'",  "reshape") ) {
+            local 0 `greshape'
+            syntax anything, xij(str) [j(str) xi(str) atwl(str) File(str) string read]
+
+            if !inlist(`"`anything'"', "long", "wide") {
+                disp "`anything' unknown: only long and wide are supported"
+                exit 198
+            }
+
+            if ( "`read'" == "" ) {
+                local gcall `gfunction' write `"`file'"'
+            }
+            else {
+                local gcall `gfunction' read `"`file'"'
+            }
+
+            local reshapevars `xij' `xi'
+            scalar __gtools_greshape_code = 1
+            if ( `"`anything'"' == "wide" ) {
+                scalar __gtools_greshape_code = 2
+            }
+
+            if ( (`"`anything'"' == "wide") | ("`read'" != "") ) {
+                local reshapevars `j' `reshapevars'
+            }
+
+            scalar __gtools_greshape_kxij = `:list sizeof xij'
+            scalar __gtools_greshape_kxi  = `:list sizeof xi'
+        }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction'
             gettoken gstat gstats: gstats
@@ -2185,7 +2219,9 @@ program _gtools_internal, rclass
         }
         else local gcall `gfunction'
 
-        local plugvars `byvars' `etargets' `extravars' `level_targets' `statvars' `contractvars' `xvars'
+        local plugvars `byvars' `etargets' `extravars' `level_targets'
+        local plugvars `plugvars' `statvars' `contractvars' `xvars' `reshapevars'
+
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
 
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
@@ -2530,7 +2566,8 @@ program clean_all
     cap matrix drop __gtools_stats
     cap matrix drop __gtools_pos_targets
 
-    gstats_scalars drop
+    gstats_scalars   drop
+    greshape_scalars drop
 
     * NOTE(mauricio): You had the urge to make sure you were dropping
     * variables at one point. Don't. This is fine for gquantiles but not so
@@ -2644,11 +2681,11 @@ program parse_by_types, rclass
     * Compress strL variables if requested
     * ------------------------------------
 
-    * gcollapse and gcontract need to write to variables, and so cannot
-    * support strL variables
+    * gcollapse, gcontract, and greshape need to write to variables, and
+    * so cannot support strL variables
 
     local GTOOLS_CALLER $GTOOLS_CALLER
-    local GTOOLS_STRL   gcollapse gcontract
+    local GTOOLS_STRL   gcollapse gcontract greshape
     local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
 
     * glevelsof, gen() needs to write to variables, and so cannot
@@ -2718,15 +2755,15 @@ program parse_by_types, rclass
                         _n(1) "variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"         ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "    {stata compress `varstrL'}"                                                   ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse}" ///
-                        _n(1) "and {cmd:gcontract} do not support strL variables in any Stata version."          ///
-                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."       ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"          ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"           ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "    {stata compress `varstrL'}"                                                     ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"  ///
+                        _n(1) " {cmd:gcontract}, and {cmd:greshape} do not support strL variables in any version." ///
+                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."         ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"            ///
                         _n(1) "and above can read strL variables in Stata 14 or later."
         }
         exit 17004
@@ -2743,16 +2780,16 @@ program parse_by_types, rclass
                         _n(1) "strL variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                            ///
-                        _n(1) "strL variables are string-only, try"                                                                 ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "    {stata compress `varstrL'}"                                                                      ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse} and {cmd:gcontract} " ///
-                        _n(1) "do not support strL variables in any Stata version. Further, binary"                                 ///
-                        _n(1) "strL variables are not yet supported in any Stata version."                                          ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools"                                  ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                          ///
+                        _n(1) "strL variables are string-only, try"                                                               ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "    {stata compress `varstrL'}"                                                                    ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse}, {cmd:gcontract}, " ///
+                        _n(1) "and {cmd:greshape} do not support strL variables in any Stata version. Further, binary"            ///
+                        _n(1) "strL variables are not yet supported in any Stata version."                                        ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools"                                ///
                         _n(1) "0.14 and above can read strL variables in Stata 14 or later."
         }
         exit 17002
@@ -3189,6 +3226,26 @@ program encode_stat, rclass
 end
 
 ***********************************************************************
+*                              greshape                               *
+***********************************************************************
+
+capture program drop greshape_scalars
+program greshape_scalars
+    * 1 = long, 2 = wide
+    scalar __gtools_greshape_code = .
+    if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
+        scalar __gtools_greshape_code  = .
+        scalar __gtools_greshape_kxij  = .
+        scalar __gtools_greshape_kxi   = .
+    }
+    else {
+        cap scalar drop __gtools_greshape_code
+        cap scalar drop __gtools_greshape_kxij
+        cap scalar drop __gtools_greshape_kxi
+    }
+end
+
+***********************************************************************
 *                               gstats                                *
 ***********************************************************************
 
@@ -3351,7 +3408,7 @@ program gstats_winsor
         local vlab: var label `var'
         if ( `"`vlab'"' == "" ) local vlab `var'
         label var `gvar' `"`=`"`vlab'"' + `"`glab'"''"'
-        format `:format `var'' `gvar' 
+        format `:format `var'' `gvar'
     }
 
     c_local varlist `varlist' `targetvars'

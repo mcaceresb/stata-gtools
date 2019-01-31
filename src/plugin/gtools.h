@@ -118,6 +118,13 @@ struct StataInfo {
     ST_double winsor_cuth;
     GT_size   winsor_kvars;
     //
+    GT_bool   greshape_code;
+    GT_size   greshape_kxij;
+    GT_size   greshape_kxi;
+    GT_size   greshape_kout;
+    GT_size   greshape_klvls;
+    GT_size   *greshape_maplevel;
+    //
     GT_bool   hash_method;
     GT_bool   wcode;
     GT_bool   nunique;
@@ -327,3 +334,23 @@ ST_retcode sf_set_rinfo   (struct StataInfo *st_info, int level);
 #endif
 
 #endif
+
+// Important notes!
+// ----------------
+
+// We keep track of 3 arrays throughout that help us read and
+// write grouped data from and to stata.
+//
+//     - info[j]:  The starting position of group j in the sorted hash;
+//                 info[J] is the number of observations.
+//
+//     - index[i]: info[j] to info[j + 1] (left inclusive, right exclusive)
+//                 are the starting and ending positions of group j.
+//                 index[info[j]] to index[info[j + 1] - 1] are the
+//                 positions of each entry in the group in the unsorted
+//                 data.
+//
+//     - ix[s]:    The group in sort order s; that is, the group ix[s]
+//                 has sort order s. In other words, processing groups
+//                 ix[0], ix[1], ..., ix[J - 1] would process them in
+//                 order.

@@ -44,6 +44,7 @@
 #include "extra/hashsort.c"
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
+#include "extra/greshape.c"
 #include "stats/gstats.c"
 
 #include "quantiles/gquantiles_math.c"
@@ -97,6 +98,7 @@ STDLL stata_call(int argc, char *argv[])
      *     - quantiles: Percentiles, xtile, bin counts, and more.             *
      *     - collapse:  Summary stat by group.                                *
      *     - stats:     Several stat functions and transforms.                *
+     *     - reshape:   Reshape data from wide to long and the converse       *
      *                                                                        *
      **************************************************************************/
 
@@ -343,6 +345,28 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_check_hash  (st_info, 22)) ) goto exit; // (Note: discards by copy)
         if ( (rc = sf_stats       (st_info, 0))  ) goto exit;
     }
+    else if ( strcmp(todo, "reshape") == 0 ) {
+        strcpy (tostat, argv[1]);
+
+        size_t flength = strlen(argv[2]) + 1;
+        GTOOLS_CHAR (fname, flength);
+        strcpy (fname, argv[2]);
+
+        if ( strcmp(tostat, "write") == 0 ) {
+            if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
+            if ( (rc = sf_hash_byvars  (st_info, 0)) ) goto exit;
+            if ( (rc = sf_check_hash   (st_info, 2)) ) goto exit; // (Note: keeps by copy)
+            if ( (rc = sf_reshape_long (st_info, 0, fname)) ) goto exit;
+        }
+        else if ( strcmp(tostat, "read") == 0 ) {
+            if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
+            if ( (rc = sf_reshape_read (st_info, 0, fname)) ) goto exit;
+        }
+        else {
+            sf_errprintf ("Invalid -reshape- sub-command '%s'.", tostat);
+            rc = 198; goto exit;
+        }
+    }
     else {
         sf_printf ("Nothing to do\n");
         rc = 198; goto exit;
@@ -425,6 +449,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             winsor_cutl,
             winsor_cuth,
             winsor_kvars,
+            greshape_code,
+            greshape_kxij,
+            greshape_kxi,
+            greshape_kout,
+            greshape_klvls,
             hash_method,
             wcode,
             wpos,
@@ -519,7 +548,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_weight_pos",     &wpos)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_sel",     &wselective)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_nunique",        &nunique)        )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_seecount",       &seecount)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",      &countonly)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_unsorted",       &unsorted)       )) goto exit;
@@ -528,23 +557,23 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_nomiss",         &nomiss)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_replace",        &replace)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countmiss",      &countmiss)      )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_numfmt_max",     &numfmt_max)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_numfmt_len",     &numfmt_len)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_cleanstr",       &cleanstr)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_colsep_len",     &colsep_len)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_sep_len",        &sep_len)        )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_top_groupmiss",  &top_groupmiss)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_miss",       &top_miss)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_other",      &top_other)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lmiss",      &top_lmiss)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lother",     &top_lother)     )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_levels_return",  &levels_return)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_levels_gen",     &levels_gen)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_levels_replace", &levels_replace) )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_xtile_xvars",    &xtile_xvars)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_nq",       &xtile_nq)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_nq2",      &xtile_nq2)      )) goto exit;
@@ -565,12 +594,18 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_xtile_dedup",    &xtile_dedup)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",  &xtile_cutifin)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_xtile_cutby",    &xtile_cutby)    )) goto exit;
-
+                                                         
     if ( (rc = sf_scalar_size("__gtools_gstats_code",    &gstats_code)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_trim",    &winsor_trim)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_cutl",    &winsor_cutl)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_cuth",    &winsor_cuth)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_kvars",   &winsor_kvars)   )) goto exit;
+                                                         
+    if ( (rc = sf_scalar_size("__gtools_greshape_code",  &greshape_code)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kxij",  &greshape_kxij)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kxi",   &greshape_kxi)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kout",  &greshape_kout)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_klvls", &greshape_klvls) )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
@@ -764,6 +799,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->winsor_cutl    = winsor_cutl;
     st_info->winsor_cuth    = winsor_cuth;
     st_info->winsor_kvars   = winsor_kvars;
+
+    st_info->greshape_code  = greshape_code;
+    st_info->greshape_kxij  = greshape_kxij;
+    st_info->greshape_kxi   = greshape_kxi;
+    st_info->greshape_kout  = greshape_kout;
+    st_info->greshape_klvls = greshape_klvls;
 
     st_info->encode         = encode;
     st_info->group_data     = group_data;

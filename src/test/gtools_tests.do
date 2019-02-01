@@ -25,21 +25,24 @@ set type double
 program main
     syntax, [NOIsily *]
 
-set rmsg on
-clear
-clear _all
-set obs 5
-gen y = _n
-gen long  x1  = _n
-gen float x2  = runiform()
-gen float x15 = _n
-gen float z10 = _n
-gen float z20 = runiform()
-gen double z15 = runiform()
-l
-greshape wide x, i(i) j(j)
-* reshape wide x, i(i) j(j)
-l
+* set rmsg on
+* clear
+* clear _all
+* set obs 5
+* gen y = _n
+* gen long  x1  = _n
+* gen float x2  = runiform()
+* gen float x15 = _n
+* gen float z10 = _n
+* gen float z20 = runiform()
+* gen double z15 = runiform()
+* fastreshape long x, i(y) j(j)
+* fastreshape wide
+
+* l
+* greshape long x, i(y) j(j)
+* * reshape long x, i(y) j(j)
+* l
 exit 17123
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {

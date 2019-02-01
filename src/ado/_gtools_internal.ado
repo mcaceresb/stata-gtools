@@ -2424,11 +2424,7 @@ capture program drop hashsort_inner
 program hashsort_inner, sortpreserve
     syntax varlist [in], benchmark(int) [invertinmata]
     cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
-    if ( _rc ) {
-        local rc = _rc
-        clean_all `rc'
-        exit `rc'
-    }
+    if ( _rc ) exit _rc
     if ( "`invertinmata'" != "" ) {
         mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
     }
@@ -3237,11 +3233,20 @@ program greshape_scalars
         scalar __gtools_greshape_code  = .
         scalar __gtools_greshape_kxij  = .
         scalar __gtools_greshape_kxi   = .
+        cap scalar dir __gtools_greshape_kout
+        if ( _rc ) scalar __gtools_greshape_kout = .
+        cap scalar dir __gtools_greshape_klvls
+        if ( _rc ) scalar __gtools_greshape_klvls = .
+
     }
     else {
         cap scalar drop __gtools_greshape_code
         cap scalar drop __gtools_greshape_kxij
         cap scalar drop __gtools_greshape_kxi
+        if ( `"${GTOOLS_CALLER}"' != "greshape" ) {
+            cap scalar drop __gtools_greshape_kout
+            cap scalar drop __gtools_greshape_klvls
+        }
     }
 end
 
@@ -3281,10 +3286,10 @@ program gstats_winsor
 
     * Default is winsorize or trim 1st or 99th pctile
     local trim = ( `"`trim'"' != "" )
-	if ( `"`cuts'"' == "" ) {
-		local cutl = 1
-		local cuth = 99
-	}
+    if ( `"`cuts'"' == "" ) {
+        local cutl = 1
+        local cuth = 99
+    }
     else {
         gettoken cutl cuth: cuts
         cap noi confirm number `cutl'

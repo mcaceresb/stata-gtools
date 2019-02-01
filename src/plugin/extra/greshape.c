@@ -1,5 +1,26 @@
+ST_retcode sf_reshape      (struct StataInfo *st_info, int level, char *fname);
+ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname);
 ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname);
 ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname);
+
+ST_retcode sf_reshape (struct StataInfo *st_info, int level, char *fname)
+{
+    if ( st_info->greshape_code == 1 ) {
+        return (sf_reshape_long(st_info, level, fname));
+    }
+    else if ( st_info->greshape_code == 2 )  {
+        return (sf_reshape_wide(st_info, level, fname));
+    }
+    else {
+        return (198);
+    }
+}
+
+ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
+{
+    sf_errprintf ("-greshape wide- not yet implemented");
+    return (198);
+}
 
 ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 {
@@ -154,6 +175,9 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         sf_running_timer (&timer, "\treshape long step 3: copied reshaped data to disk");
 
 exit:
+    free (st_info->greshape_maplevel);
+    free (index_st);
+
     return (rc);
 }
 
@@ -212,6 +236,7 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
         sf_running_timer (&timer, "\treshape long step 6: copied reshaped data to stata");
 
 exit:
+    free (output);
     return (rc);
 
 }

@@ -14,12 +14,125 @@
 *
 * TODO: Careful with reshape {wide|long} x x1 x2; is x missing or excluded?
 *
+* TODO: Check unique by ID
 * TODO: Optimize because the assumption is that i is unique!
-*
-* TODO: Why does i have to be unique? No real reason; dispense later on...
+* TODO: But why does i have to be unique? No real reason; dispense later on...
 *       Maybe bc of lossy stuff from long to wide and back? Just add option...
 *
 * TODO: Sort levels (mind that strings are not sorted as nubmers; also mind var order)
+*
+* TODO: greshape with no observations
+*
+* TODO: gtools options
+*
+* TODO: xi variables
+*
+* TODO: timers!
+*
+* TODO: Subset j with a numlist or similar; e.g. j(year 2001 2003 2004)
+*
+* TODO: Do this? greshape does not support highlighting problem observations with the fastreshape error command ex post
+*
+* TODO: Clue for atwl? fastreshape does not support the atwl(char) argument. Use the @ character ins
+*
+* TODO: For reshape wide,
+*       1. gegen `jcode' = group(`j'), _levelskeep(file)
+*       1. Call the plugin; all is normal
+*           varlist is `i'
+*           j, xij, and xi are the plugvars
+*       2. Hash j
+*           - make special code to hash j
+*           - map the hash to index/encoding a la gegen
+*           - keep full-length encoding
+*           - keep unique levels of j
+*           - write encoded levels to file in binary format
+*               level# 0
+*               level# 1
+*               ...
+*               level# J-1
+*       3. Read the data
+*           - read xij xi; for each row, prepend encoded j
+*           - careful with the indexing! you need to match the encoded j unsorted
+*           - sort each group by the encoded j
+*           - make data data wide
+*           - Example:
+*               for (j = 0; i < J; j++) {
+*                   for (i = start; i < end; i++) {
+*                       for (k = 0; k < ktot; k++) {
+*                           buffer[i - start, k] = sources[i, k]
+*                       }
+*                   }
+*                   quicksort(buffer, sizeof(buffer) * ktot, nj, 0, 1);
+*                   bptr = buffer;
+*                   output[j, 0] = j; // TODO: Replace with actual values of i
+*                   for (l = 0; l < klevels; l++) {
+*                       if ( (l + 1) == *bptr ) {
+*                           bptr++;
+*                           for (k = 0; k < kout; k++, bptr++) {
+*                               output[j, l * kout + k] = *bptr;
+*                           }
+*                       }
+*                       else {
+*                           for (k = 0; k < kout; k++) {
+*                               output[j, l * kout + k] = SV_missval;
+*                           }
+*                       }
+*                   }
+*               }
+*       4. Save wide data to disk; back to stata
+*       5. keep if `jcode' == 0
+*       6. Add the rest of the variables
+*       7. Read the data from disk
+*
+* TODO: xi([varlist], {keep|drop})
+
+/*
+cd /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/src/ado
+qui do _gtools_internal.ado
+
+clear
+set obs 10
+gen i = _n
+gen j = _n
+gen long  x = _n
+gen float z = runiform()
+reshape wide x z, i(i) j(j)
+
+qui do greshape.ado
+set rmsg on
+clear
+clear _all
+set obs 1000000
+* set obs 5
+gen y = _n
+gen long  x1  = _n
+gen float x2  = runiform()
+gen float x15 = _n
+gen float z10 = _n
+gen float z20 = runiform()
+gen double z15 = runiform()
+preserve
+    greshape clear
+    greshape long x z, i(y) j(j)
+restore
+
+preserve
+    reshape clear
+    reshape long x z, i(y) j(j)
+restore
+
+preserve
+    reshape clear
+    fastreshape long x, i(y) j(j)
+restore
+
+gen j = "123456789012345678901234567890 " + string(_j)
+drop _j
+reshape wide x, i(y) j(j) string
+
+set tracedepth 3
+set trace off
+*/
 
 capture program drop greshape
 program greshape, rclass
@@ -60,18 +173,10 @@ program greshape, rclass
         exit
     }
 
-    local i = 0
-
-    disp `"debug greshape: *"' _n(1) `"    * = `*'"'
-    while ( `"``i''"' != "" ) {
-        disp `"    `i++' = ``i''"'
-    }
-
     if ( inlist(`"`1'"', "wide", "long") ) {
-        disp "debug greshape: 1"
         cap noi DoNew `*'
         if ( _rc == 17999 ) {
-            reshape `0'
+            reshape `*'
             exit 0
         }
         else if ( _rc == 17001 ) {
@@ -103,7 +208,6 @@ program greshape, rclass
             exit 198
         }
         else {
-            disp "debug greshape: 2"
             cap noi DoNew `*'
             local rc = _rc
             char _dta[ReS_ver] "v.2"
@@ -114,7 +218,6 @@ program greshape, rclass
         exit 198
     }
     else {
-        disp "debug greshape: 3"
         cap noi DoNew `*'
         local rc = _rc
     }
@@ -128,6 +231,204 @@ program greshape, rclass
         exit 0
     }
     else if ( `rc' ) exit `rc'
+    else exit 0
+end
+
+* ---------------------------------------------------------------------
+* DoNew
+
+capture program drop DoNew
+program define DoNew
+    disp "debug greshape/DoNew: `*'"
+    local c "`1'"
+    mac shift
+
+    if ( `"`c'"' == "i" ) {
+        if ( "`*'" == "" ) error 198
+        unabbrev `*', max(10) min(1)
+        char _dta[ReS_i] "`s(varlist)'"
+        exit
+    }
+
+    if ( `"`c'"' == "j" ) {
+        J `*'
+        exit
+    }
+
+    if ( `"`c'"' == "xij" ) {
+        Xij `*'
+        exit
+    }
+
+    if ( `"`c'"' == "xi" ) {
+        sret clear
+        if ( `"`*'"' != "" ) {
+            unabbrev `*'
+        }
+        char _dta[Res_Xi] "`s(varlist)'"
+        exit
+    }
+
+    if ( `"`c'"' == "" ) { /* reshape */
+        Query
+        exit
+    }
+
+    if ( `"`c'"' == "long" ) { /* reshape long */
+        if ( `"`1'"' != "" ) {
+            Simple long `*'
+        }
+        disp "debug greshape/DoNew: Long"
+        capture noisily Long `*'
+        Macdrop
+        exit _rc
+    }
+
+    if ( `"`c'"' == "wide" ) { /* reshape wide */
+        if ( `"`1'"' != "" ) {
+            * Simple wide `*'
+            disp as err "simple wide not yet supported by greshape"
+            exit 198
+        }
+        disp "debug greshape/DoNew: Wide"
+        * capture noisily Wide `*'
+        Macdrop
+        disp as err "wide not yet supported by greshape"
+        exit 198
+        exit _rc
+    }
+
+    cap disp bsubstr(" ", 1, 1)
+    if ( _rc ) local substr substr
+    else local substr bsubstr
+
+    if `"`c'"' == `substr'("error", 1, max(3, length("`c'"))) {
+        disp "debug greshape/DoNew: Qerror"
+        * capture noisily Qerror `*'
+        Macdrop
+        disp as err "qerror not yet supported by greshape"
+        exit 198
+        exit _rc
+    }
+
+    IfOld `c'
+    if ( `s(oldflag)' ) {
+        disp as err "Old syntax is not supported by -greshape-"
+        exit 198
+    }
+
+    di as err "invalid syntax"
+    di as err as smcl "{p 4 4 2}"
+    di as err as smcl ///
+    "In the {bf:greshape} command that you typed, " ///
+    "you omitted the word {bf:wide} or {bf:long},"
+    di as err as smcl ///
+    "or substituted some other word for it.  You should have typed"
+    di as err
+    di as err as smcl "        . {bf:greshape wide} {it:varlist}{bf:, ...}"
+    di as err "    or"
+    di as err as smcl "        . {bf:greshape long} {it:varlist}, ..."
+    di as err
+    di as err as smcl "{p 4 4 2}"
+    di as err as smcl "You might have omitted {it:varlist}, too."
+    di as err as smcl "The basic syntax of {bf:greshape} is"
+    di as err as smcl "{p_end}"
+    di as err
+    picture err cmd
+    exit 198
+end
+
+capture program drop Simple
+program define Simple /* {wide|long} <funnylist>, i(varlist) [j(varname [values])] */
+
+    local cmd "`1'"
+    mac shift
+    parse "`*'", parse(" ,")
+    while "`1'"!="" & "`1'"!="," {
+        local list `list' `1'
+        mac shift
+    }
+
+    if ( `"`list'"' == "" ) {
+        error 198
+    }
+
+    if ( `"`1'"' != "," ) {
+        di as smcl in red "option {bf:i()} required"
+        di in red
+        picture err cmds
+        exit 198
+    }
+
+    local options "I(string) J(string) ATwl(string) String"
+    parse "`*'"
+    if ( `"`i'"' == "" ) {
+        di as smcl in red "option {bf:i()} required"
+        di in red
+        picture err cmds
+        exit 198
+    }
+    unabbrev `i'
+    local i "`s(varlist)'"
+
+    if ( `"`j'"' != "" ) {
+        parse "`j'", parse(" ")
+        local jvar "`1'"
+        mac shift
+        local jvals "`*'"
+    }
+    else local jvar "_j"
+
+    if ( `"`cmd'"' == "wide" ) {
+        /* When reshaping wide we can -unab- the variable list */
+        capture unab list : `list' /* ignore _rc, error caught later */
+        /* When reshaping wide we can -unab- the j variable */
+        capture unab jvar : `jvar' /* use -unab- not -ConfVar- here */
+        if _rc {
+            if _rc==111 {
+                if ("`jvar'"=="_j") {
+                    di as smcl in red ///
+                    "option {bf:j()} required"
+                    picture err cmds
+                    exit 198
+                }
+                di in red "variable `jvar' not found"
+                di as smcl in red "{p 4 4 2}"
+                di as smcl in red "Data are already wide."
+                di as smcl in red "{p_end}"
+                exit 111
+            }
+            ConfVar `jvar'
+            exit 198    /* just in case */
+        }
+    }
+    else {
+        capture confirm new var `jvar'
+        if _rc {
+            if _rc==110 {
+                di in red "variable `jvar' already exists"
+                di as smcl in red "{p 4 4 2}"
+                di as smcl in red "Data are already long."
+                di as smcl in red "{p_end}"
+                exit 110
+            }
+            confirm new var `jvar'
+            exit 198 /* just in case */
+        }
+    }
+
+    if ( `"`atwl'"' != "" ) {
+        local atwl "atwl(`atwl')"
+    }
+
+    if ( `"`string'"' != "" ) {
+        local string ", string"
+    }
+
+    greshape clear
+    greshape i `i'
+    greshape j `jvar' `jvals' `string'
+    greshape xij `list' `atwl'
 end
 
 * ---------------------------------------------------------------------
@@ -147,16 +448,37 @@ program define Long /* reshape long */
         exit
     }
 
-	Macros2
-	confirm var $ReS_i $Res_Xi
+    Macros2
+    confirm var $ReS_i $Res_Xi
 
-    * ------------------------------------------
-    * TODO: I believe this is the actual reshape
-    * ------------------------------------------
+    * --------------------------------------------------------
+    * TODO: Copy the actual data; i and j are placeholders atm
+    * --------------------------------------------------------
+    * TODO: Copy the xi variables; they are ignored atm
+    * --------------------------------------------------------
+    * TODO: Option string not currently allowed?
+    * --------------------------------------------------------
 
-    disp "{hline 26}"
-    disp "DEBUG: THIS IS THE RESHAPE"
-    disp "{hline 26}"
+    * set rmsg on
+    * use /home/mauricio/bulk/lib/benchmark-stata-r/1e7, clear
+    * gduplicates drop id1 id2 id3, force
+    * hashsort id1 id2 id3
+    * * keep if _n < _N/10
+    * foreach v of varlist id4 id5 id6 v1 v2 v3{
+    *     rename `v' v_`v'
+    * }
+    * preserve
+    * reshape long v_, i(id1 id2 id3) j(variable) string
+    * restore
+    *
+    * preserve
+    * fastreshape long v_, i(id1 id2 id3) j(variable) string
+    * restore
+    *
+    * qui do greshape.ado
+    * preserve
+    * greshape long v_, i(id1 id2 id3) j(variable) string
+    * restore
 
     * global GTOOLS_OPTS `weights' `compress' `forcestrl' `_ctolerance'
     * global GTOOLS_OPTS ${GTOOLS_OPTS} `verbose' `benchmark' `benchmarklevel'
@@ -164,108 +486,69 @@ program define Long /* reshape long */
     * global GTOOLS_CALL `if' `in'
 
     * ReS_i    i
-	* ReS_j    j
-    * ReS_jv   j values
+    * ReS_j    j
+    * ReS_jv   j values [TODO: Dispense with this; write to file]
     * ReS_Xij  reshape variables
     * Res_Xi   non-reshape variables (must be constant within group)
     * ReS_str  whether there are string variables involved; shouldn't be a problem
-    *
-    * Not sure; they have to do with the variable renaming/etc. syntax of reshape
-    * rVANS
-    * ReS_atwl
-    * S_1
-    * S_2
-    * S_1_full
+    * rVANS    Not sure [TODO: Figure it out]
+    * ReS_atwl Not sure [TODO: Figure it out]
 
-    foreach res in ReS_i ReS_j ReS_jv ReS_Xij ReS_Xij_names Res_Xi ReS_str rVANS ReS_atwl S_1 S_2 S_1_full {
-        disp "    `res': ${`res'}"
-    }
     if ( $ReS_str ) local string string
-    * $ReS_jv
-    * TODO: Check unique by ID
 
+    * ------------------------
     * Reshape the data to disk
     * ------------------------
 
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
-    local gopts greshape(long, xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl string)
-    local gopts `gopts' gfunction(reshape) ${GTOOLS_OPTS}
+    local gopts xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl string
+    local gopts greshape(long, `gopts') gfunction(reshape) ${GTOOLS_OPTS}
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
     if ( _rc ) exit _rc
 
-    * Reshape the data to memory
-    * --------------------------
+    * ----------------------------
+    * Allocate space for long data
+    * ----------------------------
 
-    keep  $ReS_i $ReS_Xij_keep $Res_Xi
-    * desc
-    * disp "[$ReS_Xij_add] ($ReS_Xij_keep) ($ReS_Xij_keepnames)"
-    mata: __greshape_types = ("long", J(1, `:word count $ReS_Xij_add', "double"))
-    mata: __greshape_vars  = "$ReS_j", tokens("$ReS_Xij_add")
-    mata: (void) st_addvar(__greshape_types, __greshape_vars, 0)
-    rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
+    FreeTimer
+    if ( `FreeTimer' ) timer on `FreeTimer'
+    keep $ReS_i $ReS_Xij_keep $Res_Xi
+    * disp "debug: [$ReS_Xij_add] ($ReS_Xij_keep) ($ReS_Xij_keepnames)"
+    mata __greshape_types = ("long", J(1, `:word count $ReS_Xij_add', "double"))
+    mata __greshape_vars  = "$ReS_j", tokens("$ReS_Xij_add")
+    mata (void) st_addvar(__greshape_types, __greshape_vars, 0)
+    if ( (`"$ReS_Xij_keep"' != "") &(`"$ReS_Xij_keepnames"' != "") ) {
+        rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
+    }
     order $ReS_i $ReS_j $ReS_Xij $Res_Xi
     qui expand `=scalar(__gtools_greshape_klvls)'
-    * _char(9) "reshape long step 4: allocated new dataset in Stata";
+    if ( `FreeTimer' ) {
+        qui timer off `FreeTimer'
+        qui timer list
+        local s `:disp %9.3f `r(t`FreeTimer')''
+        disp _char(9) "reshape long step 4: allocated target dataset; `s' seconds."
+    }
+    else {
+        disp _char(9) "reshape long step 4: allocated target dataset; ??? seconds."
+    }
 
+    * ------------------
     * Read reshaped data
     * ------------------
 
-    desc
-    disp "$ReS_i $ReS_j $ReS_Xij $Res_Xi"
+    * desc
     global GTOOLS_CALLER greshape
-    local gopts greshape(long, j($ReS_j) xij($ReS_Xij) xi($Res_Xi) f(`ReS_Data') $ReS_atwl string read)
-    local gopts `gopts' gfunction(reshape) ${GTOOLS_OPTS}
+    local gopts j($ReS_j) xij($ReS_Xij) xi($Res_Xi) f(`ReS_Data') $ReS_atwl string read
+    local gopts greshape(long, `gopts') gfunction(reshape) ${GTOOLS_OPTS}
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
     if ( _rc ) exit _rc
-    * _char(9) "reshape long step 5: read reshaped data into Stata"
 
-    disp "{hline 24}"
-    disp "DEBUG: THE PLUGIN RAN!!!"
-    disp "{hline 24}"
-    exit 17123
-
-    * cd /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/src/ado
-    * qui do _gtools_internal.ado
-
-    * qui do greshape.ado
-    * set rmsg on
-    * clear
-    * clear _all
-    * set obs 1000000
-    * * set obs 5
-    * gen y = _n
-    * gen long  x1  = _n
-    * gen float x2  = runiform()
-    * gen float x15 = _n
-    * gen float z10 = _n
-    * gen float z20 = runiform()
-    * gen double z15 = runiform()
-    * preserve
-    *     greshape clear
-    *     greshape long x z, i(y) j(j)
-    * restore
-    * preserve
-    *     reshape clear
-    *     reshape long x, i(y) j(j)
-    * restore
-    * preserve
-    *     reshape clear
-    *     fastreshape long x, i(y) j(j)
-    * restore
-
-    * gen j = "123456789012345678901234567890 " + string(_j)
-    * drop _j
-    * reshape wide x, i(y) j(j) string
-    *
-    * set tracedepth 3
-    * set trace off
-
-    * -----------------------------------------------
-    * TODO: I believe the above is the actual reshape
-    * -----------------------------------------------
+    * ----------------------------------------
+    * Finish in the same style as reshape.Long
+    * ----------------------------------------
 
     cap disp bsubstr(" ", 1, 1)
     if ( _rc ) local substr substr
@@ -287,11 +570,13 @@ program define Long /* reshape long */
         label variable $ReS_j `"`jvlab'"'
         char define _dta[__JVarLab] `""'
     }
+
     /* Apply Xij variable label for LONG*/
     local iii : char _dta[__XijVarLabTotal]
     if `"`iii'"' == "" {
         local iii = -1
     }
+
     foreach var of global ReS_Xij {
         local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
         if (length(`"`var'"') < 21 ) {
@@ -329,6 +614,9 @@ program define Long /* reshape long */
         ReportL `oldobs' `oldvars'
     }
 end
+
+* ---------------------------------------------------------------------
+* Macros2: Levels of ReS_j
 
 capture program drop Macros2
 program define Macros2 /* [preserve] */ /* returns S_1 */
@@ -593,7 +881,7 @@ program define FillvalL
     if ( _rc ) local substr substr
     else local substr bsubstr
 
-	qui glevelsof $ReS_j, silent local(ReS_jv)
+    qui glevelsof $ReS_j, silent local(ReS_jv)
     if ( 0 ) {
         * TODO: Strict let fail with spaces; otherwise replace
         mata: __greshape_jv  = tokens(st_local("ReS_jv"))
@@ -664,109 +952,6 @@ program define Dropout /* varname varnames */
 end
 
 * ---------------------------------------------------------------------
-* Reshape simple
-
-capture program drop Simple
-program define Simple /* {wide|long} <funnylist>, i(varlist) [j(varname [values])] */
-
-    local cmd "`1'"
-    mac shift
-    parse "`*'", parse(" ,")
-    while "`1'"!="" & "`1'"!="," {
-        local list `list' `1'
-        mac shift
-    }
-
-    if ( `"`list'"' == "" ) {
-        error 198
-    }
-
-    if ( `"`1'"' != "," ) {
-        di as smcl in red "option {bf:i()} required"
-        di in red
-        picture err cmds
-        exit 198
-    }
-
-    local options "I(string) J(string) ATwl(string) String"
-    parse "`*'"
-    if ( `"`i'"' == "" ) {
-        di as smcl in red "option {bf:i()} required"
-        di in red
-        picture err cmds
-        exit 198
-    }
-    unabbrev `i'
-    local i "`s(varlist)'"
-
-    if ( `"`j'"' != "" ) {
-        parse "`j'", parse(" ")
-        local jvar "`1'"
-        mac shift
-        local jvals "`*'"
-    }
-    else local jvar "_j"
-
-    if ( `"`cmd'"' == "wide" ) {
-        /* When reshaping wide we can -unab- the variable list */
-        capture unab list : `list' /* ignore _rc, error caught later */
-        /* When reshaping wide we can -unab- the j variable */
-        capture unab jvar : `jvar' /* use -unab- not -ConfVar- here */
-        if _rc {
-            if _rc==111 {
-                if ("`jvar'"=="_j") {
-                    di as smcl in red ///
-                    "option {bf:j()} required"
-                    picture err cmds
-                    exit 198
-                }
-                di in red "variable `jvar' not found"
-                di as smcl in red "{p 4 4 2}"
-                di as smcl in red "Data are already wide."
-                di as smcl in red "{p_end}"
-                exit 111
-            }
-            ConfVar `jvar'
-            exit 198    /* just in case */
-        }
-    }
-    else {
-        capture confirm new var `jvar'
-        if _rc {
-            if _rc==110 {
-                di in red "variable `jvar' already exists"
-                di as smcl in red "{p 4 4 2}"
-                di as smcl in red "Data are already long."
-                di as smcl in red "{p_end}"
-                exit 110
-            }
-            confirm new var `jvar'
-            exit 198 /* just in case */
-        }
-    }
-
-    if ( `"`atwl'"' != "" ) {
-        local atwl "atwl(`atwl')"
-    }
-
-    if ( `"`string'"' != "" ) {
-        local string ", string"
-    }
-
-    * ---------------------------------------------------------
-    * TODO: This is not the reshape; this sets the variables...
-    * ---------------------------------------------------------
-    * TODO: Replace all these with greshape
-    $ReS_Call reshape clear
-    $ReS_Call reshape i `i'
-    $ReS_Call reshape j `jvar' `jvals' `string'
-    $ReS_Call reshape xij `list' `atwl'
-    * ---------------------------------------------------------
-    * TODO: This is not the reshape; this sets the variables...
-    * ---------------------------------------------------------
-end
-
-* ---------------------------------------------------------------------
 * Helpers taken near-verbatim from reshape.ado
 
 capture program drop IfOld
@@ -794,114 +979,6 @@ capture program drop Macdrop
 program define Macdrop
     mac drop ReS_j ReS_jv ReS_i ReS_Xij rVANS Res_Xi /*
     */ ReS_atwl ReS_str S_1 S_2 S_1_full
-end
-
-capture program drop DoNew
-program define DoNew
-    disp "debug greshape/DoNew: `0'"
-    local c "`1'"
-    mac shift
-
-    if ( `"`c'"' == "i" ) {
-        if ( "`*'" == "" ) error 198
-        unabbrev `*', max(10) min(1)
-        char _dta[ReS_i] "`s(varlist)'"
-        exit
-    }
-
-    if ( `"`c'"' == "j" ) {
-        disp "debug greshape/DoNew: J"
-        * J `*'
-        * exit
-        disp as err "j not yet supported by greshape"
-        exit 198
-    }
-
-    if ( `"`c'"' == "xij" ) {
-        disp "debug greshape/DoNew: Xij"
-        * Xij `*'
-        * exit
-        disp as err "xij not yet supported by greshape"
-        exit 198
-    }
-
-    if ( `"`c'"' == "xi" ) {
-        sret clear
-        if ( `"`*'"' != "" ) {
-            unabbrev `*'
-        }
-        char _dta[Res_Xi] "`s(varlist)'"
-        exit
-    }
-
-    if ( `"`c'"' == "" ) { /* reshape */
-        Query
-        exit
-    }
-
-    if ( `"`c'"' == "long" ) { /* reshape long */
-        if ( `"`1'"' != "" ) {
-            Simple long `*'
-        }
-        disp "debug greshape/DoNew: Long"
-        capture noisily Long `*'
-        Macdrop
-        exit _rc
-    }
-
-    if ( `"`c'"' == "wide" ) { /* reshape wide */
-        if ( `"`1'"' != "" ) {
-            * capture noisily Simple wide `*'
-            disp "debug greshape/DoNew: Simple wide"
-            disp as err "simple wide not yet supported by greshape"
-            exit 198
-            exit _rc
-        }
-        disp "debug greshape/DoNew: Wide"
-        * capture noisily Wide `*'
-        Macdrop
-        disp as err "wide not yet supported by greshape"
-        exit 198
-        exit _rc
-    }
-
-    cap disp bsubstr(" ", 1, 1)
-    if ( _rc ) local substr substr
-    else local substr bsubstr
-
-    if `"`c'"' == `substr'("error", 1, max(3, length("`c'"))) {
-        disp "debug greshape/DoNew: Qerror"
-        * capture noisily Qerror `*'
-        Macdrop
-        disp as err "qerror not yet supported by greshape"
-        exit 198
-        exit _rc
-    }
-
-    IfOld `c'
-    if ( `s(oldflag)' ) {
-        disp as err "Old syntax is not supported by -greshape-"
-        exit 198
-    }
-    di as err "invalid syntax"
-    di as err as smcl "{p 4 4 2}"
-    di as err as smcl ///
-    "In the {bf:greshape} command that you typed, " ///
-    "you omitted the word {bf:wide} or {bf:long},"
-    di as err as smcl ///
-    "or substituted some other word for it.  You should have typed"
-    di as err
-    di as err as smcl "        . {bf:greshape wide} {it:varlist}{bf:, ...}"
-    di as err "    or"
-    di as err as smcl "        . {bf:greshape long} {it:varlist}, ..."
-    di as err
-    di as err as smcl "{p 4 4 2}"
-    di as err as smcl "You might have omitted {it:varlist}, too."
-    di as err as smcl "The basic syntax of {bf:greshape} is"
-    di as err as smcl "{p_end}"
-    di as err
-    picture err cmd
-    exit 198
 end
 
 capture program drop picture
@@ -1163,127 +1240,127 @@ end
 
 capture program drop ReportL
 program define ReportL /* old_obs old_vars */
-	Report1 `1' `2' wide long
+    Report1 `1' `2' wide long
 
-	local n : word count $ReS_jv
-	di in gr "j variable (`n' values)" _col(43) "->" _col(48) /*
-	*/ in ye "$ReS_j"
-	di in gr "xij variables:"
-	parse "$ReS_Xij", parse(" ")
-	local xijn : char _dta[ReS_Xij_n]
-	if `"`xijn'"' != "" {
-		forvalues i = 1/`xijn' {
-			char _dta[ReS_Xij_wide`i']
-			char _dta[ReS_Xij_long`i']
-		}
-		char _dta[ReS_Xij_n]
-	}
-	local i 0
-	while ( `"`1'"' != "" ) {
-		RepF "`1'"
-		local skip = 39 - length("$S_1")
-		di in ye _skip(`skip') "$S_1" _col(43) in gr "->" /*
-		*/ in ye _col(48) "$S_2"
-		local ++i
-		char _dta[ReS_Xij_wide`i'] "$S_1_full"
-		char _dta[ReS_Xij_long`i'] "$S_2"
-		mac shift
-	}
-	char _dta[ReS_Xij_n] "`i'"
-	di in smcl in gr "{hline 77}"
+    local n : word count $ReS_jv
+    di in gr "j variable (`n' values)" _col(43) "->" _col(48) /*
+    */ in ye "$ReS_j"
+    di in gr "xij variables:"
+    parse "$ReS_Xij", parse(" ")
+    local xijn : char _dta[ReS_Xij_n]
+    if `"`xijn'"' != "" {
+        forvalues i = 1/`xijn' {
+            char _dta[ReS_Xij_wide`i']
+            char _dta[ReS_Xij_long`i']
+        }
+        char _dta[ReS_Xij_n]
+    }
+    local i 0
+    while ( `"`1'"' != "" ) {
+        RepF "`1'"
+        local skip = 39 - length("$S_1")
+        di in ye _skip(`skip') "$S_1" _col(43) in gr "->" /*
+        */ in ye _col(48) "$S_2"
+        local ++i
+        char _dta[ReS_Xij_wide`i'] "$S_1_full"
+        char _dta[ReS_Xij_long`i'] "$S_2"
+        mac shift
+    }
+    char _dta[ReS_Xij_n] "`i'"
+    di in smcl in gr "{hline 77}"
 end
 
 capture program drop RepF
 program define RepF /* element from ReS_Xij */
-	local v "`1'"
-	if "$ReS_jv2" != "" {
-		local n : word count $ReS_jv2
-		parse "$ReS_jv2", parse(" ")
-	}
-	else {
-		local n : word count $ReS_jv
-		parse "$ReS_jv", parse(" ")
-	}
-	if `n'>=1 {
-		Subname `v' `1'
-		local list $S_1
-	}
-	if `n'>=2 {
-		Subname `v' `2'
-		local list `list' $S_1
-	}
-	if `n'==3 {
-		Subname `v' ``n''
-		local list `list' $S_1
-	}
-	else if `n'>3 {
-		Subname `v' ``n''
-		local list `list' ... $S_1
-	}
+    local v "`1'"
+    if "$ReS_jv2" != "" {
+        local n : word count $ReS_jv2
+        parse "$ReS_jv2", parse(" ")
+    }
+    else {
+        local n : word count $ReS_jv
+        parse "$ReS_jv", parse(" ")
+    }
+    if `n'>=1 {
+        Subname `v' `1'
+        local list $S_1
+    }
+    if `n'>=2 {
+        Subname `v' `2'
+        local list `list' $S_1
+    }
+    if `n'==3 {
+        Subname `v' ``n''
+        local list `list' $S_1
+    }
+    else if `n'>3 {
+        Subname `v' ``n''
+        local list `list' ... $S_1
+    }
 
-	local flist
-	forvalues i=1/`n' {
-		Subname `v' ``i''
-		local flist `flist' $S_1
-	}
-	global S_1_full `flist'
+    local flist
+    forvalues i=1/`n' {
+        Subname `v' ``i''
+        local flist `flist' $S_1
+    }
+    global S_1_full `flist'
 
-	Subname `v' $ReS_atwl
-	global S_2 $S_1
-	global S_1 `list'
+    Subname `v' $ReS_atwl
+    global S_2 $S_1
+    global S_1 `list'
 end
 
 capture program drop Report1
 program define Report1 /* <#oobs> <#ovars> {wide|long} {long|wide} */
-	local oobs  "`1'"
-	local ovars "`2'"
-	local wide  "`3'"
-	local long  "`4'"
+    local oobs  "`1'"
+    local ovars "`2'"
+    local wide  "`3'"
+    local long  "`4'"
 
-	di in smcl _n in gr /*
-	*/ "Data" _col(36) "`wide'" _col(43) "->" _col(48) "`long'" /*
-	*/ _n "{hline 77}"
+    di in smcl _n in gr /*
+    */ "Data" _col(36) "`wide'" _col(43) "->" _col(48) "`long'" /*
+    */ _n "{hline 77}"
 
-	di in gr "Number of obs." _col(32) in ye %8.0g `oobs' /*
-	*/ in gr _col(43) "->" in ye %8.0g _N
+    di in gr "Number of obs." _col(32) in ye %8.0g `oobs' /*
+    */ in gr _col(43) "->" in ye %8.0g _N
 
-	quietly desc, short
+    quietly desc, short
 
-	di in gr "Number of variables" _col(32) in ye %8.0g `ovars' /*
-	*/ in gr _col(43) "->" in ye %8.0g r(k)
+    di in gr "Number of variables" _col(32) in ye %8.0g `ovars' /*
+    */ in gr _col(43) "->" in ye %8.0g r(k)
 end
 
 capture program drop ReportW
 program define ReportW /* old_obs old_vars */
-	Report1 `1' `2' long wide
+    Report1 `1' `2' long wide
 
-	local n : word count $ReS_jv2
-	local col = 31+(9-length("$ReS_j"))
-	di in gr "j variable (`n' values)" /*
-		*/ _col(`col') in ye "$ReS_j" in gr _col(43) "->" /*
-		*/ _col(48) "(dropped)"
-	di in gr "xij variables:"
-	parse "$ReS_Xij", parse(" ")
-	if ( `"`xijn'"' != "" ) {
-		forvalues i = 1/`xijn' {
-			char _dta[ReS_Xij_wide`i']
-			char _dta[ReS_Xij_long`i']
-		}
-		char _dta[ReS_Xij_n]
-	}
-	local i 0
-	while ( `"`1'"' != "" ) {
-		RepF "`1'"
-		local skip = 39 - length("$S_2")
-		di in ye _skip(`skip') "$S_2" _col(43) in gr "->" /*
-		*/ in ye _col(48) "$S_1"
-		local ++i
-		char _dta[ReS_Xij_wide`i'] "$S_1_full"
-		char _dta[ReS_Xij_long`i'] "$S_2"
-		mac shift
-	}
-	char _dta[ReS_Xij_n] "`i'"
-	di in smcl in gr "{hline 77}"
+    local n : word count $ReS_jv2
+    local col = 31+(9-length("$ReS_j"))
+    di in gr "j variable (`n' values)" /*
+        */ _col(`col') in ye "$ReS_j" in gr _col(43) "->" /*
+        */ _col(48) "(dropped)"
+    di in gr "xij variables:"
+    parse "$ReS_Xij", parse(" ")
+    if ( `"`xijn'"' != "" ) {
+        forvalues i = 1/`xijn' {
+            char _dta[ReS_Xij_wide`i']
+            char _dta[ReS_Xij_long`i']
+        }
+        char _dta[ReS_Xij_n]
+    }
+    local i 0
+    while ( `"`1'"' != "" ) {
+        RepF "`1'"
+        local skip = 39 - length("$S_2")
+        di in ye _skip(`skip') "$S_2" _col(43) in gr "->" /*
+        */ in ye _col(48) "$S_1"
+        local ++i
+        char _dta[ReS_Xij_wide`i'] "$S_1_full"
+        char _dta[ReS_Xij_long`i'] "$S_2"
+        mac shift
+    }
+    char _dta[ReS_Xij_n] "`i'"
+    di in smcl in gr "{hline 77}"
 end
 
 * ---------------------------------------------------------------------
@@ -1364,22 +1441,76 @@ program define Macros /* reshape macro check utility */
     global S_1
 end
 
-capture program drop NotDefd
-program define NotDefd /* <message> */
-    hasanyinfo hasinfo
-    if (`hasinfo') {
-        di in red as smcl `"{bf:`*'} not defined"'
-        exit 111
+capture program drop J
+program define J /* reshape j [ #[-#] [...] | <str> <str> ...] [, string] */
+    if "`*'"=="" {
+        error 198
     }
-    di as err "data have not been reshaped yet"
-    di as err in smcl "{p 4 4 2}"
-    di as err in smcl "What you typed is a syntax error because"
-    di as err in smcl "the data have not been {bf:reshape}d"
-    di as err in smcl "previously.  The basic syntax of
-    di as err in smcl "{bf:reshape} is"
-    di as err in smcl
-    picture err cmds
-    exit 111
+    parse "`*'", parse(" -,")
+    local grpvar "`1'"
+    mac shift
+
+    local isstr 0
+    while "`1'"!="" & "`1'"!="," {
+        if "`2'" == "-" {
+            local i1 `1'
+            local i2 `3'
+            confirm integer number `i1'
+            confirm integer number `i2'
+            if `i1' >= `i2' {
+                di in red "`i1'-`i2':  invalid range"
+                exit 198
+            }
+            while `i1' <= `i2' {
+                local values `values' `i1'
+                local i1 = `i1' + 1
+            }
+            mac shift 3
+        }
+        else {
+            capture confirm integer number `1'
+            local isstr = `isstr' | _rc
+            local values `values' `1'
+            mac shift
+        }
+    }
+
+    if "`1'"=="," {
+        local options "String"
+        parse "`*'"
+        if `isstr' & "`string'"=="" {
+            di in red as smcl /*
+*/ "must specify option {bf:string} if string values are to be specified"
+            exit 198
+        }
+        if "`string'"!="" {
+            local isstr 1
+        }
+    }
+    Chkj `grpvar' `isstr'
+    char _dta[ReS_j] "`grpvar'"
+    char _dta[ReS_jv] "`values'"
+    char _dta[ReS_str] `isstr'
+end
+
+capture program drop Xij
+program define Xij /* <names-maybe-with-@>[, atwl(string) */
+    if ( `"`*'"'=="" ) error 198
+    parse "`*'", parse(" ,")
+    while "`1'" != "" & "`1'"!="," {
+        local list "`list' `1'"
+        mac shift
+    }
+    if "`list'"=="" {
+        error 198
+    }
+    local list `list'
+    if "`1'"=="," {
+        local options "ATwl(string)"
+        parse "`*'"
+    }
+    char _dta[ReS_Xij] "`list'"
+    char _dta[ReS_atwl] "`atwl'"
 end
 
 capture program drop Chkj
@@ -1406,6 +1537,24 @@ program define Chkj /* j whether-string */
     }
 end
 
+capture program drop NotDefd
+program define NotDefd /* <message> */
+    hasanyinfo hasinfo
+    if (`hasinfo') {
+        di in red as smcl `"{bf:`*'} not defined"'
+        exit 111
+    }
+    di as err "data have not been reshaped yet"
+    di as err in smcl "{p 4 4 2}"
+    di as err in smcl "What you typed is a syntax error because"
+    di as err in smcl "the data have not been {bf:reshape}d"
+    di as err in smcl "previously.  The basic syntax of
+    di as err in smcl "{bf:reshape} is"
+    di as err in smcl
+    picture err cmds
+    exit 111
+end
+
 capture program drop Subname
 program define Subname /* <name-maybe-with-@> <tosub> */
     cap disp bsubstr(" ", 1, 1)
@@ -1420,43 +1569,14 @@ program define Subname /* <name-maybe-with-@> <tosub> */
     global S_1 "`a'`sub'`c'"
 end
 
-capture program drop mkrtmpST
-program define mkrtmpST
-    global rtmpST
-    parse "$ReS_Xij", parse(" ")
-    while "`1'" != "" {
-        local ct "empty"
-        local i 1
-        local val : word `i' of $ReS_jv
-        while "`val'" != "" {
-            Subname `1' `val'
-            local van "$S_1"
-            capture confirm var `van'
-            if _rc==0 {
-                local nt : type `van'
-                Recast "`ct'" `nt'
-                local ct "$S_1"
-                if "`ct'"=="" {
-                    noi di in red as smcl ///
-    "variable {bf:`van'} type mismatch with other {bf:`1'} variables"
-                    exit 198
-                }
-            }
-            else {
-                capture confirm new var `van'
-                if _rc {
-                    di in red as smcl ///
-     "variable {bf:`van'} implied name too long"
-                    exit 198
-                }
-            }
-            local i=`i'+1
-            local val : word `i' of $ReS_jv
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
         }
-        if "`ct'"=="empty" {
-            local ct "byte"
-        }
-        global rtmpST "$rtmpST `ct'"
-        mac shift
     }
+    c_local FreeTimer `i'
 end

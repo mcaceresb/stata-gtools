@@ -41,7 +41,7 @@ program _gtools_internal, rclass
                          gcontract    /// 8
                          gquantiles   ///
                          gstats       ///
-                         greshape     ///
+                         greshape     /// 11
                          ghash
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
@@ -1522,32 +1522,27 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0 `greshape'
-            syntax anything, xij(str) [j(str) xi(str) atwl(str) File(str) string read]
+            syntax anything, xij(str) [j(str) xi(str) atwl(str) File(str) STRing(int 0)]
 
-            if !inlist(`"`anything'"', "long", "wide") {
-                disp "`anything' unknown: only long and wide are supported"
+            gettoken shape readwrite: anything
+            if !inlist(`"`shape'"', "long", "wide") {
+                disp "`shape' unknown: only long and wide are supported"
+                exit 198
+            }
+            if !inlist(`"`readwrite'"', "fwrite", "write", "read") {
+                disp "`readwrite' unknown: only fwrite, write, and read are supported"
                 exit 198
             }
 
-            if ( "`read'" == "" ) {
-                local gcall `gfunction' write `"`file'"'
-            }
-            else {
-                local gcall `gfunction' read `"`file'"'
-            }
-
+            local gcall `gfunction' `readwrite' `"`file'"'
             local reshapevars `xij' `xi'
-            scalar __gtools_greshape_code = 1
-            if ( `"`anything'"' == "wide" ) {
-                scalar __gtools_greshape_code = 2
-            }
-
-            if ( (`"`anything'"' == "wide") | ("`read'" != "") ) {
+            scalar __gtools_greshape_code = cond(`"`shape'"' == "wide", 2, 1)
+            if ( (`"`shape'"' == "wide") | ("`readwrite'" == "read") ) {
                 local reshapevars `j' `reshapevars'
             }
 
-            scalar __gtools_greshape_kxij = `:list sizeof xij'
-            scalar __gtools_greshape_kxi  = `:list sizeof xi'
+            scalar __gtools_greshape_str = `string'
+            scalar __gtools_greshape_kxi = `:list sizeof xi'
         }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction'
@@ -3228,24 +3223,37 @@ end
 capture program drop greshape_scalars
 program greshape_scalars
     * 1 = long, 2 = wide
-    scalar __gtools_greshape_code = .
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_greshape_code  = .
-        scalar __gtools_greshape_kxij  = .
-        scalar __gtools_greshape_kxi   = .
+        scalar __gtools_greshape_code = 0
+        scalar __gtools_greshape_kxi  = 0
+        scalar __gtools_greshape_str  = 0
+        cap matrix list __gtools_greshape_types
+        if ( _rc ) matrix __gtools_greshape_types = 0
+        cap matrix list __gtools_greshape_maplevel
+        if ( _rc ) matrix __gtools_greshape_maplevel = 0
+        cap scalar dir __gtools_greshape_jfile
+        if ( _rc ) scalar __gtools_greshape_jfile = 0
+        cap scalar dir __gtools_greshape_kxij
+        if ( _rc ) scalar __gtools_greshape_kxij = 0
         cap scalar dir __gtools_greshape_kout
-        if ( _rc ) scalar __gtools_greshape_kout = .
+        if ( _rc ) scalar __gtools_greshape_kout = 0
         cap scalar dir __gtools_greshape_klvls
-        if ( _rc ) scalar __gtools_greshape_klvls = .
-
+        if ( _rc ) scalar __gtools_greshape_klvls = 0
+        cap scalar dir __gtools_greshape_type
+        if ( _rc ) scalar __gtools_greshape_type = 0
     }
     else {
         cap scalar drop __gtools_greshape_code
-        cap scalar drop __gtools_greshape_kxij
         cap scalar drop __gtools_greshape_kxi
+        cap scalar drop __gtools_greshape_str
         if ( `"${GTOOLS_CALLER}"' != "greshape" ) {
+            cap scalar drop __gtools_greshape_jfile
+            cap scalar drop __gtools_greshape_kxij
             cap scalar drop __gtools_greshape_kout
             cap scalar drop __gtools_greshape_klvls
+            cap scalar drop __gtools_greshape_type
+            cap matrix drop _gtools_greshape_types
+            cap matrix drop _gtools_greshape_maplevel
         }
     }
 end

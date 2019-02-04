@@ -510,6 +510,9 @@ Along those lines, here are some other Stata projects I like:
 * [`stata_kernel`](https://kylebarron.github.io/stata_kernel): A Stata kernel
   for Jupyter; extremely useful for interacting with Stata.
 
+* [`stata-cowsay`](https://github.com/mdroste/stata-cowsay): Productivity-boosting
+  cowsay functionality in Stata.
+
 License
 -------
 

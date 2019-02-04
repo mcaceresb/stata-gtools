@@ -45,6 +45,7 @@
 #include "extra/gcontract.c"
 #include "extra/gtop.c"
 #include "extra/greshape.c"
+#include "extra/greshape_fast.c"
 #include "stats/gstats.c"
 
 #include "quantiles/gquantiles_math.c"
@@ -352,15 +353,26 @@ STDLL stata_call(int argc, char *argv[])
         GTOOLS_CHAR (fname, flength);
         strcpy (fname, argv[2]);
 
-        if ( strcmp(tostat, "write") == 0 ) {
+        if ( strcmp(tostat, "fwrite") == 0 ) {
+            if ( (rc = sf_parse_info   (st_info, 0))        ) goto exit;
+            if ( (rc = sf_hash_byvars  (st_info, 111))      ) goto exit;
+            if ( (rc = sf_reshape_fast (st_info, 0, fname)) ) goto exit;
+        }
+        else if ( strcmp(tostat, "write") == 0 ) {
             if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
             if ( (rc = sf_hash_byvars  (st_info, 0)) ) goto exit;
+            if ( st_info->J != st_info->Nread ) {
+                sf_errprintf("-i()- variables do not uniquely identify the observation\n");
+                rc = 9;
+                goto exit;
+            }
             if ( (rc = sf_check_hash   (st_info, 2)) ) goto exit; // (Note: keeps by copy)
             if ( (rc = sf_reshape      (st_info, 0, fname)) ) goto exit;
         }
         else if ( strcmp(tostat, "read") == 0 ) {
-            if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
-            if ( (rc = sf_reshape_read (st_info, 0, fname)) ) goto exit;
+            if ( (rc = sf_parse_info   (st_info, 0))   ) goto exit;
+            if ( (rc = sf_hash_byvars  (st_info, 111)) ) goto exit; // quit before by hashing
+            if ( (rc = sf_reshape_read (st_info, 0,    fname)) ) goto exit;
         }
         else {
             sf_errprintf ("Invalid -reshape- sub-command '%s'.", tostat);
@@ -393,8 +405,9 @@ exit:
  */
 ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 {
+    ST_double z;
     ST_retcode rc = 0;
-    GT_size i, start, in1, in2, N;
+    GT_size i, j, start, in1, in2, N;
     GT_size debug,
             verbose,
             benchmark,
@@ -454,6 +467,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             greshape_kxi,
             greshape_kout,
             greshape_klvls,
+            greshape_str,
+            greshape_jfile,
             hash_method,
             wcode,
             wpos,
@@ -606,6 +621,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_greshape_kxi",   &greshape_kxi)   )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_greshape_kout",  &greshape_kout)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_greshape_klvls", &greshape_klvls) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_str",   &greshape_str)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_jfile", &greshape_jfile) )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_encode",         &encode)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_group_data",     &group_data)     )) goto exit;
@@ -640,13 +657,23 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     }
 
     // Parse variable lengths, positions, and sort order
-    st_info->byvars_strL     = calloc(kvars_by,     sizeof st_info->byvars_strL);
-    st_info->byvars_lens     = calloc(kvars_by,     sizeof st_info->byvars_lens);
-    st_info->invert          = calloc(kvars_by,     sizeof st_info->invert);
-    st_info->pos_num_byvars  = calloc(kvars_by_num, sizeof st_info->pos_num_byvars);
-    st_info->pos_str_byvars  = calloc(kvars_by_str, sizeof st_info->pos_str_byvars);
-    st_info->group_targets   = calloc(3,            sizeof st_info->group_targets);
-    st_info->group_init      = calloc(3,            sizeof st_info->group_init);
+    st_info->byvars_strL       = calloc(kvars_by,      sizeof st_info->byvars_strL);
+    st_info->byvars_lens       = calloc(kvars_by,      sizeof st_info->byvars_lens);
+    st_info->invert            = calloc(kvars_by,      sizeof st_info->invert);
+    st_info->pos_num_byvars    = calloc(kvars_by_num,  sizeof st_info->pos_num_byvars);
+    st_info->pos_str_byvars    = calloc(kvars_by_str,  sizeof st_info->pos_str_byvars);
+    st_info->group_targets     = calloc(3,             sizeof st_info->group_targets);
+    st_info->group_init        = calloc(3,             sizeof st_info->group_init);
+
+    st_info->greshape_types = calloc(
+        GTOOLS_PWMAX(1, greshape_kxij),
+        sizeof st_info->greshape_types
+    );
+
+    st_info->greshape_maplevel = calloc(
+        GTOOLS_PWMAX(1, greshape_kout * greshape_klvls),
+        sizeof st_info->greshape_maplevel
+    );
 
     st_info->wselmat         = calloc((wselective    > 0)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
@@ -655,14 +682,16 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
-    if ( st_info->byvars_strL     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
-    if ( st_info->byvars_lens     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
-    if ( st_info->invert          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
-    if ( st_info->wselmat         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
-    if ( st_info->pos_num_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
-    if ( st_info->pos_str_byvars  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
-    if ( st_info->group_targets   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
-    if ( st_info->group_init      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->byvars_strL       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
+    if ( st_info->byvars_lens       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->invert            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
+    if ( st_info->pos_num_byvars    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+    if ( st_info->group_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
+    if ( st_info->group_init        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->greshape_types    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
+    if ( st_info->greshape_maplevel == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
 
     if ( st_info->pos_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
     if ( st_info->statcode        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
@@ -678,6 +707,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->pos_str_byvars")
     GTOOLS_GC_ALLOCATED("st_info->group_targets")
     GTOOLS_GC_ALLOCATED("st_info->group_init")
+    GTOOLS_GC_ALLOCATED("st_info->greshape_types")
+    GTOOLS_GC_ALLOCATED("st_info->greshape_maplevel")
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
     GTOOLS_GC_ALLOCATED("st_info->contract_which")
@@ -709,8 +740,19 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         if ( (rc = sf_get_vector_size ("__gtools_strpos", st_info->pos_str_byvars)) ) goto exit;
     }
 
-    if ( (rc = sf_get_vector_size ("__gtools_group_targets", st_info->group_targets)) ) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_group_init",    st_info->group_init))    ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_group_targets",   st_info->group_targets)) ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_group_init",      st_info->group_init))    ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_greshape_types",  st_info->greshape_types))) goto exit;
+
+    if ( greshape_code == 1 ) {
+        for (i = 0; i < greshape_kout; i++) {
+            for (j = 0; j < greshape_klvls; j++) {
+                if ( (rc = SF_mat_el("__gtools_greshape_maplevel", i + 1, j + 1, &z)) )
+                    return (rc);
+                st_info->greshape_maplevel[greshape_klvls * i + j] = z > 0? (GT_size) z + kvars_by: 0;
+            }
+        }
+    }
 
     if ( debug ) {
         printf("debug 4: Read matrices into arrays\n");
@@ -726,101 +768,104 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         st_info->contract_vars += st_info->contract_which[i];
     }
 
-    st_info->in1            = in1;
-    st_info->in2            = in2;
-    st_info->N              = N;
-    st_info->Nread          = N;
-
-    st_info->debug          = debug;
-    st_info->verbose        = verbose;
-    st_info->benchmark      = benchmark;
-    st_info->any_if         = any_if;
-    st_info->init_targ      = init_targ;
-    st_info->strmax         = strmax;
-    st_info->invertix       = invertix;
-    st_info->skipcheck      = skipcheck;
-    st_info->mlast          = mlast;
-    st_info->subtract       = subtract;
-    st_info->ctolerance     = ctolerance;
-    st_info->hash_method    = hash_method;
-    st_info->wcode          = wcode;
-    st_info->wpos           = wpos;
-    st_info->wselective     = wselective;
-    st_info->nunique        = nunique;
-
-    st_info->unsorted       = unsorted;
-    st_info->countonly      = countonly;
-    st_info->seecount       = seecount;
-    st_info->keepmiss       = keepmiss;
-    st_info->missing        = missing;
-    st_info->nomiss         = nomiss;
-    st_info->replace        = replace;
-    st_info->countmiss      = countmiss;
-
-    st_info->numfmt_max     = numfmt_max;
-    st_info->numfmt_len     = numfmt_len;
-    st_info->cleanstr       = cleanstr;
-    st_info->colsep_len     = colsep_len;
-    st_info->sep_len        = sep_len;
-
-    st_info->top_groupmiss  = top_groupmiss;
-    st_info->top_miss       = top_miss;
-    st_info->top_other      = top_other;
-    st_info->top_lmiss      = top_lmiss;
-    st_info->top_lother     = top_lother;
-
-    st_info->levels_return  = levels_return;
-    st_info->levels_gen     = levels_gen;
-    st_info->levels_replace = levels_replace;
-
-    st_info->xtile_xvars    = xtile_xvars;
-    st_info->xtile_nq       = xtile_nq;
-    st_info->xtile_nq2      = xtile_nq2;
-    st_info->xtile_cutvars  = xtile_cutvars;
-    st_info->xtile_ncuts    = xtile_ncuts;
-    st_info->xtile_qvars    = xtile_qvars;
-    st_info->xtile_gen      = xtile_gen;
-    st_info->xtile_pctile   = xtile_pctile;
-    st_info->xtile_genpct   = xtile_genpct;
-    st_info->xtile_pctpct   = xtile_pctpct;
-    st_info->xtile_altdef   = xtile_altdef;
-    st_info->xtile_missing  = xtile_missing;
-    st_info->xtile_strict   = xtile_strict;
-    st_info->xtile_minmax   = xtile_minmax;
-    st_info->xtile_method   = xtile_method;
-    st_info->xtile_bincount = xtile_bincount;
-    st_info->xtile__pctile  = xtile__pctile;
-    st_info->xtile_dedup    = xtile_dedup;
-    st_info->xtile_cutifin  = xtile_cutifin;
-    st_info->xtile_cutby    = xtile_cutby;
-
-    st_info->gstats_code    = gstats_code;
-    st_info->winsor_trim    = winsor_trim;
-    st_info->winsor_cutl    = winsor_cutl;
-    st_info->winsor_cuth    = winsor_cuth;
-    st_info->winsor_kvars   = winsor_kvars;
-
-    st_info->greshape_code  = greshape_code;
-    st_info->greshape_kxij  = greshape_kxij;
-    st_info->greshape_kxi   = greshape_kxi;
-    st_info->greshape_kout  = greshape_kout;
-    st_info->greshape_klvls = greshape_klvls;
-
-    st_info->encode         = encode;
-    st_info->group_data     = group_data;
-    st_info->group_fill     = group_fill;
-
-    st_info->kvars_by       = kvars_by;
-    st_info->kvars_by_int   = kvars_by_int;
-    st_info->kvars_by_num   = kvars_by_num;
-    st_info->kvars_by_str   = kvars_by_str;
-    st_info->kvars_by_strL  = kvars_by_strL;
-
-    st_info->kvars_group    = kvars_group;
-    st_info->kvars_sources  = kvars_sources;
-    st_info->kvars_targets  = kvars_targets;
-    st_info->kvars_extra    = kvars_targets - kvars_sources;
-    st_info->kvars_stats    = kvars_stats;
+    st_info->in1             = in1;
+    st_info->in2             = in2;
+    st_info->N               = N;
+    st_info->Nread           = N;
+                             
+    st_info->debug           = debug;
+    st_info->verbose         = verbose;
+    st_info->benchmark       = benchmark;
+    st_info->any_if          = any_if;
+    st_info->init_targ       = init_targ;
+    st_info->strmax          = strmax;
+    st_info->invertix        = invertix;
+    st_info->skipcheck       = skipcheck;
+    st_info->mlast           = mlast;
+    st_info->subtract        = subtract;
+    st_info->ctolerance      = ctolerance;
+    st_info->hash_method     = hash_method;
+    st_info->wcode           = wcode;
+    st_info->wpos            = wpos;
+    st_info->wselective      = wselective;
+    st_info->nunique         = nunique;
+                             
+    st_info->unsorted        = unsorted;
+    st_info->countonly       = countonly;
+    st_info->seecount        = seecount;
+    st_info->keepmiss        = keepmiss;
+    st_info->missing         = missing;
+    st_info->nomiss          = nomiss;
+    st_info->replace         = replace;
+    st_info->countmiss       = countmiss;
+                             
+    st_info->numfmt_max      = numfmt_max;
+    st_info->numfmt_len      = numfmt_len;
+    st_info->cleanstr        = cleanstr;
+    st_info->colsep_len      = colsep_len;
+    st_info->sep_len         = sep_len;
+                             
+    st_info->top_groupmiss   = top_groupmiss;
+    st_info->top_miss        = top_miss;
+    st_info->top_other       = top_other;
+    st_info->top_lmiss       = top_lmiss;
+    st_info->top_lother      = top_lother;
+                             
+    st_info->levels_return   = levels_return;
+    st_info->levels_gen      = levels_gen;
+    st_info->levels_replace  = levels_replace;
+                             
+    st_info->xtile_xvars     = xtile_xvars;
+    st_info->xtile_nq        = xtile_nq;
+    st_info->xtile_nq2       = xtile_nq2;
+    st_info->xtile_cutvars   = xtile_cutvars;
+    st_info->xtile_ncuts     = xtile_ncuts;
+    st_info->xtile_qvars     = xtile_qvars;
+    st_info->xtile_gen       = xtile_gen;
+    st_info->xtile_pctile    = xtile_pctile;
+    st_info->xtile_genpct    = xtile_genpct;
+    st_info->xtile_pctpct    = xtile_pctpct;
+    st_info->xtile_altdef    = xtile_altdef;
+    st_info->xtile_missing   = xtile_missing;
+    st_info->xtile_strict    = xtile_strict;
+    st_info->xtile_minmax    = xtile_minmax;
+    st_info->xtile_method    = xtile_method;
+    st_info->xtile_bincount  = xtile_bincount;
+    st_info->xtile__pctile   = xtile__pctile;
+    st_info->xtile_dedup     = xtile_dedup;
+    st_info->xtile_cutifin   = xtile_cutifin;
+    st_info->xtile_cutby     = xtile_cutby;
+                             
+    st_info->gstats_code     = gstats_code;
+    st_info->winsor_trim     = winsor_trim;
+    st_info->winsor_cutl     = winsor_cutl;
+    st_info->winsor_cuth     = winsor_cuth;
+    st_info->winsor_kvars    = winsor_kvars;
+                             
+    st_info->greshape_code   = greshape_code;
+    st_info->greshape_kxij   = greshape_kxij;
+    st_info->greshape_kxi    = greshape_kxi;
+    st_info->greshape_kout   = greshape_kout;
+    st_info->greshape_klvls  = greshape_klvls;
+    st_info->greshape_str    = greshape_str;
+    st_info->greshape_jfile  = greshape_jfile;
+    st_info->greshape_anystr = 0;
+                             
+    st_info->encode          = encode;
+    st_info->group_data      = group_data;
+    st_info->group_fill      = group_fill;
+                             
+    st_info->kvars_by        = kvars_by;
+    st_info->kvars_by_int    = kvars_by_int;
+    st_info->kvars_by_num    = kvars_by_num;
+    st_info->kvars_by_str    = kvars_by_str;
+    st_info->kvars_by_strL   = kvars_by_strL;
+                             
+    st_info->kvars_group     = kvars_group;
+    st_info->kvars_sources   = kvars_sources;
+    st_info->kvars_targets   = kvars_targets;
+    st_info->kvars_extra     = kvars_targets - kvars_sources;
+    st_info->kvars_stats     = kvars_stats;
 
     /*********************************************************************
      *                              Cleanup                              *
@@ -1016,6 +1061,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 
     if ( st_info->debug ) {
         printf("debug 6: Read in hash variable position and ranges\n");
+    }
+
+    if ( level == 111 ) {
+        return (rc);
     }
 
     /*********************************************************************
@@ -1951,6 +2000,8 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->byvars_lens);
         free (st_info->group_targets);
         free (st_info->group_init);
+        free (st_info->greshape_types);
+        free (st_info->greshape_maplevel);
         free (st_info->pos_num_byvars);
         free (st_info->pos_str_byvars);
         free (st_info->pos_targets);
@@ -1965,6 +2016,8 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->byvars_lens")
         GTOOLS_GC_FREED("st_info->group_targets")
         GTOOLS_GC_FREED("st_info->group_init")
+        GTOOLS_GC_FREED("st_info->greshape_types")
+        GTOOLS_GC_FREED("st_info->greshape_maplevel")
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")
         GTOOLS_GC_FREED("st_info->pos_targets")

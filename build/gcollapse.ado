@@ -725,7 +725,7 @@ program gcollapse, rclass
         * ----------------------------
 
         qui {
-            if ( `=`r_J' > 0' ) keep in 1 / `:di %21.0g `r_J''
+            if ( `=`r_J' > 0' ) keep in 1 / `:di %32.0f `r_J''
             else if ( `=`r_J' == 0' ) {
                 keep in 1
                 drop if 1

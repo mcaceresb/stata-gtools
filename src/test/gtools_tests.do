@@ -25,25 +25,71 @@ set type double
 program main
     syntax, [NOIsily *]
 
-* set rmsg on
-* clear
-* clear _all
-* set obs 5
-* gen y = _n
-* gen long  x1  = _n
-* gen float x2  = runiform()
-* gen float x15 = _n
-* gen float z10 = _n
-* gen float z20 = runiform()
-* gen double z15 = runiform()
-* fastreshape long x, i(y) j(j)
-* fastreshape wide
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen i = _n
+expand 2
+gen j = _n
+gen x = _n
+gen z = -_n
+preserve
+    greshape clear
+    greshape wide x z, i(i) j(j)
+restore
 
-* l
-* greshape long x, i(y) j(j)
-* * reshape long x, i(y) j(j)
-* l
 exit 17123
+
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen i1 = _n
+gen i2 = "why?"
+gen str5  xa  = "some"
+gen str8  xb  = "whenever"
+gen str10 xd  = "wherever"
+gen float zc  = _n
+gen float ze  = runiform()
+gen double zd = runiform()
+preserve
+    greshape clear
+    greshape long x z, i(i?) j(j) string
+restore
+
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen y = _n
+gen long  xa  = _n
+gen float xb  = runiform()
+gen float xd  = _n
+gen float zc  = _n
+gen float ze  = runiform()
+gen double zd = runiform()
+preserve
+    greshape clear
+    greshape long x z, i(y) j(j) string
+restore
+
+qui do greshape.ado
+set rmsg on
+clear
+* set obs 1000000
+set obs 5
+gen y = _n
+gen long  x1  = 2147483616 + _n
+gen float x2  = runiform()
+gen float x15 = _n
+gen float z10 = _n
+gen float z20 = runiform()
+gen double z15 = runiform()
+preserve
+    greshape clear
+    greshape long x z, i(y) j(j)
+restore
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

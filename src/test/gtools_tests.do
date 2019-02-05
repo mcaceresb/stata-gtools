@@ -25,6 +25,63 @@ set type double
 program main
     syntax, [NOIsily *]
 
+qui do _gtools_internal.ado
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen i1 = _n
+gen i2 = "hello"
+expand 2
+gen j = "why" + string(mod(_n, 3))
+gen x = "bye" + string(_n)
+gen z = -_n
+preserve
+    reshape clear
+    reshape wide x z, i(i?) j(j) string
+restore
+
+exit 17321
+
+
+
+
+
+
+
+
+
+
+
+qui do _gtools_internal.ado
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen i1 = _n
+gen i2 = "hello"
+expand 2
+gen j = "why" + string(mod(_n, 3))
+gen x = _n
+gen z = -_n
+preserve
+    greshape clear
+    greshape wide x z, i(i?) j(j) string
+restore
+
+exit 17321
+
+
+
+
+
+
+
+
+
+
+
+qui do _gtools_internal.ado
 qui do greshape.ado
 set rmsg on
 clear
@@ -37,6 +94,36 @@ gen z = -_n
 preserve
     greshape clear
     greshape wide x z, i(i) j(j)
+restore
+
+exit 17321
+
+
+
+
+
+
+
+
+
+
+
+qui do greshape.ado
+set rmsg on
+clear
+set obs 5
+gen i1 = _n
+gen i2 = "why?"
+expand 2
+gen str5  xa  = "some"
+gen str8  xb  = "whenever"
+gen str10 xd  = "wherever"
+gen float zc  = _n
+gen float ze  = runiform()
+gen double zd = runiform()
+preserve
+    greshape clear
+    greshape long x z, i(i?) j(j) string
 restore
 
 exit 17123
@@ -58,6 +145,8 @@ preserve
     greshape long x z, i(i?) j(j) string
 restore
 
+exit 17321
+
 qui do greshape.ado
 set rmsg on
 clear
@@ -73,6 +162,8 @@ preserve
     greshape clear
     greshape long x z, i(y) j(j) string
 restore
+
+exit 17321
 
 qui do greshape.ado
 set rmsg on
@@ -90,6 +181,8 @@ preserve
     greshape clear
     greshape long x z, i(y) j(j)
 restore
+
+exit 17321
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

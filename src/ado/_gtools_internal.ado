@@ -1525,6 +1525,7 @@ program _gtools_internal, rclass
             syntax anything, xij(str) [j(str) xi(str) atwl(str) File(str) STRing(int 0)]
 
             gettoken shape readwrite: anything
+            local readwrite `readwrite'
             if !inlist(`"`shape'"', "long", "wide") {
                 disp "`shape' unknown: only long and wide are supported"
                 exit 198
@@ -1540,7 +1541,6 @@ program _gtools_internal, rclass
             if ( (`"`shape'"' == "wide") | ("`readwrite'" == "read") ) {
                 local reshapevars `j' `reshapevars'
             }
-
             scalar __gtools_greshape_str = `string'
             scalar __gtools_greshape_kxi = `:list sizeof xi'
         }
@@ -2218,7 +2218,6 @@ program _gtools_internal, rclass
         local plugvars `plugvars' `statvars' `contractvars' `xvars' `reshapevars'
 
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
-
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
         local rc = _rc
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
@@ -3239,8 +3238,6 @@ program greshape_scalars
         if ( _rc ) scalar __gtools_greshape_kout = 0
         cap scalar dir __gtools_greshape_klvls
         if ( _rc ) scalar __gtools_greshape_klvls = 0
-        cap scalar dir __gtools_greshape_type
-        if ( _rc ) scalar __gtools_greshape_type = 0
     }
     else {
         cap scalar drop __gtools_greshape_code
@@ -3251,9 +3248,8 @@ program greshape_scalars
             cap scalar drop __gtools_greshape_kxij
             cap scalar drop __gtools_greshape_kout
             cap scalar drop __gtools_greshape_klvls
-            cap scalar drop __gtools_greshape_type
-            cap matrix drop _gtools_greshape_types
-            cap matrix drop _gtools_greshape_maplevel
+            cap matrix drop __gtools_greshape_types
+            cap matrix drop __gtools_greshape_maplevel
         }
     }
 end

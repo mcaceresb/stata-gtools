@@ -23,7 +23,6 @@ ST_retcode sf_reshape (struct StataInfo *st_info, int level, char *fname)
 
 ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 {
-    st_info->benchmark = 2;
     GT_bool debug = st_info->debug;
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_reshape): Starting greshape.\n");
@@ -37,11 +36,12 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     ST_double z;
 
     GT_size *ixptr;
-    GT_size selx, i, j, k, l, m, rowbytes, outbytes, srcbytes;
+    GT_size i, j, k, l, m;
+    GT_size selx, start, end, jpos, rowbytes, outbytes, srcbytes;
 
     FILE *fhandle;
-    char *strptr, *jstr, *outstr, bufstr;
-    ST_double *dblptr, *jdbl, *outdbl, bufdbl;
+    char *strptr, *jstr, *outstr, *bufstr, *endstr;
+    ST_double *dblptr, *jdbl, *outdbl, *bufdbl, *enddbl;
 
     GT_size kvars    = st_info->kvars_by;
     GT_size kout     = st_info->greshape_kout;
@@ -91,18 +91,17 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     //
     // The variables passed to the plugin are i, jcode, and xij.
 
-    char ReS_jfile[st_info->greshape_jfile];
     GT_size *outpos   = calloc(kxij,  sizeof(outpos));
     GT_size *outtyp   = calloc(kxij,  sizeof(outtyp));
     GT_size *offset   = calloc(J,     sizeof *offset);
     GT_size *nj       = calloc(J + 1, sizeof *nj);
     GT_size *index_st = calloc(Nread, sizeof *index_st);
 
-    if ( outpos   == NULL ) return(sf_oom_error("sf_reshape_long", "outpos"));
-    if ( outtyp   == NULL ) return(sf_oom_error("sf_reshape_long", "outpos"));
-    if ( offset   == NULL ) return(sf_oom_error("sf_reshape_long", "offset"));
-    if ( nj       == NULL ) return(sf_oom_error("sf_reshape_long", "nj"));
-    if ( index_st == NULL ) return(sf_oom_error("sf_reshape_long", "index_st"));
+    if ( outpos   == NULL ) return(sf_oom_error("sf_reshape_wide", "outpos"));
+    if ( outtyp   == NULL ) return(sf_oom_error("sf_reshape_wide", "outtyp"));
+    if ( offset   == NULL ) return(sf_oom_error("sf_reshape_wide", "offset"));
+    if ( nj       == NULL ) return(sf_oom_error("sf_reshape_wide", "nj"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_reshape_wide", "index_st"));
 
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
@@ -112,11 +111,21 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
         jdbl = calloc(klevels, sizeof jdbl);
     }
 
+    srcbytes = sizeof(ST_double);
+    for (i = 0; i < kout; i++) {
+        if ( (m = st_info->greshape_types[i]) ) {
+            srcbytes += (m + 1) * sizeof(char);
+        }
+        else {
+            srcbytes += sizeof(ST_double);
+        }
+    }
+
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
     if ( st_info->greshape_anystr | st_info->kvars_by_str ) {
         outdbl = malloc(sizeof(ST_double));
-        outstr = calloc(J * klevels, GTOOLS_PWMAX(outbytes, 1));
-        memset(outstr, '\0', J * klevels * GTOOLS_PWMAX(outbytes, 1));
+        outstr = calloc(J, GTOOLS_PWMAX(outbytes, 1));
+        memset(outstr, '\0', J * GTOOLS_PWMAX(outbytes, 1));
     }
     else {
         outstr = malloc(sizeof(char));
@@ -124,18 +133,19 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     }
 
     if ( st_info->greshape_anystr ) {
-        bufstr = calloc(Nread * ksources, sizeof *bufstr);
+        bufstr = calloc(Nread, srcbytes);
         bufdbl = malloc(sizeof(ST_double));
+        memset(bufstr, '\0', Nread * GTOOLS_PWMAX(srcbytes, 1));
     }
     else {
         bufstr = malloc(sizeof(char));
         bufdbl = calloc(Nread * ksources, sizeof bufdbl);
     }
 
-    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_long", "outdbl"));
-    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_long", "outstr"));
-    if ( bufstr == NULL ) return(sf_oom_error("sf_reshape_long", "bufstr"));
-    if ( bufdbl == NULL ) return(sf_oom_error("sf_reshape_long", "bufdbl"));
+    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_wide", "outdbl"));
+    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_wide", "outstr"));
+    if ( bufstr == NULL ) return(sf_oom_error("sf_reshape_wide", "bufstr"));
+    if ( bufdbl == NULL ) return(sf_oom_error("sf_reshape_wide", "bufdbl"));
 
     if ( outbytes == 0 ) {
         rc = 198;
@@ -145,16 +155,6 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     /*********************************************************************
      *               Step 2: Read in variables from Stata                *
      *********************************************************************/
-
-    srcbytes = sizeof(ST_double);
-    for (i = 0; i < kout; i++) {
-        if ( (m = st_info->greshape_types[i]) ) {
-            srcbytes += m;
-        }
-        else {
-            srcbytes += sizeof(ST_double);
-        }
-    }
 
     if ( debug ) {
         sf_printf_debug("debug 2 (sf_reshape): Index Stata order.\n");
@@ -170,9 +170,13 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
     nj[0] = 0;
     for (j = 0; j < J; j++) {
-        l = st_info->ix[j];
-        index_st[st_info->info[l]] = l + 1;
-        nj[j + 1] = nj[j] + st_info->info[l + 1] - st_info->info[l];
+        l     = st_info->ix[j];
+        start = st_info->info[l];
+        end   = st_info->info[l + 1];
+        nj[j + 1] = nj[j] + end - start;
+        for (i = start; i < end; i++) {
+            index_st[st_info->index[i]] = j + 1;
+        }
     }
 
     if ( st_info->greshape_anystr == 0 ) {
@@ -181,9 +185,9 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
             if ( *ixptr == 0 ) continue;
             j = *ixptr - 1;
             dblptr = bufdbl + (nj[j] + offset[j]++) * ksources;
-            if ( (rc = SF_vdata(kvars, i + st_info->in1, dblptr++)) ) goto exit;
+            if ( (rc = SF_vdata(kvars + 1, i + st_info->in1, dblptr++)) ) goto exit;
             for (k = 0; k < kout; k++) {
-                if ( (rc = SF_vdata(kvars + k + 1, i + st_info->in1, dblptr++)) ) goto exit;
+                if ( (rc = SF_vdata(kvars + k + 2, i + st_info->in1, dblptr++)) ) goto exit;
             }
         }
     }
@@ -192,21 +196,23 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
         for (ixptr = index_st; ixptr < index_st + Nread; ixptr++, i++) {
             if ( *ixptr == 0 ) continue;
             j = *ixptr - 1;
-            strptr = bufstr + (nj[j] + offset[j]++) * srcbytes;
+            strptr = bufstr + (nj[j] + offset[j]) * srcbytes;
+            offset[j]++;
 
-            if ( (rc = SF_vdata(kvars, i + st_info->in1, &z)) ) goto exit;
-            memcpy(strptr, z, sizeof(ST_double));
+            if ( (rc = SF_vdata(kvars + 1, i + st_info->in1, &z)) ) goto exit;
+            jpos = (GT_size) z;
+            memcpy(strptr, &jpos, sizeof(GT_size));
             strptr += sizeof(ST_double);
 
             for (k = 0; k < kout; k++) {
-                if ( (m = st_info->greshape_types[k];) ) {
-                    if ( (rc = SF_sdata(kvars + k + 1,
+                if ( (m = st_info->greshape_types[k]) ) {
+                    if ( (rc = SF_sdata(kvars + k + 2,
                                         i + st_info->in1,
                                         strptr)) ) goto exit;
-                    strptr += m;
+                    strptr += (m + 1);
                 }
                 else {
-                    if ( (rc = SF_vdata(kvars + k + 1,
+                    if ( (rc = SF_vdata(kvars + k + 2,
                                         i + st_info->in1,
                                         &z)) ) goto exit;
 
@@ -218,55 +224,368 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     }
 
     if ( st_info->benchmark > 2 )
-        sf_running_timer (&timer, "\treshape wide step 1: Read data in stata order");
+        sf_running_timer (&timer, "\t\treshape wide step 1: Read data in stata order");
 
     /*********************************************************************
      *                       Step 3: Reshape wide                        *
      *********************************************************************/
 
-    /*
-    for (j = 0; i < J; j++) {
-        start = nj[j];
-        end   = j[j + 1];
-        quicksort(
-            buffer,
-            sizeof(buffer) * ksources,
-            end - start,
-            0,
-            1
-        );
+    // for (i = 0; i < Nread; i++) {
+    //     selx = i * ksources;
+    //     printf("%ld: ", i);
+    //     for (k = 0; k < ksources; k++) {
+    //         z = bufdbl[selx + k];
+    //         if ( z < SV_missval ) {
+    //             printf("\t%.3f\t(%ld)", z, selx + k);
+    //         }
+    //         else {
+    //             printf("\t.");
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+    //     printf("\n");
 
-        selx = j * krow;
-        dblptr = st_info->st_by_numx + j * ksources + 1;
-        for (k = 0; k < kvars; k++) {
-            outdbl[selx + k] = dblptr[k];
-        }
+    // for (i = 0; i < Nread; i++) {
+    //     strptr = bufstr + i * srcbytes;
+    //     printf("%ld: \t%ld", i, *(GT_size*) (strptr));
+    //     strptr += sizeof(ST_double);
+    //     for (k = 0; k < kout; k++) {
+    //         if ( (m = st_info->greshape_types[k]) ) {
+    //             printf("\t%s", strptr);
+    //             strptr += m;
+    //         }
+    //         else {
+    //                 z = (*(ST_double*) strptr);
+    //                 if ( z < SV_missval ) {
+    //                     printf("\t%.3f", z);
+    //                 }
+    //                 else {
+    //                     printf("\t.");
+    //                 }
+    //                 strptr += sizeof(ST_double);
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+    //     printf("\n");
 
-        for (i = start; i < end; i++) {
-            selx = i * ksources;
-            jpos = (GT_size) bufdbl[selx];
-            for (l = 0; l < klevels; l++) {
-                if ( jpos == k ) {
-                    for (k = 0; k < kout; k++) {
-                        outdbl[selx + klevels * k + l] = bufdbl[selx + k + 1];
-                    }
-                    selx += ksources;
-                    jpos  = (GT_size) bufdbl[selx];
+    rowbytes = (st_info->rowbytes + sizeof(GT_size));
+    if ( st_info->greshape_anystr == 0 ) {
+        if ( st_info->kvars_by_str == 0 ) {
+
+            // All numeric
+            // -----------
+
+            for (j = 0; j < J; j++) {
+                start  = nj[j];
+                end    = nj[j + 1];
+                quicksort_bsd (
+                    bufdbl + start * ksources,
+                    end - start,
+                    ksources * sizeof(bufdbl),
+                    xtileCompare,
+                    NULL
+                );
+
+                selx = j * krow;
+                dblptr = st_info->st_by_numx + j * (kvars + 1);
+                for (k = 0; k < kvars; k++) {
+                    outdbl[selx + k] = dblptr[k];
                 }
-                else {
-                    for (k = 0; k < kout; k++) {
-                        outdbl[selx + klevels * k + l] = SV_missval;
+                selx += kvars;
+
+                dblptr = bufdbl + start * ksources;
+                enddbl = bufdbl + end * ksources;
+                jpos   = ((GT_size) dblptr[0]) - 1;
+                for (l = 0; l < klevels; l++) {
+                    if ( jpos == l && dblptr < enddbl ) {
+                        for (k = 0; k < kout; k++) {
+                            outdbl[selx + klevels * k + l] = dblptr[k + 1];
+                        }
+                        dblptr += ksources;
+                        jpos    = ((GT_size) dblptr[0]) - 1;
+                    }
+                    else {
+                        for (k = 0; k < kout; k++) {
+                            outdbl[selx + klevels * k + l] = SV_missval;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+
+            // Sources numeric, by vars str
+            // ----------------------------
+
+            for (j = 0; j < J; j++) {
+                start  = nj[j];
+                end    = nj[j + 1];
+                quicksort_bsd (
+                    bufdbl + start * ksources,
+                    end - start,
+                    ksources * sizeof(bufdbl),
+                    xtileCompare,
+                    NULL
+                );
+
+                selx = j * outbytes;
+                strptr = st_info->st_by_charx + j * rowbytes;
+                memcpy(
+                    outstr + selx,
+                    strptr,
+                    outpos[0]
+                );
+
+                dblptr = bufdbl + start * ksources;
+                enddbl = bufdbl + end * ksources;
+                jpos   = ((GT_size) dblptr[0]) - 1;
+                for (l = 0; l < klevels; l++) {
+                    if ( jpos == l && dblptr < enddbl ) {
+                        for (k = 0; k < kout; k++) {
+                            memcpy(
+                                outstr + selx + outpos[klevels * k + l],
+                                dblptr + k + 1,
+                                sizeof(ST_double)
+                            );
+                        }
+                        dblptr += ksources;
+                        jpos    = ((GT_size) dblptr[0]) - 1;
+                    }
+                    else {
+                        for (k = 0; k < kout; k++) {
+                            memcpy(
+                                outstr + selx + outpos[klevels * k + l],
+                                &SV_missval,
+                                sizeof(ST_double)
+                            );
+                        }
                     }
                 }
             }
         }
     }
-     */
+    else {
+        if ( st_info->kvars_by_str == 0 ) {
+
+            // Sources str, by vars numeric
+            // ----------------------------
+
+            for (j = 0; j < J; j++) {
+                start = nj[j];
+                end   = nj[j + 1];
+                quicksort_bsd (
+                    bufstr + start * srcbytes,
+                    end - start,
+                    srcbytes,
+                    xtileCompare,
+                    NULL
+                );
+
+                selx = j * outbytes;
+                dblptr = st_info->st_by_numx + j * (kvars + 1);
+                memcpy(
+                    outstr + selx,
+                    dblptr,
+                    outpos[0]
+                );
+
+                strptr = bufstr + start * srcbytes;
+                endstr = bufstr + end * srcbytes;
+                jpos   = (*(GT_size*) strptr) - 1;
+                for (l = 0; l < klevels; l++) {
+                    if ( jpos == l && strptr < endstr ) {
+                        strptr += sizeof(ST_double);
+                        for (k = 0; k < kout; k++) {
+                            m = st_info->greshape_types[k];
+                            if ( m == 0 ) {
+                                m = sizeof(ST_double);
+                            }
+                            else {
+                                m++;
+                            }
+                            memcpy(
+                                outstr + selx + outpos[klevels * k + l],
+                                strptr,
+                                m
+                            );
+                            strptr += m;
+                        }
+                        jpos = (*(GT_size*) strptr) - 1;
+                    }
+                    else {
+                        for (k = 0; k < kout; k++) {
+                            memcpy(
+                                outstr + selx + outpos[klevels * k + l],
+                                &SV_missval,
+                                sizeof(ST_double)
+                            );
+                        }
+                    }
+                }
+            }
+        }
+        else {
+
+            // All str
+            // -------
+
+            for (j = 0; j < J; j++) {
+                start = nj[j];
+                end   = nj[j + 1];
+                quicksort_bsd (
+                    bufstr + start * srcbytes,
+                    end - start,
+                    srcbytes,
+                    xtileCompare,
+                    NULL
+                );
+
+                selx = j * outbytes;
+                strptr = st_info->st_by_charx + j * rowbytes;
+                memcpy(
+                    outstr + selx,
+                    strptr,
+                    outpos[0]
+                );
+
+                strptr  = bufstr + start * srcbytes;
+                endstr  = bufstr + end * srcbytes;
+                jpos    = (*(GT_size*) strptr) - 1;
+                for (l = 0; l < klevels; l++) {
+                    if ( jpos == l && strptr < endstr ) {
+                        strptr += sizeof(ST_double);
+                        for (k = 0; k < kout; k++) {
+                            m = st_info->greshape_types[k];
+                            if ( m == 0 ) {
+                                m = sizeof(ST_double);
+                            }
+                            else {
+                                m++;
+                            }
+                            memcpy(
+                                outstr + selx + outpos[klevels * k + l],
+                                strptr,
+                                m
+                            );
+                            strptr += m;
+                        }
+                        jpos = (*(GT_size*) strptr) - 1;
+                    }
+                    else {
+                        for (k = 0; k < kout; k++) {
+                            if ( st_info->greshape_types[k] == 0 ) {
+                                memcpy(
+                                    outstr + selx + outpos[klevels * k + l],
+                                    &SV_missval,
+                                    sizeof(ST_double)
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if ( st_info->benchmark > 2 )
-        sf_running_timer (&timer, "\treshape wide step 2: transposed data");
+        sf_running_timer (&timer, "\t\treshape wide step 2: transposed data");
 
-    return(10051);
+    // printf("\n");
+    // for (j = 0; j < J; j++) {
+    //     selx = j * krow;
+    //     printf("%ld: ", j);
+    //     for (k = 0; k < kvars; k++) {
+    //         z = outdbl[selx + k];
+    //         if ( z < SV_missval ) {
+    //             printf("\t%.3f", z);
+    //         }
+    //         else {
+    //             printf("\t.");
+    //         }
+    //     }
+    //     selx += kvars;
+    //     for (l = 0; l < klevels; l++) {
+    //         for (k = 0; k < kout; k++) {
+    //             z = outdbl[selx + klevels * k + l];
+    //             if ( z < SV_missval ) {
+    //                 printf("\t%.3f", z);
+    //             }
+    //             else {
+    //                 printf("\t.");
+    //             }
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+
+    // printf("\n");
+    // for (j = 0; j < J; j++) {
+    //     selx = j * outbytes;
+    //     printf("%ld: ", j);
+    //     for (k = 0; k < kvars ; k++) {
+    //         if ( st_info->byvars_lens[k] > 0) {
+    //             printf("\t%s", outstr + selx + st_info->positions[k]);
+    //         }
+    //         else {
+    //             z = *((ST_double *) (outstr + selx + st_info->positions[k]));
+    //             printf("\t%.3f", z);
+    //         }
+    //     }
+    //     for (l = 0; l < klevels; l++) {
+    //         for (k = 0; k < kout; k++) {
+    //             if ( outtyp[klevels * k + l] ) {
+    //                 printf("\t%s", outstr + selx + outpos[klevels * k + l]);
+    //             }
+    //             else {
+    //                 z = *((ST_double *) (outstr + selx + outpos[klevels * k + l]));
+    //                 if ( z < SV_missval ) {
+    //                     printf("\t%.3f", z);
+    //                 }
+    //                 else {
+    //                     printf("\t.");
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+
+    /*********************************************************************
+     *                       Step 4: Copy to disk                        *
+     *********************************************************************/
+
+    if ( (rc = SF_scal_save ("__gtools_greshape_nrows", (ST_double) J))    ) goto exit;
+    if ( (rc = SF_scal_save ("__gtools_greshape_ncols", (ST_double) krow)) ) goto exit;
+
+    fhandle = fopen(fname, "wb");
+    if ( st_info->greshape_anystr | st_info->kvars_by_str ) {
+        fwrite (outstr, outbytes, J, fhandle);
+    }
+    else {
+        fwrite (outdbl, sizeof(outdbl), J * krow, fhandle);
+    }
+    fclose (fhandle);
+
+    if ( st_info->benchmark > 2 )
+        sf_running_timer (&timer, "\t\treshape wide step 3: copied reshaped data to disk");
+
+exit:
+    free(bufdbl);
+    free(bufstr);
+    free(offset);
+    free(outdbl);
+    free(outpos);
+    free(outstr);
+    free(outtyp);
+
+    free(index_st);
+    free(jdbl);
+    free(jstr);
+    free(nj);
+
+    return(rc);
 }
 
 /*********************************************************************
@@ -275,7 +594,6 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
 ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 {
-    st_info->benchmark = 2;
     GT_bool debug = st_info->debug;
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_reshape): Starting greshape.\n");
@@ -409,11 +727,11 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     for (j = 0; j < J; j++) {
         l = st_info->ix[j];
-        index_st[st_info->info[l]] = l + 1;
+        index_st[st_info->index[st_info->info[l]]] = l + 1;
     }
 
-    if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\treshape long step 1: Indexed in stata order");
+    if ( st_info->benchmark > 2 )
+        sf_running_timer (&timer, "\t\treshape long step 1: Indexed in stata order");
 
     /*********************************************************************
      *                       Step 3: Reshape long                        *
@@ -554,8 +872,8 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
-    if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\treshape long step 2: transposed data");
+    if ( st_info->benchmark > 2 )
+        sf_running_timer (&timer, "\t\treshape long step 2: transposed data");
 
     /*********************************************************************
      *                       Step 4: Copy to disk                        *
@@ -576,8 +894,8 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     }
     fclose (fhandle);
 
-    if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\treshape long step 3: copied reshaped data to disk");
+    if ( st_info->benchmark > 2 )
+        sf_running_timer (&timer, "\t\treshape long step 3: copied reshaped data to disk");
 
 exit:
     free(index_st);
@@ -597,7 +915,6 @@ exit:
 
 ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
 {
-    st_info->benchmark = 2;
     GT_bool debug = st_info->debug;
     if ( debug ) {
         sf_printf_debug("debug 3 (sf_reshape): Reading back reshaped data.\n");
@@ -617,29 +934,32 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
     GT_size kout  = st_info->greshape_kout;
     GT_size kxij  = st_info->greshape_kxij;
     GT_size kxi   = st_info->greshape_kxi;
-    GT_size krow  = (st_info->greshape_code == 1)? kvars + 1 + kout + kxi: kvars + kxij + kxi;
+    GT_size code  = st_info->greshape_code;
+    GT_size kread = (code == 1)? kout + 1: kxij;
+    GT_size krow  = kvars + kread + kxi;
     GT_size N     = st_info->N;
     clock_t timer = clock();
 
     if ( debug ) {
-        sf_printf_debug("\tkvars:   "GT_size_cfmt"\n", kvars);
-        sf_printf_debug("\tkout:    "GT_size_cfmt"\n", kout);
-        sf_printf_debug("\tkxi:     "GT_size_cfmt"\n", kxi);
-        sf_printf_debug("\tkrow:    "GT_size_cfmt"\n", krow);
-        sf_printf_debug("\tN:       "GT_size_cfmt"\n", N);
+        sf_printf_debug("\tkvars: "GT_size_cfmt"\n", kvars);
+        sf_printf_debug("\tkout:  "GT_size_cfmt"\n", kout);
+        sf_printf_debug("\tkread: "GT_size_cfmt"\n", kread);
+        sf_printf_debug("\tkxi:   "GT_size_cfmt"\n", kxi);
+        sf_printf_debug("\tkrow:  "GT_size_cfmt"\n", krow);
+        sf_printf_debug("\tN:     "GT_size_cfmt"\n", N);
     }
 
-    GT_size *allpos  = calloc(kvars + kout + 1, sizeof(allpos));
-    GT_size *alltyp  = calloc(kvars + kout + 1, sizeof(alltyp));
-    GT_size *outpos  = calloc(kout + 1, sizeof(outpos));
-    GT_size *outtyp  = calloc(kout + 1, sizeof(outtyp));
+    GT_size *allpos  = calloc(krow,  sizeof(allpos));
+    GT_size *alltyp  = calloc(krow,  sizeof(alltyp));
+    GT_size *outpos  = calloc(kread, sizeof(outpos));
+    GT_size *outtyp  = calloc(kread, sizeof(outtyp));
     GT_size outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
 
     for (k = 0; k < kvars; k++) {
         allpos[k] = st_info->positions[k];
         alltyp[k] = (st_info->byvars_lens[k] > 0)? st_info->byvars_lens[k]: 0;
     }
-    for (k = 0; k <= kout; k++) {
+    for (k = 0; k < kread; k++) {
         allpos[kvars + k] = outpos[k];
         alltyp[kvars + k] = outtyp[k];
     }
@@ -654,8 +974,8 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
         outdbl = calloc(N * krow, sizeof outdbl);
     }
 
-    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_long", "outdbl"));
-    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_long", "outstr"));
+    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_read", "outdbl"));
+    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_read", "outstr"));
 
     if ( outbytes == 0 ) {
         rc = 198;
@@ -677,7 +997,7 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
     }
     fclose(fhandle);
 
-    if ( st_info->benchmark > 1 )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 5: copied reshaped data back to mem");
 
     /*********************************************************************
@@ -707,7 +1027,7 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
-    if ( st_info->benchmark > 1 )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 6: copied reshaped data to stata");
 
 

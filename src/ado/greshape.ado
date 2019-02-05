@@ -152,21 +152,31 @@ set rmsg on
 use /home/mauricio/bulk/lib/benchmark-stata-r/1e7, clear
 gduplicates drop id1 id2 id3, force
 hashsort id1 id2 id3
-* keep if _n < _N/10
+keep if _n < _N/10
 foreach v of varlist id4 id5 id6 v1 v2 v3{
     rename `v' v_`v'
 }
+
 preserve
 reshape long v_, i(id1 id2 id3) j(variable) string
+reshape wide v_, i(id1 id2 id3) j(variable) string
 restore
 
 preserve
 fastreshape long v_, i(id1 id2 id3) j(variable) string
+fastreshape wide v_, i(id1 id2 id3) j(variable) string
 restore
 
 qui do greshape.ado
 preserve
-greshape long v_, i(id1 id2 id3) j(variable) string
+greshape long v_, i(id1 id2 id3) j(variable) string bench(3)
+greshape wide v_, i(id1 id2 id3) j(variable) string
+restore
+
+qui do greshape.ado
+preserve
+greshape long v_, i(id1 id2 id3) j(variable) string unsorted nodupcheck
+greshape wide v_, i(id1 id2 id3) j(variable) string unsorted
 restore
 
 */
@@ -207,53 +217,45 @@ program greshape, rclass
     *                        Reshape wide or long                         *
     ***********************************************************************
 
-    global GTOOLS_PARSE          ///
-        unsorted                 /// Do not sort the data
-        nodupcheck               /// Do not check for duplicates
-        compress                 /// Try to compress strL variables
-        forcestrl                /// Force reading strL variables (stata 14 and above only)
-        Verbose                  /// Print info during function execution
-        _CTOLerance(passthru)    /// (Undocumented) Counting sort tolerance; default is radix
-        BENCHmark                /// Benchmark function
-        BENCHmarklevel(passthru) /// Benchmark various steps of the plugin
-        HASHmethod(passthru)     /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        oncollision(passthru)    /// error|fallback: On collision, use native command or throw error
-        debug(passthru)           // Print debugging info to console
+    global GTOOLS_PARSE       ///
+        unsorted              /// Do not sort the data
+        nodupcheck            /// Do not check for duplicates
+        nomisscheck           /// Do not check for missing values or blanks in j
+        compress              /// Try to compress strL variables
+        forcestrl             /// Force reading strL variables (stata 14 and above only)
+        Verbose               /// Print info during function execution
+        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
+        BENCHmark             /// Benchmark function
+        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
+        HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        oncollision(passthru) /// error|fallback: On collision, use native command or throw error
+        debug(passthru)        // Print debugging info to console
 
-    global ReS_nodupcheck = ( `"`dupcheck'"' == "nodupcheck" )
-    if ( "`unsorted'" == "unsorted" ) {
-        if ( $ReS_nodupcheck ) {
-            disp as txt "(note: reshape left unsorted; duplicates check is skipped)"
-        }
-        else {
-            disp as txt "(note: reshape left unsorted; original order not preserved)"
-        }
-    }
-    else {
-        if ( $ReS_nodupcheck ) {
-            disp as txt "(note: reshape will be sorted; -nodupcheck- ignored)"
-        }
-    }
-
-    syntax [anything], [* ${GTOOLS_OPTS}]
+    syntax [anything], [* ${GTOOLS_PARSE}]
     * global GTOOLS_CALL `if' `in'
-    global GTOOLS_OPTS `unsorted'       ///
-                       `compress'       ///
-                       `forcestrl'      ///
-                       `verbose'        ///
-                       `_ctolerance'    ///
-                       `benchmark'      ///
-                       `benchmarklevel' ///
-                       `oncollision'    ///
-                       `hashmethod'     ///
-                       `debug'
+    if `"${GTOOLS_OPTS}"' == "" {
+        global GTOOLS_OPTS `unsorted'              ///
+                           `dupcheck'              ///
+                           `misscheck'             ///
+                           `compress'              ///
+                           `forcestrl'             ///
+                           `verbose'               ///
+                           `_ctolerance'           ///
+                           `benchmark'             ///
+                           bench(`benchmarklevel') ///
+                           `oncollision'           ///
+                           `hashmethod'            ///
+                           `debug'
+    }
 
+    if ( `"`options'"' != "" ) local options , `options'
+    local 0 `anything' `options'
     if ( inlist(`"`1'"', "wide", "long") ) {
-        cap noi DoNew `*'
+        cap noi DoNew `0'
         local rc = _rc
-        CleanExit
+        if ( `rc' ) CleanExit
         if ( `rc' == 17999 ) {
-            reshape `*'
+            reshape `0'
             exit 0
         }
         else if ( `rc' == 17001 ) {
@@ -276,8 +278,9 @@ program greshape, rclass
 
     if ( `"`1'"' == "" | `"`1'"' == `substr'("query", 1, length(`"`1'"')) ) {
         if ( `"`syntax'"' == "" | `"`syntax'"' == "v.2" ) {
-            Query
-            exit
+            cap noi Query
+            if ( _rc ) CleanExit
+            exit _rc
         }
         local 1 "query"
     }
@@ -286,25 +289,26 @@ program greshape, rclass
         IfOld `1'
         if ( `s(oldflag)' ) {
             disp as err "Old syntax is not supported by -greshape-"
+            CleanExit
             exit 198
         }
         else {
-            cap noi DoNew `*'
+            cap noi DoNew `0'
             local rc = _rc
             char _dta[ReS_ver] "v.2"
-            CleanExit
         }
     }
     else if ( `"`syntax'"' == "v.1" ) {
         disp as err "Old syntax is not supported by -greshape-"
+        CleanExit
         exit 198
     }
     else {
-        cap noi DoNew `*'
+        cap noi DoNew `0'
         local rc = _rc
-        CleanExit
     }
 
+    if ( `rc' ) CleanExit
     if ( `rc' == 17999 ) {
         reshape `0'
         exit 0
@@ -322,7 +326,6 @@ end
 
 capture program drop DoNew
 program define DoNew
-    disp "debug greshape/DoNew: `*'"
     local c "`1'"
     mac shift
 
@@ -361,9 +364,8 @@ program define DoNew
         if ( `"`1'"' != "" ) {
             Simple long `*'
         }
-        disp "debug greshape/DoNew: Long"
         capture noisily Long `*'
-        Macdrop
+        CleanExit
         exit _rc
     }
 
@@ -372,7 +374,7 @@ program define DoNew
             Simple wide `*'
         }
         capture noisily Wide `*'
-        Macdrop
+        CleanExit
         exit _rc
     }
 
@@ -382,7 +384,7 @@ program define DoNew
 
     if `"`c'"' == `substr'("error", 1, max(3, length("`c'"))) {
         capture noisily Qerror `*'
-        Macdrop
+        CleanExit
         exit
     }
 
@@ -511,6 +513,35 @@ end
 
 capture program drop Long
 program define Long /* reshape long */
+
+    local 0, ${GTOOLS_OPTS}
+    syntax [anything], [* ${GTOOLS_PARSE}]
+    global ReS_nodupcheck  = ( `"`dupcheck'"'  == "nodupcheck" )
+    global ReS_nomisscheck = ( `"`misscheck'"' == "nomisscheck" )
+    if ( "`unsorted'" == "unsorted" ) {
+        if ( $ReS_nodupcheck ) {
+            disp as txt "(note: reshape left unsorted; duplicates check is skipped)"
+        }
+        else {
+            disp as txt "(note: reshape left unsorted; original order not preserved)"
+        }
+    }
+    else {
+        if ( $ReS_nodupcheck ) {
+            disp as txt "(note: reshape will be sorted; -nodupcheck- ignored)"
+        }
+    }
+    local opts `unsorted'              ///
+               `compress'              ///
+               `forcestrl'             ///
+               `verbose'               ///
+               `_ctolerance'           ///
+               `benchmark'             ///
+               bench(`benchmarklevel') ///
+               `oncollision'           ///
+               `hashmethod'            ///
+               `debug'
+
     local oldobs = _N
     quietly describe, short
     local oldvars = r(k)
@@ -525,7 +556,7 @@ program define Long /* reshape long */
 
     tempfile ReS_jfile
     global ReS_jfile `ReS_jfile'
-    scalar __gtools_greshape_jfile = length(`"`ReS_jfile'"') + 1
+    scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
     Macros2
     confirm var $ReS_i $Res_Xi
     if ( $ReS_str ) {
@@ -536,6 +567,7 @@ program define Long /* reshape long */
         local string str(0)
         local jtype  long
     }
+    CopyScalars
 
     * --------------------------------------------------------
     * TODO: Copy the xi variables; they are ignored atm
@@ -560,7 +592,7 @@ program define Long /* reshape long */
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
-    local gopts greshape(`cmd', `gopts') gfunction(reshape) ${GTOOLS_OPTS}
+    local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
     if ( _rc ) exit _rc
@@ -573,22 +605,24 @@ program define Long /* reshape long */
     if ( `FreeTimer' ) timer on `FreeTimer'
     keep $ReS_i $ReS_Xij_keep $Res_Xi
     * disp "debug: ($ReS_Xij_keep) ($ReS_Xij_keepnames)"
-    mata __greshape_types = ("`jtype'", J(1, `:word count $ReS_Xij_add', "double"))
-    mata __greshape_vars  = "$ReS_j", tokens("$ReS_Xij_add")
-    mata (void) st_addvar(__greshape_types, __greshape_vars, 0)
+    mata __greshape_addtypes = ("`jtype'", J(1, `:word count $ReS_Xij_add', "double"))
+    mata __greshape_addvars  = "$ReS_j", tokens("$ReS_Xij_add")
+    mata (void) st_addvar(__greshape_addtypes, __greshape_addvars, 0)
     if ( (`"$ReS_Xij_keep"' != "") &(`"$ReS_Xij_keepnames"' != "") ) {
         rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
     }
     order $ReS_i $ReS_j $ReS_Xij $Res_Xi
-    qui set obs `=_N * scalar(__gtools_greshape_klvls)'
-    * qui expand `=scalar(__gtools_greshape_klvls)'
+    qui set obs `=_N * scalar(__greshape_klvls)'
+    * qui expand `=scalar(__greshape_klvls)'
     if ( `FreeTimer' ) {
         qui timer off `FreeTimer'
         qui timer list
         local s `:disp %9.3f `r(t`FreeTimer')''
-        disp _char(9) "reshape long step 4: allocated target dataset; `s' seconds."
+        if ( `benchmarklevel' > 2 ) {
+            disp _char(9) "reshape long step 4: allocated target dataset; `s' seconds."
+        }
     }
-    else {
+    else if ( `benchmarklevel' > 2 ) {
         disp _char(9) "reshape long step 4: allocated target dataset; ??? seconds."
     }
 
@@ -600,7 +634,7 @@ program define Long /* reshape long */
     local cmd long read
     global GTOOLS_CALLER greshape
     local gopts j($ReS_j) xij($ReS_Xij) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
-    local gopts greshape(`cmd', `gopts') gfunction(reshape) ${GTOOLS_OPTS}
+    local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
     if ( _rc ) exit _rc
@@ -679,6 +713,30 @@ end
 
 capture program drop Wide
 program define Wide /* reshape wide */
+
+    local 0, ${GTOOLS_OPTS}
+    syntax [anything], [* ${GTOOLS_PARSE}]
+    global ReS_nodupcheck  = ( `"`dupcheck'"'  == "nodupcheck" )
+    global ReS_nomisscheck = ( `"`misscheck'"' == "nomisscheck" )
+    if ( "`unsorted'" == "unsorted" ) {
+        if ( $ReS_nodupcheck ) {
+            disp as txt "(note: reshape left unsorted)"
+        }
+        else {
+            disp as txt "(note: reshape left unsorted; original order not preserved)"
+        }
+    }
+    local opts `unsorted'              ///
+               `compress'              ///
+               `forcestrl'             ///
+               `verbose'               ///
+               `_ctolerance'           ///
+               `benchmark'             ///
+               bench(`benchmarklevel') ///
+               `oncollision'           ///
+               `hashmethod'            ///
+               `debug'
+
     local oldobs = _N
     quietly describe, short
     local oldvars = r(k)
@@ -738,13 +796,14 @@ program define Wide /* reshape wide */
     tempfile ReS_jfile
     global ReS_jcode: copy local ReS_jcode
     global ReS_jfile: copy local ReS_jfile
-    scalar __gtools_greshape_jfile = length(`"`ReS_jfile'"') + 1
+    scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
 
     Macros2
     ConfVar $ReS_j
     confirm var $ReS_j $Res_Xi
     Veruniq
     CheckVariableTypes
+    CopyScalars
 
     * --------------------------------------------------------
     * TODO: Copy the xi variables; they are ignored atm
@@ -764,15 +823,18 @@ program define Wide /* reshape wide */
     * ------------------------
 
     if ( $ReS_nodupcheck ) {
-        disp as txt "(note: option -nodupcheck- ignored with greshape wide)"
+            disp as txt "(note: option -nodupcheck- ignored with greshape wide)"
     }
     local cmd wide write
 
     keep $ReS_i $ReS_j $ReS_jcode $Res_Xi $rVANS
+    local Res_Xi: copy global Res_Xi
+    local Res_Xi: list Res_Xi - ReS_jcode
+    global Res_Xi: copy local Res_Xi
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
-    local gopts greshape(`cmd', `gopts') gfunction(reshape) ${GTOOLS_OPTS}
+    local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
     if ( _rc ) exit _rc
@@ -781,28 +843,29 @@ program define Wide /* reshape wide */
     * Allocate space for wide data
     * ----------------------------
 
-    keep in 1 / `:di %32.0f `r(J)''
+    qui keep in 1 / `:di %32.0f `r(J)''
     global S_FN
     global S_FNDATE
 
     FreeTimer
     if ( `FreeTimer' ) timer on `FreeTimer'
     rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
-    mata __greshape_types = tokens("$ReS_Xij_addtypes")
-    mata __greshape_vars  = tokens("$ReS_Xij_addvars")
-    mata (void) st_addvar(__greshape_types, __greshape_vars, 0)
-    order $ReS_i $ReS_j $ReS_Xij_names $Res_Xi
+    mata __greshape_addtypes = tokens("$ReS_Xij_addtypes")
+    mata __greshape_addvars  = tokens("$ReS_Xij_addvars")
+    mata (void) st_addvar(__greshape_addtypes, __greshape_addvars, 0)
+    keep  $ReS_i $ReS_Xij_names $Res_Xi
+    order $ReS_i $ReS_Xij_names $Res_Xi
     if ( `FreeTimer' ) {
         qui timer off `FreeTimer'
         qui timer list
         local s `:disp %9.3f `r(t`FreeTimer')''
-        disp _char(9) "reshape wide step 4: allocated target dataset; `s' seconds."
+        if ( `benchmarklevel' > 2 ) {
+            disp _char(9) "reshape wide step 4: allocated target dataset; `s' seconds."
+        }
     }
-    else {
+    else if ( `benchmarklevel' > 2 ) {
         disp _char(9) "reshape wide step 4: allocated target dataset; ??? seconds."
     }
-
-    exit 17004
 
     * ------------------
     * Read reshaped data
@@ -810,12 +873,12 @@ program define Wide /* reshape wide */
 
     * desc
     local cmd wide read
-    * global GTOOLS_CALLER greshape
-    * local gopts j($ReS_j) xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
-    * local gopts greshape(`cmd', `gopts') gfunction(reshape) ${GTOOLS_OPTS}
-    * cap noi _gtools_internal ${ReS_i}, `gopts'
-    * global GTOOLS_CALLER ""
-    * if ( _rc ) exit _rc
+    global GTOOLS_CALLER greshape
+    local gopts xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
+    cap noi _gtools_internal ${ReS_i}, `gopts'
+    global GTOOLS_CALLER ""
+    if ( _rc ) exit _rc
 
     * ----------------------------------------
     * Finish in the same style as reshape.Wide
@@ -990,9 +1053,9 @@ program define FillvalW
         mata: __greshape_sel = selectindex(__greshape_res :!= "")
     }
     mata: __greshape_res = sort(uniqrows(__greshape_res[__greshape_sel]), 1)
-    mata: st_numscalar("__gtools_greshape_kout",  cols(tokens(`"$ReS_Xij"')))
-    mata: st_numscalar("__gtools_greshape_klvls", rows(__greshape_res))
-    if ( `=(__gtools_greshape_klvls)' == 0 ) {
+    mata: st_numscalar("__greshape_kout",  cols(tokens(`"$ReS_Xij"')))
+    mata: st_numscalar("__greshape_klvls", rows(__greshape_res))
+    if ( `=(__greshape_klvls)' == 0 ) {
         disp as err "variable j contains all missing values"
         exit 498
     }
@@ -1011,6 +1074,8 @@ program define FillvalW
         */ __greshape_res,     /*
         */ tokens(`"$ReS_Xij"'))
 
+    mata: st_matrix("__greshape_maplevel", __greshape_maplevel)
+
     mata: __greshape_rc = CheckVariableTypes( /*
         */ tokens(`"$ReS_Xij_names"'), /*
         */ __greshape_res,             /*
@@ -1019,10 +1084,8 @@ program define FillvalW
     mata: st_numscalar("__greshape_rc", __greshape_rc)
     if ( `=scalar(__greshape_rc)' ) exit 198
 
-    scalar __gtools_greshape_nrows = .
-    scalar __gtools_greshape_ncols = .
-
-    mata: st_matrix("__gtools_greshape_maplevel", __greshape_maplevel)
+    scalar __greshape_nrows = .
+    scalar __greshape_ncols = .
 
     mata: st_global("ReS_jv",   invtokens(__greshape_res'))
     mata: st_global("ReS_jlen", strofreal(max(strlen(__greshape_res))))
@@ -1058,7 +1121,7 @@ real matrix function MakeMapLevel(
     }
 
     st_global("ReS_Xij_names", invtokens(ordered))
-    st_numscalar("__gtools_greshape_kxij", cols(ordered))
+    st_numscalar("__greshape_kxij", cols(ordered))
     return(maplevel)
 }
 end
@@ -1166,7 +1229,7 @@ real scalar function CheckVariableTypes(
     keep      = dsname[sel[selectindex(sel :!= .)]]
     add       = xij[selectindex(sel :== .)]
 
-    st_matrix("__gtools_greshape_types", types)
+    st_matrix("__greshape_types", types)
 
     st_global("ReS_Xij_keepnames", invtokens(keepnames))
     st_global("ReS_Xij_keep", invtokens(keep))
@@ -1227,24 +1290,16 @@ program define FillvalL
     if ( _rc ) local substr substr
     else local substr bsubstr
     * TODO: Make cols an option
-    glevelsof $ReS_j, silent local(ReS_jv) cols(" ") group($ReS_jcode)
-    scalar __gtools_greshape_klvls = `r(J)'
-    if ( 1 ) {
-        * TODO: Strict let fail with spaces; otherwise replace
-        mata: __greshape_jv  = tokens(st_local("ReS_jv"))'
-        mata: __greshape_jv_ = `substr'(__greshape_jv, 1, 1) :!= "_"
-        mata: __greshape_jv  = strtoname(__greshape_jv)
-        mata: __greshape_jv  = `substr'(__greshape_jv, 1 :+ __greshape_jv_, strlen(__greshape_jv))
-        mata: st_global("ReS_jv", invtokens(__greshape_jv'))
-        cap mata: assert(sort(__greshape_jv', 1) == uniqrows(__greshape_jv'))
-        if _rc {
-            disp as err "j defines non-unique or invalid names"
-        }
-        mata: SaveJValuesString(__greshape_jv)
+    glevelsof $ReS_j, silent local(ReS_jv) cols(" ") group($ReS_jcode) missing
+    scalar __greshape_klvls = `r(J)'
+    mata: __greshape_jv = strtoname("_" :+ tokens(st_local("ReS_jv"))')
+    mata: __greshape_jv = `substr'(__greshape_jv, 2, strlen(__greshape_jv))
+    mata: st_global("ReS_jv", invtokens(__greshape_jv'))
+    cap mata: assert(sort(__greshape_jv', 1) == uniqrows(__greshape_jv'))
+    if _rc {
+        disp as err "j defines non-unique or invalid names"
     }
-    else {
-        global ReS_jv: copy local ReS_jv
-    }
+    * mata: SaveJValuesString(__greshape_jv)
     di in gr "(note: j = $ReS_jv)"
 end
 
@@ -1270,27 +1325,27 @@ program CheckVariableTypes
         foreach jv of local jrest {
             global ReS_Xij_addtypes $ReS_Xij_addtypes `:type `var''
             global ReS_Xij_addvars  $ReS_Xij_addvars  `var'`jv'
-            global ReS_Xij_names    $ReS_Xij_names    `var'`j1'
+            global ReS_Xij_names    $ReS_Xij_names    `var'`jv'
         }
     }
 
-    scalar __gtools_greshape_kout     = `:list sizeof k'
-    scalar __gtools_greshape_kxij     = `:list sizeof k' * `:list sizeof j'
-    scalar __gtools_greshape_nrows    = .
-    scalar __gtools_greshape_ncols    = .
-    matrix __gtools_greshape_maplevel = 0
+    scalar __greshape_kout     = `:list sizeof k'
+    scalar __greshape_kxij     = `:list sizeof k' * `:list sizeof j'
+    scalar __greshape_nrows    = .
+    scalar __greshape_ncols    = .
+    matrix __greshape_maplevel = 0
 
-    capture matrix drop __gtools_greshape_types
+    capture matrix drop __greshape_types
     foreach var of varlist $rVANS {
         if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
             if ( `regex's(1) == "L" ) {
                 disp as err "Unknown type `:type `var''"
                 exit 198
             }
-            matrix __gtools_greshape_types = nullmat(__gtools_greshape_types), `=`regex's(1)'
+            matrix __greshape_types = nullmat(__greshape_types), `=`regex's(1)'
         }
         else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
-            matrix __gtools_greshape_types = nullmat(__gtools_greshape_types), 0
+            matrix __greshape_types = nullmat(__greshape_types), 0
         }
         else {
             disp as err "Unknown type `:type `var''"
@@ -1354,32 +1409,32 @@ end
 capture program drop Veruniq
 program define Veruniq
 
-    * ---------------------------------
-    * TODO: Make this an internal check
-    * ---------------------------------
+    * ------------------------------------------------------------------
+    * TODO: Adequate error message; don't use gisid bc it clears scalars
+    * ------------------------------------------------------------------
 
-    cap gisid $ReS_i $ReS_jcode
-    if _rc {
-        di in red as smcl ///
-        "values of variable {bf:$ReS_j} not unique within {bf:$ReS_i}"
-        di in red as smcl "{p 4 4 2}"
-        di in red as smcl "Your data are currently long."
-        di in red as smcl "You are performing a {bf:reshape wide}."
-        di in red as smcl "You specified {bf:i($ReS_i)} and"
-        di in red as smcl "{bf:j($ReS_j)}."
-        di in red as smcl "There are observations within"
-        di in red as smcl "{bf:i($ReS_i)} with the same value of"
-        di in red as smcl "{bf:j($ReS_j)}.  In the long data,"
-        di in red as smcl "variables {bf:i()} and {bf:j()} together"
-        di in red as smcl "must uniquely identify the observations."
-        di in red as smcl
-        picture err
-        di in red as smcl "{p 4 4 2}"
-        di in red as smcl "Type {bf:reshape error} for a list"
-        di in red as smcl "of the problem variables."
-        di in red as smcl "{p_end}"
-        exit 9
-    }
+    * cap gisid $ReS_i $ReS_jcode
+    * if _rc {
+    *     di in red as smcl ///
+    *     "values of variable {bf:$ReS_j} not unique within {bf:$ReS_i}"
+    *     di in red as smcl "{p 4 4 2}"
+    *     di in red as smcl "Your data are currently long."
+    *     di in red as smcl "You are performing a {bf:reshape wide}."
+    *     di in red as smcl "You specified {bf:i($ReS_i)} and"
+    *     di in red as smcl "{bf:j($ReS_j)}."
+    *     di in red as smcl "There are observations within"
+    *     di in red as smcl "{bf:i($ReS_i)} with the same value of"
+    *     di in red as smcl "{bf:j($ReS_j)}.  In the long data,"
+    *     di in red as smcl "variables {bf:i()} and {bf:j()} together"
+    *     di in red as smcl "must uniquely identify the observations."
+    *     di in red as smcl
+    *     picture err
+    *     di in red as smcl "{p 4 4 2}"
+    *     di in red as smcl "Type {bf:reshape error} for a list"
+    *     di in red as smcl "of the problem variables."
+    *     di in red as smcl "{p_end}"
+    *     exit 9
+    * }
 
     * -------------------------------------------------
     * TODO: Check Xi is fine internally once you add Xi
@@ -1471,6 +1526,7 @@ program define Macdrop
              ReS_Xij_addtypes  ///
              ReS_Xij_addvars   ///
              ReS_nodupcheck    ///
+             ReS_nomisscheck   ///
              ReS_atwl          ///
              ReS_i             ///
              ReS_j             ///
@@ -1894,26 +1950,28 @@ program define Macros /* reshape macro check utility */
     capture ConfVar $ReS_j
     if _rc==0 {
         Chkj $ReS_j $ReS_str
-        if $ReS_str==0 {
-            capture assert $ReS_j<.
-            if _rc {
-                di in red as smcl ///
-                "variable {bf:$ReS_j} contains missing values"
-                exit 498
+        if $ReS_nomisscheck==0 {
+            if $ReS_str==0 {
+                capture assert $ReS_j<.
+                if _rc {
+                    di in red as smcl ///
+                    "variable {bf:$ReS_j} contains missing values"
+                    exit 498
+                }
             }
-        }
-        else {
-            capture assert trim($ReS_j)!=""
-            if _rc {
-                di in red as smcl ///
-                "variable {bf:$ReS_j} contains missing values"
-                exit 498
-            }
-            capture assert $ReS_j==trim($ReS_j)
-            if _rc {
-                di in red as smcl ///
-            "variable {bf:$ReS_j} has leading or trailing blanks"
-                exit 498
+            else {
+                capture assert trim($ReS_j)!=""
+                if _rc {
+                    di in red as smcl ///
+                    "variable {bf:$ReS_j} contains missing values"
+                    exit 498
+                }
+                capture assert $ReS_j==trim($ReS_j)
+                if _rc {
+                    di in red as smcl ///
+                "variable {bf:$ReS_j} has leading or trailing blanks"
+                    exit 498
+                }
             }
         }
     }
@@ -2087,21 +2145,43 @@ program FreeTimer
     c_local FreeTimer `i'
 end
 
+capture program drop CopyScalars
+program CopyScalars
+    scalar __gtools_greshape_klvls = __greshape_klvls
+    scalar __gtools_greshape_kout  = __greshape_kout
+    scalar __gtools_greshape_kxij  = __greshape_kxij
+    scalar __gtools_greshape_ncols = __greshape_ncols
+    scalar __gtools_greshape_nrows = __greshape_nrows
+    scalar __gtools_greshape_jfile = __greshape_jfile
+
+    matrix __gtools_greshape_types    = __greshape_types
+    matrix __gtools_greshape_maplevel = __greshape_maplevel
+end
+
 capture program drop CleanExit
 program CleanExit
     Macdrop
+    mac drop GTOOLS_OPTS GTOOLS_PARSE
 
+    capture mata mata drop __greshape_maplevel
     capture mata mata drop __greshape_dsname
     capture mata mata drop __greshape_jv
     capture mata mata drop __greshape_jv_
-    capture mata mata drop __greshape_maplevel
     capture mata mata drop __greshape_res
     capture mata mata drop __greshape_sel
-    capture mata mata drop __greshape_types
+    capture mata mata drop __greshape_addtypes
+    capture mata mata drop __greshape_addvars
     capture mata mata drop __greshape_u
-    capture mata mata drop __greshape_vars
     capture mata mata drop __greshape_xijname
     capture mata mata drop __greshape_rc
+
+    capture scalar drop __greshape_rc
+    capture scalar drop __greshape_klvls
+    capture scalar drop __greshape_kout
+    capture scalar drop __greshape_kxij
+    capture scalar drop __greshape_ncols
+    capture scalar drop __greshape_nrows
+    capture scalar drop __greshape_jfile
 
     capture scalar drop __gtools_greshape_klvls
     capture scalar drop __gtools_greshape_kout
@@ -2109,7 +2189,9 @@ program CleanExit
     capture scalar drop __gtools_greshape_ncols
     capture scalar drop __gtools_greshape_nrows
     capture scalar drop __gtools_greshape_jfile
-    capture scalar drop __greshape_rc
+
+    capture matrix drop __greshape_types
+    capture matrix drop __greshape_maplevel
 
     capture matrix drop __gtools_greshape_types
     capture matrix drop __gtools_greshape_maplevel
@@ -2216,12 +2298,14 @@ program define QerrorW
     }
     di in gr _n "(data now sorted by $ReS_i $ReS_j)"
 end
+capture program drop Msg1
 program define Msg1
     di _n in gr "i (" in ye "$ReS_i" in gr /*
     */ ") indicates the top-level grouping such as subject id."
     di in gr "j (" in ye "$ReS_j" in gr /*
     */ ") indicates the subgrouping such as time."
 end
+capture program drop QerrorL
 program define QerrorL
     confirm var $ReS_i
     local id "$ReS_i"

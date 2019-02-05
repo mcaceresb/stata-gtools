@@ -361,7 +361,7 @@ STDLL stata_call(int argc, char *argv[])
         else if ( strcmp(tostat, "write") == 0 ) {
             if ( (rc = sf_parse_info   (st_info, 0)) ) goto exit;
             if ( (rc = sf_hash_byvars  (st_info, 0)) ) goto exit;
-            if ( st_info->J != st_info->Nread ) {
+            if ( (st_info->greshape_code == 1) && (st_info->J != st_info->Nread) ) {
                 sf_errprintf("-i()- variables do not uniquely identify the observation\n");
                 rc = 9;
                 goto exit;

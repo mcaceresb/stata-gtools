@@ -17,7 +17,6 @@ ST_retcode sf_reshape_fast (struct StataInfo *st_info, int level, char *fname)
 
 ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
 {
-    st_info->benchmark = 2;
     GT_bool debug = st_info->debug;
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_reshape): Starting greshape.\n");
@@ -91,9 +90,9 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     GT_size   *outtyp   = calloc(kout + 1, sizeof(outtyp));
     GT_size   *maplevel = st_info->greshape_maplevel;
 
-    if ( bufstr == NULL ) return(sf_oom_error("sf_reshape_long", "bufstr"));
-    if ( outpos == NULL ) return(sf_oom_error("sf_reshape_long", "outpos"));
-    if ( outtyp == NULL ) return(sf_oom_error("sf_reshape_long", "outtyp"));
+    if ( bufstr == NULL ) return(sf_oom_error("sf_reshape_flong", "bufstr"));
+    if ( outpos == NULL ) return(sf_oom_error("sf_reshape_flong", "outpos"));
+    if ( outtyp == NULL ) return(sf_oom_error("sf_reshape_flong", "outtyp"));
 
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
@@ -114,8 +113,8 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         outdbl = calloc(N * klevels * krow, sizeof outdbl);
     }
 
-    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_long", "outdbl"));
-    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_long", "outstr"));
+    if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_flong", "outdbl"));
+    if ( outstr == NULL ) return(sf_oom_error("sf_reshape_flong", "outstr"));
 
     /*********************************************************************
      *                      Step 2: Read in varlist                      *
@@ -142,8 +141,8 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         goto exit;
     }
 
-    if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\treshape long step 1: (skipped)");
+    if ( st_info->benchmark > 2 )
+        sf_running_timer (&timer, "\treshape long step 1: allocated memory");
 
     /*********************************************************************
      *                       Step 3: Reshape long                        *
@@ -287,7 +286,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
-    if ( st_info->benchmark > 1 )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 2: transposed data");
 
     /*********************************************************************
@@ -309,7 +308,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     }
     fclose (fhandle);
 
-    if ( st_info->benchmark > 1 )
+    if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 3: copied reshaped data to disk");
 
 exit:

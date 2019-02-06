@@ -10,6 +10,10 @@
 * rc 17006 - strL variables unknown error
 * rc 17800 - More than 2^31-1 obs
 * rc 17801 - gtools has not been compiled for a X-bit architecture
+* rc 18101 - greshape long id variables not unique
+* rc 18102 - greshape wide j variables not unique within id
+* rc 18103 - greshape wide xi variables not unique within id
+* --------
 * rc 17459
 * rc 17900
 * rc 17999
@@ -1522,7 +1526,7 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0 `greshape'
-            syntax anything, xij(str) [j(str) xi(str) atwl(str) File(str) STRing(int 0)]
+            syntax anything, xij(str) [j(str) xi(str) File(str) STRing(int 0)]
 
             gettoken shape readwrite: anything
             local readwrite `readwrite'

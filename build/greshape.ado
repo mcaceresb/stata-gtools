@@ -1,232 +1,107 @@
-*! version 0.1.0 29Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! (beta) Fast implementation of reshape using C plugins
+*! version 0.1.0 05Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Fast implementation of reshape using C plugins
 
-* TODO: What happens if disk full; what error do you get and what not... GET return code from fwrite!!! ya crazy...
-*
-* TODO: xi(collapse syntax!!! the default being first + checking all iden; if any have explicit stats, don't check; allow strings!)
-*
-* TODO: {keepxi|dropxi}
-*
-* {opt:keepxi} keeps variables not named in the reshape statement. This
-* is computationally expensive because {cmd:greshape} has to check
-* whether or not they are constant within each {cmd:i} group (if they
-* are not then {cmd:greshape} will fail).
-*
-* {opt:dropxi} drops variables not named in the reshape statement.
-*
-* match(numbers|strings|anything|/regex/)
-*
-* TODO: Careful with reshape {wide|long} x x1 x2; is x missing or excluded?
-*
-* TODO: Check unique by ID
-* TODO: Optimize because the assumption is that i is unique!
-* TODO: But why does i have to be unique? No real reason; dispense later on...
-*       Maybe bc of lossy stuff from long to wide and back? Just add option...
-*
-* TODO: Sort levels (mind that strings are not sorted as nubmers; also mind var order)
-*
-* TODO: greshape with no observations
-*
-* TODO: gtools options
-*
-* TODO: xi variables
-*
-* TODO: timers!
-*
-* TODO: Subset j with a numlist or similar; e.g. j(year 2001 2003 2004)
-*
-* TODO: Do this? greshape does not support highlighting problem observations with the fastreshape error command ex post
-*
-* TODO: Clue for atwl? fastreshape does not support the atwl(char) argument. Use the @ character ins
-*
-* TODO: xi([varlist], {keep|drop})
-*
-* TODO: reshape pivot long (reshape gather?)
-*       Would be equivaent to the R long!
-*       1. NO hashing or whatever; no need to sort.
-*       2. Reshape as you you read the data
-*       3. reshape long
-*           // reshape as you read (~much faster; no sort)
-*           for (i = 0; i < N; i++) {
-*               for (j = 0; j < jvars; j++) {
-*                   for (k = 0; k < kvars; k++) {
-*                       output[i * ktot + j, k] = source[i, k];
-*                   }
-*                   output[i * ktot + j, kvars]     = varnames[j];
-*                   output[i * ktot + j, kvars + 1] = source[i, kvars + 1];
-*               }
-*           }
-*           // Save to disk; allocate in memory (~much faster; fewer variables)
-*           // read from disk back to stata (~much slower; j is always string)
-*       4. reshape wide
-*           // basically the same, no?
-*           // You need to encode j; if group is unbalanced then output missing...
-*           // This is more or less identical except for variable naming!
-*
-* TODO: Tests
-*
-* 1. str only i
-*     - num only xij
-*         * j num
-*         * j str
-*     - str only xij
-*         * j num
-*         * j str
-*     - mix of num and str
-*         * j num
-*         * j str
-* 2. num only i
-*     - num only xij
-*         * j num
-*         * j str
-*     - str only xij
-*         * j num
-*         * j str
-*     - mix of num and str
-*         * j num
-*         * j str
-* 3. mix of num and str
-*     - num only xij
-*         * j num
-*         * j str
-*     - str only xij
-*         * j num
-*         * j str
-*     - mix of num and str
-*         * j num
-*         * j str
+***********************************************************************
+*                   TODO before merging to develop                    *
+***********************************************************************
 
-/*
-cd /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/src/ado
-qui do _gtools_internal.ado
+* -----------------------------------------------------------------------------------
+* TODO: Copy the xi variables; they are ignored atm
+*       Check Xi is fine internally with reshaep wide once you add Xi
+*       Add collapse syntax (after; first just implement keep/drop with unique check)
+* -----------------------------------------------------------------------------------
 
-clear
-set obs 10
-gen i = _n
-gen j = _n
-gen long  x = _n
-gen float z = runiform()
-reshape wide x z, i(i) j(j)
+***********************************************************************
+*                           TODO Eventually                           *
+***********************************************************************
 
-clear
-set obs 5
-gen i = _n
-gen float x15 = _n
-gen str21 z10 = "hello!"
-gen float z20 = runiform()
-reshape long z, i(i) j(j)
+* --------------------------------------------------------------------------------------------------------
+* TODO: for gather
+*
+*     greshape gather (type target1 "Label" = varlist1) [(type target2 "label" = varlist2) ...], i(i) j(j)
+*     * 1 problem var
+*     disp as err "Incomparible types: taget1 is type but source var1 is type"
+*     * N problem var
+*     disp as err "Incomparible types for variables:"
+*                 "taget1 is type but source var1 is type"
+*                 "..."
+*     * With option force: Just go! No type checking. Set to missing if type is not compat.
+*     * Option for converting numeric to string? sprintf(...)
+* --------------------------------------------------------------------------------------------------------
 
-qui do greshape.ado
-set rmsg on
-clear
-clear _all
-* set obs 10000000
-set obs 5
-gen y = _n
-gen long  x1  = _n
-gen float x2  = runiform()
-gen float x15 = _n
-gen float z10 = _n
-gen float z20 = runiform()
-gen double z15 = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(y) j(j)
-restore
+* ------------------------------------------
+* TODO: Give user options over no xij found?
+* ------------------------------------------
 
-* preserve
-*     reshape clear
-*     reshape long x z, i(y) j(j)
-* restore
-* preserve
-*     reshape clear
-*     fastreshape long x, i(y) j(j)
-* restore
-* gen j = "123456789012345678901234567890 " + string(_j)
-* drop _j
-* reshape wide x, i(y) j(j) string
-* set tracedepth 3
-* set trace off
+* -----------------------------------------------
+* TODO: Just allow j to be string in reshape wide
+* -----------------------------------------------
 
-set rmsg on
-use /home/mauricio/bulk/lib/benchmark-stata-r/1e7, clear
-gduplicates drop id1 id2 id3, force
-hashsort id1 id2 id3
-* keep if _n < _N/10
-foreach v of varlist id4 id5 id6 v1 v2 v3{
-    rename `v' v_`v'
-}
+* ------------------------------------------------------------------------------
+* TODO: Note in doc: greshape does not support highlighting problem observations
+*       General note: Extended reshape syntax not supported
+* ------------------------------------------------------------------------------
 
-preserve
-reshape long v_, i(id1 id2 id3) j(variable) string
-restore
+* ----------------------------------------------------
+* TODO: Add values of j to subset? j(j 2005 2006 2007)
+*                                  j(j 2005-2007)
+*                                  j(j a b c ...)
+* ----------------------------------------------------
 
-preserve
-fastreshape long v_, i(id1 id2 id3) j(variable) string
-restore
+* -------------------------------------------------------------
+* TODO: better atwl, basically. match(num|str|anything|/regex/)
+* -------------------------------------------------------------
 
-qui do greshape.ado
-preserve
-greshape long v_, i(id1 id2 id3) j(variable) string bench(3)
-restore
-
-qui do greshape.ado
-preserve
-greshape long v_, i(id1 id2 id3) j(variable) string unsorted nodupcheck bench(3)
-restore
-
-
-
-preserve
-reshape wide v_, i(id1 id2 id3) j(variable) string
-restore
-
-preserve
-fastreshape wide v_, i(id1 id2 id3) j(variable) string
-restore
-
-qui do greshape.ado
-preserve
-greshape wide v_, i(id1 id2 id3) j(variable) string
-restore
-
-*/
+* ---------------------------------------------------
+* TODO: Make cols an option when you allow multiple j
+* ---------------------------------------------------
 
 capture program drop greshape
 program greshape, rclass
     version 13.1
 
-    ***********************************************************************
-    *                                Clear                                *
-    ***********************************************************************
+    if ( inlist(`"`1'"', "clear", "query", "error", "i", "xij", "j", "xi") ) {
+        disp as err "-reshape `1'- syntax is not supported; see {help greshape:help greshape}" _n
+        picture err cmd
+        exit 198
+    }
 
-    u_mi_not_mi_set reshape other
-    global ReS_Call : di "version " string(_caller()) ":"
+    * TODO: Implement gather and spread
+    if ( inlist(`"`1'"', "gather", "spread") ) {
+        disp as err `"`1' not yet allowed"'
+        exit 198
+    }
 
-    if ( `"`1'"' == "clear" ) {
-        char _dta[ReS_ver]
-        char _dta[ReS_i]
-        char _dta[ReS_j]
-        char _dta[ReS_jv]
-        char _dta[ReS_Xij]
-        char _dta[Res_Xi]
-        char _dta[ReS_atwl]
-        char _dta[ReS_str]
+    if ( !inlist(`"`1'"', "long", "wide", "gather", "spread") ) {
+        disp as err `"Unknown subcommand '`1''; supported: long or gather, wide or spread"' _n
+        picture err cmd
+        exit 198
+    }
 
-        local xijn : char _dta[ReS_Xij_n]
-        if "`xijn'" != "" {
-            forvalues i = 1/`xijn' {
-                char _dta[ReS_Xij_wide`i']
-                char _dta[ReS_Xij_long`i']
-            }
-            char _dta[ReS_Xij_n]
-        }
+    if ( `=_N' == 0 ) {
+        disp "(no observations)"
         exit
     }
 
     ***********************************************************************
     *                        Reshape wide or long                         *
     ***********************************************************************
+
+    if ( inlist(`"`1'"', "wide", "spread") ) {
+        local cmd Wide
+    }
+    else if ( inlist(`"`1'"', "long", "gather") ) {
+        local cmd Long
+    }
+    else {
+        disp as err `"Unknown subcommand '`1''; supported: long or gather, wide or spread"' _n
+        picture err cmd
+        exit 198
+    }
+
+    * ----------------------------------
+    * Handle wide/spread and long/gather
+    * ----------------------------------
 
     global GTOOLS_PARSE       ///
         unsorted              /// Do not sort the data
@@ -242,321 +117,98 @@ program greshape, rclass
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
         debug(passthru)        // Print debugging info to console
 
-    syntax [anything], [* ${GTOOLS_PARSE}]
-    * global GTOOLS_CALL `if' `in'
-    if `"${GTOOLS_OPTS}"' == "" {
-        global GTOOLS_OPTS `unsorted'              ///
-                           `dupcheck'              ///
-                           `misscheck'             ///
-                           `compress'              ///
-                           `forcestrl'             ///
-                           `verbose'               ///
-                           `_ctolerance'           ///
-                           `benchmark'             ///
-                           bench(`benchmarklevel') ///
-                           `oncollision'           ///
-                           `hashmethod'            ///
-                           `debug'
-    }
-
-    if ( `"`options'"' != "" ) local options , `options'
-    local 0 `anything' `options'
-    if ( inlist(`"`1'"', "wide", "long") ) {
-        cap noi DoNew `0'
-        local rc = _rc
-        if ( `rc' ) CleanExit
-        if ( `rc' == 17999 ) {
-            reshape `0'
-            exit 0
-        }
-        else if ( `rc' == 17001 ) {
-            di as txt "(no observations)"
-            exit 0
-        }
-        else if ( `rc' ) exit `rc'
-        else exit 0
-    }
-
-    ***********************************************************************
-    *                            Anything else                            *
-    ***********************************************************************
-
-    local syntax : char _dta[ReS_ver]
-
-    cap disp bsubstr(" ", 1, 1)
-    if ( _rc ) local substr substr
-    else local substr bsubstr
-
-    if ( `"`1'"' == "" | `"`1'"' == `substr'("query", 1, length(`"`1'"')) ) {
-        if ( `"`syntax'"' == "" | `"`syntax'"' == "v.2" ) {
-            cap noi Query
-            if ( _rc ) CleanExit
-            exit _rc
-        }
-        local 1 "query"
-    }
-
-    if ( `"`syntax'"' == "" ) {
-        IfOld `1'
-        if ( `s(oldflag)' ) {
-            disp as err "Old syntax is not supported by -greshape-"
-            CleanExit
-            exit 198
-        }
-        else {
-            cap noi DoNew `0'
-            local rc = _rc
-            char _dta[ReS_ver] "v.2"
-        }
-    }
-    else if ( `"`syntax'"' == "v.1" ) {
-        disp as err "Old syntax is not supported by -greshape-"
-        CleanExit
-        exit 198
-    }
-    else {
-        cap noi DoNew `0'
-        local rc = _rc
-    }
-
-    if ( `rc' ) CleanExit
+    gettoken sub args: 0
+    cap noi `cmd' `args'
+    local rc = _rc
     if ( `rc' == 17999 ) {
+        CleanExit
         reshape `0'
         exit 0
     }
     else if ( `rc' == 17001 ) {
         di as txt "(no observations)"
-        exit 0
+        local rc 0
     }
-    else if ( `rc' ) exit `rc'
-    else exit 0
+    else if ( `rc' == 18101 ) {
+        NonUniqueLongID
+        local rc 9
+    }
+    else if ( `rc' == 18102 ) {
+        NonUniqueWideJ
+        local rc 9
+    }
+    else if ( `rc' == 18103 ) {
+        NonUniqueWideXi
+        local rc 9
+    }
+    CleanExit
+    exit `rc'
 end
 
-* ---------------------------------------------------------------------
-* DoNew
-
-capture program drop DoNew
-program define DoNew
-    local c "`1'"
-    mac shift
-
-    if ( `"`c'"' == "i" ) {
-        if ( "`*'" == "" ) error 198
-        unabbrev `*', max(10) min(1)
-        char _dta[ReS_i] "`s(varlist)'"
-        exit
-    }
-
-    if ( `"`c'"' == "j" ) {
-        J `*'
-        exit
-    }
-
-    if ( `"`c'"' == "xij" ) {
-        Xij `*'
-        exit
-    }
-
-    if ( `"`c'"' == "xi" ) {
-        sret clear
-        if ( `"`*'"' != "" ) {
-            unabbrev `*'
-        }
-        char _dta[Res_Xi] "`s(varlist)'"
-        exit
-    }
-
-    if ( `"`c'"' == "" ) { /* reshape */
-        Query
-        exit
-    }
-
-    if ( `"`c'"' == "long" ) { /* reshape long */
-        if ( `"`1'"' != "" ) {
-            Simple long `*'
-        }
-        capture noisily Long `*'
-        CleanExit
-        exit _rc
-    }
-
-    if ( `"`c'"' == "wide" ) { /* reshape wide */
-        if ( `"`1'"' != "" ) {
-            Simple wide `*'
-        }
-        capture noisily Wide `*'
-        CleanExit
-        exit _rc
-    }
-
-    cap disp bsubstr(" ", 1, 1)
-    if ( _rc ) local substr substr
-    else local substr bsubstr
-
-    if `"`c'"' == `substr'("error", 1, max(3, length("`c'"))) {
-        capture noisily Qerror `*'
-        CleanExit
-        exit
-    }
-
-    IfOld `c'
-    if ( `s(oldflag)' ) {
-        disp as err "Old syntax is not supported by -greshape-"
-        exit 198
-    }
-
-    di as err "invalid syntax"
-    di as err as smcl "{p 4 4 2}"
-    di as err as smcl ///
-    "In the {bf:greshape} command that you typed, " ///
-    "you omitted the word {bf:wide} or {bf:long},"
-    di as err as smcl ///
-    "or substituted some other word for it.  You should have typed"
-    di as err
-    di as err as smcl "        . {bf:greshape wide} {it:varlist}{bf:, ...}"
-    di as err "    or"
-    di as err as smcl "        . {bf:greshape long} {it:varlist}, ..."
-    di as err
-    di as err as smcl "{p 4 4 2}"
-    di as err as smcl "You might have omitted {it:varlist}, too."
-    di as err as smcl "The basic syntax of {bf:greshape} is"
-    di as err as smcl "{p_end}"
-    di as err
-    picture err cmd
-    exit 198
-end
-
-capture program drop Simple
-program define Simple /* {wide|long} <funnylist>, i(varlist) [j(varname [values])] */
-
-    local cmd "`1'"
-    mac shift
-    parse "`*'", parse(" ,")
-    while "`1'"!="" & "`1'"!="," {
-        local list `list' `1'
-        mac shift
-    }
-
-    if ( `"`list'"' == "" ) {
-        error 198
-    }
-
-    if ( `"`1'"' != "," ) {
-        di as smcl in red "option {bf:i()} required"
-        di in red
-        picture err cmds
-        exit 198
-    }
-
-    local options "I(string) J(string) ATwl(string) String"
-    parse "`*'"
-    if ( `"`i'"' == "" ) {
-        di as smcl in red "option {bf:i()} required"
-        di in red
-        picture err cmds
-        exit 198
-    }
-    unabbrev `i'
-    local i "`s(varlist)'"
-
-    if ( `"`j'"' != "" ) {
-        parse "`j'", parse(" ")
-        local jvar "`1'"
-        mac shift
-        local jvals "`*'"
-    }
-    else local jvar "_j"
-
-    if ( `"`cmd'"' == "wide" ) {
-        /* When reshaping wide we can -unab- the variable list */
-        capture unab list : `list' /* ignore _rc, error caught later */
-        /* When reshaping wide we can -unab- the j variable */
-        capture unab jvar : `jvar' /* use -unab- not -ConfVar- here */
-        if _rc {
-            if _rc==111 {
-                if ("`jvar'"=="_j") {
-                    di as smcl in red ///
-                    "option {bf:j()} required"
-                    picture err cmds
-                    exit 198
-                }
-                di in red "variable `jvar' not found"
-                di as smcl in red "{p 4 4 2}"
-                di as smcl in red "Data are already wide."
-                di as smcl in red "{p_end}"
-                exit 111
-            }
-            ConfVar `jvar'
-            exit 198    /* just in case */
-        }
-    }
-    else {
-        capture confirm new var `jvar'
-        if _rc {
-            if _rc==110 {
-                di in red "variable `jvar' already exists"
-                di as smcl in red "{p 4 4 2}"
-                di as smcl in red "Data are already long."
-                di as smcl in red "{p_end}"
-                exit 110
-            }
-            confirm new var `jvar'
-            exit 198 /* just in case */
-        }
-    }
-
-    if ( `"`atwl'"' != "" ) {
-        local atwl "atwl(`atwl')"
-    }
-
-    if ( `"`string'"' != "" ) {
-        local string ", string"
-    }
-
-    greshape clear
-    greshape i `i'
-    greshape j `jvar' `jvals' `string'
-    greshape xij `list' `atwl'
-end
+* L | W | G
+* X | X | ReS_Xij
+* X | X | ReS_str
+* X | X | ReS_i
+* X | X | ReS_j
+* X | X | ReS_nodupcheck
+* X | X | ReS_nomisscheck
+* X | X | ReS_cmd
+* X |   | ReS_Xij_add
+* X | X | ReS_Xij_keep
+* X | X | ReS_Xij_keepnames
+* X | X | ReS_Xij_names
+*   | X | ReS_Xij_addtypes
+*   | X | ReS_Xij_addvars
+* X | X | ReS_atwl
+* X | X | ReS_jfile
+*   | X | ReS_jcode
+* X | X | ReS_jlen
+* X | X | ReS_jv
+* X | X | ReS_jv2
+* X | X | ReS_Xi
+* X | X | S_1
+* ? | ? | S_1_full
+* ? | ? | S_2
+* X | X | rVANS
 
 * ---------------------------------------------------------------------
 * Reshape long
 
 capture program drop Long
 program define Long /* reshape long */
-    local oldobs = _N
-    quietly describe, short
-    local oldvars = r(k)
 
-    Macros
-    confirm var $ReS_i $Res_Xi
-    capture confirm new var $ReS_j
-    if _rc {
-        di in blu "(already long)"
-        exit
-    }
+    ***********************************************************************
+    *                          Parse Long Syntax                          *
+    ***********************************************************************
 
-    tempfile ReS_jfile
-    global ReS_jfile `ReS_jfile'
-    scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
-    Macros2
-    confirm var $ReS_i $Res_Xi
-    if ( $ReS_str ) {
-        local string str($ReS_jlen)
-        local jtype  str$ReS_jlen
-    }
-    else {
-        local string str(0)
-        local jtype  long
-    }
-    CopyScalars
+    global ReS_cmd long
+    syntax [anything],    ///
+        i(varlist)        /// reshape by groups of -i()-
+        [j(name) string]  /// varnames by levels -j()-; look for string-like names
+        [fast]            /// Do not preserve and restore the original dataset. Saves speed
+        [atwl(str)]       /// replace @ with atwl?
+        [${GTOOLS_PARSE}] /// varnames by levels -j()-; look for string-like names
 
-    * --------------------------------------------------------
-    * TODO: Copy the xi variables; they are ignored atm
-    * --------------------------------------------------------
+    if ( "`fast'" == "" ) preserve
 
-    local 0, ${GTOOLS_OPTS}
-    syntax [anything], [* ${GTOOLS_PARSE}]
+    if ( `"`j'"' == "" ) local j _j
+    global ReS_str = ( `"`string'"' != "" )
+    global ReS_atwl `atwl'
+    global ReS_Xij  `anything'
+    global ReS_i    `i'
+    global ReS_j    `j'
+
+    local opts `unsorted'              ///
+               `compress'              ///
+               `forcestrl'             ///
+               `verbose'               ///
+               `_ctolerance'           ///
+               `benchmark'             ///
+               bench(`benchmarklevel') ///
+               `oncollision'           ///
+               `hashmethod'            ///
+               `debug'
+
     global ReS_nodupcheck  = ( `"`dupcheck'"'  == "nodupcheck" )
     global ReS_nomisscheck = ( `"`misscheck'"' == "nomisscheck" )
     if ( "`unsorted'" == "unsorted" ) {
@@ -572,25 +224,47 @@ program define Long /* reshape long */
             disp as txt "(note: reshape will be sorted; -nodupcheck- ignored)"
         }
     }
-    local opts `unsorted'              ///
-               `compress'              ///
-               `forcestrl'             ///
-               `verbose'               ///
-               `_ctolerance'           ///
-               `benchmark'             ///
-               bench(`benchmarklevel') ///
-               `oncollision'           ///
-               `hashmethod'            ///
-               `debug'
 
-    * ReS_i    i
-    * ReS_j    j
-    * ReS_jv   j values [TODO: Dispense with this; write to file]
-    * ReS_Xij  reshape variables
-    * Res_Xi   non-reshape variables (must be constant within group)
-    * ReS_str  whether there are string variables involved; shouldn't be a problem
-    * rVANS    Not sure [TODO: Figure it out]
-    * ReS_atwl Not sure [TODO: Figure it out; something about @ character in syntax]
+    local oldobs = _N
+    quietly describe, short
+    local oldvars = r(k)
+
+    ***********************************************************************
+    *                         Macros and J values                         *
+    ***********************************************************************
+
+    Macros
+    confirm var $ReS_i $ReS_Xi
+    capture confirm new var $ReS_j
+    if ( _rc ) {
+        di in blu "Target j($ReS_j) already exists (is the data already long?)"
+        exit 198
+    }
+
+    tempfile ReS_jfile
+    global ReS_jfile `ReS_jfile'
+    scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
+    GetJLevels
+    confirm var $ReS_i $ReS_Xi
+    if ( $ReS_str ) {
+        local string str($ReS_jlen)
+        local jtype  str$ReS_jlen
+    }
+    else {
+        local string str(0)
+        local jtype  long
+    }
+    CopyScalars
+
+    ***********************************************************************
+    *                           Do the reshape                            *
+    ***********************************************************************
+
+    if ( "$ReS_Xi" != "" ) {
+        disp as err "Extra variables not yet allowed:"
+        disp as err "    $ReS_Xi"
+        exit 198
+    }
 
     * ------------------------
     * Reshape the data to disk
@@ -601,7 +275,7 @@ program define Long /* reshape long */
 
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
-    local gopts xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
@@ -613,7 +287,7 @@ program define Long /* reshape long */
 
     FreeTimer
     if ( `FreeTimer' ) timer on `FreeTimer'
-    keep $ReS_i $ReS_Xij_keep $Res_Xi
+    keep $ReS_i $ReS_Xij_keep $ReS_Xi
     * disp "debug: ($ReS_Xij_keep) ($ReS_Xij_keepnames)"
     mata __greshape_addtypes = ("`jtype'", J(1, `:word count $ReS_Xij_add', "double"))
     mata __greshape_addvars  = "$ReS_j", tokens("$ReS_Xij_add")
@@ -621,7 +295,7 @@ program define Long /* reshape long */
     if ( (`"$ReS_Xij_keep"' != "") &(`"$ReS_Xij_keepnames"' != "") ) {
         rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
     }
-    order $ReS_i $ReS_j $ReS_Xij $Res_Xi
+    order $ReS_i $ReS_j $ReS_Xij $ReS_Xi
     qui set obs `=_N * scalar(__greshape_klvls)'
     * qui expand `=scalar(__greshape_klvls)'
     if ( `FreeTimer' ) {
@@ -640,10 +314,9 @@ program define Long /* reshape long */
     * Read reshaped data
     * ------------------
 
-    * desc
     local cmd long read
     global GTOOLS_CALLER greshape
-    local gopts j($ReS_j) xij($ReS_Xij) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts j($ReS_j) xij($ReS_Xij) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
@@ -658,7 +331,7 @@ program define Long /* reshape long */
     else local substr bsubstr
 
     /* Apply J value label and to variable label for LONG Format*/
-    local isstr : char _dta[ReS_str]
+    local isstr: copy global ReS_str
     local labn : char _dta[__JValLabName]
     if `"`labn'"' != "" & `"`isstr'"' == "0"  {
         local lab : char _dta[__JValLab]
@@ -712,10 +385,9 @@ program define Long /* reshape long */
             }
         }
     }
+    ReportL `oldobs' `oldvars'
 
-    if `"`syntax'"' != "v.1" {
-        ReportL `oldobs' `oldvars'
-    }
+    if ( "`fast'" == "" ) restore, not
 end
 
 * ---------------------------------------------------------------------
@@ -723,18 +395,72 @@ end
 
 capture program drop Wide
 program define Wide /* reshape wide */
+
+    ***********************************************************************
+    *                          Parse Long Syntax                          *
+    ***********************************************************************
+
+    global ReS_cmd wide
+    syntax [anything],    ///
+        i(varlist)        /// reshape by groups of -i()-
+        j(name) [string]  /// varnames by levels -j()-; look for string-like names
+        [fast]            /// Do not preserve and restore the original dataset. Saves speed
+        [atwl(str)]       /// replace @ with atwl?
+        [${GTOOLS_PARSE}] /// varnames by levels -j()-; look for string-like names
+
+    if ( "`fast'" == "" ) preserve
+
+    global ReS_atwl `atwl'
+    global ReS_Xij  `anything'
+    global ReS_i    `i'
+    global ReS_j    `j'
+
+    cap confirm str var `j'
+    global ReS_str = (_rc == 0)
+
+    local opts `unsorted'              ///
+               `compress'              ///
+               `forcestrl'             ///
+               `verbose'               ///
+               `_ctolerance'           ///
+               `benchmark'             ///
+               bench(`benchmarklevel') ///
+               `oncollision'           ///
+               `hashmethod'            ///
+               `debug'
+
+    global ReS_nodupcheck  = ( `"`dupcheck'"'  == "nodupcheck" )
+    global ReS_nomisscheck = ( `"`misscheck'"' == "nomisscheck" )
+    if ( "`unsorted'" == "unsorted" ) {
+        if ( $ReS_nodupcheck ) {
+            disp as txt "(note: reshape left unsorted)"
+        }
+        else {
+            disp as txt "(note: reshape left unsorted; original order not preserved)"
+        }
+    }
+
+    if ( `"`string'"' != "" ) {
+        disp as txt "Option -string- ignored with {cmd:greshape wide}"
+        local string
+    }
+
     local oldobs = _N
     quietly describe, short
     local oldvars = r(k)
 
+    ***********************************************************************
+    *                         Macros and J values                         *
+    ***********************************************************************
+
     Macros
     capture ConfVar $ReS_j
-    if _rc {
-        di in blu "(already wide)"
-        exit
+    if ( _rc ) {
+        di in blu "Source j($ReS_j) does not exist (is the data already wide?)"
+        exit 198
     }
     ConfVar $ReS_j
-    confirm var $ReS_j $rVANS $ReS_i $Res_Xi
+    confirm var $ReS_j $rVANS $ReS_i $ReS_Xi
 
     /* Save J value and variable label for LONG */
     local jlab : value label $ReS_j
@@ -774,75 +500,44 @@ program define Wide /* reshape wide */
         }
     }
 
-    * -------------------------------------------------------------------
-    * TODO: Get levels of J/encode internally; also check uniq internally
-    * -------------------------------------------------------------------
-
     tempvar ReS_jcode
     tempfile ReS_jfile
     global ReS_jcode: copy local ReS_jcode
     global ReS_jfile: copy local ReS_jfile
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
 
-    Macros2
+    GetJLevels
     ConfVar $ReS_j
-    confirm var $ReS_j $Res_Xi
-    Veruniq
+    confirm var $ReS_j $ReS_Xi
     CheckVariableTypes
     CopyScalars
 
-    * --------------------------------------------------------
-    * TODO: Copy the xi variables; they are ignored atm
-    * --------------------------------------------------------
+    ***********************************************************************
+    *                           Do the reshape                            *
+    ***********************************************************************
 
-    local 0, ${GTOOLS_OPTS}
-    syntax [anything], [* ${GTOOLS_PARSE}]
-    global ReS_nodupcheck  = ( `"`dupcheck'"'  == "nodupcheck" )
-    global ReS_nomisscheck = ( `"`misscheck'"' == "nomisscheck" )
-    if ( "`unsorted'" == "unsorted" ) {
-        if ( $ReS_nodupcheck ) {
-            disp as txt "(note: reshape left unsorted)"
-        }
-        else {
-            disp as txt "(note: reshape left unsorted; original order not preserved)"
-        }
+    if ( "$ReS_Xi" != "" ) {
+        disp as err "Extra variables not yet allowed:"
+        disp as err "    $ReS_Xi"
+        exit 198
     }
-    local opts `unsorted'              ///
-               `compress'              ///
-               `forcestrl'             ///
-               `verbose'               ///
-               `_ctolerance'           ///
-               `benchmark'             ///
-               bench(`benchmarklevel') ///
-               `oncollision'           ///
-               `hashmethod'            ///
-               `debug'
-
-    * ReS_i    i
-    * ReS_j    j
-    * ReS_jv   j values [TODO: Dispense with this; write to file]
-    * ReS_Xij  reshape variables
-    * Res_Xi   non-reshape variables (must be constant within group)
-    * ReS_str  whether there are string variables involved; shouldn't be a problem
-    * rVANS    ReS_Xij in wide; why is this different? Figure it out
-    * ReS_atwl Not sure [TODO: Figure it out; something about @ character in syntax]
 
     * ------------------------
     * Reshape the data to disk
     * ------------------------
 
     if ( $ReS_nodupcheck ) {
-            disp as txt "(note: option -nodupcheck- ignored with greshape wide)"
+        disp as txt "(note: option -nodupcheck- ignored with greshape wide)"
     }
     local cmd wide write
 
-    keep $ReS_i $ReS_j $ReS_jcode $Res_Xi $rVANS
-    local Res_Xi: copy global Res_Xi
-    local Res_Xi: list Res_Xi - ReS_jcode
-    global Res_Xi: copy local Res_Xi
+    keep $ReS_i $ReS_j $ReS_jcode $ReS_Xi $rVANS
+    local ReS_Xi: copy global ReS_Xi
+    local ReS_Xi: list ReS_Xi - ReS_jcode
+    global ReS_Xi: copy local ReS_Xi
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
-    local gopts j($ReS_jcode) xij($rVANS) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') $ReS_atwl `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
@@ -862,8 +557,8 @@ program define Wide /* reshape wide */
     mata __greshape_addtypes = tokens("$ReS_Xij_addtypes")
     mata __greshape_addvars  = tokens("$ReS_Xij_addvars")
     mata (void) st_addvar(__greshape_addtypes, __greshape_addvars, 0)
-    keep  $ReS_i $ReS_Xij_names $Res_Xi
-    order $ReS_i $ReS_Xij_names $Res_Xi
+    keep  $ReS_i $ReS_Xij_names $ReS_Xi
+    order $ReS_i $ReS_Xij_names $ReS_Xi
     if ( `FreeTimer' ) {
         qui timer off `FreeTimer'
         qui timer list
@@ -880,10 +575,9 @@ program define Wide /* reshape wide */
     * Read reshaped data
     * ------------------
 
-    * desc
     local cmd wide read
     global GTOOLS_CALLER greshape
-    local gopts xij($ReS_Xij_names) xi($Res_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') $ReS_atwl `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts'
     global GTOOLS_CALLER ""
@@ -893,54 +587,16 @@ program define Wide /* reshape wide */
     * Finish in the same style as reshape.Wide
     * ----------------------------------------
 
-    local syntax: char _dta[ReS_ver]
-    if "`syntax'" != "v.1" {
-        ReportW `oldobs' `oldvars'
-    }
-end
+    ReportW `oldobs' `oldvars'
 
-/*
-    Widefix #
-
-    Assumption when called:  currently in memory are single observations
-    per $ReS_i corresponding to $ReS_j==#
-
-    go through $ReS_Xij and rename each ${ReS_Xij}#
-*/
-
-capture program drop Widefix
-program define Widefix /* # */ /* reshape wide utility */
-    local val "`1'"
-    parse "$ReS_Xij", parse(" ")
-    while "`1'" != "" {
-        Subname `1' `val'
-        local new $S_1
-        capture confirm new var `new'
-        if _rc {
-            capture confirm var `new'
-            if _rc {
-                di in red as smcl ///
-                "{bf:`new'} invalid variable name"
-                exit 198
-            }
-            else {
-                di in red as smcl ///
-                "variable {bf:`new'} already defined"
-                exit 110
-            }
-        }
-        Subname `1' $ReS_atwl
-        rename $S_1 `new'
-        label var `new' "`val' $S_1"
-        mac shift
-    }
+    if ( "`fast'" == "" ) restore, not
 end
 
 * ---------------------------------------------------------------------
-* Macros2: Levels of ReS_j
+* GetJLevels
 
-capture program drop Macros2
-program define Macros2 /* [preserve] */ /* returns S_1 */
+capture program drop GetJLevels
+program define GetJLevels
 
     /* determine whether anything to do */
     capture ConfVar $ReS_j
@@ -956,11 +612,8 @@ program define Macros2 /* [preserve] */ /* returns S_1 */
         else local dovalW 1
     }
 
-    if "$Res_Xi"=="" {
-        local syntax : char _dta[ReS_ver]
-        if "`syntax'"=="v.2" {
-            local docar 1
-        }
+    if "$ReS_Xi"=="" {
+        local docar 1
     }
 
     if `dovalL' {
@@ -1049,7 +702,6 @@ program define FillvalW
         capture mata: assert(all(__greshape_res :== ""))
         if _rc == 0 {
             no_xij_found
-            * TODO: Give user options over this (see top)
             /* NOTREACHED */
         }
     }
@@ -1100,6 +752,7 @@ program define FillvalW
     mata: st_global("ReS_jlen", strofreal(max(strlen(__greshape_res))))
 
     di in gr "(note: j = $ReS_jv)"
+    global ReS_jv2: copy global ReS_jv
 end
 
 capture mata: mata drop MakeMapLevel()
@@ -1298,7 +951,6 @@ program define FillvalL
     cap mata bsubstr(" ", 1, 1)
     if ( _rc ) local substr substr
     else local substr bsubstr
-    * TODO: Make cols an option
     glevelsof $ReS_j, silent local(ReS_jv) cols(" ") group($ReS_jcode) missing
     scalar __greshape_klvls = `r(J)'
     mata: __greshape_jv = strtoname("_" :+ tokens(st_local("ReS_jv"))')
@@ -1310,6 +962,7 @@ program define FillvalL
     }
     * mata: SaveJValuesString(__greshape_jv)
     di in gr "(note: j = $ReS_jv)"
+    local ReS_jv2: copy global ReS_jv
 end
 
 capture program drop CheckVariableTypes
@@ -1399,7 +1052,7 @@ program define FillXi /* {1|0} */ /* 1 if islong currently */
         local i 1
         while ( `i' <= `=`N'' ) {
             mata: st_local("nam", `name'[`i'])
-            global Res_Xi $Res_Xi `nam'
+            global ReS_Xi $ReS_Xi `nam'
             local i = `i' + 1
         }
     }
@@ -1415,12 +1068,79 @@ program define Dropout /* varname varnames */
     }
 end
 
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
+end
+
+capture program drop CopyScalars
+program CopyScalars
+    scalar __gtools_greshape_klvls = __greshape_klvls
+    scalar __gtools_greshape_kout  = __greshape_kout
+    scalar __gtools_greshape_kxij  = __greshape_kxij
+    scalar __gtools_greshape_ncols = __greshape_ncols
+    scalar __gtools_greshape_nrows = __greshape_nrows
+    scalar __gtools_greshape_jfile = __greshape_jfile
+
+    matrix __gtools_greshape_types    = __greshape_types
+    matrix __gtools_greshape_maplevel = __greshape_maplevel
+end
+
+capture program drop CleanExit
+program CleanExit
+    Macdrop
+    mac drop GTOOLS_OPTS GTOOLS_PARSE
+
+    capture mata mata drop __greshape_maplevel
+    capture mata mata drop __greshape_dsname
+    capture mata mata drop __greshape_jv
+    capture mata mata drop __greshape_jv_
+    capture mata mata drop __greshape_res
+    capture mata mata drop __greshape_sel
+    capture mata mata drop __greshape_addtypes
+    capture mata mata drop __greshape_addvars
+    capture mata mata drop __greshape_u
+    capture mata mata drop __greshape_xijname
+    capture mata mata drop __greshape_rc
+
+    capture scalar drop __greshape_rc
+    capture scalar drop __greshape_klvls
+    capture scalar drop __greshape_kout
+    capture scalar drop __greshape_kxij
+    capture scalar drop __greshape_ncols
+    capture scalar drop __greshape_nrows
+    capture scalar drop __greshape_jfile
+
+    capture scalar drop __gtools_greshape_klvls
+    capture scalar drop __gtools_greshape_kout
+    capture scalar drop __gtools_greshape_kxij
+    capture scalar drop __gtools_greshape_ncols
+    capture scalar drop __gtools_greshape_nrows
+    capture scalar drop __gtools_greshape_jfile
+
+    capture matrix drop __greshape_types
+    capture matrix drop __greshape_maplevel
+
+    capture matrix drop __gtools_greshape_types
+    capture matrix drop __gtools_greshape_maplevel
+end
+
+* ---------------------------------------------------------------------
+* TODO
+
 capture program drop Veruniq
 program define Veruniq
 
-    * ------------------------------------------------------------------
-    * TODO: Adequate error message; don't use gisid bc it clears scalars
-    * ------------------------------------------------------------------
+    * ----------------------------
+    * TODO: Check that j is unique
+    * ----------------------------
 
     * cap gisid $ReS_i $ReS_jcode
     * if _rc {
@@ -1445,22 +1165,22 @@ program define Veruniq
     *     exit 9
     * }
 
-    * -------------------------------------------------
-    * TODO: Check Xi is fine internally once you add Xi
-    * -------------------------------------------------
+    * ------------------------
+    * TODO: Check Xi is unique
+    * ------------------------
 
-    if "$Res_Xi"=="" {
-        exit
-    }
-    * $ReS_Call sort $ReS_i $Res_Xi $ReS_j
+    * if "$ReS_Xi"=="" {
+    *     exit
+    * }
+    * $ReS_Call sort $ReS_i $ReS_Xi $ReS_j
     * tempvar cnt1 cnt2
     * quietly by $ReS_i: gen `c(obs_t)' `cnt1' = _N
-    * quietly by $ReS_i $Res_Xi: gen `c(obs_t)' `cnt2' = _N
+    * quietly by $ReS_i $ReS_Xi: gen `c(obs_t)' `cnt2' = _N
     * capture assert `cnt1' == `cnt2'
     * if _rc==0 {
     *     exit
     * }
-    * parse "$Res_Xi", parse(" ")
+    * parse "$ReS_Xi", parse(" ")
     * while "`1'"!=""  {
     *     capture by $ReS_i: assert `1'==`1'[1]
     *     if _rc {
@@ -1504,30 +1224,10 @@ end
 * ---------------------------------------------------------------------
 * Helpers taken near-verbatim from reshape.ado
 
-capture program drop IfOld
-program define IfOld, sclass
-    cap disp bsubstr(" ", 1, 1)
-    if ( _rc ) local substr substr
-    else local substr bsubstr
-
-    if `"`1'"' == "" {
-        sret local oldflag 0
-        exit
-    }
-    local l = length("`1'")
-    if `"`1'"' == `substr'("groups", 1, `l') | /*
-    */ `"`1'"' == `substr'("vars",   1, `l') | /*
-    */ `"`1'"' == `substr'("cons",   1, `l') | /*
-    */ `"`1'"' == `substr'("query",  1, `l') {
-        sret local oldflag 1
-        exit
-    }
-    sret local oldflag 0
-end
-
 capture program drop Macdrop
 program define Macdrop
-    mac drop ReS_Xij           ///
+    mac drop ReS_cmd           ///
+             ReS_Xij           ///
              ReS_Xij_add       ///
              ReS_Xij_keep      ///
              ReS_Xij_keepnames ///
@@ -1545,7 +1245,7 @@ program define Macdrop
              ReS_jv            ///
              ReS_jv2           ///
              ReS_str           ///
-             Res_Xi            ///
+             ReS_Xi            ///
              S_1               ///
              S_1_full          ///
              S_2               ///
@@ -1621,179 +1321,6 @@ program picture
         "{bf:greshape long a b, i(}{it:i}{bf:) j(}{it:j}{bf:)}  " ///
         "  ({it:j}    new   variable)"
     }
-end
-
-capture program drop Query
-program define Query
-    if ( `"`*'"' != "" ) {
-        error 198
-    }
-    local cons   : char _dta[ReS_i]
-    local grpvar : char _dta[ReS_j]
-    local values : char _dta[ReS_jv]
-    local vars   : char _dta[ReS_Xij]
-    local car    : char _dta[Res_Xi]
-    local atwl   : char _dta[ReS_atwl]
-    local isstr  : char _dta[ReS_str]
-
-    local hasinfo 0
-    local hasinfo = `hasinfo' | ("`cons'"!="")
-    local hasinfo = `hasinfo' | ("`grpvar'"!="")
-    local hasinfo = `hasinfo' | ("`values'"!="")
-    local hasinfo = `hasinfo' | ("`values'"!="")
-    local hasinfo = `hasinfo' | ("`vars'"!="")
-    local hasinfo = `hasinfo' | ("`car'"!="")
-    local hasinfo = `hasinfo' | ("`atwl'"!="")
-    local hasinfo = `hasinfo' | ("`isstr'"!="")
-
-
-    if ( `"`grpvar'"' != "" ) {
-        capture ConfVar `grpvar'
-        if _rc {
-            di in gr " (data are wide)"
-        }
-        else di in gr " (data are long)"
-    }
-    else {
-        di in gr " (data have not been reshaped yet)"
-    }
-    di
-
-    if ( !`hasinfo' ) {
-        di as smcl in green "    Syntax reminder:"
-        picture txt cmds
-        di in green
-        di as smcl in green "{p 4 4 2}"
-        di as smcl in green "See {helpb greshape:help greshape}"
-        di as smcl in green "for more information."
-        di as smcl in green "{p_end}"
-        exit
-        /*NOTREACHED*/
-    }
-
-    if ( `"`cons'"' == "" ) {
-        local ccons "in gr"
-        local cons "<varlist>"
-    }
-
-    if ( `"`grpvar'"' == "" ) {
-        local cgrpvar "in gr"
-        local grpvar "<varname>"
-        if "`values'"=="" {
-            local values "[<#> - <#>]"
-        }
-    }
-    else if ( `isstr' ) {
-        local values "`values', string"
-    }
-
-    if ( `"`vars'"' == "" ) {
-        local cvars "in gr"
-        local vars "<varnames-without-#j-suffix>"
-    }
-    else {
-        if ( `"`atwl'"' != "" ) {
-            local vars "`vars', atwl(`atwl')"
-        }
-    }
-
-    if ( `"`car'"' == "" ) {
-        local ccar "in gr"
-        local car "<varlist>"
-    }
-
-    di in smcl in gr "{c TLC}{hline 30}{c TT}{hline 46}{c TRC}" _n /*
-    */ "{c |} Xij" _col(32) "{c |} Command/contents" _col(79) "{c |}" _n /*
-    */ in gr "{c LT}{hline 30}{c +}{hline 46}{c RT}"
-
-    di in smcl in gr /*
-    */ "{c |} Subscript i,j definitions:" _col(32) "{c |}" _col(79) "{c |}"
-
-    di in smcl in gr /*
-    */ "{c |}  group id variable(s)" _col(32) "{c |} greshape i " _c
-    Qlist 45 "`ccons'" `cons'
-
-    di in smcl in gr /*
-    */ "{c |}  within-group variable" _col(32) "{c |} greshape j " _c
-
-    Qlist 45 "`cgrpvar'" `grpvar' `values'
-    di in smcl in gr /*
-    */ "{c |}   and its range" _col(32) "{c |}" _col(79) "{c |}"
-
-    di in smcl in gr "{c |}" _col(32) "{c |}" _col(79) "{c |}"
-
-    di in smcl in gr /*
-    */ "{c |} Variable X definitions:" _col(32) "{c |}" _col(79) "{c |}"
-
-    di in smcl in gr /*
-    */ "{c |}  varying within group" _col(32) "{c |} greshape xij " _c
-    Qlist 47 "`cvars'" `vars'
-
-    di in smcl in gr /*
-    */ "{c |}  constant within group (opt) {c |} greshape xi  " _c
-    Qlist 47 "`ccar'" `car'
-
-    di in smcl in gr "{c BLC}{hline 30}{c BT}{hline 46}{c BRC}"
-
-    local cons   : char _dta[ReS_i]
-    local grpvar : char _dta[ReS_j]
-    local values : char _dta[ReS_jv]
-    local vars   : char _dta[ReS_Xij]
-    local car    : char _dta[Res_Xi]
-
-    if ( `"`cons'"' == "" ) {
-        di in gr as smcl "First type " ///
-        "{bf:greshape i} to define the i variable."
-        exit
-    }
-    if ( `"`grpvar'"' == "" ) {
-        di in gr as smcl "Type " ///
-        "{bf:greshape j} " ///
-        "to define the j variable and, optionally, values."
-        exit
-    }
-    if ( `"`vars'"' == "" ) {
-        di in gr as smcl "Type "///
-        "{bf:greshape xij} ///
-        " to define variables that vary within i."
-        exit
-    }
-    if ( `"`car'"' == "" ) {
-        di in gr as smcl ///
-            "Optionally type {bf:greshape xi} " ///
-            "to define variables that are constant within i."
-    }
-
-    capture ConfVar `grpvar'
-    if _rc {
-        di in gr as smcl "Type " ///
-        "{bf:greshape long}" ///
-        " to convert the data to long form."
-        exit
-    }
-    di in gr as smcl "Type {bf:greshape wide}" ///
-        " to convert the data to wide form."
-end
-
-capture program drop Qlist
-program define Qlist /* col <optcolor> stuff */
-    local col `1'
-    local clr "`2'"
-    mac shift 2
-    while ( `"`1'"' != "" ) {
-        local l = length("`1'")
-        if ( (`col' + `l' + 1) >= 79 ) {
-            local skip = 79 - `col'
-            di in smcl in gr _skip(`skip') "{c |}" _n /*
-            */ "{c |}" _col(32) "{c |} " _c
-            local col 34
-        }
-        di in ye `clr' "`1' " _c
-        local col = `col' + `l' + 1
-        mac shift
-    }
-    local skip = 79 - `col'
-    di in smcl in gr _skip(`skip') "{c |}"
 end
 
 capture program drop ConfVar
@@ -1934,33 +1461,12 @@ program define ReportW /* old_obs old_vars */
     di in smcl in gr "{hline 77}"
 end
 
-* ---------------------------------------------------------------------
-* Second set of helpers
-
 capture program drop Macros
 program define Macros /* reshape macro check utility */
-    global ReS_j    : char _dta[ReS_j]
-    global ReS_jv   : char _dta[ReS_jv]
-    global ReS_jv2
-    global ReS_i    : char _dta[ReS_i]
-    global ReS_Xij  : char _dta[ReS_Xij]
-    global Res_Xi   : char _dta[Res_Xi]
-    global ReS_atwl : char _dta[ReS_atwl]
-    global ReS_str  : char _dta[ReS_str]
-    local syntax    : char _dta[ReS_ver]
-
-    if ( "$ReS_j" == "" ) {
-        if ( `"`syntax'"' == "v.1" ) {
-            NotDefd "reshape groups"
-        }
-        else NotDefd "reshape j"
-    }
-
     capture ConfVar $ReS_j
-    if _rc==0 {
-        Chkj $ReS_j $ReS_str
-        if $ReS_nomisscheck==0 {
-            if $ReS_str==0 {
+    if ( _rc == 0 ) {
+        if ( $ReS_nomisscheck == 0 ) {
+            if ( $ReS_str == 0 ) {
                 capture assert $ReS_j<.
                 if _rc {
                     di in red as smcl ///
@@ -1969,13 +1475,13 @@ program define Macros /* reshape macro check utility */
                 }
             }
             else {
-                capture assert trim($ReS_j)!=""
+                capture assert trim($ReS_j) != ""
                 if _rc {
                     di in red as smcl ///
                     "variable {bf:$ReS_j} contains missing values"
                     exit 498
                 }
-                capture assert $ReS_j==trim($ReS_j)
+                capture assert $ReS_j == trim($ReS_j)
                 if _rc {
                     di in red as smcl ///
                 "variable {bf:$ReS_j} has leading or trailing blanks"
@@ -1985,129 +1491,26 @@ program define Macros /* reshape macro check utility */
         }
     }
 
-    if "$ReS_jv"=="" {
-        if "`syntax'"=="v.1" {
-            NotDefd "reshape groups"
-        }
+    if ( "$ReS_i" == "" ) {
+        NotDefd "reshape i"
     }
-    if "$ReS_i"=="" {
-        if "`syntax'"=="v.1" {
-            NotDefd "reshape cons"
-        }
-        else    NotDefd "reshape i"
+
+    if ( "$ReS_Xij" == "" ) {
+        NotDefd "reshape xij"
     }
-    if "$ReS_Xij"=="" {
-        if "`syntax'"=="v.1" {
-            NotDefd "reshape vars"
-        }
-        else NotDefd "reshape xij"
-    }
+
+    * NOTE: This takes the value of j to be position at @ instead of at
+    * the end
 
     global rVANS
     parse "$ReS_Xij", parse(" ")
     local i 1
     while "``i''"!="" {
-        Subname ``i'' $ReS_atwl
+        Subname ``i''
         global rVANS "$rVANS $S_1"
         local i = `i' + 1
     }
     global S_1
-end
-
-capture program drop J
-program define J /* reshape j [ #[-#] [...] | <str> <str> ...] [, string] */
-    if "`*'"=="" {
-        error 198
-    }
-    parse "`*'", parse(" -,")
-    local grpvar "`1'"
-    mac shift
-
-    local isstr 0
-    while "`1'"!="" & "`1'"!="," {
-        if "`2'" == "-" {
-            local i1 `1'
-            local i2 `3'
-            confirm integer number `i1'
-            confirm integer number `i2'
-            if `i1' >= `i2' {
-                di in red "`i1'-`i2':  invalid range"
-                exit 198
-            }
-            while `i1' <= `i2' {
-                local values `values' `i1'
-                local i1 = `i1' + 1
-            }
-            mac shift 3
-        }
-        else {
-            capture confirm integer number `1'
-            local isstr = `isstr' | _rc
-            local values `values' `1'
-            mac shift
-        }
-    }
-
-    if "`1'"=="," {
-        local options "String"
-        parse "`*'"
-        if `isstr' & "`string'"=="" {
-            di in red as smcl /*
-*/ "must specify option {bf:string} if string values are to be specified"
-            exit 198
-        }
-        if "`string'"!="" {
-            local isstr 1
-        }
-    }
-    Chkj `grpvar' `isstr'
-    char _dta[ReS_j] "`grpvar'"
-    char _dta[ReS_jv] "`values'"
-    char _dta[ReS_str] `isstr'
-end
-
-capture program drop Xij
-program define Xij /* <names-maybe-with-@>[, atwl(string) */
-    if ( `"`*'"'=="" ) error 198
-    parse "`*'", parse(" ,")
-    while "`1'" != "" & "`1'"!="," {
-        local list "`list' `1'"
-        mac shift
-    }
-    if "`list'"=="" {
-        error 198
-    }
-    local list `list'
-    if "`1'"=="," {
-        local options "ATwl(string)"
-        parse "`*'"
-    }
-    char _dta[ReS_Xij] "`list'"
-    char _dta[ReS_atwl] "`atwl'"
-end
-
-capture program drop Chkj
-program define Chkj /* j whether-string */
-    local grpvar "`1'"
-    local isstr `2'
-
-    capture ConfVar `grpvar'
-    if ( _rc ) exit
-
-    capture confirm string var `grpvar'
-    if ( _rc == 0 ) {
-        if ( !`isstr' ) {
-            di in red as smcl ///
-        "variable {bf:`grpvar'} is string; specify {bf:string} option"
-            exit 109
-        }
-    }
-    else {
-        if ( `isstr' ) {
-            di in red as smcl "variable {bf:`grpvar'} is numeric"
-            exit 109
-        }
-    }
 end
 
 capture program drop NotDefd
@@ -2142,197 +1545,81 @@ program define Subname /* <name-maybe-with-@> <tosub> */
     global S_1 "`a'`sub'`c'"
 end
 
-capture program drop FreeTimer
-program FreeTimer
-    qui {
-        timer list
-        local i = 99
-        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
-            local --i
-        }
-    }
-    c_local FreeTimer `i'
+capture program drop NonUniqueLongID
+program define NonUniqueLongID
+	di in red as smcl ///
+	    "variable {bf:id} does not uniquely identify the observations"
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "Your data are currently wide."
+	di in red as smcl "You are performing a {bf:reshape long}."
+	di in red as smcl "You specified {bf:i($ReS_i)} and {bf:j($ReS_j)}."
+	di in red as smcl "In the current wide form, variable {bf:$ReS_i}"
+	di in red as smcl "should uniquely identify the observations."
+	di in red as smcl "Remember this picture:"
+	di in red
+	picture err
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "Type {stata gduplicates examples $ReS_i} for examples of"
+	di in red as smcl "problem observations."
+	di in red as smcl "{p_end}"
+	exit 9
 end
 
-capture program drop CopyScalars
-program CopyScalars
-    scalar __gtools_greshape_klvls = __greshape_klvls
-    scalar __gtools_greshape_kout  = __greshape_kout
-    scalar __gtools_greshape_kxij  = __greshape_kxij
-    scalar __gtools_greshape_ncols = __greshape_ncols
-    scalar __gtools_greshape_nrows = __greshape_nrows
-    scalar __gtools_greshape_jfile = __greshape_jfile
-
-    matrix __gtools_greshape_types    = __greshape_types
-    matrix __gtools_greshape_maplevel = __greshape_maplevel
+capture program drop NonUniqueWideJ
+program NonUniqueWideJ
+    di in red as smcl ///
+    "values of variable {bf:$ReS_j} not unique within {bf:$ReS_i}"
+    di in red as smcl "{p 4 4 2}"
+    di in red as smcl "Your data are currently long."
+    di in red as smcl "You are performing a {bf:reshape wide}."
+    di in red as smcl "You specified {bf:i($ReS_i)} and"
+    di in red as smcl "{bf:j($ReS_j)}."
+    di in red as smcl "There are observations within"
+    di in red as smcl "{bf:i($ReS_i)} with the same value of"
+    di in red as smcl "{bf:j($ReS_j)}.  In the long data,"
+    di in red as smcl "variables {bf:i()} and {bf:j()} together"
+    di in red as smcl "must uniquely identify the observations."
+    di in red as smcl
+    picture err
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "Type {stata gduplicates examples $ReS_i $ReS_j} for examples of"
+	di in red as smcl "problem observations."
+	di in red as smcl "{p_end}"
+    exit 9
 end
 
-capture program drop CleanExit
-program CleanExit
-    Macdrop
-    mac drop GTOOLS_OPTS GTOOLS_PARSE
-
-    capture mata mata drop __greshape_maplevel
-    capture mata mata drop __greshape_dsname
-    capture mata mata drop __greshape_jv
-    capture mata mata drop __greshape_jv_
-    capture mata mata drop __greshape_res
-    capture mata mata drop __greshape_sel
-    capture mata mata drop __greshape_addtypes
-    capture mata mata drop __greshape_addvars
-    capture mata mata drop __greshape_u
-    capture mata mata drop __greshape_xijname
-    capture mata mata drop __greshape_rc
-
-    capture scalar drop __greshape_rc
-    capture scalar drop __greshape_klvls
-    capture scalar drop __greshape_kout
-    capture scalar drop __greshape_kxij
-    capture scalar drop __greshape_ncols
-    capture scalar drop __greshape_nrows
-    capture scalar drop __greshape_jfile
-
-    capture scalar drop __gtools_greshape_klvls
-    capture scalar drop __gtools_greshape_kout
-    capture scalar drop __gtools_greshape_kxij
-    capture scalar drop __gtools_greshape_ncols
-    capture scalar drop __gtools_greshape_nrows
-    capture scalar drop __gtools_greshape_jfile
-
-    capture matrix drop __greshape_types
-    capture matrix drop __greshape_maplevel
-
-    capture matrix drop __gtools_greshape_types
-    capture matrix drop __gtools_greshape_maplevel
-end
-
-* ---------------------------------------------------------------------
-* Qerror
-
-capture program drop Qerror
-program define Qerror
-    Macros
-    Macros2
-    capture ConfVar $ReS_j
-    if ( _rc == 0 ) {
-        QerrorW
-    }
-    else QerrorL
-end
-
-capture program drop QerrorW
-program define QerrorW
-    ConfVar $ReS_j
-    confirm var $ReS_j $ReS_Xij $ReS_i $Res_Xi
-    capture gisid $ReS_i $ReS_j
-    if _rc {
-        Msg1
-        di in gr /*
-    */ "The data are in the long form;  j should be unique within i." _n
-        di in gr /*
-        */ "There are multiple observations on the same " /*
-        */ in ye "$ReS_j" in gr " within " /*
-        */ in ye "$ReS_i" in gr "." _n
-
-        * tempvar bad
-        * quietly by $ReS_i $ReS_j: gen byte `bad' = _N!=1
-        * quietly count if `bad'
-        * di in gr /*
-        * */ "The following " r(N) /*
-        * */ " of " _N /*
-        * */ " observations have repeated $ReS_j values:"
-        * list $ReS_i $ReS_j if `bad'
-        * di in gr _n "(data now sorted by $ReS_i $ReS_j)"
-        * exit
-
-        gduplicates examples $ReS_i $ReS_j, nowarn
-        hashsort $ReS_i $ReS_j
-        di in gr _n "(data now sorted by $ReS_i $ReS_j)"
-        exit
-    }
-    if "$Res_Xi"=="" {
-        di in gr "$ReS_j is unique within $ReS_i;"
-        di in gr "there is no error with which " /*
-        */ _quote "reshape error" _quote " can help."
-        exit
-    }
-
-    * NOTE(mauricio): Maybe one day make this fast; not today
-
-    tempvar cnt1 cnt2
-    gegen `c(obs_t)' `cnt1' = count(1), by($ReS_i)
-    gegen `c(obs_t)' `cnt2' = count(1), by($ReS_i $Res_Xi)
-    capture assert `cnt1' == `cnt2'
-    if _rc==0 {
-        di in gr "$ReS_j is unique within $ReS_i and"
-        di in gr "all the " _quote "reshape xi" _quote /*
-        */ " variables are constant within $ReS_j;"
-        di in gr "there is no error with which " /*
-        */ _quote "reshape error" _quote " can help."
-        exit
-    }
-
-    Msg1
-    local n : word count $ReS_Xij
-    if `n'==1 {
-        di in gr "xij variable is " in ye "$ReS_Xij" in gr "."
-    }
-    else di in gr "xij variables are " in ye "$ReS_Xij" in gr "."
-    di in gr "Thus, the following variable(s) should be constant within i:"
-    di in ye _col(7) "$Res_Xi"
-
-    * NOTE(mauricio): Maybe one day make this fast; not today
-
-    hashsort $ReS_i $ReS_j
-    tempvar bad
-    parse "$Res_Xi", parse(" ")
-    while "`1'"!=""  {
-        capture by $ReS_i: assert `1'==`1'[1]
-        if _rc {
-            qui by $ReS_i: gen long `bad' = /*
-                */ cond(_n==_N,sum(`1'!=`1'[1]),0)
-            qui count if `bad'
-            di _n in ye "`1'" in gr " not constant within i (" /*
-                */ in ye "$ReS_i" in gr ") for " /*
-                */ r(N) " value" _c
-            if r(N)==1 {
-                di in gr " of i:"
-            }
-            else di in gr "s of i:"
-            qui by $ReS_i: replace `bad' = `bad'[_N]
-            list $ReS_i $ReS_j `1' if `bad'
-            drop `bad'
-        }
-        mac shift
-    }
-    di in gr _n "(data now sorted by $ReS_i $ReS_j)"
-end
-capture program drop Msg1
-program define Msg1
-    di _n in gr "i (" in ye "$ReS_i" in gr /*
-    */ ") indicates the top-level grouping such as subject id."
-    di in gr "j (" in ye "$ReS_j" in gr /*
-    */ ") indicates the subgrouping such as time."
-end
-capture program drop QerrorL
-program define QerrorL
-    confirm var $ReS_i
-    local id "$ReS_i"
-    hashsort `id'
-    capture gisid `id'
-    if _rc==0 {
-        di in gr "`id' is unique; there is no problem on this score"
-        exit
-    }
-    di _n in gr "i (" in ye "`id'" in gr /*
-    */ ") indicates the top-level grouping such as subject id."
-    di _n in gr /*
-*/ "The data are currently in the wide form; there should be a single" /*
-    */ _n "observation per i."
-    gduplicates examples `id'
-    * quietly count if `bad'
-    * di _n in gr r(N) " of " _N /*
-    * */ " observations have duplicate i values:"
-    * list `id' if `bad'
-    di in gr _n "(data now sorted by `id')"
+capture program drop NonUniqueWideXi
+program NonUniqueWideXi
+	* TODO: List problem variables
+    * forvalues i = 1 / `nxi' {
+    *     if ( __greshape_xiproblem[`i'] ) {
+    *         di in red as smcl ///
+    *         "variable {bf:`1'} not constant within {bf:$ReS_i}"
+    *     }
+    * }
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "Your data are currently long."
+	di in red as smcl "You are performing a {bf:reshape wide}."
+	di in red as smcl "You typed something like"
+	di in red
+	di in red as smcl "{p 8 8 2}"
+	di in red as smcl "{bf:. reshape wide a b, i($ReS_i) j($ReS_j)}"
+	di in red
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "There are variables other than {bf:a},"
+	di in red as smcl "{bf:b}, {bf:$ReS_i}, {bf:$ReS_j} in your data."
+	di in red as smcl "They must be constant within"
+	di in red as smcl "{bf:$ReS_i} because that is the only way they can"
+	di in red as smcl "fit into wide data without loss of information."
+	di in red
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "The variable or variables listed above are"
+	di in red as smcl "not constant within {bf:$ReS_i}.
+	di in red
+	di in red as smcl "{p 4 4 2}"
+	di in red as smcl "You must either add the variables"
+	di in red as smcl "to the list of xij variables to be reshaped,"
+	di in red as smcl "or {bf:drop} them."
+	di in red as smcl "{p_end}"
+	exit 9
 end

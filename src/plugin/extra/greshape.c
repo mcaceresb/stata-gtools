@@ -37,7 +37,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
     GT_size *ixptr;
     GT_size i, j, k, l, m;
-    GT_size selx, start, end, jpos, rowbytes, outbytes, srcbytes;
+    GT_size selx, start, end, jpos, jold, rowbytes, outbytes, srcbytes;
 
     FILE *fhandle;
     char *strptr, *jstr, *outstr, *bufstr, *endstr;
@@ -297,7 +297,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
                 dblptr = bufdbl + start * ksources;
                 enddbl = bufdbl + end * ksources;
-                jpos   = ((GT_size) dblptr[0]) - 1;
+                jpos   = jold = ((GT_size) dblptr[0]) - 1;
                 for (l = 0; l < klevels; l++) {
                     if ( jpos == l && dblptr < enddbl ) {
                         for (k = 0; k < kout; k++) {
@@ -305,6 +305,13 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                         }
                         dblptr += ksources;
                         jpos    = ((GT_size) dblptr[0]) - 1;
+                        if ( jpos == jold ) {
+                            rc = 18102;
+                            goto exit;
+                        }
+                        else {
+                            jold = jpos;
+                        }
                     }
                     else {
                         for (k = 0; k < kout; k++) {
@@ -561,12 +568,18 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
     fhandle = fopen(fname, "wb");
     if ( st_info->greshape_anystr | st_info->kvars_by_str ) {
-        fwrite (outstr, outbytes, J, fhandle);
+        rc = (fwrite(outstr, outbytes, J, fhandle) != J);
     }
     else {
-        fwrite (outdbl, sizeof(outdbl), J * krow, fhandle);
+        rc = (fwrite(outdbl, sizeof(outdbl), J * krow, fhandle) != J * krow);
     }
     fclose (fhandle);
+
+    if ( rc ) {
+        sf_errprintf("unable to write output to disk\n");
+        rc = 198;
+        goto exit;
+    }
 
     if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\t\treshape wide step 3: copied reshaped data to disk");
@@ -661,6 +674,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     // The variables passed to the plugin are i and xij_names.
 
     char ReS_jfile[st_info->greshape_jfile];
+
     GT_size *outpos    = calloc(kout + 1, sizeof(outpos));
     GT_size *outtyp    = calloc(kout + 1, sizeof(outtyp));
     GT_size *index_st  = calloc(Nread, sizeof *index_st);
@@ -829,7 +843,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
             for (ixptr = index_st; ixptr < index_st + Nread; ixptr++, i++) {
                 if ( *ixptr ) {
                     m = st_info->info[*ixptr - 1];
-                    dblptr = st_info->st_by_numx + m * rowbytes;
+                    dblptr = st_info->st_by_numx + m * (kvars + 1);
 
                     for (j = 0; j < klevels; j++) {
                         selx = m * klevels * outbytes + j * outbytes;
@@ -887,12 +901,18 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     fhandle = fopen(fname, "wb");
     if ( st_info->greshape_anystr ) {
-        fwrite (outstr, outbytes, Nread * klevels, fhandle);
+        rc = (fwrite(outstr, outbytes, Nread * klevels, fhandle) != (Nread * klevels));
     }
     else {
-        fwrite (outdbl, sizeof(outdbl), Nread * klevels * krow, fhandle);
+        rc = (fwrite(outdbl, sizeof(outdbl), Nread * klevels * krow, fhandle) != (Nread * klevels * krow));
     }
     fclose (fhandle);
+
+    if ( rc ) {
+        sf_errprintf("unable to write output to disk\n");
+        rc = 198;
+        goto exit;
+    }
 
     if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\t\treshape long step 3: copied reshaped data to disk");

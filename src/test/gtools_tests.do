@@ -25,165 +25,6 @@ set type double
 program main
     syntax, [NOIsily *]
 
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "hello"
-expand 2
-gen j = "why" + string(mod(_n, 3))
-gen x = "bye" + string(_n)
-gen z = -_n
-preserve
-    reshape clear
-    reshape wide x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "hello"
-expand 2
-gen j = "why" + string(mod(_n, 3))
-gen x = _n
-gen z = -_n
-preserve
-    greshape clear
-    greshape wide x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i = _n
-expand 2
-gen j = _n
-gen x = _n
-gen z = -_n
-preserve
-    greshape clear
-    greshape wide x z, i(i) j(j)
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "why?"
-expand 2
-gen str5  xa  = "some"
-gen str8  xb  = "whenever"
-gen str10 xd  = "wherever"
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(i?) j(j) string
-restore
-
-exit 17123
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "why?"
-gen str5  xa  = "some"
-gen str8  xb  = "whenever"
-gen str10 xd  = "wherever"
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen y = _n
-gen long  xa  = _n
-gen float xb  = runiform()
-gen float xd  = _n
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(y) j(j) string
-restore
-
-exit 17321
-
-qui do greshape.ado
-set rmsg on
-clear
-* set obs 1000000
-set obs 5
-gen y = _n
-gen long  x1  = 2147483616 + _n
-gen float x2  = runiform()
-gen float x15 = _n
-gen float z10 = _n
-gen float z20 = runiform()
-gen double z15 = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(y) j(j)
-restore
-
-exit 17321
-
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }
@@ -219,8 +60,8 @@ exit 17321
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
-        * qui do test_greshape.do
         * qui do test_gstats.do
+        * qui do test_greshape.do
 
         * qui do docs/examples/gcollapse.do
         * qui do docs/examples/gcontract.do
@@ -230,11 +71,11 @@ exit 17321
         * qui do docs/examples/gtoplevelsof.do
         * qui do docs/examples/gunique.do
         * qui do docs/examples/hashsort.do
-        * qui do docs/examples/gegen.do, nostop
-        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/gegen.do,     nostop
+        * qui do docs/examples/gisid.do,     nostop
         * qui do docs/examples/glevelsof.do, nostop
-        * qui do docs/examples/greshape.do
         * qui do docs/examples/gstats.do
+        * qui do docs/examples/greshape.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
@@ -263,6 +104,7 @@ exit 17321
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
             * unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
@@ -307,6 +149,7 @@ exit 17321
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
             * compare_gstats,        `noisily' oncollision(error)
+            * compare_greshape,      `noisily' oncollision(error)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -338,6 +181,7 @@ exit 17321
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
             * bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
+            * bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -361,6 +205,7 @@ exit 17321
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
             * bench_gstats,      n(10000)   bench(10)   `noisily' oncollision(error)
+            * bench_greshape,    n(10000)   bench(10)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)

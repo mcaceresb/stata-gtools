@@ -105,8 +105,8 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
     if ( st_info->greshape_anystr ) {
         outdbl = malloc(sizeof(ST_double));
-        outstr = calloc(N * klevels, outbytes);
-        memset(outstr, '\0', N * klevels * outbytes);
+        outstr = calloc(N * klevels, GTOOLS_PWMAX(outbytes, 1));
+        memset(outstr, '\0', N * klevels * GTOOLS_PWMAX(outbytes, 1));
     }
     else {
         outstr = malloc(sizeof(char));
@@ -115,6 +115,11 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_flong", "outdbl"));
     if ( outstr == NULL ) return(sf_oom_error("sf_reshape_flong", "outstr"));
+
+    if ( outbytes == 0 ) {
+        rc = 198;
+        goto exit;
+    }
 
     /*********************************************************************
      *                      Step 2: Read in varlist                      *
@@ -219,9 +224,9 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                     for (k = 0; k < kout; k++) {
                         l = maplevel[k * klevels + j];
                         if ( outtyp[k + 1] && (l > 0) ) {
-                                if ( (rc = SF_sdata(l,
-                                                    i + st_info->in1,
-                                                    outstr + selx + outpos[k + 1])) ) goto exit;
+                            if ( (rc = SF_sdata(l,
+                                                i + st_info->in1,
+                                                outstr + selx + outpos[k + 1])) ) goto exit;
                         }
                         else {
                             if ( l > 0 ) {
@@ -263,9 +268,9 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                     for (k = 0; k < kout; k++) {
                         l = maplevel[k * klevels + j];
                         if ( outtyp[k + 1] && (l > 0) ) {
-                                if ( (rc = SF_sdata(l,
-                                                    i + st_info->in1,
-                                                    outstr + selx + outpos[k + 1])) ) goto exit;
+                            if ( (rc = SF_sdata(l,
+                                                i + st_info->in1,
+                                                outstr + selx + outpos[k + 1])) ) goto exit;
                         }
                         else {
                             if ( l > 0 ) {
@@ -301,12 +306,18 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
 
     fhandle = fopen(fname, "wb");
     if ( st_info->greshape_anystr ) {
-        fwrite (outstr, outbytes, N * klevels, fhandle);
+        rc = (fwrite(outstr, outbytes, N * klevels, fhandle) != (N * klevels));
     }
     else {
-        fwrite (outdbl, sizeof(outdbl), N * klevels * krow, fhandle);
+        rc = (fwrite(outdbl, sizeof(outdbl), N * klevels * krow, fhandle) != (N * klevels * krow));
     }
     fclose (fhandle);
+
+    if ( rc ) {
+        sf_errprintf("unable to write output to disk\n");
+        rc = 198;
+        goto exit;
+    }
 
     if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 3: copied reshaped data to disk");

@@ -25,165 +25,6 @@ set type double
 program main
     syntax, [NOIsily *]
 
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "hello"
-expand 2
-gen j = "why" + string(mod(_n, 3))
-gen x = "bye" + string(_n)
-gen z = -_n
-preserve
-    reshape clear
-    reshape wide x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "hello"
-expand 2
-gen j = "why" + string(mod(_n, 3))
-gen x = _n
-gen z = -_n
-preserve
-    greshape clear
-    greshape wide x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do _gtools_internal.ado
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i = _n
-expand 2
-gen j = _n
-gen x = _n
-gen z = -_n
-preserve
-    greshape clear
-    greshape wide x z, i(i) j(j)
-restore
-
-exit 17321
-
-
-
-
-
-
-
-
-
-
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "why?"
-expand 2
-gen str5  xa  = "some"
-gen str8  xb  = "whenever"
-gen str10 xd  = "wherever"
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(i?) j(j) string
-restore
-
-exit 17123
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen i1 = _n
-gen i2 = "why?"
-gen str5  xa  = "some"
-gen str8  xb  = "whenever"
-gen str10 xd  = "wherever"
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(i?) j(j) string
-restore
-
-exit 17321
-
-qui do greshape.ado
-set rmsg on
-clear
-set obs 5
-gen y = _n
-gen long  xa  = _n
-gen float xb  = runiform()
-gen float xd  = _n
-gen float zc  = _n
-gen float ze  = runiform()
-gen double zd = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(y) j(j) string
-restore
-
-exit 17321
-
-qui do greshape.ado
-set rmsg on
-clear
-* set obs 1000000
-set obs 5
-gen y = _n
-gen long  x1  = 2147483616 + _n
-gen float x2  = runiform()
-gen float x15 = _n
-gen float z10 = _n
-gen float z20 = runiform()
-gen double z15 = runiform()
-preserve
-    greshape clear
-    greshape long x z, i(y) j(j)
-restore
-
-exit 17321
-
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }
@@ -219,8 +60,8 @@ exit 17321
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
-        * qui do test_greshape.do
         * qui do test_gstats.do
+        * qui do test_greshape.do
 
         * qui do docs/examples/gcollapse.do
         * qui do docs/examples/gcontract.do
@@ -230,11 +71,11 @@ exit 17321
         * qui do docs/examples/gtoplevelsof.do
         * qui do docs/examples/gunique.do
         * qui do docs/examples/hashsort.do
-        * qui do docs/examples/gegen.do, nostop
-        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/gegen.do,     nostop
+        * qui do docs/examples/gisid.do,     nostop
         * qui do docs/examples/glevelsof.do, nostop
-        * qui do docs/examples/greshape.do
         * qui do docs/examples/gstats.do
+        * qui do docs/examples/greshape.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
@@ -263,6 +104,7 @@ exit 17321
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
             * unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
@@ -307,6 +149,7 @@ exit 17321
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
             * compare_gstats,        `noisily' oncollision(error)
+            * compare_greshape,      `noisily' oncollision(error)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -338,6 +181,7 @@ exit 17321
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
             * bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
+            * bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -361,6 +205,7 @@ exit 17321
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
             * bench_gstats,      n(10000)   bench(10)   `noisily' oncollision(error)
+            * bench_greshape,    n(10000)   bench(10)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
@@ -6782,60 +6627,582 @@ program versus_isid, rclass
     local rf = `time_fisid' / `time_gisid'
     di as txt "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
-capture program drop checks_gstats
-program checks_gstats
-    sysuse auto, clear
+capture program drop checks_greshape
+program checks_greshape
+    qui testLong
+    qui testLong unsorted nodupcheck
 
-    cap noi gstats winsor price, by(foreign) cuts(10)
-    cap noi gstats winsor price, by(foreign) cuts(90)
-    cap noi gstats winsor price, by(foreign) cuts(. 90)
-    cap noi gstats winsor price, by(foreign) cuts(10 .)
-    cap noi gstats winsor price, by(foreign) cuts(-1 10)
-    cap noi gstats winsor price, by(foreign) cuts(10 101)
-    * gstats winsor price, by(foreign) cuts(0 10) gen(x)
-    * gstats winsor price, by(foreign) cuts(10 100) gen(y)
-    * gstats winsor price, by(foreign) cuts(100 100) gen(zz)
-    * gstats winsor price, by(foreign) cuts(0 0) gen(yy)
-    gstats winsor price, by(foreign)
-    winsor2 price, by(foreign) replace
+    qui testWide
+    qui testWide unsorted
+end
 
-    winsor2 price mpg, by(foreign) cuts(10 90) s(_w2)
-    gstats winsor price mpg, by(foreign) cuts(10 90) s(_w2) replace
-    desc
-    * l price* mpg* foreign 
-    exit 12345
+***********************************************************************
+*                             Basic Tests                             *
+***********************************************************************
 
-    * gtools, upgrade branch(develop)
+capture program drop testWide
+program testWide
+    args opts
+
     clear
-    set obs 1000000
-    gen long id = int((_n-1) / 1000)
-    gunique id
-    gen double x = runiform()
-    gen double y = runiform()
-    set rmsg on
-    winsor2 x y, by(id) s(_w1)
-    gstats winsor x y, by(id) s(_w2)
-    desc
-    assert abs(x_w1 - x_w2) < 1e-6
-    assert abs(y_w1 - y_w2) < 1e-6
+    set obs 5
+    gen i1 = _n
+    gen i2 = -_n
+    gen i3 = "why?" + string(mod(_n, 3))
+    gen i4 = "hey" + string(-_n) + "thisIsWideRight?"
+    expand 3
+    gen j1 = mod(_n, 6)
+    gen j2 = "waffle" + string(mod(_n, 6))
+    gen str10  x  = "some"
+    replace    x  = "whenever" in 4/ 9
+    replace    x  = "wherever" in 9/l
+    gen str20  p  = "another long one" + string(mod(_n, 4))
+    replace    p  = "this b"   in 3 / 7
+    replace    p  = "this c"   in 11/l
+    gen float  z  = _n
+    replace    z  = runiform() in 4 / 8
+    replace    z  = runiform() in 12/l
+    gen double w  = _n * 3.14
+    replace    w  = rnormal()  in 7/l
+    gen int    y  = _n
+    replace    y  = int(10 * runiform()) in 3/l
 
-    replace y = . if mod(_n, 123) == 0
-    replace x = . if mod(_n, 321) == 0
-    gstats winsor x [w=y], by(id) s(_w3)
-    gstats winsor x [w=y], by(id) s(_w5) trim 
-    gegen p1  = pctile(x) [aw = y], by(id) p(1) 
-    gegen p99 = pctile(x) [aw = y], by(id) p(99) 
-    gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
-    assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
-    exit 12345
+    * 1. Single num i
+    preserve
+        * 1.1 num xij
+        keep i1 j1 z
+        greshape wide z, i(i1) j(j1) `opts'
+        l
+    restore, preserve
+        keep i1 j1 z
+        greshape wide z, i(i1) j(j1) `opts'
+        l
+    restore, preserve
+        keep i1 j1 w z
+        greshape wide w z, i(i1) j(j1) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 j1 x
+        greshape wide x, i(i1) j(j1) string `opts'
+        l
+    restore, preserve
+        keep i1 j1 x p
+        greshape wide x p, i(i1) j(j1) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 j1 x z
+        greshape wide x z, i(i1) j(j1) string `opts'
+        l
+    restore, preserve
+        drop i2-i4 j2
+        greshape wide p w x y z, i(i1) j(j1) string `opts'
+        l
+    restore
+
+    preserve
+        * 1.1 num xij
+        keep i1 j2 z
+        greshape wide z, i(i1) j(j2) `opts'
+        l
+    restore, preserve
+        keep i1 j2 z
+        greshape wide z, i(i1) j(j2) `opts'
+        l
+    restore, preserve
+        keep i1 j2 w z
+        greshape wide w z, i(i1) j(j2) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 j2 x
+        greshape wide x, i(i1) j(j2) string `opts'
+        l
+    restore, preserve
+        keep i1 j2 x p
+        greshape wide x p, i(i1) j(j2) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 j2 x z
+        greshape wide x z, i(i1) j(j2) string `opts'
+        l
+    restore, preserve
+        drop i2-i4 j1
+        greshape wide p w x y z, i(i1) j(j2) string `opts'
+        l
+    restore
+
+    * 2. Multiple num i
+    preserve
+        * 1.1 num xij
+        keep i1 i2 j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i1 i2 j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i1 i2 j1 w z
+        greshape wide w z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 i2 j1 x
+        greshape wide x, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        keep i1 i2 j1 x p
+        greshape wide x p, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 i2 j1 x z
+        greshape wide x z, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        drop i3 i4 j2
+        greshape wide p w x y z, i(i?) j(j1) string `opts'
+        l
+    restore
+
+    preserve
+        * 1.1 num xij
+        keep i1 i2 j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i1 i2 j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i1 i2 j2 w z
+        greshape wide w z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 i2 j2 x
+        greshape wide x, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        keep i1 i2 j2 x p
+        greshape wide x p, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 i2 j2 x z
+        greshape wide x z, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        drop i3 i4 j1
+        greshape wide p w x y z, i(i?) j(j2) string `opts'
+        l
+    restore
+
+    * 3. Single str i
+    preserve
+        * 1.1 num xij
+        keep i4 j1 z
+        greshape wide z, i(i4) j(j1) `opts'
+        l
+    restore, preserve
+        keep i4 j1 z
+        greshape wide z, i(i4) j(j1) `opts'
+        l
+    restore, preserve
+        keep i4 j1 w z
+        greshape wide w z, i(i4) j(j1) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i4 j1 x
+        greshape wide x, i(i4) j(j1) string `opts'
+        l
+    restore, preserve
+        keep i4 j1 x p
+        greshape wide x p, i(i4) j(j1) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i4 j1 x z
+        greshape wide x z, i(i4) j(j1) string `opts'
+        l
+    restore, preserve
+        drop i1-i3 j2
+        greshape wide p w x y z, i(i4) j(j1) string `opts'
+        l
+    restore
+
+    preserve
+        * 1.1 num xij
+        keep i4 j2 z
+        greshape wide z, i(i4) j(j2) `opts'
+        l
+    restore, preserve
+        keep i4 j2 z
+        greshape wide z, i(i4) j(j2) `opts'
+        l
+    restore, preserve
+        keep i4 j2 w z
+        greshape wide w z, i(i4) j(j2) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i4 j2 x
+        greshape wide x, i(i4) j(j2) string `opts'
+        l
+    restore, preserve
+        keep i4 j2 x p
+        greshape wide x p, i(i4) j(j2) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i4 j2 x z
+        greshape wide x z, i(i4) j(j2) string `opts'
+        l
+    restore, preserve
+        drop i1-i3 j1
+        greshape wide p w x y z, i(i4) j(j2) string `opts'
+        l
+    restore
+
+    * 4. Multiple str i
+    preserve
+        * 1.1 num xij
+        keep i3 i4 j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i3 i4 j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i3 i4 j1 w z
+        greshape wide w z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i3 i4 j1 x
+        greshape wide x, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        keep i3 i4 j1 x p
+        greshape wide x p, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i3 i4 j1 x z
+        greshape wide x z, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        drop i1 i2 j2
+        greshape wide p w x y z, i(i?) j(j1) string `opts'
+        l
+    restore
+
+    preserve
+        * 1.1 num xij
+        keep i3 i4 j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i3 i4 j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i3 i4 j2 w z
+        greshape wide w z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i3 i4 j2 x
+        greshape wide x, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        keep i3 i4 j2 x p
+        greshape wide x p, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i3 i4 j2 x z
+        greshape wide x z, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        drop i1 i2 j1
+        greshape wide p w x y z, i(i?) j(j2) string `opts'
+        l
+    restore
+
+    * 5. Mixed str i
+    preserve
+        * 1.1 num xij
+        keep i? j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i? j1 z
+        greshape wide z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        keep i? j1 w z
+        greshape wide w z, i(i?) j(j1) `opts'
+        l
+    restore, preserve
+        * 1.1 str xij
+        keep i? j1 x
+        greshape wide x, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        keep i? j1 x p
+        greshape wide x p, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i? j1 x z
+        greshape wide x z, i(i?) j(j1) string `opts'
+        l
+    restore, preserve
+        drop j2
+        greshape wide p w x y z, i(i?) j(j1) string `opts'
+        l
+    restore
+
+    preserve
+        * 1.1 num xij
+        keep i? j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i? j2 z
+        greshape wide z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        keep i? j2 w z
+        greshape wide w z, i(i?) j(j2) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i? j2 x
+        greshape wide x, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        keep i? j2 x p
+        greshape wide x p, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i? j2 x z
+        greshape wide x z, i(i?) j(j2) string `opts'
+        l
+    restore, preserve
+        drop j1
+        greshape wide p w x y z, i(i?) j(j2) string `opts'
+        l
+    restore
+end
+
+capture program drop testLong
+program testLong
+    args opts
+
+    clear
+    set obs 5
+    gen i1 = _n
+    gen i2 = -_n
+    gen i3 = "why?" + string(mod(_n, 3))
+    gen i4 = "hey" + string(-_n) + "thisIsLongRight?"
+    gen str5   xa  = "some"
+    gen str8   xb  = "whenever"
+    gen str10  xd  = "wherever"
+    gen str20  pa  = "another long one" + string(mod(_n, 4))
+    gen str8   pb  = "this b"
+    gen str10  pd  = "this c"
+    gen long   z1  = _n
+    gen float  z2  = runiform()
+    gen float  zd  = runiform()
+    gen float  w1  = _n * 3.14
+    gen double w5  = rnormal()
+    gen int    y2  = _n
+    gen float  y7  = int(10 * runiform())
+
+    * 1. Single num i
+    preserve
+        * 1.1 num xij
+        keep i1 z1 z2
+        greshape long z, i(i1) j(j) `opts'
+        l
+    restore, preserve
+        keep i1 z1 z2
+        greshape long z, i(i1) j(j) `opts'
+        l
+    restore, preserve
+        keep i1 w* z*
+        greshape long w z, i(i1) j(j) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 x*
+        greshape long x, i(i1) j(j) string `opts'
+        l
+    restore, preserve
+        keep i1 x* p*
+        greshape long x p, i(i1) j(j) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 x* z*
+        greshape long x z, i(i1) j(j) string `opts'
+        l
+    restore, preserve
+        drop i2-i4
+        greshape long p w x y z, i(i1) j(j) string `opts'
+        l
+    restore
+
+    * 2. Multiple num i
+    preserve
+        * 1.1 num xij
+        keep i1 i2 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i1 i2 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i1 i2 w* z*
+        greshape long w z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i1 i2 x*
+        greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i1 i2 x* p*
+        greshape long x p, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i1 i2 x* z*
+        greshape long x z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i3 i4
+        greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore
+
+    * 3. Single str i
+    preserve
+        * 1.1 num xij
+        keep i4 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i4 i2 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i4 i2 w* z*
+        greshape long w z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i4 i2 x*
+        greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i4 i2 x* p*
+        greshape long x p, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i4 i2 x* z*
+        greshape long x z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i1 i2 i3
+        greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore
+
+    * 4. Multiple str i
+    preserve
+        * 1.1 num xij
+        keep i3 i4 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i3 i4 i2 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i3 i4 i2 w* z*
+        greshape long w z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i3 i4 i2 x*
+        greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i3 i4 i2 x* p*
+        greshape long x p, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i3 i4 i2 x* z*
+        greshape long x z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i1 i2
+        greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore
+
+    * 5. Mixed str i
+    preserve
+        * 1.1 num xij
+        keep i? z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i? i2 z1 z2
+        greshape long z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        keep i? i2 w* z*
+        greshape long w z, i(i?) j(j) `opts'
+        l
+    restore, preserve
+        * 1.2 str xij
+        keep i? i2 x*
+        greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i? i2 x* p*
+        greshape long x p, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        * 1.3 mix xij
+        keep i? i2 x* z*
+        greshape long x z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore
 end
 
 ***********************************************************************
 *                             Benchmarks                              *
 ***********************************************************************
 
-capture program drop bench_gstats_winsor
-program bench_gstats_winsor
+capture program drop bench_greshape
+program bench_greshape
     syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
 
     qui gen_data, n(`n')
@@ -6848,101 +7215,54 @@ program bench_gstats_winsor
 
     di as txt _n(1)
     di as txt "Benchmark vs winsor2, obs = `N', J = `J' (in seconds)"
-    di as txt "    winsor | gstats winsor | ratio (c/g) | varlist"
-    di as txt "    ------ | ------------- | ----------- | -------"
+    di as txt " reshape | greshape | ratio (c/g) | varlist"
+    di as txt " ------- | -------- | ----------- | -------"
 
-    versus_gstats_winsor, `options'
-
-    versus_gstats_winsor str_12,              `options'
-    versus_gstats_winsor str_12 str_32,       `options'
-    versus_gstats_winsor str_12 str_32 str_4, `options'
-
-    versus_gstats_winsor double1,                 `options'
-    versus_gstats_winsor double1 double2,         `options'
-    versus_gstats_winsor double1 double2 double3, `options'
-
-    versus_gstats_winsor int1,           `options'
-    versus_gstats_winsor int1 int2,      `options'
-    versus_gstats_winsor int1 int2 int3, `options'
-
-    versus_gstats_winsor int1 str_32 double1,                                        `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2,                    `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
-
-    di _n(1) "{hline 80}" _n(1) "bench_gstats_winsor, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "bench_greshape, `options'" _n(1) "{hline 80}" _n(1)
 end
 
-capture program drop versus_gstats_winsor
-program versus_gstats_winsor, rclass
-    syntax [anything], [*]
+capture program drop versus_greshape
+program versus_greshape, rclass
+    syntax [anything], [i(str) j(str) *]
 
-    timer clear
-    timer on 42
-    qui winsor2 random2 `if' `in', by(`anything') s(_w1)
-    timer off 42
-    qui timer list
-    local time_winsor = r(t42)
+    preserve
+        timer clear
+        timer on 42
+        qui reshape long `anything', i(`i') j(`j') `options'
+        timer off 42
+        qui timer list
+        local time_long = r(t42)
 
-    timer clear
-    timer on 43
-    qui gstats winsor random2 `if' `in', by(`anything') s(_w2)
-    timer off 43
-    qui timer list
-    local time_gwinsor = r(t43)
+        timer clear
+        timer on 42
+        qui reshape wide `anything', i(`i') j(`j') `options'
+        timer off 42
+        qui timer list
+        local time_wide = r(t42)
+    restore
 
-    local rs = `time_winsor'  / `time_gwinsor'
-    di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
+    preserve
+        timer clear
+        timer on 43
+        qui greshape long `anything', i(`i') j(`j') `options'
+        timer off 43
+        qui timer list
+        local time_glong = r(t43)
+
+        timer clear
+        timer on 43
+        qui greshape wide `anything', i(`i') j(`j') `options'
+        timer off 43
+        qui timer list
+        local time_gwide = r(t43)
+    restore
+
+    local rs = `time_long'  / `time_glong'
+    di as txt " `:di %7.3g `time_long'' | `:di %8.3g `time_glong'' | `:di %11.4g `rs'' | long `anything', i(`i')"
+    local rs = `time_wide'  / `time_gwide'
+    di as txt " `:di %7.3g `time_wide'' | `:di %8.3g `time_gwide'' | `:di %11.4g `rs'' | wide `anything', i(`i')"
     drop *_w?
 end
-
-***********************************************************************
-*                      Scratch for sorting speed                      *
-***********************************************************************
-
-* exit 17123
-*
-* sysuse auto, clear
-* mata: F = factor("turn", "", 1, "", 0, 0, ., 0)
-*
-* clear
-* set obs 10000000
-* gen long i0 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777215, 0)
-* gen long i1 = ceil(runiform() * 100) + 16777215
-* gen long i2 = ceil(runiform() * 10000) + 16777215
-* gen long i3 = ceil(runiform() * 65536) + 16777215
-* gen long i4 = ceil(runiform() * 1000000) + 16777215
-* gen long i5 = ceil(runiform() * 10000000) + 16777215
-* gen long i6 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777204, 0)
-* set rmsg on
-*
-* mata: F = factor("i0",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i1",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i2",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i3",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i4",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i5",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i6",  "", 1, "", 0, 0, ., 0)
-*
-* gunique i0
-* gunique i1
-* gunique i2
-* gunique i3
-* gunique i4
-* gunique i5
-* gunique i6
-*
-* clear
-* set obs 33554432
-* * set obs 16777216
-* gen long i = 3 * _N - _n
-* gen double r = rnormal()
-* sort r
-* set rmsg on
-* mata: F = factor("i", "", 1, "", 0, 0, ., 0)
-* mata: F.num_levels
-* gunique i, v bench(3)
-* gunique i, v bench(3) _ctol(`=2^25')
-* exit 17123
 capture program drop checks_gstats
 program checks_gstats
     sysuse auto, clear
@@ -6994,6 +7314,18 @@ end
 ***********************************************************************
 *                             Benchmarks                              *
 ***********************************************************************
+
+* di as txt _n(1)
+* di as txt "Benchmark vs Summary, detail; obs = `N', J = `J' (in seconds)"
+* di as txt "    sum, d | gstats sum, d | ratio (c/g) | varlist"
+* di as txt "    ------ | ------------- | ----------- | -------"
+* di as txt "           |               |             | int1
+* di as txt "           |               |             | int2
+* di as txt "           |               |             | int3
+* di as txt "           |               |             | double1
+* di as txt "           |               |             | double2
+* di as txt "           |               |             | double3
+* di as txt "           |               |             | int1 int2 int3 double1 double2 double3
 
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor

@@ -24,6 +24,11 @@ program checks_greshape
     qui checks_inner_greshape_wide nochecks xi
 end
 
+capture program drop compare_greshape
+program compare_greshape
+    * TODO: Part of bench; do it like hashsort
+end
+
 ***********************************************************************
 *                               Errors                                *
 ***********************************************************************
@@ -749,10 +754,3 @@ program versus_greshape, rclass
     local rs = `time_wide'  / `time_gwide'
     di as txt " `:di %7.3g `time_wide'' | `:di %8.3g `time_gwide'' | `:di %11.4g `rs'' | wide `anything', i(`i')"
 end
-
-* use /home/mauricio/bulk/lib/benchmark-stata-r/1e7, clear
-* gduplicates drop id1 id2 id3, force
-* keep if _n < _N/10
-* set rmsg on
-* greshape gather id4 id5 id6 v1 v2 v3, j(variable) value(value)
-* greshape spread value, j(variable)

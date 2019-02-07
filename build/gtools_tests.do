@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Dec 16 08:16:44 EST 2018
+* Updated: Fri Feb  8 19:30:00 EST 2019
 * Purpose: Unit tests for gtools
-* Version: 1.2.0
+* Version: 1.3.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -24,33 +24,6 @@ set type double
 
 program main
     syntax, [NOIsily *]
-
-clear
-set obs 5
-gen i1 = _n
-gen i2 = -_n
-gen i3 = "why?" + string(mod(_n, 3))
-gen i4 = "hey" + string(-_n) + "thisIsLongRight?"
-expand 3
-if "`v'" == "v1" bys i1: gen j = "@#" + string(_n) + "|"
-else bys i1: gen j = _n + _N
-gen w = "|" + string(_n / 3) + "/"
-gen x = _N - _n
-gen y = _n / 2
-gen r = runiform()
-sort r
-drop r
-greshape wide x y w, i(i1) j(j)
-exit 12345
-
-
-
-
-
-
-
-
-
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -130,8 +103,8 @@ exit 12345
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
@@ -175,8 +148,8 @@ exit 12345
             compare_gcontract,     `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
-            * compare_gstats,        `noisily' oncollision(error)
-            * compare_greshape,      `noisily' oncollision(error)
+            compare_gstats,        `noisily' oncollision(error)
+            compare_greshape,      `noisily' oncollision(error)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -207,8 +180,8 @@ exit 12345
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error)
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
-            * bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
-            * bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
+            bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
+            bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -231,8 +204,8 @@ exit 12345
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error)
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
-            * bench_gstats,      n(10000)   bench(10)   `noisily' oncollision(error)
-            * bench_greshape,    n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_gstats,        n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_greshape,      n(10000)   bench(10)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
@@ -6654,6 +6627,16 @@ program versus_isid, rclass
     local rf = `time_fisid' / `time_gisid'
     di as txt "    `:di %5.3g `time_isid'' | `:di %5.3g `time_fisid'' | `:di %5.3g `time_gisid'' | `:di %11.3g `rs'' | `:di %11.3g `rf'' | `varlist'"
 end
+* Checks in greshape
+* ------------------
+*
+* 1. Unique j
+* 2. Unique Xi
+* 3. Missing j values
+* 4. preserve, restore
+* 5. Unique i
+* 6. unsorted
+
 capture program drop checks_greshape
 program checks_greshape
     qui checks_inner_greshape_errors
@@ -6668,6 +6651,11 @@ program checks_greshape
     qui checks_inner_greshape_wide nochecks
     qui checks_inner_greshape_wide " " xi
     qui checks_inner_greshape_wide nochecks xi
+end
+
+capture program drop compare_greshape
+program compare_greshape
+    * TODO: Part of bench; do it like hashsort
 end
 
 ***********************************************************************
@@ -7395,47 +7383,9 @@ program versus_greshape, rclass
     local rs = `time_wide'  / `time_gwide'
     di as txt " `:di %7.3g `time_wide'' | `:di %8.3g `time_gwide'' | `:di %11.4g `rs'' | wide `anything', i(`i')"
 end
-
-* use /home/mauricio/bulk/lib/benchmark-stata-r/1e7, clear
-* gduplicates drop id1 id2 id3, force
-* * hashsort id1 id2 id3
-* keep if _n < _N/10
-* set rmsg on
-* preserve
-* greshape gather id4 id5 id6 v1 v2 v3, j(variable) value(value)
-* greshape spread value, j(variable)
-* restore
-
-* foreach v of varlist id4 id5 id6 v1 v2 v3{
-*     rename `v' v_`v'
-* }
-*
-* set rmsg on
-* preserve
-* greshape long v_, i(id1 id2 id3) j(variable) string check(2)
-* greshape wide v_, i(id1 id2 id3) j(variable) string check(2)
-* restore
-*
-* preserve
-* reshape long v_, i(id1 id2 id3) j(variable) string
-* reshape wide v_, i(id1 id2 id3) j(variable) string
-* restore
-*
-* preserve
-* fastreshape long v_, i(id1 id2 id3) j(variable) string
-* fastreshape wide v_, i(id1 id2 id3) j(variable) string
-* restore
-
-* Checks
-* ------
-* 1. Unique j
-* 2. Unique Xi
-* 3. Missing j values
-* 4. preserve, restore
-* 5. Unique i
-* 6. unsorted
 capture program drop checks_gstats
 program checks_gstats
+    * TODO: Pending
     sysuse auto, clear
 
     cap noi gstats winsor price, by(foreign) cuts(10)
@@ -7444,22 +7394,22 @@ program checks_gstats
     cap noi gstats winsor price, by(foreign) cuts(10 .)
     cap noi gstats winsor price, by(foreign) cuts(-1 10)
     cap noi gstats winsor price, by(foreign) cuts(10 101)
-    * gstats winsor price, by(foreign) cuts(0 10) gen(x)
-    * gstats winsor price, by(foreign) cuts(10 100) gen(y)
-    * gstats winsor price, by(foreign) cuts(100 100) gen(zz)
-    * gstats winsor price, by(foreign) cuts(0 0) gen(yy)
+    preserve
+        cap noi gstats winsor price, by(foreign) cuts(0 10) gen(x)
+        cap noi gstats winsor price, by(foreign) cuts(10 100) gen(y)
+        cap noi gstats winsor price, by(foreign) cuts(100 100) gen(zz)
+        cap noi gstats winsor price, by(foreign) cuts(0 0) gen(yy)
+    restore
     gstats winsor price, by(foreign)
     winsor2 price, by(foreign) replace
 
     winsor2 price mpg, by(foreign) cuts(10 90) s(_w2)
     gstats winsor price mpg, by(foreign) cuts(10 90) s(_w2) replace
     desc
-    * l price* mpg* foreign 
-    exit 12345
 
     * gtools, upgrade branch(develop)
     clear
-    set obs 1000000
+    set obs 500000
     gen long id = int((_n-1) / 1000)
     gunique id
     gen double x = runiform()
@@ -7479,7 +7429,11 @@ program checks_gstats
     gegen p99 = pctile(x) [aw = y], by(id) p(99) 
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
-    exit 12345
+end
+
+capture program drop compare_gstats
+program compare_gstats
+    * TODO: Pending
 end
 
 ***********************************************************************
@@ -7497,6 +7451,11 @@ end
 * di as txt "           |               |             | double2
 * di as txt "           |               |             | double3
 * di as txt "           |               |             | int1 int2 int3 double1 double2 double3
+
+capture program drop bench_gstats
+program bench_gstats
+    bench_gstats_winsor
+end
 
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor
@@ -7558,55 +7517,6 @@ program versus_gstats_winsor, rclass
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
     drop *_w?
 end
-
-***********************************************************************
-*                      Scratch for sorting speed                      *
-***********************************************************************
-
-* exit 17123
-*
-* sysuse auto, clear
-* mata: F = factor("turn", "", 1, "", 0, 0, ., 0)
-*
-* clear
-* set obs 10000000
-* gen long i0 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777215, 0)
-* gen long i1 = ceil(runiform() * 100) + 16777215
-* gen long i2 = ceil(runiform() * 10000) + 16777215
-* gen long i3 = ceil(runiform() * 65536) + 16777215
-* gen long i4 = ceil(runiform() * 1000000) + 16777215
-* gen long i5 = ceil(runiform() * 10000000) + 16777215
-* gen long i6 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777204, 0)
-* set rmsg on
-*
-* mata: F = factor("i0",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i1",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i2",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i3",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i4",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i5",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i6",  "", 1, "", 0, 0, ., 0)
-*
-* gunique i0
-* gunique i1
-* gunique i2
-* gunique i3
-* gunique i4
-* gunique i5
-* gunique i6
-*
-* clear
-* set obs 33554432
-* * set obs 16777216
-* gen long i = 3 * _N - _n
-* gen double r = rnormal()
-* sort r
-* set rmsg on
-* mata: F = factor("i", "", 1, "", 0, 0, ., 0)
-* mata: F.num_levels
-* gunique i, v bench(3)
-* gunique i, v bench(3) _ctol(`=2^25')
-* exit 17123
 capture program drop checks_duplicates
 program checks_duplicates
     syntax, [tol(real 1e-6) NOIsily *]

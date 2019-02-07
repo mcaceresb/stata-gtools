@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed Jan 23 10:16:09 EST 2019
+ * Updated: Fri Feb  8 19:29:33 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.2.7
+ * Version: 1.3.0
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 23 Jan 2019
+ * @date 8 Feb 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado

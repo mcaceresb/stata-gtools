@@ -38,10 +38,6 @@
 * TODO: better atwl, basically. match(num|str|anything|/regex/)
 * -------------------------------------------------------------
 
-* ------------------------------------------------------------
-* TODO: Make cols an option when you allow multiple j, if ever
-* ------------------------------------------------------------
-
 capture program drop greshape
 program greshape, rclass
     version 13.1
@@ -106,8 +102,14 @@ program greshape, rclass
     local rc = _rc
     if ( `rc' == 17999 ) {
         CleanExit
-        reshape `0'
-        exit 0
+        if inlist( `"`1'"', "spread", "gather") {
+            di as err `"Cannot use fallback with `1'"'
+            exit 17000
+        }
+        else {
+            reshape `0'
+            exit
+        }
     }
     else if ( `rc' == 17001 ) {
         di as txt "(no observations)"
@@ -171,7 +173,7 @@ program define Long /* reshape long */
     local long_opts            ///
         i(varlist)             /// reshape by groups of -i()-
         [                      ///
-            j(name) string     /// varnames by levels -j()-; look for string-like names
+            j(name) String     /// varnames by levels -j()-; look for string-like names
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
             nochecks           /// Do not do any checks
@@ -183,7 +185,7 @@ program define Long /* reshape long */
         ]
 
     local gather_opts          ///
-            value(name)        /// out variaable name
+            VALUEs(name)       /// out variaable name
         [                      ///
             i(varlist)         /// reshape by groups of -i()-
             j(name)            /// varnames by levels -j()-; look for string-like names
@@ -193,8 +195,10 @@ program define Long /* reshape long */
         ]
 
     syntax anything, ``ReS_cmd'_opts'
+    c_local 0 `ReS_cmd' `anything', i(`i') j(`j') `string'
+
     if ( `"`checklevel'"' == "" ) local checklevel 4
-    if ( `"`value'"'      == "" ) local value: copy local anything
+    if ( `"`values'"'     == "" ) local values: copy local anything
 
     if ( `checklevel' > 3 ) {
     }
@@ -247,7 +251,7 @@ program define Long /* reshape long */
     if ( `"`j'"' == "" ) local j _j
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl `atwl'
-    global ReS_Xij  `value'
+    global ReS_Xij  `values'
     global ReS_i    `i'
     global ReS_j    `j'
 
@@ -274,8 +278,8 @@ program define Long /* reshape long */
             exit 198
         }
 
-        if ( `:list sizeof value' > 1 ) {
-            disp as err "value() must be a new variable name"
+        if ( `:list sizeof values' > 1 ) {
+            disp as err "values() must be a new variable name"
             exit 198
         }
     }
@@ -325,10 +329,13 @@ program define Long /* reshape long */
         exit 198
     }
 
+
     tempfile ReS_jfile
     global ReS_jfile `ReS_jfile'
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
+
     GetJLevels
+
     confirm var $ReS_i $ReS_Xi
     if ( $ReS_str ) {
         local string str($ReS_jlen)
@@ -385,7 +392,7 @@ program define Long /* reshape long */
     keep $ReS_i $ReS_Xij_keep $ReS_Xi
     * disp "debug: ($ReS_Xij_keep) ($ReS_Xij_keepnames)"
     mata __greshape_addtypes = ("`jtype'", J(1, `:word count $ReS_Xij_add', "double"))
-    mata __greshape_addvars  = "$ReS_j", tokens("$ReS_Xij_add")
+    mata __greshape_addvars  = "$ReS_j", tokens(st_global("ReS_Xij_add"))
     mata (void) st_addvar(__greshape_addtypes, __greshape_addvars, 0)
     if ( (`"$ReS_Xij_keep"' != "") &(`"$ReS_Xij_keepnames"' != "") ) {
         rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
@@ -400,6 +407,7 @@ program define Long /* reshape long */
         if ( `benchmarklevel' > 2 ) {
             disp _char(9) "reshape long step 4: allocated target dataset; `s' seconds."
         }
+        timer clear `FreeTimer'
     }
     else if ( `benchmarklevel' > 2 ) {
         disp _char(9) "reshape long step 4: allocated target dataset; ??? seconds."
@@ -500,9 +508,10 @@ program define Wide /* reshape wide */
 
     local wide_opts            ///
         i(varlist)             /// reshape by groups of -i()-
-        j(name)                /// varnames by levels -j()-; look for string-like names
+        j(varlist)             /// varnames by levels -j()-; look for string-like names
         [                      ///
-            string             /// look for string-like names
+            String             /// look for string-like names
+            COLSeparate(str)   /// Columns sepparator for levels of j
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
             nochecks           /// Do not do any checks
@@ -512,16 +521,18 @@ program define Wide /* reshape wide */
             ${GTOOLS_PARSE}    /// varnames by levels -j()-; look for string-like names
         ]
 
-    local spread_opts       ///
-            j(name)         /// varnames by levels -j()-
-        [                   ///
-            i(varlist)      /// reshape by groups of -i()-
-            xi(str)         /// Handle extraneous variables
-            fast            /// Do not preserve and restore the original dataset. Saves speed
-            ${GTOOLS_PARSE} /// varnames by levels -j()-; look for string-like names
+    local spread_opts        ///
+            j(varlist)       /// varnames by levels -j()-
+        [                    ///
+            COLSeparate(str) /// Columns sepparator for levels of j
+            i(varlist)       /// reshape by groups of -i()-
+            xi(str)          /// Handle extraneous variables
+            fast             /// Do not preserve and restore the original dataset. Saves speed
+            ${GTOOLS_PARSE}  /// varnames by levels -j()-; look for string-like names
         ]
 
     syntax anything, ``ReS_cmd'_opts'
+    c_local 0 `ReS_cmd' `anything', i(`i') j(`j') `string'
     if ( `"`checklevel'"' == "" ) local checklevel 4
 
     if ( `checklevel' > 3 ) {
@@ -573,6 +584,7 @@ program define Wide /* reshape wide */
     global ReS_j     `j'
     global ReS_i     `i'
     global ReS_Xij_k `:list sizeof anything'
+    global ReS_jsep: copy local colseparate
 
     if ( `"`ReS_cmd'"' == "spread" ) {
         cap assert `:list i == restvars'
@@ -623,32 +635,40 @@ program define Wide /* reshape wide */
     ***********************************************************************
 
     Macros
-    capture ConfVar $ReS_j
-    if ( _rc ) {
-        di in blu "Source j($ReS_j) does not exist (is the data already wide?)"
-        exit 198
+    local rc = 0
+    foreach var in $ReS_j {
+        capture ConfVar `var'
+        if ( _rc ) {
+            di in blu "Source j(`var') does not exist (is the data already wide?)"
+            exit 198
+        }
+        ConfVar `var'
     }
-    ConfVar $ReS_j
     confirm var $ReS_j $rVANS $ReS_i $ReS_Xi
 
-    /* Save J value and variable label for LONG */
-    local jlab : value label $ReS_j
-    if "`jlab'" != "" {
-        char define _dta[__JValLabName] `"`jlab'"'
-        capture label list `jlab'
-        if _rc == 0 & !missing(`r(min)') & !missing(`r(max)') {
-            forvalues i = `r(min)'/`r(max)' {
-                local label : label `jlab' `i',  strict
-                if `"`label'"' != "" {
-                    local char `"`char' `i' `"`label'"' "'
-                }
-            }
-            char define _dta[__JValLab] `"`char'"'
-        }
+    if ( `:list sizeof j' > 1 ) {
+        disp as txt "({bf:warning}: labels of j() not saved with multiple variables)"
     }
-    local jvlab : variable label $ReS_j
-    if `"`jvlab'"' != "" {
-        char define _dta[__JVarLab] `"`jvlab'"'
+    else {
+        /* Save J value and variable label for LONG */
+        local jlab : value label $ReS_j
+        if "`jlab'" != "" {
+            char define _dta[__JValLabName] `"`jlab'"'
+            capture label list `jlab'
+            if _rc == 0 & !missing(`r(min)') & !missing(`r(max)') {
+                forvalues i = `r(min)'/`r(max)' {
+                    local label : label `jlab' `i',  strict
+                    if `"`label'"' != "" {
+                        local char `"`char' `i' `"`label'"' "'
+                    }
+                }
+                char define _dta[__JValLab] `"`char'"'
+            }
+        }
+        local jvlab : variable label $ReS_j
+        if `"`jvlab'"' != "" {
+            char define _dta[__JVarLab] `"`jvlab'"'
+        }
     }
 
     /* Save xij variable labels for LONG */
@@ -676,7 +696,9 @@ program define Wide /* reshape wide */
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
 
     GetJLevels
-    ConfVar $ReS_j
+    foreach var in $ReS_j {
+        ConfVar `var'
+    }
     confirm var $ReS_j $ReS_Xi
     local ReS_Xi: copy global ReS_Xi
     local ReS_Xi: list ReS_Xi - ReS_jcode
@@ -697,7 +719,6 @@ program define Wide /* reshape wide */
         exit 198
     }
 
-    CheckVariableTypes
     GetXiTypes
     CopyScalars
 
@@ -730,8 +751,8 @@ program define Wide /* reshape wide */
     FreeTimer
     if ( `FreeTimer' ) timer on `FreeTimer'
     rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
-    mata __greshape_addtypes = tokens("$ReS_Xij_addtypes")
-    mata __greshape_addvars  = tokens("$ReS_Xij_addvars")
+    mata __greshape_addtypes = tokens(st_global("ReS_Xij_addtypes"))
+    mata __greshape_addvars  = tokens(st_global("ReS_Xij_addvars"))
     mata (void) st_addvar(__greshape_addtypes, __greshape_addvars, 0)
     keep  $ReS_i $ReS_Xij_names $ReS_Xi
     order $ReS_i $ReS_Xij_names $ReS_Xi
@@ -742,6 +763,7 @@ program define Wide /* reshape wide */
         if ( `benchmarklevel' > 2 ) {
             disp _char(9) "reshape wide step 4: allocated target dataset; `s' seconds."
         }
+        timer clear `FreeTimer'
     }
     else if ( `benchmarklevel' > 2 ) {
         disp _char(9) "reshape wide step 4: allocated target dataset; ??? seconds."
@@ -774,18 +796,27 @@ end
 capture program drop GetJLevels
 program define GetJLevels
 
-    * convert data to names
-    local varlist "req ex"
-    parse "_all"
-    quietly {
-        local n : word count `varlist'
-        mata: __greshape_dsname = J(`n', 1, "")
-        parse "`varlist'", parse(" ")
-        local i 0
-        while `++i' <= `n' {
-            mata: __greshape_dsname[`i'] = `"``i''"'
-        }
-    }
+    * ---------------------------
+    * TODO: Is this of any value?
+    * ---------------------------
+    * local varlist "req ex"
+    * parse "_all"
+    * {
+    *     local n : word count `varlist'
+    *     local __greshape_dsname
+    *     parse "`varlist'", parse(" ")
+    *     local i 0
+    *     while `++i' <= `n' {
+    *         disp `"`i', ``i''"'
+    *         local __greshape_dsname `"`__greshape_dsname'"' `"``i''"'
+    *     }
+    * }
+    * mata: __greshape_dsname = tokens(st_local("__greshape_dsname"))'
+    * ---------------------------
+
+    unab varlist: _all
+    mata: __greshape_dsname = tokens(st_local("varlist"))'
+
 
     if inlist("$ReS_cmd", "wide") {
         FillvalL
@@ -868,7 +899,7 @@ program define FillvalW
             mata: __greshape_sel = selectindex(__greshape_res :!= "")
         }
         mata: __greshape_res = sort(uniqrows(__greshape_res[__greshape_sel]), 1)
-        mata: st_numscalar("__greshape_kout",  cols(tokens(`"$ReS_Xij"')))
+        mata: st_numscalar("__greshape_kout",  cols(tokens(st_global(`"ReS_Xij"'))))
         mata: st_numscalar("__greshape_klvls", rows(__greshape_res))
         if ( `=(__greshape_klvls)' == 0 ) {
             disp as err "variable j contains all missing values"
@@ -885,8 +916,8 @@ program define FillvalW
         mata: __greshape_xijname = sort(uniqrows(__greshape_dsname[__greshape_sel]), 1)
     }
     else {
-        mata: __greshape_res = tokens("$ReS_Xij_names")'
-        mata: st_numscalar("__greshape_kout",  cols(tokens(`"$ReS_Xij"')))
+        mata: __greshape_res = tokens(st_global("ReS_Xij_names"))'
+        mata: st_numscalar("__greshape_kout",  cols(tokens(st_global(`"ReS_Xij"'))))
         mata: st_numscalar("__greshape_klvls", rows(__greshape_res))
         if ( `=(__greshape_klvls)' == 0 ) {
             disp as err "variable j contains all missing values"
@@ -897,19 +928,17 @@ program define FillvalW
     }
 
     mata: __greshape_maplevel = MakeMapLevel( /*
-        */ __greshape_xijname,   /*
-        */ __greshape_res,       /*
-        */ tokens(`"$ReS_Xij"'), /*
+        */ __greshape_xijname,                /*
+        */ __greshape_res,                    /*
+        */ tokens(st_global(`"ReS_Xij"')),    /*
         */ (`"$ReS_cmd"' == "gather"))
 
-    CheckMatsize $ReS_Xij
-    CheckMatsize $ReS_Xij_names
     mata: st_matrix("__greshape_maplevel", __greshape_maplevel)
 
-    mata: __greshape_rc = CheckVariableTypes( /*
-        */ tokens(`"$ReS_Xij_names"'), /*
-        */ __greshape_res,             /*
-        */ tokens(`"$ReS_Xij"'),       /*
+    mata: __greshape_rc = CheckVariableTypes(    /*
+        */ tokens(st_global(`"ReS_Xij_names"')), /*
+        */ __greshape_res,                       /*
+        */ tokens(st_global(`"ReS_Xij"')),       /*
         */ (`"$ReS_cmd"' == "gather"))
 
     mata: st_numscalar("__greshape_rc", __greshape_rc)
@@ -1126,7 +1155,13 @@ program define FillvalL
     cap mata bsubstr(" ", 1, 1)
     if ( _rc ) local substr substr
     else local substr bsubstr
-    glevelsof $ReS_j, silent local(ReS_jv) cols(" ") group($ReS_jcode) missing
+    local ReS_j: copy global ReS_j
+
+    if ( `"$ReS_jsep"' == "" ) local ReS_jsep `" "'
+    else local ReS_jsep: copy global ReS_jsep
+
+    if ( `:list sizeof ReS_j' > 1 ) local clean clean
+    glevelsof $ReS_j, silent local(ReS_jv) cols(`"`ReS_jsep'"') group($ReS_jcode) missing `clean'
     scalar __greshape_klvls = `r(J)'
 
     if ( ("$ReS_cmd" != "spread") | ($ReS_Xij_k > 1) ) {
@@ -1147,6 +1182,8 @@ program define FillvalL
     * mata: SaveJValuesString(__greshape_jv)
     di in gr "(note: j = $ReS_jv)"
     local ReS_jv2: copy global ReS_jv
+
+    CheckVariableTypes
 end
 
 capture program drop CheckVariableTypes
@@ -1188,15 +1225,13 @@ program CheckVariableTypes
         }
     }
 
-    CheckMatsize $rVANS
-    CheckMatsize $ReS_Xij_names
-
     scalar __greshape_kout     = `:list sizeof k'
     scalar __greshape_kxij     = `:list sizeof k' * `:list sizeof j'
     scalar __greshape_nrows    = .
     scalar __greshape_ncols    = .
     matrix __greshape_maplevel = 0
 
+    local __greshape_types
     capture matrix drop __greshape_types
     foreach var of varlist $rVANS {
         if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
@@ -1204,58 +1239,86 @@ program CheckVariableTypes
                 disp as err "Unknown type `:type `var''"
                 exit 198
             }
-            matrix __greshape_types = nullmat(__greshape_types), `=`regex's(1)'
+            local __greshape_types `__greshape_types' `=`regex's(1)'
+            * matrix __greshape_types = nullmat(__greshape_types), `=`regex's(1)'
         }
         else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
-            matrix __greshape_types = nullmat(__greshape_types), 0
+            local __greshape_types `__greshape_types' 0
+            * matrix __greshape_types = nullmat(__greshape_types), 0
         }
         else {
             disp as err "Unknown type `:type `var''"
             exit 198
         }
     }
+    mata: st_matrix("__greshape_types", /*
+        */ strtoreal(tokens(st_local("__greshape_types"))))
 end
 
 capture program drop FillXi
 program define FillXi /* {1|0} */ /* 1 if islong currently */
     local islong `1'
-    local name __greshape_dsname
-    quietly {
-        if `islong' {
-            Dropout __greshape_dsname $ReS_j $ReS_i
-            parse "$ReS_Xij", parse(" ")
-            local i 1
-            while "``i''" != "" {
-                Subname ``i'' $ReS_atwl
-                mata: `name' = `name'[selectindex(`name' :!= `"$S_1"')]
-                local i = `i' + 1
-            }
-        }
-        else { /* wide */
-            Dropout __greshape_dsname $ReS_j $ReS_i
-            parse "$ReS_Xij", parse(" ")
-            local i 1
-            while "``i''" != "" {
-                local j 1
-                local jval : word `j' of $ReS_jv
-                while "`jval'"!="" {
-                    Subname ``i'' `jval'
-                    mata: `name' = `name'[selectindex(`name' :!= `"$S_1"')]
-                    local j = `j' + 1
-                    local jval : word `j' of $ReS_jv
-                }
-                local i = `i' + 1
-            }
-        }
-
-        mata: st_local("N", strofreal(length(`name')))
-        local i 1
-        while ( `i' <= `=`N'' ) {
-            mata: st_local("nam", `name'[`i'])
-            global ReS_Xi $ReS_Xi `nam'
-            local i = `i' + 1
-        }
+    if `islong' { /* long to wide */
+        unab ReS_Xi:   _all
+        unab ReS_i:    $ReS_i
+        unab ReS_j:    $ReS_j
+        unab ReS_Xij:  $ReS_Xij
+        local ReS_Xi:  list ReS_Xi - ReS_i
+        local ReS_Xi:  list ReS_Xi - ReS_j
+        local ReS_Xi:  list ReS_Xi - ReS_Xij
+        global ReS_Xi: copy local ReS_Xi
     }
+    else { /* wide to long */
+        unab ReS_Xi:   _all
+        unab ReS_i:    $ReS_i
+        local ReS_j:   copy global ReS_j
+        unab ReS_Xij:  $ReS_Xij_names
+        local ReS_Xi:  list ReS_Xi - ReS_i
+        local ReS_Xi:  list ReS_Xi - ReS_j
+        local ReS_Xi:  list ReS_Xi - ReS_Xij
+        global ReS_Xi: copy local ReS_Xi
+    }
+
+    * ---------------------------
+    * TODO: Is this of any value?
+    * ---------------------------
+    * local name __greshape_dsname
+    * quietly {
+    *     if `islong' {
+    *         Dropout __greshape_dsname $ReS_j $ReS_i
+    *         parse "", parse(" ")
+    *         local i 1
+    *         while "``i''" != "" {
+    *             Subname ``i'' $ReS_atwl
+    *             mata: `name' = `name'[selectindex(`name' :!= `"$S_1"')]
+    *             local i = `i' + 1
+    *         }
+    *     }
+    *     else { /* wide */
+    *         Dropout __greshape_dsname $ReS_j $ReS_i
+    *         parse "$ReS_Xij", parse(" ")
+    *         local i 1
+    *         while "``i''" != "" {
+    *             local j 1
+    *             local jval : word `j' of $ReS_jv
+    *             while "`jval'"!="" {
+    *                 Subname ``i'' `jval'
+    *                 mata: `name' = `name'[selectindex(`name' :!= `"$S_1"')]
+    *                 local j = `j' + 1
+    *                 local jval : word `j' of $ReS_jv
+    *             }
+    *             local i = `i' + 1
+    *         }
+    *     }
+    *     mata: st_local("N", strofreal(length(`name')))
+    *     local i 1
+    *     while ( `i' <= `=`N'' ) {
+    *         mata: st_local("nam", `name'[`i'])
+    *         global ReS_Xi $ReS_Xi `nam'
+    *         local i = `i' + 1
+    *     }
+    * }
+    * ---------------------------
 end
 
 capture program drop GetXiTypes
@@ -1265,7 +1328,7 @@ program GetXiTypes
     else local regex ustrregex
 
     if ( "$ReS_Xi" != "" ) {
-        CheckMatsize $ReS_Xi
+        local __greshape_xitypes
         cap matrix drop __greshape_xitypes
         foreach var of varlist $ReS_Xi {
             if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
@@ -1273,16 +1336,20 @@ program GetXiTypes
                     disp as err "Unknown type `:type `var''"
                     exit 198
                 }
-                matrix __greshape_xitypes = nullmat(__greshape_xitypes), `=`regex's(1)'
+                local __greshape_xitypes `__greshape_xitypes' `=`regex's(1)'
+                * matrix __greshape_xitypes = nullmat(__greshape_xitypes), `=`regex's(1)'
             }
             else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
-                matrix __greshape_xitypes = nullmat(__greshape_xitypes), 0
+                local __greshape_xitypes `__greshape_xitypes' 0
+                * matrix __greshape_xitypes = nullmat(__greshape_xitypes), 0
             }
             else {
                 disp as err "Unknown type `:type `var''"
                 exit 198
             }
         }
+        mata: st_matrix("__greshape_xitypes", /*
+            */ strtoreal(tokens(st_local("__greshape_xitypes"))))
     }
     else {
         matrix __greshape_xitypes = .
@@ -1303,7 +1370,7 @@ capture program drop FreeTimer
 program FreeTimer
     qui {
         timer list
-        local i = 99
+        local i = 95
         while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
             local --i
         }
@@ -1401,6 +1468,7 @@ program define Macdrop
              ReS_i             ///
              ReS_j             ///
              ReS_jfile         ///
+             ReS_jsep          ///
              ReS_jcode         ///
              ReS_jlen          ///
              ReS_jv            ///
@@ -1692,7 +1760,8 @@ program define NotDefd /* <message> */
     exit 111
 end
 
-program hasanyinfo
+capture program drop hasanyinfo
+program define hasanyinfo
     args macname 
 
     local cons   : char _dta[ReS_i]

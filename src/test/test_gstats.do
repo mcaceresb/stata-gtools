@@ -1,5 +1,6 @@
 capture program drop checks_gstats
 program checks_gstats
+    * TODO: Pending
     sysuse auto, clear
 
     cap noi gstats winsor price, by(foreign) cuts(10)
@@ -8,22 +9,22 @@ program checks_gstats
     cap noi gstats winsor price, by(foreign) cuts(10 .)
     cap noi gstats winsor price, by(foreign) cuts(-1 10)
     cap noi gstats winsor price, by(foreign) cuts(10 101)
-    * gstats winsor price, by(foreign) cuts(0 10) gen(x)
-    * gstats winsor price, by(foreign) cuts(10 100) gen(y)
-    * gstats winsor price, by(foreign) cuts(100 100) gen(zz)
-    * gstats winsor price, by(foreign) cuts(0 0) gen(yy)
+    preserve
+        cap noi gstats winsor price, by(foreign) cuts(0 10) gen(x)
+        cap noi gstats winsor price, by(foreign) cuts(10 100) gen(y)
+        cap noi gstats winsor price, by(foreign) cuts(100 100) gen(zz)
+        cap noi gstats winsor price, by(foreign) cuts(0 0) gen(yy)
+    restore
     gstats winsor price, by(foreign)
     winsor2 price, by(foreign) replace
 
     winsor2 price mpg, by(foreign) cuts(10 90) s(_w2)
     gstats winsor price mpg, by(foreign) cuts(10 90) s(_w2) replace
     desc
-    * l price* mpg* foreign 
-    exit 12345
 
     * gtools, upgrade branch(develop)
     clear
-    set obs 1000000
+    set obs 500000
     gen long id = int((_n-1) / 1000)
     gunique id
     gen double x = runiform()
@@ -43,7 +44,11 @@ program checks_gstats
     gegen p99 = pctile(x) [aw = y], by(id) p(99) 
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
-    exit 12345
+end
+
+capture program drop compare_gstats
+program compare_gstats
+    * TODO: Pending
 end
 
 ***********************************************************************
@@ -61,6 +66,11 @@ end
 * di as txt "           |               |             | double2
 * di as txt "           |               |             | double3
 * di as txt "           |               |             | int1 int2 int3 double1 double2 double3
+
+capture program drop bench_gstats
+program bench_gstats
+    bench_gstats_winsor
+end
 
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor
@@ -122,52 +132,3 @@ program versus_gstats_winsor, rclass
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
     drop *_w?
 end
-
-***********************************************************************
-*                      Scratch for sorting speed                      *
-***********************************************************************
-
-* exit 17123
-*
-* sysuse auto, clear
-* mata: F = factor("turn", "", 1, "", 0, 0, ., 0)
-*
-* clear
-* set obs 10000000
-* gen long i0 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777215, 0)
-* gen long i1 = ceil(runiform() * 100) + 16777215
-* gen long i2 = ceil(runiform() * 10000) + 16777215
-* gen long i3 = ceil(runiform() * 65536) + 16777215
-* gen long i4 = ceil(runiform() * 1000000) + 16777215
-* gen long i5 = ceil(runiform() * 10000000) + 16777215
-* gen long i6 = ceil(runiform() * 10) + cond(mod(_n, 2), 16777204, 0)
-* set rmsg on
-*
-* mata: F = factor("i0",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i1",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i2",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i3",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i4",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i5",  "", 1, "", 0, 0, ., 0)
-* mata: F = factor("i6",  "", 1, "", 0, 0, ., 0)
-*
-* gunique i0
-* gunique i1
-* gunique i2
-* gunique i3
-* gunique i4
-* gunique i5
-* gunique i6
-*
-* clear
-* set obs 33554432
-* * set obs 16777216
-* gen long i = 3 * _N - _n
-* gen double r = rnormal()
-* sort r
-* set rmsg on
-* mata: F = factor("i", "", 1, "", 0, 0, ., 0)
-* mata: F.num_levels
-* gunique i, v bench(3)
-* gunique i, v bench(3) _ctol(`=2^25')
-* exit 17123

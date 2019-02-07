@@ -10,10 +10,10 @@
 
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
-including: collapse, pctile, xtile, contract, egen, isid, levelsof,
-duplicates, and unique/distinct.
+including: collapse, reshape, winsor, pctile, xtile, contract, egen,
+isid, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.2.7-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.3.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -42,7 +42,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
 | gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
-| greshape     | reshape    |  5 to 10  / XX to XX     |                 | `fast`, spread/gather (tidyr equiv)     |
+| greshape     | reshape    |  5 to 10  / XX to XX     | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
@@ -93,12 +93,12 @@ speedup. See the [remarks](#remarks) section below for an overview; for
 details and examples, see each command's help page:
 
 - [gcollapse](https://gtools.readthedocs.io/en/latest/usage/gcollapse/index.html#examples)
+- [greshape](https://gtools.readthedocs.io/en/latest/usage/greshape/index.html#examples)
 - [gquantiles](https://gtools.readthedocs.io/en/latest/usage/gquantiles/index.html#examples)
 - [glevelsof](https://gtools.readthedocs.io/en/latest/usage/glevelsof/index.html#examples)
 - [gtoplevelsof](https://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples)
 - [gegen](https://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples)
 - [gdistinct](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples)
-- [greshape](https://gtools.readthedocs.io/en/latest/usage/greshape/index.html#examples)
 
 In addition, several commands take gsort-style input, that is
 
@@ -202,16 +202,16 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
-* gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
-gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
-gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
-drop *_w?
-
 * gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
 gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
 fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
+
+* gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
+gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
+gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
+drop *_w?
 
 * hashsort varlist, [options]
 hashsort -make
@@ -369,7 +369,23 @@ Differences from `collapse`
 
 Differences from `greshape`
 
-XX
+- Several option allow turning off error checks for faster execution,
+  including: `fast` (similar to `fast` in `gcollapse`), `unsorted`
+  (do not sort the output), `nodupcheck` (allow duplicates in `i`),
+  `nomisscheck` (allow missing values and/or leading blanks in `j`), or
+  `nochecks` (all of the above).
+- Subcommands `gather` and `spread` implement the equivalent commands from
+  R's `tidyr` package.
+- At the moment, `j(name [values])` is not supported. All values of `j` are used.
+- "reshape mode" is not supported. Reshape variables are not saved as
+  part of the current dataset's characteristics, meaning the user cannot
+  type `reshape wide` and `reshape long` without further arguments to
+  reverse the `reshape`. This syntax is very cumbersome and difficult to
+  support; `greshape` re-wrote much of the code base and had to dispense
+  with this functionality.
+- For that same reason, "advanced" syntax is not supported, including
+  the subcommands: clear, error, query, i, j, xij, and xi.
+- `@` syntax is not (yet) supported but is planned for a future release.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -485,25 +501,16 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
+Roadmap to 2.0:
+
+- [ ] Benchmarks for `greshape`, `winsor`
+- [ ] Generally speaking, update benchmarks for all commands. Still on 0.8 benchmarks.
+- [ ] Implement `gmerge`
+- [ ] Implement `gstats summarize` and `gstats tabstat`
+- [X] Integrate spookyhash into the plugin.
+
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them:
-
-- [ ] `README.md` (add greshape differences; timer for greshape, winsor)
-    - [ ] `./src/ado/gtools.ado` (add winsor and greshape to showcase)
-- [ ] `greshape`
-    - [ ] `./docs/stata/greshape.sthlp`
-    - [ ] `./src/test/test_greshape.do`
-    - [ ] `./docs/usage/greshape.md`
-    - [ ] `./docs/examples/greshape.do`
-- [ ] `gstats`
-    - [ ] `./docs/stata/gstats.sthlp`
-    - [ ] `./docs/stata/gstats_winsor.sthlp`
-    - [ ] `./docs/usage/gstats_winsor.md`
-    - [ ] `./docs/examples/gstats_winsor.do`
-    - [ ] `./src/test/test_gstats.do`
-    - [ ] 0 and 100 for min/max
-    - [ ] README and index for gstats.
-    - [ ] Each gstats subcommand will get its own help file.
 
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.

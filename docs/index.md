@@ -2,16 +2,12 @@
 
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
-including: collapse, pctile, xtile, contract, egen, isid, levelsof,
-duplicates, and unique/distinct.
+including: collapse, reshape, winsor, pctile, xtile, contract, egen,
+isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.2.7-blue.svg?longCache=true&style=flat-square)
-![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+![Stable Version](https://img.shields.io/badge/stable-v1.3.0-blue.svg?longCache=true&style=flat-square) ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 <!--
-`version 1.2.7 23Jan2019`
+`version 1.3.0 08Feb2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -39,6 +35,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
 | gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| greshape     | reshape    |  5 to 10  / XX to XX     | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
@@ -66,6 +63,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
 |                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
+| gstats winsor       | winsor2            |  10 to 40 / XX to XX    | Can use weights              |
 | gunique             | unique             |  4 to 26 / 4 to 12      |                              |
 | gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
 | gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
@@ -88,6 +86,7 @@ speedup. See the [remarks](#remarks) section below for an overview; for
 details and examples, see each command's help page:
 
 - [gcollapse](usage/gcollapse#examples)
+- [greshape](usage/greshape#examples)
 - [gquantiles](usage/gquantiles#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
@@ -149,11 +148,10 @@ __*Limitations*__
   issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
 - Gtools uses compiled C code to achieve it's massive increases in
-  speed. This has two effects users might notice: First, it is sometimes
-  not possible to break the program's execution.  While this is already
-  true for at least some parts of most Stata commands, there are fewer
-  opportunities to break Gtools commands relative to their Stata
-  counterparts.
+  speed. This has two side-effects users might notice: First, it is sometimes
+  not possible to break the program's execution.  While this is already true
+  for at least some parts of most Stata commands, there are fewer opportunities
+  to break Gtools commands relative to their Stata counterparts.
 
   Second, the Stata GUI might appear frozen when running Gtools
   commands.  If the system then runs out of RAM (memory), it could look
@@ -203,6 +201,11 @@ gquantiles p10 = 2 * price, pctile nq(10)
 gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
 fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
 
+* gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
+gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
+gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
+drop *_w?
+
 * hashsort varlist, [options]
 hashsort -make
 hashsort foreign -rep78, benchmark verbose mlast
@@ -241,6 +244,19 @@ gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2)
 
 * gcontract varlist [if] [if] [fweight], [options]
 gcontract foreign [fw = turn], freq(f) percent(p)
+
+* greshape wide varlist,    i(i) j(j) [options]
+* greshape long prefixlist, i(i) [j(j) string options]
+*
+* greshape spread varlist, j(j) [options]
+* greshape gather varlist, j(j) value(value) [options]
+
+gen j = _n
+greshape wide f p, i(foreign) j(j)
+greshape long f p, i(foreign) j(j)
+
+greshape spread f p, j(j)
+greshape gather f? p?, j(j) value(fp)
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -343,6 +359,26 @@ Differences from `collapse`
 - `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
   value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
+
+Differences from `greshape`
+
+- Several option allow turning off error checks for faster execution,
+  including: `fast` (similar to `fast` in `gcollapse`), `unsorted`
+  (do not sort the output), `nodupcheck` (allow duplicates in `i`),
+  `nomisscheck` (allow missing values and/or leading blanks in `j`), or
+  `nochecks` (all of the above).
+- Subcommands `gather` and `spread` implement the equivalent commands from
+  R's `tidyr` package.
+- At the moment, `j(name [values])` is not supported. All values of `j` are used.
+- "reshape mode" is not supported. Reshape variables are not saved as
+  part of the current dataset's characteristics, meaning the user cannot
+  type `reshape wide` and `reshape long` without further arguments to
+  reverse the `reshape`. This syntax is very cumbersome and difficult to
+  support; `greshape` re-wrote much of the code base and had to dispense
+  with this functionality.
+- For that same reason, "advanced" syntax is not supported, including
+  the subcommands: clear, error, query, i, j, xij, and xi.
+- `@` syntax is not (yet) supported but is planned for a future release.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -457,6 +493,14 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 
 TODO
 ----
+
+Roadmap to 2.0:
+
+- Benchmarks for `greshape`, `winsor`
+- Generally speaking, update benchmarks for all commands. Still on 0.8 benchmarks.
+- Implement `gmerge`
+- Implement `gstats summarize` and `gstats tabstat`
+- Integrate spookyhash into the plugin.
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them:

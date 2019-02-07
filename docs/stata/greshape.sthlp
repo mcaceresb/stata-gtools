@@ -6,52 +6,171 @@
 {viewerjumpto "Description" "greshape##description"}{...}
 {title:Title}
 
-{p2colset 5 18 23 2}{...}
-{p2col :{cmd:greshape} {hline 2}} Various statistical fucntions and transformations. {p_end}
+{p2colset 5 17 23 2}{...}
+{p2col :{cmd:greshape} {hline 2}} Fast alternative to reshape using C for speed. {p_end}
 {p2colreset}{...}
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
 the latest stable version.
 
+{pstd}
+{it:Note}: {cmd:greshape} relies on temporary files written to your disk
+storage to reshape the data in memory. For particularly large reshapes
+this might deteriorate performance.
+
 {marker syntax}{...}
 {title:Syntax}
 
-{p 8 17 2}
-{cmd:greshape}
-{it:subcommand}
-{varlist}
-{ifin}
-[{it:{help greshape##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {it:{help greshape##table_options:subcommand_options}}]
+{pstd}
+{opt greshape} is a fast alternative to {opt reshape} that additionally
+implements the equivalents to R's {cmd:spread} and {cmd:gather} from
+{cmd:tidyr}.
 
-{phang}
-{opt greshape} is a wrapper for various statistical functions and
-transformations, including:
+{p 4 8 2}
+Basic syntax
 
-{p 8 17 2}
-{it:greshape winsor} as a fast {opt winsor2} alternative (accepts weights). {p_end}
+{phang2}
+Convert data from wide form to long form
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:long}
+{it:stubnames}{cmd:,}
+{cmd:i(}{varlist}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:gather}
+{varlist}{cmd:,}
+{cmd:j(}{varlist}{cmd:)}
+{cmd:values(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{phang2}
+Convert data from long form to wide form
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:wide}
+{it:stubnames}{cmd:,}
+{cmd:i(}{varlist}{cmd:)}
+{cmd:j(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:spread}
+{varlist}{cmd:,}
+{cmd:j(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 4 8 2}
+Details
+
+        The {it:stubnames} are a list of variable {it:prefixes}. The suffixes are either
+        saved or taken from {opt j()}, depending on the shape of the data.  Remember
+        this picture:
+
+
+           {it:long}
+        {c TLC}{hline 12}{c TRC}                   {it:wide}
+        {c |} {it:i  j}  {it:stub} {c |}                  {c TLC}{hline 16}{c TRC}
+        {c |}{hline 12}{c |}                  {c |} {it:i}  {it:stub}{bf:1} {it:stub}{bf:2} {c |}
+        {c |} 1  {bf:1}   4.1 {c |}     greshape     {c |}{hline 16}{c |}
+        {c |} 1  {bf:2}   4.5 {c |}   <{hline 10}>   {c |} 1    4.1   4.5 {c |}
+        {c |} 2  {bf:1}   3.3 {c |}                  {c |} 2    3.3   3.0 {c |}
+        {c |} 2  {bf:2}   3.0 {c |}                  {c BLC}{hline 16}{c BRC}
+        {c BLC}{hline 12}{c BRC}
+
+        To go from long to wide:
+
+     {col 45}{it:j} existing variable
+     {col 44}/
+     	        {cmd:greshape wide} {it:stub}{cmd:, i(}{it:i}{cmd:) j(}{it:j}{cmd:)}
+
+        To go from wide to long:
+
+     	        {cmd:greshape long} {it:stub}{cmd:, i(}{it:i}{cmd:) j(}{it:j}{cmd:)}
+     {col 44}\
+     {col 45}{it:j} new variable
+
+        Additionally, the user can reshape in the style of R's {cmd:tidyr} package.
+        To go from long to wide:
+
+     	        {cmd:greshape spread} {it:varlist}{cmd:, j(}{it:j}{cmd:)}
+
+        Note that {cmd:spread} (and {cmd:gather}) both require variable {it:names}, not prefixes.
+        Further, all variables not specified in the reshape are assumed to be 
+        part of {cmd:i()} and the new variables are simply named after the values of
+        {cmd:j()}. To go from wide to long:
+
+     	        {cmd:greshape gather} {it:varlist}{cmd:, j(}{it:j}{cmd:) values(}{it:values}{cmd:)}
+
+        This does {opt not} check for duplicates or sorts the data. Variables not
+        named are assumed to be part of {cmd:i()}).  The values of the variables in
+        {it:varlist} are saved in {cmd:values()}, with their names saved in {it:j()}.
+
+        {cmd:reshape}'s extended syntax is not supported; that is, {cmd:greshape} does
+        not implement "reshape mode" where a user can type {cmd:reshape long} or
+        {cmd:reshape wide} after the first reshape. This syntax is cumbersome to
+        support and prone to errors given the degree to which {cmd:greshape} had
+        to rewrite the base code. This also means the "advanced" commands
+        are not supported, including: clear, error, query, i, j, xij, and xi.
 
 {synoptset 19 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
-{syntab :Winsor Options}
-{synopt :{opth p:refix(str)}} Generate targets as {it:prefix}source (default empty).
+{syntab :Long}
+{synopt :* {opth i(varlist)}} use {it:varlist} as the ID variables.
 {p_end}
-{synopt :{opth s:uffix(str)}}  Generate targets as source{it:suffix} (default {it:_w} with cut and {it:_tr} with {opt trim}).
+{synopt :{opth j(varname)}} wide->long: {it:varname}, new variable to store stub suffixes (default {it:_j}).
 {p_end}
-{synopt :{opth gen:erate(namelist)}} Named targets to generate; one per source.
-{p_end}
-{synopt :{opt c:uts(#.# #.#)}} Cut points (detault 1.0 and 99.0 for 1st and 99th percentiles).
-{p_end}
-{synopt :{opt t:rim}} Trim instead of Winsorize (i.e. replace outliers with missing values).
-{p_end}
-{synopt :{opt l:abel}} Add Winsorized/trimming note to target labels.
-{p_end}
-{synopt :{opt replace}} Replace targets if they exist.
+{synopt :{opt s:tring}} Whether to allow for string matches to each {it:stub}
 {p_end}
 
+{syntab :Wide}
+{synopt :* {opth i(varlist)}} use {it:varlist} as the ID variables.
+{p_end}
+{synopt :* {opth j(varlist)}} long->wide: {it:varlist}, existing variable with stub suffixes.
+{p_end}
+{synopt :{opth cols:epparate(str)}} Column separator when multiple variables are passed to {opt j()}.
+{p_end}
+
+{syntab :Common long and wide options}
+{synopt :{opt fast}} Do not wrap the reshape in preserve/restore pairs.
+{p_end}
+{synopt :{opt unsorted}} Leave the data unsorted (faster). Original sort order is {opt not} preserved.
+{p_end}
+{synopt :{opt nodupcheck}} wide->long, allow duplicate {opt i()} values (faster).
+{p_end}
+{synopt :{opt nomisscheck}} long->wide, allow missing values and/or leading blanks in {opt j()} (faster).
+{p_end}
+{synopt :{opt nochecks}} This is equivalent to all 4 of the above options (fastest).
+{p_end}
+{synopt :{opt xi(drop)}} Drop variables not in the reshape, {opt i()}, or {opt j()}.
+{p_end}
+
+{synoptline}
+{syntab :Gather}
+{synopt :* {opth values(varname)}} Store values in {it:varname}.
+{p_end}
+{synopt :{opth j(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_j}).
+{p_end}
+{synopt :{opt s:tring}} Whether to allow for string matches to each {it:stub}
+{p_end}
+
+{syntab :Spread}
+{synopt :* {opth j(varlist)}} long->wide: {it:varlist}, existing variable with variable names.
+{p_end}
+
+{syntab :Common gather and spread options}
+{synopt :{opth i(varlist)}} check {it:varlist} are the ID variables. Throws an error otherwise.
+{p_end}
+{synopt :{opt xi(drop)}} Drop variables not in the reshape or in {opt i()}.
+{p_end}
+{synopt :{opt fast}} Do not wrap the reshape in preserve/restore pairs.
+{p_end}
+
+{synoptline}
 {syntab:Gtools Options}
 {synopt :{opt compress}}Try to compress strL to str#.
 {p_end}
@@ -67,29 +186,32 @@ transformations, including:
 {p_end}
 
 {synoptline}
+{syntab:* options are required for that subcommand.}
 {p2colreset}{...}
-{p 4 6 2}
-
-{marker weight}{...}
-{p 4 6 2}
-{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are
-allowed (see {manhelp weight U:11.1.6 weight} for more on the way Stata
-uses weights).
 
 {marker description}{...}
 {title:Description}
 
 {pstd}
-{opt greshape} is a wrapper to several statistical fucntions and
-transformations. In theory {opt gegen} would be the place to expand
-{opt gtools}; however, {opt gegen}'s internally implemented functions
-were written with two assumptions: first, the output is unique at the
-group level; second, there is always a target variable. {opt greshape}
-is written to be more flexible and allow arbitrary functions and
-transformations.
+{cmd:greshape} converts data from wide to long form and vice versa.  It
+is a fast alternative to {cmd:reshape}, and it additionally implements
+{cmd:greshape spread} and {cmd:greshape gather}, both of which are
+marginally faster and in the style of the equivalent R commands from
+{cmd:tidyr}.
 
 {pstd}
-Weights are supported for the following subcommands: {it:winsor}.
+It is well-known that {cmd:reshape} is a slow command, and there are several
+alternatives that I have encountered to speed up reshape, incuding: {opt fastreshape},
+{opt sreshape}, and various custom solutions (e.g. {browse "http://www.nber.org/stata/efficient/reshape.html":here}).
+In my benchmarks their performance improvements are either minor or not robust to
+complex data configurations (e.g. many unsorted groups, many extra variables, mixed types, etc.).
+
+{pstd}
+The only solution that consistently outperforms {cmd:reshape} is
+{cmd:parallel}, which improves performance by 1.5x to 3x, depending on
+the data configuration. {cmd:greshape} typically speeds up {cmd:reshape}
+by 4x to 10x, so it is much faster than even the next-fastest known
+improvement to {cmd:reshape}.
 
 {marker example}{...}
 {title:Examples}
@@ -114,6 +236,10 @@ for examples.
 {title:Acknowledgment}
 
 {pstd}
+This help file was based on StataCorp's own help file for {it:reshape}.
+{p_end}
+
+{pstd}
 {opt gtools} was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
 {p_end}
@@ -126,6 +252,5 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {p 4 13 2}
-help for 
-{help gtools};
-{help winsor2} (if installed)
+help for
+{help gtools}; {help reshape}

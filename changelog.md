@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.3.0 (2019-02-08)
+
+### Features
+
+- `greshape long` and `greshape wide` are a fast alternative to
+  reshape. It additionally implements `greshape spread` and `greshape gather`,
+  which are analogous to the `spread` and `gather` commands from R's `tidyr`.
+
+### Enhancements
+
+- Added docs, examples `greshape` and `gstats`
+
 ## gtools-1.2.7 (2019-01-23)
 
 ### Enhancements

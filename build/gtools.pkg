@@ -62,6 +62,7 @@ f gtoplevelsof.ado
 f gisid.ado
 f gduplicates.ado
 f hashsort.ado
+f greshape.ado
 f gstats.ado
 f gtools.ado
 f gcollapse.sthlp
@@ -77,6 +78,7 @@ f gtoplevelsof.sthlp
 f gisid.sthlp
 f gduplicates.sthlp
 f hashsort.sthlp
+f greshape.sthlp
 f gstats.sthlp
 f gtools.sthlp
 f gtools_windows_v2.plugin

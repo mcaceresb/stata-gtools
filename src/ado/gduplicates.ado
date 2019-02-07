@@ -232,7 +232,7 @@ end
 
 capture program drop examplesListUnsorted
 program examplesListUnsorted
-    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) *]
+    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) noWARNing *]
 
     tempvar example Ngroup freq surplus dgroup order
 
@@ -258,6 +258,13 @@ program examplesListUnsorted
     if ( `r(J)' == `r(N)' ) {
         di _n as txt "(0 observations are duplicates)"
         exit 0
+    }
+    else {
+        di _n as txt "`=`r(N)' - `r(J)'' observations are duplicates. Examples:"
+    }
+
+    if ( `"`warning'"' != "nowarning" ) {
+        disp "({cmd}note: {cmd}`cmd' {txt}left unsorted to improve performance; use option {cmd}sort {txt}to mimic {cmd}duplicates)"
     }
 
     qui replace `dgroup' = 0 if ( `Ngroup' == 1 ) | mi(`dgroup')
@@ -291,13 +298,11 @@ program examplesListUnsorted
             list `order' `varlist' if `dgroup', subvarname noobs `options'
         }
     }
-
-    disp "{cmd}WARNING: {cmd}`cmd' {txt}left unsorted to improve performance; use option {cmd}sort {txt}to mimic {cmd}duplicates"
 end
 
 capture program drop examplesList
 program examplesList, sortpreserve
-    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) *]
+    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) noWARNing *]
 
     tempvar example Ngroup freq surplus dgroup order
 
@@ -323,6 +328,9 @@ program examplesList, sortpreserve
     if ( `r(J)' == `r(N)' ) {
         di _n as txt "(0 observations are duplicates)"
         exit 0
+    }
+    else {
+        di _n as txt "`=`r(N)' - `r(J)'' observations are duplicates. Examples:"
     }
 
     qui replace `dgroup' = 0 if ( `Ngroup' == 1 ) | mi(`dgroup')

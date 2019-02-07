@@ -50,6 +50,18 @@ end
 *                             Benchmarks                              *
 ***********************************************************************
 
+* di as txt _n(1)
+* di as txt "Benchmark vs Summary, detail; obs = `N', J = `J' (in seconds)"
+* di as txt "    sum, d | gstats sum, d | ratio (c/g) | varlist"
+* di as txt "    ------ | ------------- | ----------- | -------"
+* di as txt "           |               |             | int1
+* di as txt "           |               |             | int2
+* di as txt "           |               |             | int3
+* di as txt "           |               |             | double1
+* di as txt "           |               |             | double2
+* di as txt "           |               |             | double3
+* di as txt "           |               |             | int1 int2 int3 double1 double2 double3
+
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor
     syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]

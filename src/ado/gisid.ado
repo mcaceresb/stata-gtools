@@ -13,6 +13,7 @@ program gisid
         compress              /// Try to compress strL variables
         forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
+        _keepgreshape         /// (Undocumented) Keep greshape scalars
         _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
@@ -40,7 +41,7 @@ program gisid
         local miss missing
     }
 
-    local opts `miss' `compress' `forcestrl' `_ctolerance'
+    local opts `miss' `compress' `forcestrl' `_ctolerance' `_keepgreshape'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
     local opts `opts' `oncollision' `hashmethod' `debug'
     cap noi _gtools_internal `varlist' `if' `in', unsorted `opts' gfunction(isid)

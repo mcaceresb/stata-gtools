@@ -126,6 +126,7 @@ gtools_ssc = [
     "gisid.sthlp",
     "greshape.sthlp",
     "gstats.sthlp",
+    "gstats_winsor.sthlp",
     "gduplicates.sthlp",
     "gquantiles.sthlp",
     "fasterxtile.sthlp",
@@ -250,22 +251,23 @@ copy2("changelog.md", gdir)
 copy2(path.join("src", "gtools.pkg"),         gdir)
 copy2(path.join("src", "stata.toc"),          gdir)
 
-copy2(path.join("docs", "stata", "gcollapse.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gcontract.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gegen.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "gunique.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gdistinct.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gtop.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
-copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "greshape.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gstats.sthlp"),       gdir)
-copy2(path.join("docs", "stata", "gduplicates.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "gquantiles.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "fasterxtile.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "hashsort.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gtools.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gcollapse.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gcontract.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gegen.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gunique.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gdistinct.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "glevelsof.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gtop.sthlp"),          gdir)
+copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),  gdir)
+copy2(path.join("docs", "stata", "gisid.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "greshape.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gstats.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gstats_winsor.sthlp"), gdir)
+copy2(path.join("docs", "stata", "gduplicates.sthlp"),   gdir)
+copy2(path.join("docs", "stata", "gquantiles.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "fasterxtile.sthlp"),   gdir)
+copy2(path.join("docs", "stata", "hashsort.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gtools.sthlp"),        gdir)
 
 copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)

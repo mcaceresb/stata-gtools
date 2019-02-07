@@ -127,6 +127,7 @@ struct StataInfo {
     GT_size   greshape_jfile;
     GT_size   greshape_anystr;
     GT_size   *greshape_types;
+    GT_size   *greshape_xitypes;
     GT_size   *greshape_maplevel;
     //
     GT_bool   hash_method;

@@ -458,22 +458,20 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-These are options/features I would like to support, but I don't have an
-ETA for them:
+These are options/features/improvements I would like to add, but I don't
+have an ETA for them:
 
 - Add support for binary `strL` variables.
 - Minimize memory use.
-- Improve debugging info.
-- Improve code comments when you write the API!
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.
     - This will be a C library that other users can import.
     - Some functionality will be available from Stata via gtooos, api()
-- Have some type of coding standard for the base (coding style)
 - Add option to `gtop` to display top X results in alpha order
-- Clean exit from `gcollapse`, `gegen` on error.
-- Print # of missings for gegen
+- Improve debugging info.
+- Improve code comments when you write the API!
+- Have some type of coding standard for the base (coding style)
 
 About
 -----

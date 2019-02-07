@@ -669,6 +669,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->greshape_types
     );
 
+    st_info->greshape_xitypes = calloc(
+        GTOOLS_PWMAX(1, greshape_kxi),
+        sizeof st_info->greshape_xitypes
+    );
+
     st_info->greshape_maplevel = calloc(
         GTOOLS_PWMAX(1, greshape_kout * greshape_klvls),
         sizeof st_info->greshape_maplevel
@@ -690,6 +695,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->group_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
     if ( st_info->group_init        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
     if ( st_info->greshape_types    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
+    if ( st_info->greshape_xitypes  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
     if ( st_info->greshape_maplevel == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
 
     if ( st_info->pos_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
@@ -707,6 +713,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->group_targets")
     GTOOLS_GC_ALLOCATED("st_info->group_init")
     GTOOLS_GC_ALLOCATED("st_info->greshape_types")
+    GTOOLS_GC_ALLOCATED("st_info->greshape_xitypes")
     GTOOLS_GC_ALLOCATED("st_info->greshape_maplevel")
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
@@ -739,16 +746,20 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         if ( (rc = sf_get_vector_size ("__gtools_strpos", st_info->pos_str_byvars)) ) goto exit;
     }
 
-    if ( (rc = sf_get_vector_size ("__gtools_group_targets",   st_info->group_targets)) ) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_group_init",      st_info->group_init))    ) goto exit;
-    if ( (rc = sf_get_vector_size ("__gtools_greshape_types",  st_info->greshape_types))) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_group_targets",    st_info->group_targets))   ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_group_init",       st_info->group_init))      ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_greshape_types",   st_info->greshape_types))  ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_greshape_xitypes", st_info->greshape_xitypes))) goto exit;
 
     if ( greshape_code == 1 ) {
         for (i = 0; i < greshape_kout; i++) {
             for (j = 0; j < greshape_klvls; j++) {
                 if ( (rc = SF_mat_el("__gtools_greshape_maplevel", i + 1, j + 1, &z)) )
                     return (rc);
-                st_info->greshape_maplevel[greshape_klvls * i + j] = z > 0? (GT_size) z + kvars_by: 0;
+
+                st_info->greshape_maplevel[greshape_klvls * i + j] = z > 0?
+                    (GT_size) z + kvars_by + greshape_kxi:
+                    0;
             }
         }
     }
@@ -2000,6 +2011,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->group_targets);
         free (st_info->group_init);
         free (st_info->greshape_types);
+        free (st_info->greshape_xitypes);
         free (st_info->greshape_maplevel);
         free (st_info->pos_num_byvars);
         free (st_info->pos_str_byvars);
@@ -2016,6 +2028,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->group_targets")
         GTOOLS_GC_FREED("st_info->group_init")
         GTOOLS_GC_FREED("st_info->greshape_types")
+        GTOOLS_GC_FREED("st_info->greshape_xitypes")
         GTOOLS_GC_FREED("st_info->greshape_maplevel")
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")

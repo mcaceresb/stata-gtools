@@ -372,8 +372,8 @@ program gen_data
     }
 
     gen long   int1  = floor(uniform() * 1000)
-    gen long   int2  = floor(rnormal())
-    gen double int3  = floor(rnormal() * 5 + 10)
+    gen double int2  = floor(rnormal())
+    gen long   int3  = floor(rnormal() * 5 + 10)
 
     gen double double1 = uniform() * 1000
     gen double double2 = rnormal()

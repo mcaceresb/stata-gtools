@@ -263,6 +263,10 @@ program examplesListUnsorted
         di _n as txt "`=`r(N)' - `r(J)'' observations are duplicates. Examples:"
     }
 
+    if ( `"`warning'"' != "nowarning" ) {
+        disp "({cmd}note: {cmd}`cmd' {txt}left unsorted to improve performance; use option {cmd}sort {txt}to mimic {cmd}duplicates)"
+    }
+
     qui replace `dgroup' = 0 if ( `Ngroup' == 1 ) | mi(`dgroup')
     gen long `order' = _n
 
@@ -293,10 +297,6 @@ program examplesListUnsorted
         else {
             list `order' `varlist' if `dgroup', subvarname noobs `options'
         }
-    }
-
-    if ( `"`warning'"' != "nowarning" ) {
-    disp "{cmd}WARNING: {cmd}`cmd' {txt}left unsorted to improve performance; use option {cmd}sort {txt}to mimic {cmd}duplicates"
     }
 end
 

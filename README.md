@@ -42,6 +42,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
 | gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| greshape     | reshape    |  5 to 10  / XX to XX     |                 | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
@@ -69,7 +70,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
 |                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
-| gstats winsor       | winsor2            |  10 to 40 / 10 to 40    | Can use weights              |
+| gstats winsor       | winsor2            |  10 to 40 / XX to XX    | Can use weights              |
 | gunique             | unique             |  4 to 26 / 4 to 12      |                              |
 | gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
 | gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
@@ -97,6 +98,7 @@ details and examples, see each command's help page:
 - [gtoplevelsof](https://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples)
 - [gegen](https://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples)
 - [gdistinct](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples)
+- [greshape](https://gtools.readthedocs.io/en/latest/usage/greshape/index.html#examples)
 
 In addition, several commands take gsort-style input, that is
 
@@ -200,6 +202,11 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
+* gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
+gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
+gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
+drop *_w?
+
 * gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
@@ -244,6 +251,19 @@ gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2)
 
 * gcontract varlist [if] [if] [fweight], [options]
 gcontract foreign [fw = turn], freq(f) percent(p)
+
+* greshape wide varlist,    i(i) j(j) [options]
+* greshape long prefixlist, i(i) [j(j) string options]
+*
+* greshape spread varlist, j(j) [options]
+* greshape gather varlist, j(j) value(value) [options]
+
+gen j = _n
+greshape wide f p, i(foreign) j(j)
+greshape long f p, i(foreign) j(j)
+
+greshape spread f p, j(j)
+greshape gather f? p?, j(j) value(fp)
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -346,6 +366,10 @@ Differences from `collapse`
 - `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
   value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
+
+Differences from `greshape`
+
+XX
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -461,31 +485,37 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-These are options/features I would like to support, but I don't have an
-ETA for them:
+These are options/features/improvements I would like to add, but I don't
+have an ETA for them:
 
+- [ ] `README.md` (add greshape differences; timer for greshape, winsor)
+    - [ ] `./src/ado/gtools.ado` (add winsor and greshape to showcase)
+- [ ] `greshape`
+    - [ ] `./docs/stata/greshape.sthlp`
+    - [ ] `./src/test/test_greshape.do`
+    - [ ] `./docs/usage/greshape.md`
+    - [ ] `./docs/examples/greshape.do`
 - [ ] `gstats`
     - [ ] `./docs/stata/gstats.sthlp`
-    - [ ] `./docs/usage/gstats.md`
-    - [ ] `./docs/examples/gstats.do`
+    - [ ] `./docs/stata/gstats_winsor.sthlp`
+    - [ ] `./docs/usage/gstats_winsor.md`
+    - [ ] `./docs/examples/gstats_winsor.do`
     - [ ] `./src/test/test_gstats.do`
     - [ ] 0 and 100 for min/max
     - [ ] README and index for gstats.
     - [ ] Each gstats subcommand will get its own help file.
+
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.
-- [ ] Improve debugging info.
-- [ ] Improve code comments when you write the API!
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
-- [ ] Have some type of coding standard for the base (coding style)
 - [ ] Add option to `gtop` to display top X results in alpha order
-- [ ] Clean exit from `gcollapse`, `gegen` on error.
-- [ ] Print # of missings for gegen
-- [X] Add "Open Source Licenses" section
+- [ ] Improve debugging info.
+- [ ] Improve code comments when you write the API!
+- [ ] Have some type of coding standard for the base (coding style)
 
 About
 -----

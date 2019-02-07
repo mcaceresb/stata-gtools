@@ -29,11 +29,11 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     ST_retcode rc = 0;
     ST_double z;
 
-    GT_size selx, i, j, k, l, outbytes;
+    GT_size selx, i, j, k, l, outbytes, xibytes;
 
     FILE *fhandle;
-    char *jstr, *outstr;
-    ST_double *jdbl, *outdbl;
+    char *jstr, *outstr, *xistr;
+    ST_double *jdbl, *outdbl, *xidbl;
 
     GT_size kvars    = st_info->kvars_by;
     GT_size kout     = st_info->greshape_kout;
@@ -71,6 +71,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     //     i         i1 i2
     //     xij       a b c
     //     xij_names a1 a2 b10 b15 b20 c2 c15
+    //     xi        other variables in memory
     //     levels    1 2 10 15 20
     //
     //     maplevel  1 2 0 0 0
@@ -80,16 +81,18 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     //     types, array of length 7 with 0 if the kth variable is
     //     numeric and the string length if the kth variable is string.
     //
-    // The variables passed to the plugin are i and xij_names.
+    // The variables passed to the plugin are i, xij_names, and xi.
 
     char ReS_jfile[st_info->greshape_jfile];
 
     char      *bufstr   = malloc(st_info->rowbytes);
     ST_double *bufdbl   = calloc(kvars, sizeof bufdbl);
-    GT_size   *outpos   = calloc(kout + 1, sizeof(outpos));
-    GT_size   *outtyp   = calloc(kout + 1, sizeof(outtyp));
+    GT_size   *xipos    = calloc(GTOOLS_PWMAX(kxi, 1), sizeof(xipos));
+    GT_size   *outpos   = calloc(kout + kxi + 1, sizeof(outpos));
+    GT_size   *outtyp   = calloc(kout + kxi + 1, sizeof(outtyp));
     GT_size   *maplevel = st_info->greshape_maplevel;
 
+    if ( xipos  == NULL ) return(sf_oom_error("sf_reshape_flong", "xipos"));
     if ( bufstr == NULL ) return(sf_oom_error("sf_reshape_flong", "bufstr"));
     if ( outpos == NULL ) return(sf_oom_error("sf_reshape_flong", "outpos"));
     if ( outtyp == NULL ) return(sf_oom_error("sf_reshape_flong", "outtyp"));
@@ -113,8 +116,28 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         outdbl = calloc(N * klevels * krow, sizeof outdbl);
     }
 
+    xipos[0] = xibytes = 0;
+    for (k = 0; k < kxi; k++) {
+        if ( (l = st_info->greshape_xitypes[k]) ) {
+            xibytes += ((l + 1) * sizeof(char));
+        }
+        else {
+            xibytes += sizeof(ST_double);
+        }
+        if ( k < kxi - 1 ) {
+            xipos[k + 1] = xibytes;
+        }
+    }
+
+    xibytes = GTOOLS_PWMAX(xibytes, 1);
+    xistr   = calloc(1, xibytes);
+    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof xidbl);
+    memset(xistr, '\0', xibytes);
+
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_flong", "outdbl"));
     if ( outstr == NULL ) return(sf_oom_error("sf_reshape_flong", "outstr"));
+    if ( xistr  == NULL ) return(sf_oom_error("sf_reshape_flong", "xistr"));
+    if ( xidbl  == NULL ) return(sf_oom_error("sf_reshape_flong", "xidbl"));
 
     if ( outbytes == 0 ) {
         rc = 198;
@@ -164,6 +187,13 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                 if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
             }
 
+            // Copy each of the xi variables
+            for (k = 0; k < kxi; k++) {
+                if ( (rc = SF_vdata(kvars + k + 1,
+                                    i + st_info->in1,
+                                    xidbl + k)) ) goto exit;
+            }
+
             for (j = 0; j < klevels; j++) {
                 // selx is the row in the output (long) vector
                 selx = i * krow * klevels + j * krow;
@@ -186,6 +216,15 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                         outdbl[selx + kvars + k + 1] = SV_missval;
                     }
                 }
+
+                // Copy each of the xi variables
+                if ( kxi ) {
+                    memcpy(
+                        outdbl + selx + kvars + kout + 1,
+                        xidbl,
+                        kxi * sizeof(ST_double)
+                    );
+                }
             }
         }
     }
@@ -204,6 +243,21 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                                             i + st_info->in1,
                                             &z)) ) goto exit;
                         memcpy(bufstr + st_info->positions[k], &z, sizeof(ST_double));
+                    }
+                }
+
+                memset(xistr, '\0', xibytes);
+                for (k = 0; k < kxi; k++) {
+                    if ( st_info->greshape_xitypes[k] ) {
+                        if ( (rc = SF_sdata(kvars + k + 1,
+                                            i + st_info->in1,
+                                            xistr + xipos[k])) ) goto exit;
+                    }
+                    else {
+                        if ( (rc = SF_vdata(kvars + k + 1,
+                                            i + st_info->in1,
+                                            &z)) ) goto exit;
+                        memcpy(xistr + xipos[k], &z, sizeof(ST_double));
                     }
                 }
 
@@ -242,6 +296,14 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                             );
                         }
                     }
+
+                    if ( kxi ) {
+                        memcpy(
+                            outstr + selx + outpos[kout + 1],
+                            xistr,
+                            xibytes
+                        );
+                    }
                 }
             }
         }
@@ -249,6 +311,21 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
             for (i = 0; i < N; i++) {
                 for (k = 0; k < kvars; k++) {
                     if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
+                }
+
+                memset(xistr, '\0', xibytes);
+                for (k = 0; k < kxi; k++) {
+                    if ( st_info->greshape_xitypes[k] ) {
+                        if ( (rc = SF_sdata(kvars + k + 1,
+                                            i + st_info->in1,
+                                            xistr + xipos[k])) ) goto exit;
+                    }
+                    else {
+                        if ( (rc = SF_vdata(kvars + k + 1,
+                                            i + st_info->in1,
+                                            &z)) ) goto exit;
+                        memcpy(xistr + xipos[k], &z, sizeof(ST_double));
+                    }
                 }
 
                 for (j = 0; j < klevels; j++) {
@@ -286,10 +363,114 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                             );
                         }
                     }
+
+                    if ( kxi ) {
+                        memcpy(
+                            outstr + selx + outpos[kout + 1],
+                            xistr,
+                            xibytes
+                        );
+                    }
                 }
             }
         }
     }
+
+    /* //
+    if ( st_info->greshape_anystr == 0 ) {
+        printf("\n");
+        for (i = 0; i < Nread; i++) {
+            for (j = 0; j < klevels; j++) {
+                selx = i * klevels + j;
+                printf("(%ld, %ld): ", i, j);
+                for (k = 0; k < kvars ; k++) {
+                    z = outdbl[selx + k];
+                    if ( z < SV_missval ) {
+                        printf("\t%.3f", z);
+                    }
+                    else {
+                        printf("\t.");
+                    }
+                }
+                for (k = 0; k < kout; k++) {
+                    l = maplevel[k * klevels + j];
+                    printf("\t(%ld, %ld, %ld)", outtyp[k + 1], l, outpos[k + 1]);
+                    z = outdbl[selx + kvars + k + 1];
+                    if ( z < SV_missval ) {
+                        printf("\t%.3f", z);
+                    }
+                    else {
+                        printf("\t.");
+                    }
+                }
+                for (k = 0; k < kxi; k++) {
+                    z = outdbl[selx + kvars + kout + k + 1];
+                    if ( z < SV_missval ) {
+                        printf("\t%.3f", z);
+                    }
+                    else {
+                        printf("\t.");
+                    }
+                }
+                printf("\n");
+            }
+        }
+    }
+    else {
+        printf("\n");
+        for (i = 0; i < Nread; i++) {
+            for (j = 0; j < klevels; j++) {
+                selx = i * klevels * outbytes + j * outbytes;
+                printf("(%ld, %ld): ", i, j);
+                for (k = 0; k < kvars ; k++) {
+                    if ( st_info->byvars_lens[k] > 0) {
+                        printf("\t%s", outstr + selx + st_info->positions[k]);
+                    }
+                    else {
+                        z = *((ST_double *) (outstr + selx + st_info->positions[k]));
+                        if ( z < SV_missval ) {
+                            printf("\t%.3f", z);
+                        }
+                        else {
+                            printf("\t.");
+                        }
+                    }
+                }
+                for (k = 0; k < kout; k++) {
+                    l = maplevel[k * klevels + j];
+                        printf("\t(%ld, %ld, %ld)", outtyp[k + 1], l, outpos[k + 1]);
+                    if ( outtyp[k + 1] && (l > 0) ) {
+                        printf("\t%s", outstr + selx + outpos[k + 1]);
+                    }
+                    else {
+                        z = *((ST_double *) (outstr + selx + outpos[k + 1]));
+                        if ( z < SV_missval ) {
+                            printf("\t%.3f", z);
+                        }
+                        else {
+                            printf("\t.");
+                        }
+                    }
+                }
+                for (k = 0; k < kxi; k++) {
+                    if ( xitypes[k] ) {
+                        printf("\t%s", outstr + selx + outpos[kout + 1 + k]);
+                    }
+                    else {
+                        z = *((ST_double *) (outstr + selx + outpos[kout + 1 + k]));
+                        if ( z < SV_missval ) {
+                            printf("\t%.3f", z);
+                        }
+                        else {
+                            printf("\t.");
+                        }
+                    }
+                }
+                printf("\n");
+            }
+        }
+    }
+    // */
 
     if ( st_info->benchmark > 2 )
         sf_running_timer (&timer, "\treshape long step 2: transposed data");
@@ -329,6 +510,9 @@ exit:
     free(outdbl);
     free(bufstr);
     free(bufdbl);
+    free(xipos);
+    free(xistr);
+    free(xidbl);
     free(jstr);
     free(jdbl);
 

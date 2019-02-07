@@ -87,6 +87,7 @@ program _gtools_internal, rclass
         DEBUG_level(int 0)        /// debugging
         Verbose                   /// info
         _subtract                 /// (Undocumented) Subtract result from source variabes
+        _keepgreshape             /// (Undocumented) Keep greshape scalars
         _CTOLerance(real 0)       /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
@@ -1539,8 +1540,19 @@ program _gtools_internal, rclass
                 exit 198
             }
 
+            if ( inlist(`"`readwrite'"', "fwrite", "write") ) {
+                if ( `"`shape'"' == "long" ) {
+                    local reshapevars `xi' `xij'
+                }
+                else {
+                    local reshapevars `xij' `xi'
+                }
+            }
+            else {
+                local reshapevars `xij' `xi'
+            }
+
             local gcall `gfunction' `readwrite' `"`file'"'
-            local reshapevars `xij' `xi'
             scalar __gtools_greshape_code = cond(`"`shape'"' == "wide", 2, 1)
             if ( (`"`shape'"' == "wide") | ("`readwrite'" == "read") ) {
                 local reshapevars `j' `reshapevars'
@@ -2561,7 +2573,7 @@ program clean_all
     cap matrix drop __gtools_pos_targets
 
     gstats_scalars   drop
-    greshape_scalars drop
+    greshape_scalars drop `_keepgreshape'
 
     * NOTE(mauricio): You had the urge to make sure you were dropping
     * variables at one point. Don't. This is fine for gquantiles but not so
@@ -3226,10 +3238,12 @@ end
 capture program drop greshape_scalars
 program greshape_scalars
     * 1 = long, 2 = wide
-    if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
+    if ( inlist(`"`1'"', "gen", "init", "alloc") ) {
         scalar __gtools_greshape_code = 0
         scalar __gtools_greshape_kxi  = 0
         scalar __gtools_greshape_str  = 0
+        cap matrix list __gtools_greshape_xitypes
+        if ( _rc ) matrix __gtools_greshape_xitypes = 0
         cap matrix list __gtools_greshape_types
         if ( _rc ) matrix __gtools_greshape_types = 0
         cap matrix list __gtools_greshape_maplevel
@@ -3243,7 +3257,7 @@ program greshape_scalars
         cap scalar dir __gtools_greshape_klvls
         if ( _rc ) scalar __gtools_greshape_klvls = 0
     }
-    else {
+    else if ( `"`2'"' != "_keepgreshape" ) {
         cap scalar drop __gtools_greshape_code
         cap scalar drop __gtools_greshape_kxi
         cap scalar drop __gtools_greshape_str
@@ -3252,6 +3266,7 @@ program greshape_scalars
             cap scalar drop __gtools_greshape_kxij
             cap scalar drop __gtools_greshape_kout
             cap scalar drop __gtools_greshape_klvls
+            cap matrix drop __gtools_greshape_xitypes
             cap matrix drop __gtools_greshape_types
             cap matrix drop __gtools_greshape_maplevel
         }

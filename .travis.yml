@@ -18,4 +18,4 @@ script:
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export GCC=gcc; else export GCC=/usr/bin/gcc-7; fi
 - make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=$GCC
 - make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=$GCC
-- "./lib/travis_build_push.sh"
+# - "./lib/travis_build_push.sh"

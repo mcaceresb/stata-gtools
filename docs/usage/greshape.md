@@ -168,8 +168,8 @@ Remarks
 -------
 
 `greshape` converts data from wide to long form and vice versa.  It is a
-fast alternative to `reshape`, and it additionally implements `greshape
-spread` and `greshape gather`, both of which are marginally faster and in
+fast alternative to `reshape`, and it additionally implements `greshape spread`
+and `greshape gather`, both of which are marginally faster and in
 the style of the equivalent R commands from `tidyr`.
 
 It is well-known that `reshape` is a slow command, and there are several

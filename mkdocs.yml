@@ -1,28 +1,35 @@
-site_name: 'Gtools'
-pages:
+# Project information
+site_name:        'Gtools'
+site_description: 'Faster Stata for Big Data'
+
+nav:
     - Home: index.md
     - FAQs: faqs.md
     - Benchmarks: benchmarks.md
     - Advanced:
         - Compiling: compiling.md
     - Usage:
-        - gcollapse:    usage/gcollapse.md
-        - gquantiles:   usage/gquantiles.md
-        - greshape:     usage/greshape.md
-        - gstats:
-            - winsor:   usage/gstats_winsor.md
-        - gcontract:    usage/gcontract.md
-        - gdistinct:    usage/gdistinct.md
-        - gegen:        usage/gegen.md
-        - gisid:        usage/gisid.md
-        - gduplicates:  usage/gduplicates.md
-        - glevelsof:    usage/glevelsof.md
-        - gtools:       usage/gtools.md
-        - gtoplevelsof: usage/gtoplevelsof.md
-        - gunique:      usage/gunique.md
-        - hashsort:     usage/hashsort.md
+        gcollapse:    usage/gcollapse.md
+        gquantiles:   usage/gquantiles.md
+        greshape:     usage/greshape.md
+        gcontract:    usage/gcontract.md
+        gdistinct:    usage/gdistinct.md
+        gegen:        usage/gegen.md
+        gisid:        usage/gisid.md
+        gduplicates:  usage/gduplicates.md
+        glevelsof:    usage/glevelsof.md
+        gtools:       usage/gtools.md
+        gtoplevelsof: usage/gtoplevelsof.md
+        gunique:      usage/gunique.md
+        hashsort:     usage/hashsort.md
+        gstats:
+            winsor:    usage/gstats_winsor.md
 
-theme: readthedocs
+theme:
+    name: 'material'
+    palette:
+        primary: 'Teal'
+        accent: 'Teal'
 
 extra_javascript:
     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML
@@ -34,8 +41,9 @@ markdown_extensions:
     - tables
     - fenced_code
     - codehilite
+    - admonition
 
 use_directory_urls: false
 
-extra_css:
-    - extra.css
+# extra_css:
+#     - extra.css

@@ -7316,7 +7316,7 @@ program bench_greshape
     local J = trim("`: di %15.0gc `n''")
 
     di as txt _n(1)
-    di as txt "Benchmark vs winsor2, obs = `N', J = `J' (in seconds)"
+    di as txt "Benchmark vs reshape, obs = `N', J = `J' (in seconds)"
     di as txt " reshape | greshape | ratio (c/g) | varlist"
     di as txt " ------- | -------- | ----------- | -------"
 

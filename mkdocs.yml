@@ -25,11 +25,11 @@ nav:
         gtools:       usage/gtools.md
         hashsort:     usage/hashsort.md
 
-theme:
-    name: 'material'
-    palette:
-        primary: 'Teal'
-        accent: 'Teal'
+theme: readthedocs
+
+# name: 'material'
+#     primary: 'Teal'
+#     accent: 'Teal'
 
 extra_javascript:
     - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML
@@ -40,13 +40,19 @@ markdown_extensions:
     - toc
     - tables
     - fenced_code
-    - codehilite
     - admonition
+    - codehilite
+
+# guess_lang: False
+# use_pygments: True
+# noclasses: True
+# pygments_style: monokai
 
 use_directory_urls: false
 
 extra_css:
-    - extra2.css
+    - css/extra-rtd.css
 
 # extra_css:
-#     - extra.css
+#     - css/extra-material.css
+#     - css/extra-material-dark.css

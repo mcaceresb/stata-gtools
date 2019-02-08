@@ -7,15 +7,15 @@ gcollapse converts the dataset in memory into a dataset of means, sums,
 medians, etc., similar to collapse. Unlike collapse, however, first,
 last, firstnm, lastnm for string variables are not supported.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
-stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
 This is a fast option to Stata's collapse, with several additions.
 
-<p><span class="codespan">gcollapse clist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>gcollapse</b> clist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 where clist is either
 

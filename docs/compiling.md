@@ -1,14 +1,18 @@
 Compiling
 =========
 
-Compiling the plugin yourself is advised if you are on Linux or OSX and you
-wish to speed up gtools. I ran the Stata/MP benchmarks on a server that used
-the plugin I compiled locally. This was because most people will have that
-experience (i.e. they will not compile the plugin themselves).
+!!! info "Note"
+    Compiling the plugin is only advised for advanced users.
 
-However, if I compile the plugin on the server then gtools can be up to
-2 times faster (YMMV). This is because the optimization flags of the
-compiler perform different optimizations in different hardware.
+Compiling the plugin yourself might lead to a further speed improvement
+because the optimization flags used by different compilers vary on
+different hardware and opetaring systems. This is only recommended on
+Linux and OSX, where compiling the plugin is relatively easy (specially
+if you are able to access a version of `gcc`).
+
+Compiling the plugin locally might also help with troubleshooting if the
+plugin failed to load. This should be very rare, however: Most systems
+should be able to load the pre-compiled plugin.
 
 ### Requirements
 

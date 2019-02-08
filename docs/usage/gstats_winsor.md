@@ -4,15 +4,13 @@ gstats winsor
 Efficiently winsorize a list of varaibles, optionally specifying
 weights.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-```stata
-gstats winsor varlist [if] [in] [weight] [, by(varlist) options]
-```
+<p><span class="codespan"><b>gstats winsor</b> varlist [if] [in] [weight] [, by(varlist) options] </span></p>
  
 Options
 -------
@@ -76,8 +74,8 @@ winsorized or trimmed ones.
 
 ### Winsorizing vs trimming
 
-_Important_: This section is nearly verbatim from the equivalent help
-section from winsor2.
+!!! info "Note"
+    This section is nearly verbatim from the equivalent help section from winsor2.
 
 Winsorizing is not equivalent to simply excluding data, which is
 a simpler procedure, called trimming or truncation.  In a trimmed

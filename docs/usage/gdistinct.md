@@ -14,8 +14,8 @@ values.  Optionally, variables can be considered jointly so that the
 number of distinct groups defined by the values of variables in varlist
 is reported.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
@@ -23,11 +23,11 @@ Syntax
 This is a fast option to the user command distinct, additionally storing
 the results in a matrix.
 
-```stata
-gdistinct [varlist] [if] [in] [, ///
-    missing abbrev(#) joint minimum(#) maximum(#) ]
-```
-
+<p>
+<span class="codespan"><b>gdistinct</b> [varlist] [if] [in] [, ///</span>
+</br>
+<span class="codespan">&emsp;&emsp;&emsp; missing abbrev(#) joint minimum(#) maximum(#) ]</span>
+</p>
 
 Options
 -------

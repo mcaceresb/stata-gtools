@@ -81,6 +81,7 @@ program main
             cap ssc install ralpha
             cap ssc install ftools
             cap ssc install unique
+            cap ssc install winsor2
             cap ssc install distinct
             cap ssc install moremata
             cap ssc install fastxtile

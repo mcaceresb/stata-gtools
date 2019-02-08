@@ -1,6 +1,12 @@
 Benchmarks
 ==========
 
+!!! info "Note"
+    The majority of these benchmarks were compiled using `gtools-0.8.0`.
+    The current version of gtools should be faster, specially on Linux
+    systems, and includes commands not listed here (notably greshape and
+    gstats winsor). Updated benchmarks are forthcomming.
+
 Hardware
 --------
 

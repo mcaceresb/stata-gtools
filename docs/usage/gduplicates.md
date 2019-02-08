@@ -12,8 +12,8 @@ Note that for sub-commands `examples` and `list` the output is _**NOT**_
 sorted by default. To mimic duplicates entirely, pass option `sorted`
 when using those sub-commands.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------

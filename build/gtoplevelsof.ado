@@ -41,6 +41,7 @@ program gtoplevelsof, rclass
                               ///
         Separate(passthru)    /// Levels sepparator
         COLSeparate(passthru) /// Columns sepparator (only with 2+ vars)
+        Clean                 /// Clean strings
         LOCal(str)            /// Store variable levels in local
         MATrix(str)           /// Store result in matrix
                               ///
@@ -201,7 +202,7 @@ program gtoplevelsof, rclass
     * Call the internals
     * ------------------
 
-    local opts  `separate' `colseparate' `missing' `gtop' `numfmt' `ds' `nods'
+    local opts  `clean' `separate' `colseparate' `missing' `gtop' `numfmt' `ds' `nods'
     local sopts `compress' `forcestrl' `_ctolerance'
     local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
     local sopts `sopts' `oncollision' `hashmethod' `debug'

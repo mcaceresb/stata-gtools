@@ -3,18 +3,21 @@ hashsort
 
 sort and gsort using hashes and C-plugins
 
-_**Important:**_ Hashsort does not afford speed improvements over sort
-when the resulting sort will be unique or when the user has access to
-Stata/MP. Hence it is considered an experimental command, even though it is
-generally faster than gsort even in Stata/MP.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! Warning "Caveats"
+    While hashsort should always be faster than gsort, it might not
+    always be faster than regular sort. In testing, hashsort was always
+    faster in Stata/IC but not always in Stata/MP. If there are lots of
+    duplicates then hashsort might be faster; if the sort variables are
+    unique then hashsort will probably be slower.
+
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-<p><span class="codespan">hashsort [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>hashsort</b> [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
 
 Description
 -----------

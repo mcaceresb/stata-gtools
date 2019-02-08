@@ -11,8 +11,8 @@ and so on using C plugins for a massive speed improvement.
 
 This program helps the user manage their gtools installation.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------

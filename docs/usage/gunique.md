@@ -10,15 +10,13 @@ options. For example, this supports the `by(varlist)` option that also appears
 in the unique command, but does not support computing the number of unique
 values for variables individually.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-```stata
-gunique varlist [if] [in] [, detail]
-```
+<p><span class="codespan"><b>gunique</b> varlist [if] [in] [, detail]</span></p>
 
 
 Options

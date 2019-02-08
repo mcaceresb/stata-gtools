@@ -8,15 +8,16 @@ all combinations of varlist that exist in the data and a new variable
 that contains the frequency of each combination. The user can optionally
 request percentages and cumulative counts and percentages.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
+
 
 Syntax
 ------
 
 This is a fast option to Stata's contract.
 
-<p><span class="codespan">gcontract varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>gcontract</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ]</span></p>
 
 `fweight`s are allowed; see `help weights`. Further, instead of a
 varlist, it is possible to specify

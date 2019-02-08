@@ -13,17 +13,17 @@ nav:
         gquantiles:   usage/gquantiles.md
         greshape:     usage/greshape.md
         gcontract:    usage/gcontract.md
-        gdistinct:    usage/gdistinct.md
         gegen:        usage/gegen.md
+        gdistinct:    usage/gdistinct.md
+        gunique:      usage/gunique.md
         gisid:        usage/gisid.md
         gduplicates:  usage/gduplicates.md
         glevelsof:    usage/glevelsof.md
-        gtools:       usage/gtools.md
         gtoplevelsof: usage/gtoplevelsof.md
-        gunique:      usage/gunique.md
-        hashsort:     usage/hashsort.md
         gstats:
-            winsor:    usage/gstats_winsor.md
+            winsor:   usage/gstats_winsor.md
+        gtools:       usage/gtools.md
+        hashsort:     usage/hashsort.md
 
 theme:
     name: 'material'
@@ -44,6 +44,9 @@ markdown_extensions:
     - admonition
 
 use_directory_urls: false
+
+extra_css:
+    - extra2.css
 
 # extra_css:
 #     - extra.css

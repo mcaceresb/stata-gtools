@@ -3,14 +3,14 @@ gegen
 
 Efficient implementation of by-able egen functions using C.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
 <p>
-<span class="codespan">gegen [type] newvar = fcn(arguments) [if] [in] [weight] [, ///</spen>
+<span class="codespan"><b>gegen</b> [type] newvar = fcn(arguments) [if] [in] [weight] [, ///</span>
 </br>
 <span class="codespan">&emsp;&emsp;&emsp; replace <a href="#compiled-functions">fcn_options</a> <a href="#gtools-options">gtools_options</a> ]
 </p>

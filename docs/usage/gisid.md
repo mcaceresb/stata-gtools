@@ -6,15 +6,13 @@ option to Stata's isid. It checks whether a set of variables uniquely
 identifies observations in a dataset. It can additionally take `if` and
 `in` but it cannot check an external data set or sort the data.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-```stata
-gisid varlist [if] [in] [, missok]
-```
+<p><span class="codespan"><b>gisid</b> varlist [if] [in] [, missok ] </span></p>
 
 Options
 -------

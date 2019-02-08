@@ -11,8 +11,8 @@ quantiles (and an arbitrary number), frequency counts, and more (see the
 gquantiles is also faster than the user-written fastxtile, so an alias,
 fasterxtile, is also provided.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
@@ -20,7 +20,7 @@ Syntax
 The full syntax is
 
 <p>
-<span class="codespan">gquantiles [newvar =] exp [if] [in] [weight], {pctile | xtile | _
+<span class="codespan"><b>gquantiles</b> [newvar =] exp [if] [in] [weight], {pctile | xtile | _
 pctile}</span>
 </br>
 <span class="codespan">&emsp;&emsp;&emsp;<a href="#quantiles-method">quantiles_method</a> [ <a href="#gquantiles-options">gquantiles_options</a> ]</span>

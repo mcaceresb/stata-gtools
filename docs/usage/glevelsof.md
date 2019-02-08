@@ -7,13 +7,13 @@ glevelsof displays a sorted list of the distinct values of varlist.  It is
 meant to be a fast replacement of levelsof. Unlike levelsof, it can take a
 single variable or multiple variables.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-<p><span class="codespan">glevelsof varlist [if] [in] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>glevelsof</b> varlist [if] [in] [, <a href="#options">options</a> ] </span></p>
 
 Instead of varlist, it is possible to specify
 

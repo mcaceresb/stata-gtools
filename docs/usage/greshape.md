@@ -1,28 +1,38 @@
-gstats winsor
-=============
+greshape
+========
 
 `greshape` is a fast alternative to `reshape` that additionally
 implements the equivalents to R's `spread` and `gather` from `tidyr`.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
 Convert data from wide form to long form
 
-```stata
-greshape long stubnames, i(varlist) [options]
-greshape gather varlist, j(varlist) values(varname) [options]
-```
+<p>
+<span class="codespan">
+<b>greshape</b> long stubnames, i(varlist) [<a href="#long-and-wide">options</a>]
+</span>
+</br>
+<span class="codespan">
+<b>greshape</b> gather varlist, j(varlist) values(varname) [<a href="#gather-and-spread">options</a>]
+</span>
+</p>
 
 Convert data from long form to wide form
 
-```stata
-greshape wide stubnames, i(varlist) j(varname) [options]
-greshape spread varlist, j(varname) [options]
-```
+<p>
+<span class="codespan">
+<b>greshape</b> wide stubnames, i(varlist) j(varname) [<a href="#long-and-wide">options</a>]
+</span>
+</br>
+<span class="codespan">
+<b>greshape</b> spread varlist, j(varname) [<a href="#gather-and-spread">options</a>]
+</span>
+</p>
 
 Syntax Details
 --------------

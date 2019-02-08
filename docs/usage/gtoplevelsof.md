@@ -11,15 +11,15 @@ frequency counts.
 
 Unlike contract, it does not modify the original data and instead prints the
 resulting table to the console. It also stores a matrix with the frequency
-counts and stores the levels in the macro r(levels).
+counts and stores the levels in the macro `r(levels)`.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the
-latest stable version.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-<p><span class="codespan">gtoplevelsof varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>gtoplevelsof</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 

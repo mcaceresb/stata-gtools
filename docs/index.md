@@ -5,11 +5,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.3.0-blue.svg?longCache=true&style=flat-square)
-![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+![Stable Version](https://img.shields.io/badge/stable-v1.3.0%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-success.svg?longCache=true&style=flat-square)
 
 <!--
 `version 1.3.0 08Feb2019`

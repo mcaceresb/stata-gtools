@@ -1,11 +1,6 @@
 *! version 0.1.0 07Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
-* ------------------------------------------------------------------------------
-* TODO: Note in doc: greshape does not support highlighting problem observations
-*       General note: Extended reshape syntax not supported
-* ------------------------------------------------------------------------------
-
 ***********************************************************************
 *                           TODO Eventually                           *
 ***********************************************************************
@@ -375,6 +370,7 @@ program define Long /* reshape long */
     if ( $ReS_nodupcheck ) local cmd long fwrite
     else local cmd long write
 
+    if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
     tempfile ReS_Data
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -417,6 +413,7 @@ program define Long /* reshape long */
     * Read reshaped data
     * ------------------
 
+    if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt _n "Reading reshape from disk:"
     local cmd long read
     global GTOOLS_CALLER greshape
     local gopts j($ReS_j) xij($ReS_Xij) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -730,6 +727,7 @@ program define Wide /* reshape wide */
     * Reshape the data to disk
     * ------------------------
 
+    if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
     local cmd wide write
     keep $ReS_i $ReS_j $ReS_jcode $ReS_Xi $rVANS
     tempfile ReS_Data
@@ -773,6 +771,7 @@ program define Wide /* reshape wide */
     * Read reshaped data
     * ------------------
 
+    if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt _n "Reading reshape from disk:"
     local cmd wide read
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') $ReS_atwl `string'
@@ -1236,7 +1235,7 @@ program CheckVariableTypes
     foreach var of varlist $rVANS {
         if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
             if ( `regex's(1) == "L" ) {
-                disp as err "Unknown type `:type `var''"
+                disp as err "Unsupported type `:type `var''"
                 exit 198
             }
             local __greshape_types `__greshape_types' `=`regex's(1)'
@@ -1333,7 +1332,7 @@ program GetXiTypes
         foreach var of varlist $ReS_Xi {
             if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
                 if ( `regex's(1) == "L" ) {
-                    disp as err "Unknown type `:type `var''"
+                    disp as err "Unsupported type `:type `var''"
                     exit 198
                 }
                 local __greshape_xitypes `__greshape_xitypes' `=`regex's(1)'
@@ -1370,7 +1369,7 @@ capture program drop FreeTimer
 program FreeTimer
     qui {
         timer list
-        local i = 95
+        local i = 99
         while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
             local --i
         }

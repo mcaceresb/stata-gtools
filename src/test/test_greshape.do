@@ -682,6 +682,7 @@ program bench_greshape
     gen long   ix_num = _n
     gen str    ix_str = "str" + string(_n)
     gen double ix_dbl = _pi + _n
+    cap drop strL*
 
     local N = trim("`: di %15.0gc _N'")
     local J = trim("`: di %15.0gc `n''")

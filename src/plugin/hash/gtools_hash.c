@@ -1,5 +1,6 @@
 #include "gtools_hash.h"
 #include "gtools_sort.c"
+#include "gtools_hash_fast.c"
 
 ST_retcode gf_hash (
     uint64_t *h1,
@@ -412,6 +413,8 @@ ST_retcode gf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
  */
 int sf_check_hash (struct StataInfo *st_info, int level)
 {
+    return(sf_check_hash_fast(st_info, level));
+
     GT_size i, j, k;
     GT_size kvars   = st_info->kvars_by;
     GT_size kstr    = st_info->kvars_by_str;

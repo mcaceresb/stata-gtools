@@ -13,6 +13,10 @@ Change Log
 
 - Added docs, examples `greshape` and `gstats`
 
+### Bug fixes
+
+- Fixes #49
+
 ## gtools-1.2.7 (2019-01-23)
 
 ### Enhancements

@@ -7,6 +7,21 @@ program gcollapse, rclass
     global GTOOLS_USER_VARABBREV `c(varabbrev)'
     local 00 `0'
 
+    * Grab some free timers
+    FreeTimer
+    local t97: copy local FreeTimer
+    global GTOOLS_T97: copy local t97
+    gtools_timer on `t97'
+
+    FreeTimer
+    local t96: copy local FreeTimer
+    if ( `t96' == 0 ) {
+        disp as txt "(note: at least one timer required; overriding timer 96)"
+        local t96 96
+    }
+    global GTOOLS_T96: copy local t96
+    gtools_timer on `t96'
+
     global GTOOLS_CALLER gcollapse
     syntax [anything(equalok)]       /// Main function call:
                                      /// [(stat)] varlist [ [(stat)] ... ]
@@ -200,7 +215,7 @@ program gcollapse, rclass
     * Parse collapse statement to get sources, targets, and stats
     * -----------------------------------------------------------
 
-    gtools_timer on 97
+    gtools_timer on `t97'
     cap noi parse_vars `anything' `if' `in', ///
         `cw' `labelformat' `labelprogram' `freq' `wildparse'
 
@@ -437,7 +452,7 @@ program gcollapse, rclass
     * -------
 
     local msg "Parsed by variables, sources, and targets"
-    gtools_timer info 97 `"`msg'"', prints(`bench')
+    gtools_timer info `t97' `"`msg'"', prints(`bench')
 
     ***********************************************************************
     *                   Recast variables to save memory                   *
@@ -469,7 +484,7 @@ program gcollapse, rclass
         }
 
         local msg `"Recast source variables to save memory"'
-        gtools_timer info 97 `"`msg'"', prints(`bench')
+        gtools_timer info `t97' `"`msg'"', prints(`bench')
     }
 
     if ( `debug_level' ) {
@@ -580,7 +595,7 @@ program gcollapse, rclass
         * Drop extra vars
         if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
         local msg `"Dropped superfluous variables"'
-        gtools_timer info 97 `"`msg'"', prints(`bench')
+        gtools_timer info `t97' `"`msg'"', prints(`bench')
 
         * Benchmark adding 2 variables to gauge how long it might take to
         * add __gtools_gc_k_extra variables.
@@ -596,7 +611,7 @@ program gcollapse, rclass
         }
 
         local st_time = `r(st_time)'
-        gtools_timer info 97 `"`r(st_str)'"', prints(`bench')
+        gtools_timer info `t97' `"`r(st_str)'"', prints(`bench')
 
         if ( `st_time' > 0 ) {
             * Call the plugin with switch option
@@ -614,7 +629,7 @@ program gcollapse, rclass
 
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             local msg "Generated additional targets"
-            gtools_timer info 97 `"`msg'"', prints(`bench')
+            gtools_timer info `t97' `"`msg'"', prints(`bench')
 
             local gcollapse gcollapse(memory)
             local action    `action' fill(data) `unsorted'
@@ -628,7 +643,7 @@ program gcollapse, rclass
 
         if ( "`dropme'" != "" ) mata: st_dropvar(tokens(`"`dropme'"'))
         local msg `"Dropped superfluous variables"'
-        gtools_timer info 97 `"`msg'"', prints(`bench')
+        gtools_timer info `t97' `"`msg'"', prints(`bench')
 
         if ( ("`forceio'" == "forceio") & (`=scalar(__gtools_gc_k_extra)' == 0) ) {
             if ( `verb' ) {
@@ -640,7 +655,7 @@ program gcollapse, rclass
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
         }
         local msg "Generated additional targets"
-        gtools_timer info 97 `"`msg'"', prints(`bench')
+        gtools_timer info `t97' `"`msg'"', prints(`bench')
 
         local gcollapse gcollapse(memory, `merge')
         local action    `action' `:di cond("`merge'" == "", "fill(data)", "unsorted")'
@@ -755,10 +770,10 @@ program gcollapse, rclass
                    & (`=scalar(__gtools_gc_k_extra)' > 0) ///
                    & ( `used_io' | ("`forceio'" == "forceio") ) 
         if ( `ifcond' ) {
-            gtools_timer on 97
+            gtools_timer on `t97'
 
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
-            gtools_timer info 97 `"Added extra targets after collapse"', prints(`bench')
+            gtools_timer info `t97' `"Added extra targets after collapse"', prints(`bench')
 
             local __gtools_gc_iovars: list __gtools_gc_targets - __gtools_gc_uniq_vars
             local gcollapse gcollapse(read, fname(`__gtools_gc_file'))
@@ -778,7 +793,7 @@ program gcollapse, rclass
                 cap mata: mata drop __gtools_gc_data
             }
 
-            gtools_timer info 97 `"Read extra targets from disk"', prints(`bench')
+            gtools_timer info `t97' `"Read extra targets from disk"', prints(`bench')
         }
 
         * Order variables if they are not in user-requested order
@@ -833,11 +848,11 @@ program gcollapse, rclass
         }
     }
 
-    gtools_timer on 97
+    gtools_timer on `t97'
     if ( "`fast'" == "" ) restore, not
 
     local msg "Program exit executed"
-    gtools_timer info 97 `"`msg'"', prints(`bench') off
+    gtools_timer info `t97' `"`msg'"', prints(`bench') off
 
 	if ( `awnote' ) {
 		di as txt "(note: {bf:aweight}s not used to compute {bf:count}s or {bf:nmissing})"
@@ -859,6 +874,9 @@ program gtools_timer, rclass
     local timer `2'
     local msg   `"`3'; "'
 
+    * If timer is 0, then there were no free timers; skip this benchmark
+    if ( `timer' == 0 ) exit 0
+
     if ( inlist("`what'", "start", "on") ) {
         cap timer off `timer'
         cap timer clear `timer'
@@ -879,6 +897,18 @@ program gtools_timer, rclass
         timer off `timer'
         timer clear `timer'
     }
+end
+
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
 end
 
 ***********************************************************************
@@ -1494,33 +1524,33 @@ program benchmark_memvars, rclass
     }
 
     {
-        cap timer off 96
-        cap timer clear 96
-        timer on 96
+        cap timer off ${GTOOLS_T96}
+        cap timer clear ${GTOOLS_T96}
+        timer on ${GTOOLS_T96}
     }
     qui mata: st_addvar(("`itype'"), ("`index'"), 1)
     {
-        cap timer off 96
+        cap timer off ${GTOOLS_T96}
         qui timer list
-        local total_time = r(t96)
-        cap timer clear 96
-        timer on 96
+        local total_time = r(t${GTOOLS_T96})
+        cap timer clear ${GTOOLS_T96}
+        timer on ${GTOOLS_T96}
     }
     qui mata: st_addvar(("`itype'"), ("`ix'"), 1)
     {
-        cap timer off 96
+        cap timer off ${GTOOLS_T96}
         qui timer list
-        local total_time = `total_time' + r(t96)
-        cap timer clear 96
-        timer on 96
+        local total_time = `total_time' + r(t${GTOOLS_T96})
+        cap timer clear ${GTOOLS_T96}
+        timer on ${GTOOLS_T96}
     }
 
     qui mata: st_addvar(("`itype'"), ("`info'"), 1)
     {
-        cap timer off 96
+        cap timer off ${GTOOLS_T96}
         qui timer list
-        local total_time = `total_time' + r(t96)
-        cap timer clear 96
+        local total_time = `total_time' + r(t${GTOOLS_T96})
+        cap timer clear ${GTOOLS_T96}
     }
 
     local mib     = `=_N * 8 / 1024 / 1024'
@@ -1574,8 +1604,14 @@ program CleanExit
     cap scalar drop __gtools_first_inverted
     cap matrix drop __gtools_invert
 
-    cap timer off   97
-    cap timer clear 97
+    cap timer off   $GTOOLS_T97
+    cap timer clear $GTOOLS_T97
+
+    cap timer off   $GTOOLS_T96
+    cap timer clear $GTOOLS_T96
+
+    global GTOOLS_T97
+    global GTOOLS_T96
 end
 
 capture program drop CheckMatsize

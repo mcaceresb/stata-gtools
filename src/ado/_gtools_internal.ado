@@ -75,8 +75,15 @@ program _gtools_internal, rclass
     local 00 `0'
 
     * Time the entire function execution
-    gtools_timer on 99
-    gtools_timer on 98
+    FreeTimer
+    local t99: copy local FreeTimer
+    global GTOOLS_T99: copy local t99
+    gtools_timer on `t99'
+
+    FreeTimer
+    local t98: copy local FreeTimer
+    global GTOOLS_T98: copy local t98
+    gtools_timer on `t98'
 
     ***********************************************************************
     *                           Syntax parsing                            *
@@ -952,7 +959,7 @@ program _gtools_internal, rclass
         qui mata: (__gtools_togen_k > 0)? st_addvar(__gtools_togen_types[__gtools_togen_s], __gtools_togen_names[__gtools_togen_s]): ""
 
         local msg "Generated targets"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark')
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark')
     }
     else local etargets ""
 
@@ -1213,7 +1220,7 @@ program _gtools_internal, rclass
     else local extravars ""
 
     local msg "Parsed by variables"
-    gtools_timer info 98 `"`msg'"', prints(`benchmark')
+    gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
     ***********************************************************************
     *                               Debug!                                *
@@ -1375,7 +1382,7 @@ program _gtools_internal, rclass
         }
 
         local msg "Stata reshuffle"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
 
         if ( `=_N < maxlong()' ) {
             local stype long
@@ -1451,11 +1458,11 @@ program _gtools_internal, rclass
 
         if ( `=scalar(__gtools_ixfinish)' ) {
             local msg "Switch code runtime"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             local msg "Added targets"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
             local extravars `__gtools_sources' `__gtools_targets' `freq'
             local plugvars `byvars' `etargets' `extravars' `ixinfo'
@@ -1470,11 +1477,11 @@ program _gtools_internal, rclass
             }
 
             local msg "Finished collapse"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
         }
         else {
-            local msg "Plugin runtime"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+            local msg "C plugin runtime"
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
         }
 
         return scalar used_io = `=scalar(__gtools_used_io)'
@@ -1526,7 +1533,7 @@ program _gtools_internal, rclass
             scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
-            local 0 `greshape'
+            local 0: copy local greshape
             syntax anything, xij(str) [j(str) xi(str) File(str) STRing(int 0)]
 
             gettoken shape readwrite: anything
@@ -2226,12 +2233,13 @@ program _gtools_internal, rclass
             }
 
             local msg "Parsed quantiles and added targets"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
         }
         else local gcall `gfunction'
 
         local plugvars `byvars' `etargets' `extravars' `level_targets'
-        local plugvars `plugvars' `statvars' `contractvars' `xvars' `reshapevars'
+        local plugvars `plugvars' `statvars' `contractvars' `xvars'
+        local plugvars `plugvars' `reshapevars'
 
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
@@ -2243,8 +2251,8 @@ program _gtools_internal, rclass
             exit `rc'
         }
 
-        local msg "Plugin runtime"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+        local msg "C plugin runtime"
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
 
         if ( `debug_level' ) {
             disp as txt `""'
@@ -2354,8 +2362,8 @@ program _gtools_internal, rclass
         }
     }
 
-    local msg "Total runtime`runtxt'"
-    gtools_timer info 99 `"`msg'"', prints(`benchmark') off
+    local msg "Internal gtools runtime`runtxt'"
+    gtools_timer info `t99' `"`msg'"', prints(`benchmark') off
 
     * Return values
     * -------------
@@ -2447,8 +2455,8 @@ program hashsort_inner, sortpreserve
     c_local r_minJ = `r_minJ'
     c_local r_maxJ = `r_maxJ'
 
-    local msg "Plugin runtime"
-    gtools_timer info 98 `"`msg'"', prints(`benchmark')
+    local msg "C plugin runtime"
+    gtools_timer info ${GTOOLS_T98} `"`msg'"', prints(`benchmark')
 end
 
 ***********************************************************************
@@ -2600,11 +2608,14 @@ program clean_all
 
     cap mata: mata drop __gtools_level_targets
 
-    cap timer off   99
-    cap timer clear 99
+    cap timer off   $GTOOLS_T99
+    cap timer clear $GTOOLS_T99
 
-    cap timer off   98
-    cap timer clear 98
+    cap timer off   $GTOOLS_T98
+    cap timer clear $GTOOLS_T98
+
+    global GTOOLS_T99
+    global GTOOLS_T98
 end
 
 ***********************************************************************
@@ -2687,8 +2698,8 @@ program parse_by_types, rclass
     * Compress strL variables if requested
     * ------------------------------------
 
-    * gcollapse, gcontract, and greshape need to write to variables, and
-    * so cannot support strL variables
+    * gcollapse, gcontract, greshape, need to write to variables,
+    * and so cannot support strL variables
 
     local GTOOLS_CALLER $GTOOLS_CALLER
     local GTOOLS_STRL   gcollapse gcontract greshape
@@ -3008,6 +3019,9 @@ program gtools_timer, rclass
     local what  `1'
     local timer `2'
     local msg   `"`3'; "'
+
+    * If timer is 0, then there were no free timers; skip this benchmark
+    if ( `timer' == 0 ) exit 0
 
     if ( inlist("`what'", "start", "on") ) {
         cap timer off `timer'
@@ -3441,6 +3455,47 @@ program gstats_winsor
 
     c_local varlist `varlist' `targetvars'
 end
+
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
+end
+
+capture program drop GenericParseTypes
+program GenericParseTypes
+    syntax varlist, mat(name) [strl(int 0)]
+
+    cap disp ustrregexm("a", "a")
+    if ( _rc ) local regex regex
+    else local regex ustrregex
+
+    local types
+    foreach var of varlist `varlist' {
+        if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
+            if ( (`regex's(1) == "L") & (`strl' == 0) ) {
+                disp as err "Unsupported type `:type `var''"
+                exit 198
+            }
+            local types `types' `=`regex's(1)'
+        }
+        else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
+            local types `types' 0
+        }
+        else {
+            disp as err "Unknown type `:type `var''"
+            exit 198
+        }
+    }
+    mata: st_matrix(st_local("mat"), strtoreal(tokens(st_local("types"))))
+end
+
 
 ***********************************************************************
 *                             Load plugin                             *

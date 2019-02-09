@@ -20,10 +20,10 @@ nav:
         gduplicates:  usage/gduplicates.md
         glevelsof:    usage/glevelsof.md
         gtoplevelsof: usage/gtoplevelsof.md
+        hashsort:     usage/hashsort.md
+        gtools:       usage/gtools.md
         gstats:
             winsor:   usage/gstats_winsor.md
-        gtools:       usage/gtools.md
-        hashsort:     usage/hashsort.md
 
 theme: readthedocs
 

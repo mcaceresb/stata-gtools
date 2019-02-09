@@ -1,31 +1,34 @@
 Compiling
 =========
 
-!!! info "Note"
-    Compiling the plugin is only advised for advanced users.
-
-Compiling the plugin yourself might lead to a further speed improvement
+Compiling the plugin yourself can lead to further speed improvements
 because the optimization flags used by different compilers vary on
-different hardware and opetaring systems. This is only recommended on
-Linux and OSX, where compiling the plugin is relatively easy (specially
-if you are able to access a version of `gcc`).
+different hardware and operating systems.  However, this is only
+recommended on Linux and OSX systems, where compiling is relatively
+easy.  In the Linux server where I use Stata, a locally compiled plugin
+ran 20-50% faster.
 
-Compiling the plugin locally might also help with troubleshooting if the
-plugin failed to load. This should be very rare, however: Most systems
-should be able to load the pre-compiled plugin.
+While compiling the plugin locally might also help with troubleshooting
+if the plugin failed to load, this scenario should be very rare.  Most
+systems should load the pre-compiled plugin; if yours doesn't, please
+file a bug report.
 
 ### Requirements
 
-If you want to compile the plugin yourself, you will, at a minimum, need
+!!! tip "Pro-tip"
+    Install the newest version of `gcc` to get the most out of compiling
+    the plugin locally.
 
-- The GNU Compiler Collection (`gcc`)
+You will, at a minimum, need
+
 - `git`
+- The GNU Compiler Collection (`gcc`)
 
-The plugin additionally requires:
+The current version of gtools was compiled using `gcc` versions 8
+(Linux), 7 (OSX), and 5 (Windows). The plugin additionally requires:
 
 - v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2) (Stata 13 and earlier).
 - v3.0 of the [Stata Plugin Interface](https://stata.com/plugins) (Stata 14 and later).
-- [`premake5`](https://premake.github.io)
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
 
 However, I keep a copy of Stata's Plugin Interface in this repository, and I
@@ -45,11 +48,11 @@ git clone https://github.com/mcaceresb/stata-gtools
 cd stata-gtools
 git submodule update --init --recursive
 
-# Stata 13 and earlier
+# Stata 14.0 and earlier
 make clean SPI=2.0 SPIVER=v2
 make all   SPI=2.0 SPIVER=v2
 
-# Stata 14 and later
+# Stata 14.1 and later
 make clean SPI=3.0 SPIVER=v3
 make all   SPI=3.0 SPIVER=v3
 ```
@@ -61,9 +64,9 @@ From a stata session, run
 do build/gtools_tests.do
 ```
 
-(Note this can take several hours.)  If successful, all tests should report to
-be passing and the exit message should be "tests finished running" followed by
-the start and end time.
+(Note this can take several hours.)  If successful, all tests should
+report to be passing and the exit message should be "tests finished
+running" followed by the start and end time.
 
 ### Troubleshooting
 

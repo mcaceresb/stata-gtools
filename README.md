@@ -42,7 +42,7 @@ Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools
 <img
     src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png"
     alt="Gtools quick benchmark"
-    style="display: block;margin-left:auto;margin-right:auto"
+    style="display:block;margin-left:auto;margin-right:auto"
     width="80%"/>
 
 __*Gtools commands with a Stata equivalent*__
@@ -50,7 +50,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
 | gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
-| greshape     | reshape    |  4 to 10  / XX to XX     | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
+| greshape     | reshape    |  4 to 20  / 4 to 15      | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
@@ -78,7 +78,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
 |                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
 |                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
-| gstats winsor       | winsor2            |  10 to 40 / XX to XX    | Can use weights              |
+| gstats winsor       | winsor2            |  10 to 40 / 10 to 20    | Can use weights              |
 | gunique             | unique             |  4 to 26 / 4 to 12      |                              |
 | gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
 | gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |

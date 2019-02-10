@@ -31,6 +31,8 @@ ssc install gtools
 gtools, upgrade
 ```
 
+Some [quick benchmarks](benchmarks/quick.do):
+
 ![Gtools quick benchmark](benchmarks/quick.png)
 
 __*Gtools commands with a Stata equivalent*__
@@ -498,21 +500,17 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-Roadmap to 2.0:
-
-- Benchmarks for `greshape`, `winsor`
-- Generally speaking, update benchmarks for all commands. Still on 0.8 benchmarks.
-- Implement `gmerge`
+- Update benchmarks for all commands. Still on 0.8 benchmarks.
 - Implement `gstats summarize` and `gstats tabstat`
-- Integrate spookyhash into the plugin.
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them:
 
+- Implement `gmerge`
+    - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Add support for binary `strL` variables.
 - Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.
-- Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 - Create a Stata C hashing API with thin wrappers around core functions.
     - This will be a C library that other users can import.
     - Some functionality will be available from Stata via gtooos, api()

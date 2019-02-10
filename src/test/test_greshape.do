@@ -22,6 +22,79 @@ program checks_greshape
     qui checks_inner_greshape_wide nochecks
     qui checks_inner_greshape_wide " " xi
     qui checks_inner_greshape_wide nochecks xi
+
+    * Random check: chars, labels, etc.
+    * ---------------------------------
+
+    sysuse auto, clear
+    note price: Hello, there!
+    note price: GENERAL KENOBI!!!
+    note price: You are a bold one.
+    char price[varname] #GiraffesAreFake
+    char price[ntoe17]  This should not be listed by notes
+
+    note mpg: I don't like sand
+    note mpg: It's coarse and rough and irritating and it gets everywhere
+    note mpg: It used to bother me that Anakin commits genocide and Padme stays with him.
+    note mpg: But I think it's just supposed to show how much she's drawn to the dark side.
+    note mpg: I mean, she did leave Jar Jar in charge, and Jar Jar did give Palpatine emergency powers
+    note mpg: #JarJarWasSupposedToBeASithLordButYallRuinedItWithYourBickering
+    char mpg[varname] Thisis my fight song
+    char mpg[ntoe11]  My I'm all right song
+
+    label define pr .a A .b B
+    label define mp .a C .b D
+    label values price pr
+    label values mpg   mp
+    replace price = .a if mod(_n, 2)
+    replace mpg   = .b if _n > 50
+
+    preserve
+    greshape wide price mpg, i(make) j(foreign)
+    greshape long price mpg, i(make) j(foreign)
+
+    greshape wide price mpg, i(make) j(foreign)
+    gen long   price2 = _n    
+    gen double price3 = 3.14
+    note price2: When the night!
+    note price3: Has coooome....
+    greshape long price mpg, i(make) j(foreign)
+    restore
+
+    preserve
+    greshape spread price, i(make) j(foreign) xi(drop)
+    greshape gather _*, j(foreign) values(price)
+    restore
+
+    preserve
+    greshape spread mpg, i(make) j(foreign) xi(drop)
+    greshape gather _*,  j(foreign) values(mpg)
+    restore
+
+    preserve
+    greshape spread price mpg,   i(make) j(foreign) xi(drop)
+    greshape gather price* mpg*, j(foreign) values(price_mpg)
+    restore
+
+    gen long   price2 = _n    
+    gen double price3 = 3.14
+    note price2: When the night!
+    note price3: Has coooome....
+
+    preserve
+    greshape spread price, i(make) j(foreign) xi(drop)
+    greshape gather _*, j(foreign) values(price)
+    restore
+
+    preserve
+    greshape spread mpg, i(make) j(foreign) xi(drop)
+    greshape gather _*,  j(foreign) values(mpg)
+    restore
+                                                              
+    preserve
+    greshape spread price mpg,   i(make) j(foreign) xi(drop)
+    greshape gather price* mpg*, j(foreign) values(price_mpg)
+    restore
 end
 
 capture program drop compare_greshape
@@ -800,3 +873,7 @@ program versus_greshape, rclass
     local rs = `time_wide'  / `time_gwide'
     di as txt " `:di %7.3g `time_wide'' | `:di %8.3g `time_gwide'' | `:di %11.4g `rs'' | wide `anything', i(`i')"
 end
+
+***********************************************************************
+*                               Testing                               *
+***********************************************************************

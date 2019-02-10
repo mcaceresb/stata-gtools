@@ -1,38 +1,6 @@
 *! version 0.1.0 07Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
-***********************************************************************
-*                           TODO Eventually                           *
-***********************************************************************
-
-* --------------------------------
-* TODO: Add collapse syntax for xi
-* --------------------------------
-
-* --------------------------------------------------------------------------------------------------------
-* TODO: for gather
-*
-*     greshape gather (type target1 "Label" = varlist1) [(type target2 "label" = varlist2) ...], i(i) j(j)
-*     * 1 problem var
-*     disp as err "Incomparible types: taget1 is type but source var1 is type"
-*     * N problem var
-*     disp as err "Incomparible types for variables:"
-*                 "taget1 is type but source var1 is type"
-*                 "..."
-*     * With option force: Just go! No type checking. Set to missing if type is not compat.
-*     * Option for converting numeric to string? sprintf(...)
-* --------------------------------------------------------------------------------------------------------
-
-* ----------------------------------------------------
-* TODO: Add values of j to subset? j(j 2005 2006 2007)
-*                                  j(j 2005-2007)
-*                                  j(j a b c ...)
-* ----------------------------------------------------
-
-* -------------------------------------------------------------
-* TODO: better atwl, basically. match(num|str|anything|/regex/)
-* -------------------------------------------------------------
-
 capture program drop greshape
 program greshape, rclass
     version 13.1
@@ -269,7 +237,7 @@ program define Long /* reshape long */
             disp as err "    i   -> `i'"
             disp as err "    Xi  -> `:list restvars - i'"
             disp as err ""
-            disp as err "Specify xi(drop), leave i() blank, include Xi somewhere in the reshape."
+            disp as err "Specify xi(drop), leave i() blank, or include Xi somewhere in the reshape."
             exit 198
         }
 
@@ -372,6 +340,7 @@ program define Long /* reshape long */
 
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
     tempfile ReS_Data
+    mata: __greshape_w2l_meta = WideToLongMetaSave()
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
@@ -447,45 +416,50 @@ program define Long /* reshape long */
         char define _dta[__JVarLab] `""'
     }
 
-    /* Apply Xij variable label for LONG*/
-    local iii : char _dta[__XijVarLabTotal]
-    if `"`iii'"' == "" {
-        local iii = -1
-    }
+    * --------------------------------------------------
+    * TODO: Is this of any value? Done in WideToLongMeta
+    * --------------------------------------------------
+    * /* Apply Xij variable label for LONG*/
+    * local iii : char _dta[__XijVarLabTotal]
+    * if `"`iii'"' == "" {
+    *     local iii = -1
+    * }
+    * foreach var of global ReS_Xij {
+    *     local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
+    *     if (length(`"`var'"') < 21 ) {
+    *         local xijlab : char _dta[__XijVarLab`var']
+    *         if `"`xijlab'"' != "" {
+    *             label variable `var' `"`xijlab'"'
+    *             char define _dta[__XijVarLab`var'] `""'
+    *         }
+    *     }
+    *     else {
+    *         local ii = 1
+    *         while `ii' <= `iii' {
+    *             local xijlab : char _dta[__XijVarLab`ii']
+    *             if (`"`xijlab'"' != "") {
+    *                 local v =  ///
+    *                 `substr'(`"`xijlab'"',1, ///
+    *                 strpos(`"`xijlab'"', " ")-1)
+    *                 if `"`v'"' == `"`var'"' {
+    *                     local tlab :  ///
+    *                     subinstr local ///
+    *                     xijlab `"`v' "' ""
+    *                     capture label variable ///
+    *                     `var' `"`tlab'"'
+    *                     capture char define ///
+    *                     _dta[__XijVarLab`ii'] `""'
+    *                     continue, break
+    *                 }
+    *             }
+    *             local ii = `ii' + 1
+    *         }
+    *     }
+    * }
+    * --------------------------------------------------
 
-    foreach var of global ReS_Xij {
-        local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
-        if (length(`"`var'"') < 21 ) {
-            local xijlab : char _dta[__XijVarLab`var']
-            if `"`xijlab'"' != "" {
-                label variable `var' `"`xijlab'"'
-                char define _dta[__XijVarLab`var'] `""'
-            }
-        }
-        else {
-            local ii = 1
-            while `ii' <= `iii' {
-                local xijlab : char _dta[__XijVarLab`ii']
-                if (`"`xijlab'"' != "") {
-                    local v =  ///
-                    `substr'(`"`xijlab'"',1, ///
-                    strpos(`"`xijlab'"', " ")-1)
-                    if `"`v'"' == `"`var'"' {
-                        local tlab :  ///
-                        subinstr local ///
-                        xijlab `"`v' "' ""
-                        capture label variable ///
-                        `var' `"`tlab'"'
-                        capture char define ///
-                        _dta[__XijVarLab`ii'] `""'
-                        continue, break
-                    }
-                }
-                local ii = `ii' + 1
-            }
-        }
-    }
     ReportL `oldobs' `oldvars'
+    mata: WideToLongMetaApply(__greshape_w2l_meta)
 
     if ( "`fast'" == "" ) restore, not
 end
@@ -593,7 +567,7 @@ program define Wide /* reshape wide */
             disp as err "    i   -> $ReS_i"
             disp as err "    Xi  -> `:list restvars - i'"
             disp as err ""
-            disp as err "Specify xi(drop), leave i() blank, include Xi somewhere in the reshape."
+            disp as err "Specify xi(drop), leave i() blank, or include Xi somewhere in the reshape."
             exit 198
         }
     }
@@ -668,23 +642,27 @@ program define Wide /* reshape wide */
         }
     }
 
-    /* Save xij variable labels for LONG */
-    local iii = 1
-    foreach var of global ReS_Xij {
-        local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
-        local xijlab : variable label `var'
-        if `"`xijlab'"' != "" {
-            if (length(`"`var'"') < 21) {
-                char define _dta[__XijVarLab`var'] `"`xijlab'"'
-            }
-            else {
-                char define _dta[__XijVarLab`iii'] ///
-                    `"`var' `xijlab'"'
-                char define _dta[__XijVarLabTotal] `"`iii'"'
-                local iii = `iii' + 1
-            }
-        }
-    }
+    * --------------------------------------------------
+    * TODO: Is this of any value? Done in LongToWideMeta
+    * --------------------------------------------------
+    * /* Save xij variable labels for LONG */
+    * local iii = 1
+    * foreach var of global ReS_Xij {
+    *     local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
+    *     local xijlab : variable label `var'
+    *     if `"`xijlab'"' != "" {
+    *         if (length(`"`var'"') < 21) {
+    *             char define _dta[__XijVarLab`var'] `"`xijlab'"'
+    *         }
+    *         else {
+    *             char define _dta[__XijVarLab`iii'] ///
+    *                 `"`var' `xijlab'"'
+    *             char define _dta[__XijVarLabTotal] `"`iii'"'
+    *             local iii = `iii' + 1
+    *         }
+    *     }
+    * }
+    * --------------------------------------------------
 
     tempvar ReS_jcode
     tempfile ReS_jfile
@@ -731,8 +709,9 @@ program define Wide /* reshape wide */
     local cmd wide write
     keep $ReS_i $ReS_j $ReS_jcode $ReS_Xi $rVANS
     tempfile ReS_Data
+    mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
-    local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts' missing
     global GTOOLS_CALLER ""
@@ -774,7 +753,7 @@ program define Wide /* reshape wide */
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt _n "Reading reshape from disk:"
     local cmd wide read
     global GTOOLS_CALLER greshape
-    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') $ReS_atwl `string'
+    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts' missing
     global GTOOLS_CALLER ""
@@ -785,6 +764,7 @@ program define Wide /* reshape wide */
     * ----------------------------------------
 
     ReportW `oldobs' `oldvars'
+    mata: LongToWideMetaApply(__greshape_l2w_meta, `"$ReS_cmd"' == "spread")
 
     if ( "`fast'" == "" ) restore, not
 end
@@ -1422,6 +1402,8 @@ program CleanExit
     capture mata mata drop __greshape_u
     capture mata mata drop __greshape_xijname
     capture mata mata drop __greshape_rc
+    capture mata mata drop __greshape_l2w_meta
+    capture mata mata drop __greshape_w2l_meta
 
     capture scalar drop __greshape_rc
     capture scalar drop __greshape_klvls
@@ -1761,7 +1743,7 @@ end
 
 capture program drop hasanyinfo
 program define hasanyinfo
-    args macname 
+    args macname
 
     local cons   : char _dta[ReS_i]
     local grpvar : char _dta[ReS_j]
@@ -1894,3 +1876,330 @@ program ClearReshape
     }
     CleanExit
 end
+
+***********************************************************************
+*                            Labels, etc.                             *
+***********************************************************************
+
+cap mata ustrregexm("a", "a")
+if ( _rc ) local regex regex
+else local regex ustrregex
+
+capture mata: mata drop LongToWideMetaSave()
+capture mata: mata drop LongToWideMetaApply()
+capture mata: mata drop WideToLongMetaSave()
+capture mata: mata drop WideToLongMetaApply()
+capture mata: mata drop ApplyDefaultFormat()
+
+mata:
+transmorphic scalar LongToWideMetaSave(real scalar spread)
+{
+    transmorphic scalar LongToWideMeta
+    string rowvector ReS_Xij,ReS_jv
+    string scalar newvar, var, lvl, fmt
+    string matrix chars, _chars
+    real scalar i, j, k
+
+    LongToWideMeta = asarray_create()
+    fmt     = "%s[%s]"
+    ReS_Xij = tokens(st_global("ReS_Xij"))
+    ReS_jv  = tokens(st_global("ReS_jv"))
+
+    asarray(LongToWideMeta, "ReS_Xij", ReS_Xij)
+    asarray(LongToWideMeta, "ReS_jv",  ReS_jv)
+
+    spread = (spread & (cols(ReS_Xij) == 1))
+    for (i = 1; i <= cols(ReS_Xij); i++) {
+        var = ReS_Xij[i]
+        for (j = 1; j <= cols(ReS_jv); j++) {
+            lvl = ReS_jv[j]
+            chars  = J(0, 2, "")
+            _chars = st_dir("char", var, "*")
+            newvar = spread? lvl: var + lvl
+            for (k = 1; k <= rows(_chars); k++) {
+                chars = chars \ (
+                    sprintf(fmt, newvar, _chars[k]),
+                    st_global(sprintf(fmt, var, _chars[k]))
+                )
+            }
+            asarray(LongToWideMeta, newvar + "lbl", lvl + " " + st_varlabel(var))
+            asarray(LongToWideMeta, newvar + "fmt", st_varformat(var))
+            asarray(LongToWideMeta, newvar + "vlb", st_varvaluelabel(var))
+            asarray(LongToWideMeta, newvar + "chr", chars)
+        }
+    }
+
+    return (LongToWideMeta)
+}
+
+void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
+{
+
+    string rowvector ReS_Xij,ReS_jv
+    string scalar newvar, var, lvl
+    string matrix chars
+    real scalar i, j, k
+
+    ReS_Xij = asarray(LongToWideMeta, "ReS_Xij")
+    ReS_jv  = asarray(LongToWideMeta, "ReS_jv")
+
+    spread = (spread & (cols(ReS_Xij) == 1))
+    for (i = 1; i <= cols(ReS_Xij); i++) {
+        var = ReS_Xij[i]
+        for (j = 1; j <= cols(ReS_jv); j++) {
+            lvl = ReS_jv[j]
+            newvar = spread? lvl: var + lvl
+
+            st_varlabel(newvar, asarray(LongToWideMeta, newvar + "lbl"))
+            st_varformat(newvar, asarray(LongToWideMeta, newvar + "fmt"))
+            if ( `regex'm(st_vartype(newvar), "str([1-9][0-9]*|L)") == 0 ) {
+                st_varvaluelabel(newvar, asarray(LongToWideMeta, newvar + "vlb"))
+            }
+
+            chars = asarray(LongToWideMeta, newvar + "chr")
+            for (k = 1; k <= rows(chars); k++) {
+                st_global(chars[k, 1], chars[k, 2])
+            }
+
+        }
+    }
+}
+
+transmorphic scalar WideToLongMetaSave()
+{
+    transmorphic scalar WideToLongMeta
+    string rowvector ReS_Xij, ReS_Xij_names, ReS_jv
+    string scalar var, nam, fmt, what, lvl
+    string scalar _lb2, _lbl, _fmt, _vlb
+    string matrix chars, _chars
+    string matrix notes, _notes, note0, _note0
+    real matrix maplevel
+    real scalar i, j, k, notek, noten
+    real scalar any_lbl, any_lb2, any_fmt, any_vlb
+    real scalar ever_lbl, ever_fmt, ever_vlb
+
+    maplevel = st_matrix("__greshape_maplevel")
+
+    WideToLongMeta = asarray_create()
+    fmt     = "%s[%s]"
+    ReS_Xij = tokens(st_global("ReS_Xij"))
+    ReS_jv  = tokens(st_global("ReS_jv"))
+    ReS_Xij_names = tokens(st_global("ReS_Xij_names"))
+
+    asarray(WideToLongMeta, "ReS_Xij", ReS_Xij)
+    asarray(WideToLongMeta, "ReS_jv",  ReS_jv)
+
+    ever_lbl = 0
+    ever_fmt = 0
+    ever_vlb = 0
+
+    what = ""
+    for (i = 1; i <= rows(maplevel); i++) {
+        var    = ReS_Xij[i]
+        chars  = J(0, 2, "")
+        notes  = J(0, 2, "")
+        _notes = J(0, 1, "")
+        noten  = 0
+        for (j = 1; j <= cols(maplevel); j++) {
+            if ( maplevel[i, j] ) {
+                lvl = ReS_jv[j]
+                nam = ReS_Xij_names[maplevel[i, j]]
+                _chars = st_dir("char", nam, "*")
+                for (k = 1; k <= rows(_chars); k++) {
+                    chars = chars \ (
+                        sprintf(fmt, var, _chars[k]),
+                        st_global(sprintf(fmt, nam, _chars[k]))
+                    )
+                }
+
+                note0 = st_global(sprintf(fmt, nam, "note0"))
+                if ( note0 != "" ) {
+                    notek = strtoreal(note0)
+                    if ( notek < . ) {
+                        for (k = 1; k <= notek; k++) {
+                            _note0 = st_global(sprintf(fmt, nam, "note" + strofreal(k)))
+                            if ( any(_note0 :== _notes) == 0 ) {
+                                _notes = _notes \ _note0
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        any_lbl = 0
+        any_lb2 = 0
+        any_fmt = 0
+        any_vlb = 0
+
+        _lbl = st_varlabel(nam)
+        _lb2 = substr(st_varlabel(nam), strlen(lvl) + 1, .)
+        _fmt = st_varformat(nam)
+        _vlb = st_varvaluelabel(nam)
+        for (j = 1; j <= cols(maplevel); j++) {
+            if ( maplevel[i, j] ) {
+                lvl = ReS_jv[j]
+                nam = ReS_Xij_names[maplevel[i, j]]
+                any_lbl = any_lbl | (_lbl != st_varlabel(nam))
+                any_lb2 = any_lb2 | (_lb2 != substr(st_varlabel(nam), strlen(lvl) + 1, .))
+                any_fmt = any_fmt | (_fmt != st_varformat(nam))
+                any_vlb = any_vlb | (_vlb != st_varvaluelabel(nam))
+            }
+        }
+
+        // _notes = uniqrows(_notes)
+        if ( rows(_notes) > 0 ) {
+            noten = rows(_notes)
+            notes = J(noten + 1, 2, "")
+            notes[1, .] = (sprintf(fmt, var, "note0"), strofreal(noten))
+            for (k = 1; k <= noten; k++) {
+                notes[1 + k, .] = (sprintf(fmt, var, "note" + strofreal(k)), _notes[k])
+            }
+        }
+
+        if ( any_lbl == 0 ) {
+            asarray(WideToLongMeta, var + "lbl", _lbl)
+        }
+        else if ( any_lb2 == 0 ) {
+            any_lbl = 0
+            asarray(WideToLongMeta, var + "lbl", _lb2)
+        }
+        else {
+            any_lbl = 1
+            any_lb2 = 1
+            asarray(WideToLongMeta, var + "lbl", "")
+        }
+
+        asarray(WideToLongMeta, var + "fmt", any_fmt? "": _fmt)
+        asarray(WideToLongMeta, var + "vlb", any_vlb? "": _vlb)
+        asarray(WideToLongMeta, var + "chr", chars)
+        asarray(WideToLongMeta, var + "nts", notes)
+
+        ever_lbl = ever_lbl | any_lbl
+        ever_fmt = ever_fmt | any_fmt
+        ever_vlb = ever_vlb | any_vlb
+    }
+
+    if ( ever_lbl )
+        what = "labels"
+
+    if ( ever_vlb )
+        what = (what == "")? "value labels": what + ", value labels"
+
+    if ( ever_fmt )
+        what = (what == "")? "variable formats": what + ", variable formats"
+
+    if ( what != "" )
+        printf("Cannot preserve %s when reshaping long.\n", what)
+
+    return (WideToLongMeta)
+}
+
+void WideToLongMetaApply(transmorphic scalar WideToLongMeta)
+{
+    string rowvector ReS_Xij
+    string scalar var
+    string matrix chars, notes
+    real scalar i, k, f
+
+    ReS_Xij = asarray(WideToLongMeta, "ReS_Xij")
+    for (i  = 1; i <= cols(ReS_Xij); i++) {
+        var = ReS_Xij[i]
+        st_varlabel(var, asarray(WideToLongMeta, var + "lbl"))
+
+        if ( `regex'm(st_vartype(var), "str([1-9][0-9]*|L)") == 0 ) {
+            st_varvaluelabel(var, asarray(WideToLongMeta, var + "vlb"))
+        }
+
+        f = asarray(WideToLongMeta, var + "fmt")
+        if ( f == "" ){
+            ApplyDefaultFormat(var)
+        }
+        else {
+            st_varformat(var, asarray(WideToLongMeta, var + "fmt"))
+        }
+
+        chars = asarray(WideToLongMeta, var + "chr")
+        for (k = 1; k <= rows(chars); k++) {
+            st_global(chars[k, 1], chars[k, 2])
+        }
+
+        notes = asarray(WideToLongMeta, var + "nts")
+        for (k = 1; k <= rows(notes); k++) {
+            st_global(notes[k, 1], notes[k, 2])
+        }
+    }
+
+}
+
+void function ApplyDefaultFormat(string scalar var)
+{
+    string scalar v, l, f
+    v = st_vartype(var)
+    f = ""
+    if ( `regex'm(v, "str([1-9][0-9]*|L)") ) {
+        l = `regex's(1)
+        if ( l == "L" ) {
+            f = "%9s"
+        }
+        else {
+            f = "%" + `regex's(1) + "s"
+        }
+    }
+    else {
+        if ( v == "byte" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "int" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "long" ) {
+            f = "%12.0g"
+        }
+        else if ( v == "float" ) {
+            f = "%9.0g"
+        }
+        else if ( v == "double" ) {
+            f = "%10.0g"
+        }
+        else {
+            f = ""
+        }
+    }
+    if ( f != "" ) {
+        st_varformat(var, f)
+    }
+}
+end
+
+***********************************************************************
+*                           TODO Eventually                           *
+***********************************************************************
+
+* --------------------------------
+* TODO: Add collapse syntax for xi
+* --------------------------------
+
+* --------------------------------------------------------------------------------------------------------
+* TODO: for gather
+*
+*     greshape gather (type target1 "Label" = varlist1) [(type target2 "label" = varlist2) ...], i(i) j(j)
+*     * 1 problem var
+*     disp as err "Incomparible types: taget1 is type but source var1 is type"
+*     * N problem var
+*     disp as err "Incomparible types for variables:"
+*                 "taget1 is type but source var1 is type"
+*                 "..."
+*     * With option force: Just go! No type checking. Set to missing if type is not compat.
+*     * Option for converting numeric to string? sprintf(...)
+* --------------------------------------------------------------------------------------------------------
+
+* ----------------------------------------------------
+* TODO: Add values of j to subset? j(j 2005 2006 2007)
+*                                  j(j 2005-2007)
+*                                  j(j a b c ...)
+* ----------------------------------------------------
+
+* -------------------------------------------------------------
+* TODO: better atwl, basically. match(num|str|anything|/regex/)
+* -------------------------------------------------------------

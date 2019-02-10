@@ -398,15 +398,18 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                                 outdbl[selx + klevels * k + l] = dblptr[k + 1];
                             }
                             dblptr += ksources;
-                            jpos    = ((GT_size) dblptr[0]) - 1;
-                            if ( jpos == jold && dblptr < enddbl ) {
-                                rc = 18102;
-                                goto exit;
-                            }
-                            else {
-                                jold = jpos;
+                            if ( dblptr < enddbl ) {
+                                jpos = ((GT_size) dblptr[0]) - 1;
+                                if ( jpos == jold ) {
+                                    rc = 18102;
+                                    goto exit;
+                                }
+                                else {
+                                    jold = jpos;
+                                }
                             }
                         }
+
                         else {
                             for (k = 0; k < kout; k++) {
                                 outdbl[selx + klevels * k + l] = SV_missval;
@@ -461,13 +464,15 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                                 );
                             }
                             dblptr += ksources;
-                            jpos    = ((GT_size) dblptr[0]) - 1;
-                            if ( jpos == jold && dblptr < enddbl ) {
-                                rc = 18102;
-                                goto exit;
-                            }
-                            else {
-                                jold = jpos;
+                            if ( dblptr < enddbl ) {
+                                jpos = ((GT_size) dblptr[0]) - 1;
+                                if ( jpos == jold ) {
+                                    rc = 18102;
+                                    goto exit;
+                                }
+                                else {
+                                    jold = jpos;
+                                }
                             }
                         }
                         else {
@@ -528,13 +533,15 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                             );
                         }
                         dblptr += ksources;
-                        jpos    = ((GT_size) dblptr[0]) - 1;
-                        if ( jpos == jold && dblptr < enddbl ) {
-                            rc = 18102;
-                            goto exit;
-                        }
-                        else {
-                            jold = jpos;
+                        if ( dblptr < enddbl ) {
+                            jpos = ((GT_size) dblptr[0]) - 1;
+                            if ( jpos == jold ) {
+                                rc = 18102;
+                                goto exit;
+                            }
+                            else {
+                                jold = jpos;
+                            }
                         }
                     }
                     else {
@@ -604,13 +611,15 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                             );
                             strptr += m;
                         }
-                        jpos = (*(GT_size*) strptr) - 1;
-                        if ( jpos == jold && strptr < endstr ) {
-                            rc = 18102;
-                            goto exit;
-                        }
-                        else {
-                            jold = jpos;
+                        if ( strptr < endstr ) {
+                            jpos = (*(GT_size*) strptr) - 1;
+                            if ( jpos == jold ) {
+                                rc = 18102;
+                                goto exit;
+                            }
+                            else {
+                                jold = jpos;
+                            }
                         }
                     }
                     else {
@@ -678,13 +687,15 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                             );
                             strptr += m;
                         }
-                        jpos = (*(GT_size*) strptr) - 1;
-                        if ( jpos == jold && strptr < endstr ) {
-                            rc = 18102;
-                            goto exit;
-                        }
-                        else {
-                            jold = jpos;
+                        if ( strptr < endstr ) {
+                            jpos = (*(GT_size*) strptr) - 1;
+                            if ( jpos == jold ) {
+                                rc = 18102;
+                                goto exit;
+                            }
+                            else {
+                                jold = jpos;
+                            }
                         }
                     }
                     else {

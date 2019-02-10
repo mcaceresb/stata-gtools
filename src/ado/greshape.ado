@@ -2112,7 +2112,7 @@ transmorphic scalar WideToLongMetaSave()
         what = (what == "")? "variable formats": what + ", variable formats"
 
     if ( what != "" )
-        printf("Cannot preserve %s when reshaping long.\n", what)
+        printf("(note: cannot preserve %s when reshaping long)\n", what)
 
     return (WideToLongMeta)
 }

@@ -31,7 +31,7 @@ ssc install gtools
 gtools, upgrade
 ```
 
-Some [quick benchmarks](benchmarks/quick.do):
+Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.do):
 
 ![Gtools quick benchmark](benchmarks/quick.png)
 

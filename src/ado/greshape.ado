@@ -1908,6 +1908,10 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
     asarray(LongToWideMeta, "ReS_Xij", ReS_Xij)
     asarray(LongToWideMeta, "ReS_jv",  ReS_jv)
 
+    // Keep labels, value labels, formats, and characteristics of
+    // each source variable. All will be applied to (copied to) each
+    // corresponding wide variable.
+
     spread = (spread & (cols(ReS_Xij) == 1))
     for (i = 1; i <= cols(ReS_Xij); i++) {
         var = ReS_Xij[i]
@@ -1952,6 +1956,8 @@ void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
 
             st_varlabel(newvar, asarray(LongToWideMeta, newvar + "lbl"))
             st_varformat(newvar, asarray(LongToWideMeta, newvar + "fmt"))
+
+            // Value labels only for numeric
             if ( `regex'm(st_vartype(newvar), "str([1-9][0-9]*|L)") == 0 ) {
                 st_varvaluelabel(newvar, asarray(LongToWideMeta, newvar + "vlb"))
             }
@@ -1992,6 +1998,22 @@ transmorphic scalar WideToLongMetaSave()
     ever_lbl = 0
     ever_fmt = 0
     ever_vlb = 0
+
+    // Keep labels, value labels, formats, and characteristics of each
+    // set of source variables. All will be applied to (copied to) each
+    // corresponding single long variable. Since this is a many to one,
+    // Labels, value labels, and formats are discarded if there is more
+    // than one (TODO: Add optionfor which to keep?).
+    //
+    // Notes are appended in the order they appear. We keep a unique set
+    // of notes from the source variables in the target variable. Note
+    // that variable notes are saved as variable characteristics, so we
+    // apply all variable characteristics first and all the (unique)
+    // notes second (we do not mind collisions and such, in part because
+    // it's a hassle but also because variable characteristics are such
+    // an advanced feature anyway that any user using them ought to
+    // be defining their behavior explicitly, so I don't even want to
+    // tinker with that too much).
 
     what = ""
     for (i = 1; i <= rows(maplevel); i++) {
@@ -2132,6 +2154,7 @@ void WideToLongMetaApply(transmorphic scalar WideToLongMeta)
 
 }
 
+// If variable formats collide, reset to default format
 void function ApplyDefaultFormat(string scalar var)
 {
     string scalar v, l, f

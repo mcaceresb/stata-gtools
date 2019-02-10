@@ -39,7 +39,11 @@ gtools, upgrade
 
 Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.do):
 
-![Gtools quick benchmark](https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png)
+<img
+    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png"
+    alt="Gtools quick benchmark"
+    style="display: block;margin-left:auto;margin-right:auto"
+    width="80%"/>
 
 __*Gtools commands with a Stata equivalent*__
 

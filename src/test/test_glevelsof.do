@@ -116,7 +116,7 @@ program compare_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
 
     qui `noisily' gen_data, n(50)
-    qui expand 10000
+    qui expand 5000
 
     local N    = trim("`: di %15.0gc _N'")
     local hlen = 24 + length("`options'") + length("`N'")
@@ -141,7 +141,7 @@ program compare_levelsof
         compare_inner_levelsof strL3, `options' `forcestrl'
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -149,20 +149,17 @@ program compare_levelsof
     di _n(1) "{hline 80}" _n(1) "compare_levelsof_gen, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_levelsof_gen str_12,              `options' sort
-    compare_inner_levelsof_gen str_12 str_32,       `options' shuffle
     compare_inner_levelsof_gen str_12 str_32 str_4, `options'
 
     compare_inner_levelsof_gen double1,                 `options'
-    compare_inner_levelsof_gen double1 double2,         `options' sort
     compare_inner_levelsof_gen double1 double2 double3, `options' shuffle
 
     compare_inner_levelsof_gen int1,           `options' shuffle
-    compare_inner_levelsof_gen int1 int2,      `options'
     compare_inner_levelsof_gen int1 int2 int3, `options' sort
 
-    compare_inner_levelsof_gen int1 str_32 double1,                                        `options'
-    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_levelsof_gen str_32 int3 double3  , `options'
+    compare_inner_levelsof_gen int1 double2 double3 , `options'
+    compare_inner_levelsof_gen double? str_* int?   , `options'
 end
 
 capture program drop compare_inner_levelsof
@@ -462,7 +459,7 @@ program bench_levelsof
     syntax, [tol(real 1e-6) bench(int 1) n(int 100) NOIsily *]
 
     qui `noisily' gen_data, n(`n')
-    qui expand `=1000 * `bench''
+    qui expand `=500 * `bench''
     qui gen rsort = rnormal()
     qui sort rsort
 

@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.3 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -134,11 +134,11 @@ program define gegen, byable(onecall) rclass
             unab args : _all
         }
 
-        local gtools_args hashlib(passthru)        ///
-                          HASHmethod(passthru)     ///
+        local gtools_args HASHmethod(passthru)     ///
                           oncollision(passthru)    ///
                           Verbose                  ///
                           _subtract                ///
+                          _CTOLerance(passthru)    ///
                           compress                 ///
                           forcestrl                ///
                           BENCHmark                ///
@@ -153,9 +153,12 @@ program define gegen, byable(onecall) rclass
         }
         else {
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
-            local gopts kwargs(`hashlib' `hashmethod' `oncollision' `verbose' `_subtract' `compress' `forcestrl' `benchmark' `benchmarklevel')
+
+            local gopts `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
+            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel'
+
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
-            cap noi egen_fallback `if' `in', `gopts' `popts' `options' `gtools_capture'
+            cap noi egen_fallback `if' `in', kwargs(`gopts') `popts' `options' `gtools_capture'
             exit _rc
         }
     }
@@ -186,10 +189,10 @@ program define gegen, byable(onecall) rclass
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
         Verbose                   /// Print info during function execution
         _subtract                 /// (Undocumented) Subtract result from source variable
+        _CTOLerance(passthru)     /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
         gtools_capture(passthru)  /// Ignored (captures fcn options if fcn is not known)
                                   ///
@@ -338,9 +341,9 @@ program define gegen, byable(onecall) rclass
     * If tag or group requested, then do that right away
     * --------------------------------------------------
 
-    local opts  `compress' `forcestrl' `_subtract'
+    local opts  `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts  `opts' `hashlib' `oncollision' `hashmethod'
+    local opts  `opts' `oncollision' `hashmethod'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -427,10 +430,10 @@ program define gegen, byable(onecall) rclass
 
         if ( `rc' == 17999 ) {
             local gtools_args `hashmethod'     ///
-                              `hashlib'        ///
                               `oncollision'    ///
                               `verbose'        ///
                               `_subtract'      ///
+                              `_ctolerance'    ///
                               `compress'       ///
                               `forcestrl'      ///
                               `benchmark'      ///
@@ -601,10 +604,10 @@ program define gegen, byable(onecall) rclass
             exit 17000
         }
         local gtools_args `hashmethod'     ///
-                          `hashlib'        ///
                           `oncollision'    ///
                           `verbose'        ///
                           `_subtract'      ///
+                          `_ctolerance'    ///
                           `compress'       ///
                           `forcestrl'      ///
                           `benchmark'      ///
@@ -781,11 +784,11 @@ end
 
 capture program drop collision_fallback
 program collision_fallback
-    local gtools_args hashlib(passthru)        ///
-                      HASHmethod(passthru)     ///
+    local gtools_args HASHmethod(passthru)     ///
                       oncollision(passthru)    ///
                       Verbose                  ///
                       _subtract                ///
+                      _CTOLerance(passthru)    ///
                       compress                 ///
                       forcestrl                ///
                       BENCHmark                ///

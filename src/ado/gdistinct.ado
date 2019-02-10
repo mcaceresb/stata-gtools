@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
 capture program drop gdistinct
@@ -23,10 +23,10 @@ program gdistinct, rclass
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
         Verbose                   /// Print info during function execution
+        _CTOLerance(passthru)     /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// Benchmark function
         BENCHmarklevel(int 0)     /// Benchmark various steps of the plugin
         HASHmethod(passthru)      /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)         /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)     /// error|fallback: On collision, use native command or throw error
     ]
 
@@ -46,8 +46,8 @@ program gdistinct, rclass
     tempname ndistinct
 
     local opts `missing' `compress' `forcestrl' countonly unsorted
-    local opts `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
+    local opts `opts' `oncollision' `hashmethod' `debug'
 
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', `opts' gfunction(unique)

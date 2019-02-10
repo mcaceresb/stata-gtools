@@ -1,4 +1,4 @@
-*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Frequency counts using C-plugins for a speedup.
 
 cap program drop gcontract
@@ -31,10 +31,10 @@ program gcontract, rclass
         compress                     /// Try to compress strL variables
         forcestrl                    /// Force reading strL variables (stata 14 and above only)
         Verbose                      /// Print info during function execution
+        _CTOLerance(passthru)        /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                    /// print function benchmark info
         BENCHmarklevel(int 0)        /// print plugin benchmark info
         HASHmethod(passthru)         /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)            /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)        /// error|fallback: On collision, use native command or throw error
     ]
 
@@ -227,8 +227,8 @@ program gcontract, rclass
     * ---------------
 
     local opts `weights' `missing' `unsorted' `compress' `forcestrl' `ds' `nods'
-    local opts `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
+    local opts `opts' `oncollision' `hashmethod' `debug'
 
     local gcontract gcontract(`newvars', contractwhich(`cwhich'))
     cap noi _gtools_internal `anything', `opts' gfunction(contract) `gcontract'

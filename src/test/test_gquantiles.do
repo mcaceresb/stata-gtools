@@ -358,18 +358,18 @@ program compare_gquantiles
         local wgen_p qui gen float_unif_0_1 = runiform() if mod(_n, 100)
     }
 
-    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options' wgt(`wcall_a') wgen(`wgen_a')
+    compare_gquantiles_stata, n(5000) bench(10) `altdef' `options' wgt(`wcall_a') wgen(`wgen_a')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000) skipstr
+    qui `noisily' gen_data, n(5000) skipstr
     qui expand 10
     qui `noisily' random_draws, random(2) double
     gen long   ix = _n
     gen double ru = runiform() * 100
-    qui replace ix = . if mod(_n, 10000) == 0
-    qui replace ru = . if mod(_n, 10000) == 0
+    qui replace ix = . if mod(_n, 5000) == 0
+    qui replace ru = . if mod(_n, 5000) == 0
     qui sort random1
     `wgen_a'
     `wgen_f'
@@ -680,7 +680,7 @@ end
 
 capture program drop bench_gquantiles
 program bench_gquantiles
-    syntax, [bench(int 10) n(int 10000) *]
+    syntax, [bench(int 10) n(int 5000) *]
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(p(0.1 5 10 30 50 70 90 95 99.9))  qwhich(_pctile)
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(nq(10))  qwhich(_pctile)
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(nq(10))  qwhich(xtile)
@@ -689,7 +689,7 @@ end
 
 capture program drop compare_gquantiles_stata
 program compare_gquantiles_stata
-    syntax, [bench(int 10) n(int 10000) noaltdef *]
+    syntax, [bench(int 10) n(int 5000) noaltdef *]
 
     if ( "`altdef'" != "noaltdef" ) {
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(xtile) `options'
@@ -728,7 +728,7 @@ end
 
 capture program drop compare_inner_quantiles
 program compare_inner_quantiles
-    syntax, [bench(int 5) n(real 100000) benchmode wgen(str) *]
+    syntax, [bench(int 5) n(real 50000) benchmode wgen(str) *]
     local options `options' `benchmode'
 
     qui `noisily' gen_data, n(`n') skipstr
@@ -806,7 +806,7 @@ program _compare_inner_gquantiles
     }
 
     if ( "`corners'" == "" ) {
-    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
+    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  500), no missings, groups of size 10")
     _compare_inner_`qwhich' double3 `if' `in', `options' note("~ N(10, 5), many missings, groups of size 10")
     _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
 
@@ -819,7 +819,7 @@ program _compare_inner_gquantiles
     _compare_inner_`qwhich' exp(double3) + int1 * double3 `if' `in', `options'
     }
     else {
-    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
+    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  500), no missings, groups of size 10")
     _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
     _compare_inner_`qwhich' int1    `if' `in', `options' note("discrete (no missings, many groups)")
     _compare_inner_`qwhich' ix      `if' `in', `options' note("discrete (few missings, unique)")
@@ -1198,26 +1198,26 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N |   nq |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq   100000  2 `ver'
-    _gquantiles_switch_nq   100000  5 `ver'
-    _gquantiles_switch_nq   100000 10 `ver'
-    _gquantiles_switch_nq   100000 20 `ver'
-    _gquantiles_switch_nq   100000 30 `ver'
-    _gquantiles_switch_nq   100000 40 `ver'
+    _gquantiles_switch_nq   50000  2 `ver'
+    _gquantiles_switch_nq   50000  5 `ver'
+    _gquantiles_switch_nq   50000 10 `ver'
+    _gquantiles_switch_nq   50000 20 `ver'
+    _gquantiles_switch_nq   50000 30 `ver'
+    _gquantiles_switch_nq   50000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq  1000000  2 `ver'
-    _gquantiles_switch_nq  1000000  5 `ver'
-    _gquantiles_switch_nq  1000000 10 `ver'
-    _gquantiles_switch_nq  1000000 20 `ver'
-    _gquantiles_switch_nq  1000000 30 `ver'
-    _gquantiles_switch_nq  1000000 40 `ver'
+    _gquantiles_switch_nq  500000  2 `ver'
+    _gquantiles_switch_nq  500000  5 `ver'
+    _gquantiles_switch_nq  500000 10 `ver'
+    _gquantiles_switch_nq  500000 20 `ver'
+    _gquantiles_switch_nq  500000 30 `ver'
+    _gquantiles_switch_nq  500000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq 10000000  2 `ver'
-    _gquantiles_switch_nq 10000000  5 `ver'
-    _gquantiles_switch_nq 10000000 10 `ver'
-    _gquantiles_switch_nq 10000000 20 `ver'
-    _gquantiles_switch_nq 10000000 30 `ver'
-    _gquantiles_switch_nq 10000000 40 `ver'
+    _gquantiles_switch_nq 5000000  2 `ver'
+    _gquantiles_switch_nq 5000000  5 `ver'
+    _gquantiles_switch_nq 5000000 10 `ver'
+    _gquantiles_switch_nq 5000000 20 `ver'
+    _gquantiles_switch_nq 5000000 30 `ver'
+    _gquantiles_switch_nq 5000000 40 `ver'
 
     di as txt ""
     di as txt "Testing whether gquantiles method switch code is sane for cutoffs."
@@ -1234,26 +1234,26 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N | cutoffs |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs   100000    2 `ver'
-    _gquantiles_switch_cutoffs   100000   50 `ver'
-    _gquantiles_switch_cutoffs   100000  100 `ver'
-    _gquantiles_switch_cutoffs   100000  200 `ver'
-    _gquantiles_switch_cutoffs   100000  500 `ver'
-    _gquantiles_switch_cutoffs   100000 1000 `ver'
+    _gquantiles_switch_cutoffs   50000    2 `ver'
+    _gquantiles_switch_cutoffs   50000   50 `ver'
+    _gquantiles_switch_cutoffs   50000  100 `ver'
+    _gquantiles_switch_cutoffs   50000  200 `ver'
+    _gquantiles_switch_cutoffs   50000  500 `ver'
+    _gquantiles_switch_cutoffs   50000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs  1000000    2 `ver'
-    _gquantiles_switch_cutoffs  1000000   50 `ver'
-    _gquantiles_switch_cutoffs  1000000  100 `ver'
-    _gquantiles_switch_cutoffs  1000000  200 `ver'
-    _gquantiles_switch_cutoffs  1000000  500 `ver'
-    _gquantiles_switch_cutoffs  1000000 1000 `ver'
+    _gquantiles_switch_cutoffs  500000    2 `ver'
+    _gquantiles_switch_cutoffs  500000   50 `ver'
+    _gquantiles_switch_cutoffs  500000  100 `ver'
+    _gquantiles_switch_cutoffs  500000  200 `ver'
+    _gquantiles_switch_cutoffs  500000  500 `ver'
+    _gquantiles_switch_cutoffs  500000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs 10000000    2 `ver'
-    _gquantiles_switch_cutoffs 10000000   50 `ver'
-    _gquantiles_switch_cutoffs 10000000  100 `ver'
-    _gquantiles_switch_cutoffs 10000000  200 `ver'
-    _gquantiles_switch_cutoffs 10000000  500 `ver'
-    _gquantiles_switch_cutoffs 10000000 1000 `ver'
+    _gquantiles_switch_cutoffs 5000000    2 `ver'
+    _gquantiles_switch_cutoffs 5000000   50 `ver'
+    _gquantiles_switch_cutoffs 5000000  100 `ver'
+    _gquantiles_switch_cutoffs 5000000  200 `ver'
+    _gquantiles_switch_cutoffs 5000000  500 `ver'
+    _gquantiles_switch_cutoffs 5000000 1000 `ver'
 end
 
 capture program drop _gquantiles_switch_cutoffs
@@ -1263,9 +1263,9 @@ program _gquantiles_switch_cutoffs
     qui {
         clear
         if ( "`ver'" == "v1" ) {
-            set obs `=`n' / 10000'
+            set obs `=`n' / 5000'
             gen x = rnormal() * 100
-            expand 10000
+            expand 5000
         }
         else if ( "`ver'" == "v2" ) {
             set obs `n'
@@ -1340,9 +1340,9 @@ program _gquantiles_switch_nq
     qui {
         clear
         if ( "`ver'" == "v1" ) {
-            set obs `=`n' / 10000'
+            set obs `=`n' / 5000'
             gen x = rnormal() * 100
-            expand 10000
+            expand 5000
         }
         else if ( "`ver'" == "v2" ) {
             set obs `n'

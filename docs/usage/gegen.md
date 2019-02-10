@@ -3,22 +3,21 @@ gegen
 
 Efficient implementation of by-able egen functions using C.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
-stable version.  _Windows users:_ If the plugin fails to load, please run
-`gtools, dependencies` at the start of your Stata session.
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
 <p>
-<span class="codespan">gegen [type] newvar = fcn(arguments) [if] [in] [weight] [, ///</spen>
+<span class="codespan"><b>gegen</b> [type] newvar = fcn(arguments) [if] [in] [weight] [, ///</span>
 </br>
 <span class="codespan">&emsp;&emsp;&emsp; replace <a href="#compiled-functions">fcn_options</a> <a href="#gtools-options">gtools_options</a> ]
 </p>
 
 ### Gtools options
 
-- `compress` prints some useful debugging info to the console.
+- `compress` Try to compress strL to `str#`.
 
 - `forcestrl` Skip binary variable check and force gtools to read strL variables.
 
@@ -27,8 +26,6 @@ Syntax
 - `benchmark` prints how long in seconds various parts of the program take to execute.
 
 - `benchmarklevel(int)` depth of benchmark.
-
-- `hashlib(str)` Custom path to spookyhash.dll
 
 - `hashmethod(str)` For debugging: default, biject, or spooky.
 
@@ -217,16 +214,16 @@ consider contacting them and asking for a higher memory cap.
 
 If you have no memory cap imposed on your user, the likely scenario is
 that your system cannot allocate enough memory for gegen. At this point
-you have two options: One option is to try fegen or egen, which are
-slower but using either should require a trivial one-letter change to the
-code; another option is to re-write egen the data in segments (the
-easiest way to do this would be to egen a portion of all rows at a time
-and perform a series of append statements at the end.)
+you can try fegen or egen, which are slower but using either should
+require a trivial one-letter change to the code.  Note, however, that
+replacing gegen with fegen or plain egen is not guaranteed to use less
+memory. I have not benchmarked memory use very extensively, so gegen
+might use less memory (I doubt that is the case in most scenarios, but
+it is possible).
 
-Replacing gegen with fegen or plain egen is not guaranteed to work. I
-have not benchmarked memory use very extensively, but it is possible that
-the latter use less memory. If all fail, you will have to perform the
-task on segments of the data.
+You can also try to process the data by segments. However, if you are
+doing group operations you would need to first sort the data and make
+sure you are not splitting groups apart.
 
 Examples
 --------

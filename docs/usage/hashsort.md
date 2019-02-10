@@ -3,19 +3,21 @@ hashsort
 
 sort and gsort using hashes and C-plugins
 
-_**Important:**_ Hashsort does not afford speed improvements over sort
-when the resulting sort will be unique or when the user has access to
-Stata/MP. Hence it is considered an experimental command, even though it is
-generally faster than gsort even in Stata/MP.
 
-_Important:_ Please run `gtools, upgrade` to update `gtools` to the latest
-stable version.  _Windows users:_ If the plugin fails to load, please run
-`gtools, dependencies` at the start of your Stata session.
+!!! Warning "Caveats"
+    While hashsort should always be faster than gsort, it might not
+    always be faster than regular sort. In testing, hashsort was always
+    faster in Stata/IC but not always in Stata/MP. If there are lots of
+    duplicates then hashsort might be faster; if the sort variables are
+    unique then hashsort will probably be slower.
+
+!!! tip "Important"
+    Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 Syntax
 ------
 
-<p><span class="codespan">hashsort [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>hashsort</b> [+|-] varname [[+|-] varname ...] [, <a href="#options">options</a> ] </p>
 
 Description
 -----------
@@ -69,13 +71,6 @@ Options
 - `benchmark` or `bench(level)` prints how long in seconds various parts of the
             program take to execute. Level 1 is the same as `benchmark`. Levels
             2 and 3 additionally prints benchmarks for internal plugin steps.
-
-- `hashlib(str)` On earlier versions of gtools Windows users had a problem
-            because Stata was unable to find spookyhash.dll, which is bundled
-            with gtools and required for the plugin to run correctly. The best
-            thing a Windows user can do is run gtools, dependencies at the start
-            of their Stata session, but if Stata cannot find the plugin the user
-            can specify a path manually here.
 
 - `hashmethod(str)` Hash method to use. `default` automagically chooses the
             algorithm. `biject` tries to biject the inputs into the

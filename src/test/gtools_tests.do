@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Nov  3 17:09:17 EDT 2018
+* Updated: Fri Feb  8 19:30:00 EST 2019
 * Purpose: Unit tests for gtools
-* Version: 1.1.0
+* Version: 1.3.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -60,6 +60,8 @@ program main
         * qui do test_gtoplevelsof.do
         * qui do test_gunique.do
         * qui do test_hashsort.do
+        * qui do test_gstats.do
+        * qui do test_greshape.do
 
         * qui do docs/examples/gcollapse.do
         * qui do docs/examples/gcontract.do
@@ -69,14 +71,17 @@ program main
         * qui do docs/examples/gtoplevelsof.do
         * qui do docs/examples/gunique.do
         * qui do docs/examples/hashsort.do
-        * qui do docs/examples/gegen.do, nostop
-        * qui do docs/examples/gisid.do, nostop
+        * qui do docs/examples/gegen.do,     nostop
+        * qui do docs/examples/gisid.do,     nostop
         * qui do docs/examples/glevelsof.do, nostop
+        * qui do docs/examples/gstats.do
+        * qui do docs/examples/greshape.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
             cap ssc install ftools
             cap ssc install unique
+            cap ssc install winsor2
             cap ssc install distinct
             cap ssc install moremata
             cap ssc install fastxtile
@@ -99,6 +104,8 @@ program main
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
@@ -142,6 +149,8 @@ program main
             compare_gcontract,     `noisily' oncollision(error)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4)
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
+            compare_gstats,        `noisily' oncollision(error)
+            compare_greshape,      `noisily' oncollision(error)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -172,6 +181,8 @@ program main
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error)
             bench_unique,        n(1000) bench(1)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
+            bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
+            bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -194,6 +205,8 @@ program main
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error)
             bench_unique,        n(10000)   bench(10)   `noisily' oncollision(error) distinct
             bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
+            bench_gstats,        n(10000)   bench(10)   `noisily' oncollision(error)
+            bench_greshape,      n(10000)   bench(10)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)
@@ -360,8 +373,8 @@ program gen_data
     }
 
     gen long   int1  = floor(uniform() * 1000)
-    gen long   int2  = floor(rnormal())
-    gen double int3  = floor(rnormal() * 5 + 10)
+    gen double int2  = floor(rnormal())
+    gen long   int3  = floor(rnormal() * 5 + 10)
 
     gen double double1 = uniform() * 1000
     gen double double2 = rnormal()

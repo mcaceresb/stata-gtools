@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Tue Oct 31 14:48:08 EDT 2017
+# Updated: Sun Feb  3 13:27:01 EST 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -92,11 +92,6 @@ parser.add_argument('--test',
                     action   = 'store_true',
                     help     = "Run tests",
                     required = False)
-parser.add_argument('--windows',
-                    dest     = 'windows',
-                    action   = 'store_true',
-                    help     = "Compile for Windows from Unix environment.",
-                    required = False)
 args = vars(parser.parse_args())
 
 # ---------------------------------------------------------------------
@@ -113,6 +108,8 @@ gtools_ssc = [
     "gtop.ado",
     "gtoplevelsof.ado",
     "gisid.ado",
+    "greshape.ado",
+    "gstats.ado",
     "gduplicates.ado",
     "gquantiles.ado",
     "fasterxtile.ado",
@@ -127,6 +124,9 @@ gtools_ssc = [
     "gtop.sthlp",
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
+    "greshape.sthlp",
+    "gstats.sthlp",
+    "gstats_winsor.sthlp",
     "gduplicates.sthlp",
     "gquantiles.sthlp",
     "fasterxtile.sthlp",
@@ -208,13 +208,6 @@ if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
     rc = system("make all SPI=2.0 SPIVER=v2 {0}".format(make_flags))
     rc = system("make all SPI=3.0 SPIVER=v3 {0}".format(make_flags))
     print("Success!" if rc == 0 else "Failed.")
-    if args['windows']:
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows clean")
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows spooky")
-        rc = system("make all SPI=2.0 SPIVER=v2 EXECUTION=windows {0}".format(make_flags))
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows clean")
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows spooky")
-        rc = system("make all SPI=3.0 SPIVER=v3 EXECUTION=windows {0}".format(make_flags))
 else:
     print("Don't know platform '{0}'; compile manually.".format(platform))
     exit(198)
@@ -234,6 +227,8 @@ files    = [path.join("src", "test", "test_gcollapse.do"),
             path.join("src", "test", "test_glevelsof.do"),
             path.join("src", "test", "test_gtoplevelsof.do"),
             path.join("src", "test", "test_gisid.do"),
+            path.join("src", "test", "test_greshape.do"),
+            path.join("src", "test", "test_gstats.do"),
             path.join("src", "test", "test_gduplicates.do"),
             path.join("src", "test", "test_hashsort.do")]
 
@@ -256,20 +251,23 @@ copy2("changelog.md", gdir)
 copy2(path.join("src", "gtools.pkg"),         gdir)
 copy2(path.join("src", "stata.toc"),          gdir)
 
-copy2(path.join("docs", "stata", "gcollapse.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gcontract.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gegen.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "gunique.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gdistinct.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "glevelsof.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "gtop.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"), gdir)
-copy2(path.join("docs", "stata", "gisid.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "gduplicates.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "gquantiles.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "fasterxtile.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "hashsort.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gtools.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gcollapse.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gcontract.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gegen.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gunique.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gdistinct.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "glevelsof.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gtop.sthlp"),          gdir)
+copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),  gdir)
+copy2(path.join("docs", "stata", "gisid.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "greshape.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gstats.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gstats_winsor.sthlp"), gdir)
+copy2(path.join("docs", "stata", "gduplicates.sthlp"),   gdir)
+copy2(path.join("docs", "stata", "gquantiles.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "fasterxtile.sthlp"),   gdir)
+copy2(path.join("docs", "stata", "hashsort.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gtools.sthlp"),        gdir)
 
 copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)
@@ -281,6 +279,8 @@ copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
 copy2(path.join("src", "ado", "gtop.ado"),             gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
 copy2(path.join("src", "ado", "gisid.ado"),            gdir)
+copy2(path.join("src", "ado", "greshape.ado"),         gdir)
+copy2(path.join("src", "ado", "gstats.ado"),           gdir)
 copy2(path.join("src", "ado", "gduplicates.ado"),      gdir)
 copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)
 copy2(path.join("src", "ado", "fasterxtile.ado"),      gdir)
@@ -296,19 +296,12 @@ with open(path.join("src", "ado", "gtools.ado"), 'r') as f:
     version = search('(\d+\.?)+', line).group(0)
 
 plugins = [
-    "env_set_unix_v2.plugin",
-    "env_set_windows_v2.plugin",
-    "env_set_macosx_v2.plugin",
     "gtools_unix_v2.plugin",
     "gtools_windows_v2.plugin",
     "gtools_macosx_v2.plugin",
-    "env_set_unix_v3.plugin",
-    "env_set_windows_v3.plugin",
-    "env_set_macosx_v3.plugin",
     "gtools_unix_v3.plugin",
     "gtools_windows_v3.plugin",
-    "gtools_macosx_v3.plugin",
-    "spookyhash.dll"
+    "gtools_macosx_v3.plugin"
 ]
 
 plugbak = plugins[:]

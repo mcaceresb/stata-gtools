@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.2 16Nov2018}{...}
+{* *! version 1.3.0 08Feb2019}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -13,9 +13,8 @@
 {p2colreset}{...}
 
 {pstd}
-{it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
-the latest stable version.  {it:Windows users:} If the plugin fails to load,
-please run {stata gtools, dependencies} at the start of your Stata session.
+{it:Important}: Please run {stata gtools, upgrade} to update
+{cmd:gtools} to the latest stable version.
 
 {pstd}
 {opt gtools} is a suite of commands that use hashes for a speedup
@@ -49,6 +48,9 @@ gtools (also see the {help gtools##examples:examples} below):
 {manhelp gunique R:gunique} and {manhelp gdistinct R:gdistinct}: Count unique levels of a set of variables. {p_end}
 
 {p 8 17 2}
+{manhelp gstats R:gstats}: Wrapper for several statistical functions and transformations. {p_end}
+
+{p 8 17 2}
 {manhelp hashsort R:hashsort}: (Experimental) Hash-based sorting. {p_end}
 
 {marker syntax}{...}
@@ -63,17 +65,9 @@ gtools (also see the {help gtools##examples:examples} below):
 {synopthdr}
 {synoptline}
 {syntab :Options}
-{synopt :{opt d:ependencies}}Install dependencies (requried in Windows).
-{p_end}
 {synopt :{opt u:pgrade}}Install latest version from Github.
 {p_end}
 {synopt :{opt i:nstall_latest}}Alias for {opt upgrade}.
-{p_end}
-{synopt :{opt replace}}Replace dependencies if already found.
-{p_end}
-{synopt :{opt dll}}Add the assumed path to {it:spookyhash.dll} to the system {opt PATH} (Windows)
-{p_end}
-{synopt :{opth hashlib(str)}}Custom path to {it:spookyhash.dll}.
 {p_end}
 {synopt :{opt license:s}}Prints the open source projects used in gtools
 {p_end}
@@ -113,23 +107,10 @@ felt compelled to include this program.
 {title:Options}
 
 {phang}
-{opt dependencies} Installs the hash library, {it:spookyhash.dll}, which
-is required for the plugin to execute correctly.
-
-{phang}
 {opt upgrade} Upgrades {opt gtools} to the latest github version.
 
 {phang}
 {opt install_latest} Alias for {opt upgrade}.
-
-{phang}
-{opt replace} Replace {it:spookyhash.dll} if already installed.
-
-{phang}
-{opt dll} Add path to {it:spookyhash.dll} to system path.
-
-{phang}
-{opth hashlib(str)} Custom path to {it:spookyhash.dll}.
 
 {phang}
 {opt license} Prints the open source projects used in {cmd gtools}. With

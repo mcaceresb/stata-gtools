@@ -553,7 +553,7 @@ program compare_gcollapse
     * This should be ignored for compare_inner_gcollapse_gegen bc of merge
     local debug_io debug_io_check(0) debug_io_threshold(0.0001)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2)
 
@@ -577,7 +577,7 @@ program compare_gcollapse
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(5)
 
@@ -601,7 +601,7 @@ program compare_gcollapse
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(5)
 
@@ -1304,7 +1304,7 @@ end
 
 capture program drop bench_collapse
 program bench_collapse
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily style(str) vars(int 1) collapse fcollapse *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily style(str) vars(int 1) collapse fcollapse *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''

@@ -1,4 +1,4 @@
-*! version 1.0.1 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -27,15 +27,16 @@ program glevelsof, rclass
         store(passthru)       /// (not implemented) store in matrix or mata object
         gen(passthru)         /// Save unique levels in varlist
         NODS DS               /// Parse - as varlist (ds) or negative (nods)
+        silent                /// Do not try to display levels in console
                               ///
         debug(passthru)       /// Print debugging info to console
         compress              /// Try to compress strL variables
         forcestrl             /// Force reading strL variables (stata 14 and above only)
         Verbose               /// Print info during function execution
+        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark             /// Benchmark function
         BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
         HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)     /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru) /// error|fallback: On collision, use native command or throw error
                               ///
         GROUPid(str)          ///
@@ -119,8 +120,8 @@ program glevelsof, rclass
     local opts  `separate' `missing' `clean' `unsorted' `ds' `nods'
 
     local sopts `colseparate' `numfmt' `compress' `forcestrl'
-    local sopts `sopts' `verbose' `benchmark' `benchmarklevel'
-    local sopts `sopts' `hashlib' `oncollision' `hashmethod' `debug'
+    local sopts `sopts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
+    local sopts `sopts' `oncollision' `hashmethod' `debug'
 
     local gopts gen(`groupid') `tag' `counts' `fill' `replace'
     local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')

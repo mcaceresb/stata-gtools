@@ -1,4 +1,4 @@
-*! version 1.0.0 20Sep2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.0.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Hash-based implementation of -sort- and -gsort- using C-plugins
 
 capture program drop hashsort
@@ -16,10 +16,10 @@ program define hashsort
         compress               /// Try to compress strL variables
         forcestrl              /// Force reading strL variables (stata 14 and above only)
         Verbose                /// Print info during function execution
+        _CTOLerance(passthru)  /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark              /// Benchmark function
         BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
         HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        hashlib(passthru)      /// (Windows only) Custom path to spookyhash.dll
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
         debug(passthru)        /// Print debugging info to console
                                ///
@@ -61,8 +61,8 @@ program define hashsort
     if ( "`generate'" != "" ) local skipcheck skipcheck
 
     local opts  `compress' `forcestrl' nods
-    local opts  `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts  `opts' `hashlib' `oncollision' `hashmethod' `debug'
+    local opts  `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
+    local opts  `opts' `oncollision' `hashmethod' `debug'
     local eopts `invertinmata' `sortgen' `skipcheck'
     local gopts `generate' `tag' `counts' `fill' `replace' `mlast'
     cap noi _gtools_internal `anything', missing `opts' `gopts' `eopts' gfunction(sort)

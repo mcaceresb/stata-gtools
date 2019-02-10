@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.0 08Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -11,12 +11,8 @@ program gtools
     syntax, [          ///
         LICENSEs       ///
         Verbose        ///
-        Dependencies   ///
         Install_latest ///
         Upgrade        ///
-        replace        ///
-        dll            ///
-        hashlib(str)   ///
         showcase       ///
         examples       ///
         test           ///
@@ -46,49 +42,7 @@ program gtools
             gtools_licenses
         }
 
-        if ( `"`dependencies'`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
-            exit 0
-        }
-    }
-
-    if ( "`dependencies'" == "dependencies" ) {
-        local github_url      `github'/lib/windows
-        local spookyhash_dll  spookyhash.dll
-        cap confirm file `spookyhash_dll'
-        if ( _rc ) local download `github_url'/`spookyhash_dll'
-        else local download `c(pwd)'/`spookyhash_dll'
-        cap mkdir `"`c(sysdir_plus)'s/"'
-        cap cd `"`c(sysdir_plus)'s/"'
-        if ( _rc ) {
-            local url `github_url'/`spookyhash_dll'
-            di as err `"Could not find directory '`c(sysdir_plus)'s/'"'
-            di as err `"Please download {browse "`url'":`spookyhash_dll'} to your gtools installation."'
-            cd `"`cwd'"'
-            exit _rc
-        }
-        cap confirm file `spookyhash_dll'
-        if ( (_rc == 0) & ("`replace'" == "") ) {
-            di as txt "`spookyhash_dll' already installed; run with -replace- to replace."
-            cd `"`cwd'"'
-            exit 0
-        }
-        cap erase `spookyhash_dll'
-        cap copy `"`download'"' `spookyhash_dll'
-        if ( _rc ) {
-            di as err "Unable to download `spookyhash_dll' from `download'."
-            cd `"`cwd'"'
-            exit _rc
-        }
-        cap confirm file `spookyhash_dll'
-        if ( _rc ) {
-            di as err "`spookyhash_dll' could not be installed. -gtools- programs may fail on Windows."
-            cd `"`cwd'"'
-            exit _rc
-        }
-        di as txt "Success!"
-        cd `"`cwd'"'
-
-        if ( `"`hashlib'`install_latest'`upgrade'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
+        if ( `"`install_latest'`upgrade'`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
     }
@@ -96,76 +50,6 @@ program gtools
     if ( ("`install_latest'" == "install_latest") | ("`upgrade'" == "upgrade") ) {
         cap net uninstall gtools
         net install gtools, from(`github'/build) replace
-        * gtools, dependencies replace
-        if ( `"`hashlib'`dll'`showcase'`examples'`test'`tests'"' == `""' ) {
-            exit 0
-        }
-    }
-
-    if ( `"`hashlib'"' == "" ) {
-        local hashlib `c(sysdir_plus)'s/spookyhash.dll
-        local hashusr 0
-    }
-    else local hashusr 1
-
-    if ( ("`c_os_'" == "windows") & (`hashusr' | ("`dll'" == "dll") ) ) {
-        cap confirm file spookyhash.dll
-        if ( _rc | `hashusr' ) {
-            cap findfile spookyhash.dll
-            if ( _rc | `hashusr' ) {
-                cap confirm file `"`hashlib'"'
-                if ( _rc ) {
-                    local url `github'/build/spookyhash.dll
-                    di as err `"'`hashlib'' not found."'
-                    di as err "Download {browse "`url'":here} or run {opt gtools, dependencies}"'
-                    exit _rc
-                }
-            }
-            else local hashlib `r(fn)'
-
-            mata: __gtools_hashpath = ""
-            mata: __gtools_dll = ""
-            mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
-            mata: st_local("__gtools_hashpath", __gtools_hashpath)
-            mata: mata drop __gtools_hashpath
-            mata: mata drop __gtools_dll
-            local path: env PATH
-            if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                local path = substr(`"`path'"', 1, length(`"`path'"') - 1)
-            }
-            local __gtools_hashpath = subinstr(`"`__gtools_hashpath'"', "/", "\", .)
-
-            local newpath `"`path';`__gtools_hashpath'"'
-            local truncate 2048
-            if ( `:length local newpath' > `truncate' ) {
-            local loops = ceil(`:length local newpath' / `truncate')
-            mata: __gtools_pathpieces = J(1, `loops', "")
-            mata: __gtools_pathcall   = ""
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
-            mata: st_local("pathcall", __gtools_pathcall)
-            mata: mata drop __gtools_pathcall __gtools_pathpieces
-            cap plugin call env_set, PATH `pathcall'
-            }
-            else {
-                cap plugin noi call env_set, PATH `"`path';`__gtools_hashpath'"'
-            }
-
-            if ( _rc ) {
-                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
-                exit 198
-            }
-            else {
-                di as txt "Added '`__gtools_hashpath'' to system PATH."
-            }
-        }
-        else local hashlib spookyhash.dll
-        if ( `"`showcase'`examples'`test'`tests'"' == `""' ) {
-            exit 0
-        }
-    }
-    else if ( `hashusr' | ("`dll'" == "dll") ) {
-        di as txt "-gtools, hashlib()- and -gtools, dll- only on Windows."
         if ( `"`showcase'`examples'`test'`tests'"' == `""' ) {
             exit 0
         }
@@ -178,7 +62,7 @@ program gtools
         }
     }
 
-    if ( "`test'`tests'" != "" ) {
+    if ( `"`test'`tests'"' != "" ) {
         local t_hours comparisons
         local t_days  bench_full
         local t_known dependencies basic_checks comparisons switches bench_test bench_full
@@ -188,7 +72,7 @@ program gtools
             disp `"(uknown tests detected: `t_extra'; will try to run anyway)"'
         }
 
-        if ( "`tests'" == "" ) {
+        if ( `"`tests'"' == "" ) {
             disp as txt "{bf:WARNING:} Default unit tests from branch `branch' can take several"
             disp as txt "hours. See {help gtools:help gtools} for details on unit testing."
         }
@@ -483,53 +367,70 @@ end
 capture program drop gtools_showcase
 program gtools_showcase
     * preserve
-    gtools_cmd  sysuse auto, clear
-
+    gtools_cmd   sysuse auto, clear
+                 
     gtools_head gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
     gtools_cmd  gquantiles 2 * price, _pctile nq(10)
     gtools_cmd  gquantiles p10 = 2 * price, pctile nq(10)
     gtools_cmd  gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
     gtools_cmd  fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
-
+                
+    gtools_head gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
+    gtools_cmd  gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
+    gtools_cmd  gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
+                
     gtools_head hashsort varlist, [options]
     gtools_cmd  hashsort -make
     gtools_cmd  hashsort foreign -rep78, benchmark verbose mlast
-
+                
     gtools_head gegen target = stat(source) [if] [in] [weight], by(varlist) [options]
     gtools_cmd  gegen tag   = tag(foreign)
     gtools_cmd  gegen group = tag(-price make)
     gtools_cmd  gegen p2_5  = pctile(price) [w = weight], by(foreign) p(2.5)
-
+                
     gtools_head gisid varlist [if] [in], [options]
     gtools_cmd  gisid make, missok
     gtools_cmd  gisid price in 1 / 2
-
+                
     gtools_head gduplicates varlist [if] [in], [options gtools(gtools_options)]
     gtools_cmd  gduplicates report foreign
     gtools_cmd  gduplicates report rep78 if foreign, gtools(bench(3))
-
+                
     gtools_head glevelsof varlist [if] [in], [options]
     gtools_cmd  glevelsof rep78, local(levels) sep(" | ")
     gtools_cmd  glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
     gtools_cmd  glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
-
+                
     gtools_head gtop varlist [if] [in] [weight], [options]
     disp        "gtoplevelsof varlist [if] [in] [weight], [options]" _n(1)
     gtools_cmd  gtoplevelsof foreign rep78
     gtools_cmd  gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
-
+                
     gtools_head gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
     gtools_cmd  gen h1 = headroom
     gtools_cmd  gen h2 = headroom
     gtools_cmd  local lbl labelformat(#stat:pretty# #sourcelabel#)
-    gtools_cmd
+    gtools_cmd  
     gtools_cmd  gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v `lbl'
     disp        `"disp "\`:var label mean', \`:var label p50'""'
     gtools_cmd  gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2) wild
-
+                
     gtools_head gcontract varlist [if] [if] [fweight], [options]
     gtools_cmd  gcontract foreign [fw = turn], freq(f) percent(p)
     * restore
+
+    gtools_head greshape subcommand list, i(i) j(j) [options]
+    disp        "    greshape wide varlist,    i(i) j(j) [options]"
+    disp        "    greshape long prefixlist, i(i) [j(j) string options]" _n(1)
+    disp        "    greshape spread varlist, j(j) [options]"
+    disp        "    greshape gather varlist, j(j) value(value) [options]" _n(1)
+
+    gtools_cmd  gen j = _n
+    gtools_cmd  greshape wide f p, i(foreign) j(j)
+    gtools_cmd  greshape long f p, i(foreign) j(j)
+    gtools_cmd                                        
+    gtools_cmd  greshape spread f p, j(j)
+    gtools_cmd  greshape gather f? p?, j(j) value(fp)
 end
 
 capture program drop gtools_head
@@ -549,8 +450,5 @@ end
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
-if ( _caller() < 14 ) local spiver v2
+if ( `c(stata_version)' < 14.1 ) local spiver v2
 else local spiver v3
-
-cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")

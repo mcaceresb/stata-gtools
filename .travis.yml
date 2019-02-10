@@ -7,14 +7,15 @@ compiler:
 os:
 - linux
 - osx
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
 script:
-- cd lib/spookyhash/build
-- sed -i.bak -e '37,40d' premake5.lua
-- "../../travis_build_premake.sh"
-- "./premake5 gmake"
-- make clean
-- ALL_CFLAGS+=-fPIC make
-- cd -
-- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
-- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 SPOOKYPATH=$(dirname `find ./lib/spookyhash/ -name "*libspookyhash.a"`)
+- cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export GCC=gcc; else export GCC=/usr/bin/gcc-7; fi
+- make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=$GCC
+- make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=$GCC
 # - "./lib/travis_build_push.sh"

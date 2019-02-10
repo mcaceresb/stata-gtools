@@ -1,4 +1,4 @@
-*! version 1.1.2 16Nov2018 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.0 08Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -10,6 +10,10 @@
 * rc 17006 - strL variables unknown error
 * rc 17800 - More than 2^31-1 obs
 * rc 17801 - gtools has not been compiled for a X-bit architecture
+* rc 18101 - greshape long id variables not unique
+* rc 18102 - greshape wide j variables not unique within id
+* rc 18103 - greshape wide xi variables not unique within id
+* --------
 * rc 17459
 * rc 17900
 * rc 17999
@@ -40,6 +44,8 @@ program _gtools_internal, rclass
                          gtoplevelsof ///
                          gcontract    /// 8
                          gquantiles   ///
+                         gstats       ///
+                         greshape     /// 11
                          ghash
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
@@ -69,8 +75,15 @@ program _gtools_internal, rclass
     local 00 `0'
 
     * Time the entire function execution
-    gtools_timer on 99
-    gtools_timer on 98
+    FreeTimer
+    local t99: copy local FreeTimer
+    global GTOOLS_T99: copy local t99
+    gtools_timer on `t99'
+
+    FreeTimer
+    local t98: copy local FreeTimer
+    global GTOOLS_T98: copy local t98
+    gtools_timer on `t98'
 
     ***********************************************************************
     *                           Syntax parsing                            *
@@ -81,10 +94,11 @@ program _gtools_internal, rclass
         DEBUG_level(int 0)        /// debugging
         Verbose                   /// info
         _subtract                 /// (Undocumented) Subtract result from source variabes
+        _keepgreshape             /// (Undocumented) Keep greshape scalars
+        _CTOLerance(real 0)       /// (Undocumented) Counting sort tolerance; default is radix
         BENCHmark                 /// print function benchmark info
         BENCHmarklevel(int 0)     /// print plugin benchmark info
         HASHmethod(str)           /// hashing method
-        hashlib(str)              /// path to hash library (Windows only)
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
@@ -117,6 +131,8 @@ program _gtools_internal, rclass
                                   /// Capture options
                                   /// ---------------
                                   ///
+        greshape(str)             /// options for greshape (to parse later)
+        gstats(str)               /// options for gstats (to parse later)
         gquantiles(str)           /// options for gquantiles (to parse later)
         gcontract(str)            /// options for gcontract (to parse later)
         gcollapse(str)            /// options for gcollapse (to parse later)
@@ -224,7 +240,6 @@ program _gtools_internal, rclass
         disp as txt `"    verbose:          `verbose'"'
         disp as txt `"    benchmark:        `benchmark'"'
         disp as txt `"    hashmethod:       `hashmethod'"'
-        disp as txt `"    hashlib:          `hashlib'"'
         disp as txt `"    oncollision:      `oncollision'"'
         disp as txt `"    replace:          `replace'"'
         disp as txt `""'
@@ -249,6 +264,8 @@ program _gtools_internal, rclass
         disp as txt `"    glevelsof:        `gopts4'"'
         disp as txt `"    gquantiles:       `gquantiles'"'
         disp as txt `"    gcontract:        `gcontract'"'
+        disp as txt `"    gstats:           `gstats'"'
+        disp as txt `"    greshape:         `greshape'"'
         disp as txt `"    gcollapse:        `gcollapse'"'
         disp as txt `"    gtop:             `gtop'"'
         disp as txt `"    recast:           `recast'"'
@@ -256,73 +273,6 @@ program _gtools_internal, rclass
         disp as txt `""'
         disp as txt "{hline 72}"
         disp as txt `""'
-    }
-
-    ***********************************************************************
-    *                               debug!                                *
-    ***********************************************************************
-
-    * Check you will find the hash library (Windows only)
-    * ---------------------------------------------------
-
-    local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-    local url `url'/master/lib/windows/spookyhash.dll
-
-    if ( `"`hashlib'"' == "" ) {
-        local hashlib `c(sysdir_plus)'s/spookyhash.dll
-        local hashusr 0
-    }
-    else local hashusr 1
-
-    if ( (`"`c_os_'"' == "windows") & `hashusr' ) {
-        cap confirm file spookyhash.dll
-        if ( _rc | `hashusr' ) {
-            cap findfile spookyhash.dll
-            if ( _rc | `hashusr' ) {
-                cap confirm file `"`hashlib'"'
-                if ( _rc ) {
-                    di as err `"'`hashlib'' not found."'
-                    di as err `"Download {browse "`url'":here}"' ///
-                              `" or run {opt gtools, dependencies}"'
-                    clean_all 198
-                    exit 198
-                }
-            }
-            else local hashlib `r(fn)'
-            mata: __gtools_hashpath = ""
-            mata: __gtools_dll = ""
-            mata: pathsplit(`"`hashlib'"', __gtools_hashpath, __gtools_dll)
-            mata: st_local("__gtools_hashpath", __gtools_hashpath)
-            mata: mata drop __gtools_hashpath
-            mata: mata drop __gtools_dll
-            local path: env PATH
-            if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-                mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
-            }
-            local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
-            local newpath `"`path';`__gtools_hashpath'"'
-            local truncate 2048
-            if ( `:length local newpath' > `truncate' ) {
-                local loops = ceil(`:length local newpath' / `truncate')
-                mata: __gtools_pathpieces = J(1, `loops', "")
-                mata: __gtools_pathcall   = ""
-                mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
-                mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
-                mata: st_local("pathcall", __gtools_pathcall)
-                mata: mata drop __gtools_pathcall __gtools_pathpieces
-                cap plugin call env_set, PATH `pathcall'
-            }
-            else {
-                cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-            }
-            if ( _rc ) {
-                local rc = _rc
-                di as err "Unable to add '`__gtools_hashpath'' to system PATH."
-                clean_all `rc'
-                exit `rc'
-            }
-        }
-        else local hashlib spookyhash.dll
     }
 
     ***********************************************************************
@@ -408,6 +358,8 @@ program _gtools_internal, rclass
                          collapse ///
                          top      ///
                          contract ///
+                         stats    ///
+                         reshape  ///
                          quantiles
 
     if ( "`gfunction'" == "" ) local gfunction hash
@@ -709,6 +661,7 @@ program _gtools_internal, rclass
     scalar __gtools_skipcheck   = ( "`skipcheck'"    != "" )
     scalar __gtools_mlast       = ( "`mlast'"        != "" )
     scalar __gtools_subtract    = ( "`_subtract'"    != "" )
+    scalar __gtools_ctolerance  = `_ctolerance'
     scalar __gtools_hash_method = `hashmethod'
     scalar __gtools_weight_code = `wcode'
     scalar __gtools_weight_pos  = 0
@@ -760,6 +713,9 @@ program _gtools_internal, rclass
     matrix __gtools_xtile_cutoffs   = J(1, 1, .)
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
     matrix __gtools_xtile_cutbin    = J(1, 1, .)
+
+    gstats_scalars   init
+    greshape_scalars init
 
     * Parse glevelsof options
     * -----------------------
@@ -1003,7 +959,7 @@ program _gtools_internal, rclass
         qui mata: (__gtools_togen_k > 0)? st_addvar(__gtools_togen_types[__gtools_togen_s], __gtools_togen_names[__gtools_togen_s]): ""
 
         local msg "Generated targets"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark')
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark')
     }
     else local etargets ""
 
@@ -1264,7 +1220,7 @@ program _gtools_internal, rclass
     else local extravars ""
 
     local msg "Parsed by variables"
-    gtools_timer info 98 `"`msg'"', prints(`benchmark')
+    gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
     ***********************************************************************
     *                               Debug!                                *
@@ -1426,7 +1382,7 @@ program _gtools_internal, rclass
         }
 
         local msg "Stata reshuffle"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
 
         if ( `=_N < maxlong()' ) {
             local stype long
@@ -1502,11 +1458,11 @@ program _gtools_internal, rclass
 
         if ( `=scalar(__gtools_ixfinish)' ) {
             local msg "Switch code runtime"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             local msg "Added targets"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
 
             local extravars `__gtools_sources' `__gtools_targets' `freq'
             local plugvars `byvars' `etargets' `extravars' `ixinfo'
@@ -1521,11 +1477,11 @@ program _gtools_internal, rclass
             }
 
             local msg "Finished collapse"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
         }
         else {
-            local msg "Plugin runtime"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+            local msg "C plugin runtime"
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
         }
 
         return scalar used_io = `=scalar(__gtools_used_io)'
@@ -1575,6 +1531,52 @@ program _gtools_internal, rclass
         if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
             scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
+        }
+        else if ( inlist("`gfunction'",  "reshape") ) {
+            local 0: copy local greshape
+            syntax anything, xij(str) [j(str) xi(str) File(str) STRing(int 0)]
+
+            gettoken shape readwrite: anything
+            local readwrite `readwrite'
+            if !inlist(`"`shape'"', "long", "wide") {
+                disp "`shape' unknown: only long and wide are supported"
+                exit 198
+            }
+            if !inlist(`"`readwrite'"', "fwrite", "write", "read") {
+                disp "`readwrite' unknown: only fwrite, write, and read are supported"
+                exit 198
+            }
+
+            if ( inlist(`"`readwrite'"', "fwrite", "write") ) {
+                if ( `"`shape'"' == "long" ) {
+                    local reshapevars `xi' `xij'
+                }
+                else {
+                    local reshapevars `xij' `xi'
+                }
+            }
+            else {
+                local reshapevars `xij' `xi'
+            }
+
+            local gcall `gfunction' `readwrite' `"`file'"'
+            scalar __gtools_greshape_code = cond(`"`shape'"' == "wide", 2, 1)
+            if ( (`"`shape'"' == "wide") | ("`readwrite'" == "read") ) {
+                local reshapevars `j' `reshapevars'
+            }
+            scalar __gtools_greshape_str = `string'
+            scalar __gtools_greshape_kxi = `:list sizeof xi'
+        }
+        else if ( inlist("`gfunction'",  "stats") ) {
+            local gcall `gfunction'
+            gettoken gstat gstats: gstats
+            cap noi gstats_`gstat' `gstats'
+            if ( _rc ) {
+                local rc = _rc
+                clean_all `rc'
+                exit `rc'
+            }
+            local statvars `varlist'
         }
         else if ( inlist("`gfunction'",  "contract") ) {
             local 0 `gcontract'
@@ -2231,13 +2233,15 @@ program _gtools_internal, rclass
             }
 
             local msg "Parsed quantiles and added targets"
-            gtools_timer info 98 `"`msg'"', prints(`benchmark')
+            gtools_timer info `t98' `"`msg'"', prints(`benchmark')
         }
         else local gcall `gfunction'
 
-        local plugvars `byvars' `etargets' `extravars' `level_targets' `contractvars' `xvars'
-        scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
+        local plugvars `byvars' `etargets' `extravars' `level_targets'
+        local plugvars `plugvars' `statvars' `contractvars' `xvars'
+        local plugvars `plugvars' `reshapevars'
 
+        scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
         local rc = _rc
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'
@@ -2247,8 +2251,8 @@ program _gtools_internal, rclass
             exit `rc'
         }
 
-        local msg "Plugin runtime"
-        gtools_timer info 98 `"`msg'"', prints(`benchmark') off
+        local msg "C plugin runtime"
+        gtools_timer info `t98' `"`msg'"', prints(`benchmark') off
 
         if ( `debug_level' ) {
             disp as txt `""'
@@ -2258,6 +2262,7 @@ program _gtools_internal, rclass
             disp as txt `"    gcall:            `gcall'"'
             disp as txt `""'
             disp as txt `"    contractvars:     `contractvars'"'
+            disp as txt `"    statvars:         `statvars'"'
             disp as txt `""'
             disp as txt `"    nolocalvar:       `nolocalvar'"'
             disp as txt `"    freq:             `freq'"'
@@ -2357,8 +2362,8 @@ program _gtools_internal, rclass
         }
     }
 
-    local msg "Total runtime`runtxt'"
-    gtools_timer info 99 `"`msg'"', prints(`benchmark') off
+    local msg "Internal gtools runtime`runtxt'"
+    gtools_timer info `t99' `"`msg'"', prints(`benchmark') off
 
     * Return values
     * -------------
@@ -2380,6 +2385,12 @@ program _gtools_internal, rclass
     return local byvars = "`byvars'"
     return local bynum  = "`bynum'"
     return local bystr  = "`bystr'"
+
+    * gstats
+    if ( inlist("`gfunction'",  "stats") ) {
+        return scalar gstats_winsor_cutlow  = __gtools_winsor_cutl
+        return scalar gstats_winsor_cuthigh = __gtools_winsor_cuth
+    }
 
     * levelsof
     if ( inlist("`gfunction'", "levelsof", "top") & `=scalar(__gtools_levels_return)' ) {
@@ -2431,11 +2442,7 @@ capture program drop hashsort_inner
 program hashsort_inner, sortpreserve
     syntax varlist [in], benchmark(int) [invertinmata]
     cap noi plugin call gtools_plugin `varlist' `_sortindex' `in', hashsort
-    if ( _rc ) {
-        local rc = _rc
-        clean_all `rc'
-        exit `rc'
-    }
+    if ( _rc ) exit _rc
     if ( "`invertinmata'" != "" ) {
         mata: st_store(., "`_sortindex'", invorder(st_data(., "`_sortindex'")))
     }
@@ -2448,8 +2455,8 @@ program hashsort_inner, sortpreserve
     c_local r_minJ = `r_minJ'
     c_local r_maxJ = `r_maxJ'
 
-    local msg "Plugin runtime"
-    gtools_timer info 98 `"`msg'"', prints(`benchmark')
+    local msg "C plugin runtime"
+    gtools_timer info ${GTOOLS_T98} `"`msg'"', prints(`benchmark')
 end
 
 ***********************************************************************
@@ -2483,6 +2490,7 @@ program clean_all
     cap scalar drop __gtools_skipcheck
     cap scalar drop __gtools_mlast
     cap scalar drop __gtools_subtract
+    cap scalar drop __gtools_ctolerance
     cap scalar drop __gtools_hash_method
     cap scalar drop __gtools_weight_code
     cap scalar drop __gtools_weight_pos
@@ -2572,6 +2580,9 @@ program clean_all
     cap matrix drop __gtools_stats
     cap matrix drop __gtools_pos_targets
 
+    gstats_scalars   drop
+    greshape_scalars drop `_keepgreshape'
+
     * NOTE(mauricio): You had the urge to make sure you were dropping
     * variables at one point. Don't. This is fine for gquantiles but not so
     * with gegen or gcollapse.  In the case of gcollapse, if the user ran w/o
@@ -2597,11 +2608,14 @@ program clean_all
 
     cap mata: mata drop __gtools_level_targets
 
-    cap timer off   99
-    cap timer clear 99
+    cap timer off   $GTOOLS_T99
+    cap timer clear $GTOOLS_T99
 
-    cap timer off   98
-    cap timer clear 98
+    cap timer off   $GTOOLS_T98
+    cap timer clear $GTOOLS_T98
+
+    global GTOOLS_T99
+    global GTOOLS_T98
 end
 
 ***********************************************************************
@@ -2684,11 +2698,11 @@ program parse_by_types, rclass
     * Compress strL variables if requested
     * ------------------------------------
 
-    * gcollapse and gcontract need to write to variables, and so cannot
-    * support strL variables
+    * gcollapse, gcontract, greshape, need to write to variables,
+    * and so cannot support strL variables
 
     local GTOOLS_CALLER $GTOOLS_CALLER
-    local GTOOLS_STRL   gcollapse gcontract
+    local GTOOLS_STRL   gcollapse gcontract greshape
     local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
 
     * glevelsof, gen() needs to write to variables, and so cannot
@@ -2758,15 +2772,15 @@ program parse_by_types, rclass
                         _n(1) "variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"         ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "    {stata compress `varstrL'}"                                                   ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse}" ///
-                        _n(1) "and {cmd:gcontract} do not support strL variables in any Stata version."          ///
-                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."       ///
-                        _n(1) ""                                                                                 ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"          ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"           ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "    {stata compress `varstrL'}"                                                     ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"  ///
+                        _n(1) " {cmd:gcontract}, and {cmd:greshape} do not support strL variables in any version." ///
+                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."         ///
+                        _n(1) ""                                                                                   ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"            ///
                         _n(1) "and above can read strL variables in Stata 14 or later."
         }
         exit 17004
@@ -2783,16 +2797,16 @@ program parse_by_types, rclass
                         _n(1) "strL variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                            ///
-                        _n(1) "strL variables are string-only, try"                                                                 ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "    {stata compress `varstrL'}"                                                                      ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse} and {cmd:gcontract} " ///
-                        _n(1) "do not support strL variables in any Stata version. Further, binary"                                 ///
-                        _n(1) "strL variables are not yet supported in any Stata version."                                          ///
-                        _n(1) ""                                                                                                    ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools"                                  ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                          ///
+                        _n(1) "strL variables are string-only, try"                                                               ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "    {stata compress `varstrL'}"                                                                    ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse}, {cmd:gcontract}, " ///
+                        _n(1) "and {cmd:greshape} do not support strL variables in any Stata version. Further, binary"            ///
+                        _n(1) "strL variables are not yet supported in any Stata version."                                        ///
+                        _n(1) ""                                                                                                  ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools"                                ///
                         _n(1) "0.14 and above can read strL variables in Stata 14 or later."
         }
         exit 17002
@@ -3005,6 +3019,9 @@ program gtools_timer, rclass
     local what  `1'
     local timer `2'
     local msg   `"`3'; "'
+
+    * If timer is 0, then there were no free timers; skip this benchmark
+    if ( `timer' == 0 ) exit 0
 
     if ( inlist("`what'", "start", "on") ) {
         cap timer off `timer'
@@ -3229,74 +3246,266 @@ program encode_stat, rclass
 end
 
 ***********************************************************************
+*                              greshape                               *
+***********************************************************************
+
+capture program drop greshape_scalars
+program greshape_scalars
+    * 1 = long, 2 = wide
+    if ( inlist(`"`1'"', "gen", "init", "alloc") ) {
+        scalar __gtools_greshape_code = 0
+        scalar __gtools_greshape_kxi  = 0
+        scalar __gtools_greshape_str  = 0
+        cap matrix list __gtools_greshape_xitypes
+        if ( _rc ) matrix __gtools_greshape_xitypes = 0
+        cap matrix list __gtools_greshape_types
+        if ( _rc ) matrix __gtools_greshape_types = 0
+        cap matrix list __gtools_greshape_maplevel
+        if ( _rc ) matrix __gtools_greshape_maplevel = 0
+        cap scalar dir __gtools_greshape_jfile
+        if ( _rc ) scalar __gtools_greshape_jfile = 0
+        cap scalar dir __gtools_greshape_kxij
+        if ( _rc ) scalar __gtools_greshape_kxij = 0
+        cap scalar dir __gtools_greshape_kout
+        if ( _rc ) scalar __gtools_greshape_kout = 0
+        cap scalar dir __gtools_greshape_klvls
+        if ( _rc ) scalar __gtools_greshape_klvls = 0
+    }
+    else if ( `"`2'"' != "_keepgreshape" ) {
+        cap scalar drop __gtools_greshape_code
+        cap scalar drop __gtools_greshape_kxi
+        cap scalar drop __gtools_greshape_str
+        if ( `"${GTOOLS_CALLER}"' != "greshape" ) {
+            cap scalar drop __gtools_greshape_jfile
+            cap scalar drop __gtools_greshape_kxij
+            cap scalar drop __gtools_greshape_kout
+            cap scalar drop __gtools_greshape_klvls
+            cap matrix drop __gtools_greshape_xitypes
+            cap matrix drop __gtools_greshape_types
+            cap matrix drop __gtools_greshape_maplevel
+        }
+    }
+end
+
+***********************************************************************
+*                               gstats                                *
+***********************************************************************
+
+capture program drop gstats_scalars
+program gstats_scalars
+    scalar __gtools_gstats_code = .
+    if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
+        scalar __gtools_winsor_trim    = .
+        scalar __gtools_winsor_cutl    = .
+        scalar __gtools_winsor_cuth    = .
+        scalar __gtools_winsor_kvars   = .
+    }
+    else {
+        cap scalar drop __gtools_gstats_code
+        cap scalar drop __gtools_winsor_trim
+        cap scalar drop __gtools_winsor_cutl
+        cap scalar drop __gtools_winsor_cuth
+        cap scalar drop __gtools_winsor_kvars
+    }
+end
+
+capture program drop gstats_winsor
+program gstats_winsor
+    syntax varlist(numeric), [ ///
+        Suffix(str)            ///
+        Prefix(str)            ///
+        GENerate(str)          ///
+        Trim                   ///
+        Cuts(str)              ///
+        Label                  ///
+        replace                ///
+    ]
+
+    * Default is winsorize or trim 1st or 99th pctile
+    local trim = ( `"`trim'"' != "" )
+    if ( `"`cuts'"' == "" ) {
+        local cutl = 1
+        local cuth = 99
+    }
+    else {
+        gettoken cutl cuth: cuts
+        cap noi confirm number `cutl'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        cap noi confirm number `cuth'
+        if ( _rc ) {
+            disp "you must pass two percentiles to option -cuts()-"
+            exit _rc
+        }
+
+        if ( (`cutl' < 0) | (`cutl' > 100) | (`cuth' < 0) | (`cuth' > 100) ) {
+            disp as err "percentiles in -cuts()- must be between 0 and 100"
+            exit 198
+        }
+
+        if ( `cutl' > `cuth' ) {
+            disp as err "specify the lower cutpoint first in -cuts()-"
+            exit 198
+        }
+    }
+    local kvars: list sizeof varlist
+
+    scalar __gtools_winsor_trim    = `trim'
+    scalar __gtools_winsor_cutl    = `cutl'
+    scalar __gtools_winsor_cuth    = `cuth'
+    scalar __gtools_winsor_kvars   = `kvars'
+    scalar __gtools_gstats_code    = 1
+
+    * Default is to generate vars with suffix (_w or _tr)
+    if ( `"`prefix'`suffix'`generate'"' == "" ) {
+        local ngen = 0
+        if ( `trim' ) {
+            local suffix _tr
+        }
+        else {
+            local suffix _w
+        }
+    }
+    else local ngen = (`"`prefix'`suffix'"' != "") + (`"`generate'"' != "")
+
+    * Can only generate variables in one way
+    if ( `ngen' > 1 ) {
+        disp as err "Specify only one of prefix()/suffix() or generate."
+        exit 198
+    }
+
+    * Generate same targets as sources
+    if ( (`"`replace'"' != "") & (`ngen' == 0) ) {
+        local targetvars: copy local varlist
+    }
+    else {
+        if ( `"`replace'"' == "" ) local noi noi
+        if ( `"`prefix'`suffix'"' != "" ) {
+            local genvars
+            local gentypes
+            local targetvars
+            foreach var of varlist `varlist' {
+                local targetvars `targetvars' `prefix'`var'`suffix'
+                cap `noi' confirm new var `prefix'`var'`suffix'
+                if ( _rc & (`"`replace'"' == "") ) {
+                    exit _rc
+                }
+                else if ( _rc == 0 ) {
+                    local genvars  `genvars' `prefix'`var'`suffix'
+                    local gentypes `gentypes' `:type `var''
+                }
+            }
+        }
+        else if ( `"`generate'"' != "" ) {
+            local kgen: list sizeof generate
+            if ( `kgen' != `kvars' ) {
+                disp as err "Specify the same number of targets as sources with -generate()-"
+                exit 198
+            }
+
+            local targetvars: copy local generate
+            local genvars
+            local gentypes
+            forvalues i = 1 / `kvars' {
+                local var:  word `i' of `varlist'
+                local gvar: word `i' of `generate'
+                cap `noi' confirm new var `gvar'
+                if ( _rc & (`"`replace'"' == "") ) {
+                    exit _rc
+                }
+                else if ( _rc == 0 ) {
+                    local genvars  `genvars'  `gvar'
+                    local gentypes `gentypes' `:type `var''
+                }
+            }
+        }
+        else {
+            disp as err "Invalid call in gtools/gstats/winsor"
+            exit 198
+        }
+
+        mata: (void) st_addvar(tokens(`"`gentypes'"'), tokens(`"`genvars'"'))
+    }
+
+    * Add to label if applicable
+    if ( substr("`cutl'", 1, 1) == "." ) local cutl 0`cutl'
+    if ( substr("`cuth'", 1, 1) == "." ) local cuth 0`cuth'
+    if ( "`label'" != "" ) {
+        if ( `trim' ) {
+            local glab `" - Trimmed (p`cutl', p`cuth')"'
+        }
+        else {
+            local glab `" - Winsor (p`cutl', p`cuth')"'
+        }
+    }
+    else local glab `""'
+
+    * Label and copy formats
+    forvalues i = 1 / `kvars' {
+        local var:  word `i' of `varlist'
+        local gvar: word `i' of `targetvars'
+        local vlab: var label `var'
+        if ( `"`vlab'"' == "" ) local vlab `var'
+        label var `gvar' `"`=`"`vlab'"' + `"`glab'"''"'
+        format `:format `var'' `gvar'
+    }
+
+    c_local varlist `varlist' `targetvars'
+end
+
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
+end
+
+capture program drop GenericParseTypes
+program GenericParseTypes
+    syntax varlist, mat(name) [strl(int 0)]
+
+    cap disp ustrregexm("a", "a")
+    if ( _rc ) local regex regex
+    else local regex ustrregex
+
+    local types
+    foreach var of varlist `varlist' {
+        if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
+            if ( (`regex's(1) == "L") & (`strl' == 0) ) {
+                disp as err "Unsupported type `:type `var''"
+                exit 198
+            }
+            local types `types' `=`regex's(1)'
+        }
+        else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
+            local types `types' 0
+        }
+        else {
+            disp as err "Unknown type `:type `var''"
+            exit 198
+        }
+    }
+    mata: st_matrix(st_local("mat"), strtoreal(tokens(st_local("types"))))
+end
+
+
+***********************************************************************
 *                             Load plugin                             *
 ***********************************************************************
 
 if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) local c_os_ macosx
 else local c_os_: di lower("`c(os)'")
 
-if ( `c(stata_version)' < 14 ) local spiver v2
+if ( `c(stata_version)' < 14.1 ) local spiver v2
 else local spiver v3
-
-cap program drop env_set
-program env_set, plugin using("env_set_`c_os_'_`spiver'.plugin")
-
-* Windows hack
-if ( "`c_os_'" == "windows" ) {
-    cap confirm file spookyhash.dll
-    if ( _rc ) {
-        cap findfile spookyhash.dll
-        if ( _rc ) {
-            local rc = _rc
-            local url https://raw.githubusercontent.com/mcaceresb/stata-gtools
-            local url `url'/master/lib/windows/spookyhash.dll
-            di as err `"gtools: `hashlib' not found."' _n(1)     ///
-                      `"gtools: download {browse "`url'":here}"' ///
-                      `" or run {opt gtools, dependencies}"'
-            exit `rc'
-        }
-        mata: __gtools_hashpath = ""
-        mata: __gtools_dll = ""
-        mata: pathsplit(`"`r(fn)'"', __gtools_hashpath, __gtools_dll)
-        mata: st_local("__gtools_hashpath", __gtools_hashpath)
-        mata: mata drop __gtools_hashpath
-        mata: mata drop __gtools_dll
-        local path: env PATH
-        if inlist(substr(`"`path'"', length(`"`path'"'), 1), ";") {
-            mata: st_local("path", substr(`"`path'"', 1, `:length local path' - 1))
-        }
-        local __gtools_hashpath: subinstr local __gtools_hashpath "/" "\", all
-        local newpath `"`path';`__gtools_hashpath'"'
-        local truncate 2048
-        if ( `:length local newpath' > `truncate' ) {
-            local loops = ceil(`:length local newpath' / `truncate')
-            mata: __gtools_pathpieces = J(1, `loops', "")
-            mata: __gtools_pathcall   = ""
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathpieces[k] = substr(st_local("newpath"), 1 + (k - 1) * `truncate', `truncate')
-            mata: for(k = 1; k <= `loops'; k++) __gtools_pathcall = __gtools_pathcall + " `" + `"""' + __gtools_pathpieces[k] + `"""' + "' "
-            mata: st_local("pathcall", __gtools_pathcall)
-            mata: mata drop __gtools_pathcall __gtools_pathpieces
-            cap plugin call env_set, PATH `pathcall'
-        }
-        else {
-            cap plugin call env_set, PATH `"`path';`__gtools_hashpath'"'
-        }
-        if ( _rc ) {
-            cap confirm file spookyhash.dll
-            if ( _rc ) {
-                cap plugin call env_set, PATH `"`__gtools_hashpath'"'
-                if ( _rc ) {
-                    local rc = _rc
-                    di as err `"gtools: Unable to add '`__gtools_hashpath''"' ///
-                              `"to system PATH."'                             ///
-                        _n(1) `"gtools: download {browse "`url'":here}"'      ///
-                              `" or run {opt gtools, dependencies}"'
-                    exit `rc'
-                }
-            }
-        }
-    }
-}
 
 cap program drop gtools_plugin
 if ( inlist("${GTOOLS_FORCE_PARALLEL}", "1") ) {

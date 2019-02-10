@@ -2,7 +2,7 @@ sysuse auto, clear
 
 gtoplevelsof rep78
 
-gtoplevelsof rep78 [fw = weight]
+gtop rep78 [fw = weight]
 
 gtop rep78 [w = gear_ratio]
 

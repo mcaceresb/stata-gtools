@@ -94,7 +94,7 @@ capture program drop compare_isid
 program compare_isid
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -102,20 +102,18 @@ program compare_isid
     di _n(1) "{hline 80}" _n(1) "compare_isid, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_isid str_12,              `options'
-    compare_inner_isid str_12 str_32,       `options'
     compare_inner_isid str_12 str_32 str_4, `options'
 
     compare_inner_isid double1,                 `options'
-    compare_inner_isid double1 double2,         `options'
     compare_inner_isid double1 double2 double3, `options'
 
     compare_inner_isid int1,           `options'
     compare_inner_isid int1 int2,      `options'
     compare_inner_isid int1 int2 int3, `options'
 
-    compare_inner_isid int1 str_32 double1,                                        `options'
-    compare_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_isid str_32 int3 double3  , `options'
+    compare_inner_isid int1 double2 double3 , `options'
+    compare_inner_isid double? str_* int?   , `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -288,7 +286,7 @@ end
 
 capture program drop bench_isid
 program bench_isid
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily *]
 
     qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''

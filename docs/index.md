@@ -139,20 +139,20 @@ benchmarks](benchmarks#old-collapse-benchmarks)</small>
 
 __*Limitations*__
 
-- `strL` variables only partially supported on Stata 14 and above;
+* `strL` variables only partially supported on Stata 14 and above;
   `gcollapse` and `gcontract` do not support `strL` variabes.
 
-- Due to a Stata bug, gtools cannot support more
+* Due to a Stata bug, gtools cannot support more
   than `2^31-1` (2.1 billion) observations. See [this
   issue](https://github.com/mcaceresb/stata-gtools/issues/43)
 
-- Due to limitations in the Stata Plugin Interface, gtools
+* Due to limitations in the Stata Plugin Interface, gtools
   can only handle as many variables as the largest `matsize`
   in the user's Stata version. For MP this is more than
   10,000 variables but in IC this is only 800. See [this
   issue](https://github.com/mcaceresb/stata-gtools/issues/24).
 
-- Gtools uses compiled C code to achieve it's massive increases in
+* Gtools uses compiled C code to achieve it's massive increases in
   speed. This has two side-effects users might notice: First, it is sometimes
   not possible to break the program's execution.  While this is already true
   for at least some parts of most Stata commands, there are fewer opportunities

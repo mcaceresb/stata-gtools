@@ -57,7 +57,7 @@ program gduplicates, rclass
 
         capture syntax varlist [if] [in], force [gtools(str)]
         if ( _rc ) {
-            syntax [if] [in], [gtools(str)]
+            syntax [varlist] [if] [in], [gtools(str)]
             unab varlist : _all
             * local varlist : subinstr local varlist "`_sortindex'" ""
             local vartext "{txt} all variables"

@@ -456,7 +456,7 @@ Differences from `duplicates`
 
 - `gduplicates` does not sort `examples` or `list` by default. This massively
   enhances performance but it might be harder to read. Pass option `sort`
-  (`sorted`) to mimic `duplicates` behavior and sort the list. 
+  (`sorted`) to mimic `duplicates` behavior and sort the list.
 
 Hashing and Sorting
 -------------------

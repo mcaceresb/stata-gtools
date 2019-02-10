@@ -13,11 +13,11 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.3.0-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/stable-v1.3.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
-[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
+[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
+[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Big Data
 -------------------------
@@ -37,10 +37,10 @@ ssc install gtools
 gtools, upgrade
 ```
 
-Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.do):
+Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.do):
 
 <img
-    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png"
+    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.png"
     alt="Gtools quick benchmark"
     style="display:block;margin-left:auto;margin-right:auto"
     width="80%"/>
@@ -197,10 +197,10 @@ gtools, upgrade
 ```
 
 By default this syncs to the master branch, which is stable. To install
-the latest beta version, type:
+the latest version directly, type:
 ```stata
 local github "https://raw.githubusercontent.com"
-net install gtools, from(`github'/mcaceresb/stata-gtools/develop/build/)
+net install gtools, from(`github'/mcaceresb/stata-gtools/master/build/)
 ```
 
 ### Examples

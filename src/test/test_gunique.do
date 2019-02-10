@@ -116,7 +116,7 @@ program compare_unique
         exit 198
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -137,9 +137,9 @@ program compare_unique
     compare_inner_unique int1 int2,      `options'
     compare_inner_unique int1 int2 int3, `options' sort
 
-    compare_inner_unique int1 str_32 double1,                                        `options'
-    compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_unique int1 str_32 int3 double3  , `options'
+    compare_inner_unique int1 int1 double2 double3 , `options'
+    compare_inner_unique int1 double? str_* int?   , `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -292,7 +292,7 @@ end
 
 capture program drop bench_unique
 program bench_unique
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily distinct joint distunique *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily distinct joint distunique *]
 
     if ( "`distinct'" != "" ) {
         local dstr distinct

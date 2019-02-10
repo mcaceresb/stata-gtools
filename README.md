@@ -23,9 +23,9 @@ Faster Stata for Big Data
 -------------------------
 
 This package provides a fast implementation of various Stata commands
-using hashes and C plugins. The syntax and purpose is largely
-analogous to their Stata counterparts: For example, you can replace
-`collapse` with `gcollapse`, `egen` with `gegen`, and so on. For a
+using hashes and C plugins. The syntax and purpose is largely analogous
+to their Stata counterparts; for example, you can replace `collapse`
+with `gcollapse`, `reshape` with `greshape`, and so on. For a
 comprehensive list of differences (including some extra features!)
 see the [remarks](#remarks) below; for details and examples see [the
 official project page](https://gtools.readthedocs.io).
@@ -37,6 +37,8 @@ ssc install gtools
 gtools, upgrade
 ```
 
+![Gtools quick benchmark](https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png)
+
 __*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
@@ -46,7 +48,7 @@ __*Gtools commands with a Stata equivalent*__
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables, arbitrary levels    |
+| glevelsof    | levelsof   |  3 to 13  / 2 to 7       |                 | Multiple variables, arbitrary levels    |
 | gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
 | gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
@@ -369,6 +371,7 @@ Differences from `collapse`
 
 Differences from `greshape`
 
+- Allows an arbitrary number of variables in `i()` and `j()`
 - Several option allow turning off error checks for faster execution,
   including: `fast` (similar to `fast` in `gcollapse`), `unsorted`
   (do not sort the output), `nodupcheck` (allow duplicates in `i`),

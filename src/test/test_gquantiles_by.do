@@ -3,7 +3,7 @@ program checks_gquantiles_by
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gqantiles_by, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 10
     qui `noisily' random_draws, random(2)
     gen long   ix  = _n
@@ -201,18 +201,18 @@ program compare_gquantiles_by
         local wgen_stata  qui gen unif_0_100_ = 100 * runiform()
     }
 
-    compare_gquantiles_stata_by, n(10000) bench(10) `altdef' `options' wgt(`wcall_stata') wgen(`wgen_stata')
+    compare_gquantiles_stata_by, n(5000) bench(10) `altdef' `options' wgt(`wcall_stata') wgen(`wgen_stata')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile_by, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000)
+    qui `noisily' gen_data, n(5000)
     qui expand 10
     qui `noisily' random_draws, random(3) double
     gen long   ix = _n
     gen double ru = runiform() * 100
-    qui replace ix = . if mod(_n, 10000) == 0
-    qui replace ru = . if mod(_n, 10000) == 0
+    qui replace ix = . if mod(_n, 5000) == 0
+    qui replace ru = . if mod(_n, 5000) == 0
     gen byte    one = 1
     qui sort random3
     `wgen_a'
@@ -376,7 +376,7 @@ end
 
 capture program drop bench_gquantiles_by
 program bench_gquantiles_by
-    syntax, [bench(int 10) n(int 10000) *]
+    syntax, [bench(int 10) n(int 5000) *]
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode qopts(nq(10))
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode nlist(2(2)20)
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode nqlist(2(2)20)
@@ -384,7 +384,7 @@ end
 
 capture program drop compare_gquantiles_stata_by
 program compare_gquantiles_stata_by
-    syntax, [bench(int 10) n(int 10000) noaltdef *]
+    syntax, [bench(int 10) n(int 5000) noaltdef *]
 
     if ( "`altdef'" != "noaltdef" ) {
     compare_inner_quantiles_by, n(`n') bench(`bench') qopts(altdef nq(10)) `options'
@@ -397,7 +397,7 @@ end
 
 capture program drop compare_inner_quantiles_by
 program compare_inner_quantiles_by
-    syntax, [bench(int 100) n(real 1000) benchmode wgen(str) *]
+    syntax, [bench(int 100) n(real 500) benchmode wgen(str) *]
     local options `options' `benchmode' j(`n')
 
     qui `noisily' gen_data, n(`n')

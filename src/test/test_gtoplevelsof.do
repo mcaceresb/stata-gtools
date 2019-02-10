@@ -110,7 +110,7 @@ program compare_toplevelsof
         local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2)
     `wgen_f'
@@ -267,7 +267,7 @@ end
 
 capture program drop bench_toplevelsof
 program bench_toplevelsof
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''

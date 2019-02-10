@@ -122,7 +122,7 @@ capture program drop compare_gcontract
 program compare_gcontract
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(2)
 
@@ -254,7 +254,7 @@ end
 
 capture program drop bench_contract
 program bench_contract
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''

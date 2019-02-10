@@ -97,7 +97,7 @@ end
 
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) benchmode *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) benchmode *]
     local options `options' `benchmode'
     if ( "`benchmode'" == "" ) {
         local benchcomp Comparison

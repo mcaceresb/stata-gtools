@@ -61,7 +61,7 @@ end
 
 capture program drop compare_duplicates
 program compare_duplicates
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) *]
 
     qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -70,20 +70,17 @@ program compare_duplicates
     qui sort rsort
 
     compare_duplicates_internal str_12,              `options'
-    compare_duplicates_internal str_12 str_32,       `options'
     compare_duplicates_internal str_12 str_32 str_4, `options'
 
     compare_duplicates_internal double1,                 `options'
-    compare_duplicates_internal double1 double2,         `options'
     compare_duplicates_internal double1 double2 double3, `options'
 
     compare_duplicates_internal int1,           `options'
-    compare_duplicates_internal int1 int2,      `options'
     compare_duplicates_internal int1 int2 int3, `options'
 
-    compare_duplicates_internal int1 str_32 double1,                                        `options'
-    compare_duplicates_internal int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_duplicates_internal int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_duplicates_internal str_32 int3 double3,  `options'
+    compare_duplicates_internal int1 double2 double3, `options'
+    compare_duplicates_internal double? str_* int?,   `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -135,7 +132,7 @@ end
 
 capture program drop bench_duplicates
 program bench_duplicates
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) *]
     local options `options' benchmode
 
     qui `noisily' gen_data, n(`n')

@@ -5,7 +5,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.3.0%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-success.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.3.0%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
 `version 1.3.0 08Feb2019`
@@ -17,9 +17,9 @@ Overview
 --------
 
 This package provides a fast implementation of various Stata commands
-using hashes and C plugins. The syntax and purpose is largely
-analogous to their Stata counterparts; for example, you can replace
-`collapse` with `gcollapse`, `egen` with `gegen`, and so on. See the
+using hashes and C plugins. The syntax and purpose is largely analogous
+to their Stata counterparts; for example, you can replace `collapse`
+with `gcollapse`, `reshape` with `greshape`, and so on. See the
 [remarks](#remarks) below for a comprehensive list of differences
 (including some extra features!) and each command's usage page for
 detailed examples.
@@ -31,6 +31,8 @@ ssc install gtools
 gtools, upgrade
 ```
 
+![Gtools quick benchmark](benchmarks/quick.png)
+
 __*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
@@ -40,7 +42,7 @@ __*Gtools commands with a Stata equivalent*__
 | gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof   |  3 to 13  / 2 to 5-7     |                 | Multiple variables, arbitrary levels    |
+| glevelsof    | levelsof   |  3 to 13  / 2 to 7       |                 | Multiple variables, arbitrary levels    |
 | gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
 | gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
@@ -363,6 +365,7 @@ Differences from `collapse`
 
 Differences from `greshape`
 
+- Allows an arbitrary number of variables in `i()` and `j()`
 - Several option allow turning off error checks for faster execution,
   including: `fast` (similar to `fast` in `gcollapse`), `unsorted`
   (do not sort the output), `nodupcheck` (allow duplicates in `i`),

@@ -19,7 +19,7 @@ nav:
         gisid:        usage/gisid.md
         gduplicates:  usage/gduplicates.md
         glevelsof:    usage/glevelsof.md
-        gtoplevelsof: usage/gtoplevelsof.md
+        gtop:         usage/gtoplevelsof.md
         hashsort:     usage/hashsort.md
         gtools:       usage/gtools.md
         gstats:

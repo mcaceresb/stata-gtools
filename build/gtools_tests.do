@@ -1071,7 +1071,7 @@ program compare_gcollapse
     * This should be ignored for compare_inner_gcollapse_gegen bc of merge
     local debug_io debug_io_check(0) debug_io_threshold(0.0001)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2)
 
@@ -1095,7 +1095,7 @@ program compare_gcollapse
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
     compare_inner_gcollapse_gegen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(5)
 
@@ -1119,7 +1119,7 @@ program compare_gcollapse
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
     compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(5)
 
@@ -1822,7 +1822,7 @@ end
 
 capture program drop bench_collapse
 program bench_collapse
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily style(str) vars(int 1) collapse fcollapse *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily style(str) vars(int 1) collapse fcollapse *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -2065,7 +2065,7 @@ capture program drop compare_gcontract
 program compare_gcontract
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 50
     qui `noisily' random_draws, random(2) binary(2)
 
@@ -2197,7 +2197,7 @@ end
 
 capture program drop bench_contract
 program bench_contract
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -2621,18 +2621,18 @@ program compare_gquantiles
         local wgen_p qui gen float_unif_0_1 = runiform() if mod(_n, 100)
     }
 
-    compare_gquantiles_stata, n(10000) bench(10) `altdef' `options' wgt(`wcall_a') wgen(`wgen_a')
+    compare_gquantiles_stata, n(5000) bench(10) `altdef' `options' wgt(`wcall_a') wgen(`wgen_a')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000) skipstr
+    qui `noisily' gen_data, n(5000) skipstr
     qui expand 10
     qui `noisily' random_draws, random(2) double
     gen long   ix = _n
     gen double ru = runiform() * 100
-    qui replace ix = . if mod(_n, 10000) == 0
-    qui replace ru = . if mod(_n, 10000) == 0
+    qui replace ix = . if mod(_n, 5000) == 0
+    qui replace ru = . if mod(_n, 5000) == 0
     qui sort random1
     `wgen_a'
     `wgen_f'
@@ -2943,7 +2943,7 @@ end
 
 capture program drop bench_gquantiles
 program bench_gquantiles
-    syntax, [bench(int 10) n(int 10000) *]
+    syntax, [bench(int 10) n(int 5000) *]
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(p(0.1 5 10 30 50 70 90 95 99.9))  qwhich(_pctile)
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(nq(10))  qwhich(_pctile)
     compare_inner_quantiles, n(`n') bench(`bench') benchmode qopts(nq(10))  qwhich(xtile)
@@ -2952,7 +2952,7 @@ end
 
 capture program drop compare_gquantiles_stata
 program compare_gquantiles_stata
-    syntax, [bench(int 10) n(int 10000) noaltdef *]
+    syntax, [bench(int 10) n(int 5000) noaltdef *]
 
     if ( "`altdef'" != "noaltdef" ) {
     compare_inner_quantiles, n(`n') bench(`bench') qopts(altdef nq(500))  qwhich(xtile) `options'
@@ -2991,7 +2991,7 @@ end
 
 capture program drop compare_inner_quantiles
 program compare_inner_quantiles
-    syntax, [bench(int 5) n(real 100000) benchmode wgen(str) *]
+    syntax, [bench(int 5) n(real 50000) benchmode wgen(str) *]
     local options `options' `benchmode'
 
     qui `noisily' gen_data, n(`n') skipstr
@@ -3069,7 +3069,7 @@ program _compare_inner_gquantiles
     }
 
     if ( "`corners'" == "" ) {
-    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
+    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  500), no missings, groups of size 10")
     _compare_inner_`qwhich' double3 `if' `in', `options' note("~ N(10, 5), many missings, groups of size 10")
     _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
 
@@ -3082,7 +3082,7 @@ program _compare_inner_gquantiles
     _compare_inner_`qwhich' exp(double3) + int1 * double3 `if' `in', `options'
     }
     else {
-    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  1000), no missings, groups of size 10")
+    _compare_inner_`qwhich' double1 `if' `in', `options' note("~ U(0,  500), no missings, groups of size 10")
     _compare_inner_`qwhich' ru      `if' `in', `options' note("~ N(0, 100), few missings, unique")
     _compare_inner_`qwhich' int1    `if' `in', `options' note("discrete (no missings, many groups)")
     _compare_inner_`qwhich' ix      `if' `in', `options' note("discrete (few missings, unique)")
@@ -3461,26 +3461,26 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N |   nq |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq   100000  2 `ver'
-    _gquantiles_switch_nq   100000  5 `ver'
-    _gquantiles_switch_nq   100000 10 `ver'
-    _gquantiles_switch_nq   100000 20 `ver'
-    _gquantiles_switch_nq   100000 30 `ver'
-    _gquantiles_switch_nq   100000 40 `ver'
+    _gquantiles_switch_nq   50000  2 `ver'
+    _gquantiles_switch_nq   50000  5 `ver'
+    _gquantiles_switch_nq   50000 10 `ver'
+    _gquantiles_switch_nq   50000 20 `ver'
+    _gquantiles_switch_nq   50000 30 `ver'
+    _gquantiles_switch_nq   50000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq  1000000  2 `ver'
-    _gquantiles_switch_nq  1000000  5 `ver'
-    _gquantiles_switch_nq  1000000 10 `ver'
-    _gquantiles_switch_nq  1000000 20 `ver'
-    _gquantiles_switch_nq  1000000 30 `ver'
-    _gquantiles_switch_nq  1000000 40 `ver'
+    _gquantiles_switch_nq  500000  2 `ver'
+    _gquantiles_switch_nq  500000  5 `ver'
+    _gquantiles_switch_nq  500000 10 `ver'
+    _gquantiles_switch_nq  500000 20 `ver'
+    _gquantiles_switch_nq  500000 30 `ver'
+    _gquantiles_switch_nq  500000 40 `ver'
     di as txt "| ------------ | ---- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_nq 10000000  2 `ver'
-    _gquantiles_switch_nq 10000000  5 `ver'
-    _gquantiles_switch_nq 10000000 10 `ver'
-    _gquantiles_switch_nq 10000000 20 `ver'
-    _gquantiles_switch_nq 10000000 30 `ver'
-    _gquantiles_switch_nq 10000000 40 `ver'
+    _gquantiles_switch_nq 5000000  2 `ver'
+    _gquantiles_switch_nq 5000000  5 `ver'
+    _gquantiles_switch_nq 5000000 10 `ver'
+    _gquantiles_switch_nq 5000000 20 `ver'
+    _gquantiles_switch_nq 5000000 30 `ver'
+    _gquantiles_switch_nq 5000000 40 `ver'
 
     di as txt ""
     di as txt "Testing whether gquantiles method switch code is sane for cutoffs."
@@ -3497,26 +3497,26 @@ program gquantiles_switch_sanity
     di as txt ""
     di as txt "|            N | cutoffs |        pctile | pctile, binfreq | pctile, binfreq, xtile |"
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs   100000    2 `ver'
-    _gquantiles_switch_cutoffs   100000   50 `ver'
-    _gquantiles_switch_cutoffs   100000  100 `ver'
-    _gquantiles_switch_cutoffs   100000  200 `ver'
-    _gquantiles_switch_cutoffs   100000  500 `ver'
-    _gquantiles_switch_cutoffs   100000 1000 `ver'
+    _gquantiles_switch_cutoffs   50000    2 `ver'
+    _gquantiles_switch_cutoffs   50000   50 `ver'
+    _gquantiles_switch_cutoffs   50000  100 `ver'
+    _gquantiles_switch_cutoffs   50000  200 `ver'
+    _gquantiles_switch_cutoffs   50000  500 `ver'
+    _gquantiles_switch_cutoffs   50000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs  1000000    2 `ver'
-    _gquantiles_switch_cutoffs  1000000   50 `ver'
-    _gquantiles_switch_cutoffs  1000000  100 `ver'
-    _gquantiles_switch_cutoffs  1000000  200 `ver'
-    _gquantiles_switch_cutoffs  1000000  500 `ver'
-    _gquantiles_switch_cutoffs  1000000 1000 `ver'
+    _gquantiles_switch_cutoffs  500000    2 `ver'
+    _gquantiles_switch_cutoffs  500000   50 `ver'
+    _gquantiles_switch_cutoffs  500000  100 `ver'
+    _gquantiles_switch_cutoffs  500000  200 `ver'
+    _gquantiles_switch_cutoffs  500000  500 `ver'
+    _gquantiles_switch_cutoffs  500000 1000 `ver'
     di as txt "| ------------ | ------- | ------------- | --------------- | ---------------------- |"
-    _gquantiles_switch_cutoffs 10000000    2 `ver'
-    _gquantiles_switch_cutoffs 10000000   50 `ver'
-    _gquantiles_switch_cutoffs 10000000  100 `ver'
-    _gquantiles_switch_cutoffs 10000000  200 `ver'
-    _gquantiles_switch_cutoffs 10000000  500 `ver'
-    _gquantiles_switch_cutoffs 10000000 1000 `ver'
+    _gquantiles_switch_cutoffs 5000000    2 `ver'
+    _gquantiles_switch_cutoffs 5000000   50 `ver'
+    _gquantiles_switch_cutoffs 5000000  100 `ver'
+    _gquantiles_switch_cutoffs 5000000  200 `ver'
+    _gquantiles_switch_cutoffs 5000000  500 `ver'
+    _gquantiles_switch_cutoffs 5000000 1000 `ver'
 end
 
 capture program drop _gquantiles_switch_cutoffs
@@ -3526,9 +3526,9 @@ program _gquantiles_switch_cutoffs
     qui {
         clear
         if ( "`ver'" == "v1" ) {
-            set obs `=`n' / 10000'
+            set obs `=`n' / 5000'
             gen x = rnormal() * 100
-            expand 10000
+            expand 5000
         }
         else if ( "`ver'" == "v2" ) {
             set obs `n'
@@ -3603,9 +3603,9 @@ program _gquantiles_switch_nq
     qui {
         clear
         if ( "`ver'" == "v1" ) {
-            set obs `=`n' / 10000'
+            set obs `=`n' / 5000'
             gen x = rnormal() * 100
-            expand 10000
+            expand 5000
         }
         else if ( "`ver'" == "v2" ) {
             set obs `n'
@@ -3676,7 +3676,7 @@ program checks_gquantiles_by
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_gqantiles_by, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 10
     qui `noisily' random_draws, random(2)
     gen long   ix  = _n
@@ -3874,18 +3874,18 @@ program compare_gquantiles_by
         local wgen_stata  qui gen unif_0_100_ = 100 * runiform()
     }
 
-    compare_gquantiles_stata_by, n(10000) bench(10) `altdef' `options' wgt(`wcall_stata') wgen(`wgen_stata')
+    compare_gquantiles_stata_by, n(5000) bench(10) `altdef' `options' wgt(`wcall_stata') wgen(`wgen_stata')
 
     local N = trim("`: di %15.0gc _N'")
     di _n(1) "{hline 80}" _n(1) "consistency_gquantiles_pctile_xtile_by, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(10000)
+    qui `noisily' gen_data, n(5000)
     qui expand 10
     qui `noisily' random_draws, random(3) double
     gen long   ix = _n
     gen double ru = runiform() * 100
-    qui replace ix = . if mod(_n, 10000) == 0
-    qui replace ru = . if mod(_n, 10000) == 0
+    qui replace ix = . if mod(_n, 5000) == 0
+    qui replace ru = . if mod(_n, 5000) == 0
     gen byte    one = 1
     qui sort random3
     `wgen_a'
@@ -4049,7 +4049,7 @@ end
 
 capture program drop bench_gquantiles_by
 program bench_gquantiles_by
-    syntax, [bench(int 10) n(int 10000) *]
+    syntax, [bench(int 10) n(int 5000) *]
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode qopts(nq(10))
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode nlist(2(2)20)
     compare_inner_quantiles_by, n(`n') bench(`bench') benchmode nqlist(2(2)20)
@@ -4057,7 +4057,7 @@ end
 
 capture program drop compare_gquantiles_stata_by
 program compare_gquantiles_stata_by
-    syntax, [bench(int 10) n(int 10000) noaltdef *]
+    syntax, [bench(int 10) n(int 5000) noaltdef *]
 
     if ( "`altdef'" != "noaltdef" ) {
     compare_inner_quantiles_by, n(`n') bench(`bench') qopts(altdef nq(10)) `options'
@@ -4070,7 +4070,7 @@ end
 
 capture program drop compare_inner_quantiles_by
 program compare_inner_quantiles_by
-    syntax, [bench(int 100) n(real 1000) benchmode wgen(str) *]
+    syntax, [bench(int 100) n(real 500) benchmode wgen(str) *]
     local options `options' `benchmode' j(`n')
 
     qui `noisily' gen_data, n(`n')
@@ -4521,7 +4521,7 @@ program compare_egen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     * qui expand 100
     qui `noisily' random_draws, random(2) float
     qui expand 10
@@ -4730,7 +4730,7 @@ end
 
 capture program drop bench_egen
 program bench_egen
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -4929,7 +4929,7 @@ program compare_unique
         exit 198
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -4950,9 +4950,9 @@ program compare_unique
     compare_inner_unique int1 int2,      `options'
     compare_inner_unique int1 int2 int3, `options' sort
 
-    compare_inner_unique int1 str_32 double1,                                        `options'
-    compare_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_unique int1 str_32 int3 double3  , `options'
+    compare_inner_unique int1 int1 double2 double3 , `options'
+    compare_inner_unique int1 double? str_* int?   , `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -5105,7 +5105,7 @@ end
 
 capture program drop bench_unique
 program bench_unique
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily distinct joint distunique *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily distinct joint distunique *]
 
     if ( "`distinct'" != "" ) {
         local dstr distinct
@@ -5443,7 +5443,7 @@ program compare_levelsof
     syntax, [tol(real 1e-6) NOIsily *]
 
     qui `noisily' gen_data, n(50)
-    qui expand 10000
+    qui expand 5000
 
     local N    = trim("`: di %15.0gc _N'")
     local hlen = 24 + length("`options'") + length("`N'")
@@ -5468,7 +5468,7 @@ program compare_levelsof
         compare_inner_levelsof strL3, `options' `forcestrl'
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -5476,20 +5476,17 @@ program compare_levelsof
     di _n(1) "{hline 80}" _n(1) "compare_levelsof_gen, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_levelsof_gen str_12,              `options' sort
-    compare_inner_levelsof_gen str_12 str_32,       `options' shuffle
     compare_inner_levelsof_gen str_12 str_32 str_4, `options'
 
     compare_inner_levelsof_gen double1,                 `options'
-    compare_inner_levelsof_gen double1 double2,         `options' sort
     compare_inner_levelsof_gen double1 double2 double3, `options' shuffle
 
     compare_inner_levelsof_gen int1,           `options' shuffle
-    compare_inner_levelsof_gen int1 int2,      `options'
     compare_inner_levelsof_gen int1 int2 int3, `options' sort
 
-    compare_inner_levelsof_gen int1 str_32 double1,                                        `options'
-    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_levelsof_gen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_levelsof_gen str_32 int3 double3  , `options'
+    compare_inner_levelsof_gen int1 double2 double3 , `options'
+    compare_inner_levelsof_gen double? str_* int?   , `options'
 end
 
 capture program drop compare_inner_levelsof
@@ -5789,7 +5786,7 @@ program bench_levelsof
     syntax, [tol(real 1e-6) bench(int 1) n(int 100) NOIsily *]
 
     qui `noisily' gen_data, n(`n')
-    qui expand `=1000 * `bench''
+    qui expand `=500 * `bench''
     qui gen rsort = rnormal()
     qui sort rsort
 
@@ -5973,7 +5970,7 @@ program compare_toplevelsof
         local wgen_f qui gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
     }
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2)
     `wgen_f'
@@ -6130,7 +6127,7 @@ end
 
 capture program drop bench_toplevelsof
 program bench_toplevelsof
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -6325,7 +6322,7 @@ capture program drop compare_isid
 program compare_isid
     syntax, [tol(real 1e-6) NOIsily *]
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     qui expand 100
 
     local N    = trim("`: di %15.0gc _N'")
@@ -6333,20 +6330,18 @@ program compare_isid
     di _n(1) "{hline 80}" _n(1) "compare_isid, N = `N', `options'" _n(1) "{hline 80}" _n(1)
 
     compare_inner_isid str_12,              `options'
-    compare_inner_isid str_12 str_32,       `options'
     compare_inner_isid str_12 str_32 str_4, `options'
 
     compare_inner_isid double1,                 `options'
-    compare_inner_isid double1 double2,         `options'
     compare_inner_isid double1 double2 double3, `options'
 
     compare_inner_isid int1,           `options'
     compare_inner_isid int1 int2,      `options'
     compare_inner_isid int1 int2 int3, `options'
 
-    compare_inner_isid int1 str_32 double1,                                        `options'
-    compare_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_inner_isid str_32 int3 double3  , `options'
+    compare_inner_isid int1 double2 double3 , `options'
+    compare_inner_isid double? str_* int?   , `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -6519,7 +6514,7 @@ end
 
 capture program drop bench_isid
 program bench_isid
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily *]
 
     qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -6656,7 +6651,52 @@ end
 
 capture program drop compare_greshape
 program compare_greshape
-    * TODO: Part of bench; do it like hashsort
+    local n 500
+    qui gen_data, n(`n')
+    qui expand 100
+    qui `noisily' random_draws, random(2) double
+    gen long   ix_num = _n
+    gen str    ix_str = "str" + string(_n)
+    gen double ix_dbl = _pi + _n
+    cap drop strL*
+    qui hashsort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di _n(1) "{hline 80}" _n(1) "compare_greshape, N = `N', J = `J' `options'" _n(1) "{hline 80}" _n(1)
+
+    rename double? dbl?
+    rename int?    num?
+
+    compare_fail_greshape versus_greshape dbl random,      j(_j) i(ix_num num1)
+    compare_fail_greshape versus_greshape dbl random,      j(_j) i(ix_num num1 num2)
+    compare_fail_greshape versus_greshape dbl random str_, j(_j) i(ix_num num1 num2 num3) string
+
+    compare_fail_greshape versus_greshape num random,      j(_j) i(ix_dbl dbl1)
+    compare_fail_greshape versus_greshape num random str_, j(_j) i(ix_dbl dbl1 dbl2 dbl3) string
+
+    compare_fail_greshape versus_greshape dbl num random, j(_j) i(ix_str str_32)
+    compare_fail_greshape versus_greshape dbl num random, j(_j) i(ix_str str_32 str_12 str_4) string
+
+    compare_fail_greshape versus_greshape random, j(_j) i(ix_str str_32 num3 dbl3) string
+    compare_fail_greshape versus_greshape random, j(_j) i(ix_num num1 dbl2 dbl3)   string
+
+    disp
+end
+
+capture program drop compare_fail_greshape
+program compare_fail_greshape
+    gettoken cmd 0: 0
+    syntax [anything], [tol(real 1e-6) *]
+    cap `cmd' `0'
+    if ( _rc ) {
+        di "    compare_greshape (failed): `anything', `options'"
+        exit _rc
+    }
+    else {
+        di "    compare_greshape (passed): greshape wide/long gave identical data (via cf); `anything', `options'"
+    }
 end
 
 ***********************************************************************
@@ -7303,7 +7343,7 @@ end
 
 capture program drop bench_greshape
 program bench_greshape
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -7426,16 +7466,116 @@ program checks_gstats
     replace y = . if mod(_n, 123) == 0
     replace x = . if mod(_n, 321) == 0
     gstats winsor x [w=y], by(id) s(_w3)
-    gstats winsor x [w=y], by(id) s(_w5) trim 
-    gegen p1  = pctile(x) [aw = y], by(id) p(1) 
-    gegen p99 = pctile(x) [aw = y], by(id) p(99) 
+    gstats winsor x [w=y], by(id) s(_w5) trim
+    gegen p1  = pctile(x) [aw = y], by(id) p(1)
+    gegen p99 = pctile(x) [aw = y], by(id) p(99)
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
 end
 
 capture program drop compare_gstats
 program compare_gstats
-    * TODO: Pending
+    compare_gstats_winsor
+    compare_gstats_winsor, cuts(5 95)
+    compare_gstats_winsor, cuts(30 70)
+end
+
+***********************************************************************
+*                           Compare winsor                            *
+***********************************************************************
+
+capture program drop compare_gstats_winsor
+program compare_gstats_winsor
+    syntax, [*]
+    qui `noisily' gen_data, n(500)
+    qui expand 100
+    qui `noisily' random_draws, random(2) double
+    gen long   ix = _n
+    gen double ru = runiform() * 500
+    qui replace ix = . if mod(_n, 500) == 0
+    qui replace ru = . if mod(_n, 500) == 0
+    qui sort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "compare_gstats_winsor, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_gstats_winsor, `options'
+    disp
+
+    compare_inner_gstats_winsor in 1 / 5, `options'
+    disp
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    compare_inner_gstats_winsor in `from' / `to', `options'
+    disp
+
+    compare_inner_gstats_winsor if random2 > 0, `options'
+    disp
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    compare_inner_gstats_winsor if random2 < 0 in `from' / `to', `options'
+    disp
+end
+
+capture program drop compare_inner_gstats_winsor
+program compare_inner_gstats_winsor
+    syntax [if] [in], [*]
+    compare_fail_gstats_winsor versus_gstats_winsor `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor str_12              `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_12              `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor str_12 str_32 str_4 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_12 str_32 str_4 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor double1                 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double1                 `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor double1 double2 double3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double1 double2 double3 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor int1           `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1           `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2      `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2      `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2 int3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2 int3 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor str_32 int3 double3  `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_32 int3 double3  `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 double2 double3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 double2 double3 `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor double? str_* int?   `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double? str_* int?   `if' `in', `options' trim
+end
+
+capture program drop compare_fail_gstats_winsor
+program compare_fail_gstats_winsor
+    gettoken cmd 0: 0
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    cap `cmd' `0'
+    if ( _rc ) {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_winsor (failed): full range, `anything'; `options'"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_winsor (failed): [`if'`in'], `anything'; `options'"
+        }
+        exit _rc
+    }
+    else {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_winsor (passed): full range, gstats results equal to winsor2 (tol = `tol'; `anything'; `options')"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_winsor (passed): [`if'`in'], gstats results equal to winsor2 (tol = `tol'; `anything'; `options')"
+        }
+    }
 end
 
 ***********************************************************************
@@ -7461,7 +7601,7 @@ end
 
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -7479,45 +7619,50 @@ program bench_gstats_winsor
     versus_gstats_winsor, `options'
 
     versus_gstats_winsor str_12,              `options'
-    versus_gstats_winsor str_12 str_32,       `options'
     versus_gstats_winsor str_12 str_32 str_4, `options'
 
     versus_gstats_winsor double1,                 `options'
-    versus_gstats_winsor double1 double2,         `options'
     versus_gstats_winsor double1 double2 double3, `options'
 
     versus_gstats_winsor int1,           `options'
     versus_gstats_winsor int1 int2,      `options'
     versus_gstats_winsor int1 int2 int3, `options'
 
-    versus_gstats_winsor int1 str_32 double1,                                        `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2,                    `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    versus_gstats_winsor str_32 int3 double3,  `options'
+    versus_gstats_winsor int1 double2 double3, `options'
 
     di _n(1) "{hline 80}" _n(1) "bench_gstats_winsor, `options'" _n(1) "{hline 80}" _n(1)
 end
 
 capture program drop versus_gstats_winsor
 program versus_gstats_winsor, rclass
-    syntax [anything], [*]
+    syntax [anything] [if] [in], [tol(real 1e-6) trim *]
 
     timer clear
     timer on 42
-    qui winsor2 random2 `if' `in', by(`anything') s(_w1)
+    qui winsor2 random2 `if' `in', by(`anything') s(_w1) `options' `trim'
     timer off 42
     qui timer list
     local time_winsor = r(t42)
 
     timer clear
     timer on 43
-    qui gstats winsor random2 `if' `in', by(`anything') s(_w2)
+    qui gstats winsor random2 `if' `in', by(`anything') s(_w2) `options' `trim'
     timer off 43
     qui timer list
     local time_gwinsor = r(t43)
 
+    cap assert (abs(random2_w1 - random2_w2) < `tol' | random2_w1 == random2_w2)
+    if ( _rc & ("`trim'" != "") ) {
+        disp as err "(warning: `r(N)' indiscrepancies might be due to a numerical precision bug in winsor2)"
+    }
+    else if ( _rc ) {
+        exit _rc
+    }
+    qui drop random2_w*
+
     local rs = `time_winsor'  / `time_gwinsor'
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
-    drop *_w?
 end
 capture program drop checks_duplicates
 program checks_duplicates
@@ -7582,7 +7727,7 @@ end
 
 capture program drop compare_duplicates
 program compare_duplicates
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) *]
 
     qui `noisily' gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -7591,20 +7736,17 @@ program compare_duplicates
     qui sort rsort
 
     compare_duplicates_internal str_12,              `options'
-    compare_duplicates_internal str_12 str_32,       `options'
     compare_duplicates_internal str_12 str_32 str_4, `options'
 
     compare_duplicates_internal double1,                 `options'
-    compare_duplicates_internal double1 double2,         `options'
     compare_duplicates_internal double1 double2 double3, `options'
 
     compare_duplicates_internal int1,           `options'
-    compare_duplicates_internal int1 int2,      `options'
     compare_duplicates_internal int1 int2 int3, `options'
 
-    compare_duplicates_internal int1 str_32 double1,                                        `options'
-    compare_duplicates_internal int1 str_32 double1 int2 str_12 double2,                    `options'
-    compare_duplicates_internal int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    compare_duplicates_internal str_32 int3 double3,  `options'
+    compare_duplicates_internal int1 double2 double3, `options'
+    compare_duplicates_internal double? str_* int?,   `options'
 
     if ( `c(stata_version)' >= 14 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
@@ -7656,7 +7798,7 @@ end
 
 capture program drop bench_duplicates
 program bench_duplicates
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) *]
     local options `options' benchmode
 
     qui `noisily' gen_data, n(`n')
@@ -7897,7 +8039,7 @@ end
 
 capture program drop compare_hashsort
 program compare_hashsort
-    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 1000) benchmode *]
+    syntax, [tol(real 1e-6) NOIsily bench(int 1) n(int 500) benchmode *]
     local options `options' `benchmode'
     if ( "`benchmode'" == "" ) {
         local benchcomp Comparison

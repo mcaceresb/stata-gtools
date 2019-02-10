@@ -3,6 +3,7 @@ greshape
 
 `greshape` is a fast alternative to `reshape` that additionally
 implements the equivalents to R's `spread` and `gather` from `tidyr`.
+It also allows an arbitrary number of variables in `i()` and `j()`.
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
@@ -194,6 +195,12 @@ which improves performance by 1.5x to 3x, depending on the data
 configuration. `greshape` typically speeds up `reshape` anywhere from
 5x to 20x, so it is much faster than even the next-fastest known
 improvement to `reshape`.
+
+!!! note "Note"
+    `greshape` relies on temporary files written to your disk storage to
+    reshape the data in memory. While this might deteriorate performance
+    for particularly large reshapes, the speed gains are large enough
+    that `greshape` should still be faster than its Stata counterpart.
 
 Examples
 --------

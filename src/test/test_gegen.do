@@ -198,7 +198,7 @@ program compare_egen
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "consistency_egen, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(1000)
+    qui `noisily' gen_data, n(500)
     * qui expand 100
     qui `noisily' random_draws, random(2) float
     qui expand 10
@@ -407,7 +407,7 @@ end
 
 capture program drop bench_egen
 program bench_egen
-    syntax, [tol(real 1e-6) bench(int 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(int 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''

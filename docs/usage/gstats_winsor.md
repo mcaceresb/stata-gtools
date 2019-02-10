@@ -74,8 +74,8 @@ winsorized or trimmed ones.
 
 ### Winsorizing vs trimming
 
-!!! info "Note"
-    This section is nearly verbatim from the equivalent help section from winsor2.
+!!! note "Note"
+    This discussion is nearly verbatim from the equivalent help section from winsor2.
 
 Winsorizing is not equivalent to simply excluding data, which is
 a simpler procedure, called trimming or truncation.  In a trimmed
@@ -129,7 +129,8 @@ Examples
 You can download the raw code for the examples below
 [here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gstats_winsor.do)
 
-_Note_: These examples are taken verbatim from `help winsor2`.
+!!! note "Note"
+    This examples are nearly verbatim from the equivalent help section from winsor2.
 
 Winsor at `(p1 p99)`, get new variable `wage_w`
 

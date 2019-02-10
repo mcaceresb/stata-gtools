@@ -14,18 +14,14 @@
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
 the latest stable version.
 
-{pstd}
-{it:Note}: {cmd:greshape} relies on temporary files written to your disk
-storage to reshape the data in memory. For particularly large reshapes
-this might deteriorate performance.
-
 {marker syntax}{...}
 {title:Syntax}
 
 {pstd}
 {opt greshape} is a fast alternative to {opt reshape} that additionally
 implements the equivalents to R's {cmd:spread} and {cmd:gather} from
-{cmd:tidyr}.
+{cmd:tidyr}. Further, it allows an arbitrary number of variables in {opt i()}
+and {j()}.
 
 {p 4 8 2}
 Basic syntax
@@ -212,6 +208,13 @@ The only solution that consistently outperforms {cmd:reshape} is
 the data configuration. {cmd:greshape} typically speeds up {cmd:reshape}
 by 4x to 10x, so it is much faster than even the next-fastest known
 improvement to {cmd:reshape}.
+
+{pstd}
+{it:Note}: {cmd:greshape} relies on temporary files written to your disk
+storage to reshape the data in memory. While this might deteriorate
+performance for particularly large reshapes, the speed gains are
+large enough that {cmd:greshape} should still be faster than its Stata
+counterpart.
 
 {marker example}{...}
 {title:Examples}

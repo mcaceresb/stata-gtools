@@ -26,7 +26,52 @@ end
 
 capture program drop compare_greshape
 program compare_greshape
-    * TODO: Part of bench; do it like hashsort
+    local n 500
+    qui gen_data, n(`n')
+    qui expand 100
+    qui `noisily' random_draws, random(2) double
+    gen long   ix_num = _n
+    gen str    ix_str = "str" + string(_n)
+    gen double ix_dbl = _pi + _n
+    cap drop strL*
+    qui hashsort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    local J = trim("`: di %15.0gc `n''")
+
+    di _n(1) "{hline 80}" _n(1) "compare_greshape, N = `N', J = `J' `options'" _n(1) "{hline 80}" _n(1)
+
+    rename double? dbl?
+    rename int?    num?
+
+    compare_fail_greshape versus_greshape dbl random,      j(_j) i(ix_num num1)
+    compare_fail_greshape versus_greshape dbl random,      j(_j) i(ix_num num1 num2)
+    compare_fail_greshape versus_greshape dbl random str_, j(_j) i(ix_num num1 num2 num3) string
+
+    compare_fail_greshape versus_greshape num random,      j(_j) i(ix_dbl dbl1)
+    compare_fail_greshape versus_greshape num random str_, j(_j) i(ix_dbl dbl1 dbl2 dbl3) string
+
+    compare_fail_greshape versus_greshape dbl num random, j(_j) i(ix_str str_32)
+    compare_fail_greshape versus_greshape dbl num random, j(_j) i(ix_str str_32 str_12 str_4) string
+
+    compare_fail_greshape versus_greshape random, j(_j) i(ix_str str_32 num3 dbl3) string
+    compare_fail_greshape versus_greshape random, j(_j) i(ix_num num1 dbl2 dbl3)   string
+
+    disp
+end
+
+capture program drop compare_fail_greshape
+program compare_fail_greshape
+    gettoken cmd 0: 0
+    syntax [anything], [tol(real 1e-6) *]
+    cap `cmd' `0'
+    if ( _rc ) {
+        di "    compare_greshape (failed): `anything', `options'"
+        exit _rc
+    }
+    else {
+        di "    compare_greshape (passed): greshape wide/long gave identical data (via cf); `anything', `options'"
+    }
 end
 
 ***********************************************************************
@@ -673,7 +718,7 @@ end
 
 capture program drop bench_greshape
 program bench_greshape
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''

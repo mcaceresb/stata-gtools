@@ -1,13 +1,13 @@
-gtoplevelsof 
-============
+gtop  (gtoplevelsof)
+====================
 
-Quickly tabulate most common levels of variable list.
+Quickly tabulate most common levels of a variable list.
 
-gtoplevelsof (alias gtop) displays a table with the frequency counts,
-percentages, and cummulative counts and %s of the most common levels of
-varlist that occur in the data. It is similar to the user-written group
-with the select otpion or to contract after keeping only the largest
-frequency counts.
+gtop (alias for gtoplevelsof) displays a table with the frequency
+counts, percentages, and cummulative counts and %s of the most common
+levels of varlist that occur in the data. It is similar to the
+user-written group with the select otpion or to contract after keeping
+only the largest frequency counts.
 
 Unlike contract, it does not modify the original data and instead prints the
 resulting table to the console. It also stores a matrix with the frequency
@@ -19,7 +19,7 @@ counts and stores the levels in the macro `r(levels)`.
 Syntax
 ------
 
-<p><span class="codespan"><b>gtoplevelsof</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b>gtop</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 
@@ -221,7 +221,7 @@ You can download the raw code for the examples below
        1 |    2   74       2.7           100 
 
 
-. gtoplevelsof rep78 [fw = weight]
+. gtop rep78 [fw = weight]
 
    rep78 |       W      Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------------

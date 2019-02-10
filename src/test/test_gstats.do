@@ -39,16 +39,116 @@ program checks_gstats
     replace y = . if mod(_n, 123) == 0
     replace x = . if mod(_n, 321) == 0
     gstats winsor x [w=y], by(id) s(_w3)
-    gstats winsor x [w=y], by(id) s(_w5) trim 
-    gegen p1  = pctile(x) [aw = y], by(id) p(1) 
-    gegen p99 = pctile(x) [aw = y], by(id) p(99) 
+    gstats winsor x [w=y], by(id) s(_w5) trim
+    gegen p1  = pctile(x) [aw = y], by(id) p(1)
+    gegen p99 = pctile(x) [aw = y], by(id) p(99)
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
 end
 
 capture program drop compare_gstats
 program compare_gstats
-    * TODO: Pending
+    compare_gstats_winsor
+    compare_gstats_winsor, cuts(5 95)
+    compare_gstats_winsor, cuts(30 70)
+end
+
+***********************************************************************
+*                           Compare winsor                            *
+***********************************************************************
+
+capture program drop compare_gstats_winsor
+program compare_gstats_winsor
+    syntax, [*]
+    qui `noisily' gen_data, n(500)
+    qui expand 100
+    qui `noisily' random_draws, random(2) double
+    gen long   ix = _n
+    gen double ru = runiform() * 500
+    qui replace ix = . if mod(_n, 500) == 0
+    qui replace ru = . if mod(_n, 500) == 0
+    qui sort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "compare_gstats_winsor, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    compare_inner_gstats_winsor, `options'
+    disp
+
+    compare_inner_gstats_winsor in 1 / 5, `options'
+    disp
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    compare_inner_gstats_winsor in `from' / `to', `options'
+    disp
+
+    compare_inner_gstats_winsor if random2 > 0, `options'
+    disp
+
+    local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+    local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+    local from = cond(`in1' < `in2', `in1', `in2')
+    local to   = cond(`in1' > `in2', `in1', `in2')
+    compare_inner_gstats_winsor if random2 < 0 in `from' / `to', `options'
+    disp
+end
+
+capture program drop compare_inner_gstats_winsor
+program compare_inner_gstats_winsor
+    syntax [if] [in], [*]
+    compare_fail_gstats_winsor versus_gstats_winsor `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor str_12              `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_12              `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor str_12 str_32 str_4 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_12 str_32 str_4 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor double1                 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double1                 `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor double1 double2 double3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double1 double2 double3 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor int1           `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1           `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2      `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2      `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2 int3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 int2 int3 `if' `in', `options' trim
+
+    compare_fail_gstats_winsor versus_gstats_winsor str_32 int3 double3  `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor str_32 int3 double3  `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor int1 double2 double3 `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor int1 double2 double3 `if' `in', `options' trim
+    compare_fail_gstats_winsor versus_gstats_winsor double? str_* int?   `if' `in', `options'
+    compare_fail_gstats_winsor versus_gstats_winsor double? str_* int?   `if' `in', `options' trim
+end
+
+capture program drop compare_fail_gstats_winsor
+program compare_fail_gstats_winsor
+    gettoken cmd 0: 0
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    cap `cmd' `0'
+    if ( _rc ) {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_winsor (failed): full range, `anything'; `options'"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_winsor (failed): [`if'`in'], `anything'; `options'"
+        }
+        exit _rc
+    }
+    else {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_winsor (passed): full range, gstats results equal to winsor2 (tol = `tol'; `anything'; `options')"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_winsor (passed): [`if'`in'], gstats results equal to winsor2 (tol = `tol'; `anything'; `options')"
+        }
+    }
 end
 
 ***********************************************************************
@@ -74,7 +174,7 @@ end
 
 capture program drop bench_gstats_winsor
 program bench_gstats_winsor
-    syntax, [tol(real 1e-6) bench(real 1) n(int 1000) NOIsily *]
+    syntax, [tol(real 1e-6) bench(real 1) n(int 500) NOIsily *]
 
     qui gen_data, n(`n')
     qui expand `=100 * `bench''
@@ -92,43 +192,48 @@ program bench_gstats_winsor
     versus_gstats_winsor, `options'
 
     versus_gstats_winsor str_12,              `options'
-    versus_gstats_winsor str_12 str_32,       `options'
     versus_gstats_winsor str_12 str_32 str_4, `options'
 
     versus_gstats_winsor double1,                 `options'
-    versus_gstats_winsor double1 double2,         `options'
     versus_gstats_winsor double1 double2 double3, `options'
 
     versus_gstats_winsor int1,           `options'
     versus_gstats_winsor int1 int2,      `options'
     versus_gstats_winsor int1 int2 int3, `options'
 
-    versus_gstats_winsor int1 str_32 double1,                                        `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2,                    `options'
-    versus_gstats_winsor int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
+    versus_gstats_winsor str_32 int3 double3,  `options'
+    versus_gstats_winsor int1 double2 double3, `options'
 
     di _n(1) "{hline 80}" _n(1) "bench_gstats_winsor, `options'" _n(1) "{hline 80}" _n(1)
 end
 
 capture program drop versus_gstats_winsor
 program versus_gstats_winsor, rclass
-    syntax [anything], [*]
+    syntax [anything] [if] [in], [tol(real 1e-6) trim *]
 
     timer clear
     timer on 42
-    qui winsor2 random2 `if' `in', by(`anything') s(_w1)
+    qui winsor2 random2 `if' `in', by(`anything') s(_w1) `options' `trim'
     timer off 42
     qui timer list
     local time_winsor = r(t42)
 
     timer clear
     timer on 43
-    qui gstats winsor random2 `if' `in', by(`anything') s(_w2)
+    qui gstats winsor random2 `if' `in', by(`anything') s(_w2) `options' `trim'
     timer off 43
     qui timer list
     local time_gwinsor = r(t43)
 
+    cap assert (abs(random2_w1 - random2_w2) < `tol' | random2_w1 == random2_w2)
+    if ( _rc & ("`trim'" != "") ) {
+        disp as err "(warning: `r(N)' indiscrepancies might be due to a numerical precision bug in winsor2)"
+    }
+    else if ( _rc ) {
+        exit _rc
+    }
+    qui drop random2_w*
+
     local rs = `time_winsor'  / `time_gwinsor'
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
-    drop *_w?
 end

@@ -59,7 +59,7 @@ program gstats, rclass
 	}
     else local weights
 
-    local opts   `weights' `compress' `forcestrl' nods unsorted
+    local opts   `weights' `compress' `forcestrl' nods unsorted missing
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')

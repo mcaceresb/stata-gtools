@@ -9,21 +9,21 @@ pages:
     - Advanced:
         - Compiling: compiling.md
     - Usage:
-        gcollapse:    usage/gcollapse.md
-        gquantiles:   usage/gquantiles.md
-        greshape:     usage/greshape.md
-        gcontract:    usage/gcontract.md
-        gegen:        usage/gegen.md
-        gdistinct:    usage/gdistinct.md
-        gunique:      usage/gunique.md
-        gisid:        usage/gisid.md
-        gduplicates:  usage/gduplicates.md
-        glevelsof:    usage/glevelsof.md
-        gtop:         usage/gtoplevelsof.md
-        hashsort:     usage/hashsort.md
-        gtools:       usage/gtools.md
-        gstats:
-            winsor:   usage/gstats_winsor.md
+        - gcollapse:    usage/gcollapse.md
+        - gquantiles:   usage/gquantiles.md
+        - greshape:     usage/greshape.md
+        - gcontract:    usage/gcontract.md
+        - gegen:        usage/gegen.md
+        - gdistinct:    usage/gdistinct.md
+        - gunique:      usage/gunique.md
+        - gisid:        usage/gisid.md
+        - gduplicates:  usage/gduplicates.md
+        - glevelsof:    usage/glevelsof.md
+        - gtop:         usage/gtoplevelsof.md
+        - hashsort:     usage/hashsort.md
+        - gtools:       usage/gtools.md
+        - gstats:
+            - winsor:   usage/gstats_winsor.md
 
 theme: readthedocs
 

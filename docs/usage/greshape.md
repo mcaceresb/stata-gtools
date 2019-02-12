@@ -3,7 +3,8 @@ greshape
 
 `greshape` is a fast alternative to `reshape` that additionally
 implements the equivalents to R's `spread` and `gather` from `tidyr`.
-It also allows an arbitrary number of variables in `i()` and `j()`.
+It also allows an arbitrary number of grouping by variables (`i()`) and
+keys (`j()`).
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
@@ -11,27 +12,50 @@ It also allows an arbitrary number of variables in `i()` and `j()`.
 Syntax
 ------
 
-Convert data from wide form to long form
+In R parlance, `j()` is called `keys()`, which is frankly much clearer
+to understand than `i` and `j`. While regular Stata syntax is also
+supported, `greshape` provides the aliases `by()` and `keys()` for `i()`
+and `j()` respectively (note _spread_ and _wide_ accept multiple `j` keys).
 
 <p>
 <span class="codespan">
-<b>greshape</b> long stubnames, i(varlist) [<a href="#long-and-wide">options</a>]
+wide -> long
+</br>
+------------
+</br>
+</br>
+<b>greshape</b> long stubnames, by(varlist) [<a href="#long-and-wide">options</a>]
 </span>
 </br>
 <span class="codespan">
-<b>greshape</b> gather varlist, j(varlist) values(varname) [<a href="#gather-and-spread">options</a>]
+<b>greshape</b> gather varlist, keys(varlist) values(varname) [<a href="#gather-and-spread">options</a>]
 </span>
 </p>
 
-Convert data from long form to wide form
-
 <p>
 <span class="codespan">
-<b>greshape</b> wide stubnames, i(varlist) j(varname) [<a href="#long-and-wide">options</a>]
+long -> wide
+</br>
+------------
+</br>
+</br>
+<b>greshape</b> wide stubnames, by(varlist) keys(varname) [<a href="#long-and-wide">options</a>]
 </span>
 </br>
 <span class="codespan">
-<b>greshape</b> spread varlist, j(varname) [<a href="#gather-and-spread">options</a>]
+<b>greshape</b> spread varlist, keys(varname) [<a href="#gather-and-spread">options</a>]
+</span>
+</p>
+
+I think the above syntax is clearer (happy to receive feedback otherwise)
+but `greshape` also accepts the traditional Stata `i, j` syntax:
+<p>
+<span class="codespan">
+greshape long stubnames, i(varlist) [options]
+</span>
+</br>
+<span class="codespan">
+greshape wide stubnames, i(varlist) j(varname) [options]
 </span>
 </p>
 
@@ -40,7 +64,7 @@ Syntax Details
 
 
 The stubnames are a list of variable prefixes. The suffixes are either
-saved or taken from j(), depending on the shape of the data.  Remember
+saved or taken from `keys()`, depending on the shape of the data.  Remember
 this picture:
 
 ```
@@ -56,36 +80,36 @@ this picture:
 
     To go from long to wide:
 
-                                        j existing variable
-                                       /
-            greshape wide stub, i(i) j(j)
+                                            j existing variable
+                                           /
+            greshape wide stub, by(i) keys(j)
 
     To go from wide to long:
 
-            greshape long stub, i(i) j(j)
-                                       \
-                                        j new variable
+            greshape long stub, by(i) keys(j)
+                                           \
+                                            j new variable(s)
 ```
 
 Additionally, the user can `reshape` in the style of R's `tidyr` package.
 To go from long to wide:
 
 ```
-greshape spread varlist, j(j)
+    greshape spread varlist, keys(j)
 ```
 
 Note that spread (and gather) both require variable names, not prefixes.
-Further, all variables not specified in the `reshape` are assumed to be 
-part of `i()` and the new variables are simply named after the values of
-`j()`. To go from wide to long:
+Further, all variables not specified in the `reshape` are assumed to be
+part of `by()` and the new variables are simply named after the values of
+`keys()`. From wide to long:
 
 ```
-greshape gather varlist, j(j) values(values)
+    greshape gather varlist, keys(j) values(values)
 ```
 
 This does not check for duplicates or sorts the data. Variables not
-named are assumed to be part of `i()`).  The values of the variables in
-varlist are saved in `values()`, with their names saved in `j()`.
+named are assumed to be part of `by()`).  The values of the variables in
+varlist are saved in `values()`, with their names saved in `keys()`.
 
 `reshape`'s extended syntax is not supported; that is, `greshape` does
 not implement "reshape mode" where a user can type `reshape long` or
@@ -103,42 +127,41 @@ Options
 **Wide only**
 **Wide and long**
 
-- `i(varlist)`  (Required) Use varlist as the ID variables.
-- `j(varname)`  Wide to long: varname, new variable to store stub suffixes (default `_j`).
-- `string`      Whether to allow for string matches to each stub
+- `by(varlist)`   (Required) Use varlist as the ID variables (alias `i()`).
+- `keys(varname)` Wide to long: varname, new variable to store stub suffixes (default `_j`; alias `j()`).
+- `string`        Whether to allow for string matches to each stub
 
 **Wide only**
 
-- `i(varlist)`        (Required) Use varlist as the ID variables.
-- `j(varlist)`        (Required) Long to wide: varlist, existing variable with stub suffixes.
+- `by(varlist)`       (Required) Use varlist as the ID variables (alias `i()`).
+- `keys(varlist)`     (Required) Long to wide: varlist, existing variable with stub suffixes (alias `j()`).
 - `colsepparate(str)` Column separator when multiple variables are passed to `j()`.
 
 **Wide and long**
 
 - `fast`         Do not wrap the reshape in preserve/restore pairs.
 - `unsorted`     Leave the data unsorted (faster). Original sort order is not preserved.
-- `nodupcheck`   Wide to long, allow duplicate `i()` values (faster).
-- `nomisscheck`  Long to wide, allow missing values and/or leading blanks in `j()` (faster).
+- `nodupcheck`   Wide to long, allow duplicate `by()` values (faster).
+- `nomisscheck`  Long to wide, allow missing values and/or leading blanks in `keys()` (faster).
 - `nochecks`     This is equivalent to all 4 of the above options (fastest).
-- `xi(drop)`     Drop variables not in the reshape, `i()`, or `j()`.
+- `xi(drop)`     Drop variables not in the reshape, `by()`, or `keys()`.
 
 ### Gather and Spread
 
 **Gather only**
 
 - `values(varname)`   (Required) Store values in varname.
-- `j(varname)`        Wide to long: varname, new variable to store variable names (default `_j`).
-- `string`            Whether to allow for string matches to each stub
+- `keys(varname)`     Wide to long: varname, new variable to store variable names (default `_key`).
 
 **Spread only**
 
-- `j(varlist)`        (Required) Long to wide: varlist, existing variable with variable names.
+- `keys(varlist)`     (Required) Long to wide: varlist, existing variable with variable names.
 
 **Gather and Spread**
 
 - `i(varlist)`        check varlist are the ID variables. Throws an error otherwise.
-- `xi(drop)`          Drop variables not in the reshape or in `i()`. That is,
-                      if `i()` is specified then drop variables that have not
+- `xi(drop)`          Drop variables not in the reshape or in `by()`. That is,
+                      if `by()` is specified then drop variables that have not
                       been explicitly named.
 - `fast`              Do not wrap the reshape in preserve/restore pairs.
 
@@ -220,17 +243,28 @@ list, sepby(id)
 greshape  inc ue, i(id) j(year)
 ```
 
-`@` syntax is not (yet) supported, but working around it is not too
+However, the preferred `greshape` parlance is `by` for `i` and `keys`
+for `j`, which I think is clearer.
+
+```stata
+webuse reshape1, clear
+list
+greshape long inc ue, by(id) keys(year)
+list, sepby(id)
+greshape  inc ue, by(id) keys(year)
+```
+
+Note `@` syntax is not (yet) supported, but working around it is not too
 difficult.
 
 ```stata
 webuse reshape3, clear
 list
-cap noi greshape long inc@r ue, i(id) j(year)
+cap noi greshape long inc@r ue, by(id) keys(year)
 rename inc*r incr*
-cap noi greshape long incr ue, i(id) j(year)
+cap noi greshape long incr ue, by(id) keys(year)
 list, sepby(id)
-greshape wide incr ue, i(id) j(year)
+greshape wide incr ue, by(id) keys(year)
 rename incr* inc*r
 ```
 
@@ -240,9 +274,9 @@ long to wide:
 ```stata
 webuse reshape4, clear
 list
-greshape long inc, i(id) j(sex) string
+greshape long inc, by(id) keys(sex) string
 list, sepby(id)
-greshape wide inc, i(id) j(sex)
+greshape wide inc, by(id) keys(sex)
 ```
 
 Multiple j values:
@@ -250,7 +284,7 @@ Multiple j values:
 ```stata
 webuse reshape5, clear
 list
-greshape wide inc, i(hid) j(year sex) cols(_)
+greshape wide inc, by(hid) keys(year sex) cols(_)
 l
 ```
 
@@ -258,8 +292,8 @@ l
 
 ```stata
 webuse reshape1, clear
-greshape gather inc* ue*, values(values) j(varaible)
-greshape spread values, j(varaible)
+greshape gather inc* ue*, values(values) keys(varaible)
+greshape spread values, keys(varaible)
 ```
 
 ### Fine-grain control over error checks
@@ -270,23 +304,23 @@ but this can be ignored.
 ```stata
 webuse reshape2, clear
 list
-cap noi greshape long inc, i(id) j(year)
+cap noi greshape long inc, by(id) keys(year)
 preserve
-cap noi greshape long inc, i(id) j(year) nodupcheck
+cap noi greshape long inc, by(id) keys(year) nodupcheck
 restore
 
 gen j = string(_n) + " "
-cap noi greshape wide sex inc*, i(id) j(j)
+cap noi greshape wide sex inc*, by(id) keys(j)
 preserve
-cap noi greshape wide sex inc*, i(id) j(j) nomisscheck
+cap noi greshape wide sex inc*, by(id) keys(j) nomisscheck
 restore
 
 drop j
 gen j = _n
 replace j = . in 1
-cap noi greshape wide sex inc*, i(id) j(j)
+cap noi greshape wide sex inc*, by(id) keys(j)
 preserve
-cap noi greshape wide sex inc*, i(id) j(j) nomisscheck
+cap noi greshape wide sex inc*, by(id) keys(j) nomisscheck
 restore
 ```
 
@@ -294,12 +328,12 @@ Not all errors are solvable, however. For example, xi variables must
 be unique by i, and j vannot define duplicate values.
 
 ```stata
-cap noi greshape wide inc*, i(id) j(j) nochecks
+cap noi greshape wide inc*, by(id) keys(j) nochecks
 
 drop j
 gen j = string(_n) + " "
 replace j = "1." in 2
-cap noi greshape wide inc*, i(id) j(j) nochecks
+cap noi greshape wide inc*, by(id) keys(j) nochecks
 ```
 
 There is no fix for j defining non-unique names, since variable names
@@ -311,5 +345,5 @@ kept):
 ```stata
 drop j
 gen j = _n
-cap noi greshape wide inc*, i(id) j(j) xi(drop) nochecks
+cap noi greshape wide inc*, by(id) keys(j) xi(drop) nochecks
 ```

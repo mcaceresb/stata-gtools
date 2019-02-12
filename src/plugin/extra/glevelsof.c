@@ -42,6 +42,8 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     char *macrobuffer;
     GT_size bufferlen;
 
+    // char *sleft = strdup("`\""), *sright = strdup("\"'");
+    // GT_size lsleft = strlen(sleft), lsright = strlen(sright), ls;
     char *sprintfmt     = st_info->cleanstr? strdup("%s"): strdup("`\"%s\"'");
     GT_size sprintextra = st_info->cleanstr? 0: 4;
     GT_size totalseplen = (st_info->J - 1) * st_info->sep_len +
@@ -161,6 +163,35 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                 if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
                 sel = j * rowbytes;
                 if ( st_info->byvars_lens[0] > 0 ) {
+                    // ls = strlen(st_info->st_by_charx + sel);
+                    // if ( st_info->cleanstr ) {
+                    //     memcpy(
+                    //         strpos,
+                    //         st_info->st_by_charx + sel,
+                    //         ls
+                    //     );
+                    //     strpos += ls;
+                    // }
+                    // else {
+                    //     memcpy(
+                    //         strpos,
+                    //         sleft,
+                    //         lsleft
+                    //     );
+                    //     strpos += lsleft;
+                    //     memcpy(
+                    //         strpos,
+                    //         st_info->st_by_charx + sel,
+                    //         ls
+                    //     );
+                    //     strpos += ls;
+                    //     memcpy(
+                    //         strpos,
+                    //         sright,
+                    //         lsright
+                    //     );
+                    //     strpos += lsright;
+                    // }
                     strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
                 }
                 else {

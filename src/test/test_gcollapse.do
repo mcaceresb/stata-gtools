@@ -232,6 +232,62 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * Parsing negatives
+    qui {
+        sysuse auto, clear
+        gtop * if foreign [w = rep78]
+        gtop -* if foreign [w = rep78]
+        gen bye = 1
+        gtop bye *n*
+        gtop bye -*n*
+
+        glevelsof *  if (27 * foreign)
+        glevelsof -* if (27 * foreign)
+
+        sysuse auto, clear
+        gcontract * if foreign [w = rep78]
+
+        sysuse auto, clear
+        gcontract foreign -*n* price if price > 5000 [w = rep78]
+
+        sysuse auto, clear
+        gcollapse price if price > 5000 [w = rep78], by(*n*)
+
+        sysuse auto, clear
+        gcollapse price if price > 5000 [w = rep78], by(foreign -*n*)
+
+        clear
+        set obs 3
+        gen  i = _n
+        gen x1 = 1
+        gen x2 = 2
+        gen y3 = _n
+        cap noi greshape long x y
+        cap noi greshape wide x y
+        cap noi greshape spread x y
+        cap noi greshape spread x y
+        greshape long x y, i(i) j(j)
+        greshape wide x y, i(i) j(j)
+        greshape long x y, by(i) j(j)
+        greshape wide x y, by(i) j(j)
+        greshape long x y, i(i) keys(j)
+        greshape wide x y, i(i) keys(j)
+        greshape long x y, by(i) keys(j)
+        greshape wide x y, by(i) keys(j)
+        greshape long x y, by(i) keys(j)
+        gen k = _N - _n
+        greshape wide x y, by(i) keys(j k)
+        cap noi greshape
+        greshape long x y, by(i) keys(j) string
+        replace j = "" in 1 / 10
+        cap noi greshape wide x y, by(i) keys(j) nomisscheck
+        replace j = " " in 1 / 10
+        cap noi greshape wide x y, by(i) keys(j) nomisscheck
+        replace j = "" in 1 / 10
+        gen j2 = j
+        cap noi greshape wide x y, by(i) keys(j j2) nomisscheck
+    }
+
     * https://github.com/mcaceresb/stata-gtools/issues/45
     qui {
         clear

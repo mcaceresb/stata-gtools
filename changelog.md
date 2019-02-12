@@ -1,6 +1,27 @@
 Change Log
 ==========
 
+## gtools-1.3.1 (2019-02-11)
+
+### Enhancements
+
+- `greshape`'s preferred syntax is now `by()` and `keys()` instead
+  of `i()` and `j()`; the docs and most of the printouts reflect this.
+
+### Bug fixes
+
+- `gtop`, `glevelsof`, and `gcontract` parse wildcards before
+  adding any temporary variables, ensuring the latter don't
+  get included in internal function calls.
+
+- `greshape` no longer crashes if there are missing values in
+  `keys()`/`j()`; the mata function `strtoname` converted "" into "";
+  now I force missing to be converted to `_`.
+
+- `glevelsof` and `gtop` should handle embedded characters better.
+  Printing is still a problem but they get copied to the return
+  values properly.
+
 ## gtools-1.3.0 (2019-02-08)
 
 ### Features

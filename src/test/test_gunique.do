@@ -23,7 +23,7 @@ program checks_unique
     checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options' by(int3 str_4 double3) replace
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
 
         * This is for the benefit of gtop, which can only handle strings that are so long
@@ -141,7 +141,7 @@ program compare_unique
     compare_inner_unique int1 int1 double2 double3 , `options'
     compare_inner_unique int1 double? str_* int?   , `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_unique strL1,             `options' `forcestrl' shuffle
         compare_inner_unique strL1 strL2,       `options' `forcestrl' 
@@ -361,7 +361,7 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         versus_unique strL1,             `options' `forcestrl' unique
         versus_unique strL1 strL2,       `options' `forcestrl' unique

@@ -1,4 +1,4 @@
-*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.0 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -80,8 +80,10 @@ program glevelsof, rclass
                 exit _rc
             }
             local varlist `r(varlist)'
+            local anything: copy local varlist
         }
         else {
+            local parse: copy local varlist
             local varlist: subinstr local varlist "-" " ", all
             local varlist `varlist'
             if ( "`varlist'" == "" ) {
@@ -108,8 +110,27 @@ program glevelsof, rclass
                 }
                 exit 111
             }
-            qui ds `varlist'
-            local varlist `r(varlist)'
+            local varlist
+            local anything
+            while ( `:list sizeof parse' ) {
+                gettoken var parse: parse, p(" -")
+                local neg
+                if inlist("`var'", "-") {
+                    gettoken var parse: parse, p(" -")
+                    local neg -
+                }
+                cap ds `var'
+                if ( _rc ) {
+                    local rc = _rc
+                    di as err "Variable '`var'' does not exist."
+                    di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                    exit `rc'
+                }
+                foreach v of varlist `var' {
+                    local anything `anything' `neg'`v'
+                    local varlist  `varlist' `v'
+                }
+            }
         }
     }
     if ( "`ds'" == "" ) local nods nods
@@ -159,30 +180,22 @@ program glevelsof, rclass
     else if ( `rc' ) exit `rc'
 
     if ( `"`localvar'"' == "" ) {
+        mata st_local("vals",   st_global("r(levels)"))
+        mata st_local("sep",    st_global("r(sep)"))
+        mata st_local("colsep", st_global("r(colsep)"))
         if ( `:list sizeof varlist' == 1 ) {
             cap confirm numeric variable `varlist'
             if ( _rc == 0 ) {
-                local vals `"`r(levels)'"'
                 local vals: subinstr local vals " 0." " .", all
                 local vals: subinstr local vals "-0." "-.", all
-                if ( "`local'"  != "" ) c_local `local' `"`vals'"'
-                if ( "`silent'" == "" ) di as txt `"`vals'"'
-                return local levels `"`vals'"'
-            }
-            else {
-                if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
-                if ( "`silent'" == "" ) di as txt `"`r(levels)'"'
-                return local levels `"`r(levels)'"'
             }
         }
-        else {
-            if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
-            if ( "`silent'" == "" ) di as txt `"`r(levels)'"'
-            return local levels `"`r(levels)'"'
-        }
-
-        return local sep    `"`r(sep)'"'
-        return local colsep `"`r(colsep)'"'
+        return local levels: copy local vals
+        return local sep:    copy local sep
+        return local colsep: copy local colsep
+        if ( "`local'"  != "" ) c_local `local': copy local vals
+        if ( "`silent'" == "" ) di as txt `"`vals'"'
+        * if ( "`silent'" == "" ) mata st_global("r(levels)")
     }
 
     return scalar N      = `r(N)'

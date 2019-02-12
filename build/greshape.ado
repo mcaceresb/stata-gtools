@@ -1,4 +1,4 @@
-*! version 0.1.0 07Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -99,6 +99,7 @@ end
 * X | X | ReS_str
 * X | X | ReS_i
 * X | X | ReS_j
+* X | X | ReS_jname
 * X | X | ReS_nodupcheck
 * X | X | ReS_nomisscheck
 * X | X | ReS_cmd
@@ -132,11 +133,15 @@ program define Long /* reshape long */
 
     gettoken ReS_cmd 0: 0
     global ReS_cmd: copy local ReS_cmd
+    global ReS_jname j
+    global ReS_iname i
 
     local long_opts            ///
-        i(varlist)             /// reshape by groups of -i()-
         [                      ///
+            by(varlist)        /// reshape by groups of -by()-
+            i(varlist)         /// reshape by groups of -i()-
             j(name) String     /// varnames by levels -j()-; look for string-like names
+            KEYs(name)         /// varnames by levels -key()-
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
             nochecks           /// Do not do any checks
@@ -144,20 +149,55 @@ program define Long /* reshape long */
             nodupcheck         /// Do not check for duplicates
             nomisscheck        /// Do not check for missing values or blanks in j
             atwl(str)          /// replace @ with atwl?
-            ${GTOOLS_PARSE}    /// varnames by levels -j()-; look for string-like names
+            ${GTOOLS_PARSE}    ///
         ]
 
     local gather_opts          ///
             VALUEs(name)       /// out variaable name
         [                      ///
+            by(varlist)        /// reshape by groups of -i()-
             i(varlist)         /// reshape by groups of -i()-
-            j(name)            /// varnames by levels -j()-; look for string-like names
+            j(name)            /// varnames by levels -j()-
+            KEYs(name)         /// varnames by levels -key()-
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
-            ${GTOOLS_PARSE}    /// varnames by levels -j()-; look for string-like names
+            ${GTOOLS_PARSE}    ///
         ]
 
     syntax anything, ``ReS_cmd'_opts'
+    local key: copy local keys
+
+    * ------------------
+    * Parse i, j aliases
+    * ------------------
+
+    if ( (`"`by'"' == "") & (`"`i'"' == "") & (`"`ReS_cmd'"' == "long") ) {
+        disp as err "option {opt i()} (id variable) required"
+        exit 198
+    }
+
+    if ( (`"`by'"' != "") & (`"`i'"' != "") ) {
+        disp as err "i() and by() are aliases for the same option; use only one"
+        exit 198
+    }
+    else if ( `"`by'"' != "" ) {
+        global ReS_iname by
+        local i: copy local by
+    }
+
+    if ( (`"`key'"' != "") & (`"`j'"' != "") ) {
+        disp as err "j() and key() are aliases for the same option; use only one"
+        exit 198
+    }
+    else if ( `"`key'"' != "" ) {
+        global ReS_jname key
+        local j: copy local key
+    }
+
+    * -------------------
+    * Parse other options
+    * -------------------
+
     c_local 0 `ReS_cmd' `anything', i(`i') j(`j') `string'
 
     if ( `"`checklevel'"' == "" ) local checklevel 4
@@ -189,10 +229,11 @@ program define Long /* reshape long */
     }
 
     if ( `"`ReS_cmd'"' == "gather" ) {
-        local dupcheck  nodupcheck
-        local unsorted  unsorted
-        local misscheck nomisscheck
-        local string    string
+        local dupcheck   nodupcheck
+        local unsorted   unsorted
+        local misscheck  nomisscheck
+        local string     string
+        global ReS_jname key
     }
 
     if ( "`fast'" == "" ) preserve
@@ -204,14 +245,14 @@ program define Long /* reshape long */
         local restvars: list restvars - j
         local i: copy local restvars
         if ( `"`xi'"' != "" ) {
-            disp as txt "(note: -xi()- ignored without -i()-)"
+            disp as txt "(note: -xi()- ignored without -$ReS_iname()-)"
         }
     }
     else {
         unab i: `i'
     }
 
-    if ( `"`j'"' == "" ) local j _j
+    if ( `"`j'"' == "" ) local j _$ReS_jname
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl `atwl'
     global ReS_Xij  `values'
@@ -234,10 +275,10 @@ program define Long /* reshape long */
             disp as err "greshape spread does not allow extraneous variables (Xi):"
             disp as err ""
             disp as err "    Xij -> `ReS_Xij_names'"
-            disp as err "    i   -> `i'"
+            disp as err "    $ReS_iname   -> `i'"
             disp as err "    Xi  -> `:list restvars - i'"
             disp as err ""
-            disp as err "Specify xi(drop), leave i() blank, or include Xi somewhere in the reshape."
+            disp as err "Specify xi(drop), leave $ReS_iname() blank, or include Xi somewhere in the reshape."
             exit 198
         }
 
@@ -288,7 +329,7 @@ program define Long /* reshape long */
     confirm var $ReS_i $ReS_Xi
     capture confirm new var $ReS_j
     if ( _rc ) {
-        di in blu "Target j($ReS_j) already exists (is the data already long?)"
+        di in blu "Target $ReS_jname($ReS_j) already exists (is the data already long?)"
         exit 198
     }
 
@@ -476,11 +517,15 @@ program define Wide /* reshape wide */
 
     gettoken ReS_cmd 0: 0
     global ReS_cmd: copy local ReS_cmd
+    global ReS_jname j
+    global ReS_iname i
 
     local wide_opts            ///
-        i(varlist)             /// reshape by groups of -i()-
-        j(varlist)             /// varnames by levels -j()-; look for string-like names
         [                      ///
+            i(varlist)         /// reshape by groups of -i()-
+            by(varlist)        /// reshape by groups of -by()-
+            j(varlist)         /// varnames by levels -j()-
+            KEYs(varlist)      /// varnames by levels -key()-
             String             /// look for string-like names
             COLSeparate(str)   /// Columns sepparator for levels of j
             xi(str)            /// Handle extraneous variables
@@ -489,20 +534,64 @@ program define Wide /* reshape wide */
             CHECKlevel(real 4) /// Check level
             nomisscheck        /// Do not check for missing values or blanks in j
             atwl(str)          /// replace @ with atwl?
-            ${GTOOLS_PARSE}    /// varnames by levels -j()-; look for string-like names
+            ${GTOOLS_PARSE}    ///
         ]
 
     local spread_opts        ///
-            j(varlist)       /// varnames by levels -j()-
         [                    ///
+            j(varlist)       /// varnames by levels -j()-
+            KEYs(varlist)    /// varnames by levels -key()-
             COLSeparate(str) /// Columns sepparator for levels of j
+            by(varlist)      /// reshape by groups of -by()-
             i(varlist)       /// reshape by groups of -i()-
             xi(str)          /// Handle extraneous variables
             fast             /// Do not preserve and restore the original dataset. Saves speed
-            ${GTOOLS_PARSE}  /// varnames by levels -j()-; look for string-like names
+            ${GTOOLS_PARSE}  ///
         ]
 
     syntax anything, ``ReS_cmd'_opts'
+    local key: copy local keys
+
+    * ------------------
+    * Parse i, j aliases
+    * ------------------
+
+    if ( (`"`by'"' == "") & (`"`i'"' == "") & (`"`ReS_cmd'"' == "wide") ) {
+        disp as err "option {opt i()} (grouping variable) required"
+        exit 198
+    }
+
+    if ( (`"`by'"' != "") & (`"`i'"' != "") ) {
+        disp as err "i() and by() are aliases for the same option; use only one"
+        exit 198
+    }
+    else if ( `"`by'"' != "" ) {
+        global ReS_iname by
+        local i: copy local by
+    }
+
+    if ( (`"`key'"' == "") & (`"`j'"' == "") ) {
+        if ( `"`ReS_cmd'"' == "spread" ) {
+            disp as err "option {opt key:s()} required"
+        }
+        else {
+            disp as err "option {opt j()} (keys) required"
+        }
+        exit 198
+    }
+    if ( (`"`key'"' != "") & (`"`j'"' != "") ) {
+        disp as err "j() and keys() are aliases for the same option; use only one"
+        exit 198
+    }
+    else if ( `"`key'"' != "" ) {
+        global ReS_jname keys
+        local j: copy local key
+    }
+
+    * -------------------
+    * Parse other options
+    * -------------------
+
     c_local 0 `ReS_cmd' `anything', i(`i') j(`j') `string'
     if ( `"`checklevel'"' == "" ) local checklevel 4
 
@@ -532,6 +621,7 @@ program define Wide /* reshape wide */
 
     if ( `"`ReS_cmd'"' == "spread" ) {
         local misscheck nomisscheck
+        global ReS_jname keys
     }
 
     if ( "`fast'" == "" ) preserve
@@ -543,7 +633,7 @@ program define Wide /* reshape wide */
     if ( `"`i'"' == "" ) {
         local i: copy local restvars
         if ( `"`xi'"' != "" ) {
-            disp as txt "(note: -xi()- ignored without -i()-)"
+            disp as txt "(note: -xi()- ignored without -$ReS_iname()-)"
         }
     }
     else {
@@ -563,11 +653,11 @@ program define Wide /* reshape wide */
             disp as err "greshape spread does not allow extraneous variables (Xi):"
             disp as err ""
             disp as err "    Xij -> $ReS_Xij"
-            disp as err "    j   -> $ReS_j"
-            disp as err "    i   -> $ReS_i"
+            disp as err "    $ReS_jname   -> $ReS_j"
+            disp as err "    $ReS_iname   -> $ReS_i"
             disp as err "    Xi  -> `:list restvars - i'"
             disp as err ""
-            disp as err "Specify xi(drop), leave i() blank, or include Xi somewhere in the reshape."
+            disp as err "Specify xi(drop), leave $ReS_iname() blank, or include Xi somewhere in the reshape."
             exit 198
         }
     }
@@ -610,7 +700,7 @@ program define Wide /* reshape wide */
     foreach var in $ReS_j {
         capture ConfVar `var'
         if ( _rc ) {
-            di in blu "Source j(`var') does not exist (is the data already wide?)"
+            di in blu "Source $ReS_jname(`var') does not exist (is the data already wide?)"
             exit 198
         }
         ConfVar `var'
@@ -618,7 +708,7 @@ program define Wide /* reshape wide */
     confirm var $ReS_j $rVANS $ReS_i $ReS_Xi
 
     if ( `:list sizeof j' > 1 ) {
-        disp as txt "({bf:warning}: labels of j() not saved with multiple variables)"
+        disp as txt "({bf:warning}: labels of $ReS_jname() not saved with multiple variables)"
     }
     else {
         /* Save J value and variable label for LONG */
@@ -929,7 +1019,7 @@ program define FillvalW
     mata: st_global("ReS_jv",   invtokens(__greshape_res'))
     mata: st_global("ReS_jlen", strofreal(max(strlen(__greshape_res))))
 
-    di in gr "(note: j = $ReS_jv)"
+    di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
 end
 
@@ -1120,7 +1210,7 @@ program no_xij_found
     di as smcl in red "no xij variables found"
     di as smcl in red "{p 4 4 2}"
     di as smcl in red "You typed something like"
-    di as smcl in red "{bf:reshape wide a b, i(i) j(j)}.{break}"
+    di as smcl in red "{bf:reshape wide a b, $ReS_iname(i) $ReS_jname(j)}.{break}"
     di as smcl in red "{bf:reshape} looked for existing variables"
     di as smcl in red "named {bf:a}{it:#} and {bf:b}{it:#} but"
     di as smcl in red "could not find any.  Remember this picture:"
@@ -1151,6 +1241,12 @@ program define FillvalL
         mata: __greshape_jv = strtoname(tokens(st_local("ReS_jv"))')
     }
 
+    mata: __greshape_jv_ = selectindex(__greshape_jv :== "")
+    mata: st_numscalar("__greshape_jv_", rows(__greshape_jv_))
+    if ( scalar(__greshape_jv_) ) {
+        mata: __greshape_jv[__greshape_jv_] = J(1, rows(__greshape_jv_), "_")
+    }
+
     mata: st_global("ReS_jv", invtokens(__greshape_jv'))
     cap mata: assert(sort(__greshape_jv, 1) == sort(uniqrows(__greshape_jv), 1))
     if _rc {
@@ -1159,8 +1255,8 @@ program define FillvalL
     }
 
     * mata: SaveJValuesString(__greshape_jv)
-    di in gr "(note: j = $ReS_jv)"
-    local ReS_jv2: copy global ReS_jv
+    di in gr "(note: $ReS_jname = $ReS_jv)"
+    global ReS_jv2: copy global ReS_jv
 
     CheckVariableTypes
 end
@@ -1405,6 +1501,7 @@ program CleanExit
     capture mata mata drop __greshape_l2w_meta
     capture mata mata drop __greshape_w2l_meta
 
+    capture scalar drop __greshape_jv_
     capture scalar drop __greshape_rc
     capture scalar drop __greshape_klvls
     capture scalar drop __greshape_kout
@@ -1447,7 +1544,9 @@ program define Macdrop
              ReS_nomisscheck   ///
              ReS_atwl          ///
              ReS_i             ///
+             ReS_iname         ///
              ReS_j             ///
+             ReS_jname         ///
              ReS_jfile         ///
              ReS_jsep          ///
              ReS_jcode         ///
@@ -1524,11 +1623,11 @@ program picture
         di `how'
         di `how' _col(9) ///
         "long to wide: " ///
-        "{bf:greshape wide a b, i(}{it:i}{bf:) j(}{it:j}{bf:)}  " ///
+        "{bf:greshape wide a b, $ReS_iname(}{it:i}{bf:) j(}{it:j}{bf:)}  " ///
         "  ({it:j} existing variable)"
         di `how' _col(9) ///
         "wide to long: " ///
-        "{bf:greshape long a b, i(}{it:i}{bf:) j(}{it:j}{bf:)}  " ///
+        "{bf:greshape long a b, $ReS_iname(}{it:i}{bf:) j(}{it:j}{bf:)}  " ///
         "  ({it:j}    new   variable)"
     }
 end
@@ -1551,7 +1650,7 @@ program define ReportL /* old_obs old_vars */
     Report1 `1' `2' wide long
 
     local n : word count $ReS_jv
-    di in gr "j variable (`n' values)" _col(43) "->" _col(48) /*
+    di in gr "$ReS_jname (`n' values)         " _col(43) "->" _col(48) /*
     */ in ye "$ReS_j"
     di in gr "xij variables:"
     parse "$ReS_Xij", parse(" ")
@@ -1644,7 +1743,7 @@ program define ReportW /* old_obs old_vars */
 
     local n : word count $ReS_jv2
     local col = 31+(9-length("$ReS_j"))
-    di in gr "j variable (`n' values)" /*
+    di in gr "$ReS_jname (`n' values)        " /*
         */ _col(`col') in ye "$ReS_j" in gr _col(43) "->" /*
         */ _col(48) "(dropped)"
     di in gr "xij variables:"
@@ -1787,7 +1886,7 @@ program define NonUniqueLongID
 	di in red as smcl "{p 4 4 2}"
 	di in red as smcl "Your data are currently wide."
 	di in red as smcl "You are performing a {bf:reshape long}."
-	di in red as smcl "You specified {bf:i($ReS_i)} and {bf:j($ReS_j)}."
+	di in red as smcl "You specified {bf:$ReS_iname($ReS_i)} and {bf:$ReS_jname($ReS_j)}."
 	di in red as smcl "In the current wide form, variable {bf:$ReS_i}"
 	di in red as smcl "should uniquely identify the observations."
 	di in red as smcl "Remember this picture:"
@@ -1806,12 +1905,12 @@ program NonUniqueWideJ
     di in red as smcl "{p 4 4 2}"
     di in red as smcl "Your data are currently long."
     di in red as smcl "You are performing a {bf:reshape wide}."
-    di in red as smcl "You specified {bf:i($ReS_i)} and"
-    di in red as smcl "{bf:j($ReS_j)}."
+    di in red as smcl "You specified {bf:$ReS_iname($ReS_i)} and"
+    di in red as smcl "{bf:$ReS_jname($ReS_j)}."
     di in red as smcl "There are observations within"
-    di in red as smcl "{bf:i($ReS_i)} with the same value of"
-    di in red as smcl "{bf:j($ReS_j)}.  In the long data,"
-    di in red as smcl "variables {bf:i()} and {bf:j()} together"
+    di in red as smcl "{bf:$ReS_iname($ReS_i)} with the same value of"
+    di in red as smcl "{bf:$ReS_jname($ReS_j)}.  In the long data,"
+    di in red as smcl "variables {bf:$ReS_iname()} and {bf:$ReS_jname()} together"
     di in red as smcl "must uniquely identify the observations."
     di in red as smcl
     picture err
@@ -1836,7 +1935,7 @@ program NonUniqueWideXi
 	di in red as smcl "You typed something like"
 	di in red
 	di in red as smcl "{p 8 8 2}"
-	di in red as smcl "{bf:. reshape wide a b, i($ReS_i) j($ReS_j)}"
+	di in red as smcl "{bf:. reshape wide a b, $ReS_iname($ReS_i) $ReS_jname($ReS_j)}"
 	di in red
 	di in red as smcl "{p 4 4 2}"
 	di in red as smcl "There are variables other than {bf:a},"

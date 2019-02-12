@@ -1,4 +1,4 @@
-*! version 1.0.2 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.1.0 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -102,8 +102,10 @@ program gtoplevelsof, rclass
                 exit _rc
             }
             local varlist `r(varlist)'
+            local anything: copy local varlist
         }
         else {
+            local parse: copy local varlist
             local varlist: subinstr local varlist "-" " ", all
             local varlist `varlist'
             if ( "`varlist'" == "" ) {
@@ -130,8 +132,27 @@ program gtoplevelsof, rclass
                 }
                 exit 111
             }
-            qui ds `varlist'
-            local varlist `r(varlist)'
+            local varlist
+            local anything
+            while ( `:list sizeof parse' ) {
+                gettoken var parse: parse, p(" -")
+                local neg
+                if inlist("`var'", "-") {
+                    gettoken var parse: parse, p(" -")
+                    local neg -
+                }
+                cap ds `var'
+                if ( _rc ) {
+                    local rc = _rc
+                    di as err "Variable '`var'' does not exist."
+                    di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                    exit `rc'
+                }
+                foreach v of varlist `var' {
+                    local anything `anything' `neg'`v'
+                    local varlist  `varlist' `v'
+                }
+            }
         }
     }
     if ( "`ds'" == "" ) local nods nods
@@ -254,22 +275,18 @@ program gtoplevelsof, rclass
     }
 
     tempname gmat
-    mata: __gtools_parse_topmat(`:list sizeof varlist', ///
-                                tokens("`abbrevlist'"), ///
-                                "`gmat'",               ///
-                                `"`r(levels)'"',        ///
-                                `"`r(sep)'"',           ///
-                                `"`r(colsep)'"')
+    mata: __gtools_parse_topmat(`:list sizeof varlist', tokens("`abbrevlist'"), "`gmat'")
 
     matrix colnames `gmat' = ID N Cum Pct PctCum
-    if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
+    mata st_local("vals", st_global("r(levels)"))
+    if ( "`local'"  != "" ) c_local `local': copy local vals
     if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
 
     * if ( `c(MP)' & (`r(J)' < 11) & ("`warning'" != "nowarning") & (`:list sizeof varlist' == 1) ) {
     *     disp as txt "(Note: {cmd:tab} can be faster than {cmd:gtop} with few groups.)"
     * }
 
-    return local levels    `"`r(levels)'"'
+    return local levels: copy local vals
     return scalar N         = `r(N)'
     return scalar J         = `r(J)'
     return scalar minJ      = `r(minJ)'
@@ -284,16 +301,10 @@ mata:
 // kvars      = `:list sizeof varlist'
 // abbrevlist = tokens("`abbrevlist'")
 // outmat     = "`gmat'"
-// levels     = `"`r(levels)'"'
-// sep        = `"`r(sep)'"'
-// colsep     = `"`r(colsep)'"'
 
 void function __gtools_parse_topmat(real scalar kvars,
                                    string rowvector abbrevlist,
-                                   string scalar outmat,
-                                   string scalar levels,
-                                   string scalar sep,
-                                   string scalar colsep)
+                                   string scalar outmat)
 {
     real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
     real scalar nmap, knum, kstr, valabbrev, weights
@@ -306,7 +317,15 @@ void function __gtools_parse_topmat(real scalar kvars,
     string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
     string scalar sepfmt, ghead, headfmt, mlab, olab
     string scalar pctfmt, ppctfmt, cpctfmt, numvar, strvar
+    string scalar levels, sep, colsep
     transmorphic t
+
+    // Done here because if these have embedded characters the parsing
+    // gets tripped up...
+
+    levels = st_global("r(levels)")
+    sep    = st_global("r(sep)")
+    colsep = st_global("r(colsep)")
 
     weights = st_local("weights") != ""
     pctfmt  = st_local("pctfmt")

@@ -31,7 +31,7 @@ program checks_greshape
     note price: GENERAL KENOBI!!!
     note price: You are a bold one.
     char price[varname] #GiraffesAreFake
-    char price[ntoe17]  This should not be listed by notes
+    char price[note17]  This should not be listed by notes
 
     note mpg: I don't like sand
     note mpg: It's coarse and rough and irritating and it gets everywhere
@@ -40,7 +40,7 @@ program checks_greshape
     note mpg: I mean, she did leave Jar Jar in charge, and Jar Jar did give Palpatine emergency powers
     note mpg: #JarJarWasSupposedToBeASithLordButYallRuinedItWithYourBickering
     char mpg[varname] Thisis my fight song
-    char mpg[ntoe11]  My I'm all right song
+    char mpg[note11]  My I'm all right song
 
     label define pr .a A .b B
     label define mp .a C .b D

@@ -23,7 +23,7 @@ program checks_toplevelsof
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_toplevelsof -strL1,             `options' `forcestrl'
         checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
@@ -134,7 +134,7 @@ program compare_toplevelsof
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol') wgt(`wcall_f')
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') wgt(`wcall_f')
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
         compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')

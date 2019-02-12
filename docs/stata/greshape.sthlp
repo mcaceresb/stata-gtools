@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  30Jan2019}{...}
+{* *! version 0.1.1  11Feb2019}{...}
 {viewerdialog greshape "dialog greshape"}{...}
 {vieweralsosee "[R] greshape" "mansection R greshape"}{...}
 {viewerjumpto "Syntax" "greshape##syntax"}{...}
@@ -20,14 +20,62 @@ the latest stable version.
 {pstd}
 {opt greshape} is a fast alternative to {opt reshape} that additionally
 implements the equivalents to R's {cmd:spread} and {cmd:gather} from
-{cmd:tidyr}. Further, it allows an arbitrary number of variables in {opt i()}
-and {j()}.
+{cmd:tidyr}. Further, it allows an arbitrary number of grouping by variables
+({opt i()}) and keys ({opt j()}).
 
 {p 4 8 2}
-Basic syntax
+Normal syntax
 
-{phang2}
-Convert data from wide form to long form
+{p 8 8 2} In R parlance, {opt j()} is called {opt keys()}, which is
+frankly much clearer to understand. Hence, while regular Stata syntax is
+also supported, {cmd:greshape} provides the aliases {opt by()} and {opt keys()}
+for {opt i()} and {opt j()} respectively (note {it:spread} and {it:wide}
+accept multiple {it:j} keys).
+
+{p 8 8 2}
+wide->long
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:gather}
+{varlist}{cmd:,}
+{cmd:keys(}{varlist}{cmd:)}
+{cmd:values(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:long}
+{it:stubnames}{cmd:,}
+{cmd:by(}{varlist}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 8 8 2}
+long->wide
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:spread}
+{varlist}{cmd:,}
+{cmd:keys(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 12 16 2}
+{cmd:greshape} {helpb greshape##overview:wide}
+{it:stubnames}{cmd:,}
+{cmd:by(}{varlist}{cmd:)}
+{cmd:keys(}{varname}{cmd:)}
+[{it:{help greshape##options_table:options}}]
+
+{p 8 8 2} {it:i} and {it:j} not only look similar, but even if you are
+familiar with conventional matrix notation it's not immediately obvious
+which is the grouping variable and which defines the column keys. In any
+case, note that in {it:spread} and {it:gather} the {opt by()} option is
+implicitly defined as every variable remaining in the data.
+
+{p 4 8 2}
+Stata syntax
+
+{p 8 8 2}
+I think the above syntax is clearer (happy to receive feedback otherwise)
+but {cmd:greshape} also accepts the traditional Stata {it:i, j} syntax:
 
 {p 12 16 2}
 {cmd:greshape} {helpb greshape##overview:long}
@@ -36,99 +84,87 @@ Convert data from wide form to long form
 [{it:{help greshape##options_table:options}}]
 
 {p 12 16 2}
-{cmd:greshape} {helpb greshape##overview:gather}
-{varlist}{cmd:,}
-{cmd:j(}{varlist}{cmd:)}
-{cmd:values(}{varname}{cmd:)}
-[{it:{help greshape##options_table:options}}]
-
-{phang2}
-Convert data from long form to wide form
-
-{p 12 16 2}
 {cmd:greshape} {helpb greshape##overview:wide}
 {it:stubnames}{cmd:,}
 {cmd:i(}{varlist}{cmd:)}
 {cmd:j(}{varname}{cmd:)}
 [{it:{help greshape##options_table:options}}]
 
-{p 12 16 2}
-{cmd:greshape} {helpb greshape##overview:spread}
-{varlist}{cmd:,}
-{cmd:j(}{varname}{cmd:)}
-[{it:{help greshape##options_table:options}}]
-
 {p 4 8 2}
 Details
 
-        The {it:stubnames} are a list of variable {it:prefixes}. The suffixes are either
-        saved or taken from {opt j()}, depending on the shape of the data.  Remember
-        this picture:
+{p 8 8 2}
+The {it:stubnames} are a list of variable {it:prefixes}. The suffixes are either
+saved or taken from {opt keys()}, depending on the shape of the data.  Remember
+this picture:
 
+               {it:long}
+            {c TLC}{hline 12}{c TRC}                   {it:wide}
+            {c |} {it:i  j}  {it:stub} {c |}                  {c TLC}{hline 16}{c TRC}
+            {c |}{hline 12}{c |}                  {c |} {it:i}  {it:stub}{bf:1} {it:stub}{bf:2} {c |}
+            {c |} 1  {bf:1}   4.1 {c |}     greshape     {c |}{hline 16}{c |}
+            {c |} 1  {bf:2}   4.5 {c |}   <{hline 10}>   {c |} 1    4.1   4.5 {c |}
+            {c |} 2  {bf:1}   3.3 {c |}                  {c |} 2    3.3   3.0 {c |}
+            {c |} 2  {bf:2}   3.0 {c |}                  {c BLC}{hline 16}{c BRC}
+            {c BLC}{hline 12}{c BRC}
 
-           {it:long}
-        {c TLC}{hline 12}{c TRC}                   {it:wide}
-        {c |} {it:i  j}  {it:stub} {c |}                  {c TLC}{hline 16}{c TRC}
-        {c |}{hline 12}{c |}                  {c |} {it:i}  {it:stub}{bf:1} {it:stub}{bf:2} {c |}
-        {c |} 1  {bf:1}   4.1 {c |}     greshape     {c |}{hline 16}{c |}
-        {c |} 1  {bf:2}   4.5 {c |}   <{hline 10}>   {c |} 1    4.1   4.5 {c |}
-        {c |} 2  {bf:1}   3.3 {c |}                  {c |} 2    3.3   3.0 {c |}
-        {c |} 2  {bf:2}   3.0 {c |}                  {c BLC}{hline 16}{c BRC}
-        {c BLC}{hline 12}{c BRC}
+            long->wide
 
-        To go from long to wide:
+         {col 54}{it:j} existing variable(s)
+         {col 53}/
+                    {cmd:greshape wide} {it:stub}{cmd:, by(}{it:i}{cmd:) keys(}{it:j}{cmd:)}
 
-     {col 45}{it:j} existing variable
-     {col 44}/
-     	        {cmd:greshape wide} {it:stub}{cmd:, i(}{it:i}{cmd:) j(}{it:j}{cmd:)}
+            wide->long
 
-        To go from wide to long:
+                    {cmd:greshape long} {it:stub}{cmd:, by(}{it:i}{cmd:) keys(}{it:j}{cmd:)}
+         {col 52}\
+         {col 53}{it:j} new variable
 
-     	        {cmd:greshape long} {it:stub}{cmd:, i(}{it:i}{cmd:) j(}{it:j}{cmd:)}
-     {col 44}\
-     {col 45}{it:j} new variable
+{p 8 8 2}
+Additionally, the user can reshape in the style of R's {cmd:tidyr} package.
+To go from long to wide:
 
-        Additionally, the user can reshape in the style of R's {cmd:tidyr} package.
-        To go from long to wide:
+     	    {cmd:greshape spread} {it:varlist}{cmd:, keys(}{it:j}{cmd:)}
 
-     	        {cmd:greshape spread} {it:varlist}{cmd:, j(}{it:j}{cmd:)}
+{p 8 8 2}
+Note that {cmd:spread} (and {cmd:gather}) both require variable {it:names}, not prefixes.
+Further, all variables not specified in the reshape are assumed to be 
+part of {cmd:by()} and the new variables are simply named after the values of
+{cmd:keys()}. From wide to long:
 
-        Note that {cmd:spread} (and {cmd:gather}) both require variable {it:names}, not prefixes.
-        Further, all variables not specified in the reshape are assumed to be 
-        part of {cmd:i()} and the new variables are simply named after the values of
-        {cmd:j()}. To go from wide to long:
+     	    {cmd:greshape gather} {it:varlist}{cmd:, keys(}{it:j}{cmd:) values(}{it:values}{cmd:)}
 
-     	        {cmd:greshape gather} {it:varlist}{cmd:, j(}{it:j}{cmd:) values(}{it:values}{cmd:)}
+{p 8 8 2}
+This does {opt not} check for duplicates or sorts the data. Variables not
+named are assumed to be part of {cmd:by()}).  The values of the variables in
+{it:varlist} are saved in {cmd:values()}, with their names saved in {it:keys()}.
 
-        This does {opt not} check for duplicates or sorts the data. Variables not
-        named are assumed to be part of {cmd:i()}).  The values of the variables in
-        {it:varlist} are saved in {cmd:values()}, with their names saved in {it:j()}.
-
-        {cmd:reshape}'s extended syntax is not supported; that is, {cmd:greshape} does
-        not implement "reshape mode" where a user can type {cmd:reshape long} or
-        {cmd:reshape wide} after the first reshape. This syntax is cumbersome to
-        support and prone to errors given the degree to which {cmd:greshape} had
-        to rewrite the base code. This also means the "advanced" commands
-        are not supported, including: clear, error, query, i, j, xij, and xi.
+{p 8 8 2}
+{cmd:reshape}'s extended syntax is not supported; that is, {cmd:greshape} does
+not implement "reshape mode" where a user can type {cmd:reshape long} or
+{cmd:reshape wide} after the first reshape. This syntax is cumbersome to
+support and prone to errors given the degree to which {cmd:greshape} had
+to rewrite the base code. This also means the "advanced" commands
+are not supported, including: clear, error, query, i, j, xij, and xi.
 
 {synoptset 19 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
 {syntab :Long}
-{synopt :* {opth i(varlist)}} use {it:varlist} as the ID variables.
+{synopt :* {opth by(varlist)}} use {it:varlist} as the ID variables (alias {opt i()}).
 {p_end}
-{synopt :{opth j(varname)}} wide->long: {it:varname}, new variable to store stub suffixes (default {it:_j}).
+{synopt :{opth keys(varname)}} wide->long: {it:varname}, new variable to store stub suffixes (default {it:_j}; alias {opt j()}).
 {p_end}
 {synopt :{opt s:tring}} Whether to allow for string matches to each {it:stub}
 {p_end}
 
 {syntab :Wide}
-{synopt :* {opth i(varlist)}} use {it:varlist} as the ID variables.
+{synopt :* {opth by(varlist)}} use {it:varlist} as the ID variables (alias {opt i()}).
 {p_end}
-{synopt :* {opth j(varlist)}} long->wide: {it:varlist}, existing variable with stub suffixes.
+{synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with stub suffixes (alias {opt j()}).
 {p_end}
-{synopt :{opth cols:epparate(str)}} Column separator when multiple variables are passed to {opt j()}.
+{synopt :{opth cols:epparate(str)}} Column separator when multiple variables are passed to {opt keys()}.
 {p_end}
 
 {syntab :Common long and wide options}
@@ -136,32 +172,30 @@ Details
 {p_end}
 {synopt :{opt unsorted}} Leave the data unsorted (faster). Original sort order is {opt not} preserved.
 {p_end}
-{synopt :{opt nodupcheck}} wide->long, allow duplicate {opt i()} values (faster).
+{synopt :{opt nodupcheck}} wide->long, allow duplicate {opt by()} values (faster).
 {p_end}
-{synopt :{opt nomisscheck}} long->wide, allow missing values and/or leading blanks in {opt j()} (faster).
+{synopt :{opt nomisscheck}} long->wide, allow missing values and/or leading blanks in {opt keys()} (faster).
 {p_end}
 {synopt :{opt nochecks}} This is equivalent to all 4 of the above options (fastest).
 {p_end}
-{synopt :{opt xi(drop)}} Drop variables not in the reshape, {opt i()}, or {opt j()}.
+{synopt :{opt xi(drop)}} Drop variables not in the reshape, {opt by()}, or {opt keys()}.
 {p_end}
 
 {synoptline}
 {syntab :Gather}
 {synopt :* {opth values(varname)}} Store values in {it:varname}.
 {p_end}
-{synopt :{opth j(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_j}).
-{p_end}
-{synopt :{opt s:tring}} Whether to allow for string matches to each {it:stub}
+{synopt :{opth keys(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_key}).
 {p_end}
 
 {syntab :Spread}
-{synopt :* {opth j(varlist)}} long->wide: {it:varlist}, existing variable with variable names.
+{synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with variable names.
 {p_end}
 
 {syntab :Common gather and spread options}
-{synopt :{opth i(varlist)}} check {it:varlist} are the ID variables. Throws an error otherwise.
+{synopt :{opth by(varlist)}} check {it:varlist} are the ID variables. Throws an error otherwise.
 {p_end}
-{synopt :{opt xi(drop)}} Drop variables not in the reshape or in {opt i()}.
+{synopt :{opt xi(drop)}} Drop variables not in the reshape or in {opt by()}.
 {p_end}
 {synopt :{opt fast}} Do not wrap the reshape in preserve/restore pairs.
 {p_end}

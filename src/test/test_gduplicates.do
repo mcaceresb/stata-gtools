@@ -22,7 +22,7 @@ program checks_duplicates
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_duplicates strL1,             `options' `forcestrl'
         checks_inner_duplicates strL1 strL2,       `options' `forcestrl'
@@ -82,7 +82,7 @@ program compare_duplicates
     compare_duplicates_internal int1 double2 double3, `options'
     compare_duplicates_internal double? str_* int?,   `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_duplicates_internal strL1,             `options' `forcestrl'
         compare_duplicates_internal strL1 strL2,       `options' `forcestrl'
@@ -164,7 +164,7 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' report
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' report
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _compare_duplicates strL1,             `options' report `forcestrl'
         _compare_duplicates strL1 strL2,       `options' report `forcestrl'
@@ -192,7 +192,7 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' drop
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' drop
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _compare_duplicates strL1,             `options' drop `forcestrl'
         _compare_duplicates strL1 strL2,       `options' drop `forcestrl'

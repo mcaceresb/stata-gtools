@@ -161,8 +161,10 @@ program gcontract, rclass
                 exit _rc
             }
             local varlist `r(varlist)'
+            local anything: copy local varlist
         }
         else {
+            local parse: copy local varlist
             local varlist: subinstr local varlist "-" " ", all
             local varlist `varlist'
             if ( "`varlist'" == "" ) {
@@ -189,8 +191,27 @@ program gcontract, rclass
                 }
                 exit 111
             }
-            qui ds `varlist'
-            local varlist `r(varlist)'
+            local varlist
+            local anything
+            while ( `:list sizeof parse' ) {
+                gettoken var parse: parse, p(" -")
+                local neg
+                if inlist("`var'", "-") {
+                    gettoken var parse: parse, p(" -")
+                    local neg -
+                }
+                cap ds `var'
+                if ( _rc ) {
+                    local rc = _rc
+                    di as err "Variable '`var'' does not exist."
+                    di as err "Syntax: [+|-]varname [[+|-]varname ...]"
+                    exit `rc'
+                }
+                foreach v of varlist `var' {
+                    local anything `anything' `neg'`v'
+                    local varlist  `varlist' `v'
+                }
+            }
         }
     }
     if ( "`ds'" == "" ) local nods nods

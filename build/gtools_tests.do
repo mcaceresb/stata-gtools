@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Feb  8 19:30:00 EST 2019
+* Updated: Mon Feb 11 22:03:54 EST 2019
 * Purpose: Unit tests for gtools
-* Version: 1.3.0
+* Version: 1.3.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -749,6 +749,62 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * Parsing negatives
+    qui {
+        sysuse auto, clear
+        gtop * if foreign [w = rep78]
+        gtop -* if foreign [w = rep78]
+        gen bye = 1
+        gtop bye *n*
+        gtop bye -*n*
+
+        glevelsof *  if (27 * foreign)
+        glevelsof -* if (27 * foreign)
+
+        sysuse auto, clear
+        gcontract * if foreign [w = rep78]
+
+        sysuse auto, clear
+        gcontract foreign -*n* price if price > 5000 [w = rep78]
+
+        sysuse auto, clear
+        gcollapse price if price > 5000 [w = rep78], by(*n*)
+
+        sysuse auto, clear
+        gcollapse price if price > 5000 [w = rep78], by(foreign -*n*)
+
+        clear
+        set obs 3
+        gen  i = _n
+        gen x1 = 1
+        gen x2 = 2
+        gen y3 = _n
+        cap noi greshape long x y
+        cap noi greshape wide x y
+        cap noi greshape spread x y
+        cap noi greshape spread x y
+        greshape long x y, i(i) j(j)
+        greshape wide x y, i(i) j(j)
+        greshape long x y, by(i) j(j)
+        greshape wide x y, by(i) j(j)
+        greshape long x y, i(i) keys(j)
+        greshape wide x y, i(i) keys(j)
+        greshape long x y, by(i) keys(j)
+        greshape wide x y, by(i) keys(j)
+        greshape long x y, by(i) keys(j)
+        gen k = _N - _n
+        greshape wide x y, by(i) keys(j k)
+        cap noi greshape
+        greshape long x y, by(i) keys(j) string
+        replace j = "" in 1 / 10
+        cap noi greshape wide x y, by(i) keys(j) nomisscheck
+        replace j = " " in 1 / 10
+        cap noi greshape wide x y, by(i) keys(j) nomisscheck
+        replace j = "" in 1 / 10
+        gen j2 = j
+        cap noi greshape wide x y, by(i) keys(j j2) nomisscheck
+    }
 
     * https://github.com/mcaceresb/stata-gtools/issues/45
     qui {
@@ -3704,7 +3760,7 @@ program checks_gquantiles_by
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _checks_gquantiles_by -strL1,             `options' `forcestrl'
         _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
@@ -3932,13 +3988,13 @@ program _consistency_inner_gquantiles_by
     _consistency_inner_full_by int1 -int2        `if' `in', `options' var(`anything')
 
     local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything') `forcestrl'
         _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything') `forcestrl'
     }
 
     _consistency_inner_full_by str_12 -str_4 double2 -double3 `if' `in', `options' var(`anything')
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything') `forcestrl'
     }
 end
@@ -4150,7 +4206,7 @@ program _compare_inner_gquantiles_by
         _compare_inner_xtile_by int1 int2       `if' `in', `options'
 
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        if ( `c(stata_version)' >= 14 ) {
+        if ( `c(stata_version)' >= 14.1 ) {
             _compare_inner_xtile_by strL1       `if' `in', `options' `forcestrl'
             _compare_inner_xtile_by strL1 strL2 `if' `in', `options' `forcestrl'
         }
@@ -4349,7 +4405,7 @@ program checks_gegen
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_egen -strL1,             `options' hash(1) `forcestrl'
         checks_inner_egen strL1 -strL2,       `options' hash(2) `forcestrl'
@@ -4386,7 +4442,7 @@ program checks_gegen
     gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
     replace y  = fileread(`"`auto'"') in 1
     cap gegen z = group(y)
-    if ( `c(stata_version)' < 14 ) {
+    if ( `c(stata_version)' < 14.1 ) {
         assert _rc == 17002
     }
     else {
@@ -4544,7 +4600,7 @@ program compare_egen
     compare_inner_egen int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')
     compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_egen strL1,             `options' tol(`tol') hash(0) `forcestrl' sort
         compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) `forcestrl' shuffle
@@ -4761,7 +4817,7 @@ program bench_egen
     versus_egen int1 str_32 double1 int2 str_12 double2,                    `options'
     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         versus_egen strL1,             `options' `forcestrl'
         versus_egen strL1 strL2,       `options' `forcestrl'
@@ -4836,7 +4892,7 @@ program checks_unique
     checks_inner_unique int1 str_32 double1 int2 str_12 double2,                    `options' by(int3 str_4 double3) replace
     checks_inner_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
 
         * This is for the benefit of gtop, which can only handle strings that are so long
@@ -4954,7 +5010,7 @@ program compare_unique
     compare_inner_unique int1 int1 double2 double3 , `options'
     compare_inner_unique int1 double? str_* int?   , `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_unique strL1,             `options' `forcestrl' shuffle
         compare_inner_unique strL1 strL2,       `options' `forcestrl' 
@@ -5174,7 +5230,7 @@ program bench_unique
     versus_unique int1 str_32 double1 int2 str_12 double2,                    unique `options'
     versus_unique int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, unique `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         versus_unique strL1,             `options' `forcestrl' unique
         versus_unique strL1 strL2,       `options' `forcestrl' unique
@@ -5350,7 +5406,7 @@ program checks_levelsof
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         qui `noisily' gen_data, n(50)
         qui expand 200
@@ -5461,7 +5517,7 @@ program compare_levelsof
     compare_inner_levelsof int2, `options'
     compare_inner_levelsof int3, `options' sort
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_levelsof strL1, `options' `forcestrl'
         compare_inner_levelsof strL2, `options' `forcestrl'
@@ -5883,7 +5939,7 @@ program checks_toplevelsof
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_toplevelsof -strL1,             `options' `forcestrl'
         checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
@@ -5994,7 +6050,7 @@ program compare_toplevelsof
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options' tol(`tol') wgt(`wcall_f')
     compare_inner_gtoplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') wgt(`wcall_f')
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_gtoplevelsof strL1,             `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
         compare_inner_gtoplevelsof strL1 strL2,       `options' tol(`tol') contract `forcestrl' wgt(`wcall_f')
@@ -6252,7 +6308,7 @@ program checks_isid
     checks_inner_isid int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_isid int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_isid strL1,             `options' `forcestrl'
         checks_inner_isid strL1 strL2,       `options' `forcestrl'
@@ -6343,7 +6399,7 @@ program compare_isid
     compare_inner_isid int1 double2 double3 , `options'
     compare_inner_isid double? str_* int?   , `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_isid strL1,             `options' `forcestrl'
         compare_inner_isid strL1 strL2,       `options' `forcestrl'
@@ -6656,7 +6712,7 @@ program checks_greshape
     note price: GENERAL KENOBI!!!
     note price: You are a bold one.
     char price[varname] #GiraffesAreFake
-    char price[ntoe17]  This should not be listed by notes
+    char price[note17]  This should not be listed by notes
 
     note mpg: I don't like sand
     note mpg: It's coarse and rough and irritating and it gets everywhere
@@ -6665,7 +6721,7 @@ program checks_greshape
     note mpg: I mean, she did leave Jar Jar in charge, and Jar Jar did give Palpatine emergency powers
     note mpg: #JarJarWasSupposedToBeASithLordButYallRuinedItWithYourBickering
     char mpg[varname] Thisis my fight song
-    char mpg[ntoe11]  My I'm all right song
+    char mpg[note11]  My I'm all right song
 
     label define pr .a A .b B
     label define mp .a C .b D
@@ -7765,7 +7821,7 @@ program checks_duplicates
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_duplicates strL1,             `options' `forcestrl'
         checks_inner_duplicates strL1 strL2,       `options' `forcestrl'
@@ -7825,7 +7881,7 @@ program compare_duplicates
     compare_duplicates_internal int1 double2 double3, `options'
     compare_duplicates_internal double? str_* int?,   `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_duplicates_internal strL1,             `options' `forcestrl'
         compare_duplicates_internal strL1 strL2,       `options' `forcestrl'
@@ -7907,7 +7963,7 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' report
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' report
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _compare_duplicates strL1,             `options' report `forcestrl'
         _compare_duplicates strL1 strL2,       `options' report `forcestrl'
@@ -7935,7 +7991,7 @@ program bench_duplicates
     _compare_duplicates int1 str_32 double1 int2 str_12 double2,                    `options' drop
     _compare_duplicates int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' drop
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _compare_duplicates strL1,             `options' drop `forcestrl'
         _compare_duplicates strL1 strL2,       `options' drop `forcestrl'
@@ -8042,7 +8098,7 @@ program checks_hashsort
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_hashsort -strL1,             `options' `forcestrl'
         checks_inner_hashsort strL1 -strL2,       `options' `forcestrl'
@@ -8154,7 +8210,7 @@ program compare_hashsort
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options' mfirst
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' mfirst
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_gsort -strL1,             `options' mfirst `forcestrl'
         compare_gsort strL1 -strL2,       `options' mfirst `forcestrl'
@@ -8188,7 +8244,7 @@ program compare_hashsort
     compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_sort strL1,             `options' mfirst `forcestrl'
         compare_sort strL1 strL2,       `options' mfirst `forcestrl'

@@ -1,4 +1,4 @@
-*! version 1.3.0 08Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -72,7 +72,7 @@ program _gtools_internal, rclass
         exit 17800
     }
 
-    local 00 `0'
+    local 00: copy local 0
 
     * Time the entire function execution
     FreeTimer
@@ -723,11 +723,11 @@ program _gtools_internal, rclass
     * Again, glevelsof is parsed in the open since I defined the options
     * before moving to capturing each caller's options.
 
+    else local sep: copy local separate
     if ( `"`separate'"' == "" ) local sep `" "'
-    else local sep `"`separate'"'
 
     if ( `"`colseparate'"' == "" ) local colsep `" | "'
-    else local colsep `"`colseparate'"'
+    else local colsep: copy local colseparate
 
     if ( `"`numfmt'"' == "" ) {
         local numfmt `"%.16g"'
@@ -2394,9 +2394,13 @@ program _gtools_internal, rclass
 
     * levelsof
     if ( inlist("`gfunction'", "levelsof", "top") & `=scalar(__gtools_levels_return)' ) {
-        return local levels `"`vals'"'
-        return local sep    `"`sep'"'
-        return local colsep `"`colsep'"'
+        cap disp `"`vals'"'
+        if ( _rc ) {
+            error _rc
+        }
+        return local levels: copy local vals
+        return local sep:    copy local sep
+        return local colsep: copy local colsep
     }
 
     * top matrix

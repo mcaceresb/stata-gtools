@@ -26,7 +26,7 @@ program checks_gegen
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_egen int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         checks_inner_egen -strL1,             `options' hash(1) `forcestrl'
         checks_inner_egen strL1 -strL2,       `options' hash(2) `forcestrl'
@@ -63,7 +63,7 @@ program checks_gegen
     gen strL y = "hi" + string(mod(_n, 2)) + char(9) + char(0)
     replace y  = fileread(`"`auto'"') in 1
     cap gegen z = group(y)
-    if ( `c(stata_version)' < 14 ) {
+    if ( `c(stata_version)' < 14.1 ) {
         assert _rc == 17002
     }
     else {
@@ -221,7 +221,7 @@ program compare_egen
     compare_inner_egen int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol')
     compare_inner_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol')
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_egen strL1,             `options' tol(`tol') hash(0) `forcestrl' sort
         compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) `forcestrl' shuffle
@@ -438,7 +438,7 @@ program bench_egen
     versus_egen int1 str_32 double1 int2 str_12 double2,                    `options'
     versus_egen int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         versus_egen strL1,             `options' `forcestrl'
         versus_egen strL1 strL2,       `options' `forcestrl'

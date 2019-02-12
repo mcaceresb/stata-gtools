@@ -82,17 +82,17 @@ a simpler procedure, called trimming or truncation.  In a trimmed
 estimator, the extreme values are discarded; in a Winsorized estimator,
 the extreme values are instead replaced by certain percentiles,
 specified by option cuts(# #). For details, see `help winsor` (if
-installed), `help trimmean` (if installed).
+installed), and `help trimmean` (if installed).
 
-For example, you type the following commands to get the 1th and 99th
-percentiles of variable wage, `1.930993` and `38.70926`, respectively.
+For example, you type the following commands to get the 1st and 99th
+percentiles of the variable wage, `1.930993` and `38.70926`.
 
 ```stata
 sysuse nlsw88, clear
 sum wage, detail
 ```
 
-By default, gstats winsor winsorize wage at 1th and 99th percentiles,
+By default, gstats winsor winsorizes wage at 1st and 99th percentiles,
 
 ```stata
 gstats winsor wage, replace cuts(1 99)
@@ -105,9 +105,10 @@ replace wage = 1.930993 if wage < 1.930993
 replace wage = 38.70926 if wage > 38.70926
 ```
 
-Note that, values smaller than the 1th percentile is repalce by the 1th
-percentile, and the similar thing is done with the 99th percentile.
-Things change when `trim` option is specified:
+Note that, values smaller than the 1st percentile are repalced by that
+value, and similarly with values above the 99th percentile. When the
+`trim` option is specified, those values are set to missing instead
+(which are discarded by most commands):
 
 ```stata
 gstats winsor wage, replace cuts(1 99) trim
@@ -132,7 +133,7 @@ You can download the raw code for the examples below
 !!! note "Note"
     This examples are nearly verbatim from the equivalent help section from winsor2.
 
-Winsor at `(p1 p99)`, get new variable `wage_w`
+Winsor at `(p1 p99)`; get new variable `wage_w`
 
 ```stata
 sysuse nlsw88, clear

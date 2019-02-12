@@ -31,7 +31,7 @@ program checks_gquantiles_by
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     _checks_gquantiles_by int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         _checks_gquantiles_by -strL1,             `options' `forcestrl'
         _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
@@ -259,13 +259,13 @@ program _consistency_inner_gquantiles_by
     _consistency_inner_full_by int1 -int2        `if' `in', `options' var(`anything')
 
     local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         _consistency_inner_full_by -strL1        `if' `in', `options' var(`anything') `forcestrl'
         _consistency_inner_full_by strL1 -strL2  `if' `in', `options' var(`anything') `forcestrl'
     }
 
     _consistency_inner_full_by str_12 -str_4 double2 -double3 `if' `in', `options' var(`anything')
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         _consistency_inner_full_by str_12 -str_4 double2 -double3 strL3 `if' `in', `options' var(`anything') `forcestrl'
     }
 end
@@ -477,7 +477,7 @@ program _compare_inner_gquantiles_by
         _compare_inner_xtile_by int1 int2       `if' `in', `options'
 
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        if ( `c(stata_version)' >= 14 ) {
+        if ( `c(stata_version)' >= 14.1 ) {
             _compare_inner_xtile_by strL1       `if' `in', `options' `forcestrl'
             _compare_inner_xtile_by strL1 strL2 `if' `in', `options' `forcestrl'
         }

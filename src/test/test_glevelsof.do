@@ -23,7 +23,7 @@ program checks_levelsof
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2,                    `options'
     checks_inner_levelsof int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         qui `noisily' gen_data, n(50)
         qui expand 200
@@ -134,7 +134,7 @@ program compare_levelsof
     compare_inner_levelsof int2, `options'
     compare_inner_levelsof int3, `options' sort
 
-    if ( `c(stata_version)' >= 14 ) {
+    if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_levelsof strL1, `options' `forcestrl'
         compare_inner_levelsof strL2, `options' `forcestrl'

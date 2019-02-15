@@ -1,4 +1,4 @@
-*! version 1.3.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.2 14Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -22,7 +22,9 @@ capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13.1
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
+    global GTOOLS_USER_INTERNAL_LEVEL     `c(level)'
     * set varabbrev off
+    * set level 95
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
@@ -2473,7 +2475,9 @@ program clean_all
     if ( "`rc'" == "" ) local rc = 0
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
+    set level     ${GTOOLS_USER_INTERNAL_LEVEL}
     global GTOOLS_USER_INTERNAL_VARABBREV
+    global GTOOLS_USER_INTERNAL_LEVEL
 
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if

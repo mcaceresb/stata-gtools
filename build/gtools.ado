@@ -21,9 +21,9 @@ program gtools
     ]
 
     if ( `"`branch'"' == "" ) local branch master
-    if !inlist(`"`branch'"', "develop", "master", "osx") {
-        disp as err "unknown branch `branch'; available: develop master osx"
-        exit 198
+    if !inlist(`"`branch'"', "develop", "master") {
+        disp as err "{bf:Warning}: Branch `branch' is not intended for normal use."
+        * exit 198
     }
 
     local cwd `c(pwd)'

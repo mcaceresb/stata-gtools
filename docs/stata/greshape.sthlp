@@ -242,8 +242,9 @@ If {opt j()} is numeric, the data is already sorted by {opt i()}, and
 there are not too may variables to reshape, then {cmd:fastreshape} comes
 closest to achieving comparable speeds to {cmd:greshape}. Under most
 circumstances, however, {cmd:greshape} is typically 20-60% faster than
-{cmd:fastreshape} on sorted data, and up to 90% faster on unsorted data
-or if {opt j()} has string values. In other words, {cmd:greshape}'s
+{cmd:fastreshape} on sorted data, and up to 90% faster if {opt j()} has
+string values {it:or} if the data is unsorted (by default, {cmd:greshape} will
+output the data in the correct sort order). In other words, {cmd:greshape}'s
 speed gains are very robust, while other solutions' are not.
 
 {marker example}{...}

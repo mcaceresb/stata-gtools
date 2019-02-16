@@ -22,7 +22,7 @@ capture program drop _gtools_internal
 program _gtools_internal, rclass
     version 13.1
 
-    if ( `"`0'"' == "_gtools_internal_check" ) {
+    if ( `"`0'"' == "_check" ) {
         cap noi plugin call gtools_plugin, check
         exit _rc
     }

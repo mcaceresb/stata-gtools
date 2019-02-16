@@ -103,10 +103,10 @@ program gtools
 
     display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"
     which gtools
-    global GTOOLS_CALLER ghash
-    cap noi _gtools_internal _gtools_internal_check
-    if ( _rc ) disp as err "({bf:warning}: gtools_plugin internal check failed)"
-    global GTOOLS_CALLER
+    cap noi _gtools_internal _check
+    if ( _rc ) {
+        disp as err "({bf:warning}: gtools_plugin internal check failed)"
+    }
 end
 
 capture program drop gtools_licenses

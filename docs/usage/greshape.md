@@ -217,9 +217,10 @@ If `j()` is numeric, the data is already sorted by `i()`, and there are
 not too may variables to reshape, then `fastreshape` comes closest to
 achieving comparable speeds to `greshape`. Under most circumstances,
 however, `greshape` is typically 20-60% faster than `fastreshape` on
-sorted data, and up to 90% faster on unsorted data or if `j()` has
-string values. In other words, `greshape`'s speed gains are very robust,
-while other solutions' are not.
+sorted data, and up to 90% faster if `j()` has string values _or_ if the
+data is unsorted (by default `greshape` will output the data in the
+correct sort order). In other words, `greshape`'s speed gains are very
+robust, while other solutions' are not.
 
 !!! note "Note"
     `greshape` relies on temporary files written to your disk storage to

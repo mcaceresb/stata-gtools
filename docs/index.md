@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.3.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.3.3%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.3.2 14Feb2019`
+`version 1.3.3 15Feb2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->

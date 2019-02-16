@@ -422,6 +422,11 @@ int sf_check_hash (struct StataInfo *st_info, int level)
     clock_t timer  = clock();
     clock_t stimer = clock();
 
+    GTOOLS_CHAR(buf1, 32);
+    GTOOLS_CHAR(buf2, 32);
+    GTOOLS_CHAR(buf3, 32);
+    GTOOLS_CHAR(buf4, 32);
+
     // NOTE(mauricio): strbuffer will remain 0 if level is 22 and
     // multisort will be skipped. // 2017-11-21 08:02 EST
 
@@ -607,23 +612,44 @@ int sf_check_hash (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     if ( collisions_count > 0 ) {
+        sf_format_size(collisions_count,  buf1);
+        sf_format_size(st_info->kvars_by, buf2);
+        sf_format_size(st_info->N,        buf3);
+        sf_format_size(st_info->J,        buf4);
         sf_errprintf ("There may be "
-                      GT_size_cfmt" 128-bit hash collisions: "
-                      GT_size_cfmt" variables, "
-                      GT_size_cfmt" obs, "
-                      GT_size_cfmt" groups\n",
-                      collisions_count, st_info->kvars_by, st_info->N, st_info->J);
+                      "%s 128-bit hash collisions: "
+                      "%s variables, "
+                      "%s obs, "
+                      "%s groups\n",
+                      buf1, buf2, buf3, buf4);
+
+        // sf_errprintf ("There may be "
+        //               GT_size_cfmt" 128-bit hash collisions: "
+        //               GT_size_cfmt" variables, "
+        //               GT_size_cfmt" obs, "
+        //               GT_size_cfmt" groups\n",
+        //               collisions_count, st_info->kvars_by, st_info->N, st_info->J);
         sf_errprintf ("This is likely a bug; please file a bug report at github.com/mcaceresb/stata-gtools/issues\n");
 
         rc = 17000; level = 0;
     }
     else {
-        if ( st_info->verbose )
+        if ( st_info->verbose ) {
+            sf_format_size(st_info->kvars_by, buf1);
+            sf_format_size(st_info->N,        buf2);
+            sf_format_size(st_info->J,        buf3);
             sf_printf ("There were no hash collisions: "
-                       GT_size_cfmt" variables, "
-                       GT_size_cfmt" obs, "
-                       GT_size_cfmt" groups\n",
-                       st_info->kvars_by, st_info->N, st_info->J);
+                       "%s variables, "
+                       "%s obs, "
+                       "%s groups\n",
+                       buf1, buf2, buf3);
+
+            // sf_printf ("There were no hash collisions: "
+            //            GT_size_cfmt" variables, "
+            //            GT_size_cfmt" obs, "
+            //            GT_size_cfmt" groups\n",
+            //            st_info->kvars_by, st_info->N, st_info->J);
+        }
     }
 
     free (s);
@@ -820,6 +846,11 @@ bycopy:
 
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 4: Created indexed array with sorted by vars");
+
+    free(buf1);
+    free(buf2);
+    free(buf3);
+    free(buf4);
 
     return (rc);
 }

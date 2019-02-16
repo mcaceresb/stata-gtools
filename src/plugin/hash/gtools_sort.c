@@ -32,15 +32,21 @@ ST_retcode gf_sort_hash (
     GTOOLS_MIN (hash, N, min, i)
     GTOOLS_MAX (hash, N, max, i)
 
+    GTOOLS_CHAR(buf1, 32);
+    GTOOLS_CHAR(buf2, 32);
+
     uint64_t range = max - min + 1;
     // uint64_t ctol  = pow(2, 24);
 
     if ( range < ctol ) {
         if ( (rc = gf_counting_sort (hash, index, N, min, max)) ) return(rc);
         if ( verbose ) {
-            sf_printf("Counting sort on hash; min = "
-                      GT_size_cfmt", max = "
-                      GT_size_cfmt"\n", min, max);
+            sf_format_size(min, buf1);
+            sf_format_size(max, buf2);
+            sf_printf("Counting sort on hash; min = %s, max = %s\n", buf1, buf2);
+            // sf_printf("Counting sort on hash; min = "
+            //           GT_size_cfmt", max = "
+            //           GT_size_cfmt"\n", min, max);
         }
     }
     else if ( max < pow(2, 16) ) {
@@ -67,6 +73,9 @@ ST_retcode gf_sort_hash (
             sf_printf("Radix sort on 64-bit hash (16-bits at a time)\n");
         }
     }
+
+    free(buf1);
+    free(buf2);
 
     return (rc);
 }

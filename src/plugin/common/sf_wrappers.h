@@ -22,17 +22,6 @@ ST_retcode sf_get_vector_int    (char *st_matrix, GT_int  *v);
 ST_retcode sf_get_vector_size   (char *st_matrix, GT_size *v);
 ST_retcode sf_get_vector_bool   (char *st_matrix, GT_bool *v);
 
-/*
- * #if defined(_WIN64) || defined(_WIN32)
- * 
- * #define COMMA_PRINTING                      \
- *     setlocale(LC_NUMERIC, "");              \
- *     struct lconv *ptrLocale = localeconv(); \
- *     strcpy(ptrLocale->thousands_sep, ",");
- * #else
- * #define COMMA_PRINTING setlocale (LC_ALL, "");
- * #endif
- *
- */
+void sf_format_size (GT_size n, char *out);
 
 #endif

@@ -42,7 +42,6 @@
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
-#include <locale.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>

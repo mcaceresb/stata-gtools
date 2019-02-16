@@ -33,16 +33,38 @@ typedef int64_t   GT_int ;
 // #    define GT_int_sfmt  "I64d"
 // #endif
 
-#if defined(_WIN64) || defined(_WIN32)
-#    define GT_size_cfmt "%" PRIu64
-#    define GT_size_sfmt PRIu64
-#    define GT_int_cfmt  "%" PRId64
-#    define GT_int_sfmt  PRId64
-#else
-#    define GT_size_cfmt "%'" PRIu64
-#    define GT_size_sfmt PRIu64
-#    define GT_int_cfmt  "%'" PRId64
-#    define GT_int_sfmt  PRId64
-#endif
+// NOTE: Comma-printing via locale messes up on some systems, presumably
+// because their locale is reset in a way that makes Stata give errors.
+// Best to not rely on locale at all.
+
+/*
+ * #if defined(_WIN64) || defined(_WIN32)
+ *
+ * #define COMMA_PRINTING                      \
+ *     setlocale(LC_NUMERIC, "");              \
+ *     struct lconv *ptrLocale = localeconv(); \
+ *     strcpy(ptrLocale->thousands_sep, ",");
+ * #else
+ * #define COMMA_PRINTING setlocale (LC_ALL, "");
+ * #endif
+ *
+ */
+
+// #if defined(_WIN64) || defined(_WIN32)
+// #    define GT_size_cfmt "%" PRIu64
+// #    define GT_size_sfmt PRIu64
+// #    define GT_int_cfmt  "%" PRId64
+// #    define GT_int_sfmt  PRId64
+// #else
+// #    define GT_size_cfmt "%'" PRIu64
+// #    define GT_size_sfmt PRIu64
+// #    define GT_int_cfmt  "%'" PRId64
+// #    define GT_int_sfmt  PRId64
+// #endif
+
+#define GT_size_cfmt "%" PRIu64
+#define GT_size_sfmt PRIu64
+#define GT_int_cfmt  "%" PRId64
+#define GT_int_sfmt  PRId64
 
 #endif

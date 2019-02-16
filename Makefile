@@ -20,6 +20,7 @@ open:
 # ./src/ado/gtools.ado
 # ./src/ado/_gtools_internal.ado
 # ./src/plugin/gtools.c
+# ./src/plugin/gtools.h
 # ./src/test/gtools_tests.do
 # ./src/gtools.pkg
 # ./src/stata.toc

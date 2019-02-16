@@ -106,7 +106,7 @@ user press {hi:Break}
 {p_end}
 {synopt :{opth freq(varname)}}Include frequency count with observations per group in {opt freq}.
 {p_end}
-{synopt :{opt labelf:ormat}}Custom label engine: {opt (#stat#) #sourcelabel#} is the default.
+{synopt :{opt labelf:ormat}}Custom label engine: {bf:(#stat#) #sourcelabel#} is the default.
 {p_end}
 {synopt :{opth labelp:rogram(str)}}Program to parse {opt labelformat} (see examples).
 {p_end}

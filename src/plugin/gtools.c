@@ -103,6 +103,7 @@ STDLL stata_call(int argc, char *argv[])
      **************************************************************************/
 
     if ( strcmp(todo, "check") == 0 ) {
+        sf_printf("(note: gtools_plugin v"GTOOLS_VERSION" successfully loaded)\n");
         goto exit;
     }
     if ( strcmp(todo, "sumcheck") == 0 ) {

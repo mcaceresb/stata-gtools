@@ -250,6 +250,11 @@ copy2("changelog.md", gdir)
 copy2(path.join("src", "gtools.pkg"),         gdir)
 copy2(path.join("src", "stata.toc"),          gdir)
 
+copy2(
+    path.join("docs", "stata", "gquantiles.sthlp"),
+    path.join("docs", "stata", "fasterxtile.sthlp")
+)
+
 copy2(path.join("docs", "stata", "gcollapse.sthlp"),     gdir)
 copy2(path.join("docs", "stata", "gcontract.sthlp"),     gdir)
 copy2(path.join("docs", "stata", "gegen.sthlp"),         gdir)

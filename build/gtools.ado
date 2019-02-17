@@ -1,4 +1,4 @@
-*! version 1.3.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.3 15Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -21,9 +21,9 @@ program gtools
     ]
 
     if ( `"`branch'"' == "" ) local branch master
-    if !inlist(`"`branch'"', "develop", "master", "osx") {
-        disp as err "unknown branch `branch'; available: develop master osx"
-        exit 198
+    if !inlist(`"`branch'"', "develop", "master") {
+        disp as err "{bf:Warning}: Branch `branch' is not intended for normal use."
+        * exit 198
     }
 
     local cwd `c(pwd)'
@@ -103,6 +103,10 @@ program gtools
 
     display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"
     which gtools
+    cap noi _gtools_internal _check
+    if ( _rc ) {
+        disp as err "({bf:warning}: gtools_plugin internal check failed)"
+    }
 end
 
 capture program drop gtools_licenses

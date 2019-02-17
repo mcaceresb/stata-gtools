@@ -32,13 +32,39 @@ restore, preserve
 bench 15: collapse (sd) sd = rvar (median) med = rvar, by(groups)
 restore
 
+* Back to wide would have an unfair advantage if I did it right after
+* long because the data in memory would be sorted already! greshape
+* allows going to long w/o sorting or checking dups, etc. We use the
+* option -nochecks-, which runs very fast, to go to long and _then_
+* benchmark wide.
+
 preserve
-bench 21: greshape long r, i(ix) j(j) string
-bench 26: greshape wide r, i(ix) j(j) string
+    rename (rsort rvar) (r1 r2)
+    bench 21: greshape long r, i(ix) j(j)
 restore, preserve
-bench 20: reshape long r, i(ix) j(j) string
-bench 25: reshape wide r, i(ix) j(j) string
+    rename (rsort rvar) (r1 r2)
+    greshape long r, i(ix) j(j) nochecks
+    bench 26: greshape wide r, i(ix) j(j)
+restore, preserve
+    rename (rsort rvar) (r1 r2)
+    bench 20: reshape long r, i(ix) j(j)
+restore, preserve
+    rename (rsort rvar) (r1 r2)
+    greshape long r, i(ix) j(j) nochecks
+    bench 25: reshape wide r, i(ix) j(j)
 restore
+
+* The relative gains are very comparable here, but other reshape
+* solutions fare much better comparatibely when j is a number.  I also
+* do think that numeric j is probably more common than string j.
+
+* preserve
+*     bench 21: greshape long r, i(ix) j(j) string
+*     bench 26: greshape wide r, i(ix) j(j) string
+* restore, preserve
+*     bench 20: reshape long r, i(ix) j(j) string
+*     bench 25: reshape wide r, i(ix) j(j) string
+* restore
 
 bench 31: gquantiles g_xtile = rvar, nq(10) xtile
 bench 30: xtile s_xtile = rvar, nq(10)

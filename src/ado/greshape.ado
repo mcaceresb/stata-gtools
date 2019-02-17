@@ -1724,17 +1724,16 @@ program define Report1 /* <#oobs> <#ovars> {wide|long} {long|wide} */
     local wide  "`3'"
     local long  "`4'"
 
-    di in smcl _n in gr /*
-    */ "Data" _col(36) "`wide'" _col(43) "->" _col(48) "`long'" /*
-    */ _n "{hline 77}"
+    di in smcl _n in gr "Data" _col(36) "`wide'" _col(43) /*
+    */ "->" _col(48) "`long'" _n "{hline 77}"
 
-    di in gr "Number of obs." _col(32) in ye %8.0g `oobs' /*
-    */ in gr _col(43) "->" in ye %8.0g _N
+    di in gr "Number of obs." _col(19) in ye %21.0gc `oobs' /*
+    */ in gr _col(43) "->   " in ye %-21.0gc _N
 
     quietly desc, short
 
-    di in gr "Number of variables" _col(32) in ye %8.0g `ovars' /*
-    */ in gr _col(43) "->" in ye %8.0g r(k)
+    di in gr "Number of variables" _col(19) in ye %21.0gc `ovars' /*
+    */ in gr _col(43) "->   " in ye %-21.0gc r(k)
 end
 
 capture program drop ReportW

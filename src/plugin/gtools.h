@@ -4,6 +4,8 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
+#define GTOOLS_VERSION "1.3.3"
+
 /*
  * Style
  * -----
@@ -42,7 +44,6 @@
 #include <math.h>
 #include <time.h>
 #include <stdio.h>
-#include <locale.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>

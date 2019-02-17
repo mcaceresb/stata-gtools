@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.3.3 (2019-02-15)
+
+### Enhancements
+
+- Removed locale as a dependency; comma printing done manually.
+
+## gtools-1.3.2 (2019-02-14)
+
+### Testing
+
+- Hopefully fixes #40; might be related to #53
+
 ## gtools-1.3.1 (2019-02-11)
 
 ### Enhancements

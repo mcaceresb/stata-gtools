@@ -52,19 +52,19 @@ df = pd.DataFrame(
 
 df = pd.DataFrame(
     [
-        ['collapse\n(sum, mean)',     26.45,  4.65],
-        ['collapse\n(sd, median)',    46.64,  4.29],
-        ['reshape long',              124.15, 30.32],
-        ['reshape wide',              190.20, 16.47],
-        ['xtile\n(vs gquantiles)',    44.50,  2.06],
-        ['pctile\n(vs gquantiles)',   18.28,  1.87],
-        ['egen',                      29.35,  2.16],
-        ['contract',                  12.20,  2.08],
-        ['isid',                      58.17,  2.83],
-        ['duplicates',                58.59,  3.87],
-        ['levelsof',                  5.57,   1.17],
-        ['distinct',                  30.99,  1.48],
-        ['winsor2\n(vs gstats)',      19.31,  1.24],
+        ['collapse\n(sum, mean)',      15.29,  3.15],
+        ['collapse\n(sd, median)',     33.49,  2.17],
+        ['reshape long',               67.95, 12.89],
+        ['reshape wide',              117.08, 23.21],
+        ['xtile\n(vs gquantiles)',     40.69,  1.92],
+        ['pctile\n(vs gquantiles)',    12.00,  1.54],
+        ['egen',                       21.82,  2.06],
+        ['contract',                   12.07,  2.07],
+        ['isid',                       40.07,  2.44],
+        ['duplicates',                 28.61,  1.58],
+        ['levelsof',                    4.37,  1.01],
+        ['distinct',                   18.74,  0.93],
+        ['winsor2\n(vs gstats)',        9.67,  1.22],
     ],
     columns = [' ', 'Stata', 'gtools']
 )

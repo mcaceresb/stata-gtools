@@ -246,7 +246,7 @@ void sf_running_timer (clock_t *timer, const char *msg)
 {
     double diff  = (double) (clock() - *timer) / CLOCKS_PER_SEC;
     sf_printf (msg);
-    sf_printf ("; %.3f seconds.\n", diff);
+    sf_printf (" (%.3f seconds).\n", diff);
     *timer = clock();
 }
 
@@ -262,4 +262,27 @@ GT_size sf_anyobs_sel()
         if ( SF_ifobs(i) ) return(i);
 
     return (0);
+}
+
+/*********************************************************************
+ *                          Misc utilities                           *
+ *********************************************************************/
+
+void sf_format_size(GT_size n, char *out)
+{
+    int c;
+    char buf[32];
+    char *p;
+
+    sprintf(buf, GT_size_cfmt, n);
+    c = 2 - strlen(buf) % 3;
+    for (p = buf; *p != 0; p++) {
+       *out++ = *p;
+       if (c == 1) {
+           *out++ = ',';
+           // *out++ = ',';
+       }
+       c = (c + 1) % 3;
+    }
+    *--out = 0;
 }

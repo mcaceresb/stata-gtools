@@ -159,7 +159,7 @@ Options
 
 **Gather and Spread**
 
-- `i(varlist)`        check varlist are the ID variables. Throws an error otherwise.
+- `by(varlist)`       check varlist are the ID variables. Throws an error otherwise.
 - `xi(drop)`          Drop variables not in the reshape or in `by()`. That is,
                       if `by()` is specified then drop variables that have not
                       been explicitly named.
@@ -207,17 +207,20 @@ and `greshape gather`, both of which are marginally faster and in
 the style of the equivalent R commands from `tidyr`.
 
 It is well-known that `reshape` is a slow command, and there are several
-alternatives that I have encountered to speed up `reshape`, incuding:
-`fastreshape`, `sreshape`, and various custom solutions (e.g. here).  In my
-benchmarks their performance improvements are either minor or not robust
-to complex data configurations (e.g. many unsorted groups, many extra
-variables, mixed types, etc.).
+alternatives that I have encountered to speed up `reshape`, including:
+`fastreshape`, `parallel`, `sreshape`, and various custom solutions
+(e.g. [here](http://www.nber.org/stata/efficient/reshape.html)). While
+these alternatives are slower than `greshape`, the speed gains are not
+uniform.
 
-The only solution that consistently outperforms `reshape` is `parallel`,
-which improves performance by 1.5x to 3x, depending on the data
-configuration. `greshape` typically speeds up `reshape` anywhere from
-5x to 20x, so it is much faster than even the next-fastest known
-improvement to `reshape`.
+If `j()` is numeric, the data is already sorted by `i()`, and there are
+not too may variables to reshape, then `fastreshape` comes closest to
+achieving comparable speeds to `greshape`. Under most circumstances,
+however, `greshape` is typically 20-60% faster than `fastreshape` on
+sorted data, and up to 90% faster if `j()` has string values _or_ if the
+data is unsorted (by default `greshape` will output the data in the
+correct sort order). In other words, `greshape`'s speed gains are very
+robust, while other solutions' are not.
 
 !!! note "Note"
     `greshape` relies on temporary files written to your disk storage to

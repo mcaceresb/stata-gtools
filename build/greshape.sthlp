@@ -128,7 +128,7 @@ To go from long to wide:
 
 {p 8 8 2}
 Note that {cmd:spread} (and {cmd:gather}) both require variable {it:names}, not prefixes.
-Further, all variables not specified in the reshape are assumed to be 
+Further, all variables not specified in the reshape are assumed to be
 part of {cmd:by()} and the new variables are simply named after the values of
 {cmd:keys()}. From wide to long:
 
@@ -230,25 +230,22 @@ marginally faster and in the style of the equivalent R commands from
 {cmd:tidyr}.
 
 {pstd}
-It is well-known that {cmd:reshape} is a slow command, and there are several
-alternatives that I have encountered to speed up reshape, incuding: {opt fastreshape},
-{opt sreshape}, and various custom solutions (e.g. {browse "http://www.nber.org/stata/efficient/reshape.html":here}).
-In my benchmarks their performance improvements are either minor or not robust to
-complex data configurations (e.g. many unsorted groups, many extra variables, mixed types, etc.).
+It is well-known that {cmd:reshape} is a slow command, and there are
+several alternatives that I have encountered to speed up reshape,
+including: {opt fastreshape}, {opt parallel}, {opt sreshape}, and various
+custom solutions (e.g. {browse "http://www.nber.org/stata/efficient/reshape.html":here}).
+While these alternatives are slower than `greshape`, the speed gains are
+not uniform.
 
 {pstd}
-The only solution that consistently outperforms {cmd:reshape} is
-{cmd:parallel}, which improves performance by 1.5x to 3x, depending on
-the data configuration. {cmd:greshape} typically speeds up {cmd:reshape}
-by 4x to 10x, so it is much faster than even the next-fastest known
-improvement to {cmd:reshape}.
-
-{pstd}
-{it:Note}: {cmd:greshape} relies on temporary files written to your disk
-storage to reshape the data in memory. While this might deteriorate
-performance for particularly large reshapes, the speed gains are
-large enough that {cmd:greshape} should still be faster than its Stata
-counterpart.
+If {opt j()} is numeric, the data is already sorted by {opt i()}, and
+there are not too may variables to reshape, then {cmd:fastreshape} comes
+closest to achieving comparable speeds to {cmd:greshape}. Under most
+circumstances, however, {cmd:greshape} is typically 20-60% faster than
+{cmd:fastreshape} on sorted data, and up to 90% faster if {opt j()} has
+string values {it:or} if the data is unsorted (by default, {cmd:greshape} will
+output the data in the correct sort order). In other words, {cmd:greshape}'s
+speed gains are very robust, while other solutions' are not.
 
 {marker example}{...}
 {title:Examples}

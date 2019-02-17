@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Mon Feb 11 22:03:45 EST 2019
+ * Updated: Fri Feb 15 18:47:00 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.3.1
+ * Version: 1.3.3
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 11 Feb 2019
+ * @date 15 Feb 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -71,7 +71,6 @@ STDLL stata_call(int argc, char *argv[])
     }
 
     ST_retcode rc = 0;
-    setlocale(LC_ALL, "");
 
     GTOOLS_CHAR(tostat, 16);
     GTOOLS_CHAR(todo,   16);
@@ -104,6 +103,7 @@ STDLL stata_call(int argc, char *argv[])
      **************************************************************************/
 
     if ( strcmp(todo, "check") == 0 ) {
+        sf_printf("(note: gtools_plugin v"GTOOLS_VERSION" successfully loaded)\n");
         goto exit;
     }
     if ( strcmp(todo, "sumcheck") == 0 ) {
@@ -983,6 +983,11 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     clock_t timer  = clock();
     clock_t stimer = clock();
 
+    GTOOLS_CHAR(buf1, 32);
+    GTOOLS_CHAR(buf2, 32);
+    GTOOLS_CHAR(buf3, 32);
+    GTOOLS_CHAR(buf4, 32);
+
     GT_size *info, *index, *ix;
     GT_bool checksorted;
     GT_size i,
@@ -1682,19 +1687,34 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->verbose || (st_info->countonly & st_info->seecount) ) {
-            if ( nj_min == nj_max )
-                sf_printf ("N = "
-                           GT_size_cfmt"; "
-                           GT_size_cfmt" balanced groups of size "
-                           GT_size_cfmt"\n",
-                           st_info->N, st_info->J, nj_min);
-            else
-                sf_printf ("N = "
-                           GT_size_cfmt"; "
-                           GT_size_cfmt" unbalanced groups of sizes "
-                           GT_size_cfmt" to "
-                           GT_size_cfmt"\n",
-                           st_info->N, st_info->J, nj_min, nj_max);
+            if ( nj_min == nj_max ) {
+                sf_format_size(st_info->N, buf1);
+                sf_format_size(st_info->J, buf2);
+                sf_format_size(nj_min,     buf3);
+                sf_printf ("N = %s; %s balanced groups of size %s\n",
+                           buf1, buf2, buf3);
+
+                // sf_printf ("N = "
+                //            GT_size_cfmt"; "
+                //            GT_size_cfmt" balanced groups of size "
+                //            GT_size_cfmt"\n",
+                //            st_info->N, st_info->J, nj_min);
+            }
+            else {
+                sf_format_size(st_info->N, buf1);
+                sf_format_size(st_info->J, buf2);
+                sf_format_size(nj_min,     buf3);
+                sf_format_size(nj_max,     buf4);
+                sf_printf ("N = %s; %s unbalanced groups of sizes %s to %s\n",
+                           buf1, buf2, buf3, buf4);
+
+                // sf_printf ("N = "
+                //            GT_size_cfmt"; "
+                //            GT_size_cfmt" unbalanced groups of sizes "
+                //            GT_size_cfmt" to "
+                //            GT_size_cfmt"\n",
+                //            st_info->N, st_info->J, nj_min, nj_max);
+            }
         }
 
         st_info->nj_min = nj_min;
@@ -1795,7 +1815,10 @@ error:
      *********************************************************************/
 
 exit:
-
+    free(buf1);
+    free(buf2);
+    free(buf3);
+    free(buf4);
     return (rc);
 }
 

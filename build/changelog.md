@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-1.3.4 (2019-02-17)
+
+### Bug fixes
+
+- Critical bug fix in `gtop`; version 1.2.5 introduced a bug
+  in `gtop` where the levels were incorrectly given.
+
+- Minor bug fix in `gtop`; inverted levels were not correctly
+  sorted with weights. The levels themselves were OK, however.
+
 ## gtools-1.3.3 (2019-02-15)
 
 ### Enhancements

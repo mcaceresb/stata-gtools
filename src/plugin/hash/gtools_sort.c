@@ -710,7 +710,7 @@ ST_retcode gf_counting_sort (
 
     // Copy hash, index
     memcpy(xcopy, hash,  N * sizeof(uint64_t));
-    memcpy(icopy, index, N * sizeof(uint64_t));
+    memcpy(icopy, index, N * sizeof(GT_size));
 
     // Frequency count of hash
     for (hptr = hash; hptr < hash + N; hptr++)
@@ -723,8 +723,8 @@ ST_retcode gf_counting_sort (
             for (j = 0; j < *cptr; j++, offset++) {
                 hash[offset] = i + min;
             }
-            *cptr = offset;
         }
+        *cptr += *(cptr - 1);
     }
 
     // Copy the shuffled index

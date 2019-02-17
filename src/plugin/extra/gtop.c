@@ -90,14 +90,25 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
         }
 
         // We sort by xtileCompareInvert by default to get stuff in
-        // descending order (largest to smallest).
+        // descending order (largest to smallest; note have to use
+        // MultiQuicksortDbl to keep the sort order of the levels).
 
-        quicksort_bsd (
+        // quicksort_bsd (
+        //     sumwgt,
+        //     st_info->J,
+        //     2 * sizeof(sumwgt),
+        //     invert? xtileCompare: xtileCompareInvert,
+        //     NULL
+        // );
+
+        GT_size invertwgt[2]; invertwgt[0] = !invert; invertwgt[1] = 0;
+        MultiQuicksortDbl(
             sumwgt,
             st_info->J,
+            0,
+            1,
             2 * sizeof(sumwgt),
-            invert? xtileCompare: xtileCompareInvert,
-            NULL
+            invertwgt
         );
 
         for (j = 0; j < st_info->J; j++) {

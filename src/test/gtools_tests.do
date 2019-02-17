@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Fri Feb 15 18:47:09 EST 2019
+* Updated: Sun Feb 17 12:39:40 EST 2019
 * Purpose: Unit tests for gtools
-* Version: 1.3.3
+* Version: 1.3.4
 * Manual:  help gtools
 
 * Stata start-up options

@@ -28,9 +28,7 @@ program _gtools_internal, rclass
     }
 
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
-    global GTOOLS_USER_INTERNAL_LEVEL     `c(level)'
     * set varabbrev off
-    * set level 95
 
     if ( inlist("${GTOOLS_FORCE_PARALLEL}", "17900") ) {
         di as txt "(note: multi-threading is not available on this platform)"
@@ -2481,9 +2479,7 @@ program clean_all
     if ( "`rc'" == "" ) local rc = 0
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
-    set level     ${GTOOLS_USER_INTERNAL_LEVEL}
     global GTOOLS_USER_INTERNAL_VARABBREV
-    global GTOOLS_USER_INTERNAL_LEVEL
 
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if

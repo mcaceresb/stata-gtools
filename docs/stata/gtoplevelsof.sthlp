@@ -17,7 +17,7 @@
 {title:Syntax}
 
 {p 8 17 2}
-{cmd:gtoplevelsof}
+{opt gtop:levelsof}
 {varlist}
 {ifin}
 [{it:{help gtoplevelsof##weight:weight}}]
@@ -81,10 +81,11 @@ case the top levels by weight are printed (see {manhelp weight U:11.1.6 weight})
 {title:Description}
 
 {pstd}
-{cmd:gtoplevelsof} displays a table with the frequency counts, percentages, and cummulative
-counts and %s of the most common levels of {varlist} that occur in the data.
-It is similar to the user-written {cmd:group} with the {opt select} otpion or to
-{opt contract} after keeping only the largest frequency counts. 
+{cmd:gtoplevelsof} (alias {cmd:gtop}) displays a table with the
+frequency counts, percentages, and cummulative counts and %s of the
+most common levels of {varlist} that occur in the data.  It is similar
+to the user-written {cmd:group} with the {opt select} otpion or to
+{opt contract} after keeping only the largest frequency counts.
 
 {pstd}
 Unlike contract, it does not modify the original data and instead prints the
@@ -259,8 +260,8 @@ for more examples.
 {phang}{cmd:. sysuse auto}{p_end}
 {phang}{cmd:. gtoplevelsof rep78}{p_end}
 {phang}{cmd:. gtoplevelsof rep78, missrow local(toplevels)}{p_end}
-{phang}{cmd:. gtoplevelsof rep78, colsep(", ")}{p_end}
-{phang}{cmd:. gtoplevelsof foreign rep78, ntop(3) missrow}{p_end}
+{phang}{cmd:. gtop rep78, colsep(", ")}{p_end}
+{phang}{cmd:. gtop foreign rep78, ntop(3) missrow}{p_end}
 
 
 {marker results}{...}

@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/stable-v1.3.3-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/stable-v1.3.4-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -133,24 +133,18 @@ access to Stata/MP; hence the IC benchmarks.)
 
 | Gtools    | Ftools        | Speedup (IC) |
 | --------- | ------------- | ------------ |
-| gcollapse | fcollapse     | 2-9 (+)      |
-| gegen     | fegen         | 2.5-4 (.)    |
+| gcollapse | fcollapse     | 2-9          |
+| gegen     | fegen         | 2.5-4 (+)    |
 | gisid     | fisid         | 4-14         |
 | glevelsof | flevelsof     | 1.5-13       |
 | hashsort  | fsort         | 2.5-4        |
 
-<small>(+) A older set of benchmarks showed larger speed gains in part due to
-mulit-threading, which has been removed as of 0.8.0, and in part because the
-old benchmarks were more favorable to gcollapse; in the old benchmarks, the
-speed gain is still 3-23, even without multi-threading. See the [old collapse
-benchmarks <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://gtools.readthedocs.io/en/latest/benchmarks/index.html#old-collapse-benchmarks)</small>
-
-<small>(.) Only egen group was benchmarked rigorously.</small>
+<small>(+) Only egen group was benchmarked rigorously.</small>
 
 __*Limitations*__
 
 - `strL` variables only partially supported on Stata 14 and above;
-  `gcollapse` and `gcontract` do not support `strL` variabes.
+  `gcollapse`, `gcontract`, and `greshape` do not support `strL` variabes.
 
 - Due to a Stata bug, gtools cannot support more
   than `2^31-1` (2.1 billion) observations. See [this

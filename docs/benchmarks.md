@@ -101,19 +101,13 @@ of `ftools` working on the Linux server where I have access to Stata/MP.)
 
 | Gtools      | Ftools          | Speedup (IC) |
 | ----------- | --------------- | ------------ |
-| gcollapse   | fcollapse       | 2-9 (+)      |
-| gegen       | fegen           | 2.5-4 (.)    |
+| gcollapse   | fcollapse       | 2-9          |
+| gegen       | fegen           | 2.5-4 (+)    |
 | gisid       | fisid           | 4-14         |
 | glevelsof   | flevelsof       | 1.5-13       |
 | hashsort    | fsort           | 2.5-4        |
 
-<small>(+) A older set of benchmarks showed larger speed gains in part due to
-mulit-threading, which has been removed as of '0.8.0', and in part because the
-old benchmarks were more favorable to gcollapse; in the old benchmarks, the
-speed gain is still 3-23, even without multi-threading. See the [old collapse
-benchmarks](#old-collapse-benchmarks)</small>
-
-<small>(.) Only 'egen group' was benchmarked rigorously.</small>
+<small>(+) Only 'egen group' was benchmarked rigorously.</small>
 
 ### Versus sort
 
@@ -1075,66 +1069,3 @@ smaller memory requirements):
 |    9,000,000 |   11.3 |      11.4 |       2.02 |        5.59 |        5.67
 
 (Note: fastxtile here is from egenmisc)
-
-Old Collapse Benchmarks
------------------------
-
-The data used here is different.  The grouping variable is an integer with
-missing values and no extended missing values. The source variables are random
-uniform variables with an offset. We can see that `gcollapse` (`0.9.0`) can be
-3-23 times faster than `fcollapse` undere some conditions.
-
-Benchmarking N for J = 100; by(x3)
-
-- vars  = y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15
-- stats = sum
-
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|      2,000,000 |      0.62 |      2.06 |        3.29 |
-|     20,000,000 |      7.89 |     24.51 |        3.10 |
-
-Benchmarking N for J = 100; by(x3)
-
-- vars  = y1 y2 y3
-- stats = mean median
-
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|      2,000,000 |      0.40 |      2.76 |        6.93 |
-|     20,000,000 |      3.89 |     35.74 |        9.18 |
-
-Benchmarking N for J = 100; by(x3)
-
-- vars  = y1 y2 y3 y4 y5 y6
-- stats = sum mean count min max
-
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|      2,000,000 |      0.41 |      1.80 |        4.39 |
-|     20,000,000 |      4.10 |     20.20 |        4.92 |
-
-Benchmarking N for J = 10; by(group)
-
-- vars  = x1 x2
-- stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-
-|              N | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|      2,000,000 |      0.57 |      8.32 |       14.53 |
-|     20,000,000 |      6.49 |    151.95 |       23.42 |
-
-Benchmarking J for N = 5,000,000; by(group)
-
-- vars  = x1 x2
-- stats = sum mean max min count percent first last firstnm lastnm median iqr p23 p77
-
-|              J | gcollapse | fcollapse | ratio (f/g) |
-| -------------- | --------- | --------- | ----------- |
-|             10 |      2.11 |     23.76 |       11.28 |
-|            100 |      1.39 |     17.50 |       12.60 |
-|          1,000 |      1.50 |     15.10 |       10.07 |
-|         10,000 |      2.88 |     14.00 |        4.86 |
-|        100,000 |      3.01 |     13.78 |        4.57 |
-|      1,000,000 |      3.91 |     43.36 |       11.09 |
-

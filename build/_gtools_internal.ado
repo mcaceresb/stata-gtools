@@ -1,4 +1,4 @@
-*! version 1.3.3 15Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.4 17Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1356,6 +1356,10 @@ program _gtools_internal, rclass
 
         * Use sortindex for the shuffle
         * -----------------------------
+
+        if ( "`bystrL'" != "" ) {
+            disp as txt "({bf:warning}: hashsort with strL variables is {bf:slow})"
+        }
 
         local hopts benchmark(`benchmark') `invertinmata'
         cap noi hashsort_inner `byvars' `etargets', `hopts'

@@ -9,6 +9,7 @@ program gtoplevelsof, rclass
     version 13.1
 
     if ( `=_N < 1' ) {
+        global GTOP_RC 17001
         di as txt "no observations"
         exit 0
     }

@@ -175,7 +175,7 @@ end
 
 capture program drop _compare_inner_gtoplevelsof
 program _compare_inner_gtoplevelsof
-    syntax [anything] [if] [in], [tol(real 1e-6) contract wgt(str) *]
+    syntax [anything] [if] [in], [NOIsily tol(real 1e-6) contract wgt(str) *]
 
     if ( "`contract'" == "" ) local contract gcontract
 
@@ -187,18 +187,26 @@ program _compare_inner_gtoplevelsof
             qui sum N, meanonly
             local r_N = `r(sum)'
             hashsort -N `anything'
-            keep in 1/10
-            set obs 11
+            local nl = min(_N, 10)
+            keep in 1/`=min(_N, 10)'
+            set obs `=_N+1'
             gen byte ID = 1
-            replace ID  = 3 in 11
+            replace ID  = 3 in `=_N'
             gen long ix = _n
             gen long Cum = sum(N)
             gen double Pct = 100 * N / `r_N'
             gen double PctCum = 100 * Cum / `r_N'
-            replace Pct       = 100 - PctCum[10] in 11
-            replace PctCum    = 100 in 11
-            replace N         = `r_N' - Cum[10] in 11
-            replace Cum       = `r_N' in 11
+            replace Pct       = 100 - PctCum[10] in `=_N'
+            replace PctCum    = 100 in `=_N'
+            replace N         = `r_N' - Cum[10] in `=_N'
+            replace Cum       = `r_N' in `=_N'
+            local varlist: subinstr local anything "-" "", all
+            if ( `:list sizeof varlist' == 1 ) {
+                local levels [:skip:]
+                forvalues i = 1 / `=_N' {
+                    local levels `levels' `"`:disp `varlist'[`i']'"'
+                }
+            }
         }
         tempfile fg
         qui save `fg'
@@ -208,6 +216,27 @@ program _compare_inner_gtoplevelsof
     preserve
         qui {
             `noisily' gtoplevelsof `anything' `if' `in' `wgt', mat(`gmat')
+            if ( `:list sizeof varlist' == 1 ) {
+                forvalues i = 1 / `nl' {
+                    * noi disp `i', `"`:word `=`i'+1' of `levels''"', `"`:word `i' of `r(levels)''"'
+                    cap assert (`"`:word `=`i'+1' of `levels''"' == `"`:word `i' of `r(levels)''"')
+                    if ( _rc ) {
+                        if ( "`if'`in'" == "" ) {
+                            noi di as err "    compare_gtoplevelsof_gcontract (failed levels): full range, `anything'"
+                        }
+                        else if ( "`if'`in'" != "" ) {
+                            noi di as err "    compare_gtoplevelsof_gcontract (failed levels): [`if' `in'], `anything'"
+                        }
+                        exit 198
+                    }
+                }
+                if ( "`if'`in'" == "" ) {
+                    noi di "    compare_gtoplevelsof_gcontract (passed): full range, same levels as gcontract"
+                }
+                else if ( "`if'`in'" != "" ) {
+                    noi di "    compare_gtoplevelsof_gcontract (passed): [`if' `in'], same levels as gcontract"
+                }
+            }
             clear
             svmat `gmat', names(col)
             gen long ix = _n

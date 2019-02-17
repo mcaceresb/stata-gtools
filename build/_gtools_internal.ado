@@ -1357,6 +1357,10 @@ program _gtools_internal, rclass
         * Use sortindex for the shuffle
         * -----------------------------
 
+        if ( "`bystrL'" != "" ) {
+            disp as txt "({bf:warning}: hashsort with strL variables is {bf:slow})"
+        }
+
         local hopts benchmark(`benchmark') `invertinmata'
         cap noi hashsort_inner `byvars' `etargets', `hopts'
         cap noi rc_dispatch `byvars', rc(`=_rc') `opts'

@@ -1232,6 +1232,7 @@ program define FillvalL
     if ( `:list sizeof ReS_j' > 1 ) local clean clean
     glevelsof $ReS_j, silent local(ReS_jv) cols(`"`ReS_jsep'"') group($ReS_jcode) missing `clean'
     scalar __greshape_klvls = `r(J)'
+    mata: st_global("ReS_jvraw", st_local("ReS_jv"))
 
     if ( ("$ReS_cmd" != "spread") | ($ReS_Xij_k > 1) ) {
         mata: __greshape_jv = strtoname("_" :+ tokens(st_local("ReS_jv"))')
@@ -1553,6 +1554,7 @@ program define Macdrop
              ReS_jlen          ///
              ReS_jv            ///
              ReS_jv2           ///
+             ReS_jvraw         ///
              ReS_str           ///
              ReS_Xi            ///
              S_1               ///
@@ -1993,18 +1995,20 @@ mata:
 transmorphic scalar LongToWideMetaSave(real scalar spread)
 {
     transmorphic scalar LongToWideMeta
-    string rowvector ReS_Xij,ReS_jv
+    string rowvector ReS_Xij,ReS_jv, ReS_jvraw
     string scalar newvar, var, lvl, fmt
     string matrix chars, _chars
     real scalar i, j, k
 
     LongToWideMeta = asarray_create()
-    fmt     = "%s[%s]"
-    ReS_Xij = tokens(st_global("ReS_Xij"))
-    ReS_jv  = tokens(st_global("ReS_jv"))
+    fmt       = "%s[%s]"
+    ReS_Xij   = tokens(st_global("ReS_Xij"))
+    ReS_jv    = tokens(st_global("ReS_jv"))
+    ReS_jvraw = tokens(st_global("ReS_jvraw"))
 
-    asarray(LongToWideMeta, "ReS_Xij", ReS_Xij)
-    asarray(LongToWideMeta, "ReS_jv",  ReS_jv)
+    asarray(LongToWideMeta, "ReS_Xij",   ReS_Xij)
+    asarray(LongToWideMeta, "ReS_jv",    ReS_jv)
+    asarray(LongToWideMeta, "ReS_jvraw", ReS_jvraw)
 
     // Keep labels, value labels, formats, and characteristics of
     // each source variable. All will be applied to (copied to) each
@@ -2015,6 +2019,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
         var = ReS_Xij[i]
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
+            lbl = ReS_jvraw[j]
             chars  = J(0, 2, "")
             _chars = st_dir("char", var, "*")
             newvar = spread? lvl: var + lvl
@@ -2024,7 +2029,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
                     st_global(sprintf(fmt, var, _chars[k]))
                 )
             }
-            asarray(LongToWideMeta, newvar + "lbl", lvl + " " + st_varlabel(var))
+            asarray(LongToWideMeta, newvar + "lbl", lbl + " " + st_varlabel(var))
             asarray(LongToWideMeta, newvar + "fmt", st_varformat(var))
             asarray(LongToWideMeta, newvar + "vlb", st_varvaluelabel(var))
             asarray(LongToWideMeta, newvar + "chr", chars)

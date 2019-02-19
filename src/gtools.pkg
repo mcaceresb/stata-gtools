@@ -1,4 +1,4 @@
-v 1.3.4
+v 1.3.5
 d
 d 'GTOOLS': Faster implementation of common Stata commands optimized for large datasets
 d
@@ -48,7 +48,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20190217
+d Distribution-Date: 20190219
 d
 f _gtools_internal.ado
 f gcollapse.ado

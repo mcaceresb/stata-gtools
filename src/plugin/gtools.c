@@ -5,13 +5,13 @@
  * Updated: Sun Feb 17 12:39:29 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.3.4
+ * Version: 1.3.5
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 17 Feb 2019
+ * @date 19 Feb 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado

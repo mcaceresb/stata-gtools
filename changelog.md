@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.3.5 (2019-02-19)
+
+### Enhancements
+
+- In `greshape`, levels of `key()`/`j()` are now saved _before_ being
+  converted to variable names, meaning the labels preserve the names
+  of the levels (up to the maximum variable label length in Stata).
+
 ## gtools-1.3.4 (2019-02-17)
 
 ### Bug fixes

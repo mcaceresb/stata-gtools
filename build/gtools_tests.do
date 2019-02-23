@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Feb 17 12:39:40 EST 2019
+* Updated: Fri Feb 22 20:06:51 EST 2019
 * Purpose: Unit tests for gtools
-* Version: 1.3.5
+* Version: 1.4.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -24,6 +24,52 @@ set type double
 
 program main
     syntax, [NOIsily *]
+
+sysuse auto, clear
+
+* gstats sum price       ,
+* gstats sum price       , f
+* gstats sum price       , nod
+* gstats sum price       , nod f
+* gstats sum price       , meanonly
+* gstats sum price mpg   ,
+* gstats sum *           ,
+* gstats sum price price ,
+* gstats sum price mpg * , nod
+* gstats sum price mpg * , nod f
+
+* gstats sum price       , tab
+* gstats sum price       , tab f
+* gstats sum price       , tab nod
+* gstats sum price       , tab nod f
+* gstats sum price       , tab meanonly
+* gstats sum price mpg   , tab
+* gstats sum *           , tab
+* gstats sum price price , tab
+* gstats sum price mpg * , tab nod
+* gstats sum price mpg * , tab nod f
+
+* cap noi gstats tab price, statistics(n) stats(n)
+* gstats tab price       ,
+* gstats tab price       , nod
+* gstats tab price       , meanonly
+* gstats tab price       , s(mean sd min max)
+* gstats tab price       , statistics(count n nmissing percent nunique)
+* gstats tab price       , stats(rawsum nansum rawnansum median p32.4 p50 p99)
+* gstats tab price       , stat(iqr q median sd variance cv) nod
+* gstats tab price       , nod
+* gstats tab price       , stat(min max range select2 select10 select-4 select-9) nod
+* gstats tab price       , stat(first last firstnm lastnm semean sebinomial sepoisson) meanonly
+* gstats tab price mpg   , stat(skewness kurtosis)
+* gstats tab *           , stat()
+* gstats tab price price , stat()
+* gstats tab price mpg * , s() nod
+* gstats tab price mpg * , s() nod
+
+gstats sum price, by(foreign)
+* !cp ../src/ado/_gtools_internal.ado .
+* qui do _gtools_internal.ado
+exit 987
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
@@ -7589,6 +7635,42 @@ end
 ***********************************************************************
 capture program drop checks_gstats
 program checks_gstats
+    checks_gstats_summarize
+    checks_gstats_winsor
+end
+
+capture program drop compare_gstats
+program compare_gstats
+    compare_gstats_winsor
+    compare_gstats_winsor, cuts(5 95)
+    compare_gstats_winsor, cuts(30 70)
+end
+
+***********************************************************************
+*                          Compare summarize                          *
+***********************************************************************
+
+capture program drop checks_gstats_summarize
+program checks_gstats_summarize
+    * TODO xx check all the opts BEFORE moving on to C...
+    * FIRST fix the select thing
+    * do the new codes in gcollapse and bulk 
+    * add the internal Consistency stuff
+
+    sysuse auto, clear
+    gstats sum price
+    gstats sum price, nod
+    gstats sum price mpg
+    gstats sum *
+    gstats sum price price
+end
+
+***********************************************************************
+*                           Compare winsor                            *
+***********************************************************************
+
+capture program drop checks_gstats_winsor
+program checks_gstats_winsor
     * TODO: Pending
     sysuse auto, clear
 
@@ -7634,17 +7716,6 @@ program checks_gstats
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
 end
-
-capture program drop compare_gstats
-program compare_gstats
-    compare_gstats_winsor
-    compare_gstats_winsor, cuts(5 95)
-    compare_gstats_winsor, cuts(30 70)
-end
-
-***********************************************************************
-*                           Compare winsor                            *
-***********************************************************************
 
 capture program drop compare_gstats_winsor
 program compare_gstats_winsor

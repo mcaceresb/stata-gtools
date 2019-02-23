@@ -1,5 +1,41 @@
 capture program drop checks_gstats
 program checks_gstats
+    checks_gstats_summarize
+    checks_gstats_winsor
+end
+
+capture program drop compare_gstats
+program compare_gstats
+    compare_gstats_winsor
+    compare_gstats_winsor, cuts(5 95)
+    compare_gstats_winsor, cuts(30 70)
+end
+
+***********************************************************************
+*                          Compare summarize                          *
+***********************************************************************
+
+capture program drop checks_gstats_summarize
+program checks_gstats_summarize
+    * TODO xx check all the opts BEFORE moving on to C...
+    * FIRST fix the select thing
+    * do the new codes in gcollapse and bulk 
+    * add the internal Consistency stuff
+
+    sysuse auto, clear
+    gstats sum price
+    gstats sum price, nod
+    gstats sum price mpg
+    gstats sum *
+    gstats sum price price
+end
+
+***********************************************************************
+*                           Compare winsor                            *
+***********************************************************************
+
+capture program drop checks_gstats_winsor
+program checks_gstats_winsor
     * TODO: Pending
     sysuse auto, clear
 
@@ -45,17 +81,6 @@ program checks_gstats
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
 end
-
-capture program drop compare_gstats
-program compare_gstats
-    compare_gstats_winsor
-    compare_gstats_winsor, cuts(5 95)
-    compare_gstats_winsor, cuts(30 70)
-end
-
-***********************************************************************
-*                           Compare winsor                            *
-***********************************************************************
 
 capture program drop compare_gstats_winsor
 program compare_gstats_winsor

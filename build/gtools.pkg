@@ -1,4 +1,4 @@
-v 1.3.5
+v 1.4.0
 d
 d 'GTOOLS': Faster implementation of common Stata commands optimized for large datasets
 d
@@ -6,9 +6,10 @@ d Faster Stata for big data. Gtools provides a hash-based implementation
 d of common Stata commands using C plugins for a massive speed
 d improvement. Gtools implements gcollapse, greshape, gquantiles
 d (pctile, xtile, and _pctile), gcontract, gegen, gisid, glevelsof,
-d gunique, gdistinct, gduplicates, gtop, and gstats winsor. Syntax is
-d largely analogous to their native counterparts (see help gtools for
-d details). This package was inspired by Sergio Correia's ftools.
+d gunique, gdistinct, gduplicates, gtop, and gstats (winsor, summarize,
+d tabstat). Syntax is largely analogous to their native counterparts
+d (see help gtools for details). This package was inspired by Sergio
+d Correia's ftools.
 d
 d KW: plugin
 d KW: gtools
@@ -42,13 +43,15 @@ d KW: gunique
 d KW: gdistinct
 d KW: hashsort
 d KW: winsor
+d KW: summarize
+d KW: tabstat
 d
 d Requires: Stata version 13.1
 d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20190219
+d Distribution-Date: 20190222
 d
 f _gtools_internal.ado
 f gcollapse.ado
@@ -83,6 +86,8 @@ f hashsort.sthlp
 f greshape.sthlp
 f gstats.sthlp
 f gstats_winsor.sthlp
+f gstats_sum.sthlp
+f gstats_summarize.sthlp
 f gtools.sthlp
 f gtools_windows_v2.plugin
 f gtools_unix_v2.plugin

@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sun Feb 17 12:39:58 EST 2019
+# Updated: Fri Feb 22 20:07:20 EST 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -127,6 +127,8 @@ gtools_ssc = [
     "greshape.sthlp",
     "gstats.sthlp",
     "gstats_winsor.sthlp",
+    "gstats_sum.sthlp",
+    "gstats_summarize.sthlp",
     "gduplicates.sthlp",
     "gquantiles.sthlp",
     "fasterxtile.sthlp",
@@ -255,23 +257,30 @@ copy2(
     path.join("docs", "stata", "fasterxtile.sthlp")
 )
 
-copy2(path.join("docs", "stata", "gcollapse.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gcontract.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gegen.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "gunique.sthlp"),       gdir)
-copy2(path.join("docs", "stata", "gdistinct.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "glevelsof.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gtop.sthlp"),          gdir)
-copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "gisid.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "greshape.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gstats.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "gstats_winsor.sthlp"), gdir)
-copy2(path.join("docs", "stata", "gduplicates.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "gquantiles.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "fasterxtile.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "hashsort.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gtools.sthlp"),        gdir)
+copy2(
+    path.join("docs", "stata", "gstats_summarize.sthlp"),
+    path.join("docs", "stata", "gstats_sum.sthlp")
+)
+
+copy2(path.join("docs", "stata", "gcollapse.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gcontract.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gegen.sthlp"),            gdir)
+copy2(path.join("docs", "stata", "gunique.sthlp"),          gdir)
+copy2(path.join("docs", "stata", "gdistinct.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "glevelsof.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gtop.sthlp"),             gdir)
+copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gisid.sthlp"),            gdir)
+copy2(path.join("docs", "stata", "greshape.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
+copy2(path.join("docs", "stata", "gstats_winsor.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gstats_summarize.sthlp"), gdir)
+copy2(path.join("docs", "stata", "gstats_sum.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gduplicates.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gquantiles.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "fasterxtile.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "hashsort.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gtools.sthlp"),           gdir)
 
 copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
 copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)

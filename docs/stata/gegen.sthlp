@@ -55,7 +55,7 @@ the latest stable version.
 {opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are
 allowed for the functions listed below and mimic {cmd:collapse} and
 {cmd:gcollapse}; see {help weight} and {help collapse##weights:Weights (collapse)}.
-{opt pweight}s may not be used with {opt sd}, {opt semean},
+{opt pweight}s may not be used with {opt sd}, {opt variance}, {opt cv}, {opt semean},
 {opt sebinomial}, or {opt sepoisson}. {opt iweight}s may not be used
 with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
 may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
@@ -131,7 +131,7 @@ observations of {it:exp}.
         {opth iqr(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the interquartile range of
-{it:exp}.  Also see {help egen##pctile():{bf:pctile()}}.
+{it:exp}.  Also see {help gegen##pctile():{bf:pctile()}}.
 
         {opth max(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -148,24 +148,47 @@ creates a constant (within {it:varlist}) containing the mean of
         {opth median(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the median of
-{it:exp}.  Also see {help egen##pctile():{bf:pctile()}}.
+{it:exp}.  Also see {help gegen##pctile():{bf:pctile()}}.
 
         {opth min(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the minimum value
 of {it:exp}.
 
+        {opth range(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the value range of {it:exp}.
+
+{marker select()}{...}
+        {opth select(exp)} {cmd:, n(}{it:#}|{it:-#}{cmd:)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the {it:#}th smallest
+value of {it:exp}. To compute the {it:#}th largest value, prefix a negative
+sign, {it:-#}. Note {opt n(1)} and {opt n(-1)} are equivalent to {opt min}
+and {opt max}, respectively.
+
 {marker pctile()}{...}
         {opth pctile(exp)} [{cmd:, p(}{it:#}{cmd:)}]{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the {it:#}th percentile
 of {it:exp}.  If {opt p(#)} is not specified, 50 is assumed, meaning medians.
-Also see {help egen##median():{bf:median()}}.
+Also see {help gegen##median():{bf:median()}}.
 
         {opth sd(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the standard
-deviation of {it:exp}.  Also see {help egen##mean():{bf:mean()}}.
+deviation of {it:exp}.  Also see {help gegen##mean():{bf:mean()}}.
+
+        {opth variance(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the variance
+of {it:exp}.  Also see {help gegen##sd():{bf:sd()}}.
+
+        {opth cv(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the coefficient
+of variation of {it:exp}; {opt sd/mean}.  Also see {help gegen##sd():{bf:sd()}} and
+{help gegen##mean():{bf:mean()}}.
 
         {opth percent(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -203,7 +226,7 @@ creates a constant (within {it:varlist}) containing the kurtosis of {it:exp}
 creates a constant (within {it:varlist}) containing the sum of {it:exp}
 treating missing as 0.  If {opt missing} is specified and all values in
 {it:exp} are missing, {it:newvar} is set to missing.  Also see
-{help egen##mean():{bf:mean()}}.
+{help gegen##mean():{bf:mean()}}.
 
 {marker description}{...}
 {title:Description}

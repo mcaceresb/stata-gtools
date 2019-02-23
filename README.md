@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.3.5-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.4.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -505,7 +505,9 @@ TODO
 ----
 
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
-- [ ] Implement `gstats summarize` and `gstats tabstat`
+- [ ] Implement some display options for `gstats summarize`.
+- [ ] Implement `collapse()` option for `greshape`.
+- [ ] Implement variable group syntax for `greshape`.
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them:

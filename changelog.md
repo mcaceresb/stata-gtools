@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+## gtools-1.4.0 (2019-02-22)
+
+### Features
+
+- `gstats sum` (alias `gstats summarize`) is a fast, by-able alternative
+  to `tabstat` and `sum, detail`
+- `gcollapse` and `gegen` now allow the stats:
+    - `select#`, `#`th smallest value (`select1` is the same as `min`)
+    - `select-#`, `#`th largest value (`select-1` is the same as `max`)
+    - `cv`, coefficient of variation, `sd/mean`
+    - `variance`
+    - `range`, `max` - `min`
+
 ## gtools-1.3.5 (2019-02-19)
 
 ### Enhancements
@@ -132,7 +145,7 @@ Change Log
 
 - Improved variable parsing in general.
 - Error message when variable not found now explicit.
-- If `-` is found, warning message noting the default is to 
+- If `-` is found, warning message noting the default is to
   interpret that as negative, not part of a varlist.
 - `ds` and `nods` control parsing options for `-`
 
@@ -672,7 +685,7 @@ requests them with weights, the weighted version will still be called
 - OSX version; fixes https://github.com/mcaceresb/stata-gtools/issues/11
 - `gisid` now sient w/o benchmark or verbose; fixes https://github.com/mcaceresb/stata-gtools/issues/20
 - Added quotes to `cd cwd` in `gtools`; fixes https://github.com/mcaceresb/stata-gtools/issues/22
-- `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23 
+- `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23
 
 ------------------------------------------------------------------------
 

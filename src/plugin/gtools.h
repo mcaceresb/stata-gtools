@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.3.5"
+#define GTOOLS_VERSION "1.4.0"
 
 /*
  * Style
@@ -118,6 +118,11 @@ struct StataInfo {
     ST_double winsor_cutl;
     ST_double winsor_cuth;
     GT_size   winsor_kvars;
+    GT_size   summarize_normal;
+    GT_size   summarize_detail;
+    GT_size   summarize_kvars;
+    GT_size   summarize_kstats;
+    ST_double *summarize_codes;
     //
     GT_bool   greshape_code;
     GT_size   greshape_kxij;

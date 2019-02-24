@@ -25,82 +25,60 @@ set type double
 program main
     syntax, [NOIsily *]
 
-* TODO: xx
-* [X] new stats variance, sd, range, select#, select-# (gegen, gcollapse)
-*     [ ] doc
-*     [ ] expected failures
-*     [ ] (internal) range = max - min
-*     [ ] (internal) cv = sd / mean
-*     [ ] (internal) var = sd^2
-*     [ ] (internal) rawselect = select
-*     [ ] sort + check vs select
-*     [ ] test
-*     [ ] test w weights
-*     [ ] test w rawselect
-* [ ] new stats rawselect#, select-# (gegen, gcollapse)
-*     [ ] doc
-*     [ ] expected failures
-*     [ ] (internal) range = max - min
-*     [ ] (internal) cv = sd / mean
-*     [ ] (internal) var = sd^2
-*     [ ] (internal) rawselect = select rawselect
-*     [ ] sort + check vs select
-*     [ ] test
-*     [ ] test w weights
-*     [ ] test w rawselect
-* [ ] add selectoverflow(missing|closest) option
-* [ ] see ../plugin/stats/summarize.c
-* [ ] greshape foo (later)
-exit 999
-
-sysuse auto, clear
-
-gstats sum price       ,
-gstats sum price       , f
-gstats sum price       , nod
-gstats sum price       , nod f
-gstats sum price       , meanonly
-gstats sum price mpg   ,
-gstats sum *           ,
-gstats sum price price ,
-gstats sum price mpg * , nod
-gstats sum price mpg * , nod f
-
-gstats sum price       , tab
-gstats sum price       , tab f
-gstats sum price       , tab nod
-gstats sum price       , tab nod f
-gstats sum price       , tab meanonly
-gstats sum price mpg   , tab
-gstats sum *           , tab
-gstats sum price price , tab
-gstats sum price mpg * , tab nod
-gstats sum price mpg * , tab nod f
-
-cap noi gstats tab price       , statistics(n) stats(n)
-cap noi gstats tab price       , nod
-cap noi gstats tab *           , stat()
-cap noi gstats tab price mpg * , s()
-
-gstats tab price       ,
-gstats tab price       , meanonly
-gstats tab price       , s(mean sd min max)
-gstats tab price       , statistics(count n nmissing percent nunique)
-gstats tab price       , stats(rawsum nansum rawnansum median p32.4 p50 p99)
-gstats tab price       , stat(iqr q median sd variance cv)
-gstats tab price       ,
-gstats tab price       , stat(min max range select2 select10 select-4 select-9)
-gstats tab price       , stat(select0)
-gstats tab price       , stat(select-0)
-gstats tab price       , stat(first last firstnm lastnm semean sebinomial sepoisson)
-gstats tab price mpg   , stat(skewness kurtosis)
-gstats tab price price , stat()
-
-gstats sum price, by(foreign)
-* !cp ../src/ado/_gtools_internal.ado .
-* qui do _gtools_internal.ado
-
-exit 987
+* * TODO: xx
+* * [ ] add selectoverflow(missing|closest) option
+* * [ ] see ../plugin/stats/summarize.c
+* * [ ] greshape foo (later)
+* exit 999
+*
+* sysuse auto, clear
+*
+* gstats sum price       ,
+* gstats sum price       , f
+* gstats sum price       , nod
+* gstats sum price       , nod f
+* gstats sum price       , meanonly
+* gstats sum price mpg   ,
+* gstats sum *           ,
+* gstats sum price price ,
+* gstats sum price mpg * , nod
+* gstats sum price mpg * , nod f
+*
+* gstats sum price       , tab
+* gstats sum price       , tab f
+* gstats sum price       , tab nod
+* gstats sum price       , tab nod f
+* gstats sum price       , tab meanonly
+* gstats sum price mpg   , tab
+* gstats sum *           , tab
+* gstats sum price price , tab
+* gstats sum price mpg * , tab nod
+* gstats sum price mpg * , tab nod f
+*
+* cap noi gstats tab price       , statistics(n) stats(n)
+* cap noi gstats tab price       , nod
+* cap noi gstats tab *           , stat()
+* cap noi gstats tab price mpg * , s()
+*
+* gstats tab price       ,
+* gstats tab price       , meanonly
+* gstats tab price       , s(mean sd min max)
+* gstats tab price       , statistics(count n nmissing percent nunique)
+* gstats tab price       , stats(rawsum nansum rawnansum median p32.4 p50 p99)
+* gstats tab price       , stat(iqr q median sd variance cv)
+* gstats tab price       ,
+* gstats tab price       , stat(min max range select2 select10 select-4 select-9)
+* gstats tab price       , stat(select0)
+* gstats tab price       , stat(select-0)
+* gstats tab price       , stat(first last firstnm lastnm semean sebinomial sepoisson)
+* gstats tab price mpg   , stat(skewness kurtosis)
+* gstats tab price price , stat()
+*
+* gstats sum price, by(foreign)
+* * !cp ../src/ado/_gtools_internal.ado .
+* * qui do _gtools_internal.ado
+*
+* exit 987
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

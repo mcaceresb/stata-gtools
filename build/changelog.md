@@ -15,6 +15,10 @@ Change Log
     - `variance`
     - `range`, `max` - `min`
 
+### Bug fixes
+
+- `gcollapse` no longer crashes when `rawstat` does not match any entries.
+
 ## gtools-1.3.5 (2019-02-19)
 
 ### Enhancements

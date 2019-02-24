@@ -411,7 +411,7 @@ program checks_inner_collapse
     syntax [anything] [aw fw iw pw], [*]
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local selections  select1 select2 select5 selelct999999 select-999999 select-5 select-2 select-1
+    local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
     local stats nunique nmissing sum mean max min range count percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
@@ -424,8 +424,10 @@ program checks_inner_collapse
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
     }
-    foreach sel of local selections {
-        local collapse_str `collapse_str' (`pct') s1_`:subinstr local select "-" "_", all' = random1
+    if ( !inlist("`weight'", "iweight") ) {
+        foreach sel of local selections {
+            local collapse_str `collapse_str' (`sel') s1_`:subinstr local sel "-" "_", all' = random1
+        }
     }
 
     foreach stat of local stats {
@@ -434,8 +436,10 @@ program checks_inner_collapse
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
     }
-    foreach sel of local selections {
-        local collapse_str `collapse_str' (`pct') s2_`:subinstr local select "-" "_", all' = random2
+    if ( !inlist("`weight'", "iweight") ) {
+        foreach sel of local selections {
+            local collapse_str `collapse_str' (`sel') s2_`:subinstr local sel "-" "_", all' = random2
+        }
     }
 
     preserve
@@ -873,29 +877,21 @@ program compare_gcollapse
     qui expand 50
     qui `noisily' random_draws, random(2) binary(5)
 
-    di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
+    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_select_etc, `options'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_collapse, `options' tol(`tol')
+    compare_inner_gcollapse_select -str_12,              `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_select str_12 -str_32,       `options' tol(`tol') sort
+    compare_inner_gcollapse_select str_12 -str_32 str_4, `options' tol(`tol') shuffle
 
-    compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
-    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
-    compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_select -double1,                 `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_select double1 -double2,         `options' tol(`tol') sort
+    compare_inner_gcollapse_select double1 -double2 double3, `options' tol(`tol') shuffle
 
-    compare_inner_collapse double1,                 `options' tol(`tol') forcemem
-    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
-    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
+    compare_inner_gcollapse_select -int1,           `options' tol(`tol') `debug_io'
+    compare_inner_gcollapse_select int1 -int2,      `options' tol(`tol') sort
+    compare_inner_gcollapse_select int1 -int2 int3, `options' tol(`tol') shuffle
 
-    compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
-    compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
-    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
-
-    compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
-    compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
-    compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
-
-    qui `noisily' gen_data, n(500)
-    qui expand 50
-    qui `noisily' random_draws, random(2) binary(5)
+    compare_inner_gcollapse_select int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
     di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_skew_kurt, `options'" _n(1) "{hline 80}" _n(1)
 
@@ -917,24 +913,29 @@ program compare_gcollapse
     compare_inner_gcollapse_skew int1 -str_32 double1 -int2 str_12 -double2, `options' tol(`tol') sort
     compare_inner_gcollapse_skew int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
 
-    di _n(1) "{hline 80}" _n(1) "consistency_gcollapse_select_etc, `options'" _n(1) "{hline 80}" _n(1)
+    qui `noisily' gen_data, n(500)
+    qui expand 50
+    qui `noisily' random_draws, random(2) binary(5)
 
-    * TODO: xx compare select here or incorporate vs above
-    * TODO: xx compare variance, cv, range in internal checks
+    di _n(1) "{hline 80}" _n(1) "consistency_collapse, `options'" _n(1) "{hline 80}" _n(1)
 
-    compare_inner_gcollapse_select -str_12,              `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_select str_12 -str_32,       `options' tol(`tol') sort
-    compare_inner_gcollapse_select str_12 -str_32 str_4, `options' tol(`tol') shuffle
+    compare_inner_collapse, `options' tol(`tol')
 
-    compare_inner_gcollapse_select -double1,                 `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_select double1 -double2,         `options' tol(`tol') sort
-    compare_inner_gcollapse_select double1 -double2 double3, `options' tol(`tol') shuffle
+    compare_inner_collapse str_12,              `options' tol(`tol') forcemem sort
+    compare_inner_collapse str_12 str_32,       `options' tol(`tol') forceio shuffle
+    compare_inner_collapse str_12 str_32 str_4, `options' tol(`tol') `debug_io'
 
-    compare_inner_gcollapse_select -int1,           `options' tol(`tol') `debug_io'
-    compare_inner_gcollapse_select int1 -int2,      `options' tol(`tol') sort
-    compare_inner_gcollapse_select int1 -int2 int3, `options' tol(`tol') shuffle
+    compare_inner_collapse double1,                 `options' tol(`tol') forcemem
+    compare_inner_collapse double1 double2,         `options' tol(`tol') forceio sort
+    compare_inner_collapse double1 double2 double3, `options' tol(`tol') `debug_io' shuffle
 
-    compare_inner_gcollapse_select int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' tol(`tol') shuffle
+    compare_inner_collapse int1,           `options' tol(`tol') forcemem shuffle
+    compare_inner_collapse int1 int2,      `options' tol(`tol') forceio
+    compare_inner_collapse int1 int2 int3, `options' tol(`tol') `debug_io' sort
+
+    compare_inner_collapse int1 str_32 double1,                                        `options' tol(`tol') forcemem
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2,                    `options' tol(`tol') forceio
+    compare_inner_collapse int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options' tol(`tol') `debug_io'
 end
 
 ***********************************************************************
@@ -1055,38 +1056,38 @@ program _compare_inner_gcollapse_gegen
         local sestats `sestats' sebinomial sepoisson
     }
 
-    gegen id = group(`anything'), missing
+    gegen id = group(`anything'), missing nods
 
-    gegen double nmissing = nmissing (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double nunique  = nunique  (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double percent  = percent  (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double mean     = mean     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double sum      = sum      (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double median   = median   (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double min      = min      (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double max      = max      (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double range    = range    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double iqr      = iqr      (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double first    = first    (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double last     = last     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double firstnm  = firstnm  (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double lastnm   = lastnm   (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double skew     = skew     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double kurt     = kurt     (random1) `ifin' `wgt_ge',  by(`anything')
-    gegen double q10      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(10.5)
-    gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(30)
-    gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(70)
-    gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') p(90.5)
-    gegen double s1       = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(1)
-    gegen double s3       = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(3)
-    gegen double s999999  = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(999999)
-    gegen double s_999999 = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(-999999)
-    gegen double s_3      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(-3)
-    gegen double s_1      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') n(-1)
+    gegen double nmissing = nmissing (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double nunique  = nunique  (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double percent  = percent  (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double mean     = mean     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double sum      = sum      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double median   = median   (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double min      = min      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double max      = max      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double range    = range    (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double iqr      = iqr      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double first    = first    (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double last     = last     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double firstnm  = firstnm  (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double lastnm   = lastnm   (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double skew     = skew     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double kurt     = kurt     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double q10      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(10.5)
+    gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
+    gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
+    gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
+    gegen double s1       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
+    gegen double s3       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
+    gegen double s999999  = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
+    gegen double s_999999 = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
+    gegen double s_3      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
+    gegen double s_1      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
 
     local gextra
     foreach extra of local sestats {
-        gegen double `extra' = `extra'(random1) `ifin' `wgt_ge',  by(`anything')
+        gegen double `extra' = `extra'(random1) `ifin' `wgt_ge',  by(`anything') nods
         local gextra `gextra' (`extra') g_`extra' = random1
     }
 
@@ -1543,7 +1544,7 @@ program _compare_inner_gcollapse_skew
     local anything `anything_'
     local options  `options_'
 
-    qui gegen id = group(`anything') `ifin', missing
+    qui gegen id = group(`anything') `ifin', missing nods
     qui gunique id `ifin', missing
     local J = `r(J)'
     qui sum id
@@ -1643,8 +1644,8 @@ program compare_inner_gcollapse_select
         local wcall_f "[fw = int_unif_0_100]"
         local wgen_p  qui gen float_unif_0_1 = runiform() if mod(_n, 100)
         local wcall_p "[pw = float_unif_0_1]"
-        local wgen_i  qui gen rnormal_0_10 = 10 * rnormal() if mod(_n, 100)
-        local wcall_i "[iw = rnormal_0_10]"
+        local wgen_i  `wgen_f'
+        local wcall_i `wcall_f'
     }
     else {
         local wgt wgt(`wgt')
@@ -1656,7 +1657,7 @@ program compare_inner_gcollapse_select
     if ( ("`sort'"   != "") & ("`anything'" != "") ) qui hashsort `anything'
 
     local N = trim("`: di %15.0gc _N'")
-    local hlen = 45 + length("`anything'") + length("`N'")
+    local hlen = 47 + length("`anything'") + length("`N'")
     di _n(2) "Checking select and 1.4 funcs. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
 
     preserve
@@ -1725,9 +1726,11 @@ program _compare_inner_gcollapse_select
     local gcall
     local gcall `gcall' (count)       nj          = random1
     local gcall `gcall' (mean)        mean        = random1
+    if !regexm("pw", `"`wgt'"') {
     local gcall `gcall' (sd)          sd          = random1
     local gcall `gcall' (variance)    variance    = random1
     local gcall `gcall' (cv)          cv          = random1
+    }
     local gcall `gcall' (min)         min         = random1
     local gcall `gcall' (max)         max         = random1
     local gcall `gcall' (range)       range       = random1
@@ -1741,7 +1744,8 @@ program _compare_inner_gcollapse_select
     local gcall `gcall' (select-1)    select_1    = random1
 
     qui gcollapse `gcall' `ifin' `wgt_gc', by(`anything') `options' double merge replace
-    sort `anything' random1
+    qui gegen id = group(`anything') `ifin', missing nods
+save /tmp/aa, replace
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -1750,7 +1754,8 @@ program _compare_inner_gcollapse_select
         di _n(1) "Checking [`ifin']`wtxt' range: `anything'"
     }
 
-    cap assert abs((sd / mean) - cv) < `tol' `ifin'
+    if !regexm("pw", `"`wgt'"') {
+    cap assert (mi(cv) & (mi(sd) | (mean == 0))) | (abs((sd / mean) - cv) < `tol') `ifin'
         if ( _rc ) {
             di as txt "    compare_cv_gcollapse (fail): cv`wtxt' yielded different results (tol = `tol')"
             exit 198
@@ -1758,7 +1763,12 @@ program _compare_inner_gcollapse_select
         else {
             di as txt "    compare_cv_gcollapse (passed): cv`wtxt' yielded consistent results (tol = `tol')"
         }
-    cap assert abs((sd^2 - variance) / min(sd^2, variance)) < `tol' `ifin'
+    }
+    else {
+            di as txt "    compare_cv_gcollapse (skip): cv`wtxt' skipped (not allowed with pweights)"
+    }
+    if !regexm("pw", `"`wgt'"') {
+    cap assert (mi(variance) & mi(sd)) | (abs((sd^2 - variance) / min(sd^2, variance)) < `tol') `ifin'
         if ( _rc ) {
             di as txt "    compare_var_gcollapse (fail): var`wtxt' yielded different results (tol = `tol')"
             exit 198
@@ -1766,7 +1776,11 @@ program _compare_inner_gcollapse_select
         else {
             di as txt "    compare_var_gcollapse (passed): var`wtxt' yielded consistent results (tol = `tol')"
         }
-    cap assert abs((range) - (max - min)) < `tol' `ifin'
+    }
+    else {
+            di as txt "    compare_var_gcollapse (skip): var`wtxt' skipped (not allowed with pweights)"
+    }
+    cap assert (mi(range) & (mi(min) | mi(max))) | (abs((range) - (max - min)) < `tol') `ifin'
         if ( _rc ) {
             di as txt "    compare_range_gcollapse (fail): range`wtxt' yielded different results (tol = `tol')"
             exit 198
@@ -1776,18 +1790,21 @@ program _compare_inner_gcollapse_select
         }
 
     if ( "`wgt'" != "" ) {
-        local 0 `wgt'
-        syntax [aw fw iw pw]
-        tempvar w wsum touse wsel
-        mark `touse' `wgt' `ifin'
-        markout `touse' random1
-        gen double `w' `exp' if `touse'
-        sort `anything' `touse' random1 `w'
-        by `anything' `touse' (random1 `w'): gen double `wsum'  = sum(`w')
-        gen long `wsel' = 0
+        qui {
+            local 0 `wgt'
+            syntax [aw fw iw pw]
+            tempvar w wsum touse wsel
+            mark `touse' `wgt' `ifin'
+            markout `touse' random1
+            keep if `touse'
+            gen double `w' `exp'
+            sort id random1 `w'
+            by id (random1 `w'): gen double `wsum'  = sum(`w')
+            gen long `wsel' = 0
+        }
         foreach sel in 1 2 3 9999 {
-            by `anything' `touse' (random1 `w'): replace `wsel' = sum(`sel' < `wsum')
-            by `anything' `touse' (random1 `w'): (((abs(random1[`wsel'[_N] + 1] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`wsel'[_N] + 1])))) if `touse''
+            qui by id (random1 `w'): replace `wsel' = sum(`sel' > `wsum')
+            cap by id (random1 `w'): assert (((abs(random1[`wsel'[_N] + 1] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`wsel'[_N] + 1]))))
                 if ( _rc ) {
                     di as txt "    compare_select`sel'_gcollapse (fail): select`wtxt' yielded different results (tol = `tol')"
                     exit 198
@@ -1795,8 +1812,8 @@ program _compare_inner_gcollapse_select
                 else {
                     di as txt "    compare_select`sel'_gcollapse (passed): select`wtxt' yielded consistent results (tol = `tol')"
                 }
-            by `anything' `touse' (random1 `w'): replace `wsel' = sum((`wsum' - `sel') > `wsum')
-            by `anything' `touse' (random1 `w'): (((abs(random1[`wsel'[_N] + 1] - select_`sel') < `tol') | (mi(select_`sel') & mi(random1[`wsel'[_N] + 1])))) if `touse''
+            qui by id (random1 `w'): replace `wsel' = cond(`wsum'[_N] - `sel' >= 0, sum((`wsum'[_N] - `sel') >= `wsum'), _N)
+            cap by id (random1 `w'): assert (((abs(random1[`wsel'[_N] + 1] - select_`sel') < `tol') | (mi(select_`sel') & mi(random1[`wsel'[_N] + 1]))))
                 if ( _rc ) {
                     di as txt "    compare_select-`sel'_gcollapse (fail): select`wtxt' yielded different results (tol = `tol')"
                     exit 198
@@ -1807,8 +1824,10 @@ program _compare_inner_gcollapse_select
         }
     }
     else {
+        if ( `"`ifin'"' != "" ) qui keep `ifin'
+        sort id random1
         foreach sel in 1 2 3 9999 {
-            by `anything' (random1): cap assert (((abs(random1[`sel'] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`sel'])))) `ifin'
+            cap by id (random1): assert (((abs(random1[`sel'] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`sel'])))) 
                 if ( _rc ) {
                     di as txt "    compare_select`sel'_gcollapse (fail): select`wtxt' yielded different results (tol = `tol')"
                     exit 198
@@ -1816,7 +1835,7 @@ program _compare_inner_gcollapse_select
                 else {
                     di as txt "    compare_select`sel'_gcollapse (passed): select`wtxt' yielded consistent results (tol = `tol')"
                 }
-            by `anything' (random1): cap assert (((abs(random1[nj - `sel' + 1] - select_`sel') < `tol') | (mi(select_`sel') & mi(random1[nj - `sel' + 1])))) `ifin'
+            cap by id (random1): assert (((abs(random1[nj - `sel' + 1] - select_`sel') < `tol') | (mi(select_`sel') & mi(random1[nj - `sel' + 1]))))
                 if ( _rc ) {
                     di as txt "    compare_select-`sel'_gcollapse (fail): select`wtxt' yielded different results (tol = `tol')"
                     exit 198

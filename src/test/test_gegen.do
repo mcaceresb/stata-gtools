@@ -183,10 +183,12 @@ program checks_inner_egen
         }
     }
 
-    foreach n in `selections' {
-        `noisily' gegen `gvar' = select(random1) `wgt', n(`n') by(`anything') replace `options'
-        if ( "`weight'" == "" ) {
-        `noisily' gegen `gvar' = select(random*) `wgt', n(`n') by(`anything') replace `options'
+    if ( !inlist("`weight'", "iweight") ) {
+        foreach n in `selections' {
+            `noisily' gegen `gvar' = select(random1) `wgt', n(`n') by(`anything') replace `options'
+            if ( "`weight'" == "" ) {
+            `noisily' gegen `gvar' = select(random*) `wgt', n(`n') by(`anything') replace `options'
+            }
         }
     }
 

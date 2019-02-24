@@ -177,6 +177,8 @@ ST_double gf_array_dcv_unweighted (
     ST_double vmean = gf_array_dmean_unweighted (v, N);
     GT_size   nobs  = 0;
 
+    if ( vmean == 0 ) return(SV_missval);
+
     for (vptr = v; vptr < v + N; vptr++) {
         if ( *vptr < SV_missval ) {
             vvar += SQUARE(*vptr - vmean);

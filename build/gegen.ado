@@ -146,6 +146,7 @@ program define gegen, byable(onecall) rclass
                           _CTOLerance(passthru)    ///
                           compress                 ///
                           forcestrl                ///
+                          NODS DS                  /// Parse - as varlist (ds) or negative (nods)
                           BENCHmark                ///
                           BENCHmarklevel(passthru) ///
                           gtools_capture(str)
@@ -160,7 +161,7 @@ program define gegen, byable(onecall) rclass
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
 
             local gopts `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
-            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel'
+            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel' `ds' `nods'
 
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
             cap noi egen_fallback `if' `in', kwargs(`gopts') `popts' `options' `gtools_capture'
@@ -195,6 +196,7 @@ program define gegen, byable(onecall) rclass
                                   ///
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
+        NODS DS                   /// Parse - as varlist (ds) or negative (nods)
         Verbose                   /// Print info during function execution
         _subtract                 /// (Undocumented) Subtract result from source variable
         _CTOLerance(passthru)     /// (Undocumented) Counting sort tolerance; default is radix
@@ -229,6 +231,11 @@ program define gegen, byable(onecall) rclass
 
     local bench = ( "`benchmark'" != "" )
 
+    if ( ("`ds'" != "") & ("`nods'" != "") ) {
+        di as err "-ds- and -nods- mutually exclusive"
+        exit 198
+    }
+
     * Parse weights
     * -------------
 
@@ -247,6 +254,12 @@ program define gegen, byable(onecall) rclass
     if ( `:list posof "sd" in fcn' > 0 ) {
         if ( `"`weight'"' == "pweight" ) {
             di as err "sd not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "select" in fcn' > 0 ) {
+        if ( inlist(`"`weight'"', "iweight") ) {
+            di as err "select not allowed with `weight's"
             exit 135
         }
     }
@@ -382,7 +395,7 @@ program define gegen, byable(onecall) rclass
 
     local opts  `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts  `opts' `oncollision' `hashmethod'
+    local opts  `opts' `oncollision' `hashmethod' `ds' `nods'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -475,6 +488,7 @@ program define gegen, byable(onecall) rclass
                               `_ctolerance'    ///
                               `compress'       ///
                               `forcestrl'      ///
+                              `nods' `ds'      ///
                               `benchmark'      ///
                               `benchmarklevel' ///
                               `gtools_capture'
@@ -649,6 +663,7 @@ program define gegen, byable(onecall) rclass
                           `_ctolerance'    ///
                           `compress'       ///
                           `forcestrl'      ///
+                          `nods' `ds'      ///
                           `benchmark'      ///
                           `benchmarklevel' ///
                           `gtools_capture'
@@ -853,6 +868,7 @@ program collision_fallback
                       _CTOLerance(passthru)    ///
                       compress                 ///
                       forcestrl                ///
+                      NODS DS                  ///
                       BENCHmark                ///
                       BENCHmarklevel(passthru) ///
                       gtools_capture(str)

@@ -2415,7 +2415,9 @@ program _gtools_internal, rclass
         return scalar gstats_winsor_cutlow  = __gtools_winsor_cutl
         return scalar gstats_winsor_cuthigh = __gtools_winsor_cuth
 
-        mata: (void) __gstats_summarize_results()
+        if ( `=scalar(__gtools_gstats_code)' == 2 ) {
+            mata: (void) __gstats_summarize_results()
+        }
 
         return scalar gstats_summarize_normal    = __gtools_summarize_normal
         return scalar gstats_summarize_detail    = __gtools_summarize_detail

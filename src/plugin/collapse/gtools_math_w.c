@@ -346,7 +346,7 @@ ST_double gf_array_dmean_weighted (
  */
 ST_double gf_array_dsd_weighted (
     ST_double *v,
-    GT_size N,
+    GT_size   N,
     ST_double *w,
     ST_double vsum,
     ST_double wsum,
@@ -360,7 +360,7 @@ ST_double gf_array_dsd_weighted (
     }
 
     ST_double *vptr;
-    ST_double *wptr  = w;
+    ST_double *wptr = w;
     ST_double vvar  = 0;
     ST_double vmean = vsum / wsum;
     GT_size   nobs  = 0;
@@ -455,21 +455,21 @@ ST_double gf_array_dvar_weighted (
  */
 ST_double gf_array_dcv_weighted (
     ST_double *v,
-    GT_size N,
+    GT_size   N,
     ST_double *w,
     ST_double vsum,
     ST_double wsum,
     GT_size   vcount,
     GT_bool   aw)
 {
-    if ( (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
+    if ( (vsum == 0) || (wsum == 0) || (wsum == 1) || (vcount < 2) ) return (SV_missval);
 
     if ( gf_array_dsame_unweighted(v, N) ) {
         return (0);
     }
 
     ST_double *vptr;
-    ST_double *wptr  = w;
+    ST_double *wptr = w;
     ST_double vvar  = 0;
     ST_double vmean = vsum / wsum;
     GT_size   nobs  = 0;
@@ -888,10 +888,10 @@ ST_double gf_array_dselect_weighted (
     ST_double cumsum, qth;
     GT_size   i;
 
-    if ( N         == 1    ) return (*v);
+    if ( fabs(sth)  > wsum ) return (SV_missval);
     if ( vcount    == 0    ) return (SV_missval);
     if ( fabs(sth) == 0    ) return (SV_missval);
-    if ( fabs(sth)  > wsum ) return (SV_missval);
+    if ( N         == 1    ) return (*v);
 
     // Sort group elements and weights
     // -------------------------------

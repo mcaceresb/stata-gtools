@@ -67,6 +67,8 @@ ST_double gf_array_dcv_range (const ST_double v[], const GT_size start, const GT
     GT_size i;
     ST_double vvar  = 0;
     ST_double vmean = gf_array_dmean_range(v, start, end);
+    if ( vmean == 0 ) return(SV_missval);
+
     for (i = start; i < end; i++)
         vvar += SQUARE(v[i] - vmean);
 

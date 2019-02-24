@@ -320,6 +320,12 @@ program gcollapse, rclass
             exit 135
         }
     }
+    if ( regexm("^select", `"`__gtools_gc_uniq_stats'"') ) {
+        if ( inlist(`"`weight'"', "iweight") ) {
+            di as err "select not allowed with `weight's"
+            exit 135
+        }
+    }
 
 	if ( `"`weight'"' != "" ) {
 		tempvar w
@@ -1887,6 +1893,13 @@ program define ParseList
         GetTarget target 0 : `0'
         gettoken vars 0 : 0
         unab vars : `vars'
+
+        * Must specify stat (if blank, we do the mean)
+        if ( "`stat'" == "" ) {
+            disp as err "option stat() requried"
+            exit 198
+        }
+
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 

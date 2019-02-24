@@ -1124,7 +1124,18 @@ program parse_vars
     local quantiles : list __gtools_gc_uniq_stats - stats
 
     foreach quantile of local quantiles {
-        if regexm("`quantile'", "select") {
+        if regexm("`quantile'", "rawselect") {
+            local select = regexm("`quantile'", "^rawselect(-|)([0-9]+)$")
+            if ( `select' == 0 ) {
+                di as error "Invalid stat: (`quantile'; did you mean rawselect# or rawselect-#?)"
+                error 110
+            }
+            else if ( `=regexs(2)' == 0 ) {
+                di as error "Invalid stat: (`quantile' not allowed; selection must be 1 or larger)"
+                error 110
+            }
+        }
+        else if regexm("`quantile'", "select") {
             local select = regexm("`quantile'", "^select(-|)([0-9]+)$")
             if ( `select' == 0 ) {
                 di as error "Invalid stat: (`quantile'; did you mean select# or select-#?)"
@@ -1381,7 +1392,7 @@ program parse_keep_drop, rclass
         local sumtype = "double"
 
         * I try to match Stata's types when possible
-        if regexm("`collstat'", "first|last|min|max|select") {
+        if regexm("`collstat'", "first|last|min|max|select|rawselect") {
             * First, last, min, max, and select can preserve type, clearly
             local targettype: type `sourcevar'
         }
@@ -1491,7 +1502,7 @@ program parse_ok_astarget, rclass
     local sourcetype  = "`:type `sourcevar''"
 
     * I try to match Stata's types when possible
-    if regexm("`stat'", "first|last|min|max|select") {
+    if regexm("`stat'", "first|last|min|max|select|rawselect") {
         * First, last, min, max, and select can preserve type, clearly
         local targettype `sourcetype'
         local ok_astarget = 1
@@ -1727,7 +1738,18 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
     if ( `"`0'"' == "rawnansum"   ) local prettystat "Unweighted sum"
 
-    if regexm(`"`0'"', "^select(-|)([0-9]+)$") {
+    local match = 0
+    if regexm(`"`0'"', "^rawselect(-|)([0-9]+)$") {
+        if ( `"`:di regexs(1)'"' == "-" ) {
+            local Pretty Largest (Unweighted)
+        }
+        else {
+            local Pretty Smallest (Unweighted)
+        }
+        local p = `=regexs(2)'
+        local match = 1
+    }
+    else if regexm(`"`0'"', "^select(-|)([0-9]+)$") {
         if ( `"`:di regexs(1)'"' == "-" ) {
             local Pretty Largest
         }
@@ -1735,20 +1757,24 @@ program GtoolsPrettyStat, rclass
             local Pretty Smallest
         }
         local p = `=regexs(2)'
+        local match = 1
     }
     else if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
         local p = `:di regexs(1)'
         local Pretty Pctile
+        local match = 1
     }
 
-    if ( inlist(substr(`"`p'"', -2, 2), "11", "12", "13") ) {
-        local prettystat "`s'th `Pretty'"
-    }
-    else {
-             if ( mod(`p', 10) == 1 ) local prettystat "`p'st `Pretty'"
-        else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd `Pretty'"
-        else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd `Pretty'"
-        else                          local prettystat "`p'th `Pretty'"
+    if ( `match' ) {
+        if ( inlist(substr(`"`p'"', -2, 2), "11", "12", "13") ) {
+            local prettystat "`s'th `Pretty'"
+        }
+        else {
+                 if ( mod(`p', 10) == 1 ) local prettystat "`p'st `Pretty'"
+            else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd `Pretty'"
+            else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd `Pretty'"
+            else                          local prettystat "`p'th `Pretty'"
+        }
     }
 
     return local prettystat = `"`prettystat'"'

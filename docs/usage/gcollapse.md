@@ -26,39 +26,46 @@ where clist is either
 
 or any combination of the varlist or target_var forms, and stat is one of
 
-| Stat       | Description
-| ---------- | -----------
-| mean       | means (default)
-| nunique    | counts unique elements
-| median     | medians
-| p#.#       | arbitrary quantiles (#.# must be strictly between 0, 100)
-| p1         | 1st percentile
-| p2         | 2nd percentile
-| ...        | 3rd-49th percentiles
-| p50        | 50th percentile (same as median)
-| ...        | 51st-97th percentiles
-| p98        | 98th percentile
-| p99        | 99th percentile
-| sum        | sums
-| rawsum     | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
-| nansum     | sum; returns . instead of 0 if all entries are missing
-| rawnansum  | rawsum; returns . instead of 0 if all entries are missing
-| sd         | standard deviation
-| semean     | standard error of the mean (sd/sqrt(n))
-| sebinomial | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
-| sepoisson  | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
-| skewness   | Skewness
-| kurtosis   | Kurtosis
-| count      | number of nonmissing observations
-| nmissing   | number of missing observations
-| percent    | percentage of nonmissing observations
-| max        | maximums
-| min        | minimums
-| iqr        | interquartile range
-| first      | first value
-| last       | last value
-| firstnm    | first nonmissing value
-| lastnm     | last nonmissing value
+| Stat        | Description
+| ----------- | -----------
+| mean        | means (default)
+| count       | number of nonmissing observations
+| nmissing    | number of missing observations
+| nunique     | counts unique elements
+| median      | medians
+| p#.#        | arbitrary quantiles (#.# must be strictly between 0, 100)
+| p1          | 1st percentile
+| p2          | 2nd percentile
+| ...         | 3rd-49th percentiles
+| p50         | 50th percentile (same as median)
+| ...         | 51st-97th percentiles
+| p98         | 98th percentile
+| p99         | 99th percentile
+| iqr         | interquartile range
+| sum         | sums
+| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
+| nansum      | sum; returns . instead of 0 if all entries are missing
+| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
+| sd          | standard deviation
+| variance    | variance
+| cv          | coefficient of variation (`sd/mean`)
+| semean      | standard error of the mean (sd/sqrt(n))
+| sebinomial  | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
+| sepoisson   | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness    | Skewness
+| kurtosis    | Kurtosis
+| percent     | percentage of nonmissing observations
+| max         | maximums
+| min         | minimums
+| select#     | `#`th smallest non-missing
+| select-#    | `#`th largest non-missing
+| rawselect#  | `#`th smallest non-missing, ignoring weights
+| rawselect-# | `#`th largest non-missing, ignoring weights
+| range       | range (`max` - `min`)
+| first       | first value
+| last        | last value
+| firstnm     | first nonmissing value
+| lastnm      | last nonmissing value
 
 Weights
 -------

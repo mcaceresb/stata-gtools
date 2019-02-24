@@ -697,7 +697,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->summarize_codes
     );
 
-    st_info->wselmat         = calloc((wselective    > 0)? kvars_targets   : 1, sizeof st_info->wselmat);
+    st_info->wselmat         = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
     st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
     st_info->xtile_quantiles = calloc((xtile_nq2     > 0)? xtile_nq2       : 1, sizeof st_info->xtile_quantiles);

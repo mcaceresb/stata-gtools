@@ -20,7 +20,7 @@ the latest stable version.
 {title:Syntax}
 
 {p 8 14 2}
-{cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 
+{cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin}
 [{it:{help gegen##weight:weight}}]
 [{cmd:,}
 {opt replace}
@@ -61,7 +61,7 @@ with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
 may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 
 {phang}
-Functions not listed here hash the data and then call {opt egen} with 
+Functions not listed here hash the data and then call {opt egen} with
 {opth by(varlist)} set to the hash, which is often faster than calling
 {opt egen} directly, but not always. Natively supported functions should
 always be faster, however. They are:
@@ -104,7 +104,7 @@ may not be combined with {cmd:by}.  It tags just 1 observation in each
 distinct group defined by {it:varlist}.  When all observations in a group have
 the same value for a summary variable calculated for the group, it will be
 sufficient to use just one value for many purposes.  The result will be 1 if
-the observation is tagged and never missing, and 0 otherwise. 
+the observation is tagged and never missing, and 0 otherwise.
 
 {pmore2}
 Note values for any observations excluded by either {helpb if} or {helpb in}
@@ -163,9 +163,10 @@ creates a constant (within {it:varlist}) containing the value range of {it:exp}.
         {opth select(exp)} {cmd:, n(}{it:#}|{it:-#}{cmd:)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the {it:#}th smallest
-value of {it:exp}. To compute the {it:#}th largest value, prefix a negative
-sign, {it:-#}. Note {opt n(1)} and {opt n(-1)} are equivalent to {opt min}
-and {opt max}, respectively.
+non-missing value of {it:exp}. To compute the {it:#}th largest non-missing
+value, prefix a negative sign, {it:-#}. Note that if there are any non-missing
+values, {opt n(1)} and {opt n(-1)} will give the same value as {opt min} and
+{opt max}, respectively.
 
 {marker pctile()}{...}
         {opth pctile(exp)} [{cmd:, p(}{it:#}{cmd:)}]{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
@@ -330,11 +331,11 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {p 4 13 2}
-help for 
-{help gcollapse}, 
+help for
+{help gcollapse},
 {help gtools};
-{help fegen} (if installed), 
-{help fcollapse} (if installed), 
+{help fegen} (if installed),
+{help fcollapse} (if installed),
 {help ftools} (if installed)
 p_end}
 

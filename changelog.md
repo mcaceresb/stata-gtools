@@ -5,14 +5,19 @@ Change Log
 
 ### Features
 
-- `gstats sum` (alias `gstats summarize`) is a fast, by-able alternative
-  to `tabstat` and `sum, detail`
+- `gstats sum` (alias `gstats summarize` and `gstats tab`) is a fast, by-able
+  alternative to `tabstat` and `sum, detail`
 - `gcollapse` and `gegen` now allow the stats:
     - `select#`, `#`th smallest value (`select1` is the same as `min`)
     - `select-#`, `#`th largest value (`select-1` is the same as `max`)
+    - `rawselect#` and `rawselect-#`, ibid but ignoring weights.
     - `cv`, coefficient of variation, `sd/mean`
     - `variance`
     - `range`, `max` - `min`
+
+### Bug fixes
+
+- `gcollapse` no longer crashes when `rawstat` does not match any entries.
 
 ## gtools-1.3.5 (2019-02-19)
 

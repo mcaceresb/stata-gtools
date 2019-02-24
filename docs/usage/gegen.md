@@ -142,14 +142,32 @@ or a list of variables.
         creates a constant (within varlist) containing the minimum value
         of exp.
 
+    range(exp)
+        creates a constant (within varlist) containing the range of exp.
+
     pctile(exp) [, p(#)]
         creates a constant (within varlist) containing the #th percentile
         of exp.  If p(#) is not specified, 50 is assumed, meaning
         medians.  Also see median().
 
+    select(exp) , n(#|-#)
+        creates a constant (within varlist) containing the `#`th smallest
+        non-missing value of exp.  If `-#` is specified, the `#`th _largest_
+        non-missing value is output instead. Note if there are any non-missing
+        values then `n(1)` and `n(-1)` will output the same value as `min` and
+        `max`, respectively.
+
     sd(exp)
         creates a constant (within varlist) containing the standard
         deviation of exp.  Also see mean().
+
+    variance(exp)
+        creates a constant (within varlist) containing the variance
+        of exp.  Also see sd().
+
+    cv(exp)
+        creates a constant (within varlist) containing the coefficient
+        of variation of exp.  Also see sd() adn mean().
 
     percent(exp)
         creates a constant (within varlist) containing the percent of

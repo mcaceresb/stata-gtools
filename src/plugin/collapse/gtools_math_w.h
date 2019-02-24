@@ -14,12 +14,23 @@ ST_double gf_switch_fun_code_w (
 );
 
 ST_double gf_array_dmax_weighted (ST_double *v, GT_size N);
+ST_double gf_array_drange_weighted (ST_double *v, GT_size N);
 
 ST_double gf_array_dquantile_weighted (
     ST_double *v,
-    GT_size N,
+    GT_size   N,
     ST_double *w,
     ST_double quantile,
+    ST_double wsum,
+    GT_size   vcount,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dselect_weighted (
+    ST_double *v,
+    GT_size   N,
+    ST_double *w,
+    ST_double sth,
     ST_double wsum,
     GT_size   vcount,
     ST_double *p_buffer
@@ -71,6 +82,26 @@ ST_double gf_array_dmean_weighted (
 );
 
 ST_double gf_array_dsd_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount,
+    GT_bool   aw
+);
+
+ST_double gf_array_dvar_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double vsum,
+    ST_double wsum,
+    GT_size   vcount,
+    GT_bool   aw
+);
+
+ST_double gf_array_dcv_weighted (
     ST_double *v,
     GT_size N,
     ST_double *w,

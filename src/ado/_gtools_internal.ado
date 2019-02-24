@@ -26,6 +26,8 @@
 * -201 to -300 stats are analogues with special gstats handling
 * 1000 + # selects the #th smallest
 * - 1000 - # selects the #th largest
+* 1000.5 + # rawselects the #th smallest
+* - 1000.5 - # rawselects the #th largest
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
@@ -3313,7 +3315,21 @@ program encode_regex, rclass
     args st
     local rc = 0
     local statcode = 0
-    if regexm("`st'", "select") {
+    if regexm("`st'", "rawselect") {
+        local select = regexm("`st'", "^rawselect(-|)([0-9]+)$")
+        if ( `select' == 0 ) {
+            di as error "Invalid stat: (`st'; did you mean rawselect# or rawselect-#?)"
+            local rc = 110
+        }
+        else if ( `=regexs(2)' == 0 ) {
+            di as error "Invalid stat: (`st' not allowed; selection must be 1 or larger)"
+            local rc = 110
+        }
+        else {
+            local statcode = `:di regexs(1)' (1000.5 + `=regexs(2)')
+        }
+    }
+    else if regexm("`st'", "select") {
         local select = regexm("`st'", "^select(-|)([0-9]+)$")
         if ( `select' == 0 ) {
             di as error "Invalid stat: (`st'; did you mean select# or select-#?)"
@@ -3848,44 +3864,46 @@ program gstats_summarize
     scalar __gtools_summarize_kvars  = `:list sizeof statlist'
     scalar __gtools_summarize_kstats = `kstats'
 
-    * -1        // sum
-    * -2        // mean
-    * -3        // sd
-    * -4        // max
-    * -5        // min
-    * -6        // count, n
-    * -7        // percent
-    * 50        // median
-    * -9        // iqr
-    * -10       // first
-    * -11       // firstnm
-    * -12       // last
-    * -13       // lastnm
-    * -14       // freq
-    * -15       // semean
-    * -16       // sebinomial
-    * -17       // sepoisson
-    * -18       // nunique
-    * -19       // skewness
-    * -20       // kurtosis
-    * -21       // rawsum
-    * -22       // nmissing
-    * -23       // variance
-    * -24       // cv
-    * -25       // range
-    * -101      // nansum
-    * -121      // rawnansum
-    * -206      // sum weight
-    * -203      // variance
-    * 1000 + #  // #th smallest
-    * -1000 - # // #th largest
+    * -1          // sum
+    * -2          // mean
+    * -3          // sd
+    * -4          // max
+    * -5          // min
+    * -6          // count, n
+    * -7          // percent
+    * 50          // median
+    * -9          // iqr
+    * -10         // first
+    * -11         // firstnm
+    * -12         // last
+    * -13         // lastnm
+    * -14         // freq
+    * -15         // semean
+    * -16         // sebinomial
+    * -17         // sepoisson
+    * -18         // nunique
+    * -19         // skewness
+    * -20         // kurtosis
+    * -21         // rawsum
+    * -22         // nmissing
+    * -23         // variance
+    * -24         // cv
+    * -25         // range
+    * -101        // nansum
+    * -121        // rawnansum
+    * -206        // sum weight
+    * -203        // variance
+    * 1000 + #    // #th smallest
+    * -1000 - #   // #th largest
+    * 1000.5 + #  // raw #th smallest
+    * -1000.5 - # // raw #th largest
 
-    * N sum sum_w mean min max, -901
-    * N sum sum_w mean min max sd var, -902
-    * N sum mean min max sd, -903 (mainly for defailt tabstat)
+    * N sum sum_w mean min max, -299
+    * N sum sum_w mean min max sd var, -298
+    * N sum mean min max sd, -297 (mainly for defailt tabstat)
 
     mata: __gtools_summarize_codes = J(1, `kstats', .)
-    // mata: __gtools_summarize_codes[1] = -901
+    // mata: __gtools_summarize_codes[1] = -299
     mata: __gtools_summarize_codes[1] = -6   // N
     mata: __gtools_summarize_codes[2] = -206 // sum_w
     mata: __gtools_summarize_codes[3] = -1   // sum
@@ -3894,7 +3912,7 @@ program gstats_summarize
     mata: __gtools_summarize_codes[6] = -4   // max
 
     if ( `kstats'> 6 ) {
-        // mata: __gtools_summarize_codes[1] = -902
+        // mata: __gtools_summarize_codes[1] = -298
         mata: __gtools_summarize_codes[7] = -3   // sd
         mata: __gtools_summarize_codes[8] = -203 // var, copy previous entry^2
     }
@@ -3996,15 +4014,15 @@ program gstats_tabstat
             if ( `"`meanonly'"' != "" ) {
                 disp as txt "({bf:warning}:option -meanonly- ignored)"
             }
-            local scode -903
+            local scode -297
             local kstats = 6
         }
         else if ( `"`meanonly'"' != "" ) {
-            local scode -901
+            local scode -299
             local kstats = 6
         }
         else if ( `"`detail'"' == "nodetail" ) {
-            local scode -902
+            local scode -298
             local kstats = 8
         }
         else {

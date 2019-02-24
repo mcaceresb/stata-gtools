@@ -25,6 +25,34 @@ set type double
 program main
     syntax, [NOIsily *]
 
+* TODO: xx
+* [X] new stats variance, sd, range, select#, select-# (gegen, gcollapse)
+*     [ ] doc
+*     [ ] expected failures
+*     [ ] (internal) range = max - min
+*     [ ] (internal) cv = sd / mean
+*     [ ] (internal) var = sd^2
+*     [ ] (internal) rawselect = select
+*     [ ] sort + check vs select
+*     [ ] test
+*     [ ] test w weights
+*     [ ] test w rawselect
+* [ ] new stats rawselect#, select-# (gegen, gcollapse)
+*     [ ] doc
+*     [ ] expected failures
+*     [ ] (internal) range = max - min
+*     [ ] (internal) cv = sd / mean
+*     [ ] (internal) var = sd^2
+*     [ ] (internal) rawselect = select rawselect
+*     [ ] sort + check vs select
+*     [ ] test
+*     [ ] test w weights
+*     [ ] test w rawselect
+* [ ] add selectoverflow(missing|closest) option
+* [ ] see ../plugin/stats/summarize.c
+* [ ] greshape foo (later)
+exit 999
+
 sysuse auto, clear
 
 gstats sum price       ,

@@ -337,11 +337,6 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
 // printf("\t%.1f\n", output[offset_output + l]);
                 }
 
-                // set rmsg on
-                // use /tmp/tmp, clear
-                // gstats sum rvar
-                // gstats sum *
-
                 // TODO: Before fiddling here; make sure the opts are being parsed correctly!!! debug the things
                 // TODO: select # broken with some N (maybe N < 1k?)
                 // TODO: Add select# and select-# to collapse
@@ -349,8 +344,6 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
                 // TODO: Add Var as a sepparate stat!
                 // TODO: Add _meanonly stat to compute N, sum_w, sum, mean, min, max in one fun vs 6 passes, code -900?
                 //       Have 901 and 903 be the same func; have 902 be a diff func that uses 901/903?
-                // TODO: Option -selectoverflow(missing|closest)-
-                // TODO: document in gegen
                 // TODO: columns(variables|stats|auto)
 
             }

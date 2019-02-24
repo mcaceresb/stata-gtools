@@ -49,9 +49,9 @@ __*Gtools commands with a Stata equivalent*__
 
 | Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
 | ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
-| gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
+| gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, labels, nunique, etc. |
 | greshape     | reshape    |  4 to 20  / 4 to 15      | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
-| gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
+| gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique, etc.       |
 | gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
 | gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
 | glevelsof    | levelsof   |  3 to 13  / 2 to 7       |                 | Multiple variables, arbitrary levels    |
@@ -278,7 +278,8 @@ Remarks
 
 `gcollapse` supports every `collapse` function, including their
 weighted versions. In addition, weights can be selectively applied via
-`rawstat()`, and `nunique` counts the number of unique values.
+`rawstat()`, and several additional statistics are allowed, including
+`nunique`, `select#`, and so on.
 
 `gegen` technically does not support all of `egen`, but whenever a
 function that is not supported is requested, `gegen` hashes the data and
@@ -294,19 +295,25 @@ Stata counterparts. The following are implemented internally in C:
 | tag         |           |   X     |
 | group       |           |   X     |
 | total       |           |   X     |
+| count       |     X     |   X     |
 | nunique     |     X     |   X     |
+| nmissing    |     X     |   X     |
 | sum         |     X     |   X     |
 | nansum      |     X     |   X     |
 | rawsum      |     X     |         |
 | rawnansum   |     X     |         |
 | mean        |     X     |   X     |
+| median      |     X     |   X     |
+| percentiles |     X     |   X     |
+| iqr         |     X     |   X     |
 | sd          |     X     |   X     |
+| variance    |     X     |   X     |
+| cv          |     X     |   X     |
 | max         |     X     |   X     |
 | min         |     X     |   X     |
-| count       |     X     |   X     |
-| nmissing    |     X     |   X     |
-| median      |     X     |   X     |
-| iqr         |     X     |   X     |
+| range       |     X     |   X     |
+| select      |     X     |   X     |
+| rawselect   |     X     |   X     |
 | percent     |     X     |   X     |
 | first       |     X     |   X (+) |
 | last        |     X     |   X (+) |
@@ -315,7 +322,6 @@ Stata counterparts. The following are implemented internally in C:
 | semean      |     X     |   X     |
 | sebinomial  |     X     |   X     |
 | sepoisson   |     X     |   X     |
-| percentiles |     X     |   X     |
 | skewness    |     X     |   X     |
 | kurtosis    |     X     |   X     |
 
@@ -332,9 +338,17 @@ gegen target = pctile(var), by(varlist) p(#)
 ```
 
 where # is a "percentile" with arbitrary decimal places (e.g. 2.5 or 97.5).
-Last, when `gegen` calls a function that is not implemented internally by
-`gtools`, it will hash the by variables and call `egen` with `by` set to an
-id based on the hash. That is, if `fcn` is not one of the functions above,
+`gtools` also supports selecting the `#`th smallest or largest non-missing value:
+```stata
+gcollapse (select#) target = var [(select-#) target = var ...] , by(varlist)
+gegen target = select(var), by(varlist) n(#)
+gegen target = select(var), by(varlist) n(-#)
+```
+
+Last, when `gegen` calls a function that is not implemented internally
+by `gtools`, it will hash the by variables and call `egen` with `by`
+set to an id based on the hash. That is, if `fcn` is not one of the
+functions above,
 
 ```stata
 gegen outvar = fcn(varlist) [if] [in], by(byvars)
@@ -356,9 +370,9 @@ Differences from `collapse`
 
 - String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- `nunique` is supported.
-- `nmissing` is supported.
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
 - `rawstat` allows selectively applying weights.
+- `rawselect` ignores weights for `select` (analogously to `rawsum`).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
@@ -412,7 +426,7 @@ Differences from `egen`
 
 - `group` label options are not supported
 - weights are supported for internally implemented functions.
-- `nunique` is supported.
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And

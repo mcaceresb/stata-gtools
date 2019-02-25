@@ -19,7 +19,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 // printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
 //     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
 // printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
-// 
+//
 //    return (17999);
 
     if ( st_info->wcode ) {
@@ -43,8 +43,9 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    ST_double z;
+    ST_double z, scode;
 
+    GT_int sth, snj;
     GT_size i, j, k, l;
     GT_size nj, nj_max, start, end, sel;
     GT_size offset_output,
@@ -70,6 +71,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_bulk", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -246,21 +248,22 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                 sel   = offset_source + st_info->pos_targets[k];
                 start = offset_buffer + nj * st_info->pos_targets[k];
                 end   = all_nonmiss[sel];
+                scode = statcode[k];
 
                 // If there is at least one non-missing observation, we store
                 // the result in output. If all observations are missing then
                 // we store Stata's special SV_missval
-                if ( statcode[k] == -6 ) { // count
+                if ( scode == -6 ) { // count
                     // If count, you just need to know how many non-missing obs there are
                     output[offset_output + k] = end;
                 }
-                else if ( statcode[k] == -14 ) { // freq
+                else if ( scode == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
-                else if ( statcode[k] == -22 ) { // nmissing
+                else if ( scode == -22 ) { // nmissing
                     output[offset_output + k] = nj - end;
                 }
-                else if ( statcode[k] == -7  ) { // percent
+                else if ( scode == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
                     // of non-missing values of that variable in the entire
@@ -268,27 +271,27 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                     // by this when writing to Stata.
                     output[offset_output + k] = 100 * ((ST_double) end / nmfreq[st_info->pos_targets[k]]);
                 }
-                else if ( statcode[k] == -10 ) { // first
+                else if ( scode == -10 ) { // first
                     // If first obs is missing, get first missing value that
                     // appeared; otherwise get first non-missing value
                     output[offset_output + k] = all_firstmiss[sel]? firstmiss[st_info->pos_targets[k]]: firstnm[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -11 ) { // firstnm
+                else if ( scode == -11 ) { // firstnm
                     // First non-missing is the first entry in the inputs buffer;
                     // this is only missing if all are missing.
                     output[offset_output + k] = firstnm[st_info->pos_targets[k]];
                 }
-                else if (statcode[k] == -12 ) { // last
+                else if (scode == -12 ) { // last
                     // If last obs is missing, get last missing value that
                     // appeared; otherwise get last non-missing value
                     output[offset_output + k] = all_lastmiss[sel]? lastmiss[st_info->pos_targets[k]]: lastnm[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -13 ) { // lastnm
+                else if ( scode == -13 ) { // lastnm
                     // Last non-missing is the last entry in the inputs buffer;
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -18 ) { // nunique
+                else if ( scode == -18 ) { // nunique
                     if ( (rc = gf_array_nunique_range (
                             output + offset_output + k,
                             all_buffer + start,
@@ -302,33 +305,53 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
                         )
                     ) ) return (rc);
                 }
+                else if ( scode > 1000 ) { // #th smallest (all-missing selects among missing)
+                    snj = (GT_int) (end > 0? end: nj);
+                    sth = (GT_int) (ceil(scode) - 1001);
+                    if ( sth < 0 || sth >= snj ) {
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else {
+                        output[offset_output + k] = gf_qselect_range(all_buffer, start, start + snj, sth);
+                    }
+                }
+                else if ( scode < -1000 ) { // #th largest (all-missing selects among missing)
+                    snj = (GT_int) (end > 0? end: nj);
+                    sth = (GT_int) (snj + 1000 + floor(scode));
+                    if ( sth < 0 || sth >= snj ) {
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else {
+                        output[offset_output + k] = gf_qselect_range(all_buffer, start, start + snj, sth);
+                    }
+                }
                 else if ( end == 0 ) { // no obs
                     // If everything is missing, write a missing value, Except for
                     // sum and rawsum, which go to 0 for some frankly bizarre reason
                     // (this is the behavior of collapse), and min/max (which pick
                     // out the min/max missing value).
-                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
+                    if ( (scode == -1) || (scode == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
-                    else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
+                    else if ( (scode == -4) || (scode == -5) ) { // min/max
                         // min/max handle missings b/c they only do comparisons
-                        output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + nj);
+                        output[offset_output + k] = gf_switch_fun_code (scode, all_buffer, start, start + nj);
                     }
                     else {
                         output[offset_output + k] = SV_missval;
                     }
                 }
-                else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                else if ( (scode == -3 || scode == -23 || scode == -24) &  (end < 2) ) { // sd, variance, cv
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }
-                else if ( (statcode[k] == -15) &  (end < 2) ) { // semean
+                else if ( (scode == -15) &  (end < 2) ) { // semean
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }
                 else { // etc
                     // Otherwise compute the requested summary stat
-                    output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    output[offset_output + k] = gf_switch_fun_code (scode, all_buffer, start, start + end);
                 }
             }
         }
@@ -386,8 +409,9 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    ST_double z;
+    ST_double z, scode;
 
+    GT_int sth, snj;
     GT_size i, j, k, l;
     GT_size nj, nj_max, start, end;
     GT_size offset_output,
@@ -412,6 +436,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -570,20 +595,22 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
             }
 
             for (k = 0; k < ktargets; k++) {
+                scode = statcode[k];
+
                 // If there is at least one non-missing observation, we store
                 // the result in output. If all observations are missing then
                 // we store Stata's special SV_missval
-                if ( statcode[k] == -6 ) { // count
+                if ( scode == -6 ) { // count
                     // If count, you just need to know how many non-missing obs there are
                     output[offset_output + k] = end;
                 }
-                else if ( statcode[k] == -14 ) { // freq
+                else if ( scode == -14 ) { // freq
                     output[offset_output + k] = nj * ksources;
                 }
-                else if ( statcode[k] == -22 ) { // nmissing
+                else if ( scode == -22 ) { // nmissing
                     output[offset_output + k] = nj * ksources - end;
                 }
-                else if ( statcode[k] == -7  ) { // percent
+                else if ( scode == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
                     // of non-missing values of that variable in the entire
@@ -591,28 +618,27 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                     // by this when writing to Stata.
                     output[offset_output + k] = 100 * ((ST_double) end / nmfreq[0]);
                 }
-                else if ( statcode[k] == -10 ) { // first
+                else if ( scode == -10 ) { // first
                     // If first obs is missing, get first missing value that
                     // appeared; otherwise get first non-missing value
                     output[offset_output + k] = all_firstmiss[j]? firstmiss[0]: firstnm[0];
                 }
-                else if ( statcode[k] == -11 ) { // firstnm
+                else if ( scode == -11 ) { // firstnm
                     // First non-missing is the first entry in the inputs buffer;
                     // this is only missing if all are missing.
                     output[offset_output + k] = firstnm[0];
                 }
-
-                else if (statcode[k] == -12 ) { // last
+                else if (scode == -12 ) { // last
                     // If last obs is missing, get last missing value that
                     // appeared; otherwise get last non-missing value
                     output[offset_output + k] = all_lastmiss[j]? lastmiss[0]: lastnm[0];
                 }
-                else if ( statcode[k] == -13 ) { // lastnm
+                else if ( scode == -13 ) { // lastnm
                     // Last non-missing is the last entry in the inputs buffer;
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[0];
                 }
-                else if ( statcode[k] == -18 ) { // nunique
+                else if ( scode == -18 ) { // nunique
                     if ( (rc = gf_array_nunique_range (
                             output + offset_output + k,
                             all_buffer + start,
@@ -626,33 +652,53 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
                         )
                     ) ) return (rc);
                 }
+                else if ( scode > 1000 ) { // #th smallest (all-missing selects among missing)
+                    snj = (GT_int) (end > 0? end: nj);
+                    sth = (GT_int) (ceil(scode) - 1001);
+                    if ( sth < 0 || sth >= snj ) {
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else {
+                        output[offset_output + k] = gf_qselect_range(all_buffer, start, start + snj, sth);
+                    }
+                }
+                else if ( scode < -1000 ) { // #th largest (all-missing selects among missing)
+                    snj = (GT_int) (end > 0? end: nj);
+                    sth = (GT_int) (snj + 1000 + floor(scode));
+                    if ( sth < 0 || sth >= snj ) {
+                        output[offset_output + k] = SV_missval;
+                    }
+                    else {
+                        output[offset_output + k] = gf_qselect_range(all_buffer, start, start + snj, sth);
+                    }
+                }
                 else if ( end == 0 ) { // no obs
                     // If everything is missing, write a missing value, Except for
                     // sum and rawsum, which go to 0 for some frankly bizarre reason
                     // (this is the behavior of collapse), and min/max (which pick
                     // out the min/max missing value).
-                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
+                    if ( (scode == -1) || (scode == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
-                    else if ( (statcode[k] == -4) || (statcode[k] == -5) ) { // min/max
+                    else if ( (scode == -4) || (scode == -5) ) { // min/max
                         // min/max handle missings b/c they only do comparisons
-                        output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + nj * ksources);
+                        output[offset_output + k] = gf_switch_fun_code (scode, all_buffer, start, start + nj * ksources);
                     }
                     else {
                         output[offset_output + k] = SV_missval;
                     }
                 }
-                else if ( (statcode[k] == -3) &  (end < 2) ) { // sd
+                else if ( (scode == -3 || scode == -23 || scode == -24) &  (end < 2) ) { // sd, variance, cv
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }
-                else if ( (statcode[k] == -15) &  (end < 2) ) { // semean
+                else if ( (scode == -15) &  (end < 2) ) { // semean
                     // Standard deviation requires at least 2 observations
                     output[offset_output + k] = SV_missval;
                 }
                 else { // etc
                     // Otherwise compute the requested summary stat
-                    output[offset_output + k] = gf_switch_fun_code (statcode[k], all_buffer, start, start + end);
+                    output[offset_output + k] = gf_switch_fun_code (scode, all_buffer, start, start + end);
                 }
             }
         }

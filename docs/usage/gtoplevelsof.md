@@ -19,7 +19,7 @@ counts and stores the levels in the macro `r(levels)`.
 Syntax
 ------
 
-<p><span class="codespan"><b>gtop</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
+<p><span class="codespan"><b><u>gtop</u>levelsof</b> varlist [if] [in] [weight] [, <a href="#options">options</a> ] </p>
 
 Instead of varlist, it is possible to specify
 

@@ -27,8 +27,9 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    ST_double z;
+    ST_double z, scode;
 
+    GT_int sth, rawsth, snj;
     GT_bool aweights = (st_info->wcode == 1);
     GT_size i, j, k, l;
     GT_size nj, nj_max, start, startw, end;
@@ -58,6 +59,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk_w", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -126,10 +128,10 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     ST_double *firstnm   = calloc(ksources, sizeof *firstnm);
     ST_double *lastnm    = calloc(ksources, sizeof *lastnm);
 
-    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
-    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
-    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk", "firstnm"));
-    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk", "lastnm"));
+    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk_w", "firstmiss"));
+    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk_w", "lastmiss"));
+    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk_w", "firstnm"));
+    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "lastnm"));
 
 
     /*********************************************************************
@@ -145,7 +147,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk_w", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;
@@ -249,18 +251,19 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                 startw   = j * ksources + st_info->pos_targets[k];
                 endwraw  = all_wsum[startw];
                 endw     = endwraw == SV_missval? 0: endwraw;
+                scode    = statcode[k];
 
                 // If there is at least one non-missing observation, we store
                 // the result in output. If all observations are missing then
                 // we store Stata's special SV_missval
-                if ( statcode[k] == -6 ) { // count
+                if ( scode == -6 ) { // count
                     // If count, you just need to know how many non-missing obs there are
                     output[offset_output + k] = aweights? all_xcount[startw]: endw;
                 }
-                else if ( statcode[k] == -14 ) { // freq
+                else if ( scode == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
-                else if ( statcode[k] == -22 ) { // nmissing
+                else if ( scode == -22 ) { // nmissing
                     // count number missing; freq - count only with aweights
                     if ( aweights )  {
                         output[offset_output + k] = nj - all_xcount[startw];
@@ -273,7 +276,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         );
                     }
                 }
-                else if ( statcode[k] == -7  ) { // percent
+                else if ( scode == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
                     // of non-missing values of that variable in the entire
@@ -281,23 +284,23 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     // by this when writing to Stata.
                     output[offset_output + k] = 100 * (endw / nmfreq[st_info->pos_targets[k]]);
                 }
-                else if ( statcode[k] == -10 ) { // first
+                else if ( scode == -10 ) { // first
                     output[offset_output + k] = firstmiss[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -11 ) { // firstnm
+                else if ( scode == -11 ) { // firstnm
                     // First non-missing is the first entry in the inputs buffer;
                     // this is only missing if all are missing.
                     output[offset_output + k] = firstnm[st_info->pos_targets[k]];
                 }
-                else if (statcode[k] == -12 ) { // last
+                else if (scode == -12 ) { // last
                     output[offset_output + k] = lastmiss[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -13 ) { // lastnm
+                else if ( scode == -13 ) { // lastnm
                     // Last non-missing is the last entry in the inputs buffer;
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -18 ) { // nunique
+                else if ( scode == -18 ) { // nunique
                     if ( (rc = gf_array_nunique_range (
                             output + offset_output + k,
                             all_buffer + start,
@@ -311,19 +314,73 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         )
                     ) ) return (rc);
                 }
+                else if ( scode > 1000 ) { // #th smallest
+                    sth = (GT_int) (floor(scode) - 1000);
+                    rawsth = (GT_int) (ceil(scode) - 1000);
+                    // switch to missing selection internally; only switch with unw
+                    if ( rawsth == sth ) {
+                        // if equal, do weighted; otherwise do raw
+                        output[offset_output + k] = gf_array_dselect_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight,
+                            (ST_double) sth,
+                            all_wsum[startw],
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                    else {
+                        output[offset_output + k] = gf_array_dselect_unweighted(
+                            all_buffer + start,
+                            nj,
+                            sth - 1,
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                }
+                else if ( scode < -1000 ) { // #th largest
+                    sth = (GT_int) (ceil(scode) + 1000);
+                    rawsth = (GT_int) (floor(scode) + 1000);
+                     // switch to missing selection internally; only switch with unw
+                    if ( rawsth == sth ) {
+                        // if equal, do weighted; otherwise do raw
+                        output[offset_output + k] = gf_array_dselect_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight,
+                            (ST_double) sth,
+                            all_wsum[startw],
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                    else {
+                        snj = (GT_int) (all_xcount[startw] > 0? all_xcount[startw]: nj);
+                        sth = (GT_int) (snj + 1000 + ceil(scode));
+                        output[offset_output + k] = gf_array_dselect_unweighted(
+                            all_buffer + start,
+                            nj,
+                            sth,
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                }
                 else if ( endwraw == SV_missval ) { // all missing values
                     // If everything is missing, write a missing value, Except for
                     // sum and rawsum, which go to 0 for some frankly bizarre reason
                     // (this is the behavior of collapse), and min/max (which pick
                     // out the min/max missing value).
-                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
+                    if ( (scode == -1) || (scode == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
-                    else if ( statcode[k] == -4 ) { // max
+                    else if ( scode == -4 ) { // max
                         // min/max handle missings b/c they only do comparisons
                         output[offset_output + k] = gf_array_dmax_range (all_buffer + start, 0, nj);
                     }
-                    else if ( statcode[k] == -5 ) { // min
+                    else if ( scode == -5 ) { // min
                         // min/max handle missings b/c they only do comparisons
                         output[offset_output + k] = gf_array_dmin_range (all_buffer + start, 0, nj);
                     }
@@ -334,7 +391,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                 else {
                     // Otherwise compute the requested summary stat
                     output[offset_output + k] = gf_switch_fun_code_w (
-                        statcode[k],
+                        scode,
                         all_buffer + start,
                         nj,
                         weights + offset_weight,
@@ -377,11 +434,12 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                 startw   = j * ksources + st_info->pos_targets[k];
                 endwraw  = all_wsum[startw];
                 endw     = endwraw == SV_missval? 0: endwraw;
+                scode    = statcode[k];
 
                 // If there is at least one non-missing observation, we store
                 // the result in output. If all observations are missing then
                 // we store Stata's special SV_missval
-                if ( statcode[k] == -6 ) { // count
+                if ( scode == -6 ) { // count
                     // If count, you just need to know how many non-missing obs there are
                     if ( st_info->wselmat[k] ) {
                         output[offset_output + k] = all_xcount[startw];
@@ -390,10 +448,10 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         output[offset_output + k] = aweights? all_xcount[startw]: endw;
                     }
                 }
-                else if ( statcode[k] == -14 ) { // freq
+                else if ( scode == -14 ) { // freq
                     output[offset_output + k] = nj;
                 }
-                else if ( statcode[k] == -22 ) { // nmissing
+                else if ( scode == -22 ) { // nmissing
                     // count number missing; freq - count only with aweights or with wselmat
                     if ( st_info->wselmat[k] || aweights )  {
                         output[offset_output + k] = nj - all_xcount[startw];
@@ -406,7 +464,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         );
                     }
                 }
-                else if ( statcode[k] == -7  ) { // percent
+                else if ( scode == -7  ) { // percent
                     // Percent outputs the % of all non-missing values of
                     // that variable in that group relative to the number
                     // of non-missing values of that variable in the entire
@@ -414,23 +472,23 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     // by this when writing to Stata.
                     output[offset_output + k] = 100 * (endw / nmfreq[st_info->pos_targets[k]]);
                 }
-                else if ( statcode[k] == -10 ) { // first
+                else if ( scode == -10 ) { // first
                     output[offset_output + k] = firstmiss[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -11 ) { // firstnm
+                else if ( scode == -11 ) { // firstnm
                     // First non-missing is the first entry in the inputs buffer;
                     // this is only missing if all are missing.
                     output[offset_output + k] = firstnm[st_info->pos_targets[k]];
                 }
-                else if (statcode[k] == -12 ) { // last
+                else if (scode == -12 ) { // last
                     output[offset_output + k] = lastmiss[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -13 ) { // lastnm
+                else if ( scode == -13 ) { // lastnm
                     // Last non-missing is the last entry in the inputs buffer;
                     // this is only missing is all are missing.
                     output[offset_output + k] = lastnm[st_info->pos_targets[k]];
                 }
-                else if ( statcode[k] == -18 ) { // nunique
+                else if ( scode == -18 ) { // nunique
                     if ( (rc = gf_array_nunique_range (
                             output + offset_output + k,
                             all_buffer + start,
@@ -444,19 +502,73 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                         )
                     ) ) return (rc);
                 }
+                else if ( scode > 1000 ) { // #th smallest
+                    sth = (GT_int) (floor(scode) - 1000);
+                    rawsth = (GT_int) (ceil(scode) - 1000);
+                    // switch to missing selection internally; only switch with unw
+                    if ( (st_info->wselmat[k] == 0) && rawsth == sth ) {
+                        // if equal, do weighted; otherwise do raw
+                        output[offset_output + k] = gf_array_dselect_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight,
+                            (ST_double) sth,
+                            all_wsum[startw],
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                    else {
+                        output[offset_output + k] = gf_array_dselect_unweighted(
+                            all_buffer + start,
+                            nj,
+                            sth - 1,
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                }
+                else if ( scode < -1000 ) { // #th largest
+                    sth = (GT_int) (ceil(scode) + 1000);
+                    rawsth = (GT_int) (floor(scode) + 1000);
+                    // switch to missing selection internally; only switch with unw
+                    if ( (st_info->wselmat[k] == 0) && rawsth == sth ) {
+                        // if equal, do weighted; otherwise do raw
+                        output[offset_output + k] = gf_array_dselect_weighted(
+                            all_buffer + start,
+                            nj,
+                            weights + offset_weight,
+                            (ST_double) sth,
+                            all_wsum[startw],
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                    else {
+                        snj = (GT_int) (all_xcount[startw] > 0? all_xcount[startw]: nj);
+                        sth = (GT_int) (snj + 1000 + ceil(scode));
+                        output[offset_output + k] = gf_array_dselect_unweighted(
+                            all_buffer + start,
+                            nj,
+                            sth,
+                            all_xcount[startw],
+                            p_buffer
+                        );
+                    }
+                }
                 else if ( endwraw == SV_missval ) { // all missing values
                     // If everything is missing, write a missing value, Except for
                     // sum and rawsum, which go to 0 for some frankly bizarre reason
                     // (this is the behavior of collapse), and min/max (which pick
                     // out the min/max missing value).
-                    if ( (statcode[k] == -1) || (statcode[k] == -21) ) { // sum and rawsum
+                    if ( (scode == -1) || (scode == -21) ) { // sum and rawsum
                         output[offset_output + k] = 0;
                     }
-                    else if ( statcode[k] == -4 ) { // max
+                    else if ( scode == -4 ) { // max
                         // min/max handle missings b/c they only do comparisons
                         output[offset_output + k] = gf_array_dmax_range (all_buffer + start, 0, nj);
                     }
-                    else if ( statcode[k] == -5 ) { // min
+                    else if ( scode == -5 ) { // min
                         // min/max handle missings b/c they only do comparisons
                         output[offset_output + k] = gf_array_dmin_range (all_buffer + start, 0, nj);
                     }
@@ -468,7 +580,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     // Otherwise compute the requested summary stat
                     if ( st_info->wselmat[k] ) {
                         output[offset_output + k] = gf_switch_fun_code_unw (
-                            statcode[k],
+                            scode,
                             all_buffer + start,
                             nj,
                             all_xcount[startw],
@@ -477,7 +589,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
                     }
                     else {
                         output[offset_output + k] = gf_switch_fun_code_w (
-                            statcode[k],
+                            scode,
                             all_buffer + start,
                             nj,
                             weights + offset_weight,

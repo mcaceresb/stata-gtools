@@ -61,6 +61,7 @@ program define gegen, byable(onecall) rclass
     gettoken args 0: 0, parse(" ,") match(par)
 
     if ( "`fcn'"   == "total" ) local fcn sum
+    if ( "`fcn'"   == "var"   ) local fcn variance
     if ( "`fcn'"   == "sem"   ) local fcn semean
     if ( "`fcn'"   == "seb"   ) local fcn sebinomial
     if ( "`fcn'"   == "sep"   ) local fcn sepoisson
@@ -84,8 +85,11 @@ program define gegen, byable(onecall) rclass
                 nansum     ///
                 mean       ///
                 sd         ///
+                variance   ///
+                cv         ///
                 max        ///
                 min        ///
+                range      ///
                 count      ///
                 median     ///
                 iqr        ///
@@ -97,8 +101,9 @@ program define gegen, byable(onecall) rclass
                 semean     ///
                 sebinomial ///
                 sepoisson  ///
-                pctile     ///
                 nunique    ///
+                pctile     ///
+                select     ///
                 nmissing   ///
                 skewness   ///
                 kurtosis
@@ -141,6 +146,7 @@ program define gegen, byable(onecall) rclass
                           _CTOLerance(passthru)    ///
                           compress                 ///
                           forcestrl                ///
+                          NODS DS                  /// Parse - as varlist (ds) or negative (nods)
                           BENCHmark                ///
                           BENCHmarklevel(passthru) ///
                           gtools_capture(str)
@@ -155,7 +161,7 @@ program define gegen, byable(onecall) rclass
             di as txt "`fcn'() is not a gtools function; will hash and use egen"
 
             local gopts `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
-            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel'
+            local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel' `ds' `nods'
 
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
             cap noi egen_fallback `if' `in', kwargs(`gopts') `popts' `options' `gtools_capture'
@@ -163,7 +169,9 @@ program define gegen, byable(onecall) rclass
         }
     }
 
-    gtools_timer on 97
+    FreeTimer
+    local t97: copy local FreeTimer
+    gtools_timer on `t97'
     global GTOOLS_CALLER gegen
 
     * Parse syntax call if function is known
@@ -178,6 +186,7 @@ program define gegen, byable(onecall) rclass
         by(str)                   /// Collapse by variabes: [+|-]varname [[+|-]varname ...]
                                   ///
         p(real 50)                /// Percentile to compute, #.# (only with pctile). e.g. 97.5
+        n(int 0)                  /// nth smallest to select (negative for largest)
                                   ///
         missing                   /// for group(), tag(); does not get rid of missing values
         counts(passthru)          /// for group(), tag(); create `counts' with group counts
@@ -187,6 +196,7 @@ program define gegen, byable(onecall) rclass
                                   ///
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
+        NODS DS                   /// Parse - as varlist (ds) or negative (nods)
         Verbose                   /// Print info during function execution
         _subtract                 /// (Undocumented) Subtract result from source variable
         _CTOLerance(passthru)     /// (Undocumented) Counting sort tolerance; default is radix
@@ -221,12 +231,35 @@ program define gegen, byable(onecall) rclass
 
     local bench = ( "`benchmark'" != "" )
 
+    if ( ("`ds'" != "") & ("`nods'" != "") ) {
+        di as err "-ds- and -nods- mutually exclusive"
+        exit 198
+    }
+
     * Parse weights
     * -------------
 
+    if ( `:list posof "variance" in fcn' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "variance not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "cv" in fcn' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "cv not allowed with pweights"
+            exit 135
+        }
+    }
     if ( `:list posof "sd" in fcn' > 0 ) {
         if ( `"`weight'"' == "pweight" ) {
             di as err "sd not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "select" in fcn' > 0 ) {
+        if ( inlist(`"`weight'"', "iweight") ) {
+            di as err "select not allowed with `weight's"
             exit 135
         }
     }
@@ -275,7 +308,7 @@ program define gegen, byable(onecall) rclass
         local quantbad = !( (`p' < 100) & (`p' > 0) )
         if ( `quantbad' ) {
             di as error "Invalid quantile: `p'; p() should be in (0, 100)"
-            cap timer clear 97
+            cap timer clear `t97'
             global GTOOLS_CALLER ""
             exit 110
         }
@@ -283,7 +316,26 @@ program define gegen, byable(onecall) rclass
     }
     else if ( `p' != 50  ) {
         di as err "Option {opt p()} not allowed"
-        cap timer clear 97
+        cap timer clear `t97'
+        global GTOOLS_CALLER ""
+        exit 198
+    }
+
+    * Parse selection
+    * ---------------
+
+    if ( "`fcn'" == "select" ) {
+        if ( `n' == 0 ) {
+            di as error "n() should be a positive or negative integer"
+            cap timer clear `t97'
+            global GTOOLS_CALLER ""
+            exit 110
+        }
+        local fcn select`n'
+    }
+    else if ( `n' != 0  ) {
+        di as err "Option {opt n()} not allowed"
+        cap timer clear `t97'
         global GTOOLS_CALLER ""
         exit 198
     }
@@ -343,7 +395,7 @@ program define gegen, byable(onecall) rclass
 
     local opts  `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts  `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts  `opts' `oncollision' `hashmethod'
+    local opts  `opts' `oncollision' `hashmethod' `ds' `nods'
     local sopts `counts'
 
     if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
@@ -353,7 +405,7 @@ program define gegen, byable(onecall) rclass
             di as txt "(weights are ignored for egen function {opt `fcn'})"
         }
 
-        gtools_timer info 97 `"Plugin setup"', prints(`bench') off
+        gtools_timer info `t97' `"Plugin setup"', prints(`bench') off
 
         if ( "`fcn'" == "tag" ) {
             local action tag(`type' `dummy') gfunction(hash) unsorted
@@ -436,6 +488,7 @@ program define gegen, byable(onecall) rclass
                               `_ctolerance'    ///
                               `compress'       ///
                               `forcestrl'      ///
+                              `nods' `ds'      ///
                               `benchmark'      ///
                               `benchmarklevel' ///
                               `gtools_capture'
@@ -590,7 +643,7 @@ program define gegen, byable(onecall) rclass
     * ---------------
 
     local unsorted = cond("`fill'" == "data", "", "unsorted")
-    gtools_timer info 97 `"Plugin setup"', prints(`bench') off
+    gtools_timer info `t97' `"Plugin setup"', prints(`bench') off
 
     `addvar'
     local action sources(`sources') `targets' `stats' fill(`fill') `counts' countmiss
@@ -610,6 +663,7 @@ program define gegen, byable(onecall) rclass
                           `_ctolerance'    ///
                           `compress'       ///
                           `forcestrl'      ///
+                          `nods' `ds'      ///
                           `benchmark'      ///
                           `benchmarklevel' ///
                           `gtools_capture'
@@ -691,6 +745,9 @@ program gtools_timer, rclass
     local timer `2'
     local msg   `"`3'; "'
 
+    * If timer is 0, then there were no free timers; skip this benchmark
+    if ( `timer' == 0 ) exit 0
+
     if ( inlist("`what'", "start", "on") ) {
         cap timer off `timer'
         cap timer clear `timer'
@@ -744,6 +801,22 @@ program parse_target_type, rclass
     if ( `=_N < maxlong()' & ("`anywgt'" == "") ) local retype_C long
     else local retype_C double
 
+    if ( `"`maxtype'"' == "byte" ) {
+        local retype_D int
+    }
+    else if ( `"`maxtype'"' == "int" ) {
+        local retype_D long
+    }
+    else if ( `"`maxtype'"' == "long" ) {
+        local retype_D double
+    }
+    else if ( `"`maxtype'"' == "float" ) {
+        local retype_D double
+    }
+    else if ( `"`maxtype'"' == "double" ) {
+        local retype_D double
+    }
+
     if ( "`fcn'" == "tag"        ) return local retype = "byte"
     if ( "`fcn'" == "group"      ) return local retype = "`retype_C'"
     if ( "`fcn'" == "total"      ) return local retype = "double"
@@ -751,8 +824,12 @@ program parse_target_type, rclass
     if ( "`fcn'" == "nansum"     ) return local retype = "double"
     if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "variance"   ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "cv"         ) return local retype = "`retype_B'"
     if ( "`fcn'" == "max"        ) return local retype = "`retype_A'"
     if ( "`fcn'" == "min"        ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "range"      ) return local retype = "`retype_D'"
+    if ( "`fcn'" == "select"     ) return local retype = "`retype_A'"
     if ( "`fcn'" == "count"      ) return local retype = "`retype_C'"
     if ( "`fcn'" == "median"     ) return local retype = "`retype_B'"
     if ( "`fcn'" == "iqr"        ) return local retype = "`retype_B'"
@@ -791,6 +868,7 @@ program collision_fallback
                       _CTOLerance(passthru)    ///
                       compress                 ///
                       forcestrl                ///
+                      NODS DS                  ///
                       BENCHmark                ///
                       BENCHmarklevel(passthru) ///
                       gtools_capture(str)
@@ -803,4 +881,16 @@ program collision_fallback
         }
     }
     egen `gtools_call', `options'
+end
+
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
 end

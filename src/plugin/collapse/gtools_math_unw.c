@@ -37,6 +37,9 @@ ST_double gf_switch_fun_code_unw (
     else if ( fcode == -20  ) return (gf_array_dkurt_unweighted    (v, N));                          // kurtosis
     else if ( fcode == -21  ) return (gf_array_drawsum_weighted    (v, N));                          // rawsum
     else if ( fcode == -121 ) return (gf_array_drawsum_weighted    (v, N));                          // rawsum (keepmissing)
+    else if ( fcode == -23  ) return ((vcount > 1)? gf_array_dvar_unweighted (v, N): SV_missval);    // variance
+    else if ( fcode == -24  ) return ((vcount > 1)? gf_array_dcv_unweighted  (v, N): SV_missval);    // cv
+    else if ( fcode == -25  ) return (gf_array_drange_weighted     (v, N));                          // range
     else {
         return (gf_array_dquantile_unweighted(v, N, fcode, p_buffer));  // percentiles
     }
@@ -113,6 +116,78 @@ ST_double gf_array_dsd_unweighted (
 
     if ( nobs > 1 ) {
         return (sqrt(vvar / (nobs - 1)));
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
+ * @brief Unweighted variance of entries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Variance of the elements of @v
+ */
+ST_double gf_array_dvar_unweighted (
+    ST_double *v,
+    GT_size N)
+{
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
+
+    ST_double *vptr;
+    ST_double vvar  = 0;
+    ST_double vmean = gf_array_dmean_unweighted (v, N);
+    GT_size   nobs  = 0;
+
+    for (vptr = v; vptr < v + N; vptr++) {
+        if ( *vptr < SV_missval ) {
+            vvar += SQUARE(*vptr - vmean);
+            nobs++;
+        }
+    }
+
+    if ( nobs > 1 ) {
+        return (vvar / (nobs - 1));
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
+ * @brief Unweighted coefficient of variation entries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Coefficient of variation of the elements of @v
+ */
+ST_double gf_array_dcv_unweighted (
+    ST_double *v,
+    GT_size N)
+{
+    if ( gf_array_dsame_unweighted(v, N) ) {
+        return (0);
+    }
+
+    ST_double *vptr;
+    ST_double vvar  = 0;
+    ST_double vmean = gf_array_dmean_unweighted (v, N);
+    GT_size   nobs  = 0;
+
+    if ( vmean == 0 ) return(SV_missval);
+
+    for (vptr = v; vptr < v + N; vptr++) {
+        if ( *vptr < SV_missval ) {
+            vvar += SQUARE(*vptr - vmean);
+            nobs++;
+        }
+    }
+
+    if ( nobs > 1 ) {
+        return (sqrt(vvar / (nobs - 1)) / vmean);
     }
     else {
         return (SV_missval);
@@ -361,3 +436,65 @@ ST_double gf_array_dquantile_unweighted (
     return (gf_array_dquantile_range(p_buffer, 0, vcount, quantile));
 }
 
+/**
+ * @brief Unweighted select of enries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param sth element to select
+ * @param p_buffer Buffer where to put a copy of v and w to sort
+ * @return Quantile of the elements of @v from @start to @end
+ */
+ST_double gf_array_dselect_unweighted (
+    ST_double *v,
+    GT_size   N,
+    GT_int    sth,
+    GT_size   end,
+    ST_double *p_buffer)
+{
+
+    GT_size   i;
+    GT_size   vcount = 0;
+    ST_double *vptr  = v;
+
+    if ( N == 1 ) {
+        return (*v);
+    }
+    else if ( sth < 0 ) {
+        return (SV_missval);
+    }
+    else if ( end == 0 && sth < N ) {
+        return (gf_qselect_range(v, 0, N, sth));
+    }
+    else if ( end > 0 && sth < end ) {
+        for (i = 0; i < N; i++, vptr++) {
+            if ( *vptr < SV_missval ) {
+                p_buffer[vcount] = *vptr;
+                vcount++;
+            }
+        }
+        if ( vcount == 0 ) {
+            return (gf_qselect_range(v, 0, N, sth));
+        }
+        else if ( sth < vcount ) {
+            return (gf_qselect_range(p_buffer, 0, vcount, sth));
+        }
+        else {
+            return (SV_missval);
+        }
+    }
+    else {
+        return (SV_missval);
+    }
+
+    // idea:
+    // quicksort_bsd(
+    //     p_buffer,
+    //     N,
+    //     sizeof(p_buffer),
+    //     xtileCompare,
+    //     NULL
+    // );
+    // memcpy(v, p_buffer, sizeof(v) * N);
+    // return(v[sth]);
+}

@@ -284,6 +284,18 @@ program gcollapse, rclass
     }
     else local awnote 0
 
+    if ( `:list posof "variance" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "variance not allowed with pweights"
+            exit 135
+        }
+    }
+    if ( `:list posof "cv" in __gtools_gc_uniq_stats' > 0 ) {
+        if ( `"`weight'"' == "pweight" ) {
+            di as err "cv not allowed with pweights"
+            exit 135
+        }
+    }
     if ( `:list posof "sd" in __gtools_gc_uniq_stats' > 0 ) {
         if ( `"`weight'"' == "pweight" ) {
             di as err "sd not allowed with pweights"
@@ -305,6 +317,12 @@ program gcollapse, rclass
     if ( `:list posof "sepoisson" in __gtools_gc_uniq_stats' > 0 ) {
         if ( inlist(`"`weight'"', "aweight", "iweight", "pweight") ) {
             di as err "sepoisson not allowed with `weight's"
+            exit 135
+        }
+    }
+    if ( regexm("^select", `"`__gtools_gc_uniq_stats'"') ) {
+        if ( inlist(`"`weight'"', "iweight") ) {
+            di as err "select not allowed with `weight's"
             exit 135
         }
     }
@@ -1084,8 +1102,11 @@ program parse_vars
                 nansum     /// if every entry is missing, output . instead of 0
                 mean       ///
                 sd         ///
+                variance   ///
+                cv         ///
                 max        ///
                 min        ///
+                range      ///
                 count      ///
                 median     ///
                 iqr        ///
@@ -1107,19 +1128,44 @@ program parse_vars
     * Parse quantiles
     local anyquant  = 0
     local quantiles : list __gtools_gc_uniq_stats - stats
+
     foreach quantile of local quantiles {
-        local quantbad = !regexm("`quantile'", "^p([0-9][0-9]?(\.[0-9]+)?)$")
-        if ( `quantbad' ) {
-            di as error "Invalid stat: (`quantile')"
-            error 110
+        if regexm("`quantile'", "rawselect") {
+            local select = regexm("`quantile'", "^rawselect(-|)([0-9]+)$")
+            if ( `select' == 0 ) {
+                di as error "Invalid stat: (`quantile'; did you mean rawselect# or rawselect-#?)"
+                error 110
+            }
+            else if ( `=regexs(2)' == 0 ) {
+                di as error "Invalid stat: (`quantile' not allowed; selection must be 1 or larger)"
+                error 110
+            }
         }
-        if ("`quantile'" == "p0") {
-            di as error "Invalid stat: (`quantile'; maybe you meant 'min'?)"
-            error 110
+        else if regexm("`quantile'", "select") {
+            local select = regexm("`quantile'", "^select(-|)([0-9]+)$")
+            if ( `select' == 0 ) {
+                di as error "Invalid stat: (`quantile'; did you mean select# or select-#?)"
+                error 110
+            }
+            else if ( `=regexs(2)' == 0 ) {
+                di as error "Invalid stat: (`quantile' not allowed; selection must be 1 or larger)"
+                error 110
+            }
         }
-        if ("`quantile'" == "p100") {
-            di as error "Invalid stat: (`quantile'; maybe you meant 'max'?)"
-            error 110
+        else {
+            local quantbad = !regexm("`quantile'", "^p([0-9][0-9]?(\.[0-9]+)?)$")
+            if ( `quantbad' ) {
+                di as error "Invalid stat: (`quantile')"
+                error 110
+            }
+            if ("`quantile'" == "p0") {
+                di as error "Invalid stat: (`quantile'; maybe you meant 'min'?)"
+                error 110
+            }
+            if ("`quantile'" == "p100") {
+                di as error "Invalid stat: (`quantile'; maybe you meant 'max'?)"
+                error 110
+            }
         }
     }
 
@@ -1352,9 +1398,28 @@ program parse_keep_drop, rclass
         local sumtype = "double"
 
         * I try to match Stata's types when possible
-        if regexm("`collstat'", "first|last|min|max") {
-            * First, last, min, max can preserve type, clearly
+        if regexm("`collstat'", "first|last|min|max|select|rawselect") {
+            * First, last, min, max, and select can preserve type, clearly
             local targettype: type `sourcevar'
+        }
+        else if regexm("`collstat'", "range") {
+            * Upgrade type by one
+            local targettype: type `sourcevar'
+            if ( `"`targettype'"' == "byte" ) {
+                local targettype int
+            }
+            else if ( `"`targettype'"' == "int" ) {
+                local targettype long
+            }
+            else if ( `"`targettype'"' == "long" ) {
+                local targettype double
+            }
+            else if ( `"`targettype'"' == "float" ) {
+                local targettype double
+            }
+            else if ( `"`targettype'"' == "double" ) {
+                local targettype double
+            }
         }
         else if ( inlist("`collstat'", "freq", "nunique") & ( `=_N < maxlong()' ) ) {
             * freqs can be long if we have fewer than 2^31 observations
@@ -1443,10 +1508,30 @@ program parse_ok_astarget, rclass
     local sourcetype  = "`:type `sourcevar''"
 
     * I try to match Stata's types when possible
-    if regexm("`stat'", "first|last|min|max") {
-        * First, last, min, max can preserve type, clearly
+    if regexm("`stat'", "first|last|min|max|select|rawselect") {
+        * First, last, min, max, and select can preserve type, clearly
         local targettype `sourcetype'
         local ok_astarget = 1
+    }
+    else if regexm("`stat'", "range") {
+        * Upgrade type by one
+        local ok_astarget = 0
+        if ( `"`sourcetype'"' == "byte" ) {
+            local targettype int
+        }
+        else if ( `"`sourcetype'"' == "int" ) {
+            local targettype long
+        }
+        else if ( `"`sourcetype'"' == "long" ) {
+            local targettype double
+        }
+        else if ( `"`sourcetype'"' == "float" ) {
+            local targettype double
+        }
+        else if ( `"`sourcetype'"' == "double" ) {
+            local targettype double
+            local ok_astarget = 1
+        }
     }
     else if ( "`double'" != "" ) {
         local targettype double
@@ -1635,8 +1720,11 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
     if ( `"`0'"' == "mean"        ) local prettystat "Mean"
     if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
+    if ( `"`0'"' == "variance"    ) local prettystat "Variance"
+    if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"
     if ( `"`0'"' == "max"         ) local prettystat "Max"
     if ( `"`0'"' == "min"         ) local prettystat "Min"
+    if ( `"`0'"' == "range"       ) local prettystat "Range"
     if ( `"`0'"' == "count"       ) local prettystat "Count"
     if ( `"`0'"' == "freq"        ) local prettystat "Group size"
     if ( `"`0'"' == "percent"     ) local prettystat "Percent"
@@ -1656,13 +1744,45 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
     if ( `"`0'"' == "rawnansum"   ) local prettystat "Unweighted sum"
 
-    if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
-        local p = `:di regexs(1)'
-             if ( mod(`p', 10) == 1 ) local prettystat "`p'st Pctile"
-        else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd Pctile"
-        else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd Pctile"
-        else                          local prettystat "`p'th Pctile"
+    local match = 0
+    if regexm(`"`0'"', "^rawselect(-|)([0-9]+)$") {
+        if ( `"`:di regexs(1)'"' == "-" ) {
+            local Pretty Largest (Unweighted)
+        }
+        else {
+            local Pretty Smallest (Unweighted)
+        }
+        local p = `=regexs(2)'
+        local match = 1
     }
+    else if regexm(`"`0'"', "^select(-|)([0-9]+)$") {
+        if ( `"`:di regexs(1)'"' == "-" ) {
+            local Pretty Largest
+        }
+        else {
+            local Pretty Smallest
+        }
+        local p = `=regexs(2)'
+        local match = 1
+    }
+    else if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
+        local p = `:di regexs(1)'
+        local Pretty Pctile
+        local match = 1
+    }
+
+    if ( `match' ) {
+        if ( inlist(substr(`"`p'"', -2, 2), "11", "12", "13") ) {
+            local prettystat "`s'th `Pretty'"
+        }
+        else {
+                 if ( mod(`p', 10) == 1 ) local prettystat "`p'st `Pretty'"
+            else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd `Pretty'"
+            else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd `Pretty'"
+            else                          local prettystat "`p'th `Pretty'"
+        }
+    }
+
     return local prettystat = `"`prettystat'"'
 end
 
@@ -1696,6 +1816,7 @@ program ParseListWild
             exit 198
         }
 
+        if ( "`stat'" == "var"  ) local stat variance
         if ( "`stat'" == "sem"  ) local stat semean
         if ( "`stat'" == "seb"  ) local stat sebinomial
         if ( "`stat'" == "sep"  ) local stat sepoisson
@@ -1772,9 +1893,17 @@ program define ParseList
         GetTarget target 0 : `0'
         gettoken vars 0 : 0
         unab vars : `vars'
+
+        * Must specify stat (if blank, we do the mean)
+        if ( "`stat'" == "" ) {
+            disp as err "option stat() requried"
+            exit 198
+        }
+
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 
+            if ( "`stat'" == "var"  ) local stat variance
             if ( "`stat'" == "sem"  ) local stat semean
             if ( "`stat'" == "seb"  ) local stat sebinomial
             if ( "`stat'" == "sep"  ) local stat sepoisson

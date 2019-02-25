@@ -152,6 +152,7 @@ Options
 
 - `values(varname)`   (Required) Store values in varname.
 - `keys(varname)`     Wide to long: varname, new variable to store variable names (default `_key`).
+- `uselabels`         Store variable labels instead of their names.
 
 **Spread only**
 

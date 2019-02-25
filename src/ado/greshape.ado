@@ -97,6 +97,7 @@ end
 * L | W | G
 * X | X | ReS_Xij
 * X | X | ReS_str
+* X |   | ReS_uselabels
 * X | X | ReS_i
 * X | X | ReS_j
 * X | X | ReS_jname
@@ -161,6 +162,7 @@ program define Long /* reshape long */
             KEYs(name)         /// varnames by levels -key()-
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
+            USELabels          /// Use labels as values instead of variable names
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -253,6 +255,7 @@ program define Long /* reshape long */
     }
 
     if ( `"`j'"' == "" ) local j _$ReS_jname
+    global ReS_uselabels = ( `"`uselabels'"' != "" )
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl `atwl'
     global ReS_Xij  `values'
@@ -915,6 +918,8 @@ program define FillvalW
     if ( _rc ) local substr substr
     else local substr bsubstr
 
+    tempname jlen
+    mata: `jlen' = 0
     if ( "$ReS_cmd" != "gather" ) {
         parse "$ReS_Xij", parse(" ")
         local i 1
@@ -980,7 +985,7 @@ program define FillvalW
             mata: __greshape_res = strofreal(__greshape_res)
         }
         else {
-            mata: SaveJValuesString(__greshape_res)
+            mata: (void) SaveJValuesString(__greshape_res, 0)
         }
         mata: __greshape_xijname = sort(uniqrows(__greshape_dsname[__greshape_sel]), 1)
     }
@@ -992,7 +997,7 @@ program define FillvalW
             disp as err "variable j contains all missing values"
             exit 498
         }
-        mata: SaveJValuesString(__greshape_res)
+        mata: `jlen' = SaveJValuesString(__greshape_res, ${ReS_uselabels}) - 1
         mata: __greshape_xijname = __greshape_res
     }
 
@@ -1017,7 +1022,7 @@ program define FillvalW
     scalar __greshape_ncols = .
 
     mata: st_global("ReS_jv",   invtokens(__greshape_res'))
-    mata: st_global("ReS_jlen", strofreal(max(strlen(__greshape_res))))
+    mata: st_global("ReS_jlen", strofreal(`jlen' > 0? `jlen': max(strlen(__greshape_res))))
 
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
@@ -1189,19 +1194,37 @@ void function SaveJValuesReal(real colvector res)
     fclose(fh)
 }
 
-void function SaveJValuesString(string colvector res)
+real scalar function SaveJValuesString(string colvector res, real scalar uselabels)
 {
     real scalar i, fh, max
-    string scalar fmt
+    string scalar fmt, vlbl
+    string colvector reslbl
     colvector C
+
     fh  = fopen(st_global("ReS_jfile"), "w")
     C   = bufio()
-    max = max(strlen(res)) + 1
-    fmt = sprintf("%%%gS", max)
-    for(i = 1; i <= rows(res); i++) {
-        fbufput(C, fh, fmt, res[i] + (max - strlen(res[i])) * char(0))
+    if ( uselabels ) {
+        reslbl = J(rows(res), 1, "")
+        for(i = 1; i <= rows(res); i++) {
+            vlbl = st_varlabel(res[i])
+            reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+        }
+        max = max(strlen(reslbl)) + 1
+        fmt = sprintf("%%%gS", max)
+        for(i = 1; i <= rows(reslbl); i++) {
+            fbufput(C, fh, fmt, reslbl[i] + (max - strlen(reslbl[i])) * char(0))
+        }
+    }
+    else {
+        max = max(strlen(res)) + 1
+        fmt = sprintf("%%%gS", max)
+        for(i = 1; i <= rows(res); i++) {
+            fbufput(C, fh, fmt, res[i] + (max - strlen(res[i])) * char(0))
+        }
     }
     fclose(fh)
+
+    return(max)
 }
 end
 
@@ -1232,6 +1255,7 @@ program define FillvalL
     if ( `:list sizeof ReS_j' > 1 ) local clean clean
     glevelsof $ReS_j, silent local(ReS_jv) cols(`"`ReS_jsep'"') group($ReS_jcode) missing `clean'
     scalar __greshape_klvls = `r(J)'
+    mata: st_global("ReS_jvraw", st_local("ReS_jv"))
 
     if ( ("$ReS_cmd" != "spread") | ($ReS_Xij_k > 1) ) {
         mata: __greshape_jv = strtoname("_" :+ tokens(st_local("ReS_jv"))')
@@ -1241,9 +1265,11 @@ program define FillvalL
         mata: __greshape_jv = strtoname(tokens(st_local("ReS_jv"))')
     }
 
+    * Not sure if blank selectindex is 1 by 0 or 0 by 1 or 0 by 0
     mata: __greshape_jv_ = selectindex(__greshape_jv :== "")
-    mata: st_numscalar("__greshape_jv_", rows(__greshape_jv_))
-    if ( scalar(__greshape_jv_) ) {
+    mata: st_numscalar("__greshape_jv_", /*
+        */ min((rows(__greshape_jv_), cols(__greshape_jv_))))
+    if ( `=scalar(__greshape_jv_)' ) {
         mata: __greshape_jv[__greshape_jv_] = J(1, rows(__greshape_jv_), "_")
     }
 
@@ -1254,7 +1280,7 @@ program define FillvalL
         exit 198
     }
 
-    * mata: SaveJValuesString(__greshape_jv)
+    * mata: (void) SaveJValuesString(__greshape_jv)
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
 
@@ -1543,6 +1569,7 @@ program define Macdrop
              ReS_nodupcheck    ///
              ReS_nomisscheck   ///
              ReS_atwl          ///
+             ReS_uselabels     ///
              ReS_i             ///
              ReS_iname         ///
              ReS_j             ///
@@ -1553,6 +1580,7 @@ program define Macdrop
              ReS_jlen          ///
              ReS_jv            ///
              ReS_jv2           ///
+             ReS_jvraw         ///
              ReS_str           ///
              ReS_Xi            ///
              S_1               ///
@@ -1993,18 +2021,20 @@ mata:
 transmorphic scalar LongToWideMetaSave(real scalar spread)
 {
     transmorphic scalar LongToWideMeta
-    string rowvector ReS_Xij,ReS_jv
+    string rowvector ReS_Xij,ReS_jv, ReS_jvraw
     string scalar newvar, var, lvl, fmt
     string matrix chars, _chars
     real scalar i, j, k
 
     LongToWideMeta = asarray_create()
-    fmt     = "%s[%s]"
-    ReS_Xij = tokens(st_global("ReS_Xij"))
-    ReS_jv  = tokens(st_global("ReS_jv"))
+    fmt       = "%s[%s]"
+    ReS_Xij   = tokens(st_global("ReS_Xij"))
+    ReS_jv    = tokens(st_global("ReS_jv"))
+    ReS_jvraw = tokens(st_global("ReS_jvraw"))
 
-    asarray(LongToWideMeta, "ReS_Xij", ReS_Xij)
-    asarray(LongToWideMeta, "ReS_jv",  ReS_jv)
+    asarray(LongToWideMeta, "ReS_Xij",   ReS_Xij)
+    asarray(LongToWideMeta, "ReS_jv",    ReS_jv)
+    asarray(LongToWideMeta, "ReS_jvraw", ReS_jvraw)
 
     // Keep labels, value labels, formats, and characteristics of
     // each source variable. All will be applied to (copied to) each
@@ -2015,6 +2045,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
         var = ReS_Xij[i]
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
+            lbl = ReS_jvraw[j]
             chars  = J(0, 2, "")
             _chars = st_dir("char", var, "*")
             newvar = spread? lvl: var + lvl
@@ -2024,7 +2055,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
                     st_global(sprintf(fmt, var, _chars[k]))
                 )
             }
-            asarray(LongToWideMeta, newvar + "lbl", lvl + " " + st_varlabel(var))
+            asarray(LongToWideMeta, newvar + "lbl", lbl + " " + st_varlabel(var))
             asarray(LongToWideMeta, newvar + "fmt", st_varformat(var))
             asarray(LongToWideMeta, newvar + "vlb", st_varvaluelabel(var))
             asarray(LongToWideMeta, newvar + "chr", chars)

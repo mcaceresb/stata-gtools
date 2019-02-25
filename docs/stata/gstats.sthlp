@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.4  23Jan2019}{...}
+{* *! version 0.2.0  25Feb2019}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}
@@ -30,7 +30,13 @@ the latest stable version.
 transformations, including:
 
 {p 8 17 2}
-{help gstats winsor} as a fast {opt winsor2} alternative (accepts weights). {p_end}
+{help gstats winsor:{bf:winsor}}
+as a fast {opt winsor2} alternative (accepts weights). {p_end}
+
+{p 8 17 2}
+{help gstats summarize:{bf:gstats {ul:sum}marize}} and
+{help gstats summarize:{bf:gstats {ul:tab}stat}} are fast,
+by-able alternatives to {opt summarize, detail} and {opt tabtsat} (accept weights). {p_end}
 
 {marker description}{...}
 {title:Description}
@@ -45,7 +51,7 @@ is written to be more flexible and allow arbitrary functions and
 transformations.
 
 {pstd}
-Weights are supported for the following subcommands: {it:winsor}.
+Weights are supported for the following subcommands: {it:winsor}, {it:summarize}.
 
 {marker author}{...}
 {title:Author}

@@ -20,7 +20,7 @@ the latest stable version.
 {title:Syntax}
 
 {p 8 14 2}
-{cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin} 
+{cmd:gegen} {dtype} {newvar} {cmd:=} {it:fcn}({it:arguments}) {ifin}
 [{it:{help gegen##weight:weight}}]
 [{cmd:,}
 {opt replace}
@@ -55,13 +55,13 @@ the latest stable version.
 {opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are
 allowed for the functions listed below and mimic {cmd:collapse} and
 {cmd:gcollapse}; see {help weight} and {help collapse##weights:Weights (collapse)}.
-{opt pweight}s may not be used with {opt sd}, {opt semean},
+{opt pweight}s may not be used with {opt sd}, {opt variance}, {opt cv}, {opt semean},
 {opt sebinomial}, or {opt sepoisson}. {opt iweight}s may not be used
 with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
 may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 
 {phang}
-Functions not listed here hash the data and then call {opt egen} with 
+Functions not listed here hash the data and then call {opt egen} with
 {opth by(varlist)} set to the hash, which is often faster than calling
 {opt egen} directly, but not always. Natively supported functions should
 always be faster, however. They are:
@@ -104,7 +104,7 @@ may not be combined with {cmd:by}.  It tags just 1 observation in each
 distinct group defined by {it:varlist}.  When all observations in a group have
 the same value for a summary variable calculated for the group, it will be
 sufficient to use just one value for many purposes.  The result will be 1 if
-the observation is tagged and never missing, and 0 otherwise. 
+the observation is tagged and never missing, and 0 otherwise.
 
 {pmore2}
 Note values for any observations excluded by either {helpb if} or {helpb in}
@@ -131,7 +131,7 @@ observations of {it:exp}.
         {opth iqr(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the interquartile range of
-{it:exp}.  Also see {help egen##pctile():{bf:pctile()}}.
+{it:exp}.  Also see {help gegen##pctile():{bf:pctile()}}.
 
         {opth max(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -148,24 +148,48 @@ creates a constant (within {it:varlist}) containing the mean of
         {opth median(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the median of
-{it:exp}.  Also see {help egen##pctile():{bf:pctile()}}.
+{it:exp}.  Also see {help gegen##pctile():{bf:pctile()}}.
 
         {opth min(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the minimum value
 of {it:exp}.
 
+        {opth range(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the value range of {it:exp}.
+
+{marker select()}{...}
+        {opth select(exp)} {cmd:, n(}{it:#}|{it:-#}{cmd:)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the {it:#}th smallest
+value of {it:exp}. To compute the {it:#}th largest
+value, prefix a negative sign, {it:-#}. Note that without weights,
+{opt n(1)} and {opt n(-1)} will give the same value as {opt min} and
+{opt max}, respectively.
+
 {marker pctile()}{...}
         {opth pctile(exp)} [{cmd:, p(}{it:#}{cmd:)}]{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the {it:#}th percentile
 of {it:exp}.  If {opt p(#)} is not specified, 50 is assumed, meaning medians.
-Also see {help egen##median():{bf:median()}}.
+Also see {help gegen##median():{bf:median()}}.
 
         {opth sd(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the standard
-deviation of {it:exp}.  Also see {help egen##mean():{bf:mean()}}.
+deviation of {it:exp}.  Also see {help gegen##mean():{bf:mean()}}.
+
+        {opth variance(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the variance
+of {it:exp}.  Also see {help gegen##sd():{bf:sd()}}.
+
+        {opth cv(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the coefficient
+of variation of {it:exp}; {opt sd/mean}.  Also see {help gegen##sd():{bf:sd()}} and
+{help gegen##mean():{bf:mean()}}.
 
         {opth percent(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
@@ -203,7 +227,7 @@ creates a constant (within {it:varlist}) containing the kurtosis of {it:exp}
 creates a constant (within {it:varlist}) containing the sum of {it:exp}
 treating missing as 0.  If {opt missing} is specified and all values in
 {it:exp} are missing, {it:newvar} is set to missing.  Also see
-{help egen##mean():{bf:mean()}}.
+{help gegen##mean():{bf:mean()}}.
 
 {marker description}{...}
 {title:Description}
@@ -307,11 +331,11 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {p 4 13 2}
-help for 
-{help gcollapse}, 
+help for
+{help gcollapse},
 {help gtools};
-{help fegen} (if installed), 
-{help fcollapse} (if installed), 
+{help fegen} (if installed),
+{help fcollapse} (if installed),
 {help ftools} (if installed)
 p_end}
 

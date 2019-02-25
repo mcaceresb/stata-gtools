@@ -162,8 +162,9 @@ program checks_inner_egen
     syntax [anything] [aw fw iw pw], [*]
 
     local percentiles 1 10 30.5 50 70.5 90 99
-    local stats nunique nmissing total sum mean max min count median iqr percent first last firstnm lastnm skew kurt
-    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd
+    local selections  1 2 5 999999 -999999 -5 -2 -1
+    local stats nunique nmissing total sum mean max min range count median iqr percent first last firstnm lastnm skew kurt
+    if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
@@ -179,6 +180,15 @@ program checks_inner_egen
         `noisily' gegen `gvar' = pctile(random1) `wgt', p(`p') by(`anything') replace `options'
         if ( "`weight'" == "" ) {
         `noisily' gegen `gvar' = pctile(random*) `wgt', p(`p') by(`anything') replace `options'
+        }
+    }
+
+    if ( !inlist("`weight'", "iweight") ) {
+        foreach n in `selections' {
+            `noisily' gegen `gvar' = select(random1) `wgt', n(`n') by(`anything') replace `options'
+            if ( "`weight'" == "" ) {
+            `noisily' gegen `gvar' = select(random*) `wgt', n(`n') by(`anything') replace `options'
+            }
         }
     }
 

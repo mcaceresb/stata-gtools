@@ -11,8 +11,16 @@ ST_double gf_switch_fun_code_unw (
 
 ST_double gf_array_dquantile_unweighted (
     ST_double *v,
-    GT_size N,
+    GT_size   N,
     ST_double quantile,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dselect_unweighted (
+    ST_double *v,
+    GT_size   N,
+    GT_int    sth,
+    GT_size   end,
     ST_double *p_buffer
 );
 
@@ -28,6 +36,16 @@ ST_double gf_array_dmean_unweighted (
 );
 
 ST_double gf_array_dsd_unweighted (
+    ST_double *v,
+    GT_size N
+);
+
+ST_double gf_array_dvar_unweighted (
+    ST_double *v,
+    GT_size N
+);
+
+ST_double gf_array_dcv_unweighted (
     ST_double *v,
     GT_size N
 );

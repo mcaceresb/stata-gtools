@@ -30,6 +30,52 @@ ST_double gf_array_dsd_range (const ST_double v[], const GT_size start, const GT
 }
 
 /**
+ * @brief Variance of entries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Variance of the elements of @v from @start to @end
+ */
+ST_double gf_array_dvar_range (const ST_double v[], const GT_size start, const GT_size end) {
+    if ( gf_array_dsame(v + start, end - start) ) {
+        return (0);
+    }
+
+    GT_size i;
+    ST_double vvar  = 0;
+    ST_double vmean = gf_array_dmean_range(v, start, end);
+    for (i = start; i < end; i++)
+        vvar += SQUARE(v[i] - vmean);
+
+    return (vvar / (end - start - 1));
+}
+
+/**
+ * @brief Coefficient of variation of the entries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Coefficient of variation of the elements of @v from @start to @end
+ */
+ST_double gf_array_dcv_range (const ST_double v[], const GT_size start, const GT_size end) {
+    if ( gf_array_dsame(v + start, end - start) ) {
+        return (0);
+    }
+
+    GT_size i;
+    ST_double vvar  = 0;
+    ST_double vmean = gf_array_dmean_range(v, start, end);
+    if ( vmean == 0 ) return(SV_missval);
+
+    for (i = start; i < end; i++)
+        vvar += SQUARE(v[i] - vmean);
+
+    return (sqrt(vvar / (end - start - 1)) / vmean);
+}
+
+/**
  * @brief Mean of enries in range of array
  *
  * @param v vector of doubles containing the current group's variables
@@ -92,6 +138,26 @@ ST_double gf_array_dmax_range (const ST_double v[], const GT_size start, const G
         if (max < v[i]) max = v[i];
     }
     return (max);
+}
+
+/**
+ * @brief Range of enries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Range of the elements of @v from @start to @end
+ */
+ST_double gf_array_drange_range (const ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double min = v[start];
+    ST_double max = v[start];
+    for (i = start + 1; i < end; ++i) {
+        if (min > v[i]) min = v[i];
+        if (max < v[i]) max = v[i];
+    }
+    return (max - min);
 }
 
 /**
@@ -391,6 +457,9 @@ ST_double gf_code_fun (char * fname)
     else if ( strcmp (fname, "kurtosis")   == 0 ) return (-20);  // kurtosis
     else if ( strcmp (fname, "rawsum")     == 0 ) return (-21);  // rawsum
     else if ( strcmp (fname, "rawnansum")  == 0 ) return (-121); // rawsum (keepmissing)
+    else if ( strcmp (fname, "variance")   == 0 ) return (-23);  // variance
+    else if ( strcmp (fname, "cv")         == 0 ) return (-24);  // cv
+    else if ( strcmp (fname, "range")      == 0 ) return (-25);  // range
     else {                                                       
         ST_double q = (ST_double) atof(fname);                   // quantile
         return (q > 0? q: 0);
@@ -424,6 +493,9 @@ ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size star
     else if ( fcode == -20  ) return (gf_array_dkurt_range    (v, start, end)); // kurtosis
     else if ( fcode == -21  ) return (gf_array_dsum_range     (v, start, end)); // rawsum
     else if ( fcode == -121 ) return (gf_array_dsum_range     (v, start, end)); // rawsum (keepmissing)
+    else if ( fcode == -23  ) return (gf_array_dvar_range     (v, start, end)); // variance
+    else if ( fcode == -24  ) return (gf_array_dcv_range      (v, start, end)); // cv
+    else if ( fcode == -25  ) return (gf_array_drange_range   (v, start, end)); // range
     else {
         return (gf_array_dquantile_range(v, start, end, fcode));                // percentiles
     }

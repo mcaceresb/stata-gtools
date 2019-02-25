@@ -47,6 +47,8 @@ additionally accepts weights. {p_end}
 {p_end}
 {synopt :{opt replace}} Replace targets if they exist.
 {p_end}
+{synopt :{opt nomiss:ing}} With {opt by()}, ignore groups with missing entries.
+{p_end}
 
 {syntab:Gtools Options}
 {synopt :{opt compress}}Try to compress strL to str#.

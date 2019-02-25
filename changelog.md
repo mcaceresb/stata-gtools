@@ -1,6 +1,43 @@
 Change Log
 ==========
 
+## gtools-1.4.1 (2019-02-24)
+
+### Features
+
+- `gstats sum` and `gstats tab` (alias `gstats summarize` and
+  `gstats tabstat`) are a fast, by-able alternative to `sum, detail`
+  and `tabstat`
+
+- `gstats sum` or `gstats tab` with option `matasave` stores the output and
+  by levels in `GstatsOutput`, an object of class `GtoolsResults`.
+
+- `gcollapse` and `gegen` now allow the stats:
+    - `select#`, `#`th smallest value (`select1` is the same as `min`)
+    - `select-#`, `#`th largest value (`select-1` is the same as `max`)
+    - `rawselect#` and `rawselect-#`, ibid but ignoring weights.
+    - `cv`, coefficient of variation, `sd/mean`
+    - `variance`
+    - `range`, `max` - `min`
+
+### Bug fixes
+
+- `gcollapse` no longer crashes when `rawstat` does not match any entries.
+- Fixes #54; incorrect checking for `greshape wide/spread` blank keys
+- Fixes #55; allows `uselabels` to use labels as balues in `greshape gather`
+
+### Enhancements
+
+- `lgtools.mlib` added with come pre-compiled mata functios.
+
+## gtools-1.3.5 (2019-02-19)
+
+### Enhancements
+
+- In `greshape`, levels of `key()`/`j()` are now saved _before_ being
+  converted to variable names, meaning the labels preserve the names
+  of the levels (up to the maximum variable label length in Stata).
+
 ## gtools-1.3.4 (2019-02-17)
 
 ### Bug fixes
@@ -124,7 +161,7 @@ Change Log
 
 - Improved variable parsing in general.
 - Error message when variable not found now explicit.
-- If `-` is found, warning message noting the default is to 
+- If `-` is found, warning message noting the default is to
   interpret that as negative, not part of a varlist.
 - `ds` and `nods` control parsing options for `-`
 
@@ -664,7 +701,7 @@ requests them with weights, the weighted version will still be called
 - OSX version; fixes https://github.com/mcaceresb/stata-gtools/issues/11
 - `gisid` now sient w/o benchmark or verbose; fixes https://github.com/mcaceresb/stata-gtools/issues/20
 - Added quotes to `cd cwd` in `gtools`; fixes https://github.com/mcaceresb/stata-gtools/issues/22
-- `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23 
+- `gcontract` available; fixes https://github.com/mcaceresb/stata-gtools/issues/23
 
 ------------------------------------------------------------------------
 

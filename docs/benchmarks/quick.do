@@ -99,6 +99,14 @@ bench 65: qui distinct groups
 bench 71: qui gstats winsor rvar, s(_wg)
 bench 70: qui winsor2 groups
 
+bench 76: qui gstats sum rvar
+bench 75: qui sum rvar, detail
+
+gen smallg = mod(groups, 10)
+
+bench 81: qui gstats tab rvar, by(smallg) s(n mean min max)
+bench 80: qui tabstat rvar,    by(smallg) s(n mean min max)
+
 local commands     ///
         collapse   ///
         collapse   ///
@@ -112,11 +120,13 @@ local commands     ///
         duplicates ///
         levelsof   ///
         distinct   ///
-        winsor
+        winsor     ///
+        sum_detail ///
+        tabstat
 
 local bench_table `"     Versus | Native | gtools | % faster "'
 local bench_table `"`bench_table'"' _n(1) `" ---------- | ------ | ------ | -------- "'
-forvalues i = 10(5)70 {
+forvalues i = 10(5)80 {
     gettoken cmd commands: commands
     local pct      "`:disp %7.2f  100 * (`r`i'' - `r`=`i'+1'') / `r`i'''"
     local dnative  "`:disp %6.2f `r`i'''"

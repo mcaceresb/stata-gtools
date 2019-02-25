@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sun Feb 17 12:39:58 EST 2019
+# Updated: Sun Feb 24 17:55:30 EST 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -82,6 +82,11 @@ parser.add_argument('--clean',
                     action   = 'store_true',
                     help     = "Clean build",
                     required = False)
+parser.add_argument('--no-compile',
+                    dest     = 'no_compile',
+                    action   = 'store_false',
+                    help     = "do not re-compile",
+                    required = False)
 parser.add_argument('--replace',
                     dest     = 'replace',
                     action   = 'store_true',
@@ -99,6 +104,8 @@ args = vars(parser.parse_args())
 
 gtools_ssc = [
     "_gtools_internal.ado",
+    "_gtools_internal.mata",
+    "lgtools.mlib",
     "gcollapse.ado",
     "gcontract.ado",
     "gegen.ado",
@@ -127,6 +134,9 @@ gtools_ssc = [
     "greshape.sthlp",
     "gstats.sthlp",
     "gstats_winsor.sthlp",
+    "gstats_tab.sthlp",
+    "gstats_sum.sthlp",
+    "gstats_summarize.sthlp",
     "gduplicates.sthlp",
     "gquantiles.sthlp",
     "fasterxtile.sthlp",
@@ -150,6 +160,7 @@ gtools_build = gtools_zip + [
 # Remove buld
 # -----------
 
+rc = 0
 if args['clean']:
     print("Removing build files")
     for bfile in gtools_build:
@@ -163,8 +174,10 @@ if args['clean']:
             except:
                 print("\t" + bfile + " not found")
 
-    rc = system("make clean SPI=2.0 SPIVER=v2")
-    rc = system("make clean SPI=3.0 SPIVER=v3")
+    if args['no_compile']:
+        rc = system("make clean SPI=2.0 SPIVER=v2")
+        rc = system("make clean SPI=3.0 SPIVER=v3")
+
     exit(0)
 
 makedirs_safe(path.join("build", "gtools"))
@@ -196,20 +209,77 @@ else:
 
 maindir   = path.dirname(path.realpath(__file__))
 tmpdir    = gettempdir()
+tmpfile   = path.join(tmpdir, ".compile_lgtools.do")
 tmpupdate = path.join(tmpdir, ".update_gtools.do")
+
+# Compile mlib files
+# ------------------
+
+matafiles = [path.join("src", "ado", "_gtools_internal.mata")]
+with open(path.join("build", "gtools", "gtools.mata"), 'w') as outfile:
+    for mfile in matafiles:
+        with open(mfile) as infile:
+            outfile.write(infile.read())
+
+
+if which(stataexe):
+    with open(tmpfile, 'w') as f:
+        f.write("global maindir {0}".format(maindir))
+        f.write(linesep)
+        f.write("mata: mata set matastrict on")
+        f.write(linesep)
+        f.write("mata: mata set mataoptimize on")
+        f.write(linesep)
+        f.write('cd "${maindir}/build/gtools"')
+        f.write(linesep)
+        f.write("do gtools.mata")
+        f.write(linesep)
+        f.write("mata")
+        f.write(linesep)
+        f.write('mata mlib create lgtools, dir("${maindir}/build/gtools") replace')
+        f.write(linesep)
+        f.write("mata mlib add lgtools Gtools*()")
+        f.write(linesep)
+        f.write("end")
+        f.write(linesep)
+
+    chdir(statadir)
+    system(statado + " " + tmpfile)
+    print("Compiled lgtools.mlib")
+    chdir(maindir)
+
+    copy2(
+        path.join("build", "gtools", "lgtools.mlib"),
+        path.join("lib",   "plugin", "lgtools.mlib")
+    )
+else:
+    copy2(
+        path.join("lib",   "plugin", "lgtools.mlib"),
+        path.join("build", "gtools", "lgtools.mlib")
+    )
+
+if not path.isfile(path.join("build", "gtools", "lgtools.mlib")):
+    print("ERROR: Failed to compile build/gtools/lgtools.mlib")
+    exit(-1)
+else:
+    print("Found build/gtools/lgtools.mlib")
+
+print("")
+
 
 # Compile plugin files
 # --------------------
 
-if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
-    print("Trying to compile plugins for -gtools-")
-    make_flags = args['make_flags'][0] if args['make_flags'] is not None else ""
-    rc = system("make all SPI=2.0 SPIVER=v2 {0}".format(make_flags))
-    rc = system("make all SPI=3.0 SPIVER=v3 {0}".format(make_flags))
-    print("Success!" if rc == 0 else "Failed.")
-else:
-    print("Don't know platform '{0}'; compile manually.".format(platform))
-    exit(198)
+if args['no_compile']:
+    if platform in ["linux", "linux2", "win32", "cygwin", "darwin"]:
+        print("Trying to compile plugins for -gtools-")
+        make_flags = args['make_flags'][0] if args['make_flags'] is not None else ""
+        rc = system("make all SPI=2.0 SPIVER=v2 {0}".format(make_flags))
+        rc = system("make all SPI=3.0 SPIVER=v3 {0}".format(make_flags))
+        print("Success!" if rc == 0 else "Failed.")
+    else:
+        print("Don't know platform '{0}'; compile manually.".format(platform))
+        exit(198)
 
 print("")
 
@@ -255,41 +325,55 @@ copy2(
     path.join("docs", "stata", "fasterxtile.sthlp")
 )
 
-copy2(path.join("docs", "stata", "gcollapse.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gcontract.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gegen.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "gunique.sthlp"),       gdir)
-copy2(path.join("docs", "stata", "gdistinct.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "glevelsof.sthlp"),     gdir)
-copy2(path.join("docs", "stata", "gtop.sthlp"),          gdir)
-copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),  gdir)
-copy2(path.join("docs", "stata", "gisid.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "greshape.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gstats.sthlp"),        gdir)
-copy2(path.join("docs", "stata", "gstats_winsor.sthlp"), gdir)
-copy2(path.join("docs", "stata", "gduplicates.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "gquantiles.sthlp"),    gdir)
-copy2(path.join("docs", "stata", "fasterxtile.sthlp"),   gdir)
-copy2(path.join("docs", "stata", "hashsort.sthlp"),      gdir)
-copy2(path.join("docs", "stata", "gtools.sthlp"),        gdir)
+copy2(
+    path.join("docs", "stata", "gstats_summarize.sthlp"),
+    path.join("docs", "stata", "gstats_sum.sthlp")
+)
 
-copy2(path.join("src", "ado", "_gtools_internal.ado"), gdir)
-copy2(path.join("src", "ado", "gcollapse.ado"),        gdir)
-copy2(path.join("src", "ado", "gcontract.ado"),        gdir)
-copy2(path.join("src", "ado", "gegen.ado"),            gdir)
-copy2(path.join("src", "ado", "gunique.ado"),          gdir)
-copy2(path.join("src", "ado", "gdistinct.ado"),        gdir)
-copy2(path.join("src", "ado", "glevelsof.ado"),        gdir)
-copy2(path.join("src", "ado", "gtop.ado"),             gdir)
-copy2(path.join("src", "ado", "gtoplevelsof.ado"),     gdir)
-copy2(path.join("src", "ado", "gisid.ado"),            gdir)
-copy2(path.join("src", "ado", "greshape.ado"),         gdir)
-copy2(path.join("src", "ado", "gstats.ado"),           gdir)
-copy2(path.join("src", "ado", "gduplicates.ado"),      gdir)
-copy2(path.join("src", "ado", "gquantiles.ado"),       gdir)
-copy2(path.join("src", "ado", "fasterxtile.ado"),      gdir)
-copy2(path.join("src", "ado", "hashsort.ado"),         gdir)
-copy2(path.join("src", "ado", "gtools.ado"),           gdir)
+copy2(
+    path.join("docs", "stata", "gstats_summarize.sthlp"),
+    path.join("docs", "stata", "gstats_tab.sthlp")
+)
+
+copy2(path.join("docs", "stata", "gcollapse.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gcontract.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gegen.sthlp"),            gdir)
+copy2(path.join("docs", "stata", "gunique.sthlp"),          gdir)
+copy2(path.join("docs", "stata", "gdistinct.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "glevelsof.sthlp"),        gdir)
+copy2(path.join("docs", "stata", "gtop.sthlp"),             gdir)
+copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),     gdir)
+copy2(path.join("docs", "stata", "gisid.sthlp"),            gdir)
+copy2(path.join("docs", "stata", "greshape.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
+copy2(path.join("docs", "stata", "gstats_winsor.sthlp"),    gdir)
+copy2(path.join("docs", "stata", "gstats_summarize.sthlp"), gdir)
+copy2(path.join("docs", "stata", "gstats_sum.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gstats_tab.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gduplicates.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "gquantiles.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "fasterxtile.sthlp"),      gdir)
+copy2(path.join("docs", "stata", "hashsort.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gtools.sthlp"),           gdir)
+
+copy2(path.join("src", "ado", "_gtools_internal.ado"),  gdir)
+copy2(path.join("src", "ado", "_gtools_internal.mata"), gdir)
+copy2(path.join("src", "ado", "gcollapse.ado"),         gdir)
+copy2(path.join("src", "ado", "gcontract.ado"),         gdir)
+copy2(path.join("src", "ado", "gegen.ado"),             gdir)
+copy2(path.join("src", "ado", "gunique.ado"),           gdir)
+copy2(path.join("src", "ado", "gdistinct.ado"),         gdir)
+copy2(path.join("src", "ado", "glevelsof.ado"),         gdir)
+copy2(path.join("src", "ado", "gtop.ado"),              gdir)
+copy2(path.join("src", "ado", "gtoplevelsof.ado"),      gdir)
+copy2(path.join("src", "ado", "gisid.ado"),             gdir)
+copy2(path.join("src", "ado", "greshape.ado"),          gdir)
+copy2(path.join("src", "ado", "gstats.ado"),            gdir)
+copy2(path.join("src", "ado", "gduplicates.ado"),       gdir)
+copy2(path.join("src", "ado", "gquantiles.ado"),        gdir)
+copy2(path.join("src", "ado", "fasterxtile.ado"),       gdir)
+copy2(path.join("src", "ado", "hashsort.ado"),          gdir)
+copy2(path.join("src", "ado", "gtools.ado"),            gdir)
 
 # Copy files to .zip folder in ./releases
 # ---------------------------------------

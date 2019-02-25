@@ -49,8 +49,16 @@ in IC and 4-120 times faster in MP), with several additions.
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
+{p2col :{opt count}}number of nonmissing observations{p_end}
+{p2col :{opt nmissing}}number of missing observations{p_end}
+{p2col :{opt percent}}percentage of nonmissing observations{p_end}
 {p2col :{opt nunique}}number of unique elements{p_end}
-{p2col :{opt median}}medians{p_end}
+{p2col :{opt sum}}sums{p_end}
+{p2col :{opt rawsum}}sums, ignoring optionally specified weights ({bf:note}: zero-weighted obs are still excluded){p_end}
+{p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt median}}medians (same as {opt p50}){p_end}
+{p2col :{opt p#.#}}arbitrary quantiles{p_end}
 {p2col :{opt p1}}1st percentile{p_end}
 {p2col :{opt p2}}2nd percentile{p_end}
 {p2col :{it:...}}3rd{hline 1}49th percentiles{p_end}
@@ -58,27 +66,26 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{it:...}}51st{hline 1}97th percentiles{p_end}
 {p2col :{opt p98}}98th percentile{p_end}
 {p2col :{opt p99}}99th percentile{p_end}
-{p2col :{opt p1-99.#}}arbitrary quantiles{p_end}
-{p2col :{opt sum}}sums{p_end}
-{p2col :{opt rawsum}}sums, ignoring optionally specified weight except observations with a weight of zero are excluded{p_end}
-{p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
-{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt iqr}}interquartile range{p_end}
 {p2col :{opt sd}}standard deviation{p_end}
+{p2col :{opt var:iance}}variance{p_end}
+{p2col :{opt cv}}coefficient of variation ({cmd:sd/mean}){p_end}
+{p2col :{opt select#}}#th smallest{p_end}
+{p2col :{opt select-#}}#th largest{p_end}
+{p2col :{opt rawselect#}}#th smallest, ignoring weights{p_end}
+{p2col :{opt rawselect-#}}#th largest, ignoring weights{p_end}
+{p2col :{opt max}}maximums{p_end}
+{p2col :{opt min}}minimums{p_end}
+{p2col :{opt range}}range = {opt max} - {opt min}{p_end}
+{p2col :{opt first}}first value{p_end}
+{p2col :{opt last}}last value{p_end}
+{p2col :{opt firstnm}}first nonmissing value{p_end}
+{p2col :{opt lastnm}}last nonmissing value{p_end}
 {p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
 {p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
 {p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
 {p2col :{opt skewness}}Skewness{p_end}
 {p2col :{opt kurtosis}}Kurtosis{p_end}
-{p2col :{opt count}}number of nonmissing observations{p_end}
-{p2col :{opt nmissing}}number of missing observations{p_end}
-{p2col :{opt percent}}percentage of nonmissing observations{p_end}
-{p2col :{opt max}}maximums{p_end}
-{p2col :{opt min}}minimums{p_end}
-{p2col :{opt iqr}}interquartile range{p_end}
-{p2col :{opt first}}first value{p_end}
-{p2col :{opt last}}last value{p_end}
-{p2col :{opt firstnm}}first nonmissing value{p_end}
-{p2col :{opt lastnm}}last nonmissing value{p_end}
 {p2colreset}{...}
 
 {synoptset 18 tabbed}{...}
@@ -146,7 +153,7 @@ user press {hi:Break}
 {opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s
 are allowed and mimic {cmd:collapse}; see {help weight} and
 {help collapse##weights:Weights (collapse)}. {opt pweight}s may not be used
-with {opt sd}, {opt semean}, {opt sebinomial}, or {opt sepoisson}. 
+with {opt sd}, {opt variance}, {opt cv}, {opt semean}, {opt sebinomial}, or {opt sepoisson}. 
 {opt iweight}s may not be used with {opt semean}, {opt sebinomial}, or 
 {opt sepoisson}. {opt aweight}s may not be used with {opt sebinomial} or
 {opt sepoisson}.{p_end}

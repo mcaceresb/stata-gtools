@@ -1,4 +1,4 @@
-*! version 1.3.4 17Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.4.1 23Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -13,10 +13,21 @@
 * rc 18101 - greshape long id variables not unique
 * rc 18102 - greshape wide j variables not unique within id
 * rc 18103 - greshape wide xi variables not unique within id
+* rc 18201 - gstats all variables are non-numeric (soft exit)
 * --------
-* rc 17459
-* rc 17900
-* rc 17999
+* rc 17459 - isid special error
+* rc 17900 - multi-threading not available
+* rc 17901 - generic not implemented
+* rc 17999 - collision error
+* --------
+* > 0 to < 100 strict gives quantiles
+* -1 to -100 stats are regular stats
+* -101 to -200 stats are analogues with special nan handling
+* -201 to -300 stats are analogues with special gstats handling
+* 1000 + # selects the #th smallest
+* - 1000 - # selects the #th largest
+* 1000.5 + # rawselects the #th smallest
+* - 1000.5 - # rawselects the #th largest
 
 capture program drop _gtools_internal
 program _gtools_internal, rclass
@@ -26,6 +37,13 @@ program _gtools_internal, rclass
         cap noi plugin call gtools_plugin, check
         exit _rc
     }
+
+    tempfile gstatsfile
+    tempfile gbyvarfile
+    tempfile gbycolfile
+    global GTOOLS_GSTATS_FILE: copy local gstatsfile
+    global GTOOLS_BYVAR_FILE:  copy local gbyvarfile
+    global GTOOLS_BYCOL_FILE:  copy local gbycolfile
 
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
     * set varabbrev off
@@ -650,6 +668,9 @@ program _gtools_internal, rclass
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
+    mata: st_numscalar("__gtools_gfile_byvar", strlen(st_local("gbyvarfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_bycol", strlen(st_local("gbycolfile")) + 1)
+
     scalar __gtools_init_targ   = 0
     scalar __gtools_any_if      = `any_if'
     scalar __gtools_verbose     = `verbose'
@@ -1070,6 +1091,7 @@ program _gtools_internal, rclass
     local bynum  = "`r(varnum)'"
     local bystr  = "`r(varstr)'"
     local bystrL = "`r(varstrL)'"
+    global GTOOLS_BYNAMES: copy local byvars
 
     * Unfortunately, the number of by variables we can process is
     * limited by the number of entries we can store in a Stata matrix.
@@ -1578,7 +1600,7 @@ program _gtools_internal, rclass
             scalar __gtools_greshape_kxi = `:list sizeof xi'
         }
         else if ( inlist("`gfunction'",  "stats") ) {
-            local gcall `gfunction'
+            local gcall `gfunction' `"${GTOOLS_GSTATS_FILE}"'
             gettoken gstat gstats: gstats
             cap noi gstats_`gstat' `gstats'
             if ( _rc ) {
@@ -2400,6 +2422,54 @@ program _gtools_internal, rclass
     if ( inlist("`gfunction'",  "stats") ) {
         return scalar gstats_winsor_cutlow  = __gtools_winsor_cutl
         return scalar gstats_winsor_cuthigh = __gtools_winsor_cuth
+
+        if ( `=scalar(__gtools_gstats_code)' == 2 ) {
+            if ( `=scalar(__gtools_summarize_matasave)' ) {
+                mata: GstatsOutput = __gstats_summarize_results()
+                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.desc()})"
+            }
+            else {
+                mata: (void) __gstats_summarize_results()
+                cap mata: mata drop GstatsOutput
+            }
+        }
+
+        if ( `=scalar(__gtools_summarize_pooled)' ) {
+            return local statvars: copy local statvars
+        }
+
+        return scalar gstats_summarize_pooled    = __gtools_summarize_pooled
+        return scalar gstats_summarize_normal    = __gtools_summarize_normal
+        return scalar gstats_summarize_detail    = __gtools_summarize_detail
+        return scalar gstats_summarize_tabstat   = __gtools_summarize_tabstat
+
+        return scalar gstats_summarize_N         = __gtools_summarize_N
+        return scalar gstats_summarize_sum_w     = __gtools_summarize_sum_w
+        return scalar gstats_summarize_sum       = __gtools_summarize_sum
+        return scalar gstats_summarize_mean      = __gtools_summarize_mean
+        return scalar gstats_summarize_min       = __gtools_summarize_min
+        return scalar gstats_summarize_max       = __gtools_summarize_max
+        return scalar gstats_summarize_Var       = __gtools_summarize_Var
+        return scalar gstats_summarize_sd        = __gtools_summarize_sd
+        return scalar gstats_summarize_p1        = __gtools_summarize_p1
+        return scalar gstats_summarize_p5        = __gtools_summarize_p5
+        return scalar gstats_summarize_p10       = __gtools_summarize_p10
+        return scalar gstats_summarize_p25       = __gtools_summarize_p25
+        return scalar gstats_summarize_p50       = __gtools_summarize_p50
+        return scalar gstats_summarize_p75       = __gtools_summarize_p75
+        return scalar gstats_summarize_p90       = __gtools_summarize_p90
+        return scalar gstats_summarize_p95       = __gtools_summarize_p95
+        return scalar gstats_summarize_p99       = __gtools_summarize_p99
+        return scalar gstats_summarize_skewness  = __gtools_summarize_skewness
+        return scalar gstats_summarize_kurtosis  = __gtools_summarize_kurtosis
+        return scalar gstats_summarize_smallest1 = __gtools_summarize_smallest1
+        return scalar gstats_summarize_smallest2 = __gtools_summarize_smallest2
+        return scalar gstats_summarize_smallest3 = __gtools_summarize_smallest3
+        return scalar gstats_summarize_smallest4 = __gtools_summarize_smallest4
+        return scalar gstats_summarize_largest4  = __gtools_summarize_largest4
+        return scalar gstats_summarize_largest3  = __gtools_summarize_largest3
+        return scalar gstats_summarize_largest2  = __gtools_summarize_largest2
+        return scalar gstats_summarize_largest1  = __gtools_summarize_largest1
     }
 
     * levelsof
@@ -2484,7 +2554,13 @@ program clean_all
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
     global GTOOLS_USER_INTERNAL_VARABBREV
+    global GTOOLS_GSTATS_FILE
+    global GTOOLS_BYVAR_FILE
+    global GTOOLS_BYCOL_FILE
+    global GTOOLS_BYNAMES
 
+    cap scalar drop __gtools_gfile_byvar
+    cap scalar drop __gtools_gfile_bycol
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
@@ -2716,7 +2792,7 @@ program parse_by_types, rclass
     * and so cannot support strL variables
 
     local GTOOLS_CALLER $GTOOLS_CALLER
-    local GTOOLS_STRL   gcollapse gcontract greshape
+    local GTOOLS_STRL   gcollapse gcontract greshape hashsort
     local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
 
     * glevelsof, gen() needs to write to variables, and so cannot
@@ -2786,15 +2862,15 @@ program parse_by_types, rclass
                         _n(1) "variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"           ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "    {stata compress `varstrL'}"                                                     ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"  ///
-                        _n(1) " {cmd:gcontract}, and {cmd:greshape} do not support strL variables in any version." ///
-                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."         ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"            ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"            ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "    {stata compress `varstrL'}"                                                      ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"   ///
+                        _n(1) " {cmd:gcontract}, {cmd:greshape}, and {cmd:hashsort} do not support strL variables." ///
+                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."          ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"             ///
                         _n(1) "and above can read strL variables in Stata 14 or later."
         }
         exit 17004
@@ -2817,7 +2893,7 @@ program parse_by_types, rclass
                         _n(1) "    {stata compress `varstrL'}"                                                                    ///
                         _n(1) ""                                                                                                  ///
                         _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse}, {cmd:gcontract}, " ///
-                        _n(1) "and {cmd:greshape} do not support strL variables in any Stata version. Further, binary"            ///
+                        _n(1) "{cmd:greshape}, and {cmd:hashsort} do not support strL variables in any version. Further, binary"  ///
                         _n(1) "strL variables are not yet supported in any Stata version."                                        ///
                         _n(1) ""                                                                                                  ///
                         _n(1) "However, if your strL variables do not contain binary data, gtools"                                ///
@@ -3123,8 +3199,11 @@ program parse_targets
                   nansum     ///
                   mean       ///
                   sd         ///
+                  variance   ///
+                  cv         ///
                   max        ///
                   min        ///
+                  range      ///
                   count      ///
                   median     ///
                   iqr        ///
@@ -3178,24 +3257,19 @@ program parse_targets
         local trg: word `k' of `targets'
         local st:  word `k' of `stats'
 
+        encode_aliases `st'
+        local st `r(stat)'
+
         if ( `:list st in allowed' ) {
             encode_stat `st' `keepadd'
             mata: __gtools_stats[`k'] = `r(statcode)'
         }
-        else if regexm("`st'", "^p([0-9][0-9]?(\.[0-9]+)?)$") {
-            if ( `:di regexs(1)' == 0 ) {
-                di as error "Invalid stat: (`st'; maybe you meant 'min'?)"
-                exit 110
-            }
-            mata: __gtools_stats[`k'] = `:di regexs(1)'
-        }
-        else if ( "`st'" == "p100" ) {
-            di as error "Invalid stat: (`st'; maybe you meant 'max'?)"
-            exit 110
-        }
         else {
-            di as error "Invalid stat: `st'"
-            exit 110
+            cap noi encode_regex `st'
+            if ( `r(statcode)' == 0 ) {
+                error 110
+            }
+            else mata: __gtools_stats[`k'] = `r(statcode)'
         }
 
         if ( "`k_exist'" != "sources" ) {
@@ -3232,12 +3306,16 @@ end
 capture program drop encode_stat
 program encode_stat, rclass
     args stat keepadd
+    local statcode 0
     if ( "`stat'" == "sum"       ) local statcode = -1 - `keepadd'
     if ( "`stat'" == "nansum"    ) local statcode = -101
     if ( "`stat'" == "mean"      ) local statcode = -2
     if ( "`stat'" == "sd"        ) local statcode = -3
+    if ( "`stat'" == "variance"  ) local statcode = -23
+    if ( "`stat'" == "cv"        ) local statcode = -24
     if ( "`stat'" == "max"       ) local statcode = -4
     if ( "`stat'" == "min"       ) local statcode = -5
+    if ( "`stat'" == "range"     ) local statcode = -25
     if ( "`stat'" == "count"     ) local statcode = -6
     if ( "`stat'" == "percent"   ) local statcode = -7
     if ( "`stat'" == "median"    ) local statcode = 50
@@ -3257,6 +3335,170 @@ program encode_stat, rclass
     if ( "`stat'" == "rawsum"    ) local statcode = -21 - `keepadd'
     if ( "`stat'" == "rawnansum" ) local statcode = -121
     return scalar statcode = `statcode'
+end
+
+capture program drop encode_regex
+program encode_regex, rclass
+    args st
+    local rc = 0
+    local statcode = 0
+    if regexm("`st'", "rawselect") {
+        local select = regexm("`st'", "^rawselect(-|)([0-9]+)$")
+        if ( `select' == 0 ) {
+            di as error "Invalid stat: (`st'; did you mean rawselect# or rawselect-#?)"
+            local rc = 110
+        }
+        else if ( `=regexs(2)' == 0 ) {
+            di as error "Invalid stat: (`st' not allowed; selection must be 1 or larger)"
+            local rc = 110
+        }
+        else {
+            local statcode = `:di regexs(1)' (1000.5 + `=regexs(2)')
+        }
+    }
+    else if regexm("`st'", "select") {
+        local select = regexm("`st'", "^select(-|)([0-9]+)$")
+        if ( `select' == 0 ) {
+            di as error "Invalid stat: (`st'; did you mean select# or select-#?)"
+            local rc = 110
+        }
+        else if ( `=regexs(2)' == 0 ) {
+            di as error "Invalid stat: (`st' not allowed; selection must be 1 or larger)"
+            local rc = 110
+        }
+        else {
+            local statcode = `:di regexs(1)' (1000 + `=regexs(2)')
+        }
+    }
+    else if regexm("`st'", "^p([0-9][0-9]?(\.[0-9]+)?)$") {
+        if ( `:di regexs(1)' == 0 ) {
+            di as error "Invalid stat: (`st'; maybe you meant 'min'?)"
+            local rc = 110
+        }
+        else {
+            local statcode = `:di regexs(1)'
+        }
+    }
+    else if ( "`st'" == "p100" ) {
+        di as error "Invalid stat: (`st'; maybe you meant 'max'?)"
+        local rc = 110
+    }
+    else {
+        di as error "Invalid stat: `st'"
+        local rc = 110
+    }
+    return scalar statcode = `statcode'
+    exit `rc'
+end
+
+capture program drop encode_aliases
+program encode_aliases, rclass
+    args st
+    local allowed sum        ///
+                  nansum     ///
+                  mean       ///
+                  sd         ///
+                  variance   ///
+                  cv         ///
+                  max        ///
+                  min        ///
+                  range      ///
+                  count      ///
+                  median     ///
+                  iqr        ///
+                  percent    ///
+                  first      ///
+                  last       ///
+                  firstnm    ///
+                  lastnm     ///
+                  freq       ///
+                  semean     ///
+                  sebinomial ///
+                  sepoisson  ///
+                  nunique    ///
+                  nmissing   ///
+                  skewness   ///
+                  kurtosis   ///
+                  rawsum     ///
+                  rawnansum
+
+    local alias_sum        su
+    local alias_nansum     nansu
+    local alias_mean       me         mea
+    local alias_sd
+    local alias_variance   var        vari       varia      varian     varianc
+    local alias_cv
+    local alias_max        ma         max
+    local alias_min        mi         min
+    local alias_range      r          ra         ran        rang       range
+    local alias_count      co         cou        coun
+    local alias_median     med        medi       media
+    local alias_iqr
+    local alias_percent    perc       perce      percen
+    local alias_first
+    local alias_last
+    local alias_firstnm
+    local alias_lastnm
+    local alias_freq
+    local alias_semean     sem        seme       semea
+    local alias_sebinomial seb        sebi       sebin      sebino     sebinom    sebinomi   sebinomia
+    local alias_sepoisson  sep        sepo       sepoi      sepois     sepoiss    sepoisso
+    local alias_nunique    nuniq      nuniqu
+    local alias_nmissing   nmiss      nmissi     nmissin
+    local alias_skewness   sk         ske        skew       skewn      skewne     skewnes
+    local alias_kurtosis   k          ku         kur        kurt       kurto      kurtos     kurtosi
+    local alias_rawsum     rawsu
+    local alias_rawnansum  rawnansu
+
+    if ( !`:list st in allowed' ) {
+        foreach stat of local allowed {
+            if ( `:list st in alias_`stat'' ) {
+                local st: copy local stat
+            }
+        }
+    }
+
+    return local stat: copy local st
+end
+
+capture program drop FreeTimer
+program FreeTimer
+    qui {
+        timer list
+        local i = 99
+        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+            local --i
+        }
+    }
+    c_local FreeTimer `i'
+end
+
+capture program drop GenericParseTypes
+program GenericParseTypes
+    syntax varlist, mat(name) [strl(int 0)]
+
+    cap disp ustrregexm("a", "a")
+    if ( _rc ) local regex regex
+    else local regex ustrregex
+
+    local types
+    foreach var of varlist `varlist' {
+        if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
+            if ( (`regex's(1) == "L") & (`strl' == 0) ) {
+                disp as err "Unsupported type `:type `var''"
+                exit 198
+            }
+            local types `types' `=`regex's(1)'
+        }
+        else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
+            local types `types' 0
+        }
+        else {
+            disp as err "Unknown type `:type `var''"
+            exit 198
+        }
+    }
+    mata: st_matrix(st_local("mat"), strtoreal(tokens(st_local("types"))))
 end
 
 ***********************************************************************
@@ -3313,6 +3555,53 @@ program gstats_scalars
         scalar __gtools_winsor_cutl    = .
         scalar __gtools_winsor_cuth    = .
         scalar __gtools_winsor_kvars   = .
+
+        scalar __gtools_summarize_matasave  = 0
+        scalar __gtools_summarize_pretty    = 0
+        scalar __gtools_summarize_colvar    = 0
+        scalar __gtools_summarize_noprint   = 0
+        scalar __gtools_summarize_nosep     = 0
+        scalar __gtools_summarize_pooled    = 0
+        scalar __gtools_summarize_normal    = 0
+        scalar __gtools_summarize_detail    = 0
+        scalar __gtools_summarize_kvars     = 0
+        scalar __gtools_summarize_kstats    = 0
+        scalar __gtools_summarize_tabstat   = 0
+        scalar __gtools_summarize_lwidth    = 16
+        scalar __gtools_summarize_separator = 0
+        scalar __gtools_summarize_format    = 0
+        scalar __gtools_summarize_dfmt      = "%9.0g"
+
+        scalar __gtools_summarize_N         = .
+        scalar __gtools_summarize_sum_w     = .
+        scalar __gtools_summarize_sum       = .
+        scalar __gtools_summarize_mean      = .
+        scalar __gtools_summarize_min       = .
+        scalar __gtools_summarize_max       = .
+        scalar __gtools_summarize_Var       = .
+        scalar __gtools_summarize_sd        = .
+        scalar __gtools_summarize_p1        = .
+        scalar __gtools_summarize_p5        = .
+        scalar __gtools_summarize_p10       = .
+        scalar __gtools_summarize_p25       = .
+        scalar __gtools_summarize_p50       = .
+        scalar __gtools_summarize_p75       = .
+        scalar __gtools_summarize_p90       = .
+        scalar __gtools_summarize_p95       = .
+        scalar __gtools_summarize_p99       = .
+        scalar __gtools_summarize_skewness  = .
+        scalar __gtools_summarize_kurtosis  = .
+        scalar __gtools_summarize_smallest1 = .
+        scalar __gtools_summarize_smallest2 = .
+        scalar __gtools_summarize_smallest3 = .
+        scalar __gtools_summarize_smallest4 = .
+        scalar __gtools_summarize_largest4  = .
+        scalar __gtools_summarize_largest3  = .
+        scalar __gtools_summarize_largest2  = .
+        scalar __gtools_summarize_largest1  = .
+
+        matrix __gtools_summarize_codes = .
+        mata: __gtools_summarize_codes = .
     }
     else {
         cap scalar drop __gtools_gstats_code
@@ -3320,6 +3609,53 @@ program gstats_scalars
         cap scalar drop __gtools_winsor_cutl
         cap scalar drop __gtools_winsor_cuth
         cap scalar drop __gtools_winsor_kvars
+
+        cap scalar drop __gtools_summarize_matasave
+        cap scalar drop __gtools_summarize_pretty
+        cap scalar drop __gtools_summarize_colvar
+        cap scalar drop __gtools_summarize_noprint
+        cap scalar drop __gtools_summarize_nosep
+        cap scalar drop __gtools_summarize_pooled
+        cap scalar drop __gtools_summarize_normal
+        cap scalar drop __gtools_summarize_detail
+        cap scalar drop __gtools_summarize_kvars
+        cap scalar drop __gtools_summarize_kstats
+        cap scalar drop __gtools_summarize_tabstat
+        cap scalar drop __gtools_summarize_lwidth
+        cap scalar drop __gtools_summarize_separator
+        cap scalar drop __gtools_summarize_format
+        cap scalar drop __gtools_summarize_dfmt
+
+        cap scalar drop __gtools_summarize_N
+        cap scalar drop __gtools_summarize_sum_w
+        cap scalar drop __gtools_summarize_sum
+        cap scalar drop __gtools_summarize_mean
+        cap scalar drop __gtools_summarize_min
+        cap scalar drop __gtools_summarize_max
+        cap scalar drop __gtools_summarize_Var
+        cap scalar drop __gtools_summarize_sd
+        cap scalar drop __gtools_summarize_p1
+        cap scalar drop __gtools_summarize_p5
+        cap scalar drop __gtools_summarize_p10
+        cap scalar drop __gtools_summarize_p25
+        cap scalar drop __gtools_summarize_p50
+        cap scalar drop __gtools_summarize_p75
+        cap scalar drop __gtools_summarize_p90
+        cap scalar drop __gtools_summarize_p95
+        cap scalar drop __gtools_summarize_p99
+        cap scalar drop __gtools_summarize_skewness
+        cap scalar drop __gtools_summarize_kurtosis
+        cap scalar drop __gtools_summarize_smallest1
+        cap scalar drop __gtools_summarize_smallest2
+        cap scalar drop __gtools_summarize_smallest3
+        cap scalar drop __gtools_summarize_smallest4
+        cap scalar drop __gtools_summarize_largest4
+        cap scalar drop __gtools_summarize_largest3
+        cap scalar drop __gtools_summarize_largest2
+        cap scalar drop __gtools_summarize_largest1
+
+        cap matrix drop __gtools_summarize_codes
+        cap mata: mata drop __gtools_summarize_codes
     }
 end
 
@@ -3470,46 +3806,701 @@ program gstats_winsor
     c_local varlist `varlist' `targetvars'
 end
 
-capture program drop FreeTimer
-program FreeTimer
-    qui {
-        timer list
-        local i = 99
-        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
-            local --i
-        }
+capture program drop gstats_summarize
+program gstats_summarize
+    syntax [varlist], [   ///
+        noDetail          ///
+        Meanonly          ///
+        TABstat           ///
+                          ///
+        SEParator(int 5)  ///
+                          ///
+        COLumns(str)      ///
+        Format            ///
+        POOLed            ///
+        PRETTYstats       ///
+        noPRINT           ///
+        matasave          ///
+        save              ///
+        *                 ///
+    ]
+
+    if ( `"`options'"' != "" ) {
+        disp as err "Unknown options (note not all display options are not allowed):"
+        disp as err "    `options'"
+        exit 198
     }
-    c_local FreeTimer `i'
-end
 
-capture program drop GenericParseTypes
-program GenericParseTypes
-    syntax varlist, mat(name) [strl(int 0)]
+    if ( `"`pooled'"' == "pooled" & (`=scalar(__gtools_weight_code)' > 0) ) {
+        disp as err "Option -pooled- not allowed with weights"
+        exit 198
+    }
 
-    cap disp ustrregexm("a", "a")
-    if ( _rc ) local regex regex
-    else local regex ustrregex
+    scalar __gtools_summarize_separator = `separator'
+    scalar __gtools_summarize_noprint   = (`"`print'"'    == "noprint")
+    scalar __gtools_summarize_format    = (`"`format'"'   == "format")
+    scalar __gtools_summarize_matasave  = (`"`matasave'"' == "matasave")
 
-    local types
+    if ( "`save'" != "" ) {
+        disp as err "{bf:Warning}: Option save not implemented; try -matasave-"
+    }
+
+    * Number of stats to compute
+    * --------------------------
+
+    local kstats = 25
+    if ( `"`meanonly'"' != "") {
+        local kstats = 6
+        local detail nodetail
+    }
+    else if ( `"`detail'"' == "nodetail" ) {
+        local kstats = 8
+    }
+
+    * Switch to tabstat
+    * -----------------
+
+    if ( "`tabstat'" != "" ) {
+        scalar __gtools_summarize_tabstat = 1
+    }
+
+    * Ignore string vars
+    * ------------------
+
+    local ignorelist
+    local statlist
     foreach var of varlist `varlist' {
-        if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
-            if ( (`regex's(1) == "L") & (`strl' == 0) ) {
-                disp as err "Unsupported type `:type `var''"
-                exit 198
-            }
-            local types `types' `=`regex's(1)'
-        }
-        else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
-            local types `types' 0
+        cap confirm numeric variable `var'
+        if ( _rc ) {
+            local ignorelist `ignorelist' `var'
         }
         else {
-            disp as err "Unknown type `:type `var''"
+            local statlist `statlist' `var'
+        }
+    }
+
+    if ( `:list sizeof statlist' == 0 ) {
+        disp as err "No numeric variables; nothing to do."
+        exit 18201
+    }
+
+    if ( `:list sizeof ignorelist' > 0 ) {
+        disp "Ignoring non-numeric variables:"
+        foreach var of varlist `ignorelist' {
+            disp _skip(4) `"`var'"'
+        }
+    }
+
+    * Stats to compute
+    * ----------------
+
+    c_local varlist: copy local statlist
+
+    scalar __gtools_gstats_code = 2
+    scalar __gtools_summarize_pretty = (`"`prettystats'"' == "prettystats")
+    scalar __gtools_summarize_pooled = (`"`pooled'"' == "pooled")
+    scalar __gtools_summarize_normal = (`"`meanonly'"' == "")
+    scalar __gtools_summarize_detail = (`"`detail'"' != "nodetail")
+    scalar __gtools_summarize_kvars  = `:list sizeof statlist'
+    scalar __gtools_summarize_kstats = `kstats'
+
+    * -1          // sum
+    * -2          // mean
+    * -3          // sd
+    * -4          // max
+    * -5          // min
+    * -6          // count, n
+    * -7          // percent
+    * 50          // median
+    * -9          // iqr
+    * -10         // first
+    * -11         // firstnm
+    * -12         // last
+    * -13         // lastnm
+    * -14         // freq
+    * -15         // semean
+    * -16         // sebinomial
+    * -17         // sepoisson
+    * -18         // nunique
+    * -19         // skewness
+    * -20         // kurtosis
+    * -21         // rawsum
+    * -22         // nmissing
+    * -23         // variance
+    * -24         // cv
+    * -25         // range
+    * -101        // nansum
+    * -121        // rawnansum
+    * -206        // sum weight
+    * -203        // variance
+    * 1000 + #    // #th smallest
+    * -1000 - #   // #th largest
+    * 1000.5 + #  // raw #th smallest
+    * -1000.5 - # // raw #th largest
+
+    * N sum sum_w mean min max,        -299
+    * N sum sum_w mean min max sd var, -298
+    * N sum mean min max sd,           -297 (mainly for defailt tabstat)
+
+    mata: __gtools_summarize_codes = J(1, `kstats', .)
+    // mata: __gtools_summarize_codes[1] = -299
+    mata: __gtools_summarize_codes[1] = -6   // N
+    mata: __gtools_summarize_codes[2] = -206 // sum_w
+    mata: __gtools_summarize_codes[3] = -1   // sum
+    mata: __gtools_summarize_codes[4] = -2   // mean
+    mata: __gtools_summarize_codes[5] = -5   // min
+    mata: __gtools_summarize_codes[6] = -4   // max
+
+    if ( `kstats'> 6 ) {
+        // mata: __gtools_summarize_codes[1] = -298
+        mata: __gtools_summarize_codes[7] = -3   // sd
+        mata: __gtools_summarize_codes[8] = -203 // var, copy previous entry^2
+    }
+
+    if ( `kstats' > 8 ) {
+        mata: __gtools_summarize_codes[9] = 1      // 1st percentile
+        mata: __gtools_summarize_codes[10] = 5     // 5th percentile
+        mata: __gtools_summarize_codes[11] = 10    // 10th percentile
+        mata: __gtools_summarize_codes[12] = 25    // 25th percentile
+        mata: __gtools_summarize_codes[13] = 50    // 50th percentile
+        mata: __gtools_summarize_codes[14] = 75    // 75th percentile
+        mata: __gtools_summarize_codes[15] = 90    // 90th percentile
+        mata: __gtools_summarize_codes[16] = 95    // 95th percentile
+        mata: __gtools_summarize_codes[17] = 99    // 99th percentile
+        mata: __gtools_summarize_codes[18] = -19   // skewness
+        mata: __gtools_summarize_codes[19] = -20   // kurtosis
+        mata: __gtools_summarize_codes[20] = 1002  // 2nd smallest
+        mata: __gtools_summarize_codes[21] = 1003  // 3rd smallest
+        mata: __gtools_summarize_codes[22] = 1004  // 4th smallest
+        mata: __gtools_summarize_codes[23] = -1004 // 4th largest
+        mata: __gtools_summarize_codes[24] = -1003 // 3rd largest
+        mata: __gtools_summarize_codes[25] = -1002 // 2nd largest
+    }
+
+    mata: st_matrix("__gtools_summarize_codes", __gtools_summarize_codes)
+
+    * Auto-columns for tab
+    * --------------------
+
+    if ( (`kstats' > 8) & (`"`tabstat'"' != "") ) {
+        disp as txt "({bf:note}: making table with 25 statistics from {cmd:summarize, detail})"
+        local coldef variables
+    }
+    else {
+        local coldef statistics
+    }
+
+    if ( `"`columns'"' == ""     ) local columns `coldef'
+    if ( `"`columns'"' == "var"  ) local columns variables
+    if ( `"`columns'"' == "stat" ) local columns statistics
+    if ( !inlist(`"`columns'"', "variables", "statistics") ) {
+        disp as err `"columns(`columns') not allowed. Available: variables, statistics"'
+        exit 198
+    }
+    scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
+end
+
+capture program drop gstats_tabstat
+program gstats_tabstat
+    syntax [varlist], [      ///
+        noDetail             ///
+        Meanonly             ///
+        TABstat              ///
+                             ///
+        _sum                 ///
+        Statistics(str)      ///
+        stats(str)           ///
+        LABELWidth(int 16)   ///
+                             ///
+        COLumns(str)         ///
+        Formatvar            ///
+        Format(str)          ///
+        POOLed               ///
+        PRETTYstats          ///
+        noSEParator          ///
+        noPRINT              ///
+        matasave             ///
+        save                 ///
+        *                    ///
+    ]
+
+    if ( `"`format'"' == "" ) local format %9.0g
+
+    scalar __gtools_summarize_tabstat   = 1
+    scalar __gtools_summarize_lwidth    = `labelwidth'
+    scalar __gtools_summarize_nosep     = (`"`separator'"' == "noseparator")
+    scalar __gtools_summarize_noprint   = (`"`print'"'     == "noprint")
+    scalar __gtools_summarize_format    = (`"`formatvar'"' == "formatvar")
+    scalar __gtools_summarize_dfmt      = `"`format'"'
+    scalar __gtools_summarize_matasave  = (`"`matasave'"'  == "matasave")
+
+    if ( `"`options'"' != "" ) {
+        disp as err "Unknown options (note not all display options are not allowed):"
+        disp as err "    `options'"
+        exit 198
+    }
+
+    if ( `"`pooled'"' == "pooled" & (`=scalar(__gtools_weight_code)' > 0) ) {
+        disp as err "Option -pooled- not allowed with weights"
+        exit 198
+    }
+
+    if ( "`save'" != "" ) {
+        disp as err "{bf:Warning}: Option save not implemented; try -matasave-"
+    }
+
+    * Ignore string vars
+    * ------------------
+
+    if ( `"`_sum'"' == "" ) {
+        confirm numeric var `varlist'
+        local statlist: copy local varlist
+    }
+    else {
+        local ignorelist
+        local statlist
+        foreach var of varlist `varlist' {
+            cap confirm numeric variable `var'
+            if ( _rc ) {
+                local ignorelist `ignorelist' `var'
+            }
+            else {
+                local statlist `statlist' `var'
+            }
+        }
+
+        if ( `:list sizeof statlist' == 0 ) {
+            disp as err "No numeric variables; nothing to do."
+            exit 18201
+        }
+
+        if ( `:list sizeof ignorelist' > 0 ) {
+            disp "Ignoring non-numeric variables:"
+            foreach var of varlist `ignorelist' {
+                disp _skip(4) `"`var'"'
+            }
+        }
+    }
+
+    * Stats to compute
+    * ----------------
+
+    if ( (`"`_sum'"' == "") & (`"`detail'`meanonly'"' != "") ) {
+        disp as err "Options -nodetail- and -meanonly- only allowed with {cmd:gstats_summarize}"
+        exit 198
+    }
+
+    scalar __gtools_gstats_code = 2
+    scalar __gtools_summarize_pretty = (`"`prettystats'"' == "prettystats")
+    scalar __gtools_summarize_pooled = (`"`pooled'"' == "pooled")
+    scalar __gtools_summarize_normal = (`"`meanonly'"' == "")
+    scalar __gtools_summarize_detail = (`"`detail'"' != "nodetail")
+    scalar __gtools_summarize_kvars  = `:list sizeof statlist'
+
+    if ( `"`statistics'`stats'"' == "" ) {
+        if ( `"`_sum'"' == "" ) {
+            if ( `"`detail'"' == "nodetail" ) {
+                disp as txt "({bf:warning}:option -nodetail- ignored)"
+            }
+            if ( `"`meanonly'"' != "" ) {
+                disp as txt "({bf:warning}:option -meanonly- ignored)"
+            }
+            // local scode -297
+            local scode -6 -1 -2 -5 -4 -3
+            local kstats = 6
+        }
+        else if ( `"`meanonly'"' != "" ) {
+            // local scode -299
+            local scode -6 -206 -1 -2 -5 -4
+            local kstats = 6
+        }
+        else if ( `"`detail'"' == "nodetail" ) {
+            // local scode -298
+            local scode -6 -206 -1 -2 -5 -4 -3 -203
+            local kstats = 8
+        }
+        else {
+            disp as err "parsing error: _gtools_internal failed to parse input"
             exit 198
         }
     }
-    mata: st_matrix(st_local("mat"), strtoreal(tokens(st_local("types"))))
+    else {
+        if ( `"`detail'"' == "nodetail" ) {
+            disp as txt "({bf:warning}:option -nodetail- ignored)"
+        }
+        if ( `"`meanonly'"' != "" ) {
+            disp as txt "({bf:warning}:option -meanonly- ignored)"
+        }
+        if ( (`"`statistics'"' != "") & (`"`stats'"' != "") ) {
+            disp as err "statistics() and stats() are aliases; use only one"
+            exit 198
+        }
+        else if ( `"`stats'"' != "" ) {
+            local statistics: copy local stats
+        }
+        local scode
+        local kstats = `:list sizeof statistics'
+        foreach st of local statistics {
+            if ( "`st'" == "n" ) {
+                local scode `scode' -6
+            }
+            else if ( "`st'" == "q" ) {
+                local kstats = `kstats' + 2
+                local scode `scode' 25 50 75
+            }
+            else {
+                encode_aliases `st'
+                local st `r(stat)'
+                encode_stat `st' 0
+                if ( `r(statcode)' == 0 ) {
+                    cap noi encode_regex `st'
+                    if ( `r(statcode)' == 0 ) {
+                        error 110
+                    }
+                    else {
+                        local scode `scode' `r(statcode)'
+                        if ( `r(statcode)' == -18 ) scalar __gtools_nunique = 1
+                    }
+                }
+                else {
+                    local scode `scode' `r(statcode)'
+                    if ( `r(statcode)' == -18 ) scalar __gtools_nunique = 1
+                }
+            }
+        }
+    }
+
+    mata: __gtools_summarize_codes = strtoreal(tokens(st_local("scode")))
+    mata: st_matrix("__gtools_summarize_codes", __gtools_summarize_codes)
+    scalar __gtools_summarize_kstats = `kstats'
+
+    c_local varlist: copy local statlist
+
+    * Auto-columns for _sum
+    * ---------------------
+
+    if ( (`kstats' > 8) & (`"`_sum'"' != "") ) {
+        local coldef variables
+    }
+    else {
+        local coldef statistics
+    }
+
+    if ( `"`columns'"' == ""     ) local columns `coldef'
+    if ( `"`columns'"' == "var"  ) local columns variables
+    if ( `"`columns'"' == "stat" ) local columns statistics
+    if ( !inlist(`"`columns'"', "variables", "statistics") ) {
+        disp as err `"columns(`columns') not allowed. Available: variables, statistics"'
+        exit 198
+    }
+    scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
 end
 
+cap mata: mata drop __gstats_summarize_results()
+cap mata: mata drop __gstats_summarize_sprintf()
+cap mata: mata drop __gstats_summarize_prettysplit()
+cap mata: mata drop __gstats_tabstat_results()
+
+mata:
+class GtoolsResults scalar function __gstats_summarize_results()
+{
+    class GtoolsResults GtoolsByLevels
+    string scalar fname, var, varlabel, fmt, vfmt, dfmt
+    string colvector varlabelsplit
+    string matrix printstr, statvars
+    real scalar k, l, J, tabstat, sep, usevfmt, maxl, pool, wcode
+    real scalar kvars
+    real scalar nrow
+    real scalar ncol
+    real matrix output
+
+    GtoolsByLevels = GtoolsResults()
+    GtoolsByLevels.readScalars()
+    pool    = GtoolsByLevels.pool
+    usevfmt = GtoolsByLevels.usevfmt
+    maxl    = GtoolsByLevels.maxl
+    dfmt    = GtoolsByLevels.dfmt
+
+    wcode = (st_numscalar("__gtools_weight_code") > 0)? 2: 0
+    sep   = st_numscalar("__gtools_summarize_separator")
+    if ( sep <= 0 ) {
+        sep = 0
+    }
+
+    tabstat = st_numscalar("__gtools_summarize_tabstat")
+    if ( tabstat ) {
+        return(__gstats_tabstat_results())
+    }
+
+    fname   = st_global("GTOOLS_GSTATS_FILE")
+    J       = strtoreal(st_local("r_J"))
+    kvars   = pool? 1: st_numscalar("__gtools_summarize_kvars");
+    nrow    = kvars * J
+    ncol    = st_numscalar("__gtools_summarize_kstats")
+    output  = GtoolsReadMatrix(fname, nrow, ncol)
+
+    if ( ncol >= 6 ) {
+        st_numscalar("__gtools_summarize_N",     output[nrow, 1])
+        st_numscalar("__gtools_summarize_sum_w", output[nrow, 2])
+        st_numscalar("__gtools_summarize_sum",   output[nrow, 3])
+        st_numscalar("__gtools_summarize_mean",  output[nrow, 4])
+        st_numscalar("__gtools_summarize_min",   output[nrow, 5])
+        st_numscalar("__gtools_summarize_max",   output[nrow, 6])
+    }
+
+    if ( ncol >= 8 ) {
+        st_numscalar("__gtools_summarize_sd",  output[nrow, 7])
+        st_numscalar("__gtools_summarize_Var", output[nrow, 8])
+    }
+
+    if ( ncol >= 25 ) {
+        st_numscalar("__gtools_summarize_p1",        output[nrow, 9])
+        st_numscalar("__gtools_summarize_p5",        output[nrow, 10])
+        st_numscalar("__gtools_summarize_p10",       output[nrow, 11])
+        st_numscalar("__gtools_summarize_p25",       output[nrow, 12])
+        st_numscalar("__gtools_summarize_p50",       output[nrow, 13])
+        st_numscalar("__gtools_summarize_p75",       output[nrow, 14])
+        st_numscalar("__gtools_summarize_p90",       output[nrow, 15])
+        st_numscalar("__gtools_summarize_p95",       output[nrow, 16])
+        st_numscalar("__gtools_summarize_p99",       output[nrow, 17])
+        st_numscalar("__gtools_summarize_skewness",  output[nrow, 18])
+        st_numscalar("__gtools_summarize_kurtosis",  output[nrow, 19])
+        st_numscalar("__gtools_summarize_smallest1", output[nrow, 5])
+        st_numscalar("__gtools_summarize_smallest2", output[nrow, 20])
+        st_numscalar("__gtools_summarize_smallest3", output[nrow, 21])
+        st_numscalar("__gtools_summarize_smallest4", output[nrow, 22])
+        st_numscalar("__gtools_summarize_largest4",  output[nrow, 23])
+        st_numscalar("__gtools_summarize_largest3",  output[nrow, 24])
+        st_numscalar("__gtools_summarize_largest2",  output[nrow, 25])
+        st_numscalar("__gtools_summarize_largest1",  output[nrow, 6])
+    }
+
+    // do sum non-detail style summaries
+    statvars = tokens(st_local("statvars"))
+    if ( J == 1 & st_numscalar("__gtools_summarize_detail") ) {
+        if ( st_numscalar("__gtools_summarize_noprint") == 0 ) {
+            for (k = 1; k <= kvars; k++) {
+                var = pool? "[Pooled Variables]": statvars[k]
+                vfmt = pool? dfmt: (usevfmt? st_varformat(var): dfmt)
+
+                printstr = J(wcode? 14: 12, 5, " ")
+
+                printstr[1                , 2] = "Percentiles"
+                printstr[1                , 3] = "Smallest"
+                printstr[8  + (wcode > 0) , 3] = "Largest"
+                printstr[4  + (wcode > 0) , 4] = "Obs"
+                printstr[5  + (wcode > 0) , 4] = "Sum of Wgt."
+                printstr[7  + (wcode > 0) , 4] = "Mean"
+                printstr[8  + (wcode > 0) , 4] = "Std. Dev."
+                printstr[10 + wcode       , 4] = "Variance"
+                printstr[11 + wcode       , 4] = "Skewness"
+                printstr[12 + wcode       , 4] = "Kurtosis"
+                printstr[2  + (wcode > 0) , 1] = "1%"
+                printstr[3  + (wcode > 0) , 1] = "5%"
+                printstr[4  + (wcode > 0) , 1] = "10%"
+                printstr[5  + (wcode > 0) , 1] = "25%"
+                printstr[7  + (wcode > 0) , 1] = "50%"
+                printstr[9  + wcode       , 1] = "75%"
+                printstr[10 + wcode       , 1] = "90%"
+                printstr[11 + wcode       , 1] = "95%"
+                printstr[12 + wcode       , 1] = "99%"
+                if ( wcode ) {
+                    printstr[2,  3] = "(weighted)"
+                    printstr[10, 3] = "(weighted)"
+                }
+
+                for(l = 1; l <= 4; l++) {
+                    printstr[1 + l + (wcode > 0), 2] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 8 + l])
+                }
+                    printstr[7 + (wcode > 0), 2] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 13])
+                for(l = 1; l <= 4; l++) {
+                    printstr[8 + l + wcode, 2] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 13 + l])
+                }
+                    printstr[2 + (wcode > 0), 3] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 5])
+                    printstr[12 + wcode,      3] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 6])
+                for(l = 1; l <= 3; l++) {
+                    printstr[2 + l + (wcode > 0), 3] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 19 + l])
+                }
+                for(l = 1; l <= 3; l++) {
+                    printstr[8 + l + wcode, 3] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 22 + l])
+                }
+                    printstr[4 + (wcode > 0),  5] = strtrim((output[k, 1] == round(output[k, 1]))? /*
+                        */ sprintf("%15.0gc", output[k, 1]): /*
+                        */ sprintf("      " + dfmt, output[k, 1]))
+                    printstr[5 + (wcode > 0),  5] = strtrim((output[k, 2] == round(output[k, 2]))? /*
+                        */ sprintf("%15.0gc", output[k, 2]): /*
+                        */ sprintf("      " + dfmt, output[k, 2]))
+                    printstr[7 + (wcode > 0),  5] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 4])
+                    printstr[8 + (wcode > 0),  5] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 7])
+                    printstr[10 + wcode, 5] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 8])
+                    printstr[11 + wcode, 5] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 18])
+                    printstr[12 + wcode, 5] = __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 19])
+
+                varlabel = pool? "": st_varlabel(var)
+                printf("\n");
+                if ( varlabel == "" ) {
+                    printf("%~61s\n", var);
+                }
+                else {
+                    varlabelsplit = __gstats_summarize_prettysplit(varlabel, 50)
+                    for(l = 1; l <= rows(varlabelsplit); l++) {
+                        printf("%~61s\n", varlabelsplit[l]);
+                    }
+                }
+                printf( "{hline %g}\n", 61);
+                for(l = 1; l <= (12 + wcode); l++) {
+                    printf("%4s",   printstr[l, 1]);
+                    printf(" ");
+                    printf("%12s",  printstr[l, 2]);
+                    printf("  ");
+                    printf("%12s",  printstr[l, 3]);
+                    printf("      ");
+                    printf("%-12s", printstr[l, 4]);
+                    printf("%12s",  printstr[l, 5]);
+                    printf("\n");
+                }
+            }
+        }
+        GtoolsByLevels.read()
+    }
+    else if ( J == 1 & (st_numscalar("__gtools_summarize_normal") == 1) ) {
+        l = max((strlen(statvars), 12))
+        fmt = sprintf("%%%gs", l)
+
+        if ( st_numscalar("__gtools_summarize_noprint") == 0 ) {
+            printf("\n")
+            printf(fmt, "Variable")
+            printf(" | ")
+            printf("%12s", "Obs")
+            printf(" ")
+            printf("%11s", "Mean")
+            printf("%11s", " Std. Dev.")
+            printf("%11s", "Min")
+            printf("%11s", "Max")
+            printf("\n")
+
+            printf(sprintf("{hline %g}", l + 1))
+            printf("+")
+            printf("{hline 58}")
+            printf("\n")
+
+            for (k = 1; k <= kvars; k++) {
+                var = pool? "[Pooled Var]": statvars[k]
+                vfmt = pool? dfmt: (usevfmt? st_varformat(var): dfmt)
+                printf(fmt, var)
+                printf(" | ")
+                printf((output[k, 1] == round(output[k, 1]))? "%12.0gc": "   " + dfmt, output[k, 1])
+                printf(" ")
+                printf("%11s", __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 4]))
+                printf("%11s", __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 7]))
+                printf("%11s", __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 5]))
+                printf("%11s", __gstats_summarize_sprintf(vfmt, dfmt, maxl, output[k, 6]))
+                printf("\n")
+                if ( mod(k, sep) == 0 ) {
+                    printf(sprintf("{hline %g}\n", 58 + 1 + l + 1))
+                }
+            }
+        }
+        GtoolsByLevels.read()
+    }
+    else if ( J > 1 ) {
+        return(__gstats_tabstat_results())
+    }
+
+    GtoolsByLevels.tabstat  = 0
+    GtoolsByLevels.output   = output
+    GtoolsByLevels.colvar   = st_numscalar("__gtools_summarize_colvar")
+    GtoolsByLevels.ksources = kvars
+    GtoolsByLevels.kstats   = ncol
+    GtoolsByLevels.statvars = statvars
+    GtoolsByLevels.scodes   = st_matrix("__gtools_summarize_codes")
+    GtoolsByLevels.readStatnames()
+
+    return (GtoolsByLevels)
+}
+
+string scalar function __gstats_summarize_sprintf(
+    string scalar vfmt,
+    string scalar dfmt,
+    real scalar maxl,
+    real scalar x)
+{
+    string scalar s
+    s = sprintf(vfmt, x)
+    if ( strlen(s) > maxl ) {
+        s = sprintf(dfmt, x)
+    }
+    return(s)
+}
+
+string colvector function __gstats_summarize_prettysplit(
+    string scalar txt,
+    real scalar maxl)
+{
+    real scalar len, lenmax, lenbuf, badsplit
+    string colvector splitxt
+    string scalar bufleft, bufright
+
+    if ( maxl < 1 ) {
+        return(txt)
+    }
+
+    lenmax = floor(maxl)
+    len    = strlen(txt)
+    if ( len <= maxl ) {
+        return(txt)
+    }
+
+    splitxt  = J(0, 1, "")
+    bufright = txt
+    while ( bufright != "" ) {
+        if ( strlen(bufright) > lenmax ) {
+            lenbuf = lenmax + 1
+            do {
+                badsplit = substr(bufright, lenbuf--, 1) != " "
+            } while ( badsplit & lenbuf > 0 )
+        }
+        else {
+            lenbuf = 0
+        }
+        if ( lenbuf > 0 ) {
+            bufleft  = substr(bufright, 1, lenbuf)
+            bufright = substr(bufright, lenbuf + 2, .)
+        }
+        else {
+            bufleft  = substr(bufright, 1, lenmax)
+            bufright = substr(bufright, lenmax + 1, .)
+        }
+        splitxt = splitxt \ bufleft
+    }
+
+    return(splitxt)
+}
+
+class GtoolsResults scalar function __gstats_tabstat_results()
+{
+    class GtoolsResults scalar GtoolsByLevels
+
+    GtoolsByLevels = GtoolsResults()
+    GtoolsByLevels.readScalars()
+    GtoolsByLevels.read()
+
+    GtoolsByLevels.tabstat  = 1
+    GtoolsByLevels.colvar   = st_numscalar("__gtools_summarize_colvar")
+    GtoolsByLevels.ksources = GtoolsByLevels.pool? 1: st_numscalar("__gtools_summarize_kvars")
+    GtoolsByLevels.kstats   = st_numscalar("__gtools_summarize_kstats")
+    GtoolsByLevels.statvars = tokens(st_local("statvars"))
+    GtoolsByLevels.scodes   = st_matrix("__gtools_summarize_codes")
+
+    GtoolsByLevels.readStatnames()
+    GtoolsByLevels.readOutput(st_global("GTOOLS_GSTATS_FILE"))
+    if ( st_numscalar("__gtools_summarize_noprint") == 0 ) {
+        GtoolsByLevels.printOutput()
+    }
+
+    return (GtoolsByLevels)
+}
+end
 
 ***********************************************************************
 *                             Load plugin                             *

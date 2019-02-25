@@ -321,14 +321,26 @@ GstatsOutput.output
 end
 ```
 
-The mata APi is specially useful for a large number of groups
+The mata API allows the user to computing several runs of summary
+statistics and keeping them in memory:
+
+```stata
+gstats tab price mpg, by(foreign) matasave(StatsByForeign)
+gstats tab price mpg, by(rep78)   matasave(StatsByRep)
+
+mata StatsByRep.desc()
+mata StatsByForeign.desc()
+mata StatsByForeign.printOutput()
+```
+
+It is also specially useful for a large number of groups
 
 ```stata
 clear
 set obs 100000
 gen g = mod(_n, 10000)
 gen x = runiform()
-gstats tab x, by(g) noprint matasave 
+gstats tab x, by(g) noprint matasave
 mata GstatsOutput.J
 mata GstatsOutput.getOutputGroup(13)
 ```

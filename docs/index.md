@@ -275,7 +275,8 @@ Remarks
 
 `gcollapse` supports every `collapse` function, including their
 weighted versions. In addition, weights can be selectively applied via
-`rawstat()`, and `nunique` counts the number of unique values.
+`rawstat()`, and several additional statistics are allowed, including
+`nunique`, `select#`, and so on.
 
 `gegen` technically does not support all of `egen`, but whenever a
 function that is not supported is requested, `gegen` hashes the data and
@@ -285,8 +286,9 @@ allow weights).
 
 Hence both should be able to replicate all of the functionality of their
 Stata counterparts. Last, `gstats tab` allows every statistic allowed
-by `tabstat` as well as any statistic allowed by `gcollapse`, and  the
-syntax for the statistics specified via `statistics()` is also the same.
+by `tabstat` as well as any statistic allowed by `gcollapse`; the
+syntax for the statistics specified via `statistics()` is the same
+as in `tabstat`.
 
 The following are implemented internally in C:
 
@@ -313,7 +315,7 @@ The following are implemented internally in C:
 | min         |     X     |   X     |      X     |
 | range       |     X     |   X     |      X     |
 | select      |     X     |   X     |      X     |
-| rawselect   |     X     |   X     |      X     |
+| rawselect   |     X     |         |      X     |
 | percent     |     X     |   X     |      X     |
 | first       |     X     |   X (+) |      X     |
 | last        |     X     |   X (+) |      X     |

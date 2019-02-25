@@ -1,4 +1,4 @@
-*! version 0.1.4 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 25Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats
@@ -51,12 +51,12 @@ program gstats, rclass
         gettoken dir stats: stats
         disp as txt "Available:"
         foreach stat of local stats {
-            if ( "`stat'" == "tabstat" ) {
-                disp as txt "    {help gstats summarize:gstats tabstat} (alias for summarize)"
-            }
-            else {
-                disp as txt "    {help gstats `stat'}"
-            }
+            * if ( "`stat'" == "tabstat" ) {
+            *     disp as txt "    {help gstats summarize:gstats tabstat} (alias for summarize)"
+            * }
+            * else {
+            * }
+            disp as txt "    {help gstats `stat'}"
         }
         exit 0
     }

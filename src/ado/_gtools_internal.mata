@@ -392,7 +392,8 @@ void function GtoolsResults::printOutput()
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2 * (kby == 0)
+        widthrow = sum(width) + 3 + 2
+        // * (kby == 0)
 
         // Now print!
         if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {

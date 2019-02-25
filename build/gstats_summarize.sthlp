@@ -35,7 +35,7 @@ the latest stable version.
 {pstd}
 {cmd:gstats {ul:tab}stat} and {cmd:gstats {ul:sum}marize} are fast, by-able
 alternatives to {opt tabstat} and {opt summarize, detail}.
-If {cmd:gstats summarizem} is called with {opt by()} or {opt tab}, a table
+If {cmd:gstats summarize} is called with {opt by()} or {opt tab}, a table
 in the style of {opt tabstat} is produced that inclues all the summary
 statistics included by default in {opt summarize, detail}.
 

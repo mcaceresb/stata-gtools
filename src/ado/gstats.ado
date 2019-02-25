@@ -85,7 +85,7 @@ program gstats, rclass
 
     local unsorted = cond(`:list stat in stats_sorted', "", "unsorted")
 
-    if ( `"`by'"' != "" ) confirm var `by'
+    if ( `"`by'"' != "" ) unab by: `by'
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')

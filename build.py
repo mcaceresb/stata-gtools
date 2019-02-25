@@ -247,6 +247,16 @@ if which(stataexe):
     print("Compiled lgtools.mlib")
     chdir(maindir)
 
+    copy2(
+        path.join("build", "gtools", "lgtools.mlib"),
+        path.join("lib",   "plugin", "lgtools.mlib")
+    )
+else:
+    copy2(
+        path.join("lib",   "plugin", "lgtools.mlib"),
+        path.join("build", "gtools", "lgtools.mlib")
+    )
+
 if not path.isfile(path.join("build", "gtools", "lgtools.mlib")):
     print("ERROR: Failed to compile build/gtools/lgtools.mlib")
     exit(-1)

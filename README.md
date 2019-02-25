@@ -455,7 +455,7 @@ Differences from `summarize, detail`
   recovered via options `nodetail` and `meanonly`. These two
   options are mainly for use with `by()`
 - Option `matasave` saves output and `by()` info in `GstatsOutput`,
-  a mata class object. See `mata GstatsOutput.help()` after
+  a mata class object. See `mata GstatsOutput.desc()` after
   `gstats sum, matasave` for details.
 - Option `noprint` saves the results but omits printing output.
 - Option `tab` prints statistics in the style of `tabstat`
@@ -473,7 +473,7 @@ Differences from `tabstat`
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
   `matasave` saves the output and `by()` info in `GstatsOutput`. See
-  `mata GstatsOutput.help()` after `gstats tab, matasave` for details.
+  `mata GstatsOutput.desc()` after `gstats tab, matasave` for details.
 - `GstatsOutput` provides helpers for extracting rows, columns, and levels.
 - Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.

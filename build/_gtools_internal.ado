@@ -2426,7 +2426,7 @@ program _gtools_internal, rclass
         if ( `=scalar(__gtools_gstats_code)' == 2 ) {
             if ( `=scalar(__gtools_summarize_matasave)' ) {
                 mata: GstatsOutput = __gstats_summarize_results()
-                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.help()})"
+                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.desc()})"
             }
             else {
                 mata: (void) __gstats_summarize_results()
@@ -3999,15 +3999,6 @@ program gstats_summarize
     }
     scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
 end
-
-// sysuse auto
-// gstats tab price     ,
-// gstats tab price     , s(mean n)
-// gstats tab price     , s(mean)
-// gstats tab price mpg , s(mean)
-// gstats tab price mpg , s(mean n)
-// gstats tab price mpg , s(mean) by(foreign)
-// gstats tab price mpg , s(mean) by(foreign rep78)
 
 capture program drop gstats_tabstat
 program gstats_tabstat

@@ -2426,7 +2426,7 @@ program _gtools_internal, rclass
         if ( `=scalar(__gtools_gstats_code)' == 2 ) {
             if ( `=scalar(__gtools_summarize_matasave)' ) {
                 mata: GstatsOutput = __gstats_summarize_results()
-                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.help()})"
+                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.desc()})"
             }
             else {
                 mata: (void) __gstats_summarize_results()

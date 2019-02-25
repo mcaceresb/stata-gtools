@@ -39,6 +39,7 @@ class GtoolsResults
     real     scalar      nosep
 
     void                 help()
+    void                 desc()
     void                 read()
     void                 readOutput()
     void                 readScalars()
@@ -495,25 +496,27 @@ void function GtoolsResults::printOutput()
     }
 }
 
-void function GtoolsResults::help(|string scalar full)
+void function GtoolsResults::help(|real scalar level)
 {
     string scalar spacing
-    real scalar level
     if ( args() == 0 ) {
-        level = 1
+        level = 0
     }
 
-    if ( level == 1 ) {
+    if ( (level == 1) | (level == 2) ) {
         spacing = "\n"
     }
     else {
         spacing = ""
     }
 
-    printf("class GstatsOutput stores group levels and summary statistics\n")
+    if ( level != 2 ) {
+    printf("GstatsOutput is a class object with group levels and summary statistics\n")
     printf("\n")
+    }
 
     printf("    helper functions:\n")
+    printf(spacing)
     printf("        string scalar getf(j, l, maxlbl)\n")
     printf("            get formatted (j, l) entry from by variables up to maxlbl characters\n")
     printf(spacing)
@@ -537,12 +540,12 @@ void function GtoolsResults::help(|string scalar full)
     printf(spacing)
     printf("\n")
 
-    if ( level == 1 ) {
-        printf(`"See {stata mata GstatsOutput.help("full")} for a full list of stored objects.\n"')
+    if ( level == 2 ) {
         return
     }
 
     printf("    summary statistics\n")
+    printf(spacing)
     printf("        real matrix output \n")
     printf("            matrix with output statistics; J x kstats x kvars\n")
     printf(spacing)
@@ -573,6 +576,7 @@ void function GtoolsResults::help(|string scalar full)
     printf("\n")
 
     printf("    variable levels (empty if without -by()-)\n")
+    printf(spacing)
     printf("        real scalar anyvars\n")
     printf("            1: any by variables; 0: no by variables\n")
     printf(spacing)
@@ -612,6 +616,7 @@ void function GtoolsResults::help(|string scalar full)
     printf("\n")
 
     printf("    printing options:\n")
+    printf(spacing)
     printf("        void printOutput()\n")
     printf("            print summary table\n")
     printf(spacing)
@@ -716,6 +721,124 @@ void function GtoolsResults::help(|string scalar full)
     // printf("        void                 readDefaults()\n")
     // printf("            reset printing defaults\n\n")
     // printf("\n")
+}
+
+void function GtoolsResults::desc()
+{
+    string matrix printstr
+    real scalar nr, nc, or, i, j
+    real rowvector printlens
+    string rowvector printfmts
+
+    nr = rows(output)
+    nc = cols(output)
+    or = 8 + (tabstat > 0) + (pool > 0)
+
+    printstr = J(or + (anyvars? 8: 0), 3, " ")
+    printstr[1, 1] = "object"
+    printstr[1, 2] = "value"
+    printstr[1, 3] = "description"
+
+    printstr[3, 1] = "output"
+    printstr[4, 1] = "ksources"
+    printstr[5, 1] = "statvars"
+    printstr[6, 1] = "kstats"
+    printstr[7, 1] = "statnames"
+    printstr[8, 1] = "colvar"
+
+    printstr[3, 2] = sprintf("%g x %g matrix", rows(output), cols(output))
+    printstr[4, 2] = sprintf("%g", ksources)
+    printstr[5, 2] = sprintf("1 x %g vector", cols(statvars))
+    printstr[6, 2] = sprintf("%g", kstats)
+    printstr[7, 2] = sprintf("1 x %g vector", cols(statnames))
+
+    printstr[3, 3] = "values of summary stats"
+    printstr[4, 3] = "# of source variables"
+    printstr[5, 3] = "source variable names"
+    printstr[6, 3] = "# of stats computed"
+    printstr[7, 3] = "names of stats computed"
+
+    if ( colvar ) {
+        printstr[8, 2] = "1"
+        printstr[8, 3] = "stats by row, columns are variables"
+    }
+    else {
+        printstr[8, 2] = "0"
+        printstr[8, 3] = "stats by col, rows are variables"
+    }
+
+    if ( tabstat ) {
+        printstr[9, 1] = "tabstat"
+        printstr[9, 2] = "1"
+        printstr[9, 3] = "computed in the style of tabstat"
+    }
+
+    if ( pool ) {
+        printstr[10, 1] = "pool"
+        printstr[10, 2] = "1"
+        printstr[10, 3] = "source variables are pooled"
+    }
+
+    if ( anyvars ) {
+        printstr[or + 1, 1] = "byvars"
+        printstr[or + 2, 1] = "J"
+        printstr[or + 3, 1] = "knum"
+        printstr[or + 4, 1] = "numx"
+        printstr[or + 5, 1] = "kchar"
+        printstr[or + 6, 1] = "charx"
+        printstr[or + 7, 1] = "map"
+        printstr[or + 8, 1] = "lens"
+
+        printstr[or + 1, 2] = sprintf("1 x %g", cols(byvars))
+        printstr[or + 2, 2] = sprintf("%g", J)
+        printstr[or + 3, 2] = sprintf("%g", knum)
+        printstr[or + 4, 2] = knum? sprintf("%g x %g matrix", rows(numx), cols(numx)): "[empty]"
+        printstr[or + 5, 2] = sprintf("%g", kchar)
+        printstr[or + 6, 2] = kchar? sprintf("%g x %g matrix", rows(charx), cols(charx)): "[empty]"
+        printstr[or + 7, 2] = sprintf("1 x %g vector", cols(map))
+        printstr[or + 8, 2] = sprintf("1 x %g vector", cols(lens))
+
+        printstr[or + 1, 3] = "by variable names"
+        printstr[or + 2, 3] = "number of levels"
+        printstr[or + 3, 3] = "# numeric by variables"
+        printstr[or + 4, 3] = "numeric by var levels"
+        printstr[or + 5, 3] = "# of string by variables"
+        printstr[or + 6, 3] = "character by var levels"
+        printstr[or + 7, 3] = "map by vars index to numx and charx"
+        printstr[or + 8, 3] = "if string, > 0; if numeric, <= 0"
+    }
+
+    printlens      = colmax(strlen(printstr))
+    printfmts      = J(1, 3, "")
+    printstr[2, 1] = sprintf("{hline %g}", printlens[1])
+    printstr[2, 2] = sprintf("{hline %g}", printlens[2])
+    printstr[2, 3] = sprintf("{hline %g}", printlens[3])
+    printfmts[1]   = sprintf("%%-%gs", printlens[1])
+    printfmts[2]   = sprintf("%%%gs",  printlens[2])
+    printfmts[3]   = sprintf("%%-%gs", printlens[3])
+
+    printf("\n")
+    printf("    GstatsOutput is a class object with group levels and summary statistics\n")
+    printf("\n")
+    for(i = 1; i <= rows(printstr); i++) {
+        printf("        | ")
+        if ( i == 2 ) {
+            for(j = 1; j <= cols(printstr); j++) {
+                printf(printstr[i, j])
+                printf(" | ")
+            }
+        }
+        else {
+            for(j = 1; j <= cols(printstr); j++) {
+                printf(printfmts[j], printstr[i, j])
+                printf(" | ")
+            }
+        }
+            printf("\n")
+    }
+    printf("\n")
+
+    help(2)
 }
 end
 

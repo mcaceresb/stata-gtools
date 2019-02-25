@@ -8130,7 +8130,11 @@ program checks_gstats_summarize
     gstats tab z
     gstats tab z y
     gstats tab z,   matasave
+    mata: GstatsOutput.desc()
     gstats tab z y, matasave
+    mata: GstatsOutput.desc()
+    gstats tab z y, matasave by(x)
+    mata: GstatsOutput.desc()
     mata: GstatsOutput.help()
 
     gstats tab z, by(y x) s(mean sd min max) matasave pretty

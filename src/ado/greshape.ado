@@ -1265,9 +1265,10 @@ program define FillvalL
         mata: __greshape_jv = strtoname(tokens(st_local("ReS_jv"))')
     }
 
-    * Note that blank selectindex is 1 by 0
+    * Not sure if blank selectindex is 1 by 0 or 0 by 1 or 0 by 0
     mata: __greshape_jv_ = selectindex(__greshape_jv :== "")
-    mata: st_numscalar("__greshape_jv_", cols(__greshape_jv_))
+    mata: st_numscalar("__greshape_jv_", /*
+        */ min((rows(__greshape_jv_), cols(__greshape_jv_))))
     if ( `=scalar(__greshape_jv_)' ) {
         mata: __greshape_jv[__greshape_jv_] = J(1, rows(__greshape_jv_), "_")
     }

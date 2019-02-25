@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  22Jan2019}{...}
+{* *! version 0.2.0  25Feb2019}{...}
 {viewerdialog gstats_summarize "dialog gstats_summarize"}{...}
 {vieweralsosee "[R] gstats_summarize" "mansection R gstats_summarize"}{...}
 {viewerjumpto "Syntax" "gstats_summarize##syntax"}{...}
@@ -8,7 +8,7 @@
 {title:Title}
 
 {p2colset 5 25 28 2}{...}
-{p2col :{cmd:gstats summarize} {hline 2}} Summary statistics using C for speed {p_end}
+{p2col :{cmd:gstats summarize} {hline 2}} Summary statistics by group using C for speed {p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -33,9 +33,9 @@ the latest stable version.
 [{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
 
 {pstd}
-{cmd:gstats {ul:sum}marize} and {cmd:gstats {ul:tab}stat} are fast, by-able
-alternatives to {opt summarize, detail} and {opt tabstat}.
-If {cmd:gstats summarizem} is called with {opt by()} or {opt tab}, a table
+{cmd:gstats {ul:tab}stat} and {cmd:gstats {ul:sum}marize} are fast, by-able
+alternatives to {opt tabstat} and {opt summarize, detail}.
+If {cmd:gstats summarize} is called with {opt by()} or {opt tab}, a table
 in the style of {opt tabstat} is produced that inclues all the summary
 statistics included by default in {opt summarize, detail}.
 
@@ -49,18 +49,6 @@ faster than {cmd:gcollapse}.
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
-{syntab :Summarize Options}
-{synopt:{opt nod:etail}}Do not display the full set of statistics.
-{p_end}
-{synopt:{opt mean:only}}Calculate only the count, sum, mean, min, max.
-{p_end}
-{synopt:{opth by(varname)}}Group by variable; all stats are computed but output is in the style of tabstat.
-{p_end}
-{synopt:{opt sep:arator(#)}}Draw separator line after every {it:#} variables; default is {cmd:separator(5)}.
-{p_end}
-{synopt:{opt tab:stat}}Compute and display statistics in the style of {opt tabstat}.
-{p_end}
-
 {syntab :Tabstat Options}
 {synopt:{opth by(varname)}}Group statistics by variable.
 {p_end}
@@ -74,6 +62,18 @@ specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, ma
 {synopt:{opth labelw:idth(int)}}Max by variable label/value width.
 {p_end}
 {synopt:{opt f:ormat}[{cmd:(%}{it:{help format:fmt}}{cmd:)}]}Use format to display summary stats; default %9.0g
+{p_end}
+
+{syntab :Summarize Options}
+{synopt:{opt nod:etail}}Do not display the full set of statistics.
+{p_end}
+{synopt:{opt mean:only}}Calculate only the count, sum, mean, min, max.
+{p_end}
+{synopt:{opth by(varname)}}Group by variable; all stats are computed but output is in the style of tabstat.
+{p_end}
+{synopt:{opt sep:arator(#)}}Draw separator line after every {it:#} variables; default is {cmd:separator(5)}.
+{p_end}
+{synopt:{opt tab:stat}}Compute and display statistics in the style of {opt tabstat}.
 {p_end}
 
 {syntab :Common Options}
@@ -116,32 +116,34 @@ uses weights).
 {title:Description}
 
 {pstd}
-{opt gstats sum} computes the statistics that are reported by {opt sum, detail}
-with a reasonable runtime. While the latter does report deveral complex
-statistics, including various quantiles and the largest and smallest
-values, it is very inefficiently implemented. {opt gstats sum} is often 20
-to 40 times faster.
+{opt gstats tab} and {opt gstats sum} are mainly designed to report
+statistics by group. It does not modify the data in memory,
+so it is a nice alternative to {opt gcollapse} when there are few
+groups and you want to compute summary stats more quickly.
 
 {pstd}
-Note that while the default behavior of {opt summarize} can be recovered
-via {opt gstats, meanonly} and {opt gstats, nodetail}, Stata is not specially
-inefficient when computing simple statistics, and in some cases it might
-be faster. The main use of these options is for use with {opt by()} and
-option {opt tab}.
+{opt gstats sum} by default computes the staistics that are reported by
+{opt sum, detail} and without {opt by()} it is anywhere from 5 to 40
+times faster. The lower end of the speed gains are for Stata/MP, but
+{opt sum, detail} is very slow in versions of Stata that are not multi-threaded.
+The behavior of plain {opt summarize} and {opt summarize, meanonly}
+can be recovered via options {opt nodetail} and {opt meanonly}, but Stata
+is not specially slow in this case. Hence they are mainly included for
+use with {opt by()}, where {opt gstats sum} is again faster.
 
 {pstd}
-{opt gstats tab} is a fast alternative to {opt tabstat}. Without groups and with
-simple statistics, {opt tabstat} is not, again, particularly inefficient.
-However, even with few groups (e.g. 5) {opt tabstat} will be at least 10
-times slower than {opt gstats tab}, and as the number of groups increases
-the runtime of {opt tabstat} appears to increase non-linearly, whereas
-{opt gstats tab} retains a reasonable runtime.
+{opt gstats tab} should be faster than {opt tabstat} even without
+groups, but the speed gains are largest with even a modest number of
+levels in {opt by()}. Furthermore, an arbitrary number of grouping
+variables are allowed. Note that with a very large numer of groups,
+{opt tabstat}'s runtime seems to scale non-linearly, while {opt gstats tab}
+will execute in a reasonable time.
 
 {pstd}
 {opt gstata tab} does not store results in {opt r()}. Rather, the option {opt matasave}
 is provided to store the full set of summary statistics and the by variable
-levels in a mata class object called {opt GstatsOutput}. The following
-helper functions are provided:
+levels in a mata class object called {opt GstatsOutput}.  Run {opt mata GstatsOutput.desc()}
+after {opt gstats tab, matasave} for details.  The following helper functions are provided:
 
         string scalar getf(j, l, maxlbl)
             get formatted (j, l) entry from by variables up to maxlbl characters

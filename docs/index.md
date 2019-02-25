@@ -49,8 +49,8 @@ __*Gtools commands with a Stata equivalent*__
 | gquantiles   | xtile       |  10 to 30 / 13 to 25 (-) |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile      |  13 to 38 / 3 to 5 (-)   |                         | Ibid.                                   |
 |              | \_pctile    |  25 to 40 / 3 to 5       |                         | Ibid.                                   |
-| gstats sum   | sum, detail |  10 to 40 / 5 to 20      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 | gstats tab   | tabstat     |  10 to 60 / 5 to 40 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats sum   | sum, detail |  10 to 40 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 
 <small>(+) The upper end of the speed improvements are for quantiles
 (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -95,7 +95,7 @@ details and examples, see each command's help page:
 - [gcollapse](usage/gcollapse#examples)
 - [greshape](usage/greshape#examples)
 - [gquantiles](usage/gquantiles#examples)
-- [gstats summarize](usage/gstats_summarize#examples)
+- [gstats sum/tab](usage/gstats_summarize#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
@@ -418,7 +418,7 @@ Differences from `egen`
 
 - `group` label options are not supported
 - weights are supported for internally implemented functions.
-- `nunique` is supported.
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
 - `gegen` upgrades the type of the target variable if it is not specified by
   the user. This means that if the sources are `double` then the output will
   be double. All sums are double. `group` creates a `long` or a `double`. And
@@ -429,6 +429,17 @@ Differences from `egen`
 - While `gegen` is much faster for `tag`, `group`, and summary stats, most
   egen function are not implemented internally, meaning for arbitrary `gegen`
   calls this is a wrapper for hashsort and egen.
+
+Differences from `tabstat`
+
+- Saving the output is done via `mata` instead of `r()`. No matrices
+  are saved in `r()` and option `save` is not allowed. However, option
+  `matasave` saves the output and `by()` info in `GstatsOutput`. See
+  `mata GstatsOutput.desc()` after `gstats tab, matasave` for details.
+- `GstatsOutput` provides helpers for extracting rows, columns, and levels.
+- Multiple groups are allowed.
+- Options `casewise`, `longstub` are not supported.
+- Option `nototal` is on by default; `total` is planned for a future release.
 
 Differences from `summarize, detail`
 
@@ -448,17 +459,6 @@ Differences from `summarize, detail`
   the option `by()`
 - `display options` are not supported.
 - Factor and time series variables are not allowed.
-
-Differences from `tabstat`
-
-- Saving the output is done via `mata` instead of `r()`. No matrices
-  are saved in `r()` and option `save` is not allowed. However, option
-  `matasave` saves the output and `by()` info in `GstatsOutput`. See
-  `mata GstatsOutput.desc()` after `gstats tab, matasave` for details.
-- `GstatsOutput` provides helpers for extracting rows, columns, and levels.
-- Multiple groups are allowed.
-- Options `casewise`, `longstub` are not supported.
-- Option `nototal` is on by default; `total` is planned for a future release.
 
 Differences from `levelsof`
 

@@ -134,6 +134,7 @@ gtools_ssc = [
     "greshape.sthlp",
     "gstats.sthlp",
     "gstats_winsor.sthlp",
+    "gstats_tab.sthlp",
     "gstats_sum.sthlp",
     "gstats_summarize.sthlp",
     "gduplicates.sthlp",
@@ -329,6 +330,11 @@ copy2(
     path.join("docs", "stata", "gstats_sum.sthlp")
 )
 
+copy2(
+    path.join("docs", "stata", "gstats_summarize.sthlp"),
+    path.join("docs", "stata", "gstats_tab.sthlp")
+)
+
 copy2(path.join("docs", "stata", "gcollapse.sthlp"),        gdir)
 copy2(path.join("docs", "stata", "gcontract.sthlp"),        gdir)
 copy2(path.join("docs", "stata", "gegen.sthlp"),            gdir)
@@ -343,6 +349,7 @@ copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
 copy2(path.join("docs", "stata", "gstats_winsor.sthlp"),    gdir)
 copy2(path.join("docs", "stata", "gstats_summarize.sthlp"), gdir)
 copy2(path.join("docs", "stata", "gstats_sum.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gstats_tab.sthlp"),       gdir)
 copy2(path.join("docs", "stata", "gduplicates.sthlp"),      gdir)
 copy2(path.join("docs", "stata", "gquantiles.sthlp"),       gdir)
 copy2(path.join("docs", "stata", "fasterxtile.sthlp"),      gdir)

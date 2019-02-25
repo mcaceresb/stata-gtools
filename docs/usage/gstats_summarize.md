@@ -1,8 +1,8 @@
 gstats sum/tab
 ==============
 
-Efficiently compute summary statistics in the style of `summarize, detail`
-and `tabstat`.
+Efficiently compute summary statistics by group in the style of
+`tabstat` and `summarize, detail`.
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
@@ -67,14 +67,6 @@ The following are available via `gstats tab`
 Options
 -------
 
-### Summarize Options
-
-- `nodetail`           Do not display the full set of statistics.
-- `meanonly`           Calculate only the count, sum, mean, min, max.
-- `by(varname)`        Group by variable; all stats are computed but output is in the style of tabstat.
-- `separator(#)`       Draw separator line after every # variables; default is `separator(5)`.
-- `tabstat`            Compute and display statistics in the style of tabstat.
-
 ### Tabstat Options
 
 - `by(varname)`            Group statistics by variable.
@@ -83,6 +75,14 @@ Options
 - `prettystats`            Pretty statistic header names
 - `labelwidth(int)`        Max by variable label/value width. Default `16`.
 - `format[(%fmt)]`         Use format to display summary stats; default `%9.0g`
+
+### Summarize Options
+
+- `nodetail`           Do not display the full set of statistics.
+- `meanonly`           Calculate only the count, sum, mean, min, max.
+- `by(varname)`        Group by variable; all stats are computed but output is in the style of tabstat.
+- `separator(#)`       Draw separator line after every # variables; default is `separator(5)`.
+- `tabstat`            Compute and display statistics in the style of tabstat.
 
 ### Common Options
 
@@ -128,29 +128,31 @@ Options
 Remarks
 -------
 
-`gstats sum` computes the statistics that are reported by `sum, detail`
-with a reasonable runtime. While the latter does report deveral complex
-statistics, including various quantiles and the largest and smallest
-values, it is very inefficiently implemented. `gstats sum` is often 20
-to 40 times faster.
+`gstats tab` and `gstats sum` are mainly designed to report
+statistics by group. It does not modify the data in memory,
+so it is a nice alternative to `gcollapse` when there are few
+groups and you want to compute summary stats more quickly.
 
-Note that while the default behavior of `summarize` can be recovered
-via `gstats, meanonly` and `gstats, nodetail`, Stata is not specially
-inefficient when computing simple statistics, and in some cases it might
-be faster. The main use of these options is for use with `by()` and
-option `tab`.
+`gstats sum` by default computes the staistics that are reported by
+`sum, detail` and without `by()` it is anywhere from 5 to 40
+times faster. The lower end of the speed gains are for Stata/MP, but
+`sum, detail` is very slow in versions of Stata that are not multi-threaded.
+The behavior of plain `summarize` and `summarize, meanonly`
+can be recovered via options `nodetail` and `meanonly`, but Stata
+is not specially slow in this case. Hence they are mainly included for
+use with `by()`, where `gstats sum` is again faster.
 
-`gstats tab` is a fast alternative to `tabstat`. Without groups and with
-simple statistics, `tabstat` is not, again, particularly inefficient.
-However, even with few groups (e.g. 5) `tabstat` will be at least 10
-times slower than `gstats tab`, and as the number of groups increases
-the runtime of `tabstat` appears to increase non-linearly, whereas
-`gstats tab` retains a reasonable runtime.
+`gstats tab` should be faster than `tabstat` even without
+groups, but the speed gains are largest with even a modest number of
+levels in `by()`. Furthermore, an arbitrary number of grouping
+variables are allowed. Note that with a very large numer of groups,
+`tabstat`'s runtime seems to scale non-linearly, while `gstats tab`
+will execute in a reasonable time.
 
 `gstata tab` does not store results in `r()`. Rather, the option `matasave`
 is provided to store the full set of summary statistics and the by variable
-levels in a mata class object called `GstatsOutput`. The following
-helper functions are provided:
+levels in a mata class object called `GstatsOutput`. Run `mata GstatsOutput.desc()`
+after `gstats tab, matasave` for details. The following helper functions are provided:
 
 ```
     string scalar getf(j, l, maxlbl)

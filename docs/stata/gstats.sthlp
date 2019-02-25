@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.4  23Jan2019}{...}
+{* *! version 0.2.0  25Feb2019}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}

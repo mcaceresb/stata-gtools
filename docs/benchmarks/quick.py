@@ -46,7 +46,7 @@ df = pd.DataFrame(
         ['levelsof',                        2.80,   0.50],
         ['distinct',                        30.24,  0.57],
         ['winsor2\n(vs gstats)',            19.93,  0.86],
-        ['sum, detail\n(vs gstats)',        41.3,   1.51],
+        ['summ, detail\n(vs gstats)',       41.3,   1.51],
         ['tabstat, 10 groups\n(vs gstats)', 18.5,   1.24],
 
     ],
@@ -68,8 +68,8 @@ df = pd.DataFrame(
         ['levelsof',                        4.37,  1.01],
         ['distinct',                       18.74,  0.93],
         ['winsor2\n(vs gstats)',            9.67,  1.22],
-        ['sum, detail\n(vs gstats)',        41.3,  1.51],
-        ['tabstat, 10 groups\n(vs gstats)', 18.5,  1.24],
+        ['summ, detail\n(vs gstats)',        7.3,  1.41],
+        ['tabstat, 10 groups\n(vs gstats)', 17.1,  1.04],
     ],
     columns = [' ', 'Stata', 'gtools']
 )

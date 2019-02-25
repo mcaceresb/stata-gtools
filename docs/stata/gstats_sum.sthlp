@@ -146,7 +146,7 @@ helper functions are provided:
         real matrix getnum(j, l)
             get (j, l) numeric entry from by variables
 
-        string matrix getchar(j, l|, raw)
+        string matrix getchar(j, l,| raw)
             get (j, l) numeric entry from by variables; raw controls whether to null-pad entries
 
         real rowvector getOutputRow(j)

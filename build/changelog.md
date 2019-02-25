@@ -23,6 +23,8 @@ Change Log
 ### Bug fixes
 
 - `gcollapse` no longer crashes when `rawstat` does not match any entries.
+- Fixes #54; incorrect checking for `greshape wide/spread` blank keys
+- Fixes #55; allows `uselabels` to use labels as balues in `greshape gather`
 
 ### Enhancements
 

@@ -97,6 +97,7 @@ end
 * L | W | G
 * X | X | ReS_Xij
 * X | X | ReS_str
+* X |   | ReS_uselabels
 * X | X | ReS_i
 * X | X | ReS_j
 * X | X | ReS_jname
@@ -161,6 +162,7 @@ program define Long /* reshape long */
             KEYs(name)         /// varnames by levels -key()-
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
+            USELabels          /// Use labels as values instead of variable names
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -253,6 +255,7 @@ program define Long /* reshape long */
     }
 
     if ( `"`j'"' == "" ) local j _$ReS_jname
+    global ReS_uselabels = ( `"`uselabels'"' != "" )
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl `atwl'
     global ReS_Xij  `values'
@@ -915,6 +918,8 @@ program define FillvalW
     if ( _rc ) local substr substr
     else local substr bsubstr
 
+    tempname jlen
+    mata: `jlen' = 0
     if ( "$ReS_cmd" != "gather" ) {
         parse "$ReS_Xij", parse(" ")
         local i 1
@@ -980,7 +985,7 @@ program define FillvalW
             mata: __greshape_res = strofreal(__greshape_res)
         }
         else {
-            mata: SaveJValuesString(__greshape_res)
+            mata: (void) SaveJValuesString(__greshape_res, 0)
         }
         mata: __greshape_xijname = sort(uniqrows(__greshape_dsname[__greshape_sel]), 1)
     }
@@ -992,7 +997,7 @@ program define FillvalW
             disp as err "variable j contains all missing values"
             exit 498
         }
-        mata: SaveJValuesString(__greshape_res)
+        mata: `jlen' = SaveJValuesString(__greshape_res, ${ReS_uselabels}) - 1
         mata: __greshape_xijname = __greshape_res
     }
 
@@ -1017,7 +1022,7 @@ program define FillvalW
     scalar __greshape_ncols = .
 
     mata: st_global("ReS_jv",   invtokens(__greshape_res'))
-    mata: st_global("ReS_jlen", strofreal(max(strlen(__greshape_res))))
+    mata: st_global("ReS_jlen", strofreal(`jlen' > 0? `jlen': max(strlen(__greshape_res))))
 
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
@@ -1189,19 +1194,37 @@ void function SaveJValuesReal(real colvector res)
     fclose(fh)
 }
 
-void function SaveJValuesString(string colvector res)
+real scalar function SaveJValuesString(string colvector res, real scalar uselabels)
 {
     real scalar i, fh, max
-    string scalar fmt
+    string scalar fmt, vlbl
+    string colvector reslbl
     colvector C
+
     fh  = fopen(st_global("ReS_jfile"), "w")
     C   = bufio()
-    max = max(strlen(res)) + 1
-    fmt = sprintf("%%%gS", max)
-    for(i = 1; i <= rows(res); i++) {
-        fbufput(C, fh, fmt, res[i] + (max - strlen(res[i])) * char(0))
+    if ( uselabels ) {
+        reslbl = J(rows(res), 1, "")
+        for(i = 1; i <= rows(res); i++) {
+            vlbl = st_varlabel(res[i])
+            reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+        }
+        max = max(strlen(reslbl)) + 1
+        fmt = sprintf("%%%gS", max)
+        for(i = 1; i <= rows(reslbl); i++) {
+            fbufput(C, fh, fmt, reslbl[i] + (max - strlen(reslbl[i])) * char(0))
+        }
+    }
+    else {
+        max = max(strlen(res)) + 1
+        fmt = sprintf("%%%gS", max)
+        for(i = 1; i <= rows(res); i++) {
+            fbufput(C, fh, fmt, res[i] + (max - strlen(res[i])) * char(0))
+        }
     }
     fclose(fh)
+
+    return(max)
 }
 end
 
@@ -1242,9 +1265,10 @@ program define FillvalL
         mata: __greshape_jv = strtoname(tokens(st_local("ReS_jv"))')
     }
 
+    * Note that blank selectindex is 1 by 0
     mata: __greshape_jv_ = selectindex(__greshape_jv :== "")
-    mata: st_numscalar("__greshape_jv_", rows(__greshape_jv_))
-    if ( scalar(__greshape_jv_) ) {
+    mata: st_numscalar("__greshape_jv_", cols(__greshape_jv_))
+    if ( `=scalar(__greshape_jv_)' ) {
         mata: __greshape_jv[__greshape_jv_] = J(1, rows(__greshape_jv_), "_")
     }
 
@@ -1255,7 +1279,7 @@ program define FillvalL
         exit 198
     }
 
-    * mata: SaveJValuesString(__greshape_jv)
+    * mata: (void) SaveJValuesString(__greshape_jv)
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
 
@@ -1544,6 +1568,7 @@ program define Macdrop
              ReS_nodupcheck    ///
              ReS_nomisscheck   ///
              ReS_atwl          ///
+             ReS_uselabels     ///
              ReS_i             ///
              ReS_iname         ///
              ReS_j             ///

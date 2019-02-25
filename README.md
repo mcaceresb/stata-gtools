@@ -566,6 +566,7 @@ TODO
 
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Benchmark display time for `sum/tab` in gstats
+- [ ] Allow keeping both variable names and labels in `greshape spread/gather`
 - [ ] Implement extra display options for `gstats summarize`.
 - [ ] Implement `collapse()` option for `greshape`.
 - [ ] Implement variable group syntax for `greshape`.

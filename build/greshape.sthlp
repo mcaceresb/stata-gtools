@@ -187,6 +187,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opth keys(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_key}).
 {p_end}
+{synopt :{opt usel:abels}}Store variable labels instead of their names.
+{p_end}
 
 {syntab :Spread}
 {synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with variable names.

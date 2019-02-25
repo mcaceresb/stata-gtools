@@ -1,4 +1,4 @@
-*! version 1.4.0 22Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.4.1 23Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -371,54 +371,58 @@ end
 capture program drop gtools_showcase
 program gtools_showcase
     * preserve
-    gtools_cmd   sysuse auto, clear
-                 
+    gtools_cmd  sysuse auto, clear
+
+    gtools_head gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
+    gtools_cmd  gstats sum price [pw = gear_ratio / 4]
+    gtools_cmd  gstats tab price mpg, by(foreign) matasave
+
     gtools_head gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
     gtools_cmd  gquantiles 2 * price, _pctile nq(10)
     gtools_cmd  gquantiles p10 = 2 * price, pctile nq(10)
     gtools_cmd  gquantiles x10 = 2 * price, xtile nq(10) by(rep78)
     gtools_cmd  fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)
-                
+
     gtools_head gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]
     gtools_cmd  gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)
     gtools_cmd  gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)
-                
+
     gtools_head hashsort varlist, [options]
     gtools_cmd  hashsort -make
     gtools_cmd  hashsort foreign -rep78, benchmark verbose mlast
-                
+
     gtools_head gegen target = stat(source) [if] [in] [weight], by(varlist) [options]
     gtools_cmd  gegen tag   = tag(foreign)
     gtools_cmd  gegen group = tag(-price make)
     gtools_cmd  gegen p2_5  = pctile(price) [w = weight], by(foreign) p(2.5)
-                
+
     gtools_head gisid varlist [if] [in], [options]
     gtools_cmd  gisid make, missok
     gtools_cmd  gisid price in 1 / 2
-                
+
     gtools_head gduplicates varlist [if] [in], [options gtools(gtools_options)]
     gtools_cmd  gduplicates report foreign
     gtools_cmd  gduplicates report rep78 if foreign, gtools(bench(3))
-                
+
     gtools_head glevelsof varlist [if] [in], [options]
     gtools_cmd  glevelsof rep78, local(levels) sep(" | ")
     gtools_cmd  glevelsof foreign mpg if price < 4000, loc(lvl) sep(" | ") colsep(", ")
     gtools_cmd  glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
-                
+
     gtools_head gtop varlist [if] [in] [weight], [options]
     disp        "gtoplevelsof varlist [if] [in] [weight], [options]" _n(1)
     gtools_cmd  gtoplevelsof foreign rep78
     gtools_cmd  gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
-                
+
     gtools_head gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
     gtools_cmd  gen h1 = headroom
     gtools_cmd  gen h2 = headroom
     gtools_cmd  local lbl labelformat(#stat:pretty# #sourcelabel#)
-    gtools_cmd  
+    gtools_cmd
     gtools_cmd  gcollapse (mean) mean = price (median) p50 = gear_ratio, by(make) merge v `lbl'
     disp        `"disp "\`:var label mean', \`:var label p50'""'
     gtools_cmd  gcollapse (iqr) irq? = h? (nunique) turn (p97.5) mpg, by(foreign rep78) bench(2) wild
-                
+
     gtools_head gcontract varlist [if] [if] [fweight], [options]
     gtools_cmd  gcontract foreign [fw = turn], freq(f) percent(p)
     * restore
@@ -432,7 +436,7 @@ program gtools_showcase
     gtools_cmd  gen j = _n
     gtools_cmd  greshape wide f p, i(foreign) j(j)
     gtools_cmd  greshape long f p, i(foreign) j(j)
-    gtools_cmd                                        
+    gtools_cmd
     gtools_cmd  greshape spread f p, j(j)
     gtools_cmd  greshape gather f? p?, j(j) value(fp)
 end

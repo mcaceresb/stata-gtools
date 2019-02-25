@@ -34,8 +34,9 @@ transformations, including:
 as a fast {opt winsor2} alternative (accepts weights). {p_end}
 
 {p 8 17 2}
-{help gstats summarize:{bf:gstats {ul:sum}marize}}
-as a fast, by-able alternative to {opt tabtsat} and {opt summarize, detail} (accepts weights). {p_end}
+{help gstats summarize:{bf:gstats {ul:sum}marize}} and
+{help gstats summarize:{bf:gstats {ul:tab}stat}} are fast,
+by-able alternatives to {opt summarize, detail} and {opt tabtsat} (accept weights). {p_end}
 
 {marker description}{...}
 {title:Description}

@@ -1130,7 +1130,7 @@ program _compare_inner_gcollapse_gegen
     }
 
     foreach fun in `stats' q10 q30 q70 q90 {
-        cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+        cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
         if ( _rc ) {
             if inlist("`fun'", "skew", "kurt") {
                 local a1 ((g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol')
@@ -1149,7 +1149,7 @@ program _compare_inner_gcollapse_gegen
             }
             else {
                 recast double g_`fun' `fun'
-                cap noi assert (g_`fun' == `fun') | abs(g_`fun' - `fun') < `tol'
+                cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
                 if ( _rc ) {
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
                     save /tmp/xx, replace

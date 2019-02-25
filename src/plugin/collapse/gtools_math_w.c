@@ -880,7 +880,7 @@ ST_double gf_array_dselect_weighted (
     GT_size   vcount,
     ST_double *p_buffer)
 {
-    if ( wsum == 0 ) return (SV_missval);
+    if ( wsum == 0 || wsum == SV_missval ) return (SV_missval);
 
     ST_double *vptr = v;
     ST_double *wptr = w;

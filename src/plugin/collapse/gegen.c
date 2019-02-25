@@ -19,7 +19,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
 // printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
 //     spookyhash_128(st_info->st_numx, sizeof(ST_double), &c, &d);
 // printf("spooky128 debug %.21g -> (%lu, %lu)\n", *st_info->st_numx, c, d);
-// 
+//
 //    return (17999);
 
     if ( st_info->wcode ) {
@@ -71,6 +71,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_bulk", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -435,6 +436,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_multiple_sources", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;

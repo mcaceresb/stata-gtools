@@ -25,18 +25,6 @@ the latest stable version.
 [{it:{help gstats##weight:weight}}]
 [{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
 
-{pstd}
-{cmd:gstats {ul:sum}marize} is a fast, by-able alternative to
-{opt tabtsat} and {opt summarize, detail}. By default it will compute
-the equivalent of {opt summarize, detail}. If called with {opt by()},
-a table in the style of {opt tabstat} is produced that inclues all the
-summary statistics included by default in {opt summarize, detail}.
-
-{pstd}
-The user can switch the output behavior via the {opt tab:stat} or
-{opt s:tatistics()} options, which will mimic the default behavior
-of {opt tabstat}. In addition, an alias is provided:
-
 {p 8 17 2}
 {cmd:gstats {ul:tab}stat}
 {varlist}
@@ -45,11 +33,16 @@ of {opt tabstat}. In addition, an alias is provided:
 [{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
 
 {pstd}
+{cmd:gstats {ul:sum}marize} and {cmd:gstats {ul:tab}stat} are fast, by-able
+alternatives to {opt summarize, detail} and {opt tabstat}.
+If {cmd:gstats summarizem} is called with {opt by()} or {opt tab}, a table
+in the style of {opt tabstat} is produced that inclues all the summary
+statistics included by default in {opt summarize, detail}.
+
+{pstd}
 Note the {it:prefixes} {cmd:by}, {cmd:rolling}, {cmd:statsby} are
-{cmd:{it:not}} supported. To compute a table of statistics by a group you
-must use the option {opt by()}. Last, the display options of {opt tabstat}
-and {opt summarize} are not currently supported but limited support for
-some of their display options is planned for a future release.
+{cmd:{it:not}} supported. To compute a table of statistics by a group
+use the option {opt by()}.
 
 {synoptset 23 tabbed}{...}
 {marker table_options}{...}
@@ -62,18 +55,34 @@ some of their display options is planned for a future release.
 {p_end}
 {synopt:{opth by(varname)}}Group by variable; all stats are computed but output is in the style of tabstat.
 {p_end}
-{synopt:{opt sep:arator(#)}}draw separator line after every {it:#} variables; default is {cmd:separator(5)}.
+{synopt:{opt sep:arator(#)}}Draw separator line after every {it:#} variables; default is {cmd:separator(5)}.
 {p_end}
-{synopt:{opt f:ormat}}use variable's display format.
+{synopt:{opt tab:stat}}Compute and display statistics in the style of {opt tabstat}.
 {p_end}
 
 {syntab :Tabstat Options}
-{synopt:{opt tab:stat}}Compute and display statistics in the style of {opt tabstat}.
-{p_end}
 {synopt:{opth by(varname)}}Group statistics by variable.
 {p_end}
-{synopt:{cmdab:s:tatistics:(}{it:{help tabstat##statname:stat}} [{it:...}]{cmd:)}}Report
+{synopt:{cmdab:s:tatistics:(}{it:{help gstats_summarize##statname:stat}} [{it:...}]{cmd:)}}Report
 specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, max.
+{p_end}
+{synopt:{opt col:umns(stat|var)}}Columns are statistics (default) or variables.
+{p_end}
+{synopt:{opt pretty:stats}}Pretty statistic header names
+{p_end}
+{synopt:{opth labelw:idth(int)}}Max by variable label/value width.
+{p_end}
+{synopt:{opt f:ormat}[{cmd:(%}{it:{help format:fmt}}{cmd:)}]}Use format to display summary stats; default %9.0g
+{p_end}
+
+{syntab :Common Options}
+{synopt:{opt matasave}}Save results in {bf:GstatsOutput} mata object.
+{p_end}
+{synopt:{opt pool:ed}}Pool varlist
+{p_end}
+{synopt:{opt noprint}}Do not print
+{p_end}
+{synopt:{opt f:ormat}}Use variable's display format.
 {p_end}
 
 {syntab:Gtools Options}
@@ -104,23 +113,149 @@ uses weights).
 {title:Description}
 
 {pstd}
-Note that {opt summarize} by itself (or with option {opt meanonly}) is
-not specially slow. If you do not need to use {opt by()}, {opt detail},
-or {opt tabstat}, then you are better off using plain {opt summarize}.
-However, with any of those options {cmd:gstats} is orders of magnitude faster
-than the built-in equivalents.
+{opt gstats sum} computes the statistics that are reported by {opt sum, detail}
+with a reasonable runtime. While the latter does report deveral complex
+statistics, including various quantiles and the largest and smallest
+values, it is very inefficiently implemented. {opt gstats sum} is often 20
+to 40 times faster.
 
 {pstd}
-This also means that the {opt nod:etail} and {opt meanonly} options are
-mainly useful when combined with {opt by()} as short-hand for computing
-the basic summarize or meanonly statistics by group.
+Note that while the default behavior of {opt summarize} can be recovered
+via {opt gstats, meanonly} and {opt gstats, nodetail}, Stata is not specially
+inefficient when computing simple statistics, and in some cases it might
+be faster. The main use of these options is for use with {opt by()} and
+option {opt tab}.
 
 {pstd}
-Last, I will note that when computing statistics for multiple variables,
-{cmd:gstats} tries to saves the results in a matrix (if this is not feasible
-because there are too many variables or by groups, the results will be saved
-in mata objects). This might be another reason to prefer {opt gstats}, but
-your milage may vary on this point.
+{opt gstats tab} is a fast alternative to {opt tabstat}. Without groups and with
+simple statistics, {opt tabstat} is not, again, particularly inefficient.
+However, even with few groups (e.g. 5) {opt tabstat} will be at least 10
+times slower than {opt gstats tab}, and as the number of groups increases
+the runtime of {opt tabstat} appears to increase non-linearly, whereas
+{opt gstats tab} retains a reasonable runtime.
+
+{pstd}
+{opt gstata tab} does not store results in {opt r()}. Rather, the option {opt matasave}
+is provided to store the full set of summary statistics and the by variable
+levels in a mata class object called {opt GstatsOutput}. The following
+helper functions are provided:
+
+        string scalar getf(j, l, maxlbl)
+            get formatted (j, l) entry from by variables up to maxlbl characters
+
+        real matrix getnum(j, l)
+            get (j, l) numeric entry from by variables
+
+        string matrix getchar(j, l|, raw)
+            get (j, l) numeric entry from by variables; raw controls whether to null-pad entries
+
+        real rowvector getOutputRow(j)
+            get jth output row
+
+        real colvector getOutputCol(j)
+            get jth output column by position
+
+        real matrix getOutputVar(var)
+            get jth output var by name
+
+        real matrix getOutputGroup(j)
+            get jth output group
+
+{pstd}
+The following data is stored {opt GstatsOutput}:
+
+        summary statistics
+        ------------------
+
+            real matrix output
+                matrix with output statistics; J x kstats x kvars
+
+            real scalar colvar
+                1: columns are variables, rows are statistics; 0: the converse
+
+            real scalar ksources
+                number of variable sources (0 if pool is true)
+
+            real scalar kstats
+                number of statistics
+
+            real matrix tabstat
+                1: used tabstat; 0: used summarize
+
+            string rowvector statvars
+                variables summarized
+
+            string rowvector statnames
+                statistics computed
+
+            real rowvector scodes
+                internal code for summary statistics
+
+            real scalar pool
+                pooled source variables
+
+        variable levels (empty if without -by()-)
+        -----------------------------------------
+
+            real scalar anyvars
+                1: any by variables; 0: no by variables
+
+            real scalar anychar
+                1: any string by variables; 0: all numeric by variables
+
+            string rowvector byvars
+                by variable names
+
+            real scalar kby
+                number of by variables
+
+            real scalar rowbytes
+                number of bytes in one row of the internal by variable matrix
+
+            real scalar J
+                number of levels
+
+            real matrix numx
+                numeric by variables
+
+            string matrix charx
+                string by variables
+
+            real scalar knum
+                number of numeric by variables
+
+            real scalar kchar
+                number of string by variables
+
+            real rowvector lens
+                > 0: length of string by variables; <= 0: internal code for numeric variables
+
+            real rowvector map
+                map from index to numx and charx
+
+        printing options
+        ----------------
+
+            void printOutput()
+                print summary table
+
+            real scalar maxlbl
+                max by variable label/value width
+
+            real scalar pretty
+                print pretty statistic names
+
+            real scalar usevfmt
+                use variable format for printing
+
+            string scalar dfmt
+                fallback printing format
+
+            real scalar maxl
+                maximum column length
+
+            void readDefaults()
+                reset printing defaults
 
 {marker statistics}{...}
 {title:Statistics}
@@ -213,6 +348,6 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {pstd}
-help for 
+help for
 {help gtools};
 {help winsor2} (if installed)

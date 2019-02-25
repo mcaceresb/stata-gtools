@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.4.0"
+#define GTOOLS_VERSION "1.4.1"
 
 /*
  * Style
@@ -71,6 +71,8 @@ struct StataInfo {
     GT_size   numfmt_max;
     GT_size   numfmt_len;
     GT_size   ctolerance;
+    GT_size   gfile_byvar;
+    GT_size   gfile_bycol;
     //
     GT_size   biject;
     GT_size   encode;
@@ -118,6 +120,8 @@ struct StataInfo {
     ST_double winsor_cutl;
     ST_double winsor_cuth;
     GT_size   winsor_kvars;
+    GT_size   summarize_colvar;
+    GT_size   summarize_pooled;
     GT_size   summarize_normal;
     GT_size   summarize_detail;
     GT_size   summarize_kvars;

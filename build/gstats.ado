@@ -21,6 +21,9 @@ program gstats, rclass
                           summari ///
                           summariz
 
+    local stats_sorted tabstat ///
+                       summarize
+
     local stats dir     ///
                 winsor  ///
                 tabstat ///
@@ -58,23 +61,27 @@ program gstats, rclass
         exit 0
     }
 
-    syntax varlist            /// Variables to check
-        [if] [in]             /// [if condition] [in start / end]
-        [aw fw pw iw] ,       /// [weight type = exp]
-    [                         ///
-        *                     /// Options for subprograms
-        by(varlist)           /// Winsorize options
-                              ///
-        compress              /// Try to compress strL variables
-        forcestrl             /// Force reading strL variables (stata 14 and above only)
-        Verbose               /// Print info during function execution
-        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
-        BENCHmark             /// Benchmark function
-        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
-        HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        oncollision(passthru) /// error|fallback: On collision, use native command or throw error
-        debug(passthru)       /// Print debugging info to console
+    syntax varlist             /// Variables to check
+        [if] [in]              /// [if condition] [in start / end]
+        [aw fw pw iw] ,        /// [weight type = exp]
+    [                          ///
+        *                      /// Options for subprograms
+        by(str)                /// Winsorize options
+                               ///
+        compress               /// Try to compress strL variables
+        forcestrl              /// Force reading strL variables (stata 14 and above only)
+        Verbose                /// Print info during function execution
+        _CTOLerance(passthru)  /// (Undocumented) Counting sort tolerance; default is radix
+        BENCHmark              /// Benchmark function
+        BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
+        debug(passthru)        /// Print debugging info to console
     ]
+
+    local unsorted = cond(`:list stat in stats_sorted', "", "unsorted")
+
+    if ( `"`by'"' != "" ) confirm var `by'
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -89,7 +96,7 @@ program gstats, rclass
 	}
     else local weights
 
-    local opts   `weights' `compress' `forcestrl' nods unsorted missing
+    local opts   `weights' `compress' `forcestrl' nods `unsorted' missing
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')
@@ -141,39 +148,49 @@ program gstats, rclass
     }
 
     if ( `"`stat'"' == "summarize" ) {
-        return scalar N     = r(gstats_summarize_N)      // number of observations
-        return scalar sum_w = r(gstats_summarize_sum_w)  // sum of the weights
-        return scalar sum   = r(gstats_summarize_sum)    // sum of variable
-        return scalar mean  = r(gstats_summarize_mean)   // mean
-        return scalar min   = r(gstats_summarize_min)    // minimum
-        return scalar max   = r(gstats_summarize_max)    // maximum
-
-        if ( `r(gstats_summarize_normal)' ) {
-            return scalar Var = r(gstats_summarize_Var)  // variance
-            return scalar sd  = r(gstats_summarize_sd)   // standard deviation
+        if ( `r(gstats_summarize_tabstat)' ) {
+            * disp as txt "({bf:warning}: r() results not currently saved)"
         }
 
-        if ( `r(gstats_summarize_detail)' ) {
-            return scalar p1        = r(gstats_summarize_p1)       // 1st percentile (detail only)
-            return scalar p5        = r(gstats_summarize_p5)       // 5th percentile (detail only)
-            return scalar p10       = r(gstats_summarize_p10)      // 10th percentile (detail only)
-            return scalar p25       = r(gstats_summarize_p25)      // 25th percentile (detail only)
-            return scalar p50       = r(gstats_summarize_p50)      // 50th percentile (detail only)
-            return scalar p75       = r(gstats_summarize_p75)      // 75th percentile (detail only)
-            return scalar p90       = r(gstats_summarize_p90)      // 90th percentile (detail only)
-            return scalar p95       = r(gstats_summarize_p95)      // 95th percentile (detail only)
-            return scalar p99       = r(gstats_summarize_p99)      // 99th percentile (detail only)
-            return scalar skewness  = r(gstats_summarize_skewness) // skewness (detail only)
-            return scalar kurtosis  = r(gstats_summarize_kurtosis) // kurtosis (detail only)
+        {
+            return scalar N     = r(gstats_summarize_N)      // number of observations
+            return scalar sum_w = r(gstats_summarize_sum_w)  // sum of the weights
+            return scalar sum   = r(gstats_summarize_sum)    // sum of variable
+            return scalar mean  = r(gstats_summarize_mean)   // mean
+            return scalar min   = r(gstats_summarize_min)    // minimum
+            return scalar max   = r(gstats_summarize_max)    // maximum
 
-            return scalar smallest1 = r(gstats_summarize_smallest1) // smallest
-            return scalar smallest2 = r(gstats_summarize_smallest2) // 2nd smallest
-            return scalar smallest3 = r(gstats_summarize_smallest3) // 3rd smallest
-            return scalar smallest4 = r(gstats_summarize_smallest4) // 4th smallest
-            return scalar largest4  = r(gstats_summarize_largest4)  // 4th largest
-            return scalar largest3  = r(gstats_summarize_largest3)  // 3rd largest
-            return scalar largest2  = r(gstats_summarize_largest2)  // 2nd largest
-            return scalar largest1  = r(gstats_summarize_largest1)  // largest
+            if ( `r(gstats_summarize_normal)' ) {
+                return scalar Var = r(gstats_summarize_Var)  // variance
+                return scalar sd  = r(gstats_summarize_sd)   // standard deviation
+            }
+
+            if ( `r(gstats_summarize_detail)' ) {
+                return scalar p1        = r(gstats_summarize_p1)       // 1st percentile (detail only)
+                return scalar p5        = r(gstats_summarize_p5)       // 5th percentile (detail only)
+                return scalar p10       = r(gstats_summarize_p10)      // 10th percentile (detail only)
+                return scalar p25       = r(gstats_summarize_p25)      // 25th percentile (detail only)
+                return scalar p50       = r(gstats_summarize_p50)      // 50th percentile (detail only)
+                return scalar p75       = r(gstats_summarize_p75)      // 75th percentile (detail only)
+                return scalar p90       = r(gstats_summarize_p90)      // 90th percentile (detail only)
+                return scalar p95       = r(gstats_summarize_p95)      // 95th percentile (detail only)
+                return scalar p99       = r(gstats_summarize_p99)      // 99th percentile (detail only)
+                return scalar skewness  = r(gstats_summarize_skewness) // skewness (detail only)
+                return scalar kurtosis  = r(gstats_summarize_kurtosis) // kurtosis (detail only)
+
+                return scalar smallest1 = r(gstats_summarize_smallest1) // smallest
+                return scalar smallest2 = r(gstats_summarize_smallest2) // 2nd smallest
+                return scalar smallest3 = r(gstats_summarize_smallest3) // 3rd smallest
+                return scalar smallest4 = r(gstats_summarize_smallest4) // 4th smallest
+                return scalar largest4  = r(gstats_summarize_largest4)  // 4th largest
+                return scalar largest3  = r(gstats_summarize_largest3)  // 3rd largest
+                return scalar largest2  = r(gstats_summarize_largest2)  // 2nd largest
+                return scalar largest1  = r(gstats_summarize_largest1)  // largest
+            }
+        }
+
+        if ( `r(gstats_summarize_pooled)' ) {
+            return local varlist `r(statvars)'
         }
     }
 end

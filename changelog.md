@@ -1,12 +1,17 @@
 Change Log
 ==========
 
-## gtools-1.4.0 (2019-02-22)
+## gtools-1.4.1 (2019-02-24)
 
 ### Features
 
-- `gstats sum` (alias `gstats summarize` and `gstats tab`) is a fast, by-able
-  alternative to `tabstat` and `sum, detail`
+- `gstats sum` and `gstats tab` (alias `gstats summarize` and
+  `gstats tabstat`) are a fast, by-able alternative to `sum, detail`
+  and `tabstat`
+
+- `gstats sum` or `gstats tab` with option `matasave` stores the output and
+  by levels in `GstatsOutput`, an object of class `GtoolsResults`.
+
 - `gcollapse` and `gegen` now allow the stats:
     - `select#`, `#`th smallest value (`select1` is the same as `min`)
     - `select-#`, `#`th largest value (`select-1` is the same as `max`)
@@ -18,6 +23,10 @@ Change Log
 ### Bug fixes
 
 - `gcollapse` no longer crashes when `rawstat` does not match any entries.
+
+### Enhancements
+
+- `lgtools.mlib` added with come pre-compiled mata functios.
 
 ## gtools-1.3.5 (2019-02-19)
 

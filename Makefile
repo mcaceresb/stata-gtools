@@ -1,5 +1,6 @@
 EXECUTION=normal
 LEGACY=
+STATA = ${HOME}/.local/stata13/stata -b
 
 # ---------------------------------------------------------------------
 # Editing/debugging
@@ -27,6 +28,7 @@ open:
 # ./.appveyor.yml
 # ./.travis.yml
 # ./build.py
+# ./changelog.md
 
 # ---------------------------------------------------------------------
 # Gtools flags
@@ -82,6 +84,11 @@ osx_plugins:
 	cp -f gtools_macosx_v2.plugin  build/gtools_macosx_v2.plugin
 	mv -f gtools_macosx_v3.plugin  lib/plugin/gtools_macosx_v3.plugin
 	mv -f gtools_macosx_v2.plugin  lib/plugin/gtools_macosx_v2.plugin
+
+## Install the Stata package (replace if necessary)
+replace:
+	cd build/ && $(STATA) "cap noi net uninstall gtools"
+	cd build/ && $(STATA) "net install gtools, from(\`\"${PWD}/build\"')"
 
 # ---------------------------------------------------------------------
 # Rules

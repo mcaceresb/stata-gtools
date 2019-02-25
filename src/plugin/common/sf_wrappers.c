@@ -286,3 +286,66 @@ void sf_format_size(GT_size n, char *out)
     }
     *--out = 0;
 }
+
+/**
+ * @brief Write by variables to disk
+ * @param st_info object with meta info
+ * @return Saves by variables in disk
+ */
+ST_retcode sf_byx_save (struct StataInfo *st_info)
+{
+    char GTOOLS_BYVAR_FILE[st_info->gfile_byvar];
+    char GTOOLS_BYCOL_FILE[st_info->gfile_bycol];
+    FILE *fbyvar;
+    FILE *fbycol;
+
+    ST_retcode rc = 0;
+    ST_double z;
+    GT_size k, total;
+    GT_size kvars    = st_info->kvars_by;
+    GT_size anychar  = (st_info->kvars_by_str > 0);
+    GT_size rowbytes = (st_info->rowbytes + sizeof(GT_size));
+    ST_double anydbl = (ST_double) anychar;
+    ST_double jdbl   = (ST_double) st_info->J;
+    ST_double kdbl   = (ST_double) kvars + 1;
+
+    if ( (kvars > 0) && (st_info->J > 0) && (st_info->Nread > 0) ) {
+
+        if ( (rc = SF_macro_use("GTOOLS_BYVAR_FILE", GTOOLS_BYVAR_FILE, st_info->gfile_byvar) )) goto exit;
+        if ( (rc = SF_macro_use("GTOOLS_BYCOL_FILE", GTOOLS_BYCOL_FILE, st_info->gfile_bycol) )) goto exit;
+
+        fbyvar = fopen(GTOOLS_BYVAR_FILE, "wb");
+        fbycol = fopen(GTOOLS_BYCOL_FILE, "wb");
+
+        rc = rc | (fwrite(&anydbl, sizeof(ST_double), 1, fbycol) != 1);
+        rc = rc | (fwrite(&jdbl,   sizeof(ST_double), 1, fbycol) != 1);
+        rc = rc | (fwrite(&kdbl,   sizeof(ST_double), 1, fbycol) != 1);
+
+        if ( anychar ) {
+            z  = (ST_double) rowbytes;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            z  = (ST_double) st_info->kvars_by_num;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            z  = (ST_double) st_info->kvars_by_str;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+
+            for (k = 0; k < kvars; k++) {
+                z  = (ST_double) st_info->byvars_lens[k];
+                rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            }
+
+            total = st_info->J * rowbytes;
+            rc = rc | (fwrite(st_info->st_by_charx, sizeof(st_info->st_by_charx), total, fbyvar) != total);
+        }
+        else {
+            total = st_info->J * (kvars + 1);
+            rc = rc | (fwrite(st_info->st_by_numx, sizeof(st_info->st_by_numx), total, fbyvar) != total);
+        }
+
+        fclose (fbyvar);
+        fclose (fbycol);
+    }
+
+exit:
+    return (rc);
+}

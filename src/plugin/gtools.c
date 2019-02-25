@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Fri Feb 22 20:06:36 EST 2019
+ * Updated: Sun Feb 24 17:54:47 EST 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.4.0
+ * Version: 1.4.1
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 22 Feb 2019
+ * @date 23 Feb 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -346,10 +346,17 @@ STDLL stata_call(int argc, char *argv[])
         GTOOLS_CHAR (fname, flength);
         strcpy (fname, argv[1]);
 
-        if ( (rc = sf_parse_info  (st_info, 0))        ) goto exit;
-        if ( (rc = sf_hash_byvars (st_info, 0))        ) goto exit;
-        if ( (rc = sf_check_hash  (st_info, 22))       ) goto exit; // (Note: discards by copy)
-        if ( (rc = sf_stats       (st_info, 0, fname)) ) goto exit;
+        if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
+
+        if ( (st_info->gstats_code == 2) & (st_info->kvars_by > 0) ) {
+            if ( (rc = sf_check_hash (st_info,  2)) ) goto exit; // (Note: keeps by copy)
+        }
+        else {
+            if ( (rc = sf_check_hash (st_info, 22)) ) goto exit; // (Note: discards by copy)
+        }
+
+        if ( (rc = sf_stats (st_info, 0, fname)) ) goto exit;
     }
     else if ( strcmp(todo, "reshape") == 0 ) {
         strcpy (tostat, argv[1]);
@@ -433,6 +440,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             mlast,
             subtract,
             ctolerance,
+            gfile_byvar,
+            gfile_bycol,
             top_miss,
             top_groupmiss,
             top_other,
@@ -466,6 +475,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             winsor_cutl,
             winsor_cuth,
             winsor_kvars,
+            summarize_colvar,
+            summarize_pooled,
             summarize_normal,
             summarize_detail,
             summarize_kvars,
@@ -571,6 +582,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_weight_pos",       &wpos)             )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_weight_sel",       &wselective)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_nunique",          &nunique)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_byvar",      &gfile_byvar)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_bycol",      &gfile_bycol)      )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",         &seecount)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",        &countonly)        )) goto exit;
@@ -623,6 +636,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_winsor_cutl",      &winsor_cutl)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_cuth",      &winsor_cuth)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_kvars",     &winsor_kvars)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_colvar", &summarize_colvar) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_pooled", &summarize_pooled) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_normal", &summarize_normal) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_detail", &summarize_detail) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_kvars",  &summarize_kvars)  )) goto exit;
@@ -820,6 +835,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->wpos             = wpos;
     st_info->wselective       = wselective;
     st_info->nunique          = nunique;
+    st_info->gfile_byvar      = gfile_byvar;
+    st_info->gfile_bycol      = gfile_bycol;
 
     st_info->unsorted         = unsorted;
     st_info->countonly        = countonly;
@@ -872,6 +889,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->winsor_cutl      = winsor_cutl;
     st_info->winsor_cuth      = winsor_cuth;
     st_info->winsor_kvars     = winsor_kvars;
+    st_info->summarize_colvar = summarize_colvar;
+    st_info->summarize_pooled = summarize_pooled;
     st_info->summarize_normal = summarize_normal;
     st_info->summarize_detail = summarize_detail;
     st_info->summarize_kvars  = summarize_kvars;
@@ -933,6 +952,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tmlast:            "GT_size_cfmt"\n",  mlast           );
         sf_printf_debug("\tsubtract:         "GT_size_cfmt"\n",  subtract        );
         sf_printf_debug("\tctolerance:       "GT_size_cfmt"\n",  ctolerance      );
+        sf_printf_debug("\tgfile_byvar:      "GT_size_cfmt"\n",  gfile_byvar     );
+        sf_printf_debug("\tgfile_bycol:      "GT_size_cfmt"\n",  gfile_bycol     );
         sf_printf_debug("\n");
         sf_printf_debug("\ttop_miss:         "GT_size_cfmt"\n",  top_miss        );
         sf_printf_debug("\ttop_groupmiss:    "GT_size_cfmt"\n",  top_groupmiss   );
@@ -970,6 +991,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\twinsor_cutl:      "GT_size_cfmt"\n",  winsor_cutl     );
         sf_printf_debug("\twinsor_cuth:      "GT_size_cfmt"\n",  winsor_cuth     );
         sf_printf_debug("\twinsor_kvars:     "GT_size_cfmt"\n",  winsor_kvars    );
+        sf_printf_debug("\tsummarize_colvar: "GT_size_cfmt"\n",  summarize_colvar);
+        sf_printf_debug("\tsummarize_pooled: "GT_size_cfmt"\n",  summarize_pooled);
         sf_printf_debug("\tsummarize_normal: "GT_size_cfmt"\n",  summarize_normal);
         sf_printf_debug("\tsummarize_detail: "GT_size_cfmt"\n",  summarize_detail);
         sf_printf_debug("\tsummarize_kvars:  "GT_size_cfmt"\n",  summarize_kvars );

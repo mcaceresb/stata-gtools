@@ -59,6 +59,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     ST_double *statcode  = calloc(ktargets, sizeof *statcode);
 
     if ( pos_sources == NULL ) return(sf_oom_error("sf_egen_bulk_w", "pos_sources"));
+    if ( statcode    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "statcode"));
 
     for (k = 0; k < ksources; k++)
         pos_sources[k] = start_sources + k;
@@ -127,10 +128,10 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     ST_double *firstnm   = calloc(ksources, sizeof *firstnm);
     ST_double *lastnm    = calloc(ksources, sizeof *lastnm);
 
-    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk", "firstmiss"));
-    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk", "lastmiss"));
-    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk", "firstnm"));
-    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk", "lastnm"));
+    if ( firstmiss == NULL ) return(sf_oom_error("sf_egen_bulk_w", "firstmiss"));
+    if ( lastmiss  == NULL ) return(sf_oom_error("sf_egen_bulk_w", "lastmiss"));
+    if ( firstnm   == NULL ) return(sf_oom_error("sf_egen_bulk_w", "firstnm"));
+    if ( lastnm    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "lastnm"));
 
 
     /*********************************************************************
@@ -146,7 +147,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
      */
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
-    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk", "index_st"));
+    if ( index_st == NULL ) return(sf_oom_error("sf_egen_bulk_w", "index_st"));
 
     for (i = 0; i < st_info->Nread; i++) {
         index_st[i] = 0;

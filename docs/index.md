@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.4.0%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.4.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.3.4 17Feb2019`
+`version 1.4.1 23Feb2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -37,18 +37,20 @@ Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools
 
 __*Gtools commands with a Stata equivalent*__
 
-| Function     | Replaces   | Speedup (IC / MP)        | Unsupported     | Extras                                  |
-| ------------ | ---------- | ------------------------ | --------------- | --------------------------------------- |
-| gcollapse    | collapse   |  9 to 300 / 4 to 120 (+) |                 | Quantiles, merge, nunique, label output |
-| greshape     | reshape    |  4 to 20  / 4 to 15      | advanced syntax | `fast`, spread/gather (tidyr equiv)     |
-| gegen        | egen       |  9 to 26  / 4 to 9 (+,.) | labels          | Weights, quantiles, nunique             |
-| gcontract    | contract   |  5 to 7   / 2.5 to 4     |                 |                                         |
-| gisid        | isid       |  8 to 30  / 4 to 14      | `using`, `sort` | `if`, `in`                              |
-| glevelsof    | levelsof   |  3 to 13  / 2 to 7       |                 | Multiple variables, arbitrary levels    |
-| gduplicates  | duplicates |  8 to 16 / 3 to 10       |                 |                                         |
-| gquantiles   | xtile      |  10 to 30 / 13 to 25 (-) |                 | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile     |  13 to 38 / 3 to 5 (-)   |                 | Ibid.                                   |
-|              | \_pctile   |  25 to 40 / 3 to 5       |                 | Ibid.                                   |
+| Function     | Replaces    | Speedup (IC / MP)        | Unsupported             | Extras                                  |
+| ------------ | ----------- | ------------------------ | ----------------------- | --------------------------------------- |
+| gcollapse    | collapse    |  9 to 300 / 4 to 120 (+) |                         | Quantiles, merge, labels, nunique, etc. |
+| greshape     | reshape     |  4 to 20  / 4 to 15      | advanced syntax         | `fast`, spread/gather (tidyr equiv)     |
+| gegen        | egen        |  9 to 26  / 4 to 9 (+,.) | labels                  | Weights, quantiles, nunique, etc.       |
+| gcontract    | contract    |  5 to 7   / 2.5 to 4     |                         |                                         |
+| gisid        | isid        |  8 to 30  / 4 to 14      | `using`, `sort`         | `if`, `in`                              |
+| glevelsof    | levelsof    |  3 to 13  / 2 to 7       |                         | Multiple variables, arbitrary levels    |
+| gduplicates  | duplicates  |  8 to 16 / 3 to 10       |                         |                                         |
+| gquantiles   | xtile       |  10 to 30 / 13 to 25 (-) |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile      |  13 to 38 / 3 to 5 (-)   |                         | Ibid.                                   |
+|              | \_pctile    |  25 to 40 / 3 to 5       |                         | Ibid.                                   |
+| gstats sum   | sum, detail |  10 to 40 / 5 to 20      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats tab   | tabstat     |  10 to 60 / 5 to 40 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 
 <small>(+) The upper end of the speed improvements are for quantiles
 (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -93,6 +95,7 @@ details and examples, see each command's help page:
 - [gcollapse](usage/gcollapse#examples)
 - [greshape](usage/greshape#examples)
 - [gquantiles](usage/gquantiles#examples)
+- [gstats summarize](usage/gstats_summarize#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
@@ -194,6 +197,10 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
+* gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
+gstats sum price [pw = gear_ratio / 4]
+gstats tab price mpg, by(foreign) matasave
+
 * gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]
 gquantiles 2 * price, _pctile nq(10)
 gquantiles p10 = 2 * price, pctile nq(10)
@@ -264,7 +271,7 @@ See the [FAQs](faqs) or the respective documentation for a list of supported
 Remarks
 -------
 
-*__Functions available with `gegen` and `gcollapse`__*
+*__Functions available with `gegen`, `gcollapse`, `gstats tab`__*
 
 `gcollapse` supports every `collapse` function, including their
 weighted versions. In addition, weights can be selectively applied via
@@ -277,37 +284,46 @@ supports weights for internal functions, since `egen` does not normally
 allow weights).
 
 Hence both should be able to replicate all of the functionality of their
-Stata counterparts. The following are implemented internally in C:
+Stata counterparts. Last, `gstats tab` allows every statistic allowed
+by `tabstat` as well as any statistic allowed by `gcollapse`, and  the
+syntax for the statistics specified via `statistics()` is also the same.
 
-| Function    | gcollapse | gegen   |
-| ----------- | --------- | ------- |
-| tag         |           |   X     |
-| group       |           |   X     |
-| total       |           |   X     |
-| nunique     |     X     |   X     |
-| sum         |     X     |   X     |
-| nansum      |     X     |   X     |
-| rawsum      |     X     |         |
-| rawnansum   |     X     |         |
-| mean        |     X     |   X     |
-| sd          |     X     |   X     |
-| max         |     X     |   X     |
-| min         |     X     |   X     |
-| count       |     X     |   X     |
-| nmissing    |     X     |   X     |
-| median      |     X     |   X     |
-| iqr         |     X     |   X     |
-| percent     |     X     |   X     |
-| first       |     X     |   X (+) |
-| last        |     X     |   X (+) |
-| firstnm     |     X     |   X (+) |
-| lastnm      |     X     |   X (+) |
-| semean      |     X     |   X     |
-| sebinomial  |     X     |   X     |
-| sepoisson   |     X     |   X     |
-| percentiles |     X     |   X     |
-| skewness    |     X     |   X     |
-| kurtosis    |     X     |   X     |
+The following are implemented internally in C:
+
+| Function    | gcollapse | gegen   | gstats tab |
+| ----------- | --------- | ------- | ---------- |
+| tag         |           |   X     |            |
+| group       |           |   X     |            |
+| total       |           |   X     |            |
+| count       |     X     |   X     |      X     |
+| nunique     |     X     |   X     |      X     |
+| nmissing    |     X     |   X     |      X     |
+| sum         |     X     |   X     |      X     |
+| nansum      |     X     |   X     |      X     |
+| rawsum      |     X     |         |      X     |
+| rawnansum   |     X     |         |      X     |
+| mean        |     X     |   X     |      X     |
+| median      |     X     |   X     |      X     |
+| percentiles |     X     |   X     |      X     |
+| iqr         |     X     |   X     |      X     |
+| sd          |     X     |   X     |      X     |
+| variance    |     X     |   X     |      X     |
+| cv          |     X     |   X     |      X     |
+| max         |     X     |   X     |      X     |
+| min         |     X     |   X     |      X     |
+| range       |     X     |   X     |      X     |
+| select      |     X     |   X     |      X     |
+| rawselect   |     X     |   X     |      X     |
+| percent     |     X     |   X     |      X     |
+| first       |     X     |   X (+) |      X     |
+| last        |     X     |   X (+) |      X     |
+| firstnm     |     X     |   X (+) |      X     |
+| lastnm      |     X     |   X (+) |      X     |
+| semean      |     X     |   X     |      X     |
+| sebinomial  |     X     |   X     |      X     |
+| sepoisson   |     X     |   X     |      X     |
+| skewness    |     X     |   X     |      X     |
+| kurtosis    |     X     |   X     |      X     |
 
 <small>(+) first, last, firstmn, and lastnm are different from their counterparts
 in the egenmore package and, instead, they are analogous to the gcollapse
@@ -414,6 +430,41 @@ Differences from `egen`
   egen function are not implemented internally, meaning for arbitrary `gegen`
   calls this is a wrapper for hashsort and egen.
 
+Differences from `summarize, detail`
+
+- The behavior of `summarize` and `summarize, meanonly` can be
+  recovered via options `nodetail` and `meanonly`. These two
+  options are mainly for use with `by()`
+- Option `matasave` saves output and `by()` info in `GstatsOutput`
+  mata object. See `mata GstatsOutput.help()` after `gstats sum, matasave`
+  for details.
+- Option `noprint` saves the results but omits printing output.
+- Option `tab` prints statistics in the style of `tabstat`
+- Option `pooled` pools the source variables and computes summary 
+  stats as if it was a single variable.
+- `pweights` are allowed.
+- Largest and smallest observations are weighted.
+- `rolling:`, `statsby`, and `by:` are not allowed. To use `by` pass
+  the option `by()`
+- `display options` are not supported.
+- Factor and time series variables are not allowed.
+
+Differences from `tabstat`
+
+- Saving the output is done via `mata` instead of `r()`. No matrices
+  are saved in `r()` and option `save` is not allowed. However, option
+  `matasave` saves the output and `by()` info in `GstatsOutput`. See
+  `mata GstatsOutput.help()` after `gstats sum, matasave` for details.
+- Saving the output is done via `mata` instead of `r()`. No matrices
+  are stored in `r()`, but `GstatsOutput` provides helpers for extracting
+  rows, columns, and levels.
+- Multiple groups are allowed.
+- Options `noseparator`, `casewise`, are not supported, but are
+  planned for a future release.
+- Options `missing` and `nototal` are on by default; options `total`
+  and `nomissing` are planned for a future release.
+- Option `longstub` is not supported.
+
 Differences from `levelsof`
 
 - It can take a `varlist` and not just a `varname`; in that case it prints
@@ -465,10 +516,10 @@ There are two key insights to the massive speedups of Gtools:
 
 __*Stata Sorting*__
 
-It should be noted that Stata's sorting mechanism is not inefficient as a
-general-purpose sort. It is just inefficient for processing data by group. We
-have implemented a hash-based sorting command, `hashsort`. While at times this
-is faster than Stata's `sort`, it can also often be slower:
+It should be noted that Stata's sorting mechanism is hard to improve
+upon because of the overhead involved in sorting. We have implemented a
+hash-based sorting command, `hashsort`, which should be faster Stata's
+`sort` for groups, but not necessarily otherwise:
 
 | Function  | Replaces | Speedup (IC / MP)    | Unsupported            | Extras               |
 | --------- | -------- | -------------------- | ---------------------- | -------------------- |
@@ -495,7 +546,12 @@ TODO
 ----
 
 - Update benchmarks for all commands. Still on 0.8 benchmarks.
-- Implement `gstats summarize` and `gstats tabstat`
+- Benchmark display time for `sum/tab` in gstats
+- Implement extra display options for `gstats summarize`.
+- Implement `collapse()` option for `greshape`.
+- Implement variable group syntax for `greshape`.
+- Implement `selectoverflow(missing|closest)`
+- Add totals row for `J > 1` in gstats
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them:

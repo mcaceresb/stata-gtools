@@ -1,7 +1,7 @@
 capture program drop checks_gstats
 program checks_gstats
-    checks_gstats_summarize
     checks_gstats_winsor
+    checks_gstats_summarize
 end
 
 capture program drop compare_gstats
@@ -17,17 +17,187 @@ end
 
 capture program drop checks_gstats_summarize
 program checks_gstats_summarize
-    * TODO xx check all the opts BEFORE moving on to C...
-    * FIRST fix the select thing
-    * do the new codes in gcollapse and bulk 
-    * add the internal Consistency stuff
+    clear
+    set obs 10
+    gen x = string(_n) + "some"
+    gen y = mod(_n, 3)
+    gen w = string(mod(_n, 4)) + "Other That is Long"
+    gen v = -mod(_n, 7)
+    gen z = runiform()
+    gen z2 = rnormal()
+    if ( `c(stata_version)' >= 14.1 ) {
+    gen strL L = "This one is strL and what will hapennnnn!!!???" + string(mod(_n, 4))
+    }
+    else {
+    gen L = "This one is strL and what will hapennnnn!!!???" + string(mod(_n, 4))
+    }
+    gen a = "hey"
+    replace a = "" in 3 / 6
+    replace a = " " in 7 / 10
 
+    gstats tab z
+    gstats tab z y
+    gstats tab z,   matasave
+    gstats tab z y, matasave
+    mata: GstatsOutput.help()
+
+    gstats tab z, by(y x) s(mean sd min max) matasave pretty
+    mata GstatsOutput.printOutput()
+    mata GstatsOutput.getf(1, 2, GstatsOutput.maxl)
+    mata GstatsOutput.getnum(1, 1)
+    mata GstatsOutput.getchar(1, 2)
+    cap noi mata assert(.  == GstatsOutput.getnum(1, 2))
+    cap noi mata assert("" == GstatsOutput.getchar(1, 1))
+    mata GstatsOutput.getOutputRow(1)
+    mata GstatsOutput.getOutputRow(5)
+    cap mata GstatsOutput.getOutputRow(999)
+    assert _rc == 3301
+    mata GstatsOutput.getOutputCol(1)
+    mata GstatsOutput.getOutputCol(4)
+    cap mata GstatsOutput.getOutputCol(999)
+    assert _rc == 3301
+    mata GstatsOutput.getOutputVar("z")
+    cap noi mata assert(J(1, 0, .) == GstatsOutput.getOutputVar("x"))
+    mata GstatsOutput.getOutputGroup(1)
+    mata GstatsOutput.getOutputGroup(5)
+    cap mata GstatsOutput.getOutputGroup(999)
+    assert _rc == 3301
+
+    gstats tab z* , by(a x)       s(mean sd min max) pretty
+    gstats tab z  , by(w y v x L) s(mean sd min max) col(var)
+    gstats tab z  , by(L)         s(mean sd min max) col(var)
+    gstats tab z  , by(L x)       s(mean sd min max) col(var)
+
+
+    gstats tab z  , by(x)         s(mean sd min max) matasave pretty
+    gstats tab z  , by(a x)       s(mean sd min max) matasave pretty
+    gstats tab z  , by(y)         s(mean sd min max) matasave
+    gstats tab z  , by(x y)       s(mean sd min max) matasave
+    gstats tab z  , by(x v y w)   s(mean sd min max) matasave
+    gstats tab z  , by(w y v x)   s(mean sd min max) matasave pretty
+    gstats tab z  , by(w y v x L) s(mean sd min max) matasave pretty labelw(100)
+
+    qui _checks_gstats_summarize
+    qui _checks_gstats_summarize, pool
+    qui _checks_gstats_summarize [fw = mpg]
+    qui _checks_gstats_summarize [aw = gear_ratio]
+    qui _checks_gstats_summarize [pw = gear_ratio / 4]
+    qui _checks_gstats_summarize if foreign
+    qui _checks_gstats_summarize if foreign, pool
+    qui _checks_gstats_summarize if foreign [fw = mpg]
+    qui _checks_gstats_summarize if foreign [aw = gear_ratio]
+    qui _checks_gstats_summarize if foreign [pw = gear_ratio / 4]
+    qui _checks_gstats_summarize in 23
+    qui _checks_gstats_summarize in 1 / 2
+    qui _checks_gstats_summarize in 23, pool
+    qui _checks_gstats_summarize in 1 / 2, pool
+    qui _checks_gstats_summarize in 1 / 2 [fw = mpg]
+    qui _checks_gstats_summarize in 1 / 2 [aw = gear_ratio]
+    qui _checks_gstats_summarize in 1 / 2 [pw = gear_ratio / 4]
+end
+
+capture program drop _checks_gstats_summarize
+program _checks_gstats_summarize
+    if ( strpos(`"`0'"', ",") == 0 ) {
+        local 0 `0',
+    }
     sysuse auto, clear
-    gstats sum price
-    gstats sum price, nod
-    gstats sum price mpg
-    gstats sum *
-    gstats sum price price
+    gstats sum price       `0'
+    gstats sum price       `0' f
+    gstats sum price       `0' nod
+    gstats sum price       `0' nod f
+    gstats sum price       `0' meanonly
+    gstats sum price mpg   `0'
+    gstats sum *           `0'
+    gstats sum price price `0'
+    gstats sum price mpg * `0' nod
+    gstats sum price mpg * `0' nod f
+
+    gstats sum price       , tab
+    gstats sum price       , tab f
+    gstats sum price       , tab nod
+    gstats sum price       , tab nod f
+    gstats sum price       , tab meanonly
+    gstats sum price mpg   , tab
+    gstats sum *           , tab
+    gstats sum price price , tab
+    gstats sum price mpg * , tab nod
+    gstats sum price mpg * , tab nod f
+
+    cap noi gstats tab price       , statistics(n) stats(n)
+    assert _rc == 198
+    cap noi gstats tab price       , nod
+    assert _rc == 198
+    cap noi gstats tab *
+    assert _rc == 7
+    cap noi gstats tab price       , meanonly
+    assert _rc == 198
+
+    gstats tab price       ,
+    gstats tab price       , s(mean sd min max)
+    gstats tab price       , statistics(count n nmissing percent nunique)
+    gstats tab price       , stats(rawsum nansum rawnansum median p32.4 p50 p99)
+    gstats tab price       , stat(iqr q median sd variance cv)
+    gstats tab price       ,
+    gstats tab price       , stat(min max range select2 select10 select-4 select-9)
+    cap gstats tab price   , stat(select0)
+    assert _rc == 110
+    cap gstats tab price   , stat(select-0)
+    assert _rc == 110
+    gstats tab price       , stat(first last firstnm lastnm semean sebinomial sepoisson)
+    gstats tab price mpg   , stat(skewness kurtosis)
+    gstats tab price price , stat()
+
+    gstats sum price `0' tab
+    gstats sum price `0' tab pretty
+    gstats sum price `0' tab nod
+    gstats sum price `0' tab meanonly
+    gstats sum price `0' by(foreign) tab
+    gstats sum price `0' by(foreign) tab pretty
+    gstats sum price `0' by(foreign) tab nod
+    gstats sum price `0' by(foreign) tab meanonly pretty
+    gstats sum price `0' by(rep78)   tab
+    gstats sum price `0' by(rep78)   tab nod
+    gstats sum price `0' by(rep78)   tab meanonly
+
+    gstats sum price `0' col(stat) tab
+    gstats sum price `0' col(var)  tab nod
+    gstats sum price `0' col(var)  tab meanonly
+    gstats sum price `0' by(foreign)  col(stat) tab
+    gstats sum price `0' by(foreign)  col(var)  tab nod
+    gstats sum price `0' by(foreign)  col(var)  tab meanonly
+    gstats sum price `0' by(rep78)    col(stat) tab
+    gstats sum price `0' by(rep78)    col(var)  tab nod
+    gstats sum price `0' by(rep78)    col(var)  tab meanonly
+
+    gstats tab price         `0' col(var) s(mean sd min max)
+    gstats tabstat price     `0' col(var) s(mean sd min max) by(foreign)
+    gstats tabstat price mpg `0' col(var) s(mean sd min max) by(foreign)
+    gstats tabstat price     `0' col(var) s(mean sd min max) by(rep78)
+    gstats tabstat price mpg `0' col(var) s(mean sd min max) by(rep78)
+    gstats tabstat price mpg `0' col(var) s(mean sd min max) by(rep78)
+
+    gstats tab price         `0' s(mean sd min max)
+    gstats tabstat price     `0' s(mean sd min max) by(foreign)
+    gstats tabstat price mpg `0' s(mean sd min max) by(foreign)
+    gstats tabstat price     `0' s(mean sd min max) by(rep78)
+    gstats tabstat price mpg `0' s(mean sd min max) by(rep78)
+    gstats tabstat price mpg `0' s(mean sd min max) by(rep78)
+
+    gstats tab price         `0'
+    gstats tab price         `0' pretty
+    gstats tabstat price     `0' by(foreign)
+    gstats tabstat price mpg `0' by(foreign)
+    gstats tabstat price     `0' by(rep78)
+    gstats tabstat price mpg `0' by(rep78)
+    gstats tabstat price mpg `0' by(rep78)
+
+    gstats tab price         `0' col(var)
+    gstats tabstat price     `0' col(var) by(foreign)
+    gstats tabstat price mpg `0' col(var) by(foreign)
+    gstats tabstat price     `0' col(var) by(rep78)
+    gstats tabstat price mpg `0' col(var) by(rep78)
+    gstats tabstat price mpg `0' col(var) by(rep78)
 end
 
 ***********************************************************************

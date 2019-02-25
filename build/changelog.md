@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.4.2 (2019-02-25)
+
+### Enhancements
+
+- `gstats sum/tab` allow saving their results in a mata object via
+  `matasave[(name)]`. Prior versions hard-coded the object's name.
+
 ## gtools-1.4.1 (2019-02-24)
 
 ### Features

@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.4.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.4.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.4.1 23Feb2019`
+`version 1.4.2 25Feb2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -340,6 +340,13 @@ gegen target = pctile(var), by(varlist) p(#)
 ```
 
 where # is a "percentile" with arbitrary decimal places (e.g. 2.5 or 97.5).
+`gtools` also supports selecting the `#`th smallest or largest value:
+```stata
+gcollapse (select#) target = var [(select-#) target = var ...] , by(varlist)
+gegen target = select(var), by(varlist) n(#)
+gegen target = select(var), by(varlist) n(-#)
+```
+
 Last, when `gegen` calls a function that is not implemented internally by
 `gtools`, it will hash the by variables and call `egen` with `by` set to an
 id based on the hash. That is, if `fcn` is not one of the functions above,
@@ -367,14 +374,14 @@ Differences from `collapse`
 - `nunique` is supported.
 - `nmissing` is supported.
 - `rawstat` allows selectively applying weights.
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
+  value for sums if all inputs are missing (instead of 0).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
-- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
-  value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `greshape`
@@ -442,6 +449,7 @@ Differences from `tabstat`
 - Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
+- Option `pooled` pools the source variables into one.
 
 Differences from `summarize, detail`
 

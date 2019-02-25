@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, winsor, pctile, xtile, contract, egen,
 isid, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.4.1-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.4.2-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -350,7 +350,7 @@ gegen target = pctile(var), by(varlist) p(#)
 ```
 
 where # is a "percentile" with arbitrary decimal places (e.g. 2.5 or 97.5).
-`gtools` also supports selecting the `#`th smallest or largest non-missing value:
+`gtools` also supports selecting the `#`th smallest or largest value:
 ```stata
 gcollapse (select#) target = var [(select-#) target = var ...] , by(varlist)
 gegen target = select(var), by(varlist) n(#)
@@ -386,13 +386,13 @@ Differences from `collapse`
 - `rawstat` allows selectively applying weights.
 - `rawselect` ignores weights for `select` (analogously to `rawsum`).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
+  value for sums if all inputs are missing (instead of 0).
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
-- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
-  value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `greshape`
@@ -460,6 +460,7 @@ Differences from `tabstat`
 - Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
+- Option `pooled` pools the source variables into one.
 
 Differences from `summarize, detail`
 

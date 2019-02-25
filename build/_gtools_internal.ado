@@ -1,4 +1,4 @@
-*! version 1.4.1 23Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.4.2 25Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -2425,12 +2425,12 @@ program _gtools_internal, rclass
 
         if ( `=scalar(__gtools_gstats_code)' == 2 ) {
             if ( `=scalar(__gtools_summarize_matasave)' ) {
-                mata: GstatsOutput = __gstats_summarize_results()
-                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata GstatsOutput.desc()})"
+                mata: `GstatsMataSave' = __gstats_summarize_results()
+                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata `GstatsMataSave'.desc()})"
             }
             else {
                 mata: (void) __gstats_summarize_results()
-                cap mata: mata drop GstatsOutput
+                cap mata: mata drop `GstatsMataSave'
             }
         }
 
@@ -3820,10 +3820,14 @@ program gstats_summarize
         POOLed            ///
         PRETTYstats       ///
         noPRINT           ///
-        matasave          ///
+        MATAsave          ///
+        MATAsavename(str) ///
         save              ///
         *                 ///
     ]
+
+    if ( `"`matasavename'"' != "" ) local matasave     matasave
+    if ( `"`matasavename'"' == "" ) local matasavename GstatsOutput
 
     if ( `"`options'"' != "" ) {
         disp as err "Unknown options (note not all display options are not allowed):"
@@ -3894,6 +3898,7 @@ program gstats_summarize
     * Stats to compute
     * ----------------
 
+    c_local GstatsMataSave: copy local matasavename
     c_local varlist: copy local statlist
 
     scalar __gtools_gstats_code = 2
@@ -4002,29 +4007,32 @@ end
 
 capture program drop gstats_tabstat
 program gstats_tabstat
-    syntax [varlist], [      ///
-        noDetail             ///
-        Meanonly             ///
-        TABstat              ///
-                             ///
-        _sum                 ///
-        Statistics(str)      ///
-        stats(str)           ///
-        LABELWidth(int 16)   ///
-                             ///
-        COLumns(str)         ///
-        Formatvar            ///
-        Format(str)          ///
-        POOLed               ///
-        PRETTYstats          ///
-        noSEParator          ///
-        noPRINT              ///
-        matasave             ///
-        save                 ///
-        *                    ///
+    syntax [varlist], [    ///
+        noDetail           ///
+        Meanonly           ///
+        TABstat            ///
+                           ///
+        _sum               ///
+        Statistics(str)    ///
+        stats(str)         ///
+        LABELWidth(int 16) ///
+                           ///
+        COLumns(str)       ///
+        Formatvar          ///
+        Format(str)        ///
+        POOLed             ///
+        PRETTYstats        ///
+        noSEParator        ///
+        noPRINT            ///
+        MATAsave           ///
+        MATAsavename(str)  ///
+        save               ///
+        *                  ///
     ]
 
-    if ( `"`format'"' == "" ) local format %9.0g
+    if ( `"`matasavename'"' != "" ) local matasave     matasave
+    if ( `"`matasavename'"' == "" ) local matasavename GstatsOutput
+    if ( `"`format'"'       == "" ) local format %9.0g
 
     scalar __gtools_summarize_tabstat   = 1
     scalar __gtools_summarize_lwidth    = `labelwidth'
@@ -4174,6 +4182,7 @@ program gstats_tabstat
     mata: st_matrix("__gtools_summarize_codes", __gtools_summarize_codes)
     scalar __gtools_summarize_kstats = `kstats'
 
+    c_local GstatsMataSave: copy local matasavename
     c_local varlist: copy local statlist
 
     * Auto-columns for _sum
@@ -4414,6 +4423,7 @@ class GtoolsResults scalar function __gstats_summarize_results()
     GtoolsByLevels.kstats   = ncol
     GtoolsByLevels.statvars = statvars
     GtoolsByLevels.scodes   = st_matrix("__gtools_summarize_codes")
+    GtoolsByLevels.whoami   = st_local("GstatsMataSave")
     GtoolsByLevels.readStatnames()
 
     return (GtoolsByLevels)
@@ -4491,6 +4501,7 @@ class GtoolsResults scalar function __gstats_tabstat_results()
     GtoolsByLevels.kstats   = st_numscalar("__gtools_summarize_kstats")
     GtoolsByLevels.statvars = tokens(st_local("statvars"))
     GtoolsByLevels.scodes   = st_matrix("__gtools_summarize_codes")
+    GtoolsByLevels.whoami   = st_local("GstatsMataSave")
 
     GtoolsByLevels.readStatnames()
     GtoolsByLevels.readOutput(st_global("GTOOLS_GSTATS_FILE"))

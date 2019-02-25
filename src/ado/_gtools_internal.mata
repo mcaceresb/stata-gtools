@@ -37,6 +37,7 @@ class GtoolsResults
     string   scalar      dfmt
     real     scalar      maxl
     real     scalar      nosep
+    string   scalar      whoami
 
     void                 help()
     void                 desc()
@@ -512,7 +513,7 @@ void function GtoolsResults::help(|real scalar level)
     }
 
     if ( level != 2 ) {
-    printf("GstatsOutput is a class object with group levels and summary statistics\n")
+    printf("%s is a class object with group levels and summary statistics\n", whoami)
     printf("\n")
     }
 
@@ -819,7 +820,7 @@ void function GtoolsResults::desc()
     printfmts[3]   = sprintf("%%-%gs", printlens[3])
 
     printf("\n")
-    printf("    GstatsOutput is a class object with group levels and summary statistics\n")
+    printf("    %s is a class object with group levels and summary statistics\n", whoami)
     printf("\n")
     for(i = 1; i <= rows(printstr); i++) {
         printf("        | ")

@@ -86,7 +86,7 @@ Options
 
 ### Common Options
 
-- `matasave`               Save results in GstatsOutput mata object.
+- `matasave[(str)]`        Save results in mata object (default name is GstatsOutput).
 - `pooled`                 Pool varlist
 - `noprint`                Do not print
 - `format`                 Use variable's display format.
@@ -149,10 +149,12 @@ variables are allowed. Note that with a very large numer of groups,
 `tabstat`'s runtime seems to scale non-linearly, while `gstats tab`
 will execute in a reasonable time.
 
-`gstata tab` does not store results in `r()`. Rather, the option `matasave`
-is provided to store the full set of summary statistics and the by variable
-levels in a mata class object called `GstatsOutput`. Run `mata GstatsOutput.desc()`
-after `gstats tab, matasave` for details. The following helper functions are provided:
+`gstata tab` does not store results in `r()`. Rather, the option
+`matasave` is provided to store the full set of summary statistics and
+the by variable levels in a mata class object called `GstatsOutput`
+(the name of the object can be changed via `opt matasave(name)`) . Run
+`mata GstatsOutput.desc()` after `gstats tab, matasave` for details. The
+following helper functions are provided:
 
 ```
     string scalar getf(j, l, maxlbl)

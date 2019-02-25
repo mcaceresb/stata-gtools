@@ -61,7 +61,8 @@ specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, ma
 {p_end}
 {synopt:{opth labelw:idth(int)}}Max by variable label/value width.
 {p_end}
-{synopt:{opt f:ormat}[{cmd:(%}{it:{help format:fmt}}{cmd:)}]}Use format to display summary stats; default %9.0g
+{synopt:{opt f:ormat}[{cmd:(%}{it:{help format:fmt}}{cmd:)}]}
+Use format to display summary stats; default %9.0g
 {p_end}
 
 {syntab :Summarize Options}
@@ -77,7 +78,7 @@ specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, ma
 {p_end}
 
 {syntab :Common Options}
-{synopt:{opt matasave}}Save results in {bf:GstatsOutput} mata object.
+{synopt:{opt mata:save}[{cmd:(}{it:str}{cmd:)}]}Save results in mata object (default name is {bf:GstatsOutput})
 {p_end}
 {synopt:{opt pool:ed}}Pool varlist
 {p_end}
@@ -142,8 +143,9 @@ will execute in a reasonable time.
 {pstd}
 {opt gstata tab} does not store results in {opt r()}. Rather, the option {opt matasave}
 is provided to store the full set of summary statistics and the by variable
-levels in a mata class object called {opt GstatsOutput}.  Run {opt mata GstatsOutput.desc()}
-after {opt gstats tab, matasave} for details.  The following helper functions are provided:
+levels in a mata class object called {opt statsOutput} (the name of the object
+can be changed via {opt matasave(name)}). Run {opt mata GstatsOutput.desc()}
+after {opt gstats tab, matasave} for details. The following helper functions are provided:
 
         string scalar getf(j, l, maxlbl)
             get formatted (j, l) entry from by variables up to maxlbl characters

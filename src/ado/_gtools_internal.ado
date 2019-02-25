@@ -4013,7 +4013,7 @@ program gstats_tabstat
         LABELWidth(int 16)   ///
                              ///
         COLumns(str)         ///
-        FORMATvar            ///
+        Formatvar            ///
         Format(str)          ///
         POOLed               ///
         PRETTYstats          ///

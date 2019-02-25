@@ -4000,6 +4000,15 @@ program gstats_summarize
     scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
 end
 
+// sysuse auto
+// gstats tab price     ,
+// gstats tab price     , s(mean n)
+// gstats tab price     , s(mean)
+// gstats tab price mpg , s(mean)
+// gstats tab price mpg , s(mean n)
+// gstats tab price mpg , s(mean) by(foreign)
+// gstats tab price mpg , s(mean) by(foreign rep78)
+
 capture program drop gstats_tabstat
 program gstats_tabstat
     syntax [varlist], [      ///
@@ -4013,7 +4022,7 @@ program gstats_tabstat
         LABELWidth(int 16)   ///
                              ///
         COLumns(str)         ///
-        FORMATvar            ///
+        Formatvar            ///
         Format(str)          ///
         POOLed               ///
         PRETTYstats          ///

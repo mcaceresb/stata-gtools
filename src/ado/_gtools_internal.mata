@@ -391,7 +391,7 @@ void function GtoolsResults::printOutput()
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2 * (kstats > 1)
+        widthrow = sum(width) + 3 + 2 * (kby == 0)
 
         // Now print!
         if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
@@ -417,15 +417,13 @@ void function GtoolsResults::printOutput()
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
-            if ( ((kstats > 1) | (J == 1)) & (nosep == 0) ) {
+            if ( ((kstats > 1) | (J == 1) | (kby == 0)) & (nosep == 0) ) {
                 if ( (mod(sel - 1, kstats) == 0) ) {
                     printf("{hline %g}\n", widthrow)
                 }
             }
-            else {
-                if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
-                    printf("{hline %g}\n", widthrow - width[kby + 1])
-                }
+            else if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
+                printf("{hline %g}\n", widthrow - width[kby + 1])
             }
         }
     }
@@ -459,7 +457,7 @@ void function GtoolsResults::printOutput()
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2 * (ksources > 1)
+        widthrow = sum(width) + 3 + 2
 
         // Now print!
         if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
@@ -485,15 +483,13 @@ void function GtoolsResults::printOutput()
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
-            if ( ((ksources > 1) | (J == 1)) & (nosep == 0) ) {
+            if ( ((ksources > 1) | (J == 1) | (kby == 0)) & (nosep == 0) ) {
                 if ( mod(sel - 1, ksources) == 0 ) {
                     printf("{hline %g}\n", widthrow)
                 }
             }
-            else {
-                if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
-                    printf("{hline %g}\n", widthrow - width[kby + 1])
-                }
+            else if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
+                printf("{hline %g}\n", widthrow - width[kby + 1])
             }
         }
     }

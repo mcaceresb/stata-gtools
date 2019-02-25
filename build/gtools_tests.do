@@ -8829,12 +8829,13 @@ program checks_hashsort
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2,                     `options'
     checks_inner_hashsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        checks_inner_hashsort -strL1,             `options' `forcestrl'
-        checks_inner_hashsort strL1 -strL2,       `options' `forcestrl'
-        checks_inner_hashsort strL1 -strL2 strL3, `options' `forcestrl'
-    }
+    * 1.4.1 removed strL support in hashsort
+    * if ( `c(stata_version)' >= 14.1 ) {
+    *     local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+    *     checks_inner_hashsort -strL1,             `options' `forcestrl'
+    *     checks_inner_hashsort strL1 -strL2,       `options' `forcestrl'
+    *     checks_inner_hashsort strL1 -strL2 strL3, `options' `forcestrl'
+    * }
 
     sysuse auto, clear
     gen idx = _n
@@ -8941,12 +8942,13 @@ program compare_hashsort
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2,                     `options' mfirst
     compare_gsort int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options' mfirst
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_gsort -strL1,             `options' mfirst `forcestrl'
-        compare_gsort strL1 -strL2,       `options' mfirst `forcestrl'
-        compare_gsort strL1 -strL2 strL3, `options' mlast  `forcestrl'
-    }
+    * 1.4.1 removed strL support in hashsort
+    * if ( `c(stata_version)' >= 14.1 ) {
+    *     local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+    *     compare_gsort -strL1,             `options' mfirst `forcestrl'
+    *     compare_gsort strL1 -strL2,       `options' mfirst `forcestrl'
+    *     compare_gsort strL1 -strL2 strL3, `options' mlast  `forcestrl'
+    * }
 
     qui expand 10
     local N = trim("`: di %15.0gc _N'")
@@ -8975,12 +8977,13 @@ program compare_hashsort
     compare_sort int1 str_32 double1 int2 str_12 double2,                    `options'
     compare_sort int1 str_32 double1 int2 str_12 double2 int3 str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_sort strL1,             `options' mfirst `forcestrl'
-        compare_sort strL1 strL2,       `options' mfirst `forcestrl'
-        compare_sort strL1 strL2 strL3, `options' mlast  `forcestrl'
-    }
+    * 1.4.1 removed strL support in hashsort
+    * if ( `c(stata_version)' >= 14.1 ) {
+    *     local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+    *     compare_sort strL1,             `options' mfirst `forcestrl'
+    *     compare_sort strL1 strL2,       `options' mfirst `forcestrl'
+    *     compare_sort strL1 strL2 strL3, `options' mlast  `forcestrl'
+    * }
 
     di _n(1) "{hline 80}" _n(1) "compare_hashsort, `options'" _n(1) "{hline 80}" _n(1)
 end

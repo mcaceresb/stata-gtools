@@ -2792,7 +2792,7 @@ program parse_by_types, rclass
     * and so cannot support strL variables
 
     local GTOOLS_CALLER $GTOOLS_CALLER
-    local GTOOLS_STRL   gcollapse gcontract greshape
+    local GTOOLS_STRL   gcollapse gcontract greshape hashsort
     local GTOOLS_STRL_FAIL: list GTOOLS_CALLER in GTOOLS_STRL
 
     * glevelsof, gen() needs to write to variables, and so cannot
@@ -2862,15 +2862,15 @@ program parse_by_types, rclass
                         _n(1) "variables from a plugin."
         }
         else if ( `c(stata_version)' < 14 ) {
-            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"           ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "    {stata compress `varstrL'}"                                                     ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"  ///
-                        _n(1) " {cmd:gcontract}, and {cmd:greshape} do not support strL variables in any version." ///
-                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."         ///
-                        _n(1) ""                                                                                   ///
-                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"            ///
+            disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"            ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "    {stata compress `varstrL'}"                                                      ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "But these variables could not be compressed as str#. Please note {cmd:gcollapse},"   ///
+                        _n(1) " {cmd:gcontract}, {cmd:greshape}, and {cmd:hashsort} do not support strL variables." ///
+                        _n(1) "Further, binary strL variables are not yet supported in any Stata version."          ///
+                        _n(1) ""                                                                                    ///
+                        _n(1) "However, if your strL variables do not contain binary data, gtools 0.14"             ///
                         _n(1) "and above can read strL variables in Stata 14 or later."
         }
         exit 17004
@@ -2893,7 +2893,7 @@ program parse_by_types, rclass
                         _n(1) "    {stata compress `varstrL'}"                                                                    ///
                         _n(1) ""                                                                                                  ///
                         _n(1) "or passing {opt `cpass'} to {opt `GTOOLS_CALLER'}. Please note {cmd:gcollapse}, {cmd:gcontract}, " ///
-                        _n(1) "and {cmd:greshape} do not support strL variables in any Stata version. Further, binary"            ///
+                        _n(1) "{cmd:greshape}, and {cmd:hashsort} do not support strL variables in any version. Further, binary"  ///
                         _n(1) "strL variables are not yet supported in any Stata version."                                        ///
                         _n(1) ""                                                                                                  ///
                         _n(1) "However, if your strL variables do not contain binary data, gtools"                                ///

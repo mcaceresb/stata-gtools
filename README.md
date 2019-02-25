@@ -454,9 +454,9 @@ Differences from `summarize, detail`
 - The behavior of `summarize` and `summarize, meanonly` can be
   recovered via options `nodetail` and `meanonly`. These two
   options are mainly for use with `by()`
-- Option `matasave` saves output and `by()` info in `GstatsOutput`
-  mata object. See `mata GstatsOutput.help()` after `gstats sum, matasave`
-  for details.
+- Option `matasave` saves output and `by()` info in `GstatsOutput`,
+  a mata class object. See `mata GstatsOutput.help()` after
+  `gstats sum, matasave` for details.
 - Option `noprint` saves the results but omits printing output.
 - Option `tab` prints statistics in the style of `tabstat`
 - Option `pooled` pools the source variables and computes summary 
@@ -473,16 +473,11 @@ Differences from `tabstat`
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
   `matasave` saves the output and `by()` info in `GstatsOutput`. See
-  `mata GstatsOutput.help()` after `gstats sum, matasave` for details.
-- Saving the output is done via `mata` instead of `r()`. No matrices
-  are stored in `r()`, but `GstatsOutput` provides helpers for extracting
-  rows, columns, and levels.
+  `mata GstatsOutput.help()` after `gstats tab, matasave` for details.
+- `GstatsOutput` provides helpers for extracting rows, columns, and levels.
 - Multiple groups are allowed.
-- Options `noseparator`, `casewise`, are not supported, but are
-  planned for a future release.
-- Options `missing` and `nototal` are on by default; options `total`
-  and `nomissing` are planned for a future release.
-- Option `longstub` is not supported.
+- Options `casewise`, `longstub` are not supported.
+- Option `nototal` is on by default; `total` is planned for a future release.
 
 Differences from `levelsof`
 
@@ -565,9 +560,7 @@ TODO
 ----
 
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
-- [ ] Benchmark display time for `sum/tab` in gstats
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`
-- [ ] Implement extra display options for `gstats summarize`.
 - [ ] Implement `collapse()` option for `greshape`.
 - [ ] Implement variable group syntax for `greshape`.
 - [ ] Implement `selectoverflow(missing|closest)`

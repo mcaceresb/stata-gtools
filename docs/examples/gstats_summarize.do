@@ -11,6 +11,7 @@ gstats sum price mpg, f
 * In the style of tabstat
 gstats sum price mpg, tab nod
 gstats sum price mpg, tab meanonly
+gstats sum price mpg, by(foreign) tab
 gstats sum price mpg, by(foreign) nod
 gstats sum price mpg, by(foreign) meanonly
 

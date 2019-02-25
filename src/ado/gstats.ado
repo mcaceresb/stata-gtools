@@ -67,6 +67,7 @@ program gstats, rclass
     [                          ///
         *                      /// Options for subprograms
         by(str)                /// Winsorize options
+        noMISSing              /// Exclude groups with any missing values by level
                                ///
         compress               /// Try to compress strL variables
         forcestrl              /// Force reading strL variables (stata 14 and above only)
@@ -78,6 +79,9 @@ program gstats, rclass
         oncollision(passthru)  /// error|fallback: On collision, use native command or throw error
         debug(passthru)        /// Print debugging info to console
     ]
+
+    if ( `"`missing'"' == "nomissing" ) local missing
+    else local missing missing
 
     local unsorted = cond(`:list stat in stats_sorted', "", "unsorted")
 
@@ -96,7 +100,7 @@ program gstats, rclass
 	}
     else local weights
 
-    local opts   `weights' `compress' `forcestrl' nods `unsorted' missing
+    local opts   `weights' `compress' `forcestrl' nods `unsorted' `missing'
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `oncollision' `hashmethod' `debug'
     local gstats  gfunction(stats) gstats(`stat' `varlist', `options')

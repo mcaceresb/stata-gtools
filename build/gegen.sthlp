@@ -163,9 +163,9 @@ creates a constant (within {it:varlist}) containing the value range of {it:exp}.
         {opth select(exp)} {cmd:, n(}{it:#}|{it:-#}{cmd:)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the {it:#}th smallest
-non-missing value of {it:exp}. To compute the {it:#}th largest non-missing
-value, prefix a negative sign, {it:-#}. Note that if there are any non-missing
-values, {opt n(1)} and {opt n(-1)} will give the same value as {opt min} and
+value of {it:exp}. To compute the {it:#}th largest
+value, prefix a negative sign, {it:-#}. Note that without weights,
+{opt n(1)} and {opt n(-1)} will give the same value as {opt min} and
 {opt max}, respectively.
 
 {marker pctile()}{...}

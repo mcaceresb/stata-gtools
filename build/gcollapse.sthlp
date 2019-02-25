@@ -70,10 +70,10 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt sd}}standard deviation{p_end}
 {p2col :{opt var:iance}}variance{p_end}
 {p2col :{opt cv}}coefficient of variation ({cmd:sd/mean}){p_end}
-{p2col :{opt select#}}#th smallest non-missing{p_end}
-{p2col :{opt select-#}}#th largest non-missing{p_end}
-{p2col :{opt rawselect#}}#th smallest non-missing, ignoring weights{p_end}
-{p2col :{opt rawselect-#}}#th largest non-missing, ignoring weights{p_end}
+{p2col :{opt select#}}#th smallest{p_end}
+{p2col :{opt select-#}}#th largest{p_end}
+{p2col :{opt rawselect#}}#th smallest, ignoring weights{p_end}
+{p2col :{opt rawselect-#}}#th largest, ignoring weights{p_end}
 {p2col :{opt max}}maximums{p_end}
 {p2col :{opt min}}minimums{p_end}
 {p2col :{opt range}}range = {opt max} - {opt min}{p_end}

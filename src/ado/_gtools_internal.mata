@@ -36,6 +36,7 @@ class GtoolsResults
     real     scalar      usevfmt
     string   scalar      dfmt
     real     scalar      maxl
+    real     scalar      nosep
 
     void                 help()
     void                 read()
@@ -144,6 +145,7 @@ void function GtoolsResults::readScalars()
     pretty   = st_numscalar("__gtools_summarize_pretty")
     pool     = st_numscalar("__gtools_summarize_pooled")
     maxlbl   = st_numscalar("__gtools_summarize_lwidth")
+    nosep    = st_numscalar("__gtools_summarize_nosep")
     dfmt     = st_strscalar("__gtools_summarize_dfmt")
     maxl     = 11
 }
@@ -156,6 +158,7 @@ void function GtoolsResults::readDefaults()
     maxlbl   = 16
     dfmt     = "%9.0g"
     maxl     = 11
+    nosep    = 0
 }
 
 void function GtoolsResults::readStatnames()
@@ -391,12 +394,12 @@ void function GtoolsResults::printOutput()
         widthrow = sum(width) + 3 + 2 * (kstats > 1)
 
         // Now print!
-        if ( (kby > 1) & (kstats == 1) ) {
+        if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
             GtoolsSmartLevels(printstr, 2, nrow + 1, 1, kby, extrasep)
         }
         printf("\n")
         for(sel = 1; sel <= nrow + 1; sel++) {
-            if ( extrasep[sel] ) {
+            if ( extrasep[sel] & (nosep == 0) ) {
                 printf("{hline %g}\n", widthrow - width[kby + 1])
             }
             for(l = 1; l <= kby; l++) {
@@ -414,13 +417,13 @@ void function GtoolsResults::printOutput()
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
-            if ( (kstats > 1) | (J == 1) ) {
-                if ( mod(sel - 1, kstats) == 0 ) {
+            if ( ((kstats > 1) | (J == 1)) & (nosep == 0) ) {
+                if ( (mod(sel - 1, kstats) == 0) ) {
                     printf("{hline %g}\n", widthrow)
                 }
             }
             else {
-                if ( (sel == 1) | (sel == (nrow + 1)) ) {
+                if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
                     printf("{hline %g}\n", widthrow - width[kby + 1])
                 }
             }
@@ -459,12 +462,12 @@ void function GtoolsResults::printOutput()
         widthrow = sum(width) + 3 + 2 * (ksources > 1)
 
         // Now print!
-        if ( (kby > 1) & (ksources == 1) ) {
+        if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
             GtoolsSmartLevels(printstr, 2, nrow + 1, 1, kby, extrasep)
         }
         printf("\n")
         for(sel = 1; sel <= nrow + 1; sel++) {
-            if ( extrasep[sel] ) {
+            if ( extrasep[sel] & (nosep == 0) ) {
                 printf("{hline %g}\n", widthrow - width[kby + 1])
             }
             for(l = 1; l <= kby; l++) {
@@ -482,13 +485,13 @@ void function GtoolsResults::printOutput()
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
-            if ( (ksources > 1) | (J == 1) ) {
+            if ( ((ksources > 1) | (J == 1)) & (nosep == 0) ) {
                 if ( mod(sel - 1, ksources) == 0 ) {
                     printf("{hline %g}\n", widthrow)
                 }
             }
             else {
-                if ( (sel == 1) | (sel == (nrow + 1)) ) {
+                if ( ((sel == 1) | (sel == (nrow + 1))) & (nosep == 0) ) {
                     printf("{hline %g}\n", widthrow - width[kby + 1])
                 }
             }

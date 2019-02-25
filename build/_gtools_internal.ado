@@ -3560,6 +3560,7 @@ program gstats_scalars
         scalar __gtools_summarize_pretty    = 0
         scalar __gtools_summarize_colvar    = 0
         scalar __gtools_summarize_noprint   = 0
+        scalar __gtools_summarize_nosep     = 0
         scalar __gtools_summarize_pooled    = 0
         scalar __gtools_summarize_normal    = 0
         scalar __gtools_summarize_detail    = 0
@@ -3613,6 +3614,7 @@ program gstats_scalars
         cap scalar drop __gtools_summarize_pretty
         cap scalar drop __gtools_summarize_colvar
         cap scalar drop __gtools_summarize_noprint
+        cap scalar drop __gtools_summarize_nosep
         cap scalar drop __gtools_summarize_pooled
         cap scalar drop __gtools_summarize_normal
         cap scalar drop __gtools_summarize_detail
@@ -4015,6 +4017,7 @@ program gstats_tabstat
         Format(str)          ///
         POOLed               ///
         PRETTYstats          ///
+        noSEParator          ///
         noPRINT              ///
         matasave             ///
         save                 ///
@@ -4025,10 +4028,11 @@ program gstats_tabstat
 
     scalar __gtools_summarize_tabstat   = 1
     scalar __gtools_summarize_lwidth    = `labelwidth'
-    scalar __gtools_summarize_noprint   = (`"`print'"'    == "noprint")
-    scalar __gtools_summarize_format    = (`"`formatvar'"'== "formatvar")
+    scalar __gtools_summarize_nosep     = (`"`separator'"' == "noseparator")
+    scalar __gtools_summarize_noprint   = (`"`print'"'     == "noprint")
+    scalar __gtools_summarize_format    = (`"`formatvar'"' == "formatvar")
     scalar __gtools_summarize_dfmt      = `"`format'"'
-    scalar __gtools_summarize_matasave  = (`"`matasave'"' == "matasave")
+    scalar __gtools_summarize_matasave  = (`"`matasave'"'  == "matasave")
 
     if ( `"`options'"' != "" ) {
         disp as err "Unknown options (note not all display options are not allowed):"

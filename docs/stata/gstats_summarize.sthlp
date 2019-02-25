@@ -42,7 +42,8 @@ statistics included by default in {opt summarize, detail}.
 {pstd}
 Note the {it:prefixes} {cmd:by}, {cmd:rolling}, {cmd:statsby} are
 {cmd:{it:not}} supported. To compute a table of statistics by a group
-use the option {opt by()}.
+use the option {opt by()}. With {op by()}, {opt gstats tab} is also
+faster than {cmd:gcollapse}.
 
 {synoptset 23 tabbed}{...}
 {marker table_options}{...}
@@ -83,6 +84,8 @@ specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, ma
 {synopt:{opt noprint}}Do not print
 {p_end}
 {synopt:{opt f:ormat}}Use variable's display format.
+{p_end}
+{synopt:{opt nomiss:ing}}With {opt by()}, ignore groups with missing entries.
 {p_end}
 
 {syntab:Gtools Options}
@@ -349,5 +352,6 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 
 {pstd}
 help for
-{help gtools};
-{help winsor2} (if installed)
+{help summarize};
+{help tabstat};
+{help gtools}

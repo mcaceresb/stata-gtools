@@ -238,8 +238,8 @@ string scalar function GtoolsResults::getf(
 }
 
 real matrix function GtoolsResults::getnum(
-    real colvector j,
-    real scalar l)
+    real vector j,
+    real vector l)
 {
     real scalar ix
     if ( anyvars == 0 | kby == 0 ) {
@@ -247,8 +247,8 @@ real matrix function GtoolsResults::getnum(
         return(.);
     }
     else {
-        if ( l > knum ) {
-            errprintf("requested %gth nuemric variable but only found %g\n", l, knum)
+        if ( max(l) > knum & max(l) < . ) {
+            errprintf("requested %gth nuemric variable but only found %g\n", max(l), knum)
             return(.)
         }
         return(numx[j, l])
@@ -256,8 +256,8 @@ real matrix function GtoolsResults::getnum(
 }
 
 string matrix function GtoolsResults::getchar(
-    real colvector j,
-    real scalar l,
+    real vector j,
+    real vector l,
     | real scalar raw)
 {
     if ( args() == 2 ) {
@@ -269,8 +269,8 @@ string matrix function GtoolsResults::getchar(
     }
     else {
         if ( anychar ) {
-            if ( l > kchar ) {
-                errprintf("requested %gth string variable but only found %g\n", l, kchar)
+            if ( max(l) > kchar & max(l) < . ) {
+                errprintf("requested %gth string variable but only found %g\n", max(l), kchar)
                 return("")
             }
             else {

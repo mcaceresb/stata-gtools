@@ -303,13 +303,13 @@ gstats tab price mpg, s(p5 q p95 select7 select-3) col(stat)
 Mata API
 
 ```stata
-tostring rep78, replace
-gstats tab price mpg, by(foreign rep78) matasave
+gen strvar = "string" + string(rep78)
+gstats tab price mpg, by(foreign strvar) matasave
 
 mata
 GstatsOutput.getf(1, 1, .)
 GstatsOutput.getnum(., 1)
-GstatsOutput.getchar(., 1)
+GstatsOutput.getchar((2, 5, 6), .)
 
 GstatsOutput.getOutputRow(1)
 GstatsOutput.getOutputCol(1)

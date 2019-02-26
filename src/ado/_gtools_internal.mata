@@ -351,12 +351,16 @@ real matrix function GtoolsResults::getOutputVar(string scalar var)
     }
 }
 
-void function GtoolsResults::printOutput()
+void function GtoolsResults::printOutput(| real scalar commas)
 {
     string scalar vfmt, fmt, var
     real scalar nrow, j, k, l, sel, width, widthrow
     string matrix printstr
     real colvector extrasep
+
+    if ( args() == 0 ) {
+        commas = 1
+    }
 
     if ( tabstat == 0 ) {
         errprintf("Helpers only available with tabstat\n")
@@ -388,13 +392,12 @@ void function GtoolsResults::printOutput()
                 for(l = 1; l <= ksources; l++) {
                     vfmt = pool? dfmt: (usevfmt? st_varformat(statvars[l]): dfmt)
                     printstr[sel + 1, kby + 1 + l] = GtoolsPrintfSwitch( /*
-                        */ vfmt, dfmt, maxl, scodes[k], output[sel, l])
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, l], commas)
                 }
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
         widthrow = sum(width) + 3 + 2
-        // * (kby == 0)
 
         // Now print!
         if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
@@ -455,12 +458,12 @@ void function GtoolsResults::printOutput()
                 printstr[sel + 1, kby + 1] = var
                 for(k = 1; k <= kstats; k++) {
                     printstr[sel + 1, kby + 1 + k] = GtoolsPrintfSwitch( /*
-                        */ vfmt, dfmt, maxl, scodes[k], output[sel, k])
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, k], commas)
                 }
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2
+        widthrow = sum(width) + 3 + 2 * (1 - ((kby > 0) & (ksources == 1)))
 
         // Now print!
         if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
@@ -957,10 +960,10 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
         if ( scode > 1000 ) {
             sth = floor(scode) - 1000
             if ( floor(scode) == ceil(scode) ) {
-                return(sprintf("select-%g", sth))
+                return(sprintf("select%g", sth))
             }
             else {
-                return(sprintf("rawselect-%g", sth))
+                return(sprintf("rawselect%g", sth))
             }
         }
         else if ( scode < -1000 ) {
@@ -1042,12 +1045,21 @@ string scalar function GtoolsPrintfSwitch(
     string scalar dfmt,
     real scalar maxl,
     real scalar scode,
-    real scalar x)
+    real scalar x,
+    | real scalar commas)
 {
+    if ( args() == 0 ) {
+        commas = 0
+    }
     string scalar s
     if (scode == -6 | scode == -22 | scode == -206) {
         if (x == round(x)) {
-            s = sprintf(vfmt, x)
+            if ( commas ) {
+                s = strtrim(sprintf("%25.0gc", x))
+            }
+            else {
+                s = sprintf(vfmt, x)
+            }
         }
         else {
             s = sprintf(dfmt, x)

@@ -27,15 +27,16 @@ GstatsOutput.getOutputCol(1)
 GstatsOutput.getOutputVar("price")
 GstatsOutput.getOutputVar("mpg")
 GstatsOutput.getOutputGroup(1)
-
-GstatsOutput.output
 end
+
+mata: st_matrix("output", GstatsOutput.output)
+matrix list output
 
 * The mata API allows the user to computing several runs of summary
 * statistics and keeping them in memory:
 
-gstats tab price mpg, by(foreign) matasave(StatsByForeign)
-gstats tab price mpg, by(rep78)   matasave(StatsByRep)
+gstats tab price mpg, by(foreign) noprint matasave(StatsByForeign)
+gstats tab price mpg, by(rep78)   noprint matasave(StatsByRep)
 
 mata StatsByRep.desc()
 mata StatsByForeign.desc()

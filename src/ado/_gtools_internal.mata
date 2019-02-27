@@ -397,7 +397,8 @@ void function GtoolsResults::printOutput(| real scalar commas)
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2
+        // widthrow = sum(width) + 3 + 2
+        widthrow = sum(width) + 3 + 2 * ((kstats > 1) | (J == 1)) + ksources
 
         // Now print!
         if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
@@ -419,7 +420,7 @@ void function GtoolsResults::printOutput(| real scalar commas)
             }
             printf(" | ")
             for(k = 1; k <= ksources; k++) {
-                fmt = sprintf("%%%gs", width[kby + 1 + k])
+                fmt = sprintf(" %%%gs", width[kby + 1 + k])
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
@@ -463,7 +464,8 @@ void function GtoolsResults::printOutput(| real scalar commas)
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2 * (1 - ((kby > 0) & (ksources == 1)))
+        // widthrow = sum(width) + 3 + 2 * (1 - ((kby > 0) & (ksources == 1)))
+        widthrow = sum(width) + 3 + 2 * ((ksources > 1) | (J == 1)) + kstats
 
         // Now print!
         if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
@@ -485,7 +487,7 @@ void function GtoolsResults::printOutput(| real scalar commas)
             }
             printf(" | ")
             for(k = 1; k <= kstats; k++) {
-                fmt = sprintf("%%%gs", width[kby + 1 + k])
+                fmt = sprintf(" %%%gs", width[kby + 1 + k])
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")

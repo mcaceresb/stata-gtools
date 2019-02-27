@@ -2,8 +2,8 @@
 
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
-including: collapse, reshape, winsor, pctile, xtile, contract, egen,
-isid, levelsof, duplicates, and unique/distinct.
+including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
+winsor, contract, levelsof, duplicates, and unique/distinct.
 
 ![Stable Version](https://img.shields.io/badge/stable-v1.4.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
@@ -49,8 +49,8 @@ __*Gtools commands with a Stata equivalent*__
 | gquantiles   | xtile       |  10 to 30 / 13 to 25 (-) |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile      |  13 to 38 / 3 to 5 (-)   |                         | Ibid.                                   |
 |              | \_pctile    |  25 to 40 / 3 to 5       |                         | Ibid.                                   |
-| gstats tab   | tabstat     |  10 to 60 / 5 to 40 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
-| gstats sum   | sum, detail |  10 to 40 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats tab   | tabstat     |  10 to 50 / 5 to 30 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats sum   | sum, detail |  10 to 20 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 
 <small>(+) The upper end of the speed improvements are for quantiles
 (e.g. median, iqr, p90) and few groups. Weights have not been

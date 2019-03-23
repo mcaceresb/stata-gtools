@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sun Feb 24 17:54:47 EST 2019
+ * Updated: Sat Mar 23 16:44:57 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.4.2
+ * Version: 1.5.0
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 25 Feb 2019
+ * @date 23 Mar 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -442,12 +442,20 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             ctolerance,
             gfile_byvar,
             gfile_bycol,
+            gfile_bynum,
+            gfile_topnum,
+            gfile_topmat,
             top_miss,
             top_groupmiss,
+            top_matasave,
+            top_invert,
+            top_alpha,
             top_other,
             top_lmiss,
             top_lother,
+            top_nrows,
             levels_return,
+            levels_matasave,
             levels_gen,
             levels_replace,
             xtile_xvars,
@@ -584,6 +592,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_nunique",          &nunique)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_byvar",      &gfile_byvar)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_bycol",      &gfile_bycol)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_bynum",      &gfile_bynum)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_topnum",     &gfile_topnum)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_topmat",     &gfile_topmat)     )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",         &seecount)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",        &countonly)        )) goto exit;
@@ -602,11 +613,16 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( (rc = sf_scalar_size("__gtools_top_groupmiss",    &top_groupmiss)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_miss",         &top_miss)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_matasave",     &top_matasave)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_invert",       &top_invert)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_alpha",        &top_alpha)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_other",        &top_other)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lmiss",        &top_lmiss)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_top_lother",       &top_lother)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_nrows",        &top_nrows)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_levels_return",    &levels_return)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_matasave",  &levels_matasave)  )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_levels_gen",       &levels_gen)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_levels_replace",   &levels_replace)   )) goto exit;
 
@@ -837,6 +853,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->nunique          = nunique;
     st_info->gfile_byvar      = gfile_byvar;
     st_info->gfile_bycol      = gfile_bycol;
+    st_info->gfile_bynum      = gfile_bynum;
+    st_info->gfile_topnum     = gfile_topnum;
+    st_info->gfile_topmat     = gfile_topmat;
 
     st_info->unsorted         = unsorted;
     st_info->countonly        = countonly;
@@ -855,11 +874,16 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     st_info->top_groupmiss    = top_groupmiss;
     st_info->top_miss         = top_miss;
+    st_info->top_matasave     = top_matasave;
+    st_info->top_invert       = top_invert;
+    st_info->top_alpha        = top_alpha;
     st_info->top_other        = top_other;
     st_info->top_lmiss        = top_lmiss;
     st_info->top_lother       = top_lother;
+    st_info->top_nrows        = top_nrows;
 
     st_info->levels_return    = levels_return;
+    st_info->levels_matasave  = levels_matasave;
     st_info->levels_gen       = levels_gen;
     st_info->levels_replace   = levels_replace;
 
@@ -954,14 +978,19 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tctolerance:       "GT_size_cfmt"\n",  ctolerance      );
         sf_printf_debug("\tgfile_byvar:      "GT_size_cfmt"\n",  gfile_byvar     );
         sf_printf_debug("\tgfile_bycol:      "GT_size_cfmt"\n",  gfile_bycol     );
+        sf_printf_debug("\tgfile_bynum:      "GT_size_cfmt"\n",  gfile_bynum     );
         sf_printf_debug("\n");
         sf_printf_debug("\ttop_miss:         "GT_size_cfmt"\n",  top_miss        );
         sf_printf_debug("\ttop_groupmiss:    "GT_size_cfmt"\n",  top_groupmiss   );
+        sf_printf_debug("\ttop_matasave:     "GT_size_cfmt"\n",  top_matasave    );
+        sf_printf_debug("\ttop_invert:       "GT_size_cfmt"\n",  top_invert      );
+        sf_printf_debug("\ttop_alpha:        "GT_size_cfmt"\n",  top_alpha       );
         sf_printf_debug("\ttop_other:        "GT_size_cfmt"\n",  top_other       );
         sf_printf_debug("\ttop_lmiss:        "GT_size_cfmt"\n",  top_lmiss       );
         sf_printf_debug("\ttop_lother:       "GT_size_cfmt"\n",  top_lother      );
         sf_printf_debug("\n");
         sf_printf_debug("\tlevels_return:    "GT_size_cfmt"\n",  levels_return   );
+        sf_printf_debug("\tlevels_matasave:  "GT_size_cfmt"\n",  levels_matasave );
         sf_printf_debug("\tlevels_gen:       "GT_size_cfmt"\n",  levels_gen      );
         sf_printf_debug("\tlevels_replace:   "GT_size_cfmt"\n",  levels_replace  );
         sf_printf_debug("\n");

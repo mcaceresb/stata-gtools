@@ -5,7 +5,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
 {
 
     ST_retcode rc = 0;
-    if ( st_info->levels_return == 0 ) {
+    if ( (st_info->levels_return == 0) && (st_info->levels_matasave == 0) ) {
         if ( st_info->levels_gen == 0 ) {
             sf_printf("(note: glevelsof will not store the levels of varlist)\n");
             return (0);
@@ -77,12 +77,18 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
         bufferlen  += sizeof(char) * st_info->J * (st_info->kvars_by_num * numwidth);
         bufferlen  += sizeof(char) * ((kvars > 1)? 4 * st_info->J: 0);
         bufferlen  += st_info->strbuffer;
+        if ( st_info->levels_matasave ) {
+            bufferlen = 1;
+        }
         macrobuffer = malloc(bufferlen);
     }
     else {
         bufferlen   = totalseplen + 1;
         bufferlen  += st_info->J * (st_info->kvars_by_num * numwidth);
         bufferlen  += ((kvars > 1)? 4 * st_info->J: 0);
+        if ( st_info->levels_matasave ) {
+            bufferlen = 1;
+        }
         macrobuffer = malloc(bufferlen * sizeof(char));
     }
 
@@ -112,15 +118,87 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
         sf_printf_debug("debug 2 (sf_levelsof): Read in locals info.\n");
     }
 
-    if ( kvars > 1 ) {
-        if ( st_info->kvars_by_str > 0 ) {
-            for (j = 0; j < st_info->J; j++) {
-                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-                strpos += sprintf(strpos, "`\"");
-                for (k = 0; k < kvars; k++) {
-                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
-                    sel = j * rowbytes + st_info->positions[k];
-                    if ( st_info->byvars_lens[k] > 0 ) {
+    if ( st_info->levels_matasave == 0 ) {
+        if ( kvars > 1 ) {
+            if ( st_info->kvars_by_str > 0 ) {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                    strpos += sprintf(strpos, "`\"");
+                    for (k = 0; k < kvars; k++) {
+                        if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                        sel = j * rowbytes + st_info->positions[k];
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
+                        }
+                        else {
+                            z = *((ST_double *) (st_info->st_by_charx + sel));
+                            if ( SF_is_missing(z) ) {
+                                // strpos += sprintf(strpos, ".");
+                                GTOOLS_SWITCH_MISSING
+                            }
+                            else {
+                                strpos += sprintf(strpos, numfmt, z);
+                            }
+                        }
+                    }
+                    strpos += sprintf(strpos, "\"'");
+                }
+            }
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                    strpos += sprintf(strpos, "`\"");
+                    for (k = 0; k < kvars; k++) {
+                        if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
+                        sel = j * (kvars + 1) + k;
+                        z  = st_info->st_by_numx[sel];
+                        if ( SF_is_missing(z) ) {
+                            // strpos += sprintf(strpos, ".");
+                            GTOOLS_SWITCH_MISSING
+                        }
+                        else {
+                            strpos += sprintf(strpos, numfmt, z);
+                        }
+                    }
+                    strpos += sprintf(strpos, "\"'");
+                }
+            }
+        }
+        else {
+            if ( st_info->kvars_by_str > 0 ) {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                    sel = j * rowbytes;
+                    if ( st_info->byvars_lens[0] > 0 ) {
+                        // ls = strlen(st_info->st_by_charx + sel);
+                        // if ( st_info->cleanstr ) {
+                        //     memcpy(
+                        //         strpos,
+                        //         st_info->st_by_charx + sel,
+                        //         ls
+                        //     );
+                        //     strpos += ls;
+                        // }
+                        // else {
+                        //     memcpy(
+                        //         strpos,
+                        //         sleft,
+                        //         lsleft
+                        //     );
+                        //     strpos += lsleft;
+                        //     memcpy(
+                        //         strpos,
+                        //         st_info->st_by_charx + sel,
+                        //         ls
+                        //     );
+                        //     strpos += ls;
+                        //     memcpy(
+                        //         strpos,
+                        //         sright,
+                        //         lsright
+                        //     );
+                        //     strpos += lsright;
+                        // }
                         strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
                     }
                     else {
@@ -134,17 +212,12 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                         }
                     }
                 }
-                strpos += sprintf(strpos, "\"'");
             }
-        }
-        else {
-            for (j = 0; j < st_info->J; j++) {
-                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-                strpos += sprintf(strpos, "`\"");
-                for (k = 0; k < kvars; k++) {
-                    if ( k > 0 ) strpos += sprintf(strpos, "%s", colsep);
-                    sel = j * (kvars + 1) + k;
-                    z  = st_info->st_by_numx[sel];
+            else {
+                for (j = 0; j < st_info->J; j++) {
+                    if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
+                    sel = j * (kvars + 1);
+                    z = st_info->st_by_numx[sel];
                     if ( SF_is_missing(z) ) {
                         // strpos += sprintf(strpos, ".");
                         GTOOLS_SWITCH_MISSING
@@ -152,71 +225,6 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                     else {
                         strpos += sprintf(strpos, numfmt, z);
                     }
-                }
-                strpos += sprintf(strpos, "\"'");
-            }
-        }
-    }
-    else {
-        if ( st_info->kvars_by_str > 0 ) {
-            for (j = 0; j < st_info->J; j++) {
-                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-                sel = j * rowbytes;
-                if ( st_info->byvars_lens[0] > 0 ) {
-                    // ls = strlen(st_info->st_by_charx + sel);
-                    // if ( st_info->cleanstr ) {
-                    //     memcpy(
-                    //         strpos,
-                    //         st_info->st_by_charx + sel,
-                    //         ls
-                    //     );
-                    //     strpos += ls;
-                    // }
-                    // else {
-                    //     memcpy(
-                    //         strpos,
-                    //         sleft,
-                    //         lsleft
-                    //     );
-                    //     strpos += lsleft;
-                    //     memcpy(
-                    //         strpos,
-                    //         st_info->st_by_charx + sel,
-                    //         ls
-                    //     );
-                    //     strpos += ls;
-                    //     memcpy(
-                    //         strpos,
-                    //         sright,
-                    //         lsright
-                    //     );
-                    //     strpos += lsright;
-                    // }
-                    strpos += sprintf(strpos, sprintfmt, st_info->st_by_charx + sel);
-                }
-                else {
-                    z = *((ST_double *) (st_info->st_by_charx + sel));
-                    if ( SF_is_missing(z) ) {
-                        // strpos += sprintf(strpos, ".");
-                        GTOOLS_SWITCH_MISSING
-                    }
-                    else {
-                        strpos += sprintf(strpos, numfmt, z);
-                    }
-                }
-            }
-        }
-        else {
-            for (j = 0; j < st_info->J; j++) {
-                if ( j > 0 ) strpos += sprintf(strpos, "%s", sep);
-                sel = j * (kvars + 1);
-                z = st_info->st_by_numx[sel];
-                if ( SF_is_missing(z) ) {
-                    // strpos += sprintf(strpos, ".");
-                    GTOOLS_SWITCH_MISSING
-                }
-                else {
-                    strpos += sprintf(strpos, numfmt, z);
                 }
             }
         }
@@ -229,6 +237,10 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
     if ( (rc = SF_macro_save("_vals", macrobuffer)) ) goto exit;
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote levels to Stata macro");
+
+    if ( st_info->levels_matasave ) {
+        if ( (rc = sf_byx_save_top (st_info, 0, NULL)) ) goto exit;
+    }
 
 exit:
     free (sep);

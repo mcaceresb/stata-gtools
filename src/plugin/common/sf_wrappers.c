@@ -335,15 +335,134 @@ ST_retcode sf_byx_save (struct StataInfo *st_info)
             }
 
             total = st_info->J * rowbytes;
-            rc = rc | (fwrite(st_info->st_by_charx, sizeof(st_info->st_by_charx), total, fbyvar) != total);
+            rc = rc | (fwrite(st_info->st_by_charx, sizeof *st_info->st_by_charx, total, fbyvar) != total);
         }
         else {
             total = st_info->J * (kvars + 1);
-            rc = rc | (fwrite(st_info->st_by_numx, sizeof(st_info->st_by_numx), total, fbyvar) != total);
+            rc = rc | (fwrite(st_info->st_by_numx, sizeof *st_info->st_by_numx, total, fbyvar) != total);
         }
 
         fclose (fbyvar);
         fclose (fbycol);
+    }
+
+exit:
+    return (rc);
+}
+
+/**
+ * @brief Write by variables to disk
+ * @param st_info object with meta info
+ * @return Saves by variables in disk
+ */
+ST_retcode sf_byx_save_top (struct StataInfo *st_info, GT_size ntop, GT_size *topix)
+{
+    char GTOOLS_BYVAR_FILE[st_info->gfile_byvar];
+    char GTOOLS_BYCOL_FILE[st_info->gfile_bycol];
+    char GTOOLS_BYNUM_FILE[st_info->gfile_bynum];
+
+    FILE *fbyvar;
+    FILE *fbycol;
+    FILE *fbynum;
+
+    ST_retcode rc = 0;
+    ST_double z;
+    // char *strptr;
+
+    GT_size j, k, total, ixnum, ixchar;
+    GT_size kvars     = st_info->kvars_by;
+    GT_size anychar   = (st_info->kvars_by_str > 0);
+    GT_size anynum    = (st_info->kvars_by_num > 0);
+    GT_size rowbytes  = (st_info->rowbytes + sizeof(GT_size));
+    ST_double anycdbl = (ST_double) anychar;
+    ST_double anyndbl = (ST_double) anynum;
+    ST_double jdbl    = (ST_double) (ntop > 0)? ntop: st_info->J;
+    ST_double kdbl    = (ST_double) kvars + 1;
+
+    if ( (kvars > 0) && (st_info->J > 0) && (st_info->Nread > 0) ) {
+
+        if ( (rc = SF_macro_use("GTOOLS_BYVAR_FILE", GTOOLS_BYVAR_FILE, st_info->gfile_byvar) )) goto exit;
+        if ( (rc = SF_macro_use("GTOOLS_BYCOL_FILE", GTOOLS_BYCOL_FILE, st_info->gfile_bycol) )) goto exit;
+        if ( (rc = SF_macro_use("GTOOLS_BYNUM_FILE", GTOOLS_BYNUM_FILE, st_info->gfile_bynum) )) goto exit;
+
+        fbyvar = fopen(GTOOLS_BYVAR_FILE, "wb");
+        fbycol = fopen(GTOOLS_BYCOL_FILE, "wb");
+        fbynum = fopen(GTOOLS_BYNUM_FILE, "wb");
+
+        rc = rc | (fwrite(&anycdbl, sizeof(ST_double), 1, fbycol) != 1);
+        rc = rc | (fwrite(&anyndbl, sizeof(ST_double), 1, fbycol) != 1);
+        rc = rc | (fwrite(&jdbl,    sizeof(ST_double), 1, fbycol) != 1);
+        rc = rc | (fwrite(&kdbl,    sizeof(ST_double), 1, fbycol) != 1);
+
+        if ( anychar ) {
+            z  = (ST_double) rowbytes;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            z  = (ST_double) st_info->kvars_by_num;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            z  = (ST_double) st_info->kvars_by_str;
+            rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+
+            for (k = 0; k < kvars; k++) {
+                z  = (ST_double) st_info->byvars_lens[k];
+                rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+            }
+
+            ixnum  = 0;
+            ixchar = 0;
+            for (k = 0; k < kvars; k++) {
+                if ( st_info->byvars_lens[k] > 0 ) {
+                    ixchar++;
+                    z  = (ST_double) ixchar;
+                    rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+                }
+                else {
+                    ixnum++;
+                    z  = (ST_double) ixnum;
+                    rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbycol) != 1);
+                }
+            }
+
+            // strptr = st_info->st_by_charx;
+            // if ( anynum ) {
+            //     for (j = 0; j < st_info->J; j++) {
+            //         for (k = 0; k < kvars; k++) {
+            //             if ( (l = st_info->byvars_lens[k]) > 0 ) {
+            //                 rc = rc | (fwrite(strptr + st_info->positions[k], sizeof *strptr, l + 1, fbyvar) != (l + 1));
+            //             }
+            //             else {
+            //                 z = *((ST_double *) (strptr + st_info->positions[k]));
+            //                 rc = rc | (fwrite(&z, sizeof(ST_double), 1, fbynum) != 1);
+            //             }
+            //         }
+            //         strptr += rowbytes;
+            //     }
+            // }
+
+            total = st_info->J * rowbytes;
+            if ( ntop > 0 ) {
+                for (j = 0; j < ntop; j++) {
+                    rc = rc | (fwrite(st_info->st_by_charx + topix[j] * rowbytes, sizeof *st_info->st_by_charx, rowbytes, fbyvar) != rowbytes);
+                }
+            }
+            else {
+                rc = rc | (fwrite(st_info->st_by_charx, sizeof *st_info->st_by_charx, total, fbyvar) != total);
+            }
+        }
+        else {
+            total = st_info->J * (kvars + 1);
+            if ( ntop > 0 ) {
+                for (j = 0; j < ntop; j++) {
+                    rc = rc | (fwrite(st_info->st_by_numx + topix[j] * (kvars + 1), sizeof *st_info->st_by_numx, (kvars + 1), fbyvar) != (kvars + 1));
+                }
+            }
+            else {
+                rc = rc | (fwrite(st_info->st_by_numx, sizeof *st_info->st_by_numx, total, fbyvar) != total);
+            }
+        }
+
+        fclose (fbyvar);
+        fclose (fbycol);
+        fclose (fbynum);
     }
 
 exit:

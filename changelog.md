@@ -1,6 +1,43 @@
 Change Log
 ==========
 
+## gtools-1.5.0 (2019-03-23)
+
+### Features
+
+- `glevelsof, mata[(name)]` saves the levels to mata. The levels are _not_
+  stored in `r(levels)` and option `local()` is not allowed. With `silent`,
+  the levels are additionally not formatted.
+
+- `glevelsof, mata numfmt()` requires `numfmt` to be a mata print format
+  instead of a C print format.
+
+- `gtop, ntop(.)` and `gtop, ntop(-.)` now allow printing all the levels
+  from largest to smallest or the converse.
+
+- `gtop, alpha` sorts the top levels in variable order. if `gtop -var, alpha`
+  is passed then they are sorted in reverse order.
+
+- `gtop, mata` uses temporary files on disk to read the levels from C
+  via mata. Matrices and locals are not used, meaning `r(levels)`,
+  `r(toplevels)`, and the resuls stored via the option -matrix()-,
+  ``r(`matrix')``, are no longer available. The user can access each
+  of these via the mata object `GtoolsByLevels` (the user can change
+  the name of this object via `mata(name)`). The levels are stored raw
+  in `GtoolsByLevels.charx` and `GtoolsByLevels.numx`; the levels are
+  stored formatted in `GtoolsByLevels.printed`; the frequencies are
+  stored in `GtoolsByLevels.toplevels`.
+
+- `r(matalevels)` stores the name of the mata object with the levels and frequencies.
+
+- `gtop` also stores `r(ntop)`, `r(nrows)`, and `r(alpha)` as return scalars,
+  for the numbere of top levels (if `.`, this will be `r(J)`), the number of
+  rows in the `toplevels` matrix (it may or not include a row for "other" and
+  a row for "missing"), and whether the top levels are sorted by their values.
+
+- `gtop, mata numfmt()` requires `numfmt` to be a mata print format instead of
+  a C print format.
+
 ## gtools-1.4.2 (2019-02-25)
 
 ### Enhancements

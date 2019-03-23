@@ -88,6 +88,57 @@ program checks_levelsof
     assert _rc == 920
     cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0
+
+    sysuse auto, clear
+    glevelsof price
+    glevelsof mpg
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof price   make    mpg     foreign
+    glevelsof foreign make    mpg     price
+    glevelsof mpg     make    foreign price
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof make    price   mpg     foreign
+    glevelsof make    foreign mpg     price
+    glevelsof make    mpg     foreign price
+    glevelsof price   mpg     foreign make
+    glevelsof foreign mpg     price   make
+    glevelsof mpg     foreign price   make
+
+    glevelsof price                           , mata(hi)
+    glevelsof mpg                             , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof price   make    mpg     foreign , mata(hi)
+    glevelsof foreign make    mpg     price   , mata(hi)
+    glevelsof mpg     make    foreign price   , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof make    price   mpg     foreign , mata(hi)
+    glevelsof make    foreign mpg     price   , mata(hi)
+    glevelsof make    mpg     foreign price   , mata(hi)
+    glevelsof price   mpg     foreign make    , mata(hi)
+    glevelsof foreign mpg     price   make    , mata(hi)
+    glevelsof mpg     foreign price   make    , mata(hi)
+
+    clear
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
+
+    glevelsof ix
+    glevelsof ix, mata
+    glevelsof ix, mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
 end
 
 capture program drop checks_inner_levelsof

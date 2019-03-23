@@ -1,4 +1,4 @@
-*! version 1.4.2 25Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.0 23Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -41,9 +41,16 @@ program _gtools_internal, rclass
     tempfile gstatsfile
     tempfile gbyvarfile
     tempfile gbycolfile
-    global GTOOLS_GSTATS_FILE: copy local gstatsfile
-    global GTOOLS_BYVAR_FILE:  copy local gbyvarfile
-    global GTOOLS_BYCOL_FILE:  copy local gbycolfile
+    tempfile gbynumfile
+    tempfile gtopnumfile
+    tempfile gtopmatfile
+
+    global GTOOLS_GSTATS_FILE:  copy local gstatsfile
+    global GTOOLS_BYVAR_FILE:   copy local gbyvarfile
+    global GTOOLS_BYCOL_FILE:   copy local gbycolfile
+    global GTOOLS_BYNUM_FILE:   copy local gbynumfile
+    global GTOOLS_GTOPNUM_FILE: copy local gtopnumfile
+    global GTOOLS_GTOPMAT_FILE: copy local gtopmatfile
 
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
     * set varabbrev off
@@ -668,8 +675,12 @@ program _gtools_internal, rclass
     local verbose   = ( "`verbose'"   != "" )
     local benchmark = ( "`benchmark'" != "" )
 
-    mata: st_numscalar("__gtools_gfile_byvar", strlen(st_local("gbyvarfile")) + 1)
-    mata: st_numscalar("__gtools_gfile_bycol", strlen(st_local("gbycolfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_byvar",  strlen(st_local("gbyvarfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_bycol",  strlen(st_local("gbycolfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_bynum",  strlen(st_local("gbynumfile")) + 1)
+
+    mata: st_numscalar("__gtools_gfile_topnum", strlen(st_local("gtopnumfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_topmat", strlen(st_local("gtopmatfile")) + 1)
 
     scalar __gtools_init_targ   = 0
     scalar __gtools_any_if      = `any_if'
@@ -695,21 +706,29 @@ program _gtools_internal, rclass
     scalar __gtools_weight_sel  = `wselective'
     scalar __gtools_nunique     = ( `:list posof "nunique" in stats' > 0 )
 
+    scalar __gtools_top_nrows       = 0
     scalar __gtools_top_ntop        = 0
     scalar __gtools_top_pct         = 0
     scalar __gtools_top_freq        = 0
+    scalar __gtools_top_mataname    = ""
+    scalar __gtools_top_matasave    = 0
+    scalar __gtools_top_silent      = 0
+    scalar __gtools_top_vlab        = 1
+    scalar __gtools_top_invert      = 0
+    scalar __gtools_top_alpha       = 0
     scalar __gtools_top_miss        = 0
     scalar __gtools_top_groupmiss   = 0
     scalar __gtools_top_other       = 0
     scalar __gtools_top_lmiss       = 0
     scalar __gtools_top_lother      = 0
-    matrix __gtools_top_matrix      = J(1, 5, .)
-    matrix __gtools_top_num         = J(1, 1, .)
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
     matrix __gtools_weight_smat     = wselmat
     cap matrix drop wselmat
 
+    scalar __gtools_levels_mataname = `""'
+    scalar __gtools_levels_matasave = 0
+    scalar __gtools_levels_silent   = 0
     scalar __gtools_levels_return   = 1
     scalar __gtools_levels_gen      = 0
     scalar __gtools_levels_replace  = 0
@@ -756,7 +775,9 @@ program _gtools_internal, rclass
     if ( `"`colseparate'"' == "" ) local colsep `" | "'
     else local colsep: copy local colseparate
 
+    local numfmt_empty = 0
     if ( `"`numfmt'"' == "" ) {
+        local numfmt_empty = 1
         local numfmt `"%.16g"'
     }
 
@@ -1621,7 +1642,15 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "levelsof") ) {
             local 0, `glevelsof'
-            syntax, [noLOCALvar freq(str) store(str) gen(str)]
+            syntax, [             ///
+                noLOCALvar        ///
+                freq(str)         ///
+                store(str)        ///
+                gen(str)          ///
+                silent            ///
+                MATAsave          ///
+                MATAsavename(str) ///
+            ]
             local gcall `gfunction'
             scalar __gtools_levels_return = ( `"`localvar'"' == "" )
 
@@ -1641,8 +1670,11 @@ program _gtools_internal, rclass
             local 0 `gen'
             syntax [anything], [replace]
 
-            scalar __gtools_levels_gen     = ( `"`gen'"'     != "" )
-            scalar __gtools_levels_replace = ( `"`replace'"' != "" )
+            scalar __gtools_levels_mataname = `"`matasavename'"'
+            scalar __gtools_levels_matasave = ( `"`matasave'"' != "" )
+            scalar __gtools_levels_silent   = ( `"`silent'"'   != "" )
+            scalar __gtools_levels_gen      = ( `"`gen'"'      != "" )
+            scalar __gtools_levels_replace  = ( `"`replace'"'  != "" )
 
             local k1: list sizeof anything
             local k2: list sizeof byvars
@@ -1735,35 +1767,39 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "top") ) {
             local 0, `gtop'
-            syntax, ntop(real)    ///
-                    pct(real)     ///
-                    freq(real)    ///
-                [                 ///
-                    misslab(str)  ///
-                    otherlab(str) ///
-                    groupmiss     ///
+            syntax, ntop(real)        ///
+                    pct(real)         ///
+                    freq(real)        ///
+                [                     ///
+                    misslab(str)      ///
+                    otherlab(str)     ///
+                    groupmiss         ///
+                    MATAsave          ///
+                    MATAsavename(str) ///
+                    alpha             ///
+                    invert            ///
+                    silent            ///
+                    noVALUELABels     ///
                 ]
             local gcall `gfunction'
 
             scalar __gtools_top_ntop      = `ntop'
             scalar __gtools_top_pct       = `pct'
             scalar __gtools_top_freq      = `freq'
-            scalar __gtools_top_miss      = ( `"`misslab'"'   != "" )
-            scalar __gtools_top_groupmiss = ( `"`groupmiss'"' != "" )
-            scalar __gtools_top_other     = ( `"`otherlab'"'  != "" )
+            scalar __gtools_top_mataname  = `"`matasavename'"'
+            scalar __gtools_top_matasave  = ( `"`matasave'"'    != "" )
+            scalar __gtools_top_silent    = ( `"`silent'"'      != "" )
+            scalar __gtools_top_vlab      = ( `"`valuelabels'"' == "" )
+            scalar __gtools_top_invert    = ( `"`invert'"'      != "" )
+            scalar __gtools_top_alpha     = ( `"`alpha'"'       != "" )
+            scalar __gtools_top_miss      = ( `"`misslab'"'     != "" )
+            scalar __gtools_top_groupmiss = ( `"`groupmiss'"'   != "" )
+            scalar __gtools_top_other     = ( `"`otherlab'"'    != "" )
             scalar __gtools_top_lmiss     = length(`"`misslab'"')
             scalar __gtools_top_lother    = length(`"`otherlab'"')
-
-            local nrows = abs(`ntop')               ///
-                        + scalar(__gtools_top_miss) ///
-                        + scalar(__gtools_top_other)
-
-            cap noi check_matsize, nvars(`nrows')
-            if ( _rc ) {
-                local rc = _rc
-                clean_all `rc'
-                exit `rc'
-            }
+            scalar __gtools_top_nrows     = abs(__gtools_top_ntop) /*
+                                          */ + __gtools_top_miss   /*
+                                          */ + __gtools_top_other
 
             cap noi check_matsize, nvars(`=scalar(__gtools_kvars_num)')
             if ( _rc ) {
@@ -1772,11 +1808,7 @@ program _gtools_internal, rclass
                 exit `rc'
             }
 
-            matrix __gtools_top_matrix = J(max(`nrows', 1), 5, 0)
-            if ( `=scalar(__gtools_kvars_num)' > 0 ) {
-                matrix __gtools_top_num = ///
-                    J(max(`nrows', 1), `=scalar(__gtools_kvars_num)', .)
-            }
+            local nrows = scalar(__gtools_top_nrows)
         }
         else if ( inlist("`gfunction'",  "quantiles") ) {
 
@@ -2351,16 +2383,21 @@ program _gtools_internal, rclass
             disp as txt `""'
 
             cap matrix list __gtools_contract_which
-            cap matrix list __gtools_top_matrix
-            cap matrix list __gtools_top_num
             cap matrix list __gtools_xtile_cutoffs
             cap matrix list __gtools_xtile_quantbin
             cap matrix list __gtools_xtile_cutbin
             cap matrix list __gtools_xtile_quantiles
 
+            cap scalar list __gtools_top_nrows
             cap scalar list __gtools_top_ntop
             cap scalar list __gtools_top_pct
             cap scalar list __gtools_top_freq
+            cap scalar list __gtools_top_mataname
+            cap scalar list __gtools_top_matasave
+            cap scalar list __gtools_top_silent
+            cap scalar list __gtools_top_vlab
+            cap scalar list __gtools_top_invert
+            cap scalar list __gtools_top_alpha
             cap scalar list __gtools_top_miss
             cap scalar list __gtools_top_groupmiss
             cap scalar list __gtools_top_other
@@ -2426,7 +2463,8 @@ program _gtools_internal, rclass
         if ( `=scalar(__gtools_gstats_code)' == 2 ) {
             if ( `=scalar(__gtools_summarize_matasave)' ) {
                 mata: `GstatsMataSave' = __gstats_summarize_results()
-                disp as txt _n "(note: raw results saved in GstatsOutput; see {stata mata `GstatsMataSave'.desc()})"
+                disp as txt _n "(note: raw results saved in `GstatsMataSave';" /*
+                            */ " see {stata mata `GstatsMataSave'.desc()})"
             }
             else {
                 mata: (void) __gstats_summarize_results()
@@ -2483,10 +2521,61 @@ program _gtools_internal, rclass
         return local colsep: copy local colsep
     }
 
+    if ( inlist("`gfunction'", "levelsof") ) {
+        if ( `=scalar(__gtools_levels_matasave)' ) {
+            mata: `=scalar(__gtools_levels_mataname)' = GtoolsByLevels()
+            mata: `=scalar(__gtools_levels_mataname)'.whoami = st_strscalar("__gtools_levels_mataname")
+            mata: `=scalar(__gtools_levels_mataname)'.caller = "glevelsof"
+            mata: `=scalar(__gtools_levels_mataname)'.read( /*
+                */ st_numscalar("__gtools_levels_silent")? `""': (`numfmt_empty'? "%16.0g": `"`numfmt'"'), 1)
+
+            disp as txt "(note: raw levels saved in `=scalar(__gtools_levels_mataname)';" /*
+                */ " see {stata mata `=scalar(__gtools_levels_mataname)'.desc()})"
+        }
+    }
+
     * top matrix
     if ( inlist("`gfunction'", "top") ) {
-        return matrix toplevels = __gtools_top_matrix
-        return matrix numlevels = __gtools_top_num
+        if ( `=scalar(__gtools_top_matasave)' ) {
+            mata: `=scalar(__gtools_top_mataname)' = GtoolsByLevels()
+            mata: `=scalar(__gtools_top_mataname)'.whoami = st_strscalar("__gtools_top_mataname")
+            mata: `=scalar(__gtools_top_mataname)'.caller = "gtop"
+
+            mata: `=scalar(__gtools_top_mataname)'.read( /*
+                */ st_numscalar("__gtools_top_silent")? `""': `"`numfmt'"', /*
+                */ st_numscalar("__gtools_top_vlab"))
+
+            c_local _post_msg_gtop_matanote /*
+                */ (note: raw levels saved in `=scalar(__gtools_top_mataname)'; /*
+                */  see {stata mata `=scalar(__gtools_top_mataname)'.desc()})
+
+            mata `=scalar(__gtools_top_mataname)'.toplevels = GtoolsReadMatrix( /*
+                */ st_local("gtopmatfile"),              /*
+                */ st_numscalar("__gtools_top_nrows"), 5)
+        }
+        else {
+            if ( `=scalar(__gtools_top_ntop)' > `c(matsize)' ) {
+                c_local _post_msg_gtop_matawarn /*
+                    */ {bf:performance warning:} # levels > matsize /*
+                    */  (`=scalar(__gtools_top_ntop)' > `c(matsize)'); try option -mata-
+            }
+
+            mata __gtools_top_matrix = GtoolsReadMatrix( /*
+                */ st_local("gtopmatfile"),              /*
+                */ st_numscalar("__gtools_top_nrows"), 5)
+
+            mata __gtools_top_num = GtoolsReadMatrix(  /*
+                */ st_local("gtopnumfile"),            /*
+                */ st_numscalar("__gtools_top_ntop"), /*
+                */ st_numscalar("__gtools_kvars_num"))
+        }
+
+        return scalar alpha = __gtools_top_alpha
+        return scalar ntop  = __gtools_top_ntop
+        return scalar nrows = __gtools_top_nrows
+
+        * return matrix toplevels = __gtools_top_matrix
+        * return matrix numlevels = __gtools_top_num
     }
 
     * quantile info
@@ -2557,10 +2646,16 @@ program clean_all
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
     global GTOOLS_BYCOL_FILE
+    global GTOOLS_BYNUM_FILE
+    global GTOOLS_GTOPNUM_FILE
+    global GTOOLS_GTOPMAT_FILE
     global GTOOLS_BYNAMES
 
     cap scalar drop __gtools_gfile_byvar
     cap scalar drop __gtools_gfile_bycol
+    cap scalar drop __gtools_gfile_bynum
+    cap scalar drop __gtools_gfile_topnum
+    cap scalar drop __gtools_gfile_topmat
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
@@ -2587,18 +2682,26 @@ program clean_all
     cap scalar drop __gtools_weight_sel
     cap scalar drop __gtools_nunique
 
+    cap scalar drop __gtools_top_nrows
     cap scalar drop __gtools_top_ntop
     cap scalar drop __gtools_top_pct
     cap scalar drop __gtools_top_freq
+    cap scalar drop __gtools_top_mataname
+    cap scalar drop __gtools_top_matasave
+    cap scalar drop __gtools_top_silent
+    cap scalar drop __gtools_top_vlab
+    cap scalar drop __gtools_top_invert
+    cap scalar drop __gtools_top_alpha
     cap scalar drop __gtools_top_miss
     cap scalar drop __gtools_top_groupmiss
     cap scalar drop __gtools_top_other
     cap scalar drop __gtools_top_lmiss
     cap scalar drop __gtools_top_lother
-    cap matrix drop __gtools_top_matrix
-    cap matrix drop __gtools_top_num
     cap matrix drop __gtools_contract_which
 
+    cap scalar drop __gtools_levels_mataname
+    cap scalar drop __gtools_levels_matasave
+    cap scalar drop __gtools_levels_silent
     cap scalar drop __gtools_levels_return
     cap scalar drop __gtools_levels_gen
     cap scalar drop __gtools_levels_replace
@@ -2801,7 +2904,15 @@ program parse_by_types, rclass
     local varlist_  `varlist'
     local anything_ `anything'
     local 0, `glevelsof'
-    syntax, [noLOCALvar freq(str) store(str) gen(str)]
+    syntax, [             ///
+        noLOCALvar        ///
+        freq(str)         ///
+        store(str)        ///
+        gen(str)          ///
+        silent            ///
+        MATAsave          ///
+        MATAsavename(str) ///
+    ]
     local varlist  `varlist_'
     local anything `anything_'
 
@@ -3784,6 +3895,8 @@ program gstats_winsor
     if ( substr("`cutl'", 1, 1) == "." ) local cutl 0`cutl'
     if ( substr("`cuth'", 1, 1) == "." ) local cuth 0`cuth'
     if ( "`label'" != "" ) {
+        local cuth `cuth'
+        local cutl `cutl'
         if ( `trim' ) {
             local glab `" - Trimmed (p`cutl', p`cuth')"'
         }

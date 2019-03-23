@@ -647,13 +647,13 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
 
     if ( weights ) {
         wcount = calloc(xmem_count, sizeof *wcount);
-        xcount = malloc(sizeof(xcount));
+        xcount = malloc(sizeof *xcount);
     }
     else {
-        wcount = malloc(sizeof(wcount));
+        wcount = malloc(sizeof *wcount);
         xcount = calloc(xmem_count, sizeof *xcount);
     }
-    xoutput = calloc(xmem_output,  sizeof *xoutput);
+    xoutput = calloc(xmem_output, sizeof *xoutput);
 
     if ( wcount  == NULL ) return(sf_oom_error("sf_quantiles", "wcount"));
     if ( xcount  == NULL ) return(sf_oom_error("sf_quantiles", "xcount"));
@@ -702,7 +702,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             N,
             0,
             1,
-            kx * sizeof(xsources),
+            kx * (sizeof *xsources),
             invert
         );
         sorted = 1;
@@ -715,7 +715,7 @@ ST_retcode sf_xtile (struct StataInfo *st_info, int level)
             quicksort_bsd (
                 xsources,
                 N,
-                kx * sizeof(xsources),
+                kx * (sizeof *xsources),
                 xtileCompare,
                 NULL
             );

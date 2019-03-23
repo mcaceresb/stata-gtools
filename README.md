@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.4.2-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.5.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -563,6 +563,7 @@ TODO
 ----
 
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
+- [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`
 - [ ] Implement `collapse()` option for `greshape`.
 - [ ] Implement variable group syntax for `greshape`.
@@ -580,7 +581,6 @@ have an ETA for them:
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
-- [ ] Add option to `gtop` to display top X results in alpha order
 - [ ] Improve debugging info.
 - [ ] Improve code comments when you write the API!
 - [ ] Have some type of coding standard for the base (coding style)

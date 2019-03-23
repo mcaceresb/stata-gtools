@@ -26,7 +26,7 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
     GT_size J        = st_info->J;
     clock_t timer    = clock();
 
-    st_info->output = calloc(J * ktargets * 2, sizeof st_info->output);
+    st_info->output = calloc(J * ktargets * 2, sizeof *st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_stats_winsor", "st_info->output"));
 
     GTOOLS_GC_ALLOCATED("st_info->output")

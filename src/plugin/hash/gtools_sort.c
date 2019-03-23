@@ -283,7 +283,7 @@ ST_retcode gf_radix_sort16 (
     // Initialize counts to 0
     // ----------------------
 
-    struct radixCounts16 *counts = malloc(sizeof(*counts));
+    struct radixCounts16 *counts = malloc(sizeof *counts);
 	counts->c4 = calloc(size, sizeof(uint32_t));
 	counts->c3 = calloc(size, sizeof(uint32_t));
 	counts->c2 = calloc(size, sizeof(uint32_t));
@@ -409,7 +409,7 @@ ST_retcode gf_radix_sort16_32(
     // Initialize counts to 0
     // ----------------------
 
-    struct radixCounts16_32 *counts = malloc(sizeof(*counts));
+    struct radixCounts16_32 *counts = malloc(sizeof *counts);
 	counts->c2 = calloc(size, sizeof(uint32_t));
 	counts->c1 = calloc(size, sizeof(uint32_t));
 
@@ -505,7 +505,7 @@ ST_retcode gf_radix_sort12_24(
     // Initialize counts to 0
     // ----------------------
 
-    struct radixCounts12_24 *counts = malloc(sizeof(*counts));
+    struct radixCounts12_24 *counts = malloc(sizeof *counts);
     counts->c2 = calloc(size, sizeof(uint32_t));
     counts->c1 = calloc(size, sizeof(uint32_t));
 
@@ -601,7 +601,7 @@ ST_retcode gf_radix_sort8_16(
     // Initialize counts to 0
     // ----------------------
 
-    struct radixCounts8_16 *counts = malloc(sizeof(*counts));
+    struct radixCounts8_16 *counts = malloc(sizeof *counts);
     counts->c2 = calloc(size, sizeof(uint32_t));
     counts->c1 = calloc(size, sizeof(uint32_t));
 

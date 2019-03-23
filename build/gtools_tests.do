@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Feb 24 17:55:04 EST 2019
+* Updated: Sat Mar 23 16:45:22 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.4.2
+* Version: 1.5.0
 * Manual:  help gtools
 
 * Stata start-up options
@@ -5974,6 +5974,57 @@ program checks_levelsof
     assert _rc == 920
     cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0
+
+    sysuse auto, clear
+    glevelsof price
+    glevelsof mpg
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof price   make    mpg     foreign
+    glevelsof foreign make    mpg     price
+    glevelsof mpg     make    foreign price
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof make    price   mpg     foreign
+    glevelsof make    foreign mpg     price
+    glevelsof make    mpg     foreign price
+    glevelsof price   mpg     foreign make
+    glevelsof foreign mpg     price   make
+    glevelsof mpg     foreign price   make
+
+    glevelsof price                           , mata(hi)
+    glevelsof mpg                             , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof price   make    mpg     foreign , mata(hi)
+    glevelsof foreign make    mpg     price   , mata(hi)
+    glevelsof mpg     make    foreign price   , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof make    price   mpg     foreign , mata(hi)
+    glevelsof make    foreign mpg     price   , mata(hi)
+    glevelsof make    mpg     foreign price   , mata(hi)
+    glevelsof price   mpg     foreign make    , mata(hi)
+    glevelsof foreign mpg     price   make    , mata(hi)
+    glevelsof mpg     foreign price   make    , mata(hi)
+
+    clear
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
+
+    glevelsof ix
+    glevelsof ix, mata
+    glevelsof ix, mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
 end
 
 capture program drop checks_inner_levelsof
@@ -6468,6 +6519,63 @@ program checks_toplevelsof
     gen x = _n
     gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
     gtoplevelsof x if _n < 1
+
+    sysuse auto , clear
+    gtop price                           , mata
+    gtop mpg                             , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop price   make    mpg     foreign , mata
+    gtop foreign make    mpg     price   , mata
+    gtop mpg     make    foreign price   , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop make    price   mpg     foreign , mata
+    gtop make    foreign mpg     price   , mata
+    gtop make    mpg     foreign price   , mata
+    gtop price   mpg     foreign make    , mata
+    gtop foreign mpg     price   make    , mata
+    gtop mpg     foreign price   make    , mata
+
+    expand mpg
+
+    gtop price                           , ntop(.) mata(hi)
+    gtop mpg                             , ntop(.) mata(hi)
+    gtop price   mpg     foreign         , ntop(.) mata(hi)
+    gtop foreign mpg     price           , ntop(.) mata(hi)
+    gtop mpg     foreign price           , ntop(.) mata(hi)
+    gtop price   make    mpg     foreign , ntop(.) mata(hi)
+    gtop foreign make    mpg     price   , ntop(.) mata(hi)
+    gtop mpg     make    foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign         , ntop(-.) mata(hi)
+    gtop foreign mpg     price           , ntop(-.) mata(hi)
+    gtop mpg     foreign price           , ntop(-.) mata(hi)
+    gtop make    price   mpg     foreign , ntop(-.) mata(hi)
+    gtop make    foreign mpg     price   , ntop(-.) mata(hi)
+    gtop make    mpg     foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign make    , ntop(-.) mata
+    gtop foreign mpg     price   make    , ntop(-.) mata
+    gtop mpg     foreign price   make    , ntop(-.) mata
+
+    clear
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
+
+    gtop ix, ntop(.) mata
+    gtop ix, ntop(.)
+    gtop ix, ntop(.) mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
+
+    gtop ix, mata(hi) silent
+    gtop ix, mata(hi) silent ntop(.) alpha
+
 end
 
 capture program drop checks_inner_toplevelsof
@@ -6482,6 +6590,8 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything', `options' ntop(0)
     gtoplevelsof `anything', `options' ntop(0) noother
     gtoplevelsof `anything', `options' ntop(0) missrow
+    gtoplevelsof `anything', `options' ntop(.)
+    gtoplevelsof `anything', `options' ntop(-.)
     gtoplevelsof `anything', `options' freqabove(10000)
     gtoplevelsof `anything', `options' pctabove(5)
     gtoplevelsof `anything', `options' pctabove(100)

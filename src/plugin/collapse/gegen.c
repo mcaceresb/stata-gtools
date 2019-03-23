@@ -79,7 +79,7 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     for (k = 0; k < st_info->kvars_stats; k++)
         statcode[k] = st_info->statcode[k];
 
-    st_info->output = calloc(J * ktargets, sizeof st_info->output);
+    st_info->output = calloc(J * ktargets, sizeof *st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_egen_bulk", "st_info->output"));
 
     GTOOLS_GC_ALLOCATED("st_info->output")
@@ -444,7 +444,7 @@ ST_retcode sf_egen_multiple_sources (struct StataInfo *st_info, int level)
     for (k = 0; k < st_info->kvars_stats; k++)
         statcode[k] = st_info->statcode[k];
 
-    st_info->output = calloc(J * ktargets, sizeof st_info->output);
+    st_info->output = calloc(J * ktargets, sizeof *st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_egen_bulk", "st_info->output"));
 
     GTOOLS_GC_ALLOCATED("st_info->output")
@@ -828,7 +828,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
 
         for (j = 0; j < st_info->J; j++) {
             fwrite (st_info->output + j * ktargets + wtargets,
-                    sizeof(st_info->output), kextra, fhandle);
+                    sizeof *st_info->output, kextra, fhandle);
         }
 
         fclose (fhandle);
@@ -933,7 +933,7 @@ ST_retcode sf_write_collapsed (struct StataInfo *st_info, int level, GT_size wta
 
         for (j = 0; j < st_info->J; j++) {
             fwrite (st_info->output + j * ktargets + wtargets,
-                    sizeof(st_info->output), kextra, fhandle);
+                    sizeof *st_info->output, kextra, fhandle);
         }
 
         fclose (fhandle);

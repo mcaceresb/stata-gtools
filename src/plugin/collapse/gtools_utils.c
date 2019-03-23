@@ -67,7 +67,7 @@ void gf_write_collapsed(
     GT_size knum = kend - kstart;
     FILE *collapsed_handle = fopen(collapsed_file, "wb");
     for (j = 0; j < J; j++) {
-        fwrite (collapsed_data + j * kend + kstart, sizeof(collapsed_data), knum, collapsed_handle);
+        fwrite (collapsed_data + j * kend + kstart, sizeof *collapsed_data, knum, collapsed_handle);
     }
     fclose(collapsed_handle);
 }
@@ -96,7 +96,7 @@ void gf_read_collapsed(
     GT_size J)
 {
     FILE *collapsed_handle = fopen(collapsed_file, "rb");
-    GT_size ret = fread (collapsed_data, sizeof(collapsed_data), knum * J, collapsed_handle);
+    GT_size ret = fread (collapsed_data, sizeof *collapsed_data, knum * J, collapsed_handle);
     if ( ret == 0 ) printf(" "); // So it doesn't nag about ret unused...
     fclose(collapsed_handle);
 }

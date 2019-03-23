@@ -428,7 +428,7 @@ ST_double gf_array_dquantile_unweighted (
     // quicksort_bsd(
     //     p_buffer,
     //     N,
-    //     sizeof(p_buffer),
+    //     sizeof *p_buffer,
     //     xtileCompare,
     //     NULL
     // );
@@ -491,10 +491,10 @@ ST_double gf_array_dselect_unweighted (
     // quicksort_bsd(
     //     p_buffer,
     //     N,
-    //     sizeof(p_buffer),
+    //     sizeof *p_buffer,
     //     xtileCompare,
     //     NULL
     // );
-    // memcpy(v, p_buffer, sizeof(v) * N);
+    // memcpy(v, p_buffer, (sizeof *v) * N);
     // return(v[sth]);
 }

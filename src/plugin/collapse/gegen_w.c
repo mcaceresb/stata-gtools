@@ -67,7 +67,7 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     for (k = 0; k < st_info->kvars_stats; k++)
         statcode[k] = st_info->statcode[k];
 
-    st_info->output = calloc(J * ktargets, sizeof st_info->output);
+    st_info->output = calloc(J * ktargets, sizeof *st_info->output);
     if ( st_info->output == NULL ) return(sf_oom_error("sf_egen_bulk_w", "st_info->output"));
 
     GTOOLS_GC_ALLOCATED("st_info->output")

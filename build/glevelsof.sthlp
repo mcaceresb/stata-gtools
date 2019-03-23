@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.2  23Jan2019}{...}
+{* *! version 1.2.0  23Mar2019}{...}
 {vieweralsosee "[P] glevelsof" "mansection P glevelsof"}{...}
 {vieweralsosee "" "--"}{...}
 {vieweralsosee "[P] foreach" "help foreach"}{...}

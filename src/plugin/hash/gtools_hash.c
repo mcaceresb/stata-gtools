@@ -318,7 +318,7 @@ ST_retcode gf_panelsetup (
     info_largest[l] = st_info->N;
 
     st_info->J = l;
-    st_info->info = calloc(l + 1, sizeof st_info->info);
+    st_info->info = calloc(l + 1, sizeof *st_info->info);
     if ( st_info->info == NULL ) return (sf_oom_error("gf_panelsetup", "st_info->info"));
     GTOOLS_GC_ALLOCATED("st_info->info")
 
@@ -390,7 +390,7 @@ ST_retcode gf_panelsetup_bijection (uint64_t *h1, struct StataInfo *st_info)
     info_largest[l] = st_info->N;
 
     st_info->J = l;
-    st_info->info = calloc(l + 1, sizeof st_info->info);
+    st_info->info = calloc(l + 1, sizeof *st_info->info);
     if ( st_info->info == NULL ) return (sf_oom_error("gf_panelsetup_bijection", "st_info->info"));
     GTOOLS_GC_ALLOCATED("st_info->info")
 
@@ -685,8 +685,8 @@ bycopy:
 
     if ( (level > 0) & (skipbycopy == 0) ) {
         if ( kstr > 0 ) {
-            st_info->strL_bybytes = malloc(sizeof(st_info->strL_bybytes));;
-            st_info->st_by_numx   = malloc(sizeof(st_info->st_by_numx));
+            st_info->strL_bybytes = malloc(sizeof *st_info->strL_bybytes);;
+            st_info->st_by_numx   = malloc(sizeof *st_info->st_by_numx);
             st_info->st_by_charx  = calloc(st_info->J, rowbytes);
 
             if ( st_info->strL_bybytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bybytes"));
@@ -722,9 +722,9 @@ bycopy:
             }
         }
         else {
-            st_info->strL_bybytes = malloc(sizeof(st_info->strL_bybytes));;
-            st_info->st_by_numx   = calloc(st_info->J * (kvars + 1), sizeof(st_info->st_by_numx));
-            st_info->st_by_charx  = malloc(sizeof(st_info->st_by_charx));
+            st_info->strL_bybytes = malloc(sizeof *st_info->strL_bybytes);;
+            st_info->st_by_numx   = calloc(st_info->J * (kvars + 1), sizeof *st_info->st_by_numx);
+            st_info->st_by_charx  = malloc(sizeof *st_info->st_by_charx);
 
             if ( st_info->strL_bybytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bybytes"));
             if ( st_info->st_by_numx   == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->st_by_numx"));
@@ -820,7 +820,7 @@ bycopy:
         GTOOLS_GC_FREED("st_info->ix")
     }
 
-    st_info->ix = calloc(st_info->J, sizeof(st_info->ix));
+    st_info->ix = calloc(st_info->J, sizeof *st_info->ix);
     if ( st_info->ix == NULL ) sf_oom_error ("sf_check_hash", "st_info->ix");
     GTOOLS_GC_ALLOCATED("st_info->ix")
 

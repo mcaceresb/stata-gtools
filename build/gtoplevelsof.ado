@@ -1,4 +1,4 @@
-*! version 1.1.0 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.0 23Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
 * TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
@@ -15,61 +15,103 @@ program gtoplevelsof, rclass
     }
 
     global GTOOLS_CALLER gtoplevelsof
-    syntax anything           ///
-        [if] [in]             /// [if condition] [in start / end]
-        [aw fw pw] ,          /// [weight type = exp]
-    [                         ///
-        ntop(int 10)          /// Number of levels to display
-        freqabove(real 0)     /// Only include above this count
-        pctabove(real 0)      /// Only include above this pct
-                              ///
-        noOTHer               /// Do not add summary row with "other" group to table
-        missrow               /// Incldue missings as a sepparate row
-        GROUPMISSing          /// Count as missing if any variable is missing
-        noMISSing             /// Exclude missing values
-        NODS DS               /// Parse - as varlist (ds) or negative (nods)
-                              ///
-        OTHerlabel(str)       /// Label for "other" row
-        MISSROWlabel(str)     /// Count as missing if any variable is missing
-        pctfmt(str)           /// How to format percentages
-                              ///
-        noVALUELABels         /// Do (not) map value labels
-        HIDECONTlevels        /// Hide level name previous level is the same
-        VARABBrev(int -1)     /// Abbrev print of var names
-        colmax(numlist)       /// Maximum number of characters to print per column
-        colstrmax(numlist)    /// Maximum number of characters to print per column (strings)
-        numfmt(passthru)      /// How to format numbers
-                              ///
-        Separate(passthru)    /// Levels sepparator
-        COLSeparate(passthru) /// Columns sepparator (only with 2+ vars)
-        Clean                 /// Clean strings
-        LOCal(str)            /// Store variable levels in local
-        MATrix(str)           /// Store result in matrix
-                              ///
-        noWARNing             /// Do not warn about how tab might sometimes be faster
-        debug(passthru)       /// Print debugging info to console
-        compress              /// Try to compress strL variables
-        forcestrl             /// Force reading strL variables (stata 14 and above only)
-        Verbose               /// debugging
-        _CTOLerance(passthru) /// (Undocumented) Counting sort tolerance; default is radix
-        BENCHmark             /// Benchmark function
-        BENCHmarklevel(int 0) /// Benchmark various steps of the plugin
-        HASHmethod(passthru)  /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
-        oncollision(passthru) /// On collision, fall back or error
-                              ///
-        group(str)            ///
-        tag(passthru)         ///
-        counts(passthru)      ///
-        fill(passthru)        ///
-        replace               ///
+    syntax anything            ///
+        [if] [in]              /// [if condition] [in start / end]
+        [aw fw pw] ,           /// [weight type = exp]
+    [                          ///
+        ntop(str)              /// Number of levels to display
+        freqabove(real 0)      /// Only include above this count
+        pctabove(real 0)       /// Only include above this pct
+                               ///
+        alpha                  /// Sort top levels by level, not by freq
+        noOTHer                /// Do not add summary row with "other" group to table
+        missrow                /// Incldue missings as a sepparate row
+        GROUPMISSing           /// Count as missing if any variable is missing
+        noMISSing              /// Exclude missing values
+        NODS DS                /// Parse - as varlist (ds) or negative (nods)
+        silent                 /// Do not try to print the levels
+                               ///
+        MATAsave               /// Save results in mata
+        MATAsavename(str)      /// mata save name
+        OTHerlabel(str)        /// Label for "other" row
+        MISSROWlabel(str)      /// Count as missing if any variable is missing
+        pctfmt(str)            /// How to format percentages
+                               ///
+        noVALUELABels          /// Do (not) map value labels
+        HIDECONTlevels         /// Hide level name previous level is the same
+        VARABBrev(int -1)      /// Abbrev print of var names
+        colmax(numlist)        /// Maximum number of characters to print per column
+        colstrmax(numlist)     /// Maximum number of characters to print per column (strings)
+        numfmt(passthru)       /// How to format numbers
+                               ///
+        Separate(passthru)     /// Levels sepparator
+        COLSeparate(passthru)  /// Columns sepparator (only with 2+ vars)
+        Clean                  /// Clean strings
+        LOCal(str)             /// Store variable levels in local
+        MATrix(str)            /// Store result in matrix
+                               ///
+        noWARNing              /// Do not warn about how tab might sometimes be faster
+        debug(passthru)        /// Print debugging info to console
+        compress               /// Try to compress strL variables
+        forcestrl              /// Force reading strL variables (stata 14 and above only)
+        Verbose                /// debugging
+        _CTOLerance(passthru)  /// (Undocumented) Counting sort tolerance; default is radix
+        BENCHmark              /// Benchmark function
+        BENCHmarklevel(int 0)  /// Benchmark various steps of the plugin
+        HASHmethod(passthru)   /// Hashing method: 0 (default), 1 (biject), 2 (spooky)
+        oncollision(passthru)  /// On collision, fall back or error
+                               ///
+        group(str)             ///
+        tag(passthru)          ///
+        counts(passthru)       ///
+        fill(passthru)         ///
+        replace                ///
     ]
+
+    if ( (`"`matasave'"' != "") & (`"`local'"' != "") ) {
+        disp as err "Option local() not allowed with option -matasave-"
+        exit 198
+    }
+
+    if ( (`"`matasavename'"' != "") & (`"`local'"' != "") ) {
+        disp as err "Option local() not allowed with option -matasave()-"
+        exit 198
+    }
+
+    if ( (`"`matasave'"' != "") & (`"`matrix'"' != "") ) {
+        disp as err "Option matrix() not allowed with option -matasave-"
+        exit 198
+    }
+
+    if ( (`"`matasavename'"' != "") & (`"`matrix'"' != "") ) {
+        disp as err "Option matrix() not allowed with option -matasave()-"
+        exit 198
+    }
+
+    if ( `"`matasavename'"' != "" ) local matasave     matasave
+    if ( `"`matasavename'"' == "" ) local matasavename GtoolsByLevels
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
-    if ( `"`colseparate'"' == "" ) local colseparate colseparate(`"  "')
-    if ( `"`numfmt'"'      == "" ) local numfmt      numfmt(`"%.8g"')
-    if ( `"`pctfmt'"'      == "" ) local pctfmt      `"%5.1f"'
+    if ( `"`colseparate'"' == "" ) {
+        local colseparate colseparate(`"  "')
+    }
+
+    if ( `"`pctfmt'"' == "" ) {
+        local pctfmt `"%5.1f"'
+    }
+
+    if ( `"`matasave'"' == "" ) {
+        if ( `"`numfmt'"' == "" ) {
+            local numfmt numfmt(`"%.8g"')
+        }
+    }
+    else {
+        if ( `"`numfmt'"' == "" ) {
+            local numfmt numfmt(`"%16.0g"')
+        }
+    }
 
     if !regexm(`"`pctfmt'"', "%[0-9]+\.[0-9]+(gc?|fc?|e)") {
         di as err "Percent format must be %(width).(digits)(f|g); e.g. %.16g (default), %20.5f"
@@ -174,6 +216,32 @@ program gtoplevelsof, rclass
         exit 198
     }
 
+    local invert
+    if ( `"`ntop'"' == "" ) {
+        local ntop 10
+    }
+    else {
+        cap confirm number `ntop'
+        if ( _rc ) {
+            cap assert mi(`ntop')
+            if ( _rc ) {
+                disp as err "Option -ntop()- must be a number or missing."
+                exit 198
+            }
+        }
+        if ( mi(`ntop') ) {
+            if ( (substr(`"`ntop'"', 1, 1) == "-") ) {
+                local invert invert
+            }
+        }
+        else {
+            if ( `ntop' < 0 ) {
+                local invert invert
+            }
+        }
+        local ntop = `ntop'
+    }
+
     local ntop ntop(`ntop')
     local pct  pct(`pctabove')
     local freq freq(`freqabove')
@@ -209,7 +277,18 @@ program gtoplevelsof, rclass
         }
     }
 
-    local gtop gtop(`ntop' `pct' `groupmiss' `otherlab' `freq')
+    local gtop gtop(`ntop'        /*
+                 */ `pct'         /*
+                 */ `groupmiss'   /*
+                 */ `otherlab'    /*
+                 */ `freq'        /*
+                 */ `alpha'       /*
+                 */ `invert'      /*
+                 */ `matasave'    /*
+                 */ `valuelabels' /*
+                 */ `silent'      /*
+                 */ matasavename(`matasavename'))
+
 
 	if ( `"`weight'"' != "" ) {
 		tempvar touse w
@@ -276,341 +355,67 @@ program gtoplevelsof, rclass
     }
 
     tempname gmat
-    mata: __gtools_parse_topmat(`:list sizeof varlist', tokens("`abbrevlist'"), "`gmat'")
+    if ( `"`silent'"' == "" ) {
+        if ( `"`matasave'"' == "" ) {
+            mata: GtoolsGtopPrintTop(      /*
+                */ `:list sizeof varlist', /*
+                */ tokens("`abbrevlist'"), /*
+                */ __gtools_top_matrix,    /*
+                */ __gtools_top_num,       /*
+                */ "",                     /*
+                */ 0)
+        }
+        else {
+            mata: GtoolsGtopPrintTop(        /*
+                */ `:list sizeof varlist',   /*
+                */ tokens("`abbrevlist'"),   /*
+                */ `matasavename'.toplevels, /*
+                */ `matasavename'.numx,      /*
+                */ `matasavename'.printed,   /*
+                */ 1)
+        }
+    }
+    else {
+        if ( `"`matasave'"' == "" ) {
+            cap mata st_matrix(`"`gmat'"', /*
+                */ __gtools_top_matrix[    /*
+                */ selectindex(__gtools_top_matrix[., 1] :!= 0), .])
+        }
+    }
 
-    matrix colnames `gmat' = ID N Cum Pct PctCum
-    mata st_local("vals", st_global("r(levels)"))
-    if ( "`local'"  != "" ) c_local `local': copy local vals
-    if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
+    if ( `"`_post_msg_gtop_matanote'"' != "" ) {
+        disp as txt `"`_post_msg_gtop_matanote'"'
+    }
+
+    if ( `"`_post_msg_gtop_matawarn'"' != "" ) {
+        disp as err `"`_post_msg_gtop_matawarn'"'
+    }
+
+    if ( `"`matasave'"' == "" ) {
+        mata st_local("vals", st_global("r(levels)"))
+        matrix colnames `gmat' = ID N Cum Pct PctCum
+        if ( "`local'"  != "" ) c_local `local': copy local vals
+        if ( "`matrix'" != "" ) matrix `matrix' = `gmat'
+        return local levels: copy local vals
+        return matrix toplevels = `gmat'
+    }
+    else {
+        return local matalevels `"`matasavename'"'
+    }
+
+    return scalar N     = r(N)
+    return scalar J     = r(J)
+    return scalar minJ  = r(minJ)
+    return scalar maxJ  = r(maxJ)
+    return scalar alpha = r(alpha)
+    return scalar ntop  = r(ntop)
+    return scalar nrows = r(nrows)
+
+    cap mata: mata drop __gtools_top_matrix
+    cap mata: mata drop __gtools_top_num
+    cap mata: mata drop `invertmat'
 
     * if ( `c(MP)' & (`r(J)' < 11) & ("`warning'" != "nowarning") & (`:list sizeof varlist' == 1) ) {
     *     disp as txt "(Note: {cmd:tab} can be faster than {cmd:gtop} with few groups.)"
     * }
-
-    return local levels: copy local vals
-    return scalar N         = `r(N)'
-    return scalar J         = `r(J)'
-    return scalar minJ      = `r(minJ)'
-    return scalar maxJ      = `r(maxJ)'
-    return matrix toplevels = `gmat'
-end
-
-capture mata: mata drop __gtools_parse_topmat()
-capture mata: mata drop __gtools_unquote()
-
-mata:
-// kvars      = `:list sizeof varlist'
-// abbrevlist = tokens("`abbrevlist'")
-// outmat     = "`gmat'"
-
-void function __gtools_parse_topmat(real scalar kvars,
-                                   string rowvector abbrevlist,
-                                   string scalar outmat)
-{
-    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
-    real scalar nmap, knum, kstr, valabbrev, weights
-    real scalar pctlen, wlen, dlen
-    real matrix gmat, nmat
-    real colvector si, si_miss, si_other, fmtix
-    real rowvector gstrmax, gnummax, colstrmax, colnummax, colmax
-    string matrix grows, gparse
-    string colvector _grows, gprint, fmtbak
-    string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
-    string scalar sepfmt, ghead, headfmt, mlab, olab
-    string scalar pctfmt, ppctfmt, cpctfmt, numvar, strvar
-    string scalar levels, sep, colsep
-    transmorphic t
-
-    // Done here because if these have embedded characters the parsing
-    // gets tripped up...
-
-    levels = st_global("r(levels)")
-    sep    = st_global("r(sep)")
-    colsep = st_global("r(colsep)")
-
-    weights = st_local("weights") != ""
-    pctfmt  = st_local("pctfmt")
-    if ( regexm(pctfmt, "%([0-9]+)\.([0-9]+)") ) {
-        wlen   = strtoreal(regexs(1))
-        dlen   = strtoreal(regexs(2)) + 4
-        pctlen = wlen > dlen? wlen: dlen;
-    }
-    else {
-        pctlen = 5
-    }
-
-    ppctfmt = pctlen > 8?  " %" + strofreal(pctlen) + "s ": " %8s "
-    cpctfmt = pctlen > 12? " %" + strofreal(pctlen) + "s ": " %12s "
-
-    if (    sep == "" )    sep = " "
-    if ( colsep == "" ) colsep = " "
-
-    gmat   = st_matrix("r(toplevels)")
-    nmat   = st_matrix("r(numlevels)")
-    nmap   = st_local("valuelabels") == ""
-    byvars = tokens(st_local("byvars"))
-    bynum  = tokens(st_local("bynum"))
-    bystr  = tokens(st_local("bystr"))
-    knum   = cols(bynum)
-    kstr   = cols(bystr)
-    ntop   = sum(gmat[., 1] :== 1)
-    nrows  = sum(gmat[., 1] :!= 0)
-
-    if ( nrows > 0 ) {
-        gmat   = gmat[selectindex(gmat[., 1] :!= 0), .]
-        grows  = J(rows(gmat), kvars, "")
-        gcomp  = J(1, kvars, "")
-        gparse = J(rows(gmat), 2, "")
-        gprint = J(rows(gmat) + 1, 1, "")
-
-        t = tokeninit(sep, (""), (`""""', `"`""'"'), 1)
-        tokenset(t, levels)
-
-        if ( ntop > 0 ) {
-            _grows = tokengetall(t)
-            for (i = 1; i <= cols(_grows); i++) {
-                _grows[i] = __gtools_unquote(_grows[i]);
-            }
-
-            if ( kvars > 1 ) {
-                t = tokeninit(colsep, (""), (`""""', `"`""'"'), 1)
-                for (i = 1; i <= cols(_grows); i++) {
-                    tokenset(t, _grows[i])
-                    grows[i, .] = tokengetall(t)
-                    for (k = 1; k <= kvars; k++) {
-                        grows[i, k] = __gtools_unquote(grows[i, k])
-                    }
-                }
-            }
-            else {
-                grows[1::cols(_grows)] = _grows'
-            }
-
-            if ( (knum > 0) & (nmap) ) {
-                nmat = nmat[1::ntop, .]
-                for (k = 1; k <= knum; k++) {
-                    numvar = bynum[k]
-                    l = selectindex(byvars :== numvar)
-                    if ( st_varvaluelabel(numvar) != "" ) {
-                        fmtbak = grows[1::ntop, l]
-                        grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
-                        fmtix  = selectindex(grows[1::ntop, l] :== "")
-                        if ( rows(fmtix) > 0 ) {
-                            grows[fmtix, l] = fmtbak[fmtix]
-                        }
-                    }
-                }
-            }
-        }
-
-        si       = gmat[., 1] :== 1
-        si_miss  = gmat[., 1] :== 2
-        si_other = gmat[., 1] :== 3
-
-        if ( st_local("hidecontlevels") != "" ) {
-            gallcomp = 0
-            for (k = 1; k <= kvars; k++) {
-                gcomp[k] = grows[1, k]
-            }
-
-            for (i = 2; i <= ntop; i++) {
-                if ( grows[i, 1] == gcomp[1] ) {
-                    grows[i, 1] = ""
-                    gallcomp    = 1
-                }
-                else {
-                    gcomp[1]    = grows[i, 1]
-                    gallcomp    = 0
-                }
-                for (k = 2; k <= kvars; k++) {
-                    if ( (grows[i, k] == gcomp[k]) & gallcomp ) {
-                        grows[i, k] = ""
-                    }
-                    else {
-                        gcomp[k] = grows[i, k]
-                        gallcomp = 0
-                    }
-                }
-                gcallcomp = 0
-            }
-        }
-
-        valabbrev = 0
-        if ( st_local("colmax") != "" ) {
-            colnummax = strtoreal(tokens(st_local("colmax")))
-            while ( cols(colnummax) < kvars ) {
-                colnummax = colnummax, colnummax[cols(colnummax)]
-            }
-            colmax    = colnummax
-            valabbrev = 1
-        }
-        else {
-            colmax    = J(1, kvars, .)
-            valabbrev = 0
-        }
-
-        if ( st_local("colstrmax") != "" ) {
-            colstrmax = strtoreal(tokens(st_local("colstrmax")))
-            while ( cols(colstrmax) < kstr ) {
-                colstrmax = colstrmax, colstrmax[cols(colstrmax)]
-            }
-            valabbrev = 1
-
-            for (k = 1; k <= kstr; k++) {
-                strvar    = bystr[k]
-                l         = selectindex(byvars :== strvar)
-                colmax[l] = colstrmax[k]
-            }
-        }
-
-        if ( valabbrev ) {
-            for (i = 1; i <= ntop; i++) {
-                for (k = 1; k <= kvars; k++) {
-                    if ( strlen(grows[i, k]) > colmax[k] ) {
-                        if ( colmax[k] > 0 ) {
-                            grows[i, k] = substr(grows[i, k], 1, colmax[k]) + "..."
-                        }
-                        else {
-                            grows[i, k] = ""
-                        }
-                    }
-                }
-            }
-        }
-
-        if ( weights ) {
-            for (i = 1; i <= rows(gmat); i++) {
-                gparse[i, 1] = strtrim(sprintf("%21.3gc", gmat[i, 2]))
-                gparse[i, 2] = strtrim(sprintf("%21.3gc", gmat[i, 3]))
-            }
-        }
-        else {
-            for (i = 1; i <= rows(gmat); i++) {
-                gparse[i, 1] = strtrim(sprintf("%21.0gc", gmat[i, 2]))
-                gparse[i, 2] = strtrim(sprintf("%21.0gc", gmat[i, 3]))
-            }
-        }
-
-        gnummax = (colmax(strlen(gparse)))
-        if ( any(gnummax :< 3) ) {
-            gnummax[selectindex(gnummax :< 3)] = J(1, sum(gnummax :< 3), 3)
-        }
-
-        gstrmax = (colmax(strlen(grows)))
-        for (k = 1; k <= kvars; k++) {
-            gstrmax[k] = max((gstrmax[k], strlen(abbrevlist[k])))
-        }
-
-        minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
-        if ( minstrlen < 6 ) {
-            gstrmax[1] = 6 - (sum(gstrmax) + kvars - 1) + gstrmax[1]
-        }
-
-        mlab = st_local("missrowlabel")
-        olab = st_local("otherlabel")
-        if ( any(si_miss) ) {
-            minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
-            if ( minstrlen < strlen(mlab) ) {
-                gstrmax[1] = strlen(mlab) - minstrlen + gstrmax[1]
-            }
-        }
-        if ( any(si_other) ) {
-            minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
-            if ( minstrlen < strlen(olab) ) {
-                gstrmax[1] = strlen(olab) - minstrlen + gstrmax[1]
-            }
-        }
-
-        gstrfmt = " %" :+ strofreal(gstrmax) :+ "s"
-        gnumfmt = " %" :+ strofreal(gnummax) :+ "s "
-        sepfmt  = "%"  + strofreal(strlen(colsep)) + "s"
-
-        for (i = 1; i <= ntop; i++) {
-            gprint[i] = sprintf(gstrfmt[1], grows[i, 1])
-            for (k = 2; k <= kvars; k++) {
-                if ( (grows[i, k - 1] == "") | (i > ntop) ) {
-                    gprint[i] = gprint[i] + sprintf(sepfmt + gstrfmt[k], "", grows[i, k])
-                }
-                else {
-                    gprint[i] = gprint[i] + sprintf(sepfmt + gstrfmt[k], colsep, grows[i, k])
-                }
-            }
-            gprint[i] = gprint[i] + " | "
-            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
-            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
-            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
-            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
-        }
-
-        i = ntop + 1;
-        minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
-        headfmt   = " %" + strofreal(minstrlen) + "s"
-        if ( any(si_miss) ) {
-            gprint[i] = sprintf(headfmt, mlab)
-            gprint[i] = gprint[i] + " | "
-            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
-            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
-            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
-            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
-            ++i;
-        }
-
-        if ( any(si_other) ) {
-            gprint[i] = sprintf(headfmt, olab)
-            gprint[i] = gprint[i] + " | "
-            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
-            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
-            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
-            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
-        }
-
-        ghead = sprintf(gstrfmt[1], abbrevlist[1])
-        for (k = 2; k <= kvars; k++) {
-            ghead = ghead + sprintf(sepfmt + gstrfmt[k], colsep, abbrevlist[k])
-        }
-        ghead   = ghead + " | "
-        ghead   = ghead + sprintf(gnumfmt[1], weights? "W": "N")
-        ghead   = ghead + sprintf(gnumfmt[2], "Cum")
-        ghead   = ghead + sprintf(ppctfmt,    "Pct (%)")
-        ghead   = ghead + sprintf(cpctfmt,    "Cum Pct (%)")
-
-        len = sum(gstrmax) +
-              sum(gnummax) + 2 +
-              kvars + 9 +
-              (kvars - 1) * strlen(colsep) +
-              20
-        headfmt = " %" + strofreal(len) + "s\n"
-
-        printf("\n")
-        printf(headfmt, ghead)
-        printf(sprintf(" {hline %g}\n", len + max((0, 2 * pctlen - 20))))
-        for (i = 1; i <= ntop; i++) {
-            printf(headfmt, gprint[i])
-        }
-
-        if ( any(si_miss) | any(si_other) ) {
-            printf(sprintf(" {hline %g}\n", len + max((0, 2 * pctlen - 20))))
-            for (i = (ntop + 1); i <= rows(gprint); i++) {
-                printf(headfmt, gprint[i])
-            }
-        }
-
-        printf("\n")
-    }
-    else {
-        printf("(no groups)\n")
-    }
-    st_matrix(outmat, gmat)
-}
-
-string scalar function __gtools_unquote(string scalar quoted_str)
-{
-    if ( substr(quoted_str, 1, 1) == `"""' ) {
-        quoted_str = substr(quoted_str, 2, strlen(quoted_str) - 2)
-    }
-    else if (substr(quoted_str, 1, 2) == "`" + `"""') {
-        quoted_str = substr(quoted_str, 3, strlen(quoted_str) - 4)
-    }
-    return (quoted_str);
-}
 end

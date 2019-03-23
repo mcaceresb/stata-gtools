@@ -42,9 +42,9 @@ markdown_extensions:
     - tables
     - fenced_code
     - admonition
-    - codehilite
+    - codehilite:
+        guess_lang: false
 
-# guess_lang: False
 # use_pygments: True
 # noclasses: True
 # pygments_style: monokai

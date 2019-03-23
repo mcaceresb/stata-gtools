@@ -226,52 +226,52 @@ void function GtoolsByLevels::desc()
     real rowvector printlens
     string rowvector printfmts
 
-    printstr = J((anyvars? (11 + (caller == "gtop")): 1), 3, " ")
+    printstr = J((anyvars? (12 + (caller == "gtop")): 1), 3, " ")
     printstr[1, 1] = "object"
     printstr[1, 2] = "value"
     printstr[1, 3] = "description"
 
     if ( anyvars ) {
-        printstr[2,  1] = "byvars"
-        printstr[3,  1] = "J"
-        printstr[4,  1] = "knum"
-        printstr[5,  1] = "numx"
-        printstr[6,  1] = "kchar"
-        printstr[7,  1] = "charx"
-        printstr[8,  1] = "map"
-        printstr[9,  1] = "lens"
-        printstr[10, 1] = "charpos"
-        printstr[11, 1] = "printed"
+        printstr[3,  1] = "byvars"
+        printstr[4,  1] = "J"
+        printstr[5,  1] = "knum"
+        printstr[6,  1] = "numx"
+        printstr[7,  1] = "kchar"
+        printstr[8,  1] = "charx"
+        printstr[9,  1] = "map"
+        printstr[10, 1] = "lens"
+        printstr[11, 1] = "charpos"
+        printstr[12, 1] = "printed"
         if ( caller == "gtop" ) {
-            printstr[12, 1] = "toplevels"
+            printstr[13, 1] = "toplevels"
         }
 
-        printstr[2,  2] = sprintf("1 x %g", cols(byvars))
-        printstr[3,  2] = sprintf("%g", J)
-        printstr[4,  2] = sprintf("%g", knum)
-        printstr[5,  2] = knum? sprintf("%g x %g matrix", rows(numx), cols(numx)): "[empty]"
-        printstr[6,  2] = sprintf("%g", kchar)
-        printstr[7,  2] = kchar? sprintf("%g x %g matrix", rows(charx), cols(charx)): "[empty]"
-        printstr[8,  2] = sprintf("1 x %g vector",  cols(map))
-        printstr[9,  2] = sprintf("1 x %g vector",  cols(lens))
-        printstr[10, 2] = sprintf("1 x %g vector",  cols(charpos))
-        printstr[11, 2] = printed == ""? "[empty]": sprintf("%g x %g vector", rows(printed), cols(printed))
+        printstr[3,  2] = sprintf("1 x %g", cols(byvars))
+        printstr[4,  2] = sprintf("%g", J)
+        printstr[5,  2] = sprintf("%g", knum)
+        printstr[6,  2] = knum? sprintf("%g x %g matrix", rows(numx), cols(numx)): "[empty]"
+        printstr[7,  2] = sprintf("%g", kchar)
+        printstr[8,  2] = kchar? sprintf("%g x %g matrix", rows(charx), cols(charx)): "[empty]"
+        printstr[9,  2] = sprintf("1 x %g vector",  cols(map))
+        printstr[10, 2] = sprintf("1 x %g vector",  cols(lens))
+        printstr[11, 2] = sprintf("1 x %g vector",  cols(charpos))
+        printstr[12, 2] = printed == ""? "[empty]": sprintf("%g x %g vector", rows(printed), cols(printed))
         if ( caller == "gtop" ) {
-            printstr[12, 2] = sprintf("%g x 5 vector",  rows(toplevels))
+            printstr[13, 2] = sprintf("%g x 5 vector",  rows(toplevels))
         }
 
-        printstr[2,  3] = "by variable names"
-        printstr[3,  3] = "number of levels"
-        printstr[4,  3] = "# numeric by variables"
-        printstr[5,  3] = "numeric by var levels"
-        printstr[6,  3] = "# of string by variables"
-        printstr[7,  3] = "character by var levels"
-        printstr[8,  3] = "map by vars index to numx and charx"
-        printstr[9,  3] = "if string, > 0; if numeric, <= 0"
-        printstr[10, 3] = "position of kth character variable"
-        printstr[11, 3] = "formatted (printf-ed) variable levels"
+        printstr[3,  3] = "by variable names"
+        printstr[4,  3] = "number of levels"
+        printstr[5,  3] = "# numeric by variables"
+        printstr[6,  3] = "numeric by var levels"
+        printstr[7,  3] = "# of string by variables"
+        printstr[8,  3] = "character by var levels"
+        printstr[9,  3] = "map by vars index to numx and charx"
+        printstr[10, 3] = "if string, > 0; if numeric, <= 0"
+        printstr[11, 3] = "position of kth character variable"
+        printstr[12, 3] = "formatted (printf-ed) variable levels"
         if ( caller == "gtop" ) {
-            printstr[12, 3] = "frequencies of top levels"
+            printstr[13, 3] = "frequencies of top levels"
         }
 
         printlens      = colmax(strlen(printstr))

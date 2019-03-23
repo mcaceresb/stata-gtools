@@ -51,6 +51,17 @@ Options
 - `nolocal` Do not store `varlist` levels in a local macro. This is
             specially useful with `gen()`
 
+- `silent` Do not display the levels of varlist. Mainly for use with `gen()`
+           and `matasave`. With `matasave`, the levels are not sepparately
+           stored as a string matrix, but the raw levels _are_ kept.
+
+- `matasave[(str)]` Save results in mata object (default name is GtoolsByLevels).
+            See `GtoolsByLevels.desc()` for more. This object contains the raw
+            variable levels in `numx` and `charx` (since mata does not allow
+            matrices of mixed-type). The levels are saved as a string in `printed`
+            (with value labels correctly applied) unless option `silent` is also
+            specified.
+
 - `gen([prefix], [replace])` Store the unique levels of `varlist`
             in a new varlist prefixed by `prefix` **or** `replace` the
             `varlist` with its unique levels. The two optoins are
@@ -63,8 +74,9 @@ Options
 
 - `numfmt(format)` Number format for printing. By default numbers are printed
             to 16 digits of precision, but the user can specify the number format
-            here. Only "%.#g|f" and "%#.#g|f" are accepted since this is formated
-            internally in C.
+            here. By default, only "%.#g|f" and "%#.#g|f" are accepted since this
+            is formated internally in C. However, with option `matasave` this
+            is formated in mata and has to be a mata format.
 
 - `unsorted` Do not sort levels. This option is experimental and only affects the
             output when the input is not an integer (for integers, the levels are
@@ -123,6 +135,55 @@ glevelsof stores the following in r():
         r(J)         number of groups
         r(minJ)      largest group size
         r(maxJ)      smallest group size
+
+When `matasave` is passed, the following data is stored in `GtoolsByLevels`:
+
+```
+    real scalar anyvars
+        1: any by variables; 0: no by variables
+
+    real scalar anychar
+        1: any string by variables; 0: all numeric by variables
+
+    real scalar anynum
+        1: any numeric by variables; 0: all string by variables
+
+    string rowvector byvars
+        by variable names
+
+    real scalar kby
+        number of by variables
+
+    real scalar rowbytes
+        number of bytes in one row of the internal by variable matrix
+
+    real scalar J
+        number of levels
+
+    real matrix numx
+        numeric by variables
+
+    string matrix charx
+        string by variables
+
+    real scalar knum
+        number of numeric by variables
+
+    real scalar kchar
+        number of string by variables
+
+    real rowvector lens
+        > 0: length of string by variables; <= 0: internal code for numeric variables
+
+    real rowvector map
+        map from index to numx and charx
+
+    real rowvector charpos
+        position of kth character variable
+
+    string matrix printed
+        formatted (printf-ed) variable levels (not with option -silent-)
+```
 
 Remarks
 -------
@@ -189,14 +250,60 @@ macro substitution results in line that is too long
     increases the length maximums by 33.  The maximum value of set maxvar is 32,767.  Thus, the maximum line length may be set up to 1,081,527 characters
     if you set maxvar to its largest value.
 
-try gen(prefix) nolocal; see help glevelsof for details
+try gen(prefix) nolocal or mata(name) nolocal; see help glevelsof for details
 r(920);
 
 . glevelsof x, gen(uniq_) nolocal
 . gisid uniq_* in 1 / `r(J)'
 ```
 
-The user can also replace the source variables if need be. This is
+If the user prefers to work with mata, simply pass the option
+`matasave[(name)]`. With mixed-types, numbers and strings are
+stored in separate matrices as well as a single printed matrix,
+but the latter can be suppressed to save memory.
+
+```stata
+. glevelsof x y, mata(xy) nolocal
+(note: raw levels saved in xy; see mata xy.desc())
+
+. glevelsof x,   mata(x)  nolocal silent
+(note: raw levels saved in x; see mata x.desc())
+
+. mata xy.desc()
+
+    xy is a class object with group levels
+
+        | object  |            value | description                           | 
+        | ------- | ---------------- | ------------------------------------- | 
+        | J       |            64958 | number of levels                      | 
+        | knum    |                1 | # numeric by variables                | 
+        | numx    | 64958 x 1 matrix | numeric by var levels                 | 
+        | kchar   |                1 | # of string by variables              | 
+        | charx   | 64958 x 1 matrix | character by var levels               | 
+        | map     |     1 x 2 vector | map by vars index to numx and charx   | 
+        | lens    |     1 x 2 vector | if string, > 0; if numeric, <= 0      | 
+        | charpos |     1 x 1 vector | position of kth character variable    | 
+        | printed | 64958 x 2 vector | formatted (printf-ed) variable levels | 
+
+. mata x.desc()
+
+    x is a class object with group levels
+
+        | object  |            value | description                           | 
+        | ------- | ---------------- | ------------------------------------- | 
+        | J       |            10000 | number of levels                      | 
+        | knum    |                0 | # numeric by variables                | 
+        | numx    |          [empty] | numeric by var levels                 | 
+        | kchar   |                1 | # of string by variables              | 
+        | charx   | 10000 x 1 matrix | character by var levels               | 
+        | map     |     1 x 1 vector | map by vars index to numx and charx   | 
+        | lens    |     1 x 1 vector | if string, > 0; if numeric, <= 0      | 
+        | charpos |     1 x 1 vector | position of kth character variable    | 
+        | printed |          [empty] | formatted (printf-ed) variable levels | 
+
+```
+
+Last, the user can replace the source variables if need be. This is
 faster and saves memory, but it dispenses with the original variables.
 
 ```stata

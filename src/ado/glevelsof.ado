@@ -190,7 +190,8 @@ program glevelsof, rclass
         exit 0
     }
     else if ( `rc' == 920 ) {
-        disp as err _n(1) "try {opt gen(prefix)} {opt nolocal}; see {help glevelsof:help glevelsof} for details"
+        disp as err _n(1) "try {opt gen(prefix)} {opt nolocal} or {opt mata(name)} {opt nolocal};" /*
+            */ " see {help glevelsof:help glevelsof} for details"
         exit `rc'
     }
     else if ( `rc' ) exit `rc'

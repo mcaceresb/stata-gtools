@@ -22,6 +22,17 @@ glevelsof x
 glevelsof x, gen(uniq_) nolocal
 gisid uniq_* in 1 / `r(J)'
 
+* If the user prefers to work with mata, simply pass the option
+* `matasave[(name)]`. With mixed-types, numbers and strings are
+* stored in separate matrices as well as a single printed matrix,
+* but the latter can be suppressed to save memory.
+
+glevelsof x y, mata(xy) nolocal
+glevelsof x,   mata(x)  nolocal silent
+
+mata xy.desc()
+mata x.desc()
+
 * The user can also replace the source variables if need be. This is
 * faster and saves memory, but it dispenses with the original variables.
 

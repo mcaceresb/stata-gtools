@@ -57,9 +57,11 @@ To change the sort order of the results.
 
 {syntab:Extras}
 {synopt:{opt nolocal:var}}Do not store the levels of {opt varlist} in a local macro.{p_end}
+{synopt:{opt silent}}Do not display the levels of varlist. For use with {opt gen()} and {opt mata:save}{p_end}
+{synopt:{opt mata:save}[{cmd:(}{it:str}{cmd:)}]}Save results in mata object (default name is {bf:GtoolsByLevels}){p_end}
 {synopt:{opt gen([prefix], [replace])}}Store the levels of {it:varlist} in new varlist ({opt prefix}) or {opt replace} {it:varlist} with its levels{p_end}
 {synopt:{opt cols:eparate(separator)}}separator to serve as punctuation for the columns of returned list; default is a pipe{p_end}
-{synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g}.{p_end}
+{synopt:{opth numfmt(format)}}Number format for numeric variables. Default is {opt %.16g} (or {opt %16.0g} with {opt matasave}).{p_end}
 {synopt:{opt unsorted}}do not sort levels (ignored if inputs are integers){p_end}
 
 {syntab:Gtools}
@@ -130,8 +132,9 @@ The default is a pipe.  Specifying a {varlist} instead of a
 {phang}
 {opth numfmt(format)} Number format for printing. By default numbers
 are printed to 16 digits of precision, but the user can specify
-the number format here. Only "%.#g|f" and "%#.#g|f" are accepted
-since this is formated internally in C.
+the number format here. By default, only "%.#g|f" and "%#.#g|f" are
+accepted since this is formated internally in C. However, with option
+{opt matasave} this is formated in mata and has to be a mata format.
 
 {phang}
 {opth unsorted} Do not sort levels. This option is experimental and
@@ -146,6 +149,20 @@ minimal.
 {phang}
 {opt nolocalvar}Do not store the levels of {opt varlist} in a local macro.
 This is specially useful with option {opt gen()}.
+
+{phang}
+{opt silent}Do not display the levels of varlist. Mainly for use with
+{opt gen()} and {opt mata:save}. With {opt mata:save}, the levels are
+not sepparately stored as a string matrix, but the raw levels {it:are}
+kept.
+
+{phang}
+{opt mata:save}[{cmd:(}{it:str}{cmd:)}]Save results in mata object (default
+name is {bf:GtoolsByLevels}). See {opt GtoolsByLevels.desc()} for more.
+This object contains the raw variable levels in {opt numx} and {opt charx}
+(since mata does not allow matrices of mixed-type). The levels are saved
+as a string in {opt printed} (with value labels correctly applied) unless
+option {opt silent} is also specified.
 
 {phang}
 {opt gen([prefix], [replace])} Store the levels of {it:varlist} in new
@@ -214,22 +231,26 @@ levels of a varlist by their frequency count.
 {phang}{cmd:. sysuse auto}
 
 {phang}{cmd:. glevelsof rep78}{p_end}
-{phang}{cmd:. display "`r(levels)'"}
+{phang}{cmd:. display "`r(levels)'"}{p_end}
 
 {phang}{cmd:. glevelsof rep78, miss local(mylevs)}{p_end}
-{phang}{cmd:. display "`mylevs'"}
+{phang}{cmd:. display "`mylevs'"}{p_end}
 
 {phang}{cmd:. glevelsof rep78, sep(,)}{p_end}
-{phang}{cmd:. display "`r(levels)'"}
+{phang}{cmd:. display "`r(levels)'"}{p_end}
 
 {phang}{cmd:. glevelsof foreign rep78, sep(,)}{p_end}
-{phang}{cmd:. display "`r(levels)'"}
+{phang}{cmd:. display "`r(levels)'"}{p_end}
+
+{phang}{cmd:. glevelsof foreign rep78, gen(uniq_) nolocal}{p_end}
+{phang}{cmd:. desc uniq_*}{p_end}
+{phang}{cmd:. glevelsof foreign rep78, mata(uniq) nolocal}{p_end}
+{phang}{cmd:. mata uniq.desc()}{p_end}
 
 {pstd}
 See the
 {browse "http://gtools.readthedocs.io/en/latest/usage/glevelsof/index.html#examples":online documentation}
 for more examples.
-
 
 {marker results}{...}
 {title:Stored results}
@@ -250,6 +271,53 @@ for more examples.
 {synopt:{cmd:r(maxJ)}} smallest group size {p_end}
 {p2colreset}{...}
 
+{pstd}
+With {opt matasave}, the following data is stored in {opt GtoolsByLevels}:
+
+    real scalar anyvars
+        1: any by variables; 0: no by variables
+
+    real scalar anychar
+        1: any string by variables; 0: all numeric by variables
+
+    real scalar anynum
+        1: any numeric by variables; 0: all string by variables
+
+    string rowvector byvars
+        by variable names
+
+    real scalar kby
+        number of by variables
+
+    real scalar rowbytes
+        number of bytes in one row of the internal by variable matrix
+
+    real scalar J
+        number of levels
+
+    real matrix numx
+        numeric by variables
+
+    string matrix charx
+        string by variables
+
+    real scalar knum
+        number of numeric by variables
+
+    real scalar kchar
+        number of string by variables
+
+    real rowvector lens
+        > 0: length of string by variables; <= 0: internal code for numeric variables
+
+    real rowvector map
+        map from index to numx and charx
+
+    real rowvector charpos
+        position of kth character variable
+
+    string matrix printed
+        formatted (printf-ed) variable levels (not with option -silent-)
 
 {marker author}{...}
 {title:Author}

@@ -229,7 +229,7 @@ errorw:
     }
 
     if ( st_info->top_matasave ) {
-        bufferlen  = 1;
+        bufferlen  = 2;
     }
     else {
         bufferlen  = totalseplen + 1;
@@ -347,6 +347,7 @@ countmiss_charw:
             }
 
             if ( st_info->top_matasave ) {
+                strpos += sprintf(strpos, "%s", " ");
                 for (j = 0; j < topprint; j++) {
                     topix[j] = (GT_size) toptop[j * 5];
                     toptop[j * 5] = (ST_double) 1;
@@ -373,8 +374,8 @@ countmiss_charw:
                             else {
                                 strpos += sprintf(strpos, numfmt, z);
                             }
-                            numpos++;
                             topnum[j * knum + numpos] = z;
+                            numpos++;
                             // if ( (rc = SF_mat_store("__gtools_top_num", j + 1, numpos, z)) ) goto exit;
                         }
                     }
@@ -444,6 +445,7 @@ countmiss_dblw:
             }
 
             if ( st_info->top_matasave ) {
+                strpos += sprintf(strpos, "%s", " ");
                 for (j = 0; j < topprint; j++) {
                     topix[j] = (GT_size) toptop[j * 5];
                     toptop[j * 5] = (ST_double) 1;
@@ -546,6 +548,7 @@ countmiss_char:
             }
 
             if ( st_info->top_matasave ) {
+                strpos += sprintf(strpos, "%s", " ");
                 for (j = 0; j < topprint; j++) {
                     topix[j] = (GT_size) toptop[j * 5];
                     toptop[j * 5] = (ST_double) 1;
@@ -572,8 +575,8 @@ countmiss_char:
                             else {
                                 strpos += sprintf(strpos, numfmt, z);
                             }
-                            numpos++;
                             topnum[j * knum + numpos] = z;
+                            numpos++;
                             // if ( (rc = SF_mat_store("__gtools_top_num", j + 1, numpos, z)) ) goto exit;
                         }
                     }
@@ -643,6 +646,7 @@ countmiss_dbl:
             }
 
             if ( st_info->top_matasave ) {
+                strpos += sprintf(strpos, "%s", " ");
                 for (j = 0; j < topprint; j++) {
                     topix[j] = (GT_size) toptop[j * 5];
                     toptop[j * 5] = (ST_double) 1;

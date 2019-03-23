@@ -78,7 +78,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
         bufferlen  += sizeof(char) * ((kvars > 1)? 4 * st_info->J: 0);
         bufferlen  += st_info->strbuffer;
         if ( st_info->levels_matasave ) {
-            bufferlen = 1;
+            bufferlen = 2 * sizeof(char);
         }
         macrobuffer = malloc(bufferlen);
     }
@@ -87,7 +87,7 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
         bufferlen  += st_info->J * (st_info->kvars_by_num * numwidth);
         bufferlen  += ((kvars > 1)? 4 * st_info->J: 0);
         if ( st_info->levels_matasave ) {
-            bufferlen = 1;
+            bufferlen = 2;
         }
         macrobuffer = malloc(bufferlen * sizeof(char));
     }
@@ -228,6 +228,9 @@ ST_retcode sf_levelsof (struct StataInfo *st_info, int level)
                 }
             }
         }
+    }
+    else {
+        strpos += sprintf(strpos, "%s", " ");
     }
 
     if ( debug ) {

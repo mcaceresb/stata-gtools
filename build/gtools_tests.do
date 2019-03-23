@@ -100,8 +100,8 @@ program main
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
@@ -6473,52 +6473,59 @@ program checks_toplevelsof
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(50)
-    qui expand 200
-    gen long ix = _n
+    qui {
+        qui `noisily' gen_data, n(50)
+        qui expand 200
+        gen long ix = _n
 
-    checks_inner_toplevelsof -str_12,              `options'
-    checks_inner_toplevelsof str_12 -str_32,       `options'
-    checks_inner_toplevelsof str_12 -str_32 str_4, `options'
+        checks_inner_toplevelsof -str_12,              `options'
+        checks_inner_toplevelsof str_12 -str_32,       `options'
+        checks_inner_toplevelsof str_12 -str_32 str_4, `options'
 
-    checks_inner_toplevelsof -double1,                 `options'
-    checks_inner_toplevelsof double1 -double2,         `options'
-    checks_inner_toplevelsof double1 -double2 double3, `options'
+        checks_inner_toplevelsof -double1,                 `options'
+        checks_inner_toplevelsof double1 -double2,         `options'
+        checks_inner_toplevelsof double1 -double2 double3, `options'
 
-    checks_inner_toplevelsof -int1,           `options'
-    checks_inner_toplevelsof int1 -int2,      `options'
-    checks_inner_toplevelsof int1 -int2 int3, `options'
+        checks_inner_toplevelsof -int1,           `options'
+        checks_inner_toplevelsof int1 -int2,      `options'
+        checks_inner_toplevelsof int1 -int2 int3, `options'
 
-    checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+        checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        if ( `c(stata_version)' >= 14.1 ) {
+            local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+            checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        }
+
+        clear
+        set obs 10
+        gen x = _n
+        gen w = runiform()
+        gtoplevelsof x [w = w]
+        gtop x [w = w]
+        gtop x [w = .]
+        gtop x [w = 0]
+        gtop x if 0
+
+        clear
+        gen x = 1
+        gtoplevelsof x
+
+        clear
+        set obs 100000
+        gen x = _n
+        gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
+        gtoplevelsof x if _n < 1
     }
 
-    clear
-    set obs 10
-    gen x = _n
-    gen w = runiform()
-    gtoplevelsof x [w = w]
-    gtop x [w = w]
-    gtop x [w = .]
-    gtop x [w = 0]
-    gtop x if 0
-
-    clear
-    gen x = 1
-    gtoplevelsof x
-
-    clear
-    set obs 100000
-    gen x = _n
-    gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
-    gtoplevelsof x if _n < 1
+    sysuse auto , clear
+    forvalues i = 1 / 100 {
+        gtop make price, ntop(`i') silent
+    }
 
     sysuse auto , clear
     gtop price                           , mata
@@ -6574,8 +6581,7 @@ program checks_toplevelsof
     mata hi.desc()
 
     gtop ix, mata(hi) silent
-    gtop ix, mata(hi) silent ntop(.) alpha
-
+    * gtop ix, mata(hi) silent ntop(.) alpha
 end
 
 capture program drop checks_inner_toplevelsof

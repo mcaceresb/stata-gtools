@@ -5,6 +5,8 @@ Change Log
 
 ### Features
 
+- Closes #57
+
 - `glevelsof, mata[(name)]` saves the levels to mata. The levels are _not_
   stored in `r(levels)` and option `local()` is not allowed. With `silent`,
   the levels are additionally not formatted.

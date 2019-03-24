@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.0%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.0 23Mar2019`
+`version 1.5.1 24Mar2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -403,7 +403,7 @@ Differences from `greshape`
   with this functionality.
 - For that same reason, "advanced" syntax is not supported, including
   the subcommands: clear, error, query, i, j, xij, and xi.
-- `@` syntax is not (yet) supported but is planned for a future release.
+- `@` syntax can be modified via `match()`
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -555,7 +555,6 @@ TODO
 - `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - Allow keeping both variable names and labels in `greshape spread/gather`
 - Implement `collapse()` option for `greshape`.
-- Implement variable group syntax for `greshape`.
 - Implement `selectoverflow(missing|closest)`
 - Add totals row for `J > 1` in gstats
 

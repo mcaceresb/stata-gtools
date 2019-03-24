@@ -1,6 +1,19 @@
 Change Log
 ==========
 
+## gtools-1.5.1 (2019-03-24)
+
+### Features
+
+- `greshape` supports `@` syntax for wide and long. Change the string
+  to be matched via `match()`
+
+- `greshape` supports stata varlist syntax for long to wide (may not be
+  combined with `@` within a stub).
+
+- `greshape` does not support varlist syntax for wide to long, but can
+  use `match(regex)` for complex wide to long matches (see examples).
+
 ## gtools-1.5.0 (2019-03-23)
 
 ### Features

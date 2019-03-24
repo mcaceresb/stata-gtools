@@ -130,12 +130,15 @@ Options
 - `by(varlist)`   (Required) Use varlist as the ID variables (alias `i()`).
 - `keys(varname)` Wide to long: varname, new variable to store stub suffixes (default `_j`; alias `j()`).
 - `string`        Whether to allow for string matches to each stub
+- `match(str)`    Where to match levels of `keys()` in stub (default `@`). Use `match(regex)`
+                  for complex matches (see [examples below](#complex-stub-matches) for details).
 
 **Wide only**
 
 - `by(varlist)`       (Required) Use varlist as the ID variables (alias `i()`).
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with stub suffixes (alias `j()`).
 - `colsepparate(str)` Column separator when multiple variables are passed to `j()`.
+- `match(str)`        Where to replace the levels of `keys()` in stub (default `@`).
 
 **Wide and long**
 
@@ -258,20 +261,6 @@ list, sepby(id)
 greshape  inc ue, by(id) keys(year)
 ```
 
-Note `@` syntax is not (yet) supported, but working around it is not too
-difficult.
-
-```stata
-webuse reshape3, clear
-list
-cap noi greshape long inc@r ue, by(id) keys(year)
-rename inc*r incr*
-cap noi greshape long incr ue, by(id) keys(year)
-list, sepby(id)
-greshape wide incr ue, by(id) keys(year)
-rename incr* inc*r
-```
-
 Allow string values in j; the option `string` is not necessary for
 long to wide:
 
@@ -291,6 +280,44 @@ list
 greshape wide inc, by(hid) keys(year sex) cols(_)
 l
 ```
+
+### Complex stub matches
+
+`@` syntax is supported and can be modified via `match()`
+
+```stata
+webuse reshape3, clear
+list
+greshape long inc@r ue, by(id) keys(year)
+list, sepby(id)
+greshape wide inc@r ue, by(id) keys(year)
+list
+
+webuse reshape3, clear
+list
+greshape long inc[year]r ue, by(id) keys(year) match([year])
+list, sepby(id)
+greshape wide inc[year]r ue, by(id) keys(year) match([year])
+list
+```
+
+Note that stata variable syntax is only supported for long to wide,
+and cannot be combined with `@` syntax. For complex pattern matching
+from wide to long, use `match(regex)` or `match(ustrregex)`. With
+regex, the first group is taken to be the group to match (this can be
+modified via `/#`, e.g. `r(e)g(e)x/2` matches the 2nd group). With
+ustrregex, every part of the match outside lookarounds is matched (e.g.
+`(?<=(foo|bar)[0-9]{0,2}stub)([0-9]+)(?=alice|bob)` matches `([0-9]+)`).
+
+```stata
+webuse reshape3, clear
+greshape long inc([0-9]+).+ (ue)(.+)/2, by(id) keys(year) match(regex)
+greshape wide inc@r u?, by(id) keys(year)
+```
+
+Note for `ustrregex` (Stata 14+ only), Stata does not support matches of
+indeterminate length inside lookarounds (this is a limitation that is
+not uncommon across several regex implementations).
 
 ### Gather and Spread
 

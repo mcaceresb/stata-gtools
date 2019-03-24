@@ -81,7 +81,6 @@ To change the sort order of the results.
 {synoptline}
 {p2colreset}{...}
 
-
 {marker description}{...}
 {title:Description}
 
@@ -240,7 +239,7 @@ levels of a varlist by their frequency count.
 {phang}{cmd:. display "`r(levels)'"}{p_end}
 
 {phang}{cmd:. glevelsof foreign rep78, sep(,)}{p_end}
-{phang}{cmd:. display "`r(levels)'"}{p_end}
+{phang}{cmd:. display `"`r(levels)'"'}{p_end}
 
 {phang}{cmd:. glevelsof foreign rep78, gen(uniq_) nolocal}{p_end}
 {phang}{cmd:. desc uniq_*}{p_end}

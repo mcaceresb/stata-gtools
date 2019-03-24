@@ -197,6 +197,33 @@ program checks_inner_greshape_errors
             assert _rc == 0
         restore
     }
+
+    clear
+    set obs 5
+    gen bykey      = _n
+    gen st1ub      = _n
+    gen st2ub      = -_n
+    gen foo3bar    = "foobar" + string(mod(_n, 3))
+    gen foo4bar    = "foobar" + string(-_n) + "thisIsLongRight?"
+    gen ali9ce5bob = "ali9cebob" + string(mod(_n, 3))
+    gen ali9ce6bob = "ali9cebob" + string(-_n) + "thisIsLongRight?"
+    gen w = "|" + string(_n / 3) + "/"
+    gen x = _N - _n
+    gen y = _n / 2
+    gen r = runiform()
+    sort r
+    drop r
+
+    preserve
+        greshape long st(.+)ub (foo|alice)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+        greshape wide st@ub foobar ali9ce*bob, by(bykey) j(j)
+        greshape long st(.+)ub (foo|ali9ce)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+    restore, preserve
+        if ( `c(stata_version)' >= 14 ) {
+            greshape long (?<=st).+(?=ub) (?<=(foo|ali\d{0,5}ce))(\d+)(?=(bar|bob)), by(bykey) j(j) match(ustrregex)
+            greshape wide stub foo@bar ali9ce@bob, by(bykey) j(j)
+        }
+    restore
 end
 
 ***********************************************************************

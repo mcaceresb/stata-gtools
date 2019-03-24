@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Mar 23 16:45:22 EDT 2019
+* Updated: Sun Mar 24 11:29:41 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.0
+* Version: 1.5.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -1596,12 +1596,14 @@ program _compare_inner_gcollapse_gegen
     gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
     gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
     gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
+    if ( !inlist("`weight'", "iweight") ) {
     gegen double s1       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
     gegen double s3       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
     gegen double s999999  = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
     gegen double s_999999 = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
     gegen double s_3      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
     gegen double s_1      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
+    }
 
     local gextra
     foreach extra of local sestats {
@@ -1609,35 +1611,62 @@ program _compare_inner_gcollapse_gegen
         local gextra `gextra' (`extra') g_`extra' = random1
     }
 
-    qui `noisily' {
-        gcollapse (nmissing)      g_nmissing   = random1 ///
-                  (nunique)       g_nunique    = random1 ///
-                  (percent)       g_percent    = random1 ///
-                  (mean)          g_mean       = random1 ///
-                  (sum)           g_sum        = random1 ///
-                  (median)        g_median     = random1 ///
-                  (min)           g_min        = random1 ///
-                  (max)           g_max        = random1 ///
-                  (range)         g_range      = random1 ///
-                  (iqr)           g_iqr        = random1 ///
-                  (first)         g_first      = random1 ///
-                  (last)          g_last       = random1 ///
-                  (firstnm)       g_firstnm    = random1 ///
-                  (lastnm)        g_lastnm     = random1 ///
-                  (skew)          g_skew       = random1 ///
-                  (kurt)          g_kurt       = random1 ///
-                  (p10.5)         g_q10        = random1 ///
-                  (p30)           g_q30        = random1 ///
-                  (p70)           g_q70        = random1 ///
-                  (p90.5)         g_q90        = random1 ///
-                  (select1)       g_s1         = random1 ///
-                  (select3)       g_s3         = random1 ///
-                  (select999999)  g_s999999    = random1 ///
-                  (select-999999) g_s_999999   = random1 ///
-                  (select-3)      g_s_3        = random1 ///
-                  (select-1)      g_s_1        = random1 ///
-                  `gextra'                               ///
-              `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+    if ( inlist("`weight'", "iweight") ) {
+        qui `noisily' {
+            gcollapse (nmissing)      g_nmissing   = random1 ///
+                      (nunique)       g_nunique    = random1 ///
+                      (percent)       g_percent    = random1 ///
+                      (mean)          g_mean       = random1 ///
+                      (sum)           g_sum        = random1 ///
+                      (median)        g_median     = random1 ///
+                      (min)           g_min        = random1 ///
+                      (max)           g_max        = random1 ///
+                      (range)         g_range      = random1 ///
+                      (iqr)           g_iqr        = random1 ///
+                      (first)         g_first      = random1 ///
+                      (last)          g_last       = random1 ///
+                      (firstnm)       g_firstnm    = random1 ///
+                      (lastnm)        g_lastnm     = random1 ///
+                      (skew)          g_skew       = random1 ///
+                      (kurt)          g_kurt       = random1 ///
+                      (p10.5)         g_q10        = random1 ///
+                      (p30)           g_q30        = random1 ///
+                      (p70)           g_q70        = random1 ///
+                      (p90.5)         g_q90        = random1 ///
+                      `gextra'                               ///
+                  `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+         }
+    else {
+        qui `noisily' {
+            gcollapse (nmissing)      g_nmissing   = random1 ///
+                      (nunique)       g_nunique    = random1 ///
+                      (percent)       g_percent    = random1 ///
+                      (mean)          g_mean       = random1 ///
+                      (sum)           g_sum        = random1 ///
+                      (median)        g_median     = random1 ///
+                      (min)           g_min        = random1 ///
+                      (max)           g_max        = random1 ///
+                      (range)         g_range      = random1 ///
+                      (iqr)           g_iqr        = random1 ///
+                      (first)         g_first      = random1 ///
+                      (last)          g_last       = random1 ///
+                      (firstnm)       g_firstnm    = random1 ///
+                      (lastnm)        g_lastnm     = random1 ///
+                      (skew)          g_skew       = random1 ///
+                      (kurt)          g_kurt       = random1 ///
+                      (p10.5)         g_q10        = random1 ///
+                      (p30)           g_q30        = random1 ///
+                      (p70)           g_q70        = random1 ///
+                      (p90.5)         g_q90        = random1 ///
+                      (select1)       g_s1         = random1 ///
+                      (select3)       g_s3         = random1 ///
+                      (select999999)  g_s999999    = random1 ///
+                      (select-999999) g_s_999999   = random1 ///
+                      (select-3)      g_s_3        = random1 ///
+                      (select-1)      g_s_1        = random1 ///
+                      `gextra'                               ///
+                  `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+        }
     }
 
     if ( "`ifin'" == "" ) {
@@ -1660,7 +1689,7 @@ program _compare_inner_gcollapse_gegen
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
                     keep `ifin'
                     keep if !(`a1' | ((`a2' | `a3') & `a4'))
-                    save /tmp/xx, replace
+                    * save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (imprecision): `fun'`wtxt' yielded similar results (tol = `tol')"
@@ -1670,7 +1699,7 @@ program _compare_inner_gcollapse_gegen
                 cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
                 if ( _rc ) {
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
-                    save /tmp/xx, replace
+                    * save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
@@ -2263,7 +2292,7 @@ program _compare_inner_gcollapse_select
 
     qui gcollapse `gcall' `ifin' `wgt_gc', by(`anything') `options' double merge replace
     qui gegen id = group(`anything') `ifin', missing nods
-save /tmp/aa, replace
+    * save /tmp/aa, replace
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -7526,6 +7555,33 @@ program checks_inner_greshape_errors
             assert _rc == 0
         restore
     }
+
+    clear
+    set obs 5
+    gen bykey      = _n
+    gen st1ub      = _n
+    gen st2ub      = -_n
+    gen foo3bar    = "foobar" + string(mod(_n, 3))
+    gen foo4bar    = "foobar" + string(-_n) + "thisIsLongRight?"
+    gen ali9ce5bob = "ali9cebob" + string(mod(_n, 3))
+    gen ali9ce6bob = "ali9cebob" + string(-_n) + "thisIsLongRight?"
+    gen w = "|" + string(_n / 3) + "/"
+    gen x = _N - _n
+    gen y = _n / 2
+    gen r = runiform()
+    sort r
+    drop r
+
+    preserve
+        greshape long st(.+)ub (foo|alice)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+        greshape wide st@ub foobar ali9ce*bob, by(bykey) j(j)
+        greshape long st(.+)ub (foo|ali9ce)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+    restore, preserve
+        if ( `c(stata_version)' >= 14 ) {
+            greshape long (?<=st).+(?=ub) (?<=(foo|ali\d{0,5}ce))(\d+)(?=(bar|bob)), by(bykey) j(j) match(ustrregex)
+            greshape wide stub foo@bar ali9ce@bob, by(bykey) j(j)
+        }
+    restore
 end
 
 ***********************************************************************

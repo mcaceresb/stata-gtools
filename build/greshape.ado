@@ -104,6 +104,8 @@ end
 * X | X | ReS_nodupcheck
 * X | X | ReS_nomisscheck
 * X | X | ReS_cmd
+* X | X | ReS_Xij_stubs
+* X |   | ReS_Xij_regex
 * X |   | ReS_Xij_add
 * X | X | ReS_Xij_keep
 * X | X | ReS_Xij_keepnames
@@ -111,6 +113,7 @@ end
 *   | X | ReS_Xij_addtypes
 *   | X | ReS_Xij_addvars
 * X | X | ReS_atwl
+* X | X | ReS_match
 * X | X | ReS_jfile
 *   | X | ReS_jcode
 * X | X | ReS_jlen
@@ -149,7 +152,35 @@ program define Long /* reshape long */
             CHECKlevel(real 4) /// Check level
             nodupcheck         /// Do not check for duplicates
             nomisscheck        /// Do not check for missing values or blanks in j
-            atwl(str)          /// replace @ with atwl?
+            match(str)         /// a string (e.g. @) to match or 'regex'
+                               /// with match(regex), stubs must be of the form
+                               ///
+                               ///     regex/# regex/#
+                               ///
+                               /// where # is the group to be captured for the levels of j; the
+                               /// default is 1. If no groups are found, the level is assumed to
+                               /// be stub suffix (as would be the case w/o regex). For example:
+                               ///
+                               ///     st(.+)ub stub (foo|bar)stub([0-9]+)(alice|bob)/2
+                               ///
+                               /// is almost the the same as
+                               ///
+                               ///     st@ub stub@ foostub@alice barstub@bob foostub@alice barstub@bob
+                               ///
+                               /// The only difference is that @ in the latter 4 stubs will only
+                               /// match numbers. Note that several parts of a variable name
+                               /// match the group, the first match will be replaced even if the
+                               /// user captures both separately. If this is really a concern,
+                               /// you can specify ustrregex (Stata 14 and above only) and use
+                               /// lookarounds:
+                               ///
+                               ///     (?<=(foo|bar)[0-9]{0,2}stub)([0-9]+)(?=alice|bob)
+                               ///
+                               /// everything other than the levels to match to j must be captured
+                               /// in a lookbehind or lookahead. Note Stata does not support matches
+                               /// of indeterminate length inside lookarounds (this is a limitation
+                               /// that is not uncommon across several regex implementations).
+                               ///
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -255,12 +286,19 @@ program define Long /* reshape long */
     }
 
     if ( `"`j'"' == "" ) local j _$ReS_jname
+
+    if ( `"`match'"' == "" ) local match @
+
     global ReS_uselabels = ( `"`uselabels'"' != "" )
     global ReS_str = ( `"`string'"' != "" )
-    global ReS_atwl `atwl'
-    global ReS_Xij  `values'
-    global ReS_i    `i'
-    global ReS_j    `j'
+    global ReS_atwl  `atwl'
+    global ReS_match `match'
+    global ReS_Xij   `values'
+    global ReS_i     `i'
+    global ReS_j     `j'
+
+    * This defines $ReS_Xij_stubs and potentially overwrites ReS_Xij
+    ParseStubsByMatch long
 
     if ( `"`ReS_cmd'"' == "gather" ) {
         unab ReS_Xij_names: `anything'
@@ -328,7 +366,7 @@ program define Long /* reshape long */
     *                         Macros and J values                         *
     ***********************************************************************
 
-    Macros
+    Macros long
     confirm var $ReS_i $ReS_Xi
     capture confirm new var $ReS_j
     if ( _rc ) {
@@ -406,7 +444,7 @@ program define Long /* reshape long */
     if ( (`"$ReS_Xij_keep"' != "") &(`"$ReS_Xij_keepnames"' != "") ) {
         rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
     }
-    order $ReS_i $ReS_j $ReS_Xij $ReS_Xi
+    order $ReS_i $ReS_j $ReS_Xij_stubs $ReS_Xi
     qui set obs `=_N * scalar(__greshape_klvls)'
     * qui expand `=scalar(__greshape_klvls)'
     if ( `FreeTimer' ) {
@@ -429,7 +467,7 @@ program define Long /* reshape long */
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt _n "Reading reshape from disk:"
     local cmd long read
     global GTOOLS_CALLER greshape
-    local gopts j($ReS_j) xij($ReS_Xij) xi($ReS_Xi) f(`ReS_Data') `string'
+    local gopts j($ReS_j) xij($ReS_Xij_stubs) xi($ReS_Xi) f(`ReS_Data') `string'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts' missing
     global GTOOLS_CALLER ""
@@ -468,8 +506,8 @@ program define Long /* reshape long */
     * if `"`iii'"' == "" {
     *     local iii = -1
     * }
-    * foreach var of global ReS_Xij {
-    *     local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
+    * foreach var of global ReS_Xij_stubs {
+    *     local var = subinstr(`"`var'"', `"$ReS_match"', "$ReS_atwl", 1)
     *     if (length(`"`var'"') < 21 ) {
     *         local xijlab : char _dta[__XijVarLab`var']
     *         if `"`xijlab'"' != "" {
@@ -536,7 +574,7 @@ program define Wide /* reshape wide */
             nochecks           /// Do not do any checks
             CHECKlevel(real 4) /// Check level
             nomisscheck        /// Do not check for missing values or blanks in j
-            atwl(str)          /// replace @ with atwl?
+            match(str)         /// a string (e.g. @) to match
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -552,7 +590,7 @@ program define Wide /* reshape wide */
             ${GTOOLS_PARSE}  ///
         ]
 
-    syntax anything, ``ReS_cmd'_opts'
+    syntax anything(everything), ``ReS_cmd'_opts'
     local key: copy local keys
 
     * ------------------
@@ -629,9 +667,22 @@ program define Wide /* reshape wide */
 
     if ( "`fast'" == "" ) preserve
 
+    if ( `"`match'"' == "" ) local match @
+
+    global ReS_atwl      `atwl'
+    global ReS_match     `match'
+    global ReS_Xij       `anything'
+    global ReS_j         `j'
+    global ReS_i         `i'
+    global ReS_Xij_k     `:list sizeof anything'
+    global ReS_jsep:     copy local colseparate
+
+    * This defines $ReS_Xij_stubs and potentially overwrites ReS_Xij
+    ParseStubsByMatch wide
+
     unab oldlist: _all
-    unab anything: `anything'
-    local restvars: list oldlist - anything
+    unab ReS_Xij_stubs: $ReS_Xij_stubs
+    local restvars: list oldlist - ReS_Xij_stubs
     local restvars: list restvars - j
     if ( `"`i'"' == "" ) {
         local i: copy local restvars
@@ -642,13 +693,6 @@ program define Wide /* reshape wide */
     else {
         unab i: `i'
     }
-
-    global ReS_atwl  `atwl'
-    global ReS_Xij   `anything'
-    global ReS_j     `j'
-    global ReS_i     `i'
-    global ReS_Xij_k `:list sizeof anything'
-    global ReS_jsep: copy local colseparate
 
     if ( `"`ReS_cmd'"' == "spread" ) {
         cap assert `:list i == restvars'
@@ -698,7 +742,7 @@ program define Wide /* reshape wide */
     *                         Macros and J values                         *
     ***********************************************************************
 
-    Macros
+    Macros wide
     local rc = 0
     foreach var in $ReS_j {
         capture ConfVar `var'
@@ -741,7 +785,7 @@ program define Wide /* reshape wide */
     * /* Save xij variable labels for LONG */
     * local iii = 1
     * foreach var of global ReS_Xij {
-    *     local var = subinstr(`"`var'"', "@", "$ReS_atwl", 1)
+    *     local var = subinstr(`"`var'"', `"$ReS_match"', "$ReS_atwl", 1)
     *     local xijlab : variable label `var'
     *     if `"`xijlab'"' != "" {
     *         if (length(`"`var'"') < 21) {
@@ -863,6 +907,117 @@ program define Wide /* reshape wide */
 end
 
 * ---------------------------------------------------------------------
+* Stub matches
+
+capture program drop ParseStubsByMatch
+program ParseStubsByMatch
+    if ( inlist(`"$ReS_match"', "regex", "ustrregex") ) {
+        if ( `"`1'"' != "long" ) {
+            disp as err `"match($ReS_match) only allowed when reshaping wide to long"'
+            exit 198
+        }
+
+        unab allvars: _all
+        local ReS_Xi
+        local ReS_Xij_regex
+        local ReS_Xij_stubs
+        if ( `"$ReS_match"' == "ustrregex" ) {
+            cap disp ustrregexm("a", "a")
+            if ( _rc ) {
+                disp as err "ustrregex is only available in Stata 14+"
+                exit 198
+            }
+            foreach stub of global ReS_Xij {
+                local any 0
+                if ( `"`group'"' == "" ) local group 1
+                foreach var of varlist `allvars' {
+                    if ustrregexm(`"`var'"', `"`stub'"') {
+                        local new `=ustrregexrf(`"`var'"', `"`stub'"', "@")'
+                        if ( !`:list new in ReS_Xij' ) {
+                            local ReS_Xij       `ReS_Xij'       `=ustrregexrf(`"`var'"', `"`stub'"', "@")'
+                            local ReS_Xij_regex `ReS_Xij_regex' `stub'
+                            local ReS_Xij_stubs `ReS_Xij_stubs' `=ustrregexrf(`"`var'"', `"`stub'"', "")'
+                            local any 1
+                        }
+                        * disp `"`var'"', `"`stub'"', `any'
+                    }
+                }
+                if ( `any' == 0 ) {
+                    disp as err "no variables matched stub regex: `stub'"
+                    exit 198
+                }
+            }
+        }
+        else {
+            foreach stub of global ReS_Xij {
+                local any 0
+                gettoken stub  group: stub,  p(/)
+                gettoken slash group: group, p(/)
+                local group `group'
+                if ( `"`group'"' == "" ) local group 1
+                foreach var of varlist `allvars' {
+                    if regexm(`"`var'"', `"`stub'"') {
+                        cap local rg = regexs(`group')
+                        if ( `"`rg'"' != "" ) {
+                            local new `=regexr(`"`var'"', `"`rg'"', "@")'
+                            if ( !`:list new in ReS_Xij' ) {
+                                local ReS_Xij       `ReS_Xij'       `=regexr(`"`var'"', `"`rg'"', "@")'
+                                local ReS_Xij_regex `ReS_Xij_regex' `stub'
+                                local ReS_Xij_stubs `ReS_Xij_stubs' `=regexr(`"`var'"', `"`rg'"', "")'
+                                local any 1
+                            }
+                        }
+                    }
+                    * disp `"`var'"', `"`stub'"', `any'
+                }
+                if ( `any' == 0 ) {
+                    disp as err "no variables matched stub regex: `stub'"
+                    exit 198
+                }
+            }
+        }
+
+        global ReS_match @
+        global ReS_Xij:       copy local ReS_Xij
+        global ReS_Xij_regex: copy local ReS_Xij_regex
+        global ReS_Xij_stubs: copy local ReS_Xij_stubs
+
+    }
+    else {
+        global ReS_Xij_stubs: subinstr global ReS_Xij `"$ReS_match"' "", all
+        if ( `"`1'"' == "wide" ) {
+            local ReS_Xij
+            local ReS_Xij_stubs
+            foreach stub of global ReS_Xij {
+                local var: subinstr local stub `"$ReS_match"' ""
+                unab vars: `var'
+                if ( index(`"`stub'"', `"$ReS_match"') & (`"`var'"' != `"`vars'"') ) {
+                    disp as err "error parsing stubs; cannot specify a custom match with varlist syntax"
+                    exit 198
+                }
+                else if ( index(`"`stub'"', `"$ReS_match"') == 0 ) {
+                    foreach var of local vars {
+                        local ReS_Xij `ReS_Xij' `var'
+                    }
+                }
+                else {
+                    local ReS_Xij `ReS_Xij' `stub'
+                }
+                foreach var of local vars {
+                    local ReS_Xij_stubs `ReS_Xij_stubs' `var'
+                }
+            }
+            global ReS_Xij:       copy local ReS_Xij
+            global ReS_Xij_stubs: copy local ReS_Xij_stubs
+        }
+    }
+
+    * disp "$ReS_Xij"
+    * disp "$ReS_Xij_stubs"
+    * disp "$ReS_Xij_regex"
+end
+
+* ---------------------------------------------------------------------
 * GetJLevels
 
 capture program drop GetJLevels
@@ -889,7 +1044,6 @@ program define GetJLevels
     unab varlist: _all
     mata: __greshape_dsname = tokens(st_local("varlist"))'
 
-
     if inlist("$ReS_cmd", "wide") {
         FillvalL
         FillXi 1
@@ -914,50 +1068,10 @@ end
 
 capture program drop FillvalW
 program define FillvalW
-    cap disp bsubstr(" ", 1, 1)
-    if ( _rc ) local substr substr
-    else local substr bsubstr
-
     tempname jlen
     mata: `jlen' = 0
     if ( "$ReS_cmd" != "gather" ) {
-        parse "$ReS_Xij", parse(" ")
-        local i 1
-        mata: __greshape_res = J(rows(__greshape_dsname), 1, "")
-        mata: __greshape_u   = J(rows(__greshape_dsname), 1, "")
-        while "``i''" != "" {
-            local l    = index("``i''","@")
-            local l    = cond(`l' == 0, length("``i''")+1, `l')
-            local lft  = `substr'("``i''", 1, `l'-1)
-            local rgt  = `substr'("``i''", `l'+1, .)
-            local rgtl = length("`rgt'")
-            local minl = length("`lft'") + `rgtl'
-
-            mata: __greshape_u = selectindex( /*
-                */ (strlen(__greshape_dsname) :> `minl') :& /*
-                */ (`substr'(__greshape_dsname, 1, `l' - 1) :== `"`lft'"') :& /*
-                */ (`substr'(__greshape_dsname, -`rgtl', .) :== `"`rgt'"'))
-
-            mata: st_local("any", strofreal(length(__greshape_u) > 0))
-            if ( `any' ) {
-                mata: __greshape_res[__greshape_u] = `substr'( /*
-                    */ __greshape_dsname[__greshape_u], `l', .)
-
-                mata: __greshape_res[__greshape_u] = `substr'( /*
-                    */ __greshape_res[__greshape_u], 1, /*
-                    */ strlen(__greshape_res[__greshape_u]) :- `rgtl')
-
-                capture mata: assert(all(__greshape_res[__greshape_u] :!= ""))
-            }
-            else cap error 0
-
-            if _rc {
-                di in red as smcl ///
-                "variable {bf:`lft'`rgt'} already defined"
-                exit 110
-            }
-            local i = `i' + 1
-        }
+        FindVariablesByCharacter
 
         capture mata: assert(all(__greshape_res :== ""))
         if _rc == 0 {
@@ -972,6 +1086,7 @@ program define FillvalW
         else {
             mata: __greshape_sel = selectindex(__greshape_res :!= "")
         }
+
         mata: __greshape_res = sort(uniqrows(__greshape_res[__greshape_sel]), 1)
         mata: st_numscalar("__greshape_kout",  cols(tokens(st_global(`"ReS_Xij"'))))
         mata: st_numscalar("__greshape_klvls", rows(__greshape_res))
@@ -1013,6 +1128,7 @@ program define FillvalW
         */ tokens(st_global(`"ReS_Xij_names"')), /*
         */ __greshape_res,                       /*
         */ tokens(st_global(`"ReS_Xij"')),       /*
+        */ tokens(st_global(`"ReS_Xij_stubs"')), /*
         */ (`"$ReS_cmd"' == "gather"))
 
     mata: st_numscalar("__greshape_rc", __greshape_rc)
@@ -1028,7 +1144,71 @@ program define FillvalW
     global ReS_jv2: copy global ReS_jv
 end
 
+capture program drop FindVariablesByCharacter
+program FindVariablesByCharacter
+    cap disp bsubstr(" ", 1, 1)
+    if ( _rc ) local substr substr
+    else local substr bsubstr
+
+    cap mata ustrregexm("a", "a")
+    if ( _rc ) local regex regex
+    else local regex ustrregex
+
+    local ReS_Xij_regex: copy global ReS_Xij_regex
+
+    parse "$ReS_Xij", parse(" ")
+    local i 1
+    mata: __greshape_res = J(rows(__greshape_dsname), 1, "")
+    mata: __greshape_u   = J(rows(__greshape_dsname), 1, "")
+    while "``i''" != "" {
+        gettoken exp ReS_Xij_regex: ReS_Xij_regex
+
+        local m    = length(`"$ReS_match"')
+        local _l   = index("``i''", `"$ReS_match"')
+        local l    = cond(`_l' == 0, length("``i''") + 1, `_l')
+        local lft  = `substr'("``i''", 1, `l' - 1)
+        local rgt  = `substr'("``i''", `l' + `m', .)
+        local rgtl = length("`rgt'")
+        local minl = length("`lft'") + `rgtl'
+
+        if ( `"`exp'"' == "" ) {
+            mata: __greshape_u = selectindex( /*
+                */ (strlen(__greshape_dsname) :> `minl') :& /*
+                */ (`substr'(__greshape_dsname, 1, `l' - 1) :== `"`lft'"') :& /*
+                */ (`substr'(__greshape_dsname, -`rgtl', .) :== `"`rgt'"'))
+        }
+        else {
+            mata: __greshape_u = selectindex( /*
+                */ (strlen(__greshape_dsname) :> `minl') :& /*
+                */ (`substr'(__greshape_dsname, 1, `l' - 1) :== `"`lft'"') :& /*
+                */ (`substr'(__greshape_dsname, -`rgtl', .) :== `"`rgt'"') :& /*
+                */ (`regex'm(__greshape_dsname, `"`exp'"')))
+        }
+
+        mata: st_local("any", strofreal(length(__greshape_u) > 0))
+        if ( `any' ) {
+            mata: __greshape_res[__greshape_u] = `substr'( /*
+                */ __greshape_dsname[__greshape_u], `l', .)
+
+            mata: __greshape_res[__greshape_u] = `substr'( /*
+                */ __greshape_res[__greshape_u], 1, /*
+                */ strlen(__greshape_res[__greshape_u]) :- `rgtl')
+
+            capture mata: assert(all(__greshape_res[__greshape_u] :!= ""))
+        }
+        else cap error 0
+
+        if _rc {
+            di in red as smcl ///
+            "variable {bf:`lft'`rgt'} already defined"
+            exit 110
+        }
+        local i = `i' + 1
+    }
+end
+
 capture mata: mata drop MakeMapLevel()
+capture mata: mata drop GetVariableFromStub()
 mata:
 real matrix function MakeMapLevel(
     string colvector dsname,
@@ -1036,10 +1216,10 @@ real matrix function MakeMapLevel(
     string rowvector xij,
     real scalar gather)
 {
-    real scalar i, j, k
+    real scalar i, j, k, l
     real matrix maplevel
-    string scalar r, s, sr
     string rowvector ordered
+    string scalar sr
 
     k = 1
     ordered  = J(1, cols(xij) * rows(res), "")
@@ -1047,9 +1227,7 @@ real matrix function MakeMapLevel(
 
     for (i = 1; i <= cols(xij); i++) {
         for (j = 1; j <= rows(res); j++) {
-            s  = xij[i]
-            r  = res[j]
-            sr = gather? r: s + r
+            sr = gather? res[j]: GetVariableFromStub(xij[i], res[j])
             if ( any(dsname :== sr) ) {
                 maplevel[i, j] = k
                 ordered[k] = sr
@@ -1062,6 +1240,20 @@ real matrix function MakeMapLevel(
     st_numscalar("__greshape_kxij", cols(ordered))
     return(maplevel)
 }
+
+string scalar function GetVariableFromStub(string scalar s, string scalar r)
+{
+    real scalar l, m
+    string scalar left, right
+
+    m = strlen(st_global(`"ReS_match"'))
+    l = strpos(s, st_global(`"ReS_match"'))
+    l = (l == 0)? strlen(s) + 1: l
+    left  = substr(s, 1, l - 1)
+    right = substr(s, l + m, .)
+    return(left + r + right)
+}
+
 end
 
 cap mata ustrregexm("a", "a")
@@ -1074,6 +1266,7 @@ real scalar function CheckVariableTypes(
     string rowvector dsname,
     string colvector res,
     string rowvector xij,
+    string rowvector xij_stubs,
     real scalar gather)
 {
     real scalar i, j, k, t, ix
@@ -1082,16 +1275,14 @@ real scalar function CheckVariableTypes(
     string colvector keep
     string colvector keepnames
     string colvector add
-    string scalar r, s, sr, v
+    string scalar sr, v
 
     k = 0
     types = J(1, cols(dsname), 0)
     highest = J(cols(xij), 2, 0)
     for (i = 1; i <= cols(xij); i++) {
         for (j = 1; j <= rows(res); j++) {
-            s  = xij[i]
-            r  = res[j]
-            sr = gather? r: s + r
+            sr = gather? res[j]: GetVariableFromStub(xij[i], res[j])
             ix = selectindex(dsname :== sr)
             t  = highest[i, 1]
             if ( length(ix) ) {
@@ -1165,15 +1356,15 @@ real scalar function CheckVariableTypes(
     }
 
     sel       = highest[., 2]
-    keepnames = xij[selectindex(sel :!= .)]
+    keepnames = xij_stubs[selectindex(sel :!= .)]
     keep      = dsname[sel[selectindex(sel :!= .)]]
-    add       = xij[selectindex(sel :== .)]
+    add       = xij_stubs[selectindex(sel :== .)]
 
     st_matrix("__greshape_types", types)
 
     st_global("ReS_Xij_keepnames", invtokens(keepnames))
-    st_global("ReS_Xij_keep", invtokens(keep))
-    st_global("ReS_Xij_add",  invtokens(add))
+    st_global("ReS_Xij_keep",      invtokens(keep))
+    st_global("ReS_Xij_add",       invtokens(add))
 
     return(0)
 }
@@ -1293,29 +1484,44 @@ program CheckVariableTypes
     if ( _rc ) local regex regex
     else local regex ustrregex
 
-    local k: copy global rVANS
+    local i: copy global rVANS
+    local k: copy global ReS_Xij
     local j: copy global ReS_jv
     gettoken j1 jrest: j
 
     global ReS_Xij_keep: copy global rVANS
     global ReS_Xij_keepnames
+
     global ReS_Xij_names
     global ReS_Xij_addvars
     global ReS_Xij_addtypes
 
     if ( ("$ReS_cmd" != "spread") | ($ReS_Xij_k > 1) ) {
-        foreach var of local k {
-            global ReS_Xij_keepnames $ReS_Xij_keepnames `var'`j1'
-            global ReS_Xij_names     $ReS_Xij_names     `var'`j1'
+        foreach stub of local k {
+            gettoken var i: i
+            if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
+                local _var: subinstr local stub `"$ReS_match"' `"`j1'"'
+            }
+            else {
+                local _var `stub'`j1'
+            }
+            global ReS_Xij_keepnames $ReS_Xij_keepnames `_var'
+            global ReS_Xij_names     $ReS_Xij_names     `_var'
             foreach jv of local jrest {
                 global ReS_Xij_addtypes $ReS_Xij_addtypes `:type `var''
-                global ReS_Xij_addvars  $ReS_Xij_addvars  `var'`jv'
-                global ReS_Xij_names    $ReS_Xij_names    `var'`jv'
+                if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
+                    local _var: subinstr local stub `"$ReS_match"' `"`jv'"'
+                }
+                else {
+                    local _var `stub'`jv'
+                }
+                global ReS_Xij_addvars  $ReS_Xij_addvars  `_var'
+                global ReS_Xij_names    $ReS_Xij_names    `_var'
             }
         }
     }
     else {
-        foreach var of local k {
+        foreach var of local i {
             global ReS_Xij_keepnames $ReS_Xij_keepnames `j1'
             global ReS_Xij_names     $ReS_Xij_names     `j1'
             foreach jv of local jrest {
@@ -1363,7 +1569,7 @@ program define FillXi /* {1|0} */ /* 1 if islong currently */
         unab ReS_Xi:   _all
         unab ReS_i:    $ReS_i
         unab ReS_j:    $ReS_j
-        unab ReS_Xij:  $ReS_Xij
+        unab ReS_Xij:  $rVANS
         local ReS_Xi:  list ReS_Xi - ReS_i
         local ReS_Xi:  list ReS_Xi - ReS_j
         local ReS_Xi:  list ReS_Xi - ReS_Xij
@@ -1559,6 +1765,8 @@ capture program drop Macdrop
 program define Macdrop
     mac drop ReS_cmd           ///
              ReS_Xij           ///
+             ReS_Xij_regex     ///
+             ReS_Xij_stubs     ///
              ReS_Xij_k         ///
              ReS_Xij_add       ///
              ReS_Xij_keep      ///
@@ -1568,6 +1776,7 @@ program define Macdrop
              ReS_Xij_addvars   ///
              ReS_nodupcheck    ///
              ReS_nomisscheck   ///
+             ReS_match         ///
              ReS_atwl          ///
              ReS_uselabels     ///
              ReS_i             ///
@@ -1835,18 +2044,28 @@ program define Macros /* reshape macro check utility */
         NotDefd "reshape xij"
     }
 
-    * NOTE: This takes the value of j to be position at @ instead of at
-    * the end
+    cap disp bsubstr(" ", 1, 1)
+    if ( _rc ) local substr substr
+    else local substr bsubstr
 
-    global rVANS
-    parse "$ReS_Xij", parse(" ")
-    local i 1
-    while "``i''"!="" {
-        Subname ``i''
-        global rVANS "$rVANS $S_1"
-        local i = `i' + 1
-    }
+    global rVANS: copy global ReS_Xij_stubs
     global S_1
+
+    * ---------------------------
+    * TODO: Is this of any value?
+    * ---------------------------
+    * global rVANS
+    * parse "$ReS_Xij", parse(" ")
+    * local i 1
+    * while "``i''"!="" {
+    *     Subname ``i''
+    *     global rVANS "$rVANS $S_1"
+    *     local i = `i' + 1
+    * }
+    * global S_1
+    * ---------------------------
+    * TODO: Is this of any value?
+    * ---------------------------
 end
 
 capture program drop NotDefd
@@ -1880,14 +2099,14 @@ program define hasanyinfo
     local isstr  : char _dta[ReS_str]
 
     local hasinfo 0
-    local hasinfo = `hasinfo' | ("`cons'"!="")
-    local hasinfo = `hasinfo' | ("`grpvar'"!="")
-    local hasinfo = `hasinfo' | ("`values'"!="")
-    local hasinfo = `hasinfo' | ("`values'"!="")
-    local hasinfo = `hasinfo' | ("`vars'"!="")
-    local hasinfo = `hasinfo' | ("`car'"!="")
-    local hasinfo = `hasinfo' | ("`atwl'"!="")
-    local hasinfo = `hasinfo' | ("`isstr'"!="")
+    local hasinfo = `hasinfo' | (`"`cons'"'   != "")
+    local hasinfo = `hasinfo' | (`"`grpvar'"' != "")
+    local hasinfo = `hasinfo' | (`"`values'"' != "")
+    local hasinfo = `hasinfo' | (`"`values'"' != "")
+    local hasinfo = `hasinfo' | (`"`vars'"'   != "")
+    local hasinfo = `hasinfo' | (`"`car'"'    != "")
+    local hasinfo = `hasinfo' | (`"`atwl'"'   != "")
+    local hasinfo = `hasinfo' | (`"`isstr'"'  != "")
 
     c_local `macname' `hasinfo'
 end
@@ -1898,11 +2117,12 @@ program define Subname /* <name-maybe-with-@> <tosub> */
     if ( _rc ) local substr substr
     else local substr bsubstr
     local name "`1'"
-    local sub "`2'"
-    local l = index("`name'","@")
-    local l = cond(`l'==0, length("`name'")+1,`l')
-    local a = `substr'("`name'",1,`l'-1)
-    local c = `substr'("`name'",`l'+1,.)
+    local sub  "`2'"
+    local m = length(`"$ReS_match"')
+    local l = index("`name'", `"$ReS_match"')
+    local l = cond(`l' == 0, length("`name'") + 1, `l')
+    local a = `substr'("`name'", 1, `l' - 1)
+    local c = `substr'("`name'", `l' + `m', .)
     global S_1 "`a'`sub'`c'"
 end
 
@@ -2021,17 +2241,19 @@ mata:
 transmorphic scalar LongToWideMetaSave(real scalar spread)
 {
     transmorphic scalar LongToWideMeta
-    string rowvector ReS_Xij,ReS_jv, ReS_jvraw
-    string scalar newvar, var, lvl, fmt
+    string rowvector rVANS, ReS_Xij,ReS_jv, ReS_jvraw
+    string scalar newvar, var, stub, lvl, fmt
     string matrix chars, _chars
     real scalar i, j, k
 
     LongToWideMeta = asarray_create()
     fmt       = "%s[%s]"
+    rVANS     = tokens(st_global("rVANS"))
     ReS_Xij   = tokens(st_global("ReS_Xij"))
     ReS_jv    = tokens(st_global("ReS_jv"))
     ReS_jvraw = tokens(st_global("ReS_jvraw"))
 
+    asarray(LongToWideMeta, "rVANS",     rVANS)
     asarray(LongToWideMeta, "ReS_Xij",   ReS_Xij)
     asarray(LongToWideMeta, "ReS_jv",    ReS_jv)
     asarray(LongToWideMeta, "ReS_jvraw", ReS_jvraw)
@@ -2042,13 +2264,14 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
 
     spread = (spread & (cols(ReS_Xij) == 1))
     for (i = 1; i <= cols(ReS_Xij); i++) {
-        var = ReS_Xij[i]
+        stub = ReS_Xij[i]
+        var  = rVANS[i]
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
             lbl = ReS_jvraw[j]
             chars  = J(0, 2, "")
             _chars = st_dir("char", var, "*")
-            newvar = spread? lvl: var + lvl
+            newvar = spread? lvl: GetVariableFromStub(stub, lvl)
             for (k = 1; k <= rows(_chars); k++) {
                 chars = chars \ (
                     sprintf(fmt, newvar, _chars[k]),
@@ -2069,7 +2292,7 @@ void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
 {
 
     string rowvector ReS_Xij,ReS_jv
-    string scalar newvar, var, lvl
+    string scalar newvar, stub, lvl
     string matrix chars
     real scalar i, j, k
 
@@ -2078,12 +2301,12 @@ void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
 
     spread = (spread & (cols(ReS_Xij) == 1))
     for (i = 1; i <= cols(ReS_Xij); i++) {
-        var = ReS_Xij[i]
+        stub = ReS_Xij[i]
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
-            newvar = spread? lvl: var + lvl
+            newvar = spread? lvl: GetVariableFromStub(stub, lvl)
 
-            st_varlabel(newvar, asarray(LongToWideMeta, newvar + "lbl"))
+            st_varlabel(newvar,  asarray(LongToWideMeta, newvar + "lbl"))
             st_varformat(newvar, asarray(LongToWideMeta, newvar + "fmt"))
 
             // Value labels only for numeric
@@ -2117,7 +2340,7 @@ transmorphic scalar WideToLongMetaSave()
 
     WideToLongMeta = asarray_create()
     fmt     = "%s[%s]"
-    ReS_Xij = tokens(st_global("ReS_Xij"))
+    ReS_Xij = tokens(st_global("ReS_Xij_stubs"))
     ReS_jv  = tokens(st_global("ReS_jv"))
     ReS_Xij_names = tokens(st_global("ReS_Xij_names"))
 

@@ -22,6 +22,7 @@ ST_retcode sf_get_vector_int    (char *st_matrix, GT_int  *v);
 ST_retcode sf_get_vector_size   (char *st_matrix, GT_size *v);
 ST_retcode sf_get_vector_bool   (char *st_matrix, GT_bool *v);
 ST_retcode sf_byx_save          (struct StataInfo *st_info);
+ST_retcode sf_byx_save_top      (struct StataInfo *st_info, GT_size ntop, GT_size *topix);
 
 void sf_format_size (GT_size n, char *out);
 

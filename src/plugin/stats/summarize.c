@@ -53,7 +53,7 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
     for (k = 0; k < ktargets; k++)
         statcode[k] = st_info->summarize_codes[k];
 
-    st_info->output = calloc(J * ktargets * ksources, sizeof st_info->output);
+    st_info->output = calloc(J * ktargets * ksources, sizeof *st_info->output);
     if ( st_info->output == NULL )
         return(sf_oom_error("sf_stats_summarize", "st_info->output"));
 
@@ -81,11 +81,11 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
         nuniq_xcopy = calloc(nj_max, sizeof *nuniq_xcopy);
     }
     else {
-        nuniq_ix    = malloc(sizeof(nuniq_ix));
-        nuniq_h1    = malloc(sizeof(nuniq_h1));
-        nuniq_h2    = malloc(sizeof(nuniq_h2));
-        nuniq_h3    = malloc(sizeof(nuniq_h3));
-        nuniq_xcopy = malloc(sizeof(nuniq_xcopy));
+        nuniq_ix    = malloc(sizeof *nuniq_ix);
+        nuniq_h1    = malloc(sizeof *nuniq_h1);
+        nuniq_h2    = malloc(sizeof *nuniq_h2);
+        nuniq_h3    = malloc(sizeof *nuniq_h3);
+        nuniq_xcopy = malloc(sizeof *nuniq_xcopy);
     }
 
     if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_stats_summarize", "nuniq_ix"));
@@ -227,7 +227,7 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
                 // quicksort_bsd(
                 //     all_buffer + start,
                 //     end,
-                //     sizeof(all_buffer),
+                //     sizeof *all_buffer,
                 //     xtileCompare,
                 //     NULL
                 // );
@@ -353,14 +353,14 @@ ST_retcode sf_stats_summarize (struct StataInfo *st_info, int level, char *fname
         }
 
         fhandle = fopen(fname, "wb");
-        rc = (fwrite(transpose, sizeof(transpose), J * ktargets * ksources, fhandle) != (J * ktargets * ksources));
+        rc = (fwrite(transpose, sizeof *transpose, J * ktargets * ksources, fhandle) != (J * ktargets * ksources));
         fclose (fhandle);
 
         free(transpose);
     }
     else {
         fhandle = fopen(fname, "wb");
-        rc = (fwrite(output, sizeof(output), J * ktargets * ksources, fhandle) != (J * ktargets * ksources));
+        rc = (fwrite(output, sizeof *output, J * ktargets * ksources, fhandle) != (J * ktargets * ksources));
         fclose (fhandle);
     }
 

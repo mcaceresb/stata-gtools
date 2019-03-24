@@ -1,4 +1,4 @@
-*! version 1.1.0 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.0 23Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -levelsof- implementation using C for faster processing
 
 capture program drop glevelsof
@@ -28,6 +28,8 @@ program glevelsof, rclass
         gen(passthru)         /// Save unique levels in varlist
         NODS DS               /// Parse - as varlist (ds) or negative (nods)
         silent                /// Do not try to display levels in console
+        MATAsave              /// Save results in mata
+        MATAsavename(str)     /// mata save name
                               ///
         debug(passthru)       /// Print debugging info to console
         compress              /// Try to compress strL variables
@@ -45,6 +47,19 @@ program glevelsof, rclass
         fill(passthru)        ///
         replace               ///
     ]
+
+    if ( (`"`matasave'"' != "") & (`"`local'"' != "") ) {
+        disp as err "Option local() not allowed with option -matasave-"
+        exit 198
+    }
+
+    if ( (`"`matasavename'"' != "") & (`"`local'"' != "") ) {
+        disp as err "Option local() not allowed with option -matasave()-"
+        exit 198
+    }
+
+    if ( `"`matasavename'"' != "" ) local matasave     matasave
+    if ( `"`matasavename'"' == "" ) local matasavename GtoolsByLevels
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -145,7 +160,8 @@ program glevelsof, rclass
     local sopts `sopts' `oncollision' `hashmethod' `debug'
 
     local gopts gen(`groupid') `tag' `counts' `fill' `replace'
-    local gopts `gopts' glevelsof(`localvar' `freq' `store' `gen')
+    local gopts `gopts' glevelsof(`localvar' `freq' `store' /*
+        */ `gen' `silent' `matasave' matasavename(`matasavename'))
 
     cap noi _gtools_internal `anything' `if' `in', `opts' `sopts' `gopts' gfunction(levelsof)
     local rc = _rc
@@ -156,8 +172,8 @@ program glevelsof, rclass
             di as err "Cannot use fallback with more than one variable."
             exit 17000
         }
-        else if ( `"`localvar'`gen'`numfmt'"' != "" ) {
-            di as err `"Cannot use fallback with option(s): `localvar' `gen' `numfmt'."'
+        else if ( `"`localvar'`gen'`numfmt'`matasave'"' != "" ) {
+            di as err `"Cannot use fallback with option(s): `localvar' `gen' `numfmt' `matasave'."'
             exit 17000
         }
         else if ( strpos("`anything'", "-") & ("`ds'" == "") ) {
@@ -174,12 +190,13 @@ program glevelsof, rclass
         exit 0
     }
     else if ( `rc' == 920 ) {
-        disp as err _n(1) "try {opt gen(prefix)} {opt nolocal}; see {help glevelsof:help glevelsof} for details"
+        disp as err _n(1) "try {opt gen(prefix)} {opt nolocal} or {opt mata(name)} {opt nolocal};" /*
+            */ " see {help glevelsof:help glevelsof} for details"
         exit `rc'
     }
     else if ( `rc' ) exit `rc'
 
-    if ( `"`localvar'"' == "" ) {
+    if ( (`"`localvar'"' == "") & (`"`matasave'"' == "") ) {
         mata st_local("vals",   st_global("r(levels)"))
         mata st_local("sep",    st_global("r(sep)"))
         mata st_local("colsep", st_global("r(colsep)"))

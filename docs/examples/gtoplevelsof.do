@@ -27,5 +27,9 @@ gtop foreign rep78, ntop(4) missrow groupmiss
 gtop foreign rep78, ntop(4) missrow groupmiss noother
 
 gtop foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
-
 matrix list lvl
+
+gtop foreign rep78, mata(lvl) ntop(3)
+mata lvl.desc()
+mata lvl.printed
+mata lvl.toplevels

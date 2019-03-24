@@ -2,13 +2,13 @@
 
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
-including: collapse, reshape, winsor, pctile, xtile, contract, egen,
-isid, levelsof, duplicates, and unique/distinct.
+including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
+winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.4.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.4.1 23Feb2019`
+`version 1.5.1 24Mar2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -49,8 +49,8 @@ __*Gtools commands with a Stata equivalent*__
 | gquantiles   | xtile       |  10 to 30 / 13 to 25 (-) |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
 |              | pctile      |  13 to 38 / 3 to 5 (-)   |                         | Ibid.                                   |
 |              | \_pctile    |  25 to 40 / 3 to 5       |                         | Ibid.                                   |
-| gstats tab   | tabstat     |  10 to 60 / 5 to 40 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
-| gstats sum   | sum, detail |  10 to 40 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats tab   | tabstat     |  10 to 50 / 5 to 30 (-)  | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats sum   | sum, detail |  10 to 20 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 
 <small>(+) The upper end of the speed improvements are for quantiles
 (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -275,7 +275,8 @@ Remarks
 
 `gcollapse` supports every `collapse` function, including their
 weighted versions. In addition, weights can be selectively applied via
-`rawstat()`, and `nunique` counts the number of unique values.
+`rawstat()`, and several additional statistics are allowed, including
+`nunique`, `select#`, and so on.
 
 `gegen` technically does not support all of `egen`, but whenever a
 function that is not supported is requested, `gegen` hashes the data and
@@ -285,8 +286,9 @@ allow weights).
 
 Hence both should be able to replicate all of the functionality of their
 Stata counterparts. Last, `gstats tab` allows every statistic allowed
-by `tabstat` as well as any statistic allowed by `gcollapse`, and  the
-syntax for the statistics specified via `statistics()` is also the same.
+by `tabstat` as well as any statistic allowed by `gcollapse`; the
+syntax for the statistics specified via `statistics()` is the same
+as in `tabstat`.
 
 The following are implemented internally in C:
 
@@ -313,7 +315,7 @@ The following are implemented internally in C:
 | min         |     X     |   X     |      X     |
 | range       |     X     |   X     |      X     |
 | select      |     X     |   X     |      X     |
-| rawselect   |     X     |   X     |      X     |
+| rawselect   |     X     |         |      X     |
 | percent     |     X     |   X     |      X     |
 | first       |     X     |   X (+) |      X     |
 | last        |     X     |   X (+) |      X     |
@@ -338,6 +340,13 @@ gegen target = pctile(var), by(varlist) p(#)
 ```
 
 where # is a "percentile" with arbitrary decimal places (e.g. 2.5 or 97.5).
+`gtools` also supports selecting the `#`th smallest or largest value:
+```stata
+gcollapse (select#) target = var [(select-#) target = var ...] , by(varlist)
+gegen target = select(var), by(varlist) n(#)
+gegen target = select(var), by(varlist) n(-#)
+```
+
 Last, when `gegen` calls a function that is not implemented internally by
 `gtools`, it will hash the by variables and call `egen` with `by` set to an
 id based on the hash. That is, if `fcn` is not one of the functions above,
@@ -365,14 +374,14 @@ Differences from `collapse`
 - `nunique` is supported.
 - `nmissing` is supported.
 - `rawstat` allows selectively applying weights.
+- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
+  value for sums if all inputs are missing (instead of 0).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
   (If the targets exist the function will throw an error without `replace`).
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
-- `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
-  value for sums if all inputs are missing (instead of 0).
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
 Differences from `greshape`
@@ -394,7 +403,7 @@ Differences from `greshape`
   with this functionality.
 - For that same reason, "advanced" syntax is not supported, including
   the subcommands: clear, error, query, i, j, xij, and xi.
-- `@` syntax is not (yet) supported but is planned for a future release.
+- `@` syntax can be modified via `match()`
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -434,12 +443,14 @@ Differences from `tabstat`
 
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
-  `matasave` saves the output and `by()` info in `GstatsOutput`. See
-  `mata GstatsOutput.desc()` after `gstats tab, matasave` for details.
+  `matasave` saves the output and `by()` info in `GstatsOutput` (the object
+  can be named via `matasave(name)`). See `mata GstatsOutput.desc()` after
+  `gstats tab, matasave` for details.
 - `GstatsOutput` provides helpers for extracting rows, columns, and levels.
 - Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
+- Option `pooled` pools the source variables into one.
 
 Differences from `summarize, detail`
 
@@ -447,15 +458,15 @@ Differences from `summarize, detail`
   recovered via options `nodetail` and `meanonly`. These two
   options are mainly for use with `by()`
 - Option `matasave` saves output and `by()` info in `GstatsOutput`,
-  a mata class object. See `mata GstatsOutput.desc()` after
-  `gstats sum, matasave` for details.
+  a mata class object (the object can be named via `matasave(name)`).
+  See `mata GstatsOutput.desc()` after `gstats sum, matasave` for details.
 - Option `noprint` saves the results but omits printing output.
 - Option `tab` prints statistics in the style of `tabstat`
-- Option `pooled` pools the source variables and computes summary 
+- Option `pooled` pools the source variables and computes summary
   stats as if it was a single variable.
 - `pweights` are allowed.
 - Largest and smallest observations are weighted.
-- `rolling:`, `statsby`, and `by:` are not allowed. To use `by` pass
+- `rolling:`, `statsby:`, and `by:` are not allowed. To use `by` pass
   the option `by()`
 - `display options` are not supported.
 - Factor and time series variables are not allowed.
@@ -541,9 +552,9 @@ TODO
 ----
 
 - Update benchmarks for all commands. Still on 0.8 benchmarks.
+- `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - Allow keeping both variable names and labels in `greshape spread/gather`
 - Implement `collapse()` option for `greshape`.
-- Implement variable group syntax for `greshape`.
 - Implement `selectoverflow(missing|closest)`
 - Add totals row for `J > 1` in gstats
 
@@ -558,7 +569,6 @@ have an ETA for them:
 - Create a Stata C hashing API with thin wrappers around core functions.
     - This will be a C library that other users can import.
     - Some functionality will be available from Stata via gtooos, api()
-- Add option to `gtop` to display top X results in alpha order
 - Improve debugging info.
 - Improve code comments when you write the API!
 - Have some type of coding standard for the base (coding style)

@@ -28,14 +28,14 @@ ST_retcode sf_read_byvars (
     // GT_size kstrL      = st_info->kvars_by_strL;
     GT_size *positions = st_info->positions;
 
-    // index = calloc(N, sizeof(index));
+    // index = calloc(N, sizeof *index);
     // if ( index == NULL ) return (sf_oom_error("sf_read_byvars", "index"));
     // GTOOLS_GC_ALLOCATED("index")
 
     if ( kstr > 0 ) {
-        // st_info->strL_bytes = calloc((kstrL? N * kstrL: 1), sizeof(st_info->strL_bytes));
-        st_info->strL_bytes = malloc(sizeof(st_info->strL_bytes));
-        st_info->st_numx    = malloc(sizeof(st_info->st_numx));
+        // st_info->strL_bytes = calloc((kstrL? N * kstrL: 1), sizeof *st_info->strL_bytes);
+        st_info->strL_bytes = malloc(sizeof *st_info->strL_bytes);
+        st_info->st_numx    = malloc(sizeof *st_info->st_numx);
         st_info->st_charx   = calloc(N, rowbytes);
 
         if ( st_info->strL_bytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bytes"));
@@ -243,9 +243,9 @@ next_inner2: continue;
         }
     }
     else {
-        st_info->strL_bytes = malloc(sizeof(st_info->strL_bytes));;
-        st_info->st_numx    = calloc(N * kvars, sizeof(st_info->st_numx));
-        st_info->st_charx   = malloc(sizeof(st_info->st_charx));
+        st_info->strL_bytes = malloc(sizeof *st_info->strL_bytes);;
+        st_info->st_numx    = calloc(N * kvars, sizeof *st_info->st_numx);
+        st_info->st_charx   = malloc(sizeof *st_info->st_charx);
 
         if ( st_info->strL_bytes == NULL ) return (sf_oom_error("sf_read_byvars", "st_info->strL_bytes"));
         if ( st_info->st_numx    == NULL ) return (sf_oom_error("sf_hash_byvars", "st_info->st_numx"));

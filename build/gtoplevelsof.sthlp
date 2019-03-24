@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.2  23Jan2019}{...}
+{* *! version 1.2.0  20Mar2019}{...}
 {vieweralsosee "[P] gtoplevelsof" "mansection P gtoplevelsof"}{...}
 {viewerjumpto "Syntax" "gtoplevelsof##syntax"}{...}
 {viewerjumpto "Description" "gtoplevelsof##description"}{...}
@@ -27,15 +27,18 @@
 {synopthdr}
 {synoptline}
 {syntab :Summary Options}
-{synopt:{opth ntop(int)}} Number of levels to display.{p_end}
+{synopt:{opth ntop(int)}} Display {opt ntop} most common levels (negative shows least common; {opt .} shows every level).{p_end}
 {synopt:{opth freqabove(int)}} Only count freqs above this level.{p_end}
 {synopt:{opth pctabove(real)}} Only count freqs that represent at least % of the total.{p_end}
+{synopt:{opt mata:save}[{cmd:(}{it:str}{cmd:)}]}Save results in mata object (default name is {bf:GtoolsByLevels}){p_end}
 
 {syntab :Toggles}
 {synopt:{opt missrow}} Add row with count of missing values.{p_end}
 {synopt:{opt groupmiss:ing}} Count rows with any variable missing as missing.{p_end}
 {synopt:{opt nomiss:ing}} Case-wise exclude rows with missing values from frequency count.{p_end}
 {synopt:{opt nooth:er}} Do not group rest of levels into "other" row.{p_end}
+{synopt:{opt alpha}} Sort the top levels of varlist by variables instead of frequencies.{p_end}
+{synopt:{opt silent}} Do not display the top levels of varlist.{p_end}
 
 {syntab :Display Options}
 {synopt:{opth pctfmt(format)}} Format for percentages.{p_end}
@@ -45,7 +48,7 @@
 {synopt:{opth colmax(numlist)}} Specify width limit for levels (can be single number of variable-specific).{p_end}
 {synopt:{opth colstrmax(numlist)}} Specify width limit for string variables (can be single number of variable-specific).{p_end}
 {synopt:{opt cols:eparate(separator)}} Column separator; default is double blank "  ".{p_end}
-{synopt:{opth numfmt(format)}} Format for numeric variables. Default is {opt %.8g}.{p_end}
+{synopt:{opth numfmt(format)}} Format for numeric variables. Default is {opt %.8g} (or {opt %16.0g} with {opt matasave}).{p_end}
 {synopt:{opt novaluelab:els}} Do not replace numeric variables with their value labels.{p_end}
 {synopt:{opt hidecont:levels}} If a level is repeated in the subsequent row, display a blank.{p_end}
 
@@ -102,11 +105,13 @@ counts and stores the levels in the macro {opt r(levels)}.
 {dlgtab:Summary Options}
 
 {phang}
-{opth ntop(int)} Number of levels to display. This can be negative.
-In that case, the smallest frequencies are displayed. Note cummulative
+{opth ntop(int)} Number of levels to display. This can be negative;
+in that case, the smallest frequencies are displayed. Note cummulative
 percentages and counts are computed within each generated table,
 so for the smallest groups the table would display the cummulative
-count for those frequencies, in descending order.
+count for those frequencies, in descending order.  {opt .} displays
+every level from most to least frequent; {opt -.} displays every level
+from least to most frequent.
 
 {phang}
 {opth freqabove(int)} Skip frequencies below this level then determining the
@@ -120,6 +125,15 @@ data than {opt pctabove}. If this is 10, then only frequencies that represent
 at least 10% of all observations are displayed as part of the top frequencies.
 If every frequency that would be displayed is at least this percentage of the
 data then this option has no effect.
+
+{phang}
+{opt mata:save}[{cmd:(}{it:str}{cmd:)}]Save results in mata object (default
+name is {bf:GtoolsByLevels}). See {opt GtoolsByLevels.desc()} for more.
+This object contains the raw variable levels in {opt numx} and {opt charx}
+(since mata does not allow matrices of mixed-type). The levels are saved
+as a string in {opt printed} (with value labels correctly applied) unless
+option {opt silent} is also specified.  Last, the frequencies matrix is saved
+in {opt toplevels}.
 
 {dlgtab:Toggles}
 
@@ -139,6 +153,15 @@ frequency count.  By default missing values are treated as another level.
 {phang}{opt noother} By default a row is printed after the top levels
 with the frequency count from groups not in the top levels and not
 counted as missing. This option toggles display of that row.
+
+{phang}{opt alpha} Sort the top levels of varlist by variables instead
+of frequencies. Note that the top levels are still extracted; this just
+affects the final sort order. To sort in inverse order, just pass
+{opt gtop -var1 -var2 ...}.
+
+{phang}{opt silent} Do not display the top levels of varlist. With
+option {opt matasave} it also does not store the printed levels in a
+separate string matrix.
 
 {dlgtab:Display Options}
 
@@ -162,10 +185,12 @@ be single number of variable-specific). Ths overrides {opt colmax} for strings
 and allows the user to specify string and number widths sepparately. (Also see
 {opth numfmt(format)})
 
-{phang}{opth numfmt(format)} Format for numeric variables. Default is {opt %.8g}.
-Note number levels are formatted in C, so this must be a valid format for the C
-internal {opt printf}. The syntas is very similar to mata's {opt printf}. Some
-examples are: %.2f, %10.6g, %5.0f, and so on.
+{phang}{opth numfmt(format)} Format for numeric variables. Default is {opt %.8g}
+(or {opt %16.0g} with {opt matasave}). By default the number levels are formatted
+in C, so this must be a valid format for the C internal {opt printf}.  The syntax
+is very similar to mata's {opt printf}. Some examples are: %.2f, %10.6g, %5.0f, and
+so on.  With option {opt matasave} these are formatted in mata, and the format can
+be any mata number format.
 
 {phang}{opt colseparate(separator)} Column separator; default is double blank "  ".
 
@@ -200,7 +225,7 @@ has only limited support for strL variables. In Stata 13 and earlier
 3.0) there is read-only support. The user can try to compress strL
 variables using this option.
 
-{phang} 
+{phang}
 {opt forcestrl} Skip binary variable check and force gtools to read strL
 variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
 This option was included because on some windows systems Stata detects
@@ -272,15 +297,19 @@ for more examples.
 
 {synoptset 15 tabbed}{...}
 {p2col 5 15 19 2: Macros}{p_end}
-{synopt:{cmd:r(levels)}}list of top (most common) levels (rows){p_end}
+{synopt:{cmd:r(levels)}}list of top (most common) levels (rows); not with {opt matasave}{p_end}
+{synopt:{cmd:r(matalevels)}}name of GtoolsByLevels mata object; only with {opt matasave}{p_end}
 {p2colreset}{...}
 
 {synoptset 20 tabbed}{...}
 {p2col 5 20 24 2: Scalars}{p_end}
-{synopt:{cmd:r(N)   }} number of non-missing observations {p_end}
-{synopt:{cmd:r(J)   }} number of groups {p_end}
-{synopt:{cmd:r(minJ)}} largest group size {p_end}
-{synopt:{cmd:r(maxJ)}} smallest group size {p_end}
+{synopt:{cmd:r(N)    }} number of non-missing observations {p_end}
+{synopt:{cmd:r(J)    }} number of groups {p_end}
+{synopt:{cmd:r(minJ) }} largest group size {p_end}
+{synopt:{cmd:r(maxJ) }} smallest group size {p_end}
+{synopt:{cmd:r(ntop) }} number of top levels {p_end}
+{synopt:{cmd:r(nrows)}} number of rows in {opt toplevels} {p_end}
+{synopt:{cmd:r(alpha)}} sorted by levels intead of frequencies {p_end}
 {p2colreset}{...}
 
 {synoptset 20 tabbed}{...}
@@ -289,7 +318,55 @@ for more examples.
 {p2colreset}{...}
 
 {pstd} The missing and other rows are stored in the matrix with IDs 2 and 3,
-respectively.
+respectively. With {opt matasave}, the following data is stored in {opt GtoolsByLevels}:
+
+    real scalar anyvars
+        1: any by variables; 0: no by variables
+
+    real scalar anychar
+        1: any string by variables; 0: all numeric by variables
+
+    real scalar anynum
+        1: any numeric by variables; 0: all string by variables
+
+    string rowvector byvars
+        by variable names
+
+    real scalar kby
+        number of by variables
+
+    real scalar rowbytes
+        number of bytes in one row of the internal by variable matrix
+
+    real scalar J
+        number of levels
+
+    real matrix numx
+        numeric by variables
+
+    string matrix charx
+        string by variables
+
+    real scalar knum
+        number of numeric by variables
+
+    real scalar kchar
+        number of string by variables
+
+    real rowvector lens
+        > 0: length of string by variables; <= 0: internal code for numeric variables
+
+    real rowvector map
+        map from index to numx and charx
+
+    real rowvector charpos
+        position of kth character variable
+
+    string matrix printed
+        formatted (printf-ed) variable levels (not with option -silent-)
+
+    real matrix toplevels
+        frequencies of top levels; missing and other rows stored with ID 2 and 3.
 
 {marker author}{...}
 {title:Author}
@@ -319,10 +396,10 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {p 4 13 2}
-help for 
-{help gcontract}, 
-{help glevelsof}, 
+help for
+{help gcontract},
+{help glevelsof},
 {help gtools};
-{help flevelsof} (if installed), 
+{help flevelsof} (if installed),
 {help ftools} (if installed)
 

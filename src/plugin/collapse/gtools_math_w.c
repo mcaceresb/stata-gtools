@@ -130,7 +130,7 @@ ST_double gf_array_dquantile_weighted (
     // quicksort_bsd(
     //     p_buffer,
     //     N,
-    //     2 * sizeof(p_buffer),
+    //     2 * (sizeof *p_buffer),
     //     xtileCompare,
     //     NULL
     // );
@@ -140,7 +140,7 @@ ST_double gf_array_dquantile_weighted (
         N,
         0,
         1,
-        2 * sizeof(p_buffer),
+        2 * (sizeof *p_buffer),
         invert
     );
 
@@ -907,7 +907,7 @@ ST_double gf_array_dselect_weighted (
         N,
         0,
         1,
-        2 * sizeof(p_buffer),
+        2 * (sizeof *p_buffer),
         invert
     );
 

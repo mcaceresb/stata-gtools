@@ -689,12 +689,12 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
     ST_double *xoutput;
 
     if ( weights ) {
-        xcount = malloc(sizeof(xcount));
+        xcount = malloc(sizeof *xcount);
         wcount = calloc(xmem_count, sizeof *wcount);
     }
     else {
         xcount = calloc(xmem_count, sizeof *xcount);
-        wcount = malloc(sizeof(wcount));
+        wcount = malloc(sizeof *wcount);
     }
 
     xquant  = calloc(xmem_quant,   sizeof *xquant);
@@ -872,7 +872,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             end,
                             0,
                             1,
-                            kx * sizeof(xptr),
+                            kx * (sizeof *xptr),
                             invert
                         );
                     }
@@ -907,7 +907,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             quicksort_bsd (
                                 xptr,
                                 end,
-                                kx * sizeof(xptr),
+                                kx * (sizeof *xptr),
                                 xtileCompare,
                                 NULL
                             );
@@ -943,7 +943,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             end,
                             0,
                             1,
-                            kx * sizeof(xptr),
+                            kx * (sizeof *xptr),
                             invert
                         );
                     }
@@ -978,7 +978,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             quicksort_bsd (
                                 xptr,
                                 end,
-                                kx * sizeof(xptr),
+                                kx * (sizeof *xptr),
                                 xtileCompare,
                                 NULL
                             );
@@ -1007,7 +1007,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                     end,
                     0,
                     1,
-                    kx * sizeof(xptr),
+                    kx * (sizeof *xptr),
                     invert
                 );
             }
@@ -1031,7 +1031,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                         quicksort_bsd (
                             xptr,
                             end,
-                            kx * sizeof(xptr),
+                            kx * (sizeof *xptr),
                             xtileCompare,
                             NULL
                         );

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Feb 24 17:55:04 EST 2019
+* Updated: Sun Mar 24 11:29:41 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.4.1
+* Version: 1.5.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -100,8 +100,8 @@ program main
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
@@ -1596,12 +1596,14 @@ program _compare_inner_gcollapse_gegen
     gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
     gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
     gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
+    if ( !inlist("`weight'", "iweight") ) {
     gegen double s1       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
     gegen double s3       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
     gegen double s999999  = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
     gegen double s_999999 = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
     gegen double s_3      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
     gegen double s_1      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
+    }
 
     local gextra
     foreach extra of local sestats {
@@ -1609,35 +1611,62 @@ program _compare_inner_gcollapse_gegen
         local gextra `gextra' (`extra') g_`extra' = random1
     }
 
-    qui `noisily' {
-        gcollapse (nmissing)      g_nmissing   = random1 ///
-                  (nunique)       g_nunique    = random1 ///
-                  (percent)       g_percent    = random1 ///
-                  (mean)          g_mean       = random1 ///
-                  (sum)           g_sum        = random1 ///
-                  (median)        g_median     = random1 ///
-                  (min)           g_min        = random1 ///
-                  (max)           g_max        = random1 ///
-                  (range)         g_range      = random1 ///
-                  (iqr)           g_iqr        = random1 ///
-                  (first)         g_first      = random1 ///
-                  (last)          g_last       = random1 ///
-                  (firstnm)       g_firstnm    = random1 ///
-                  (lastnm)        g_lastnm     = random1 ///
-                  (skew)          g_skew       = random1 ///
-                  (kurt)          g_kurt       = random1 ///
-                  (p10.5)         g_q10        = random1 ///
-                  (p30)           g_q30        = random1 ///
-                  (p70)           g_q70        = random1 ///
-                  (p90.5)         g_q90        = random1 ///
-                  (select1)       g_s1         = random1 ///
-                  (select3)       g_s3         = random1 ///
-                  (select999999)  g_s999999    = random1 ///
-                  (select-999999) g_s_999999   = random1 ///
-                  (select-3)      g_s_3        = random1 ///
-                  (select-1)      g_s_1        = random1 ///
-                  `gextra'                               ///
-              `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+    if ( inlist("`weight'", "iweight") ) {
+        qui `noisily' {
+            gcollapse (nmissing)      g_nmissing   = random1 ///
+                      (nunique)       g_nunique    = random1 ///
+                      (percent)       g_percent    = random1 ///
+                      (mean)          g_mean       = random1 ///
+                      (sum)           g_sum        = random1 ///
+                      (median)        g_median     = random1 ///
+                      (min)           g_min        = random1 ///
+                      (max)           g_max        = random1 ///
+                      (range)         g_range      = random1 ///
+                      (iqr)           g_iqr        = random1 ///
+                      (first)         g_first      = random1 ///
+                      (last)          g_last       = random1 ///
+                      (firstnm)       g_firstnm    = random1 ///
+                      (lastnm)        g_lastnm     = random1 ///
+                      (skew)          g_skew       = random1 ///
+                      (kurt)          g_kurt       = random1 ///
+                      (p10.5)         g_q10        = random1 ///
+                      (p30)           g_q30        = random1 ///
+                      (p70)           g_q70        = random1 ///
+                      (p90.5)         g_q90        = random1 ///
+                      `gextra'                               ///
+                  `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+         }
+    else {
+        qui `noisily' {
+            gcollapse (nmissing)      g_nmissing   = random1 ///
+                      (nunique)       g_nunique    = random1 ///
+                      (percent)       g_percent    = random1 ///
+                      (mean)          g_mean       = random1 ///
+                      (sum)           g_sum        = random1 ///
+                      (median)        g_median     = random1 ///
+                      (min)           g_min        = random1 ///
+                      (max)           g_max        = random1 ///
+                      (range)         g_range      = random1 ///
+                      (iqr)           g_iqr        = random1 ///
+                      (first)         g_first      = random1 ///
+                      (last)          g_last       = random1 ///
+                      (firstnm)       g_firstnm    = random1 ///
+                      (lastnm)        g_lastnm     = random1 ///
+                      (skew)          g_skew       = random1 ///
+                      (kurt)          g_kurt       = random1 ///
+                      (p10.5)         g_q10        = random1 ///
+                      (p30)           g_q30        = random1 ///
+                      (p70)           g_q70        = random1 ///
+                      (p90.5)         g_q90        = random1 ///
+                      (select1)       g_s1         = random1 ///
+                      (select3)       g_s3         = random1 ///
+                      (select999999)  g_s999999    = random1 ///
+                      (select-999999) g_s_999999   = random1 ///
+                      (select-3)      g_s_3        = random1 ///
+                      (select-1)      g_s_1        = random1 ///
+                      `gextra'                               ///
+                  `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
+        }
     }
 
     if ( "`ifin'" == "" ) {
@@ -1660,7 +1689,7 @@ program _compare_inner_gcollapse_gegen
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
                     keep `ifin'
                     keep if !(`a1' | ((`a2' | `a3') & `a4'))
-                    save /tmp/xx, replace
+                    * save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (imprecision): `fun'`wtxt' yielded similar results (tol = `tol')"
@@ -1670,7 +1699,7 @@ program _compare_inner_gcollapse_gegen
                 cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
                 if ( _rc ) {
                     di as err "    compare_gegen_gcollapse (failed): `fun'`wtxt' yielded different results (tol = `tol')"
-                    save /tmp/xx, replace
+                    * save /tmp/xx, replace
                     exit _rc
                 }
                 else di as txt "    compare_gegen_gcollapse (passed): `fun'`wtxt' yielded same results (tol = `tol')"
@@ -2263,7 +2292,7 @@ program _compare_inner_gcollapse_select
 
     qui gcollapse `gcall' `ifin' `wgt_gc', by(`anything') `options' double merge replace
     qui gegen id = group(`anything') `ifin', missing nods
-save /tmp/aa, replace
+    * save /tmp/aa, replace
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -5118,7 +5147,14 @@ program compare_inner_egen
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) {
+        if ( strpos(`"`anything'"', "strL") > 0 ) {
+            sort `anything'
+        }
+        else {
+            hashsort `anything'
+        }
+    }
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 31 + length("`anything'") + length("`N'")
@@ -5528,7 +5564,14 @@ program compare_inner_unique
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) {
+        if ( strpos(`"`anything'"', "strL") > 0 ) {
+            sort `anything'
+        }
+        else {
+            hashsort `anything'
+        }
+    }
 
     if ( "`distinct'" != "" ) {
         local joint joint
@@ -5974,6 +6017,57 @@ program checks_levelsof
     assert _rc == 920
     cap glevelsof x, gen(uniq) nolocal
     assert _rc == 0
+
+    sysuse auto, clear
+    glevelsof price
+    glevelsof mpg
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof price   make    mpg     foreign
+    glevelsof foreign make    mpg     price
+    glevelsof mpg     make    foreign price
+    glevelsof price   mpg     foreign
+    glevelsof foreign mpg     price
+    glevelsof mpg     foreign price
+    glevelsof make    price   mpg     foreign
+    glevelsof make    foreign mpg     price
+    glevelsof make    mpg     foreign price
+    glevelsof price   mpg     foreign make
+    glevelsof foreign mpg     price   make
+    glevelsof mpg     foreign price   make
+
+    glevelsof price                           , mata(hi)
+    glevelsof mpg                             , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof price   make    mpg     foreign , mata(hi)
+    glevelsof foreign make    mpg     price   , mata(hi)
+    glevelsof mpg     make    foreign price   , mata(hi)
+    glevelsof price   mpg     foreign         , mata(hi)
+    glevelsof foreign mpg     price           , mata(hi)
+    glevelsof mpg     foreign price           , mata(hi)
+    glevelsof make    price   mpg     foreign , mata(hi)
+    glevelsof make    foreign mpg     price   , mata(hi)
+    glevelsof make    mpg     foreign price   , mata(hi)
+    glevelsof price   mpg     foreign make    , mata(hi)
+    glevelsof foreign mpg     price   make    , mata(hi)
+    glevelsof mpg     foreign price   make    , mata(hi)
+
+    clear
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
+
+    glevelsof ix
+    glevelsof ix, mata
+    glevelsof ix, mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
 end
 
 capture program drop checks_inner_levelsof
@@ -6422,52 +6516,115 @@ program checks_toplevelsof
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(50)
-    qui expand 200
-    gen long ix = _n
+    qui {
+        qui `noisily' gen_data, n(50)
+        qui expand 200
+        gen long ix = _n
 
-    checks_inner_toplevelsof -str_12,              `options'
-    checks_inner_toplevelsof str_12 -str_32,       `options'
-    checks_inner_toplevelsof str_12 -str_32 str_4, `options'
+        checks_inner_toplevelsof -str_12,              `options'
+        checks_inner_toplevelsof str_12 -str_32,       `options'
+        checks_inner_toplevelsof str_12 -str_32 str_4, `options'
 
-    checks_inner_toplevelsof -double1,                 `options'
-    checks_inner_toplevelsof double1 -double2,         `options'
-    checks_inner_toplevelsof double1 -double2 double3, `options'
+        checks_inner_toplevelsof -double1,                 `options'
+        checks_inner_toplevelsof double1 -double2,         `options'
+        checks_inner_toplevelsof double1 -double2 double3, `options'
 
-    checks_inner_toplevelsof -int1,           `options'
-    checks_inner_toplevelsof int1 -int2,      `options'
-    checks_inner_toplevelsof int1 -int2 int3, `options'
+        checks_inner_toplevelsof -int1,           `options'
+        checks_inner_toplevelsof int1 -int2,      `options'
+        checks_inner_toplevelsof int1 -int2 int3, `options'
 
-    checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+        checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        if ( `c(stata_version)' >= 14.1 ) {
+            local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+            checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        }
+
+        clear
+        set obs 10
+        gen x = _n
+        gen w = runiform()
+        gtoplevelsof x [w = w]
+        gtop x [w = w]
+        gtop x [w = .]
+        gtop x [w = 0]
+        gtop x if 0
+
+        clear
+        gen x = 1
+        gtoplevelsof x
+
+        clear
+        set obs 100000
+        gen x = _n
+        gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
+        gtoplevelsof x if _n < 1
     }
 
-    clear
-    set obs 10
-    gen x = _n
-    gen w = runiform()
-    gtoplevelsof x [w = w]
-    gtop x [w = w]
-    gtop x [w = .]
-    gtop x [w = 0]
-    gtop x if 0
+    sysuse auto , clear
+    forvalues i = 1 / 100 {
+        gtop make price, ntop(`i') silent
+    }
+
+    sysuse auto , clear
+    gtop price                           , mata
+    gtop mpg                             , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop price   make    mpg     foreign , mata
+    gtop foreign make    mpg     price   , mata
+    gtop mpg     make    foreign price   , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop make    price   mpg     foreign , mata
+    gtop make    foreign mpg     price   , mata
+    gtop make    mpg     foreign price   , mata
+    gtop price   mpg     foreign make    , mata
+    gtop foreign mpg     price   make    , mata
+    gtop mpg     foreign price   make    , mata
+
+    expand mpg
+
+    gtop price                           , ntop(.) mata(hi)
+    gtop mpg                             , ntop(.) mata(hi)
+    gtop price   mpg     foreign         , ntop(.) mata(hi)
+    gtop foreign mpg     price           , ntop(.) mata(hi)
+    gtop mpg     foreign price           , ntop(.) mata(hi)
+    gtop price   make    mpg     foreign , ntop(.) mata(hi)
+    gtop foreign make    mpg     price   , ntop(.) mata(hi)
+    gtop mpg     make    foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign         , ntop(-.) mata(hi)
+    gtop foreign mpg     price           , ntop(-.) mata(hi)
+    gtop mpg     foreign price           , ntop(-.) mata(hi)
+    gtop make    price   mpg     foreign , ntop(-.) mata(hi)
+    gtop make    foreign mpg     price   , ntop(-.) mata(hi)
+    gtop make    mpg     foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign make    , ntop(-.) mata
+    gtop foreign mpg     price   make    , ntop(-.) mata
+    gtop mpg     foreign price   make    , ntop(-.) mata
 
     clear
-    gen x = 1
-    gtoplevelsof x
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
 
-    clear
-    set obs 100000
-    gen x = _n
-    gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
-    gtoplevelsof x if _n < 1
+    gtop ix, ntop(.) mata
+    gtop ix, ntop(.)
+    gtop ix, ntop(.) mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
+
+    gtop ix, mata(hi) silent
+    * gtop ix, mata(hi) silent ntop(.) alpha
 end
 
 capture program drop checks_inner_toplevelsof
@@ -6482,6 +6639,8 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything', `options' ntop(0)
     gtoplevelsof `anything', `options' ntop(0) noother
     gtoplevelsof `anything', `options' ntop(0) missrow
+    gtoplevelsof `anything', `options' ntop(.)
+    gtoplevelsof `anything', `options' ntop(-.)
     gtoplevelsof `anything', `options' freqabove(10000)
     gtoplevelsof `anything', `options' pctabove(5)
     gtoplevelsof `anything', `options' pctabove(100)
@@ -6605,7 +6764,12 @@ program _compare_inner_gtoplevelsof
             `noisily' `contract' `anything' `if' `in' `wgt', `opts'
             qui sum N, meanonly
             local r_N = `r(sum)'
-            hashsort -N `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -N `anything'
+            }
+            else {
+                hashsort -N `anything'
+            }
             local nl = min(_N, 10)
             keep in 1/`=min(_N, 10)'
             set obs `=_N+1'
@@ -6795,7 +6959,12 @@ program versus_toplevelsof, rclass
         qui {
             preserve
             gcontract `anything' `if' `in', `opts'
-            hashsort -freq `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -freq `anything'
+            }
+            else {
+                hashsort -freq `anything'
+            }
             keep in 1/10
             restore
         }
@@ -6933,15 +7102,15 @@ program compare_isid
 
     if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_inner_isid strL1,             `options' `forcestrl'
-        compare_inner_isid strL1 strL2,       `options' `forcestrl'
-        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl'
+        compare_inner_isid strL1,             `options' `forcestrl' sort
+        compare_inner_isid strL1 strL2,       `options' `forcestrl' sort
+        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl' sort
     }
 end
 
 capture program drop compare_inner_isid
 program compare_inner_isid
-    syntax varlist, [*]
+    syntax varlist, [sort *]
 
     tempvar rsort ix
     gen `rsort' = runiform()
@@ -6955,7 +7124,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( `varlist')
 
     * make sure sorted check gives same result
-    hashsort `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `varlist'
+    else sort `varlist'
+
     cap gisid `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by([sorted] `varlist')
@@ -6967,7 +7139,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
 
     * make sure sorted check gives same result
-    hashsort `ix' `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `ix' `varlist'
+    else sort `ix' `varlist'
+
     cap gisid `ix' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by([sorted] ix `varlist')
@@ -6979,7 +7154,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
 
     * make sure sorted check gives same result
-    hashsort `rsort' `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `rsort' `varlist'
+    else sort `rsort' `varlist'
+
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'
@@ -7410,6 +7588,33 @@ program checks_inner_greshape_errors
             assert _rc == 0
         restore
     }
+
+    clear
+    set obs 5
+    gen bykey      = _n
+    gen st1ub      = _n
+    gen st2ub      = -_n
+    gen foo3bar    = "foobar" + string(mod(_n, 3))
+    gen foo4bar    = "foobar" + string(-_n) + "thisIsLongRight?"
+    gen ali9ce5bob = "ali9cebob" + string(mod(_n, 3))
+    gen ali9ce6bob = "ali9cebob" + string(-_n) + "thisIsLongRight?"
+    gen w = "|" + string(_n / 3) + "/"
+    gen x = _N - _n
+    gen y = _n / 2
+    gen r = runiform()
+    sort r
+    drop r
+
+    preserve
+        greshape long st(.+)ub (foo|alice)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+        greshape wide st@ub foobar ali9ce*bob, by(bykey) j(j)
+        greshape long st(.+)ub (foo|ali9ce)([0-9]+)(bar|bob)/2, by(bykey) j(j) match(regex)
+    restore, preserve
+        if ( `c(stata_version)' >= 14 ) {
+            greshape long (?<=st).+(?=ub) (?<=(foo|ali\d{0,5}ce))(\d+)(?=(bar|bob)), by(bykey) j(j) match(ustrregex)
+            greshape wide stub foo@bar ali9ce@bob, by(bykey) j(j)
+        }
+    restore
 end
 
 ***********************************************************************

@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.4.1"
+#define GTOOLS_VERSION "1.5.0"
 
 /*
  * Style
@@ -73,6 +73,9 @@ struct StataInfo {
     GT_size   ctolerance;
     GT_size   gfile_byvar;
     GT_size   gfile_bycol;
+    GT_size   gfile_bynum;
+    GT_size   gfile_topnum;
+    GT_size   gfile_topmat;
     //
     GT_size   biject;
     GT_size   encode;
@@ -84,13 +87,18 @@ struct StataInfo {
     ST_double top_ntop;
     ST_double top_pct;
     ST_double top_freq;
+    GT_bool   top_matasave;
+    GT_bool   top_invert;
+    GT_bool   top_alpha;
     GT_bool   top_other;
     GT_bool   top_miss;
     GT_bool   top_groupmiss;
     GT_size   top_lother;
     GT_size   top_lmiss;
+    GT_size   top_nrows;
     //
     GT_bool   levels_return;
+    GT_bool   levels_matasave;
     GT_size   levels_gen;
     GT_bool   levels_replace;
     //

@@ -1,9 +1,391 @@
-cap mata: mata drop GtoolsReadMatrix()
 cap mata: mata drop GtoolsResults()
+cap mata: mata drop GtoolsByLevels()
+
+cap mata: mata drop GtoolsReadMatrix()
 cap mata: mata drop GtoolsDecodeStat()
 cap mata: mata drop GtoolsDecodePth()
 cap mata: mata drop GtoolsSmartLevels()
 cap mata: mata drop GtoolsPrintfSwitch()
+
+cap mata: mata drop GtoolsGtopPrintTop()
+cap mata: mata drop GtoolsGtopUnquote()
+
+***********************************************************************
+*                     Gtools by levels (generic)                      *
+***********************************************************************
+
+mata:
+class GtoolsByLevels
+{
+    real     scalar      anyvars
+    real     scalar      anychar
+    real     scalar      anynum
+    string   rowvector   byvars
+    real     scalar      kby
+    real     scalar      rowbytes
+    real     scalar      J
+    real     matrix      numx
+    string   matrix      charx
+    real     scalar      knum
+    real     scalar      kchar
+    real     rowvector   lens
+    real     rowvector   map
+    real     rowvector   charpos
+    string   scalar      whoami
+    string   matrix      printed
+    real     matrix      toplevels
+    string   scalar      caller
+
+    void read()
+    void desc()
+    void getPrinted()
+}
+
+void function GtoolsByLevels::read(string scalar numfmt, real scalar valuelabels)
+{
+    real scalar fbyvar, fbycol
+    real scalar j, k, ixchar
+    real rowvector novlab
+    real scalar ncol
+    string scalar s
+    real scalar z
+    colvector C
+
+    byvars  = tokens(st_global("GTOOLS_BYNAMES"))
+    kby     = cols(byvars)
+    if ( kby > 0 ) {
+        anyvars = 1
+        fbycol  = fopen(st_global("GTOOLS_BYCOL_FILE"), "r")
+        C       = bufio()
+        anychar = fbufget(C, fbycol, "%8z", 1, 1)
+        anynum  = fbufget(C, fbycol, "%8z", 1, 1)
+        J       = fbufget(C, fbycol, "%8z", 1, 1)
+        printed = numfmt == ""? "": J(J, kby, "")
+        ncol    = fbufget(C, fbycol, "%8z", 1, 1)
+        if ( anychar ) {
+            rowbytes = fbufget(C, fbycol, "%8z", 1, 1)
+            knum     = fbufget(C, fbycol, "%8z", 1, 1)
+            kchar    = fbufget(C, fbycol, "%8z", 1, 1)
+            lens     = J(1, ncol - 1, .)
+            map      = J(1, ncol - 1, .)
+            charpos  = J(1, kchar, .)
+            for (k = 1; k < ncol; k++) {
+                lens[k] = fbufget(C, fbycol, "%8z", 1, 1)
+            }
+            for (k = 1; k < ncol; k++) {
+                map[k]  = fbufget(C, fbycol, "%8z", 1, 1)
+            }
+            ixchar = 0;
+            for (k = 1; k < ncol; k++) {
+                if ( lens[k] > 0 ) {
+                    ixchar++
+                    charpos[ixchar] = k
+                }
+            }
+        }
+        else {
+            rowbytes = 0
+            knum     = ncol - 1
+            kchar    = 0
+            lens     = .
+            map      = .
+            charpos  = . 
+        }
+        fclose(fbycol)
+
+        fbyvar = fopen(st_global("GTOOLS_BYVAR_FILE"), "r")
+        if ( anychar ) {
+            numx  = J(J, knum,  .)
+            charx = J(J, kchar, "")
+            if ( numfmt == "" ) {
+                for(j = 1; j <= J; j++) {
+                    for (k = 1; k < ncol; k++) {
+                        if ( lens[k] > 0 ) {
+                            charx[j, map[k]] = fbufget(C, fbyvar, sprintf("%%%gS", lens[k] + 1), 1)
+                        }
+                        else {
+                            numx[j, map[k]] = fbufget(C, fbyvar, "%8z", 1, 1)
+                        }
+                    }
+                    // ): note this assume sizeof(GT_size) = sizeof(ST_double)
+                    (void) fbufget(C, fbyvar, "%8z", 1, 1)
+                }
+                charx = subinstr(charx, char(0), "", .)
+            }
+            else {
+                novlab = J(1, ncol - 1, 1)
+                for (k = 1; k < ncol; k++) {
+                    if ( st_varvaluelabel(byvars[k]) != "" ) {
+                        novlab[k] = 0
+                    }
+                }
+                for(j = 1; j <= J; j++) {
+                    for (k = 1; k < ncol; k++) {
+                        if ( lens[k] > 0 ) {
+                            s = subinstr(fbufget(C, fbyvar, sprintf("%%%gS", lens[k] + 1), 1), char(0), "", .)
+                            printed[j, k]    = s
+                            charx[j, map[k]] = s
+                        }
+                        else {
+                            z = fbufget(C, fbyvar, "%8z", 1, 1)
+                            numx[j, map[k]] = z
+                            if ( novlab[k] ) {
+                                printed[j, k] = strtrim(sprintf(numfmt, z))
+                            }
+                            else {
+                                printed[j, k] = st_vlmap(st_varvaluelabel(byvars[k]), z)
+                            }
+                        }
+                    }
+                    // ): note this assume sizeof(GT_size) = sizeof(ST_double)
+                    (void) fbufget(C, fbyvar, "%8z", 1, 1)
+                }
+            }
+
+            // if ( anynum ) {
+            //     fbyvar = fopen(st_global("GTOOLS_BYVAR_FILE"), "r")
+            //     fbynum = fopen(st_global("GTOOLS_BYNUM_FILE"), "r")
+            //     numx   = fbufget(C, fbynum, "%8z", J, knum)
+            //     charx  = J(J, kchar, "")
+            //     for(j = 1; j <= J; j++) {
+            //         for (k = 1; k <= kchar; k++) {
+            //             charx[j, k] = fbufget(C, fbyvar, sprintf("%%%gS", lens[charpos[k]] + 1), 1)
+            //         }
+            //     }
+            //     charx = subinstr(charx, char(0), "", .)
+            //     fclose(fbyvar)
+            //     fclose(fbynum)
+            // }
+            // else {
+            //     fbyvar = fopen(st_global("GTOOLS_BYVAR_FILE"), "r")
+            //     charx  = J(J, ncol - 1, "")
+            //     for(j = 1; j <= J; j++) {
+            //         for (k = 1; k < ncol; k++) {
+            //             charx[j, k] = fbufget(C, fbyvar, sprintf("%%%gS", lens[k] + 1), 1)
+            //         }
+            //         (void) fbufget(C, fbyvar, "%8z", 1, 1)
+            //     }
+            //     charx = subinstr(charx, char(0), "", .)
+            //     fclose(fbyvar)
+            // }
+
+        }
+        else {
+            numx  = fbufget(C, fbyvar, "%8z", J, ncol)[., 1::(ncol - 1)]
+            charx = ""
+            if ( numfmt != "" ) {
+                if ( valuelabels ) {
+                    novlab = J(1, ncol - 1, 1)
+                    for (k = 1; k < ncol; k++) {
+                        if ( st_varvaluelabel(byvars[k]) != "" ) {
+                            printed[., k] = st_vlmap(st_varvaluelabel(byvars[k]), numx[., k])
+                            novlab[k] = 0
+                        }
+                    }
+                    for(j = 1; j <= J; j++) {
+                        for (k = 1; k < ncol; k++) {
+                            if ( novlab[k] ) {
+                                printed[j, k] = strtrim(sprintf(numfmt, numx[j, k]))
+                            }
+                        }
+                    }
+                }
+                else {
+                    for(j = 1; j <= J; j++) {
+                        for (k = 1; k < ncol; k++) {
+                            printed[j, k] = strtrim(sprintf(numfmt, numx[j, k]))
+                        }
+                    }
+                }
+            }
+        }
+        fclose(fbyvar)
+    }
+    else {
+        anyvars   = 0
+        anychar   = .
+        anynum    = .
+        rowbytes  = 0
+        J         = 1
+        numx      = .
+        charx     = ""
+        knum      = .
+        kchar     = .
+        lens      = .
+        map       = .
+        charpos   = .
+        printed   = ""
+        toplevels = .
+    }
+}
+
+void function GtoolsByLevels::desc()
+{
+    string matrix printstr
+    real scalar i, j
+    real rowvector printlens
+    string rowvector printfmts
+
+    printstr = J((anyvars? (12 + (caller == "gtop")): 1), 3, " ")
+    printstr[1, 1] = "object"
+    printstr[1, 2] = "value"
+    printstr[1, 3] = "description"
+
+    if ( anyvars ) {
+        printstr[3,  1] = "byvars"
+        printstr[4,  1] = "J"
+        printstr[5,  1] = "knum"
+        printstr[6,  1] = "numx"
+        printstr[7,  1] = "kchar"
+        printstr[8,  1] = "charx"
+        printstr[9,  1] = "map"
+        printstr[10, 1] = "lens"
+        printstr[11, 1] = "charpos"
+        printstr[12, 1] = "printed"
+        if ( caller == "gtop" ) {
+            printstr[13, 1] = "toplevels"
+        }
+
+        printstr[3,  2] = sprintf("1 x %g", cols(byvars))
+        printstr[4,  2] = sprintf("%g", J)
+        printstr[5,  2] = sprintf("%g", knum)
+        printstr[6,  2] = knum? sprintf("%g x %g matrix", rows(numx), cols(numx)): "[empty]"
+        printstr[7,  2] = sprintf("%g", kchar)
+        printstr[8,  2] = kchar? sprintf("%g x %g matrix", rows(charx), cols(charx)): "[empty]"
+        printstr[9,  2] = sprintf("1 x %g vector",  cols(map))
+        printstr[10, 2] = sprintf("1 x %g vector",  cols(lens))
+        printstr[11, 2] = sprintf("1 x %g vector",  cols(charpos))
+        printstr[12, 2] = printed == ""? "[empty]": sprintf("%g x %g vector", rows(printed), cols(printed))
+        if ( caller == "gtop" ) {
+            printstr[13, 2] = sprintf("%g x 5 vector",  rows(toplevels))
+        }
+
+        printstr[3,  3] = "by variable names"
+        printstr[4,  3] = "number of levels"
+        printstr[5,  3] = "# numeric by variables"
+        printstr[6,  3] = "numeric by var levels"
+        printstr[7,  3] = "# of string by variables"
+        printstr[8,  3] = "character by var levels"
+        printstr[9,  3] = "map by vars index to numx and charx"
+        printstr[10, 3] = "if string, > 0; if numeric, <= 0"
+        printstr[11, 3] = "position of kth character variable"
+        printstr[12, 3] = "formatted (printf-ed) variable levels"
+        if ( caller == "gtop" ) {
+            printstr[13, 3] = "frequencies of top levels"
+        }
+
+        printlens      = colmax(strlen(printstr))
+        printfmts      = J(1, 3, "")
+        printstr[2, 1] = sprintf("{hline %g}", printlens[1])
+        printstr[2, 2] = sprintf("{hline %g}", printlens[2])
+        printstr[2, 3] = sprintf("{hline %g}", printlens[3])
+        printfmts[1]   = sprintf("%%-%gs", printlens[1])
+        printfmts[2]   = sprintf("%%%gs",  printlens[2])
+        printfmts[3]   = sprintf("%%-%gs", printlens[3])
+
+        printf("\n")
+        printf("    %s is a class object with group levels\n", whoami)
+        printf("\n")
+        for(i = 1; i <= rows(printstr); i++) {
+            printf("        | ")
+            if ( i == 2 ) {
+                for(j = 1; j <= cols(printstr); j++) {
+                    printf(printstr[i, j])
+                    printf(" | ")
+                }
+            }
+            else {
+                for(j = 1; j <= cols(printstr); j++) {
+                    printf(printfmts[j], printstr[i, j])
+                    printf(" | ")
+                }
+            }
+                printf("\n")
+        }
+        printf("\n")
+
+        if ( (rows(toplevels) > J) & (caller == "gtop") ) {
+            printf("    toplevels value key (column 1):\n")
+            printf("\n")
+            printf("        1 = top level(s) frequency\n")
+            printf("        2 = missing level(s) frequency\n")
+            printf("        3 = frequency for all other levels\n")
+            printf("\n")
+        }
+    }
+    else {
+        printf("\n")
+        printf("    %s is a class object to store group levels; it is currently empty.\n", whoami)
+        printf("\n")
+    }
+}
+
+void function GtoolsByLevels::getPrinted(string scalar numfmt, real scalar valuelabels)
+{
+    real rowvector novlab
+    real scalar j, k
+
+    if ( numfmt == "" ) {
+        printf("nothing to do\n")
+    }
+    else if ( kby > 0 ) {
+        printed = J(J, kby, "")
+        if ( anychar ) {
+            novlab = J(1, kby, 1)
+            for (k = 1; k <= kby; k++) {
+                if ( st_varvaluelabel(byvars[k]) != "" ) {
+                    novlab[k] = 0
+                }
+            }
+            for(j = 1; j <= J; j++) {
+                for (k = 1; k <= kby; k++) {
+                    if ( lens[k] > 0 ) {
+                        printed[j, k] = charx[j, map[k]]
+                    }
+                    else {
+                        if ( novlab[k] ) {
+                            printed[j, k] = strtrim(sprintf(numfmt, numx[j, map[k]]))
+                        }
+                        else {
+                            printed[j, k] = st_vlmap(st_varvaluelabel(byvars[k]), numx[j, map[k]])
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            if ( valuelabels ) {
+                novlab = J(1, kby, 1)
+                for (k = 1; k <= kby; k++) {
+                    if ( st_varvaluelabel(byvars[k]) != "" ) {
+                        printed[., k] = st_vlmap(st_varvaluelabel(byvars[k]), numx[., k])
+                        novlab[k] = 0
+                    }
+                }
+                for(j = 1; j <= J; j++) {
+                    for (k = 1; k <= kby; k++) {
+                        if ( novlab[k] ) {
+                            printed[j, k] = strtrim(sprintf(numfmt, numx[j, k]))
+                        }
+                    }
+                }
+            }
+            else {
+                for(j = 1; j <= J; j++) {
+                    for (k = 1; k <= kby; k++) {
+                        printed[j, k] = strtrim(sprintf(numfmt, numx[j, k]))
+                    }
+                }
+            }
+        }
+        printf("note: printed levels stored in %s.printed\n", whoami)
+    }
+}
+end
+
+***********************************************************************
+*                   Gtools results (for gstats tab)                   *
+***********************************************************************
 
 mata:
 class GtoolsResults
@@ -37,6 +419,7 @@ class GtoolsResults
     string   scalar      dfmt
     real     scalar      maxl
     real     scalar      nosep
+    string   scalar      whoami
 
     void                 help()
     void                 desc()
@@ -237,17 +620,16 @@ string scalar function GtoolsResults::getf(
 }
 
 real matrix function GtoolsResults::getnum(
-    real colvector j,
-    real scalar l)
+    real vector j,
+    real vector l)
 {
-    real scalar ix
     if ( anyvars == 0 | kby == 0 ) {
         errprintf("no by variables stored\n")
         return(.);
     }
     else {
-        if ( l > knum ) {
-            errprintf("requested %gth nuemric variable but only found %g\n", l, knum)
+        if ( max(l) > knum & max(l) < . ) {
+            errprintf("requested %gth nuemric variable but only found %g\n", max(l), knum)
             return(.)
         }
         return(numx[j, l])
@@ -255,8 +637,8 @@ real matrix function GtoolsResults::getnum(
 }
 
 string matrix function GtoolsResults::getchar(
-    real colvector j,
-    real scalar l,
+    real vector j,
+    real vector l,
     | real scalar raw)
 {
     if ( args() == 2 ) {
@@ -268,8 +650,8 @@ string matrix function GtoolsResults::getchar(
     }
     else {
         if ( anychar ) {
-            if ( l > kchar ) {
-                errprintf("requested %gth string variable but only found %g\n", l, kchar)
+            if ( max(l) > kchar & max(l) < . ) {
+                errprintf("requested %gth string variable but only found %g\n", max(l), kchar)
                 return("")
             }
             else {
@@ -350,12 +732,16 @@ real matrix function GtoolsResults::getOutputVar(string scalar var)
     }
 }
 
-void function GtoolsResults::printOutput()
+void function GtoolsResults::printOutput(| real scalar commas)
 {
     string scalar vfmt, fmt, var
     real scalar nrow, j, k, l, sel, width, widthrow
     string matrix printstr
     real colvector extrasep
+
+    if ( args() == 0 ) {
+        commas = 1
+    }
 
     if ( tabstat == 0 ) {
         errprintf("Helpers only available with tabstat\n")
@@ -387,13 +773,13 @@ void function GtoolsResults::printOutput()
                 for(l = 1; l <= ksources; l++) {
                     vfmt = pool? dfmt: (usevfmt? st_varformat(statvars[l]): dfmt)
                     printstr[sel + 1, kby + 1 + l] = GtoolsPrintfSwitch( /*
-                        */ vfmt, dfmt, maxl, scodes[k], output[sel, l])
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, l], commas)
                 }
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2
-        // * (kby == 0)
+        // widthrow = sum(width) + 3 + 2
+        widthrow = sum(width) + 3 + 2 * ((kstats > 1) | (J == 1)) + ksources
 
         // Now print!
         if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
@@ -415,7 +801,7 @@ void function GtoolsResults::printOutput()
             }
             printf(" | ")
             for(k = 1; k <= ksources; k++) {
-                fmt = sprintf("%%%gs", width[kby + 1 + k])
+                fmt = sprintf(" %%%gs", width[kby + 1 + k])
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
@@ -454,12 +840,13 @@ void function GtoolsResults::printOutput()
                 printstr[sel + 1, kby + 1] = var
                 for(k = 1; k <= kstats; k++) {
                     printstr[sel + 1, kby + 1 + k] = GtoolsPrintfSwitch( /*
-                        */ vfmt, dfmt, maxl, scodes[k], output[sel, k])
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, k], commas)
                 }
             }
         }
         width    = colmax(strlen(printstr)) :+ 1
-        widthrow = sum(width) + 3 + 2
+        // widthrow = sum(width) + 3 + 2 * (1 - ((kby > 0) & (ksources == 1)))
+        widthrow = sum(width) + 3 + 2 * ((ksources > 1) | (J == 1)) + kstats
 
         // Now print!
         if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
@@ -481,7 +868,7 @@ void function GtoolsResults::printOutput()
             }
             printf(" | ")
             for(k = 1; k <= kstats; k++) {
-                fmt = sprintf("%%%gs", width[kby + 1 + k])
+                fmt = sprintf(" %%%gs", width[kby + 1 + k])
                 printf(fmt, printstr[sel, kby + 1 + k])
             }
             printf("\n")
@@ -512,7 +899,7 @@ void function GtoolsResults::help(|real scalar level)
     }
 
     if ( level != 2 ) {
-    printf("GstatsOutput is a class object with group levels and summary statistics\n")
+    printf("%s is a class object with group levels and summary statistics\n", whoami)
     printf("\n")
     }
 
@@ -727,12 +1114,10 @@ void function GtoolsResults::help(|real scalar level)
 void function GtoolsResults::desc()
 {
     string matrix printstr
-    real scalar nr, nc, or, i, j
+    real scalar or, i, j
     real rowvector printlens
     string rowvector printfmts
 
-    nr = rows(output)
-    nc = cols(output)
     or = 8 + (tabstat > 0) + (pool > 0)
 
     printstr = J(or + (anyvars? 8: 0), 3, " ")
@@ -819,7 +1204,7 @@ void function GtoolsResults::desc()
     printfmts[3]   = sprintf("%%-%gs", printlens[3])
 
     printf("\n")
-    printf("    GstatsOutput is a class object with group levels and summary statistics\n")
+    printf("    %s is a class object with group levels and summary statistics\n", whoami)
     printf("\n")
     for(i = 1; i <= rows(printstr); i++) {
         printf("        | ")
@@ -858,8 +1243,8 @@ real matrix function GtoolsReadMatrix(
     real matrix X
     colvector C
     fh = fopen(fname, "r")
-    C = bufio()
-    X = fbufget(C, fh, "%8z", nrow, ncol)
+    C  = bufio()
+    X  = fbufget(C, fh, "%8z", nrow, ncol)
     fclose(fh)
     return (X)
 }
@@ -956,10 +1341,10 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
         if ( scode > 1000 ) {
             sth = floor(scode) - 1000
             if ( floor(scode) == ceil(scode) ) {
-                return(sprintf("select-%g", sth))
+                return(sprintf("select%g", sth))
             }
             else {
-                return(sprintf("rawselect-%g", sth))
+                return(sprintf("rawselect%g", sth))
             }
         }
         else if ( scode < -1000 ) {
@@ -1041,12 +1426,21 @@ string scalar function GtoolsPrintfSwitch(
     string scalar dfmt,
     real scalar maxl,
     real scalar scode,
-    real scalar x)
+    real scalar x,
+    | real scalar commas)
 {
+    if ( args() == 0 ) {
+        commas = 0
+    }
     string scalar s
     if (scode == -6 | scode == -22 | scode == -206) {
         if (x == round(x)) {
-            s = sprintf(vfmt, x)
+            if ( commas ) {
+                s = strtrim(sprintf("%25.0gc", x))
+            }
+            else {
+                s = sprintf(vfmt, x)
+            }
         }
         else {
             s = sprintf(dfmt, x)
@@ -1059,5 +1453,331 @@ string scalar function GtoolsPrintfSwitch(
         }
     }
     return(s)
+}
+end
+
+***********************************************************************
+*                            gtop helpers                             *
+***********************************************************************
+
+mata:
+void function GtoolsGtopPrintTop(
+    real scalar kvars,
+    string rowvector abbrevlist,
+    real matrix gmat,
+    real matrix nmat,
+    string matrix printed,
+    real scalar matasave)
+{
+    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
+    real scalar nmap, knum, kstr, valabbrev, weights
+    real scalar pctlen, wlen, dlen
+    real colvector si_miss, si_other, fmtix
+    real rowvector gstrmax, gnummax, colstrmax, colnummax, colmax
+    string matrix grows, gparse
+    string colvector _grows, gprint, fmtbak
+    string rowvector gcomp, gstrfmt, gnumfmt, byvars, bynum, bystr
+    string scalar sepfmt, ghead, headfmt, mlab, olab
+    string scalar pctfmt, ppctfmt, cpctfmt, numvar, strvar
+    string scalar levels, sep, colsep
+    transmorphic t
+
+    // Done here because if these have embedded characters the parsing
+    // gets tripped up...
+
+    levels = st_global("r(levels)")
+    sep    = st_global("r(sep)")
+    colsep = st_global("r(colsep)")
+
+    weights = st_local("weights") != ""
+    pctfmt  = st_local("pctfmt")
+    if ( regexm(pctfmt, "%([0-9]+)\.([0-9]+)") ) {
+        wlen   = strtoreal(regexs(1))
+        dlen   = strtoreal(regexs(2)) + 4
+        pctlen = wlen > dlen? wlen: dlen;
+    }
+    else {
+        pctlen = 5
+    }
+
+    ppctfmt = pctlen > 8?  " %" + strofreal(pctlen) + "s ": " %8s "
+    cpctfmt = pctlen > 12? " %" + strofreal(pctlen) + "s ": " %12s "
+
+    if (    sep == "" )    sep = " "
+    if ( colsep == "" ) colsep = " "
+
+    nmap   = (st_local("valuelabels") == "")
+    byvars = tokens(st_local("byvars"))
+    bynum  = tokens(st_local("bynum"))
+    bystr  = tokens(st_local("bystr"))
+
+    knum   = cols(bynum)
+    kstr   = cols(bystr)
+
+    ntop   = sum(gmat[., 1] :== 1)
+    nrows  = sum(gmat[., 1] :!= 0)
+
+    if ( nrows > 0 ) {
+        gmat   = gmat[selectindex(gmat[., 1] :!= 0), .]
+        gcomp  = J(1, kvars, "")
+        gparse = J(rows(gmat), 2, "")
+        gprint = J(rows(gmat) + 1, 1, "")
+
+        if ( matasave == 0 ) {
+            grows = J(rows(gmat), kvars, "")
+            t = tokeninit(sep, (""), (`""""', `"`""'"'), 1)
+            tokenset(t, levels)
+
+            if ( ntop > 0 ) {
+                _grows = tokengetall(t)
+                for (i = 1; i <= cols(_grows); i++) {
+                    _grows[i] = GtoolsGtopUnquote(_grows[i]);
+                }
+
+                if ( kvars > 1 ) {
+                    t = tokeninit(colsep, (""), (`""""', `"`""'"'), 1)
+                    for (i = 1; i <= cols(_grows); i++) {
+                        tokenset(t, _grows[i])
+                        grows[i, .] = tokengetall(t)
+                        for (k = 1; k <= kvars; k++) {
+                            grows[i, k] = GtoolsGtopUnquote(grows[i, k])
+                        }
+                    }
+                }
+                else {
+                    grows[1::cols(_grows)] = _grows'
+                }
+
+                if ( (knum > 0) & (nmap) ) {
+                    nmat = nmat[1::ntop, .]
+                    for (k = 1; k <= knum; k++) {
+                        numvar = bynum[k]
+                        l = selectindex(byvars :== numvar)
+                        if ( st_varvaluelabel(numvar) != "" ) {
+                            fmtbak = grows[1::ntop, l]
+                            grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
+                            fmtix  = selectindex(grows[1::ntop, l] :== "")
+                            if ( rows(fmtix) > 0 ) {
+                                grows[fmtix, l] = fmtbak[fmtix]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            grows = printed
+        }
+
+        si_miss  = gmat[., 1] :== 2
+        si_other = gmat[., 1] :== 3
+
+        if ( st_local("hidecontlevels") != "" ) {
+            gallcomp = 0
+            for (k = 1; k <= kvars; k++) {
+                gcomp[k] = grows[1, k]
+            }
+
+            for (i = 2; i <= ntop; i++) {
+                if ( grows[i, 1] == gcomp[1] ) {
+                    grows[i, 1] = ""
+                    gallcomp    = 1
+                }
+                else {
+                    gcomp[1]    = grows[i, 1]
+                    gallcomp    = 0
+                }
+                for (k = 2; k <= kvars; k++) {
+                    if ( (grows[i, k] == gcomp[k]) & gallcomp ) {
+                        grows[i, k] = ""
+                    }
+                    else {
+                        gcomp[k] = grows[i, k]
+                        gallcomp = 0
+                    }
+                }
+            }
+        }
+
+        valabbrev = 0
+        if ( st_local("colmax") != "" ) {
+            colnummax = strtoreal(tokens(st_local("colmax")))
+            while ( cols(colnummax) < kvars ) {
+                colnummax = colnummax, colnummax[cols(colnummax)]
+            }
+            colmax    = colnummax
+            valabbrev = 1
+        }
+        else {
+            colmax    = J(1, kvars, .)
+            valabbrev = 0
+        }
+
+        if ( st_local("colstrmax") != "" ) {
+            colstrmax = strtoreal(tokens(st_local("colstrmax")))
+            while ( cols(colstrmax) < kstr ) {
+                colstrmax = colstrmax, colstrmax[cols(colstrmax)]
+            }
+            valabbrev = 1
+
+            for (k = 1; k <= kstr; k++) {
+                strvar    = bystr[k]
+                l         = selectindex(byvars :== strvar)
+                colmax[l] = colstrmax[k]
+            }
+        }
+
+        if ( valabbrev ) {
+            for (i = 1; i <= ntop; i++) {
+                for (k = 1; k <= kvars; k++) {
+                    if ( strlen(grows[i, k]) > colmax[k] ) {
+                        if ( colmax[k] > 0 ) {
+                            grows[i, k] = substr(grows[i, k], 1, colmax[k]) + "..."
+                        }
+                        else {
+                            grows[i, k] = ""
+                        }
+                    }
+                }
+            }
+        }
+
+        if ( weights ) {
+            for (i = 1; i <= rows(gmat); i++) {
+                gparse[i, 1] = strtrim(sprintf("%21.3gc", gmat[i, 2]))
+                gparse[i, 2] = strtrim(sprintf("%21.3gc", gmat[i, 3]))
+            }
+        }
+        else {
+            for (i = 1; i <= rows(gmat); i++) {
+                gparse[i, 1] = strtrim(sprintf("%21.0gc", gmat[i, 2]))
+                gparse[i, 2] = strtrim(sprintf("%21.0gc", gmat[i, 3]))
+            }
+        }
+
+        gnummax = (colmax(strlen(gparse)))
+        if ( any(gnummax :< 3) ) {
+            gnummax[selectindex(gnummax :< 3)] = J(1, sum(gnummax :< 3), 3)
+        }
+
+        gstrmax = (colmax(strlen(grows)))
+        for (k = 1; k <= kvars; k++) {
+            gstrmax[k] = max((gstrmax[k], strlen(abbrevlist[k])))
+        }
+
+        minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+        if ( minstrlen < 6 ) {
+            gstrmax[1] = 6 - (sum(gstrmax) + kvars - 1) + gstrmax[1]
+        }
+
+        mlab = st_local("missrowlabel")
+        olab = st_local("otherlabel")
+        if ( any(si_miss) ) {
+            minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( minstrlen < strlen(mlab) ) {
+                gstrmax[1] = strlen(mlab) - minstrlen + gstrmax[1]
+            }
+        }
+        if ( any(si_other) ) {
+            minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( minstrlen < strlen(olab) ) {
+                gstrmax[1] = strlen(olab) - minstrlen + gstrmax[1]
+            }
+        }
+
+        gstrfmt = " %" :+ strofreal(gstrmax) :+ "s"
+        gnumfmt = " %" :+ strofreal(gnummax) :+ "s "
+        sepfmt  = "%"  + strofreal(strlen(colsep)) + "s"
+
+        for (i = 1; i <= ntop; i++) {
+            gprint[i] = sprintf(gstrfmt[1], grows[i, 1])
+            for (k = 2; k <= kvars; k++) {
+                if ( (grows[i, k - 1] == "") | (i > ntop) ) {
+                    gprint[i] = gprint[i] + sprintf(sepfmt + gstrfmt[k], "", grows[i, k])
+                }
+                else {
+                    gprint[i] = gprint[i] + sprintf(sepfmt + gstrfmt[k], colsep, grows[i, k])
+                }
+            }
+            gprint[i] = gprint[i] + " | "
+            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
+            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
+            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
+            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
+        }
+
+        i = ntop + 1;
+        minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+        headfmt   = " %" + strofreal(minstrlen) + "s"
+        if ( any(si_miss) ) {
+            gprint[i] = sprintf(headfmt, mlab)
+            gprint[i] = gprint[i] + " | "
+            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
+            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
+            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
+            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
+            ++i;
+        }
+
+        if ( any(si_other) ) {
+            gprint[i] = sprintf(headfmt, olab)
+            gprint[i] = gprint[i] + " | "
+            gprint[i] = gprint[i] + sprintf(gnumfmt[1], gparse[i, 1])
+            gprint[i] = gprint[i] + sprintf(gnumfmt[2], gparse[i, 2])
+            gprint[i] = gprint[i] + sprintf(ppctfmt, sprintf(pctfmt, gmat[i, 4]))
+            gprint[i] = gprint[i] + sprintf(cpctfmt, sprintf(pctfmt, gmat[i, 5]))
+        }
+
+        ghead = sprintf(gstrfmt[1], abbrevlist[1])
+        for (k = 2; k <= kvars; k++) {
+            ghead = ghead + sprintf(sepfmt + gstrfmt[k], colsep, abbrevlist[k])
+        }
+        ghead   = ghead + " | "
+        ghead   = ghead + sprintf(gnumfmt[1], weights? "W": "N")
+        ghead   = ghead + sprintf(gnumfmt[2], "Cum")
+        ghead   = ghead + sprintf(ppctfmt,    "Pct (%)")
+        ghead   = ghead + sprintf(cpctfmt,    "Cum Pct (%)")
+
+        len = sum(gstrmax) +
+              sum(gnummax) + 2 +
+              kvars + 9 +
+              (kvars - 1) * strlen(colsep) +
+              20
+        headfmt = " %" + strofreal(len) + "s\n"
+
+        printf("\n")
+        printf(headfmt, ghead)
+        printf(sprintf(" {hline %g}\n", len + max((0, 2 * pctlen - 20))))
+        for (i = 1; i <= ntop; i++) {
+            printf(headfmt, gprint[i])
+        }
+
+        if ( any(si_miss) | any(si_other) ) {
+            printf(sprintf(" {hline %g}\n", len + max((0, 2 * pctlen - 20))))
+            for (i = (ntop + 1); i <= rows(gprint); i++) {
+                printf(headfmt, gprint[i])
+            }
+        }
+
+        printf("\n")
+    }
+    else {
+        printf("(no groups)\n")
+    }
+
+    if ( matasave == 0 ) {
+        st_matrix(st_local("gmat"), gmat)
+    }
+}
+
+string scalar function GtoolsGtopUnquote(string scalar quoted_str)
+{
+    if ( substr(quoted_str, 1, 1) == `"""' ) {
+        quoted_str = substr(quoted_str, 2, strlen(quoted_str) - 2)
+    }
+    else if (substr(quoted_str, 1, 2) == "`" + `"""') {
+        quoted_str = substr(quoted_str, 3, strlen(quoted_str) - 4)
+    }
+    return (quoted_str);
 }
 end

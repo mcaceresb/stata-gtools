@@ -100,10 +100,10 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     // The variables passed to the plugin are i, jcode, and xij.
 
     GT_size *xitypes  = st_info->greshape_xitypes;
-    GT_size *xiinvert = calloc(kextra,     sizeof(xiinvert));
-    GT_size *xipos    = calloc(kextra,     sizeof(xipos));
-    GT_size *outpos   = calloc(kxij + kxi, sizeof(outpos));
-    GT_size *outtyp   = calloc(kxij + kxi, sizeof(outtyp));
+    GT_size *xiinvert = calloc(kextra,     sizeof *xiinvert);
+    GT_size *xipos    = calloc(kextra,     sizeof *xipos);
+    GT_size *outpos   = calloc(kxij + kxi, sizeof *outpos);
+    GT_size *outtyp   = calloc(kxij + kxi, sizeof *outtyp);
     GT_size *offset   = calloc(J,          sizeof *offset);
     GT_size *nj       = calloc(J + 1,      sizeof *nj);
     GT_size *index_st = calloc(Nread,      sizeof *index_st);
@@ -118,10 +118,10 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
 
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
-        jdbl = calloc(1, sizeof(jdbl));
+        jdbl = calloc(1, sizeof *jdbl);
     }
     else {
-        jdbl = calloc(klevels, sizeof jdbl);
+        jdbl = calloc(klevels, sizeof *jdbl);
     }
 
     srcbytes = sizeof(ST_double);
@@ -164,7 +164,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     }
     else {
         outstr = malloc(sizeof(char));
-        outdbl = calloc(J * krow, sizeof outdbl);
+        outdbl = calloc(J * krow, sizeof *outdbl);
     }
 
     srcbytes = GTOOLS_PWMAX(srcbytes, 1);
@@ -175,7 +175,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
     }
     else {
         bufstr = malloc(sizeof(char));
-        bufdbl = calloc(Nread * ksources, sizeof bufdbl);
+        bufdbl = calloc(Nread * ksources, sizeof *bufdbl);
     }
 
     if ( outdbl   == NULL ) return(sf_oom_error("sf_reshape_wide", "outdbl"));
@@ -377,7 +377,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                     quicksort_bsd (
                         bufdbl + start * ksources,
                         end - start,
-                        ksources * sizeof(bufdbl),
+                        ksources * (sizeof *bufdbl),
                         xtileCompare,
                         NULL
                     );
@@ -438,7 +438,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                     quicksort_bsd (
                         bufdbl + start * ksources,
                         end - start,
-                        ksources * sizeof(bufdbl),
+                        ksources * (sizeof *bufdbl),
                         xtileCompare,
                         NULL
                     );
@@ -507,7 +507,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
                 quicksort_bsd (
                     bufdbl + start * ksources,
                     end - start,
-                    ksources * sizeof(bufdbl),
+                    ksources * (sizeof *bufdbl),
                     xtileCompare,
                     NULL
                 );
@@ -823,7 +823,7 @@ ST_retcode sf_reshape_wide (struct StataInfo *st_info, int level, char *fname)
         rc = (fwrite(outstr, outbytes, J, fhandle) != J);
     }
     else {
-        rc = (fwrite(outdbl, sizeof(outdbl), J * krow, fhandle) != J * krow);
+        rc = (fwrite(outdbl, sizeof *outdbl, J * krow, fhandle) != J * krow);
     }
     fclose (fhandle);
 
@@ -934,9 +934,9 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     char ReS_jfile[st_info->greshape_jfile];
 
     GT_size *xitypes  = st_info->greshape_xitypes;
-    GT_size *xipos    = calloc(GTOOLS_PWMAX(kxi, 1), sizeof(xipos));
-    GT_size *outpos   = calloc(kout + kxi + 1, sizeof(outpos));
-    GT_size *outtyp   = calloc(kout + kxi + 1, sizeof(outtyp));
+    GT_size *xipos    = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xipos);
+    GT_size *outpos   = calloc(kout + kxi + 1, sizeof *outpos);
+    GT_size *outtyp   = calloc(kout + kxi + 1, sizeof *outtyp);
     GT_size *index_st = calloc(Nread, sizeof *index_st);
     GT_size *maplevel = st_info->greshape_maplevel;
 
@@ -947,10 +947,10 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
-        jdbl = calloc(1, sizeof(jdbl));
+        jdbl = calloc(1, sizeof *jdbl);
     }
     else {
-        jdbl = calloc(klevels, sizeof jdbl);
+        jdbl = calloc(klevels, sizeof *jdbl);
     }
 
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
@@ -961,7 +961,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     }
     else {
         outstr = malloc(sizeof(char));
-        outdbl = calloc(Nread * klevels * krow, sizeof outdbl);
+        outdbl = calloc(Nread * klevels * krow, sizeof *outdbl);
     }
 
     xipos[0] = xibytes = 0;
@@ -979,7 +979,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     xibytes = GTOOLS_PWMAX(xibytes, 1);
     xistr   = calloc(1, xibytes);
-    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof xidbl);
+    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xidbl);
     memset(xistr, '\0', xibytes);
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_long", "outdbl"));
@@ -1003,7 +1003,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     if ( (rc = SF_macro_use("ReS_jfile", ReS_jfile, st_info->greshape_jfile) )) goto exit;
     fhandle = fopen(ReS_jfile, "rb");
     if ( st_info->greshape_str == 0 ) {
-        rc = fread(jdbl, sizeof(jdbl), klevels, fhandle) != klevels;
+        rc = fread(jdbl, sizeof *jdbl, klevels, fhandle) != klevels;
     }
     fclose (fhandle);
 
@@ -1348,7 +1348,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         rc = (fwrite(outstr, outbytes, Nread * klevels, fhandle) != (Nread * klevels));
     }
     else {
-        rc = (fwrite(outdbl, sizeof(outdbl), Nread * klevels * krow, fhandle) != (Nread * klevels * krow));
+        rc = (fwrite(outdbl, sizeof *outdbl, Nread * klevels * krow, fhandle) != (Nread * klevels * krow));
     }
     fclose (fhandle);
 
@@ -1420,10 +1420,10 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
         sf_printf_debug("\tN:     "GT_size_cfmt"\n", N);
     }
 
-    GT_size *allpos  = calloc(krow,  sizeof(allpos));
-    GT_size *alltyp  = calloc(krow,  sizeof(alltyp));
-    GT_size *outpos  = calloc(kread, sizeof(outpos));
-    GT_size *outtyp  = calloc(kread, sizeof(outtyp));
+    GT_size *allpos  = calloc(krow,  sizeof *allpos);
+    GT_size *alltyp  = calloc(krow,  sizeof *alltyp);
+    GT_size *outpos  = calloc(kread, sizeof *outpos);
+    GT_size *outtyp  = calloc(kread, sizeof *outtyp);
     GT_size outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
 
     for (k = 0; k < kvars; k++) {
@@ -1450,7 +1450,7 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
     }
     else {
         outstr = malloc(sizeof(char));
-        outdbl = calloc(N * krow, sizeof outdbl);
+        outdbl = calloc(N * krow, sizeof *outdbl);
     }
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_read", "outdbl"));
@@ -1469,7 +1469,7 @@ ST_retcode sf_reshape_read (struct StataInfo *st_info, int level, char *fname)
         }
     }
     else {
-        if ( fread(outdbl, sizeof(outdbl), krow * N, fhandle) != (krow * N) ) {
+        if ( fread(outdbl, sizeof *outdbl, krow * N, fhandle) != (krow * N) ) {
             rc = 198;
             goto exit;
         }

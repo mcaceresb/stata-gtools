@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Feb 24 17:55:04 EST 2019
+* Updated: Sun Mar 24 11:29:41 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.4.1
+* Version: 1.5.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -100,8 +100,8 @@ program main
             unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
             unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
             unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))

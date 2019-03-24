@@ -158,6 +158,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opt s:tring}} Whether to allow for string matches to each {it:stub}
 {p_end}
+{synopt :{opt match(str)}} Where to match levels of {opt keys()} in stub (default {opt @}). Use {opt match(regex)} for complex matches.
+{p_end}
 
 {syntab :Wide}
 {synopt :* {opth by(varlist)}} use {it:varlist} as the ID variables (alias {opt i()}).
@@ -165,6 +167,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with stub suffixes (alias {opt j()}).
 {p_end}
 {synopt :{opth cols:epparate(str)}} Column separator when multiple variables are passed to {opt keys()}.
+{p_end}
+{synopt :{opt match(str)}} Where to replace levels of {opt keys()} in stub (default {opt @}).
 {p_end}
 
 {syntab :Common long and wide options}

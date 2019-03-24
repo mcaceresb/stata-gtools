@@ -86,10 +86,10 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     char ReS_jfile[st_info->greshape_jfile];
 
     char      *bufstr   = malloc(st_info->rowbytes);
-    ST_double *bufdbl   = calloc(kvars, sizeof bufdbl);
-    GT_size   *xipos    = calloc(GTOOLS_PWMAX(kxi, 1), sizeof(xipos));
-    GT_size   *outpos   = calloc(kout + kxi + 1, sizeof(outpos));
-    GT_size   *outtyp   = calloc(kout + kxi + 1, sizeof(outtyp));
+    ST_double *bufdbl   = calloc(kvars, sizeof *bufdbl);
+    GT_size   *xipos    = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xipos);
+    GT_size   *outpos   = calloc(kout + kxi + 1, sizeof *outpos);
+    GT_size   *outtyp   = calloc(kout + kxi + 1, sizeof *outtyp);
     GT_size   *maplevel = st_info->greshape_maplevel;
 
     if ( xipos  == NULL ) return(sf_oom_error("sf_reshape_flong", "xipos"));
@@ -99,10 +99,10 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
 
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
-        jdbl = calloc(1, sizeof(jdbl));
+        jdbl = calloc(1, sizeof *jdbl);
     }
     else {
-        jdbl = calloc(klevels, sizeof jdbl);
+        jdbl = calloc(klevels, sizeof *jdbl);
     }
 
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
@@ -113,7 +113,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     }
     else {
         outstr = malloc(sizeof(char));
-        outdbl = calloc(N * klevels * krow, sizeof outdbl);
+        outdbl = calloc(N * klevels * krow, sizeof *outdbl);
     }
 
     xipos[0] = xibytes = 0;
@@ -131,7 +131,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
 
     xibytes = GTOOLS_PWMAX(xibytes, 1);
     xistr   = calloc(1, xibytes);
-    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof xidbl);
+    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xidbl);
     memset(xistr, '\0', xibytes);
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_flong", "outdbl"));
@@ -155,7 +155,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     if ( (rc = SF_macro_use("ReS_jfile", ReS_jfile, st_info->greshape_jfile) )) goto exit;
     fhandle = fopen(ReS_jfile, "rb");
     if ( st_info->greshape_str == 0 ) {
-        rc = fread(jdbl, sizeof(jdbl), klevels, fhandle) != klevels;
+        rc = fread(jdbl, sizeof *jdbl, klevels, fhandle) != klevels;
     }
     fclose (fhandle);
 
@@ -490,7 +490,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         rc = (fwrite(outstr, outbytes, N * klevels, fhandle) != (N * klevels));
     }
     else {
-        rc = (fwrite(outdbl, sizeof(outdbl), N * klevels * krow, fhandle) != (N * klevels * krow));
+        rc = (fwrite(outdbl, sizeof *outdbl, N * klevels * krow, fhandle) != (N * klevels * krow));
     }
     fclose (fhandle);
 

@@ -3,52 +3,115 @@ program checks_toplevelsof
     syntax, [tol(real 1e-6) NOIsily *]
     di _n(1) "{hline 80}" _n(1) "checks_toplevelsof, `options'" _n(1) "{hline 80}" _n(1)
 
-    qui `noisily' gen_data, n(50)
-    qui expand 200
-    gen long ix = _n
+    qui {
+        qui `noisily' gen_data, n(50)
+        qui expand 200
+        gen long ix = _n
 
-    checks_inner_toplevelsof -str_12,              `options'
-    checks_inner_toplevelsof str_12 -str_32,       `options'
-    checks_inner_toplevelsof str_12 -str_32 str_4, `options'
+        checks_inner_toplevelsof -str_12,              `options'
+        checks_inner_toplevelsof str_12 -str_32,       `options'
+        checks_inner_toplevelsof str_12 -str_32 str_4, `options'
 
-    checks_inner_toplevelsof -double1,                 `options'
-    checks_inner_toplevelsof double1 -double2,         `options'
-    checks_inner_toplevelsof double1 -double2 double3, `options'
+        checks_inner_toplevelsof -double1,                 `options'
+        checks_inner_toplevelsof double1 -double2,         `options'
+        checks_inner_toplevelsof double1 -double2 double3, `options'
 
-    checks_inner_toplevelsof -int1,           `options'
-    checks_inner_toplevelsof int1 -int2,      `options'
-    checks_inner_toplevelsof int1 -int2 int3, `options'
+        checks_inner_toplevelsof -int1,           `options'
+        checks_inner_toplevelsof int1 -int2,      `options'
+        checks_inner_toplevelsof int1 -int2 int3, `options'
 
-    checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
-    checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
+        checks_inner_toplevelsof -int1 -str_32 -double1,                                         `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2,                     `options'
+        checks_inner_toplevelsof int1 -str_32 double1 -int2 str_12 -double2 int3 -str_4 double3, `options'
 
-    if ( `c(stata_version)' >= 14.1 ) {
-        local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        checks_inner_toplevelsof -strL1,             `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
-        checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        if ( `c(stata_version)' >= 14.1 ) {
+            local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
+            checks_inner_toplevelsof -strL1,             `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2,       `options' `forcestrl'
+            checks_inner_toplevelsof strL1 -strL2 strL3, `options' `forcestrl'
+        }
+
+        clear
+        set obs 10
+        gen x = _n
+        gen w = runiform()
+        gtoplevelsof x [w = w]
+        gtop x [w = w]
+        gtop x [w = .]
+        gtop x [w = 0]
+        gtop x if 0
+
+        clear
+        gen x = 1
+        gtoplevelsof x
+
+        clear
+        set obs 100000
+        gen x = _n
+        gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
+        gtoplevelsof x if _n < 1
     }
 
-    clear
-    set obs 10
-    gen x = _n
-    gen w = runiform()
-    gtoplevelsof x [w = w]
-    gtop x [w = w]
-    gtop x [w = .]
-    gtop x [w = 0]
-    gtop x if 0
+    sysuse auto , clear
+    forvalues i = 1 / 100 {
+        gtop make price, ntop(`i') silent
+    }
+
+    sysuse auto , clear
+    gtop price                           , mata
+    gtop mpg                             , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop price   make    mpg     foreign , mata
+    gtop foreign make    mpg     price   , mata
+    gtop mpg     make    foreign price   , mata
+    gtop price   mpg     foreign         , mata
+    gtop foreign mpg     price           , mata
+    gtop mpg     foreign price           , mata
+    gtop make    price   mpg     foreign , mata
+    gtop make    foreign mpg     price   , mata
+    gtop make    mpg     foreign price   , mata
+    gtop price   mpg     foreign make    , mata
+    gtop foreign mpg     price   make    , mata
+    gtop mpg     foreign price   make    , mata
+
+    expand mpg
+
+    gtop price                           , ntop(.) mata(hi)
+    gtop mpg                             , ntop(.) mata(hi)
+    gtop price   mpg     foreign         , ntop(.) mata(hi)
+    gtop foreign mpg     price           , ntop(.) mata(hi)
+    gtop mpg     foreign price           , ntop(.) mata(hi)
+    gtop price   make    mpg     foreign , ntop(.) mata(hi)
+    gtop foreign make    mpg     price   , ntop(.) mata(hi)
+    gtop mpg     make    foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign         , ntop(-.) mata(hi)
+    gtop foreign mpg     price           , ntop(-.) mata(hi)
+    gtop mpg     foreign price           , ntop(-.) mata(hi)
+    gtop make    price   mpg     foreign , ntop(-.) mata(hi)
+    gtop make    foreign mpg     price   , ntop(-.) mata(hi)
+    gtop make    mpg     foreign price   , ntop(-.) mata(hi)
+    gtop price   mpg     foreign make    , ntop(-.) mata
+    gtop foreign mpg     price   make    , ntop(-.) mata
+    gtop mpg     foreign price   make    , ntop(-.) mata
 
     clear
-    gen x = 1
-    gtoplevelsof x
+    set obs 2000
+    gen long ix = _n
+    gen r  = runiform()
+    sort r
 
-    clear
-    set obs 100000
-    gen x = _n
-    gtoplevelsof x in 1 / 10000 if mod(x, 3) == 0
-    gtoplevelsof x if _n < 1
+    gtop ix, ntop(.) mata
+    gtop ix, ntop(.)
+    gtop ix, ntop(.) mata(hi) silent
+
+    mata hi.desc()
+    mata hi.getPrinted("%16.0g", 1)
+    mata hi.desc()
+
+    gtop ix, mata(hi) silent
+    * gtop ix, mata(hi) silent ntop(.) alpha
 end
 
 capture program drop checks_inner_toplevelsof
@@ -63,6 +126,8 @@ program checks_inner_toplevelsof
     gtoplevelsof `anything', `options' ntop(0)
     gtoplevelsof `anything', `options' ntop(0) noother
     gtoplevelsof `anything', `options' ntop(0) missrow
+    gtoplevelsof `anything', `options' ntop(.)
+    gtoplevelsof `anything', `options' ntop(-.)
     gtoplevelsof `anything', `options' freqabove(10000)
     gtoplevelsof `anything', `options' pctabove(5)
     gtoplevelsof `anything', `options' pctabove(100)
@@ -186,7 +251,12 @@ program _compare_inner_gtoplevelsof
             `noisily' `contract' `anything' `if' `in' `wgt', `opts'
             qui sum N, meanonly
             local r_N = `r(sum)'
-            hashsort -N `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -N `anything'
+            }
+            else {
+                hashsort -N `anything'
+            }
             local nl = min(_N, 10)
             keep in 1/`=min(_N, 10)'
             set obs `=_N+1'
@@ -376,7 +446,12 @@ program versus_toplevelsof, rclass
         qui {
             preserve
             gcontract `anything' `if' `in', `opts'
-            hashsort -freq `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -freq `anything'
+            }
+            else {
+                hashsort -freq `anything'
+            }
             keep in 1/10
             restore
         }

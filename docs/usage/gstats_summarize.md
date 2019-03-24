@@ -86,7 +86,7 @@ Options
 
 ### Common Options
 
-- `matasave`               Save results in GstatsOutput mata object.
+- `matasave[(str)]`        Save results in mata object (default name is GstatsOutput).
 - `pooled`                 Pool varlist
 - `noprint`                Do not print
 - `format`                 Use variable's display format.
@@ -149,10 +149,12 @@ variables are allowed. Note that with a very large numer of groups,
 `tabstat`'s runtime seems to scale non-linearly, while `gstats tab`
 will execute in a reasonable time.
 
-`gstata tab` does not store results in `r()`. Rather, the option `matasave`
-is provided to store the full set of summary statistics and the by variable
-levels in a mata class object called `GstatsOutput`. Run `mata GstatsOutput.desc()`
-after `gstats tab, matasave` for details. The following helper functions are provided:
+`gstata tab` does not store results in `r()`. Rather, the option
+`matasave` is provided to store the full set of summary statistics and
+the by variable levels in a mata class object called `GstatsOutput`
+(the name of the object can be changed via `opt matasave(name)`) . Run
+`mata GstatsOutput.desc()` after `gstats tab, matasave` for details. The
+following helper functions are provided:
 
 ```
     string scalar getf(j, l, maxlbl)
@@ -301,32 +303,45 @@ gstats tab price mpg, s(p5 q p95 select7 select-3) col(stat)
 Mata API
 
 ```stata
-tostring rep78, replace
-gstats tab price mpg, by(foreign rep78) matasave
+gen strvar = "string" + string(rep78)
+gstats tab price mpg, by(foreign strvar) matasave
 
 mata
 GstatsOutput.getf(1, 1, .)
 GstatsOutput.getnum(., 1)
-GstatsOutput.getchar(., 1)
+GstatsOutput.getchar((2, 5, 6), .)
 
 GstatsOutput.getOutputRow(1)
 GstatsOutput.getOutputCol(1)
 GstatsOutput.getOutputVar("price")
 GstatsOutput.getOutputVar("mpg")
 GstatsOutput.getOutputGroup(1)
-
-GstatsOutput.output
 end
+
+mata: st_matrix("output", GstatsOutput.output)
+matrix list output
 ```
 
-The mata APi is specially useful for a large number of groups
+The mata API allows the user to computing several runs of summary
+statistics and keeping them in memory:
+
+```stata
+gstats tab price mpg, by(foreign) noprint matasave(StatsByForeign)
+gstats tab price mpg, by(rep78)   noprint matasave(StatsByRep)
+
+mata StatsByRep.desc()
+mata StatsByForeign.desc()
+mata StatsByForeign.printOutput()
+```
+
+It is also specially useful for a large number of groups
 
 ```stata
 clear
 set obs 100000
 gen g = mod(_n, 10000)
 gen x = runiform()
-gstats tab x, by(g) noprint matasave 
+gstats tab x, by(g) noprint matasave
 mata GstatsOutput.J
 mata GstatsOutput.getOutputGroup(13)
 ```

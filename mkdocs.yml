@@ -42,9 +42,9 @@ markdown_extensions:
     - tables
     - fenced_code
     - admonition
-    - codehilite
+    - codehilite:
+        guess_lang: false
 
-# guess_lang: False
 # use_pygments: True
 # noclasses: True
 # pygments_style: monokai
@@ -57,3 +57,9 @@ extra_css:
 # extra_css:
 #     - css/extra-material.css
 #     - css/extra-material-dark.css
+
+# Repository
+# repo_name: 'mcaceresb/stata-gtools'
+# repo_url:  'https://github.com/mcaceresb/stata-gtools'
+# edit_uri:  'blob/master/docs/'
+# site_url:  'https://gtools.readthedocs.io/en/latest/'

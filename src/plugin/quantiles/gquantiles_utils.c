@@ -25,7 +25,7 @@ GT_size gf_xtile_clean (
             quicksort_bsd (
                 x,
                 lsize,
-                sizeof(x),
+                sizeof *x,
                 xtileCompare,
                 NULL
             );

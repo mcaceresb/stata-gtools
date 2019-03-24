@@ -251,7 +251,12 @@ program _compare_inner_gtoplevelsof
             `noisily' `contract' `anything' `if' `in' `wgt', `opts'
             qui sum N, meanonly
             local r_N = `r(sum)'
-            hashsort -N `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -N `anything'
+            }
+            else {
+                hashsort -N `anything'
+            }
             local nl = min(_N, 10)
             keep in 1/`=min(_N, 10)'
             set obs `=_N+1'
@@ -441,7 +446,12 @@ program versus_toplevelsof, rclass
         qui {
             preserve
             gcontract `anything' `if' `in', `opts'
-            hashsort -freq `anything'
+            if ( strpos(`"`anything'"', "strL") > 0 ) {
+                gsort -freq `anything'
+            }
+            else {
+                hashsort -freq `anything'
+            }
             keep in 1/10
             restore
         }

@@ -156,7 +156,14 @@ program compare_inner_unique
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) {
+        if ( strpos(`"`anything'"', "strL") > 0 ) {
+            sort `anything'
+        }
+        else {
+            hashsort `anything'
+        }
+    }
 
     if ( "`distinct'" != "" ) {
         local joint joint

@@ -7078,15 +7078,15 @@ program compare_isid
 
     if ( `c(stata_version)' >= 14.1 ) {
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
-        compare_inner_isid strL1,             `options' `forcestrl'
-        compare_inner_isid strL1 strL2,       `options' `forcestrl'
-        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl'
+        compare_inner_isid strL1,             `options' `forcestrl' sort
+        compare_inner_isid strL1 strL2,       `options' `forcestrl' sort
+        compare_inner_isid strL1 strL2 strL3, `options' `forcestrl' sort
     }
 end
 
 capture program drop compare_inner_isid
 program compare_inner_isid
-    syntax varlist, [*]
+    syntax varlist, [sort *]
 
     tempvar rsort ix
     gen `rsort' = runiform()
@@ -7100,7 +7100,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( `varlist')
 
     * make sure sorted check gives same result
-    hashsort `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `varlist'
+    else sort `varlist'
+
     cap gisid `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by([sorted] `varlist')
@@ -7112,7 +7115,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( ix `varlist')
 
     * make sure sorted check gives same result
-    hashsort `ix' `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `ix' `varlist'
+    else sort `ix' `varlist'
+
     cap gisid `ix' `varlist', missok `options'
     local rc_gisid = _rc
     check_rc `rc_isid' `rc_gisid' , by([sorted] ix `varlist')
@@ -7124,7 +7130,10 @@ program compare_inner_isid
     check_rc `rc_isid' `rc_gisid' , by( rsort `varlist')
 
     * make sure sorted check gives same result
-    hashsort `rsort' `varlist'
+
+    if ( `"`sort'"' == "" ) hashsort `rsort' `varlist'
+    else sort `rsort' `varlist'
+
     cap isid `rsort' `varlist', missok
     local rc_isid = _rc
     cap gisid `rsort' `varlist', missok `options'

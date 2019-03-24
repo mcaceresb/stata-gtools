@@ -5147,7 +5147,14 @@ program compare_inner_egen
     tempvar rsort
     if ( "`shuffle'" != "" ) gen `rsort' = runiform()
     if ( "`shuffle'" != "" ) sort `rsort'
-    if ( ("`sort'" != "") & ("`anything'" != "") ) hashsort `anything'
+    if ( ("`sort'" != "") & ("`anything'" != "") ) {
+        if ( strpos(`"`anything'"', "strL") > 0 ) {
+            sort `anything'
+        }
+        else {
+            hashsort `anything'
+        }
+    }
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 31 + length("`anything'") + length("`N'")

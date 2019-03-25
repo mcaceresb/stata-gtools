@@ -170,6 +170,7 @@ program checks_inner_greshape_errors
         gen r = runiform()
         sort r
         drop r
+
         preserve
             greshape wide x y w, i(i1) j(j)
             assert _rc == 0
@@ -195,6 +196,22 @@ program checks_inner_greshape_errors
             rename (i3 i4) (a3 a4)
             cap greshape long a, i(i1 i? j) j(_j)
             assert _rc == 0
+        restore
+
+        label var i3 "hey-o i3"
+        label var i4 "bye-a i4"
+        preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop)
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3)
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3, exclude)
+            head
         restore
     }
 

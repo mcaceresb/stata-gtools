@@ -1,4 +1,4 @@
-*! version 0.1.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.0 25Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -194,6 +194,7 @@ program define Long /* reshape long */
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
             USELabels          /// Use labels as values instead of variable names
+            USELabelsvars(str) /// Use labels as values instead of variable names
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -289,7 +290,14 @@ program define Long /* reshape long */
 
     if ( `"`match'"' == "" ) local match @
 
-    global ReS_uselabels = ( `"`uselabels'"' != "" )
+    if ( `"`uselabelsvars'"' != "" ) {
+        local uselabels uselabels
+    }
+    else if ( `"`uselabels'"' != "" ) {
+        unab uselabelsvars: _all
+    }
+
+    global ReS_uselabels: copy local uselabelsvars
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl  `atwl'
     global ReS_match `match'
@@ -1100,7 +1108,7 @@ program define FillvalW
             mata: __greshape_res = strofreal(__greshape_res)
         }
         else {
-            mata: (void) SaveJValuesString(__greshape_res, 0)
+            mata: (void) SaveJValuesString(__greshape_res, "")
         }
         mata: __greshape_xijname = sort(uniqrows(__greshape_dsname[__greshape_sel]), 1)
     }
@@ -1112,7 +1120,28 @@ program define FillvalW
             disp as err "variable j contains all missing values"
             exit 498
         }
-        mata: `jlen' = SaveJValuesString(__greshape_res, ${ReS_uselabels}) - 1
+
+        if ( `"$ReS_uselabels"' != "" ) {
+            local 0: copy global ReS_uselabels
+            cap syntax varlist, [exclude]
+            if ( _rc ) {
+                disp as err "option uselabels[()] incorrectly specified"
+                syntax varlist, [exclude]
+                exit 198
+            }
+            else {
+                if ( `"`exclude'"' != "" ) {
+                    unab ReS_uselabels: _all
+                    local ReS_uselabels: list ReS_uselabels - varlist
+                    global ReS_uselabels: copy local ReS_uselabels
+                }
+                else {
+                    global ReS_uselabels: copy local varlist
+                }
+            }
+        }
+
+        mata: `jlen' = SaveJValuesString(__greshape_res, tokens(`"${ReS_uselabels}"')) - 1
         mata: __greshape_xijname = __greshape_res
     }
 
@@ -1385,20 +1414,27 @@ void function SaveJValuesReal(real colvector res)
     fclose(fh)
 }
 
-real scalar function SaveJValuesString(string colvector res, real scalar uselabels)
+real scalar function SaveJValuesString(string colvector res, string rowvector uselabelsvars)
 {
-    real scalar i, fh, max
+    real scalar i, fh, max, uselabels
     string scalar fmt, vlbl
     string colvector reslbl
     colvector C
 
-    fh  = fopen(st_global("ReS_jfile"), "w")
-    C   = bufio()
+    uselabels = length(uselabelsvars) > 0
+
+    fh = fopen(st_global("ReS_jfile"), "w")
+    C  = bufio()
     if ( uselabels ) {
         reslbl = J(rows(res), 1, "")
         for(i = 1; i <= rows(res); i++) {
-            vlbl = st_varlabel(res[i])
-            reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+            if ( length(selectindex(res[i] :== uselabelsvars)) > 0 ) {
+                vlbl = st_varlabel(res[i])
+                reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+            }
+            else {
+                reslbl[i] = res[i]
+            }
         }
         max = max(strlen(reslbl)) + 1
         fmt = sprintf("%%%gS", max)
@@ -1471,7 +1507,7 @@ program define FillvalL
         exit 198
     }
 
-    * mata: (void) SaveJValuesString(__greshape_jv)
+    * mata: (void) SaveJValuesString(__greshape_jv, "")
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
 

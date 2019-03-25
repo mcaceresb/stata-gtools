@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1  11Feb2019}{...}
+{* *! version 0.2.0 25Mar2019}{...}
 {viewerdialog greshape "dialog greshape"}{...}
 {vieweralsosee "[R] greshape" "mansection R greshape"}{...}
 {viewerjumpto "Syntax" "greshape##syntax"}{...}
@@ -191,7 +191,7 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opth keys(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_key}).
 {p_end}
-{synopt :{opt usel:abels}}Store variable labels instead of their names.
+{synopt :{opt usel:abels[{cmd:(}{it:str}{cmd:)}]}} Store variable labels instead of their names (optionally specify which variables to do this for).
 {p_end}
 
 {syntab :Spread}

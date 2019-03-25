@@ -155,7 +155,9 @@ Options
 
 - `values(varname)`   (Required) Store values in varname.
 - `keys(varname)`     Wide to long: varname, new variable to store variable names (default `_key`).
-- `uselabels`         Store variable labels instead of their names.
+- `uselabels[(str)]`  Store variable labels instead of their names. Optionally specify a varlist
+                      with the variables to do this for (or `uselabels(varlist, exclude)`
+                      to specify the variables _not_ to do this for).
 
 **Spread only**
 

@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.5.2 (2019-03-25)
+
+### Features
+
+- Closes #58; allows `uselabels[(varlist, [exclude])]` to optionally
+  specify which variables to use labels for (default is all variables).
+  The user can also specify the option `exclude` to specify which
+  variables _not_ to do this for.
+
 ## gtools-1.5.1 (2019-03-24)
 
 ### Features

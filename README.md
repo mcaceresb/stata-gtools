@@ -50,7 +50,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces    | Speedup (IC / MP)        | Unsupported             | Extras                                  |
 | ------------ | ----------- | ------------------------ | ----------------------- | --------------------------------------- |
 | gcollapse    | collapse    |  9 to 300 / 4 to 120 (+) |                         | Quantiles, merge, labels, nunique, etc. |
-| greshape     | reshape     |  4 to 20  / 4 to 15      | advanced syntax         | `fast`, spread/gather (tidyr equiv)     |
+| greshape     | reshape     |  4 to 20  / 4 to 15      | "advanced syntax"       | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen        |  9 to 26  / 4 to 9 (+,.) | labels                  | Weights, quantiles, nunique, etc.       |
 | gcontract    | contract    |  5 to 7   / 2.5 to 4     |                         |                                         |
 | gisid        | isid        |  8 to 30  / 4 to 14      | `using`, `sort`         | `if`, `in`                              |

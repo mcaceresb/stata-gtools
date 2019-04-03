@@ -4318,6 +4318,9 @@ program gstats_tabstat
     scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
 end
 
+* findfile "_gtools_internal.mata"
+* include `"`r(fn)'"'
+
 cap mata: mata drop __gstats_summarize_results()
 cap mata: mata drop __gstats_summarize_sprintf()
 cap mata: mata drop __gstats_summarize_prettysplit()

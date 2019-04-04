@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Mar 24 11:29:41 EDT 2019
+* Updated: Thu Apr  4 09:58:19 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.1
+* Version: 1.5.3
 * Manual:  help gtools
 
 * Stata start-up options
@@ -7561,6 +7561,7 @@ program checks_inner_greshape_errors
         gen r = runiform()
         sort r
         drop r
+
         preserve
             greshape wide x y w, i(i1) j(j)
             assert _rc == 0
@@ -7586,6 +7587,22 @@ program checks_inner_greshape_errors
             rename (i3 i4) (a3 a4)
             cap greshape long a, i(i1 i? j) j(_j)
             assert _rc == 0
+        restore
+
+        label var i3 "hey-o i3"
+        label var i4 "bye-a i4"
+        preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop)
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3)
+            head
+        restore, preserve
+            greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3, exclude)
+            head
         restore
     }
 

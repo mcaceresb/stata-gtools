@@ -162,7 +162,17 @@ for more examples.
 {title:Acknowledgment}
 
 {pstd}
-This help file was based on the help file for {it:distinct}.
+{cmd:gdistinct} was written largely to mimic the functionality of the community-contributed command {cmd:distinct},
+written by
+
+{p 8 8 2}
+Gary Longton, Fred Hutchinson Cancer Research Center, USA{break}
+glongton@fhcrc.org
+
+{p 8 8 2}
+Nicholas J. Cox, Durham University, UK{break} 
+n.j.cox@durham.ac.uk
+
 {p_end}
 
 {pstd}

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.5.1 24Mar2019}{...}
+{* *! version 1.5.3 04Apr2019}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}
@@ -141,12 +141,22 @@ this can take well over a day.
 
 {p 4 4 2}{stata sysuse auto, clear}{p_end}
 
+{p 4 4 2}{it:gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]}{p_end}
+
+{p 8 4 2}{stata gstats sum price [pw = gear_ratio / 4]                         }{p_end}
+{p 8 4 2}{stata gstats tab price mpg, by(foreign) matasave                     }{p_end}
+
 {p 4 4 2}{it:gquantiles [newvarname =] exp [if] [in] [weight], {_pctile|xtile|pctile} [options]}{p_end}
 
 {p 8 4 2}{stata gquantiles 2 * price, _pctile nq(10)                                }{p_end}
 {p 8 4 2}{stata gquantiles p10 = 2 * price, pctile nq(10)                           }{p_end}
 {p 8 4 2}{stata gquantiles x10 = 2 * price, xtile nq(10) by(rep78)                  }{p_end}
 {p 8 4 2}{stata fasterxtile xx = log(price) [w = weight], cutpoints(p10) by(foreign)}{p_end}
+
+{p 4 4 2}{it:gstats winsor varlist [if] [in] [weight], [by(varlist) cuts(# #) options]}{p_end}
+
+{p 8 4 2}{stata gstats winsor price gear_ratio mpg, cuts(5 95) s(_w1)                 }{p_end}
+{p 8 4 2}{stata gstats winsor price gear_ratio mpg, cuts(5 95) by(foreign) s(_w2)     }{p_end}
 
 {p 4 4 2}{it:hashsort varlist, [options]                        }{p_end}
 
@@ -194,6 +204,14 @@ this can take well over a day.
 {p 4 4 2}{it:gcontract varlist [if] [if] [fweight], [options]}{p_end}
 
 {p 8 4 2}{stata gcontract foreign [fw = turn], freq(f) percent(p)}{p_end}
+
+{p 4 4 2}{it:greshape subcommand list, i(i) j(j) [options]}{p_end}
+
+{p 8 4 2}{stata gen j = _n                                }{p_end}
+{p 8 4 2}{stata greshape wide f p, i(foreign) j(j)        }{p_end}
+{p 8 4 2}{stata greshape long f p, i(foreign) j(j)        }{p_end}
+{p 8 4 2}{stata greshape spread f p, j(j)                 }{p_end}
+{p 8 4 2}{stata greshape gather f? p?, j(j) value(fp)     }{p_end}
 
 {marker author}{...}
 {title:Author}

@@ -221,6 +221,7 @@ You can download the raw code for the examples below
 . glevelsof rep78, sep(,)
 1,2,3,4,5
 ```
+
 ###  De-duplicating a variable list
 
 `glevelsof` can store the unique levels of a varlist. This is specially

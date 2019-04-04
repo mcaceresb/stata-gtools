@@ -172,3 +172,21 @@ Winsor variables at (p1 p99) by (industry), overwrite the old variables
 ```stata
 gstats winsor wage hours, replace by(industry)
 ```
+
+Acknowledgements
+----------------
+
+`gstats winsor` was written largely to mimic the functionality of the community-contributed command `winsor2`, the latter written by
+
+- Yujun, Lian (Arlion) Department of Finance, Lingnan College, Sun Yat-Sen University.
+- E-mail: [arlionn@163.com](mailto:arlionn@163.com)
+- Blog: [http://blog.cnfol.com/arlion](http://blog.cnfol.com/arlion)
+- Homepage: [http://www.lingnan.sysu.edu.cn/lnshizi/faculty_vch.asp?name=lianyj](http://www.lingnan.sysu.edu.cn/lnshizi/faculty_vch.asp?name=lianyj)
+
+In turn, `winsor2` had incorporated some code from `winsor`, by
+
+- Nicholas J. Cox, Durham University, U.K. [n.j.cox@durham.ac.uk](mailto:n.j.cox@durham.ac.uk)
+
+and `winsorizeJ.ado`, by
+
+- Judson Caskey 

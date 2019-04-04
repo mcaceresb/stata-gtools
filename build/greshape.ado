@@ -1,4 +1,4 @@
-*! version 0.1.1 11Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -194,6 +194,7 @@ program define Long /* reshape long */
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
             USELabels          /// Use labels as values instead of variable names
+            USELabelsvars(str) /// Use labels as values instead of variable names
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -289,7 +290,14 @@ program define Long /* reshape long */
 
     if ( `"`match'"' == "" ) local match @
 
-    global ReS_uselabels = ( `"`uselabels'"' != "" )
+    if ( `"`uselabelsvars'"' != "" ) {
+        local uselabels uselabels
+    }
+    else if ( `"`uselabels'"' != "" ) {
+        unab uselabelsvars: _all
+    }
+
+    global ReS_uselabels: copy local uselabelsvars
     global ReS_str = ( `"`string'"' != "" )
     global ReS_atwl  `atwl'
     global ReS_match `match'
@@ -374,8 +382,12 @@ program define Long /* reshape long */
         exit 198
     }
 
-
-    tempfile ReS_jfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_jfile
+    }
+    else {
+        GreshapeTempFile ReS_jfile
+    }
     global ReS_jfile `ReS_jfile'
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
 
@@ -421,7 +433,12 @@ program define Long /* reshape long */
     else local cmd long write
 
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
-    tempfile ReS_Data
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_Data
+    }
+    else {
+        GreshapeTempFile ReS_Data
+    }
     mata: __greshape_w2l_meta = WideToLongMetaSave()
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -802,7 +819,12 @@ program define Wide /* reshape wide */
     * --------------------------------------------------
 
     tempvar ReS_jcode
-    tempfile ReS_jfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_jfile
+    }
+    else {
+        GreshapeTempFile ReS_jfile
+    }
     global ReS_jcode: copy local ReS_jcode
     global ReS_jfile: copy local ReS_jfile
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
@@ -845,7 +867,12 @@ program define Wide /* reshape wide */
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
     local cmd wide write
     keep $ReS_i $ReS_j $ReS_jcode $ReS_Xi $rVANS
-    tempfile ReS_Data
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_Data
+    }
+    else {
+        GreshapeTempFile ReS_Data
+    }
     mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -1100,7 +1127,7 @@ program define FillvalW
             mata: __greshape_res = strofreal(__greshape_res)
         }
         else {
-            mata: (void) SaveJValuesString(__greshape_res, 0)
+            mata: (void) SaveJValuesString(__greshape_res, "")
         }
         mata: __greshape_xijname = sort(uniqrows(__greshape_dsname[__greshape_sel]), 1)
     }
@@ -1112,7 +1139,28 @@ program define FillvalW
             disp as err "variable j contains all missing values"
             exit 498
         }
-        mata: `jlen' = SaveJValuesString(__greshape_res, ${ReS_uselabels}) - 1
+
+        if ( `"$ReS_uselabels"' != "" ) {
+            local 0: copy global ReS_uselabels
+            cap syntax varlist, [exclude]
+            if ( _rc ) {
+                disp as err "option uselabels[()] incorrectly specified"
+                syntax varlist, [exclude]
+                exit 198
+            }
+            else {
+                if ( `"`exclude'"' != "" ) {
+                    unab ReS_uselabels: _all
+                    local ReS_uselabels: list ReS_uselabels - varlist
+                    global ReS_uselabels: copy local ReS_uselabels
+                }
+                else {
+                    global ReS_uselabels: copy local varlist
+                }
+            }
+        }
+
+        mata: `jlen' = SaveJValuesString(__greshape_res, tokens(`"${ReS_uselabels}"')) - 1
         mata: __greshape_xijname = __greshape_res
     }
 
@@ -1385,20 +1433,27 @@ void function SaveJValuesReal(real colvector res)
     fclose(fh)
 }
 
-real scalar function SaveJValuesString(string colvector res, real scalar uselabels)
+real scalar function SaveJValuesString(string colvector res, string rowvector uselabelsvars)
 {
-    real scalar i, fh, max
+    real scalar i, fh, max, uselabels
     string scalar fmt, vlbl
     string colvector reslbl
     colvector C
 
-    fh  = fopen(st_global("ReS_jfile"), "w")
-    C   = bufio()
+    uselabels = length(uselabelsvars) > 0
+
+    fh = fopen(st_global("ReS_jfile"), "w")
+    C  = bufio()
     if ( uselabels ) {
         reslbl = J(rows(res), 1, "")
         for(i = 1; i <= rows(res); i++) {
-            vlbl = st_varlabel(res[i])
-            reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+            if ( length(selectindex(res[i] :== uselabelsvars)) > 0 ) {
+                vlbl = st_varlabel(res[i])
+                reslbl[i] = (strtrim(vlbl) == "")? res[i]: vlbl
+            }
+            else {
+                reslbl[i] = res[i]
+            }
         }
         max = max(strlen(reslbl)) + 1
         fmt = sprintf("%%%gS", max)
@@ -1471,7 +1526,7 @@ program define FillvalL
         exit 198
     }
 
-    * mata: (void) SaveJValuesString(__greshape_jv)
+    * mata: (void) SaveJValuesString(__greshape_jv, "")
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
 
@@ -1716,6 +1771,12 @@ end
 
 capture program drop CleanExit
 program CleanExit
+    foreach f of global GTOOLS_TEMPFILES_GRESHAPE {
+        cap erase `"${GTOOLS_TEMPDIR}/`f'"'
+    }
+    global GTOOLS_TEMPFILES_GRESHAPE
+    global GTOOLS_TEMPFILES_GRESHAPE_I
+
     Macdrop
     mac drop GTOOLS_PARSE
 
@@ -2545,6 +2606,21 @@ void function ApplyDefaultFormat(string scalar var)
         st_varformat(var, f)
     }
 }
+end
+
+capture program drop GreshapeTempFile
+program GreshapeTempFile
+    if ( `"${GTOOLS_TEMPFILES_GRESHAPE_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_GRESHAPE_I = 1
+        global GTOOLS_TEMPFILES_GRESHAPE_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_GRESHAPE_I = ${GTOOLS_TEMPFILES_GRESHAPE_I} + 1
+        global GTOOLS_TEMPFILES_GRESHAPE_I = ${GTOOLS_TEMPFILES_GRESHAPE_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_greshape_`GTOOLS_TEMPFILES_GRESHAPE_I'
+    global GTOOLS_TEMPFILES_GRESHAPE ${GTOOLS_TEMPFILES_GRESHAPE} __gtools_tmpfile_greshape_`GTOOLS_TEMPFILES_GRESHAPE_I'
+    c_local `0': copy local f
 end
 
 ***********************************************************************

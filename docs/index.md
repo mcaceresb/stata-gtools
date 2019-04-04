@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.3%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.1 24Mar2019`
+`version 1.5.3 04Apr2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -40,7 +40,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces    | Speedup (IC / MP)        | Unsupported             | Extras                                  |
 | ------------ | ----------- | ------------------------ | ----------------------- | --------------------------------------- |
 | gcollapse    | collapse    |  9 to 300 / 4 to 120 (+) |                         | Quantiles, merge, labels, nunique, etc. |
-| greshape     | reshape     |  4 to 20  / 4 to 15      | advanced syntax         | `fast`, spread/gather (tidyr equiv)     |
+| greshape     | reshape     |  4 to 20  / 4 to 15      | "advanced syntax"       | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen        |  9 to 26  / 4 to 9 (+,.) | labels                  | Weights, quantiles, nunique, etc.       |
 | gcontract    | contract    |  5 to 7   / 2.5 to 4     |                         |                                         |
 | gisid        | isid        |  8 to 30  / 4 to 14      | `using`, `sort`         | `if`, `in`                              |
@@ -172,6 +172,20 @@ Acknowledgements
 * Gtools was largely inspired by Sergio Correia's (@sergiocorreia) excellent
   [ftools](https://github.com/sergiocorreia/ftools) package. Further, several
   improvements and bug fixes have come from to @sergiocorreia's helpful comments.
+
+* With the exception of `greshape`, every gtools command was eventually
+  written almost entirely from scratch (and even `greshape` is mostly
+  new code). However, gtools commands typically mimic the functionality
+  of existing Stata commands, including community-contributed programs,
+  meaning many of the ideas and options are based on them (see the
+  respective help files for details). `gtools` commands based on
+  community-contributed programs include:
+
+    * [`gstats winsor`](https://gtools.readthedocs.io/en/latest/usage/gstats_winsor/index.html#acknowledgements), based on `winsor2` by Lian (Arlion) Yujun
+
+    * [`gunique`](https://gtools.readthedocs.io/en/latest/usage/gunique/index.html#acknowledgements), based on `unique` by Michael Hills and Tony Brady.
+
+    * [`gdistinct`](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#acknowledgements), based on `distinct` by Gary Longton and Nicholas J. Cox.
 
 Installation
 ------------
@@ -497,7 +511,7 @@ Differences from `duplicates`
 
 - `gduplicates` does not sort `examples` or `list` by default. This massively
   enhances performance but it might be harder to read. Pass option `sort`
-  (`sorted`) to mimic `duplicates` behavior and sort the list. 
+  (`sorted`) to mimic `duplicates` behavior and sort the list.
 
 Hashing and Sorting
 -------------------

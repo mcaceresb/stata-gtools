@@ -1,4 +1,4 @@
-*! version 1.5.1 24Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.3 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -38,12 +38,22 @@ program _gtools_internal, rclass
         exit _rc
     }
 
-    tempfile gstatsfile
-    tempfile gbyvarfile
-    tempfile gbycolfile
-    tempfile gbynumfile
-    tempfile gtopnumfile
-    tempfile gtopmatfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile gstatsfile
+        tempfile gbyvarfile
+        tempfile gbycolfile
+        tempfile gbynumfile
+        tempfile gtopnumfile
+        tempfile gtopmatfile
+    }
+    else {
+        GtoolsTempFile gstatsfile
+        GtoolsTempFile gbyvarfile
+        GtoolsTempFile gbycolfile
+        GtoolsTempFile gbynumfile
+        GtoolsTempFile gtopnumfile
+        GtoolsTempFile gtopmatfile
+    }
 
     global GTOOLS_GSTATS_FILE:  copy local gstatsfile
     global GTOOLS_BYVAR_FILE:   copy local gbyvarfile
@@ -2639,7 +2649,13 @@ end
 capture program drop clean_all
 program clean_all
     args rc
-    if ( "`rc'" == "" ) local rc = 0
+    if ( `"`rc'"' == "" ) local rc = 0
+
+    foreach f of global GTOOLS_TEMPFILES_INTERNAL {
+        cap erase `"${GTOOLS_TEMPDIR}/`f'"'
+    }
+    global GTOOLS_TEMPFILES_INTERNAL
+    global GTOOLS_TEMPFILES_INTERNAL_I
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
     global GTOOLS_USER_INTERNAL_VARABBREV
@@ -4318,6 +4334,9 @@ program gstats_tabstat
     scalar __gtools_summarize_colvar = (`"`columns'"' == "variables")
 end
 
+* findfile "_gtools_internal.mata"
+* include `"`r(fn)'"'
+
 cap mata: mata drop __gstats_summarize_results()
 cap mata: mata drop __gstats_summarize_sprintf()
 cap mata: mata drop __gstats_summarize_prettysplit()
@@ -4624,6 +4643,21 @@ class GtoolsResults scalar function __gstats_tabstat_results()
 
     return (GtoolsByLevels)
 }
+end
+
+capture program drop GtoolsTempFile
+program GtoolsTempFile
+    if ( `"${GTOOLS_TEMPFILES_INTERNAL_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_INTERNAL_I = 1
+        global GTOOLS_TEMPFILES_INTERNAL_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_INTERNAL_I = ${GTOOLS_TEMPFILES_INTERNAL_I} + 1
+        global GTOOLS_TEMPFILES_INTERNAL_I = ${GTOOLS_TEMPFILES_INTERNAL_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
+    global GTOOLS_TEMPFILES_INTERNAL ${GTOOLS_TEMPFILES_INTERNAL} __gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
+    c_local `0': copy local f
 end
 
 ***********************************************************************

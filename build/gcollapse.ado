@@ -1,4 +1,4 @@
-*! version 1.1.3 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.2.0 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -573,7 +573,12 @@ program gcollapse, rclass
     *                             I/O switch                              *
     ***********************************************************************
 
-    tempfile __gtools_gc_file
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile __gtools_gc_file
+    }
+    else {
+        GcollapseTempFile __gtools_gc_file
+    }
     scalar __gtools_gc_k_extra = __gtools_gc_k_targets - __gtools_gc_k_uniq_vars
 
     local sources  sources(`__gtools_gc_vars')
@@ -1648,6 +1653,12 @@ end
 
 capture program drop CleanExit
 program CleanExit
+    foreach f of global GTOOLS_TEMPFILES_GCOLLAPSE {
+        cap erase `"${GTOOLS_TEMPDIR}/`f'"'
+    }
+    global GTOOLS_TEMPFILES_GCOLLAPSE
+    global GTOOLS_TEMPFILES_GCOLLAPSE_I
+
     set varabbrev ${GTOOLS_USER_VARABBREV}
     global GTOOLS_USER_VARABBREV
     global GTOOLS_CALLER
@@ -1697,6 +1708,21 @@ program CleanExit
 
     global GTOOLS_T97
     global GTOOLS_T96
+end
+
+capture program drop GcollapseTempFile
+program GcollapseTempFile
+    if ( `"${GTOOLS_TEMPFILES_GCOLLAPSE_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_GCOLLAPSE_I = 1
+        global GTOOLS_TEMPFILES_GCOLLAPSE_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_GCOLLAPSE_I = ${GTOOLS_TEMPFILES_GCOLLAPSE_I} + 1
+        global GTOOLS_TEMPFILES_GCOLLAPSE_I = ${GTOOLS_TEMPFILES_GCOLLAPSE_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_gcollapse_`GTOOLS_TEMPFILES_GCOLLAPSE_I'
+    global GTOOLS_TEMPFILES_GCOLLAPSE ${GTOOLS_TEMPFILES_GCOLLAPSE} __gtools_tmpfile_gcollapse_`GTOOLS_TEMPFILES_GCOLLAPSE_I'
+    c_local `0': copy local f
 end
 
 capture program drop CheckMatsize

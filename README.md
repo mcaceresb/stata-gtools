@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.1-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.3-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -50,7 +50,7 @@ __*Gtools commands with a Stata equivalent*__
 | Function     | Replaces    | Speedup (IC / MP)        | Unsupported             | Extras                                  |
 | ------------ | ----------- | ------------------------ | ----------------------- | --------------------------------------- |
 | gcollapse    | collapse    |  9 to 300 / 4 to 120 (+) |                         | Quantiles, merge, labels, nunique, etc. |
-| greshape     | reshape     |  4 to 20  / 4 to 15      | advanced syntax         | `fast`, spread/gather (tidyr equiv)     |
+| greshape     | reshape     |  4 to 20  / 4 to 15      | "advanced syntax"       | `fast`, spread/gather (tidyr equiv)     |
 | gegen        | egen        |  9 to 26  / 4 to 9 (+,.) | labels                  | Weights, quantiles, nunique, etc.       |
 | gcontract    | contract    |  5 to 7   / 2.5 to 4     |                         |                                         |
 | gisid        | isid        |  8 to 30  / 4 to 14      | `using`, `sort`         | `if`, `in`                              |
@@ -182,6 +182,20 @@ Acknowledgements
 * Gtools was largely inspired by Sergio Correia's (@sergiocorreia) excellent
   [ftools](https://github.com/sergiocorreia/ftools) package. Further, several
   improvements and bug fixes have come from to @sergiocorreia's helpful comments.
+
+* With the exception of `greshape`, every gtools command was eventually
+  written almost entirely from scratch (and even `greshape` is mostly
+  new code). However, gtools commands typically mimic the functionality
+  of existing Stata commands, including community-contributed programs,
+  meaning many of the ideas and options are based on them (see the
+  respective help files for details). `gtools` commands based on
+  community-contributed programs include:
+
+    * [`gstats winsor`](https://gtools.readthedocs.io/en/latest/usage/gstats_winsor/index.html#acknowledgements), based on `winsor2` by Lian (Arlion) Yujun
+
+    * [`gunique`](https://gtools.readthedocs.io/en/latest/usage/gunique/index.html#acknowledgements), based on `unique` by Michael Hills and Tony Brady.
+
+    * [`gdistinct`](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#acknowledgements), based on `distinct` by Gary Longton and Nicholas J. Cox.
 
 Installation
 ------------
@@ -452,13 +466,13 @@ Differences from `egen`
 
 Differences from `tabstat`
 
+- Multiple groups are allowed.
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
   `matasave` saves the output and `by()` info in `GstatsOutput` (the object
   can be named via `matasave(name)`). See `mata GstatsOutput.desc()` after
   `gstats tab, matasave` for details.
 - `GstatsOutput` provides helpers for extracting rows, columns, and levels.
-- Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
 - Option `pooled` pools the source variables into one.

@@ -47,12 +47,12 @@ program _gtools_internal, rclass
         tempfile gtopmatfile
     }
     else {
-        GreshapeTempFile gstatsfile
-        GreshapeTempFile gbyvarfile
-        GreshapeTempFile gbycolfile
-        GreshapeTempFile gbynumfile
-        GreshapeTempFile gtopnumfile
-        GreshapeTempFile gtopmatfile
+        GtoolsTempFile gstatsfile
+        GtoolsTempFile gbyvarfile
+        GtoolsTempFile gbycolfile
+        GtoolsTempFile gbynumfile
+        GtoolsTempFile gtopnumfile
+        GtoolsTempFile gtopmatfile
     }
 
     global GTOOLS_GSTATS_FILE:  copy local gstatsfile

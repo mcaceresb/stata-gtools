@@ -2655,6 +2655,7 @@ program clean_all
         cap erase `"${GTOOLS_TEMPDIR}/`f'"'
     }
     global GTOOLS_TEMPFILES_INTERNAL
+    global GTOOLS_TEMPFILES_INTERNAL_I
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
     global GTOOLS_USER_INTERNAL_VARABBREV
@@ -4646,9 +4647,16 @@ end
 
 capture program drop GtoolsTempFile
 program GtoolsTempFile
-    tempname a
-    local f ${GTOOLS_TEMPDIR}/`a'
-    global GTOOLS_TEMPFILES_INTERNAL ${GTOOLS_TEMPFILES_INTERNAL} `a'
+    if ( `"${GTOOLS_TEMPFILES_INTERNAL_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_INTERNAL_I = 1
+        global GTOOLS_TEMPFILES_INTERNAL_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_INTERNAL_I = ${GTOOLS_TEMPFILES_INTERNAL_I} + 1
+        global GTOOLS_TEMPFILES_INTERNAL_I = ${GTOOLS_TEMPFILES_INTERNAL_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
+    global GTOOLS_TEMPFILES_INTERNAL ${GTOOLS_TEMPFILES_INTERNAL} __gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
     c_local `0': copy local f
 end
 

@@ -1657,6 +1657,7 @@ program CleanExit
         cap erase `"${GTOOLS_TEMPDIR}/`f'"'
     }
     global GTOOLS_TEMPFILES_GCOLLAPSE
+    global GTOOLS_TEMPFILES_GCOLLAPSE_I
 
     set varabbrev ${GTOOLS_USER_VARABBREV}
     global GTOOLS_USER_VARABBREV
@@ -1711,9 +1712,16 @@ end
 
 capture program drop GcollapseTempFile
 program GcollapseTempFile
-    tempname a
-    local f ${GTOOLS_TEMPDIR}/`a'
-    global GTOOLS_TEMPFILES_GCOLLAPSE ${GTOOLS_TEMPFILES_GCOLLAPSE} `a'
+    if ( `"${GTOOLS_TEMPFILES_GCOLLAPSE_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_GCOLLAPSE_I = 1
+        global GTOOLS_TEMPFILES_GCOLLAPSE_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_GCOLLAPSE_I = ${GTOOLS_TEMPFILES_GCOLLAPSE_I} + 1
+        global GTOOLS_TEMPFILES_GCOLLAPSE_I = ${GTOOLS_TEMPFILES_GCOLLAPSE_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_gcollapse_`GTOOLS_TEMPFILES_GCOLLAPSE_I'
+    global GTOOLS_TEMPFILES_GCOLLAPSE ${GTOOLS_TEMPFILES_GCOLLAPSE} __gtools_tmpfile_gcollapse_`GTOOLS_TEMPFILES_GCOLLAPSE_I'
     c_local `0': copy local f
 end
 

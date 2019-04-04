@@ -1775,6 +1775,7 @@ program CleanExit
         cap erase `"${GTOOLS_TEMPDIR}/`f'"'
     }
     global GTOOLS_TEMPFILES_GRESHAPE
+    global GTOOLS_TEMPFILES_GRESHAPE_I
 
     Macdrop
     mac drop GTOOLS_PARSE
@@ -2609,9 +2610,16 @@ end
 
 capture program drop GreshapeTempFile
 program GreshapeTempFile
-    tempname a
-    local f ${GTOOLS_TEMPDIR}/`a'
-    global GTOOLS_TEMPFILES_GRESHAPE ${GTOOLS_TEMPFILES_GRESHAPE} `a'
+    if ( `"${GTOOLS_TEMPFILES_GRESHAPE_I}"' == "" ) {
+        local  GTOOLS_TEMPFILES_GRESHAPE_I = 1
+        global GTOOLS_TEMPFILES_GRESHAPE_I = 1
+    }
+    else {
+        local  GTOOLS_TEMPFILES_GRESHAPE_I = ${GTOOLS_TEMPFILES_GRESHAPE_I} + 1
+        global GTOOLS_TEMPFILES_GRESHAPE_I = ${GTOOLS_TEMPFILES_GRESHAPE_I} + 1
+    }
+    local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_greshape_`GTOOLS_TEMPFILES_GRESHAPE_I'
+    global GTOOLS_TEMPFILES_GRESHAPE ${GTOOLS_TEMPFILES_GRESHAPE} __gtools_tmpfile_greshape_`GTOOLS_TEMPFILES_GRESHAPE_I'
     c_local `0': copy local f
 end
 

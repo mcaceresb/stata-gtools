@@ -159,9 +159,29 @@ for examples.
 {title:Acknowledgment}
 
 {pstd}
-{opt gstats winsor} was written largely to follow {opt winsor2} by Lian
-(Arlion) Yujun.  The command's options and this helpfile borrow heavily
-from {opt winsor2}.
+{opt gstats winsor} was written largely to mimic the functionality of the community-contributed command {opt winsor2}.
+
+{p 8 8 2}
+{cmd:Yujun,Lian (Arlion)} Department of Finance, Lingnan College, Sun Yat-Sen University.{break}
+E-mail: {browse "mailto:arlionn@163.com":arlionn@163.com}.{break}
+Blog: {browse "http://blog.cnfol.com/arlion":http://blog.cnfol.com/arlion}.{break}
+Homepage: {browse "http://www.lingnan.sysu.edu.cn/lnshizi/faculty_vch.asp?name=lianyj":http://www.lingnan.sysu.edu.cn/lnshizi/faculty_vch.asp?name=lianyj}. {break}
+
+{pstd}
+This, in turn, had incorporated some code from {opt winsor}, by
+
+{p 8 8 2}
+Nicholas J. Cox, Durham University, U.K.{break}
+n.j.cox@durham.ac.uk
+
+{p 4 4 2}
+and {opt winsorizeJ.ado}, by
+
+{p 8 8 2}
+Judson Caskey 
+
+{pstd}
+{opt gstats winsor}'s options and this helpfile borrow heavily from {opt winsor2}.
 {p_end}
 
 {pstd}

@@ -124,3 +124,12 @@ N = 69; 69 balanced groups of size 1
 'rep78' had 5 unique values in 69 observations.
 Variable _Unique has the number of unique values of 'rep78' by 'foreign'.
 ```
+
+Acknowledgements
+----------------
+
+`gunique` was written to mimic the functionality of the community-contributed command `unique`, the latter written by
+
+- Michael Hills, retired
+
+- Tony Brady, Sealed Envelope Ltd, UK [tony@sealedenvelope.com](mailto:tony@sealedenvelope.com)

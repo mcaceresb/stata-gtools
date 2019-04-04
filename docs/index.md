@@ -173,6 +173,20 @@ Acknowledgements
   [ftools](https://github.com/sergiocorreia/ftools) package. Further, several
   improvements and bug fixes have come from to @sergiocorreia's helpful comments.
 
+* With the exception of `greshape`, every gtools command was eventually
+  written almost entirely from scratch (and even `greshape` is mostly
+  new code). However, gtools commands typically mimic the functionality
+  of existing Stata commands, including community-contributed programs,
+  meaning many of the ideas and options are based on them (see the
+  respective help files for details). `gtools` commands based on
+  community-contributed programs include:
+
+    * [`gstats winsor`](https://gtools.readthedocs.io/en/latest/usage/gstats_winsor/index.html#acknowledgements), based on `winsor2` by Lian (Arlion) Yujun
+
+    * [`gunique`](https://gtools.readthedocs.io/en/latest/usage/gunique/index.html#acknowledgements), based on `unique` by Michael Hills and Tony Brady.
+
+    * [`gdistinct`](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#acknowledgements), based on `distinct` by Gary Longton and Nicholas J. Cox.
+
 Installation
 ------------
 
@@ -497,7 +511,7 @@ Differences from `duplicates`
 
 - `gduplicates` does not sort `examples` or `list` by default. This massively
   enhances performance but it might be harder to read. Pass option `sort`
-  (`sorted`) to mimic `duplicates` behavior and sort the list. 
+  (`sorted`) to mimic `duplicates` behavior and sort the list.
 
 Hashing and Sorting
 -------------------

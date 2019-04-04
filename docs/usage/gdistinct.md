@@ -187,3 +187,12 @@ displacement        74        31
       total   distinct
          74         10
 ```
+
+Acknowledgements
+----------------
+
+`gdistinct` was written to mimic the community-contributed command `distinct`, the latter written by
+
+- Gary Longton, Fred Hutchinson Cancer Research Center, USA. [glongton@fhcrc.org](mailto:glongton@fhcrc.org)
+
+- Nicholas J. Cox, Durham University, UK. [n.j.cox@durham.ac.uk](mailto:n.j.cox@durham.ac.uk)

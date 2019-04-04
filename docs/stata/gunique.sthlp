@@ -148,6 +148,16 @@ for more examples.
 {title:Acknowledgment}
 
 {pstd}
+{cmd:gunique} was written largely to mimic the functionality of the community-contributed command {cmd:unique},
+written by
+
+{p 8 8 2}
+Michael Hills, retired{break} 
+
+{p 8 8 2}
+Tony Brady, Sealed Envelope Ltd, UK (tony@sealedenvelope.com)
+
+{pstd}
 This project was largely inspired by Sergio Correia's {it:ftools}:
 {browse "https://github.com/sergiocorreia/ftools"}.
 {p_end}

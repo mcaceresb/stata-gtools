@@ -1,4 +1,4 @@
-*! version 0.2.0 25Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.3.0 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -382,8 +382,12 @@ program define Long /* reshape long */
         exit 198
     }
 
-
-    tempfile ReS_jfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_jfile
+    }
+    else {
+        GreshapeTempFile ReS_jfile
+    }
     global ReS_jfile `ReS_jfile'
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
 
@@ -429,7 +433,12 @@ program define Long /* reshape long */
     else local cmd long write
 
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
-    tempfile ReS_Data
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_Data
+    }
+    else {
+        GreshapeTempFile ReS_Data
+    }
     mata: __greshape_w2l_meta = WideToLongMetaSave()
     global GTOOLS_CALLER greshape
     local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -810,7 +819,12 @@ program define Wide /* reshape wide */
     * --------------------------------------------------
 
     tempvar ReS_jcode
-    tempfile ReS_jfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_jfile
+    }
+    else {
+        GreshapeTempFile ReS_jfile
+    }
     global ReS_jcode: copy local ReS_jcode
     global ReS_jfile: copy local ReS_jfile
     scalar __greshape_jfile = length(`"`ReS_jfile'"') + 1
@@ -853,7 +867,12 @@ program define Wide /* reshape wide */
     if ( `benchmarklevel' > 0 | `"`benchmark'"' != "" ) disp as txt "Writing reshape to disk:"
     local cmd wide write
     keep $ReS_i $ReS_j $ReS_jcode $ReS_Xi $rVANS
-    tempfile ReS_Data
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile ReS_Data
+    }
+    else {
+        GreshapeTempFile ReS_Data
+    }
     mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -1752,6 +1771,11 @@ end
 
 capture program drop CleanExit
 program CleanExit
+    foreach f of global GTOOLS_TEMPFILES_GRESHAPE {
+        cap erase `"${GTOOLS_TEMPDIR}/`f'"'
+    }
+    global GTOOLS_TEMPFILES_GRESHAPE
+
     Macdrop
     mac drop GTOOLS_PARSE
 
@@ -2581,6 +2605,14 @@ void function ApplyDefaultFormat(string scalar var)
         st_varformat(var, f)
     }
 }
+end
+
+capture program drop GreshapeTempFile
+program GreshapeTempFile
+    tempname a
+    local f ${GTOOLS_TEMPDIR}/`a'
+    global GTOOLS_TEMPFILES_GRESHAPE ${GTOOLS_TEMPFILES_GRESHAPE} `a'
+    c_local `0': copy local f
 end
 
 ***********************************************************************

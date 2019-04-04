@@ -1,4 +1,4 @@
-*! version 1.5.2 25Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.3 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -38,12 +38,22 @@ program _gtools_internal, rclass
         exit _rc
     }
 
-    tempfile gstatsfile
-    tempfile gbyvarfile
-    tempfile gbycolfile
-    tempfile gbynumfile
-    tempfile gtopnumfile
-    tempfile gtopmatfile
+    if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile gstatsfile
+        tempfile gbyvarfile
+        tempfile gbycolfile
+        tempfile gbynumfile
+        tempfile gtopnumfile
+        tempfile gtopmatfile
+    }
+    else {
+        GreshapeTempFile gstatsfile
+        GreshapeTempFile gbyvarfile
+        GreshapeTempFile gbycolfile
+        GreshapeTempFile gbynumfile
+        GreshapeTempFile gtopnumfile
+        GreshapeTempFile gtopmatfile
+    }
 
     global GTOOLS_GSTATS_FILE:  copy local gstatsfile
     global GTOOLS_BYVAR_FILE:   copy local gbyvarfile
@@ -2639,7 +2649,12 @@ end
 capture program drop clean_all
 program clean_all
     args rc
-    if ( "`rc'" == "" ) local rc = 0
+    if ( `"`rc'"' == "" ) local rc = 0
+
+    foreach f of global GTOOLS_TEMPFILES_INTERNAL {
+        cap erase `"${GTOOLS_TEMPDIR}/`f'"'
+    }
+    global GTOOLS_TEMPFILES_INTERNAL
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
     global GTOOLS_USER_INTERNAL_VARABBREV
@@ -4627,6 +4642,14 @@ class GtoolsResults scalar function __gstats_tabstat_results()
 
     return (GtoolsByLevels)
 }
+end
+
+capture program drop GtoolsTempFile
+program GtoolsTempFile
+    tempname a
+    local f ${GTOOLS_TEMPDIR}/`a'
+    global GTOOLS_TEMPFILES_INTERNAL ${GTOOLS_TEMPFILES_INTERNAL} `a'
+    c_local `0': copy local f
 end
 
 ***********************************************************************

@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.5.2-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.5.3-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -452,13 +452,13 @@ Differences from `egen`
 
 Differences from `tabstat`
 
+- Multiple groups are allowed.
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
   `matasave` saves the output and `by()` info in `GstatsOutput` (the object
   can be named via `matasave(name)`). See `mata GstatsOutput.desc()` after
   `gstats tab, matasave` for details.
 - `GstatsOutput` provides helpers for extracting rows, columns, and levels.
-- Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
 - Option `pooled` pools the source variables into one.

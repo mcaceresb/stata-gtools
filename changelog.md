@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.5.3 (2019-04-04)
+
+### Enhancements
+
+- Allows the user to specify the temporary directory for files via
+  `global GTOOLS_TEMPDIR`
+
 ## gtools-1.5.2 (2019-03-25)
 
 ### Features

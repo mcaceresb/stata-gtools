@@ -113,11 +113,21 @@ capture program drop bench_v2
 program bench_v2
     cap mkdir bench_v2
 
+    ssc install winsor2
+    ssc install astile
+
+    * -------
+    * Regular
+    * -------
+
     bench_v2_run bench_v2_gcollapse_simple
     mata: gtools_bench_v2_save("bench_v2/gcollapse_simple", ("r(r1)", "r(r2)"))
 
     bench_v2_run bench_v2_gcollapse_complex
     mata: gtools_bench_v2_save("bench_v2/gcollapse_complex", ("r(r1)", "r(r2)"))
+
+    * TODO: bench_v2_run bench_v2_greshape,         smallj greshape
+    * TODO: mata: gtools_bench_v2_save("bench_v2/gcollapse_reshape", ("r(r1)", "r(r2)"))
 
     bench_v2_run bench_v2_gcontract
     mata: gtools_bench_v2_save("bench_v2/gcontract", ("r(r1)", "r(r2)"))
@@ -134,6 +144,9 @@ program bench_v2
     bench_v2_run bench_v2_gunique
     mata: gtools_bench_v2_save("bench_v2/gunique", ("r(r1)", "r(r2)"))
 
+    * TODO: bench_v2_run bench_v2_gduplicates
+    * TODO: mata: gtools_bench_v2_save("bench_v2/gduplicates", ("r(r1)", "r(r2)"))
+
     bench_v2_run bench_v2_gduplicates,      drop
     mata: gtools_bench_v2_save("bench_v2/gduplicates_drop", ("r(r1)", "r(r2)"))
 
@@ -143,31 +156,87 @@ program bench_v2
     bench_v2_run bench_v2_hashsort,         gsort
     mata: gtools_bench_v2_save("bench_v2/hashsort_gsort", ("r(r1)", "r(r2)"))
 
+    bench_v2_run bench_v2_gquantiles,       smallj noby vars(rnorm_big_dbl) xtile
+    mata: gtools_bench_v2_save("bench_v2/gquantiles_xtile", "r(r2)")
+
+    bench_v2_run bench_v2_gquantiles,       smallj noby vars(rnorm_big_dbl) pctile
+    mata: gtools_bench_v2_save("bench_v2/gquantiles_pctile", "r(r2)")
+
+    bench_v2_run bench_v2_gstats_sum,       smallj noby vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/gstats_sum", "r(r2)")
+
+    bench_v2_run bench_v2_gstats_winsor,    smallj noby vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/gstats_winsor", "r(r2)")
+
+    bench_v2_run bench_v2_glevelsof,        smallj single
+    mata: gtools_bench_v2_save("bench_v2/glevelsof", "r(r2)")
+
+    bench_v2_run bench_v2_gstats_tab,       smallj single vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/gstats_tab", "r(r2)")
+
     bench_v2_run bench_v2_gquantiles_by,    smallj vars(rnorm_big_dbl)
     mata: gtools_bench_v2_save("bench_v2/gquantiles_by", "r(r2)")
 
     bench_v2_run bench_v2_gstats_winsor_by, smallj vars(rnorm_big_dbl)
     mata: gtools_bench_v2_save("bench_v2/gstats_winsor_by", "r(r2)")
 
-    bench_v2_run bench_v2_glevelsof,        smallj
-    mata: gtools_bench_v2_save("bench_v2/glevelsof", "r(r2)")
+    * ------
+    * Limits
+    * ------
 
-    bench_v2_run bench_v2_gstats_tab,       smallj
-    mata: gtools_bench_v2_save("bench_v2/gstats_tab", "r(r2)")
+    bench_v2_run bench_v2_gcollapse_simple,  jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gcollapse_simple", ("r(r1)", "r(r2)"))
 
-    bench_v2_run bench_v2_gquantiles,       noby vars(rnorm_big_dbl) xtile
-    mata: gtools_bench_v2_save("bench_v2/gquantiles_xtile", "r(r1)")
+    bench_v2_run bench_v2_gcollapse_complex, jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gcollapse_complex", ("r(r1)", "r(r2)"))
 
-    bench_v2_run bench_v2_gquantiles,       noby vars(rnorm_big_dbl) pctile
-    mata: gtools_bench_v2_save("bench_v2/gquantiles_pctile", "r(r1)")
+    bench_v2_run bench_v2_gcontract,         jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gcontract", ("r(r1)", "r(r2)"))
 
-    bench_v2_run bench_v2_gstats_sum,       noby vars(rnorm_big_dbl runif_big_dbl)
-    mata: gtools_bench_v2_save("bench_v2/gstats_sum", "r(r1)")
+    bench_v2_run bench_v2_gegen,             jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gegen", ("r(r1)", "r(r2)"))
 
-    bench_v2_run bench_v2_gstats_winsor,    noby vars(rnorm_big_dbl runif_big_dbl)
-    mata: gtools_bench_v2_save("bench_v2/gstats_winsor", "r(r1)")
+    bench_v2_run bench_v2_gisid,             jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gisid", ("r(r1)", "r(r2)"))
 
-    return list
+    bench_v2_run bench_v2_gisid,             jmin(6) jmax(6) nmin(8) nmax(8) by(int1) ix(ix)
+    mata: gtools_bench_v2_save("bench_v2/limits_gisid_ix", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gunique,           jmin(6) jmax(6) nmin(8) nmax(8) by(int1)
+    mata: gtools_bench_v2_save("bench_v2/limits_gunique", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gduplicates,       jmin(6) jmax(6) nmin(8) nmax(8) by(int1) drop
+    mata: gtools_bench_v2_save("bench_v2/limits_gduplicates_drop", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_hashsort,          jmin(6) jmax(6) nmin(8) nmax(8) by(int1) sort
+    mata: gtools_bench_v2_save("bench_v2/limits_hashsort_sort", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_hashsort,          jmin(6) jmax(6) nmin(8) nmax(8) by(int1) gsort
+    mata: gtools_bench_v2_save("bench_v2/limits_hashsort_gsort", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gquantiles,        jmin(6) jmax(6) nmin(8) nmax(8) smallj noby vars(rnorm_big_dbl) xtile
+    mata: gtools_bench_v2_save("bench_v2/limits_gquantiles_xtile", "r(r2)")
+
+    bench_v2_run bench_v2_gquantiles,        jmin(6) jmax(6) nmin(8) nmax(8) smallj noby vars(rnorm_big_dbl) pctile
+    mata: gtools_bench_v2_save("bench_v2/limits_gquantiles_pctile", "r(r2)")
+
+    bench_v2_run bench_v2_gstats_sum,        jmin(6) jmax(6) nmin(8) nmax(8) smallj noby vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/limits_gstats_sum", "r(r2)")
+
+    bench_v2_run bench_v2_gstats_winsor,     jmin(6) jmax(6) nmin(8) nmax(8) smallj noby vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/limits_gstats_winsor", "r(r2)")
+
+    bench_v2_run bench_v2_glevelsof,         jmin(3) jmax(3) nmin(8) nmax(8) by(int1) single
+    mata: gtools_bench_v2_save("bench_v2/limits_glevelsof", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gstats_tab,        jmin(3) jmax(3) nmin(8) nmax(8) by(int1) single vars(rnorm_big_dbl runif_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/limits_gstats_tab", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gquantiles_by,     jmin(3) jmax(3) nmin(8) nmax(8) by(int1) vars(rnorm_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/limits_gquantiles_by", ("r(r1)", "r(r2)"))
+
+    bench_v2_run bench_v2_gstats_winsor_by,  jmin(3) jmax(3) nmin(8) nmax(8) by(int1) vars(rnorm_big_dbl)
+    mata: gtools_bench_v2_save("bench_v2/limits_gstats_winsor_by", ("r(r1)", "r(r2)"))
 end
 
 ***********************************************************************
@@ -262,14 +331,14 @@ program bench_v2_gquantiles, rclass
 
     timer clear
     timer on 42
-    qui `xtile' `pctile' `p_var' = `vars'
+    qui `xtile' `pctile' `p_var' = `vars', nq(10)
     timer off 42
     qui timer list
     local time_quantiles = r(t42)
 
     timer clear
     timer on 43
-    qui gquantiles `g_var' = `vars', `xtile' `pctile' `options'
+    qui gquantiles `g_var' = `vars', nq(10) `xtile' `pctile' `options'
     timer off 43
     qui timer list
     local time_gquantiles = r(t43)
@@ -297,7 +366,7 @@ program bench_v2_gquantiles_by, rclass
 
     timer clear
     timer on 43
-    qui gquantiles `g_var' = `vars', by(`varlist') `options'
+    qui gquantiles `g_var' = `vars', xtile by(`varlist') `options'
     timer off 43
     qui timer list
     local time_gquantiles = r(t43)
@@ -340,12 +409,12 @@ end
 
 capture program drop bench_v2_hashsort
 program bench_v2_hashsort, rclass
-    syntax varlist, [sort gsort ix(varname) *]
+    syntax [anything], [sort gsort ix(varname) *]
 
     preserve
         timer clear
         timer on 42
-        qui `sort' `gsort' `varlist' `ix'
+        qui `sort' `gsort' `anything' `ix'
         timer off 42
         qui timer list
         local time_sort = r(t42)
@@ -354,7 +423,7 @@ program bench_v2_hashsort, rclass
     preserve
         timer clear
         timer on 43
-        qui hashsort `varlist' `ix', `options'
+        qui hashsort `anything' `ix', `options'
         timer off 43
         qui timer list
         local time_gsort = r(t43)
@@ -374,14 +443,14 @@ program bench_v2_gunique, rclass
 
     timer clear
     timer on 42
-    qui unique `varlist', missing
+    qui unique `varlist'
     timer off 42
     qui timer list
     local time_unique = r(t42)
 
     timer clear
     timer on 43
-    qui gunique `varlist', missing `options'
+    qui gunique `varlist', `options'
     timer off 43
     qui timer list
     local time_gunique = r(t43)
@@ -599,7 +668,7 @@ end
 
 capture program drop bench_v2_run
 program bench_v2_run, rclass
-    syntax anything, [noby smallj *]
+    syntax anything, [noby smallj single BYvar(str) jmin(int 1) jmax(int 5) nmin(int 5) nmax(int 7) gsort *]
     tokenize `anything'
     local program: copy local 1
     local test:    copy local 2
@@ -614,37 +683,54 @@ program bench_v2_run, rclass
     cap matrix drop r3
 
     * local gvars int1
-    local gvars int1               ///
-              | int1 int2          ///
-              | double1            ///
-              | double1 double2    ///
-              | str_short          ///
-              | str_short str_long ///
-              | int1 double1 str_mid
+    if ( `"`single'"' == "" ) {
+        if ( `"`gsort'"' != "" ) {
+            local gvars -int1                ///
+                      |  int1 -int2          ///
+                      | -double1             ///
+                      |  double1 -double2    ///
+                      | -str_short           ///
+                      |  str_short -str_long ///
+                      |  int1 -double1 -str_mid
+        }
+        else {
+            local gvars int1               ///
+                      | int1 int2          ///
+                      | double1            ///
+                      | double1 double2    ///
+                      | str_short          ///
+                      | str_short str_long ///
+                      | int1 double1 str_mid
+        }
+    }
+    else {
+        local gvars int1      ///
+                  | int2      ///
+                  | double1   ///
+                  | double2   ///
+                  | str_short ///
+                  | str_long
+    }
 
-    disp ""
-    disp "---------------------"
-    disp "Increasing J, N = 10M"
-    disp "---------------------"
-    disp ""
+    if `"`byvar'"' != "" {
+        local gvars: copy local byvar
+    }
 
     if ( `"`smallj'"' == "" ) {
+        disp ""
+        disp "---------------------"
+        disp "Increasing J, N = 10M"
+        disp "---------------------"
+        disp ""
+
         local id = 0
-        * forvalues i = 1 / 6
-        forvalues i = 1 / 5 {
+        forvalues i = `jmin' / `jmax' {
             if ( `"`test'"' == "" ) qui bench_v2_gen `:disp %21.0f 1e`i'' `:disp %21.0f 1e7'
-            if ( `"`noby'"' == "" ) {
-                local _gvars: copy local gvars
-                while ( trim(`"`_gvars'"') != "" ) {
-                    gettoken vars _gvars: _gvars, p(|)
-                    gettoken pipe _gvars: _gvars, p(|)
-                    `program' `vars', `options'
-                    disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e7', `:disp %21.0fc 1e`i'' `bench_disp' `vars'"'
-                    matrix r1 = nullmat(r1) \ (1, `id', `:disp %21.0f 1e7', `:disp %21.0f 1e`i'', r(bench))
-                }
-            }
-            else {
-                `program', `options'
+            local _gvars: copy local gvars
+            while ( trim(`"`_gvars'"') != "" ) {
+                gettoken vars _gvars: _gvars, p(|)
+                gettoken pipe _gvars: _gvars, p(|)
+                `program' `vars', `options' `gsort'
                 disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e7', `:disp %21.0fc 1e`i'' `bench_disp' `vars'"'
                 matrix r1 = nullmat(r1) \ (1, `id', `:disp %21.0f 1e7', `:disp %21.0f 1e`i'', r(bench))
             }
@@ -654,49 +740,50 @@ program bench_v2_run, rclass
         matrix r1 = J(1, 7, .)
     }
 
-    if ( `"`noby'"' == "" ) {
-        disp ""
-        disp "--------------------"
-        disp "Increasing N, J = 10"
-        disp "--------------------"
-        disp ""
+    disp ""
+    disp "--------------------"
+    disp "Increasing N, J = 10"
+    disp "--------------------"
+    disp ""
 
-        local id = 0
-        * forvalues i = 5 / 8
-        forvalues i = 5 / 7 {
-            if ( `"`test'"' == "" ) qui bench_v2_gen 10 `:disp %21.0f 1e`i''
-            local _gvars: copy local gvars
+    local id = 0
+    forvalues i = `nmin' / `nmax' {
+        if ( `"`test'"' == "" ) qui bench_v2_gen 10 `:disp %21.0f 1e`i''
+        local _gvars: copy local gvars
+        if ( `"`by'"' == "" ) {
             while ( trim(`"`_gvars'"') != "" ) {
                 gettoken vars _gvars: _gvars, p(|)
                 gettoken pipe _gvars: _gvars, p(|)
-                `program' `vars', `options'
-                disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e`i'', `:disp %21.0fc 10', `bench_disp' `vars'"'
+                `program' `vars', `options' `gsort'
+                disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e`i'', `:disp %21.0fc 10' `bench_disp' `vars'"'
                 matrix r2 = nullmat(r2) \ (2, `id', `:disp %21.0f 1e`i'', 10, r(bench))
             }
         }
+        else {
+            `program', `options' `gsort'
+            disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e`i'', `:disp %21.0fc 10' `bench_disp' `vars'"'
+            matrix r2 = nullmat(r2) \ (2, `id', `:disp %21.0f 1e`i'', 10, r(bench))
+        }
+    }
 
-        * disp ""
-        * disp "--------------------------"
-        * disp "Increasing N, J = 10% of N"
-        * disp "--------------------------"
-        * disp ""
-        *
-        * local id = 0
-        * forvalues i = 5 / 7 {
-        *     if ( `"`test'"' == "" ) qui bench_v2_gen `:disp %21.0f 1e`=`i'-1'' `:disp %21.0f 1e`i''
-        *     local _gvars: copy local gvars
-        *     while ( trim(`"`_gvars'"') != "" ) {
-        *         gettoken vars _gvars: _gvars, p(|)
-        *         gettoken pipe _gvars: _gvars, p(|)
-        *         `program' `vars', `options'
-        *         disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e`i'', `:disp %21.0fc 1e`=`i'-1'', `bench_disp' `vars'"'
-        *         matrix r3 = nullmat(r3) \ (2, `id', `:disp %21.0f 1e`i'', `:disp %21.0f 1e`=`i'-1'', r(bench))
-        *     }
-        * }
-    }
-    else {
-        matrix r2 = J(1, 7, .)
-    }
+    * disp ""
+    * disp "--------------------------"
+    * disp "Increasing N, J = 10% of N"
+    * disp "--------------------------"
+    * disp ""
+    *
+    * local id = 0
+    * forvalues i = 5 / 7 {
+    *     if ( `"`test'"' == "" ) qui bench_v2_gen `:disp %21.0f 1e`=`i'-1'' `:disp %21.0f 1e`i''
+    *     local _gvars: copy local gvars
+    *     while ( trim(`"`_gvars'"') != "" ) {
+    *         gettoken vars _gvars: _gvars, p(|)
+    *         gettoken pipe _gvars: _gvars, p(|)
+    *         `program' `vars', `options' `gsort'
+    *         disp `"`:disp %9.0f `++id'', N = `:disp %21.0fc 1e`i'', `:disp %21.0fc 1e`=`i'-1'', `bench_disp' `vars'"'
+    *         matrix r3 = nullmat(r3) \ (2, `id', `:disp %21.0f 1e`i'', `:disp %21.0f 1e`=`i'-1'', r(bench))
+    *     }
+    * }
 
     return matrix r1 = r1
     return matrix r2 = r2
@@ -814,6 +901,7 @@ program bench_v2_gen
     gen double rnorm_big_dbl   = 10 * rnormal()
 
     gen long ix = _n
+    * sort runif_big_dbl
 end
 
 cap mata: mata drop gtools_bench_v2_save()

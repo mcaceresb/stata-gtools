@@ -11,7 +11,7 @@ program bench
 end
 
 clear
-set obs 10000000
+set obs 10 00000
 gen groups = int(runiform() * 1000)
 gen rsort  = rnormal()
 gen rvar   = rnormal()

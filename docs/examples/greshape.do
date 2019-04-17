@@ -76,6 +76,28 @@ webuse reshape1, clear
 greshape gather inc* ue*, values(values) key(varaible)
 greshape spread values, key(varaible)
 
+* Drop missing observations
+* -------------------------
+
+* Often it is desireable to drop missing observations when reshaping long.
+* For example
+
+clear
+set obs 10
+gen i = _n
+expand i
+bys i: gen j = _n
+gen x = _n
+greshape wide x, by(i) key(j)
+
+* When reshaping this data back into long, we would normally get
+* 100 observations, with 45 of them missing. However, we can
+* dispense with the additional missing values via `dropmiss`:
+
+greshape long x, by(i) key(j) dropmiss
+assert _N == 55
+assert x  == _n
+
 * Fine-grain control over error checks
 * ------------------------------------
 

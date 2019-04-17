@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.5.4 (2019-04-16)
+
+### Features
+
+- Adds option `dropmiss` to drop missing observations when reshaping long
+  (via `long` or `gather`).
+
 ## gtools-1.5.3 (2019-04-04)
 
 ### Enhancements

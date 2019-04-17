@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.5.3 04Apr2019}{...}
+{* *! version 1.5.4 16Apr2019}{...}
 {viewerdialog gtools "dialog gtools"}{...}
 {vieweralsosee "[R] gtools" "mansection R gtools"}{...}
 {viewerjumpto "Syntax" "gtools##syntax"}{...}

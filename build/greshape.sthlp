@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.3.0 04Apr2019}{...}
+{* *! version 0.4.0 16Apr2019}{...}
 {viewerdialog greshape "dialog greshape"}{...}
 {vieweralsosee "[R] greshape" "mansection R greshape"}{...}
 {viewerjumpto "Syntax" "greshape##syntax"}{...}
@@ -160,6 +160,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opt match(str)}} Where to match levels of {opt keys()} in stub (default {opt @}). Use {opt match(regex)} for complex matches.
 {p_end}
+{synopt :{opt dropm:iss}} Drop missing observations for reshaped variables (only one stub allowed).
+{p_end}
 
 {syntab :Wide}
 {synopt :* {opth by(varlist)}} use {it:varlist} as the ID variables (alias {opt i()}).
@@ -192,6 +194,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {synopt :{opth keys(varname)}} wide->long: {it:varname}, new variable to store variable names (default {it:_key}).
 {p_end}
 {synopt :{opt usel:abels[{cmd:(}{it:str}{cmd:)}]}} Store variable labels instead of their names (optionally specify which variables to do this for).
+{p_end}
+{synopt :{opt dropm:iss}} Drop missing observations for reshaped variables.
 {p_end}
 
 {syntab :Spread}

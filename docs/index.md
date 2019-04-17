@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.3%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.4%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.3 04Apr2019`
+`version 1.5.4 16Apr2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -313,7 +313,7 @@ The following are implemented internally in C:
 | total       |           |   X     |            |
 | count       |     X     |   X     |      X     |
 | nunique     |     X     |   X     |      X     |
-| nmissing    |     X     |   X     |      X     |
+| nmissing    |     X     |   X (+) |      X     |
 | sum         |     X     |   X     |      X     |
 | nansum      |     X     |   X     |      X     |
 | rawsum      |     X     |         |      X     |
@@ -323,7 +323,7 @@ The following are implemented internally in C:
 | percentiles |     X     |   X     |      X     |
 | iqr         |     X     |   X     |      X     |
 | sd          |     X     |   X     |      X     |
-| variance    |     X     |   X     |      X     |
+| variance    |     X     |   X (+) |      X     |
 | cv          |     X     |   X     |      X     |
 | max         |     X     |   X     |      X     |
 | min         |     X     |   X     |      X     |
@@ -335,15 +335,16 @@ The following are implemented internally in C:
 | last        |     X     |   X (+) |      X     |
 | firstnm     |     X     |   X (+) |      X     |
 | lastnm      |     X     |   X (+) |      X     |
-| semean      |     X     |   X     |      X     |
+| semean      |     X     |   X (+) |      X     |
 | sebinomial  |     X     |   X     |      X     |
 | sepoisson   |     X     |   X     |      X     |
 | skewness    |     X     |   X     |      X     |
 | kurtosis    |     X     |   X     |      X     |
 
-<small>(+) first, last, firstmn, and lastnm are different from their counterparts
-in the egenmore package and, instead, they are analogous to the gcollapse
-counterparts.</small>
+<small>(+) indicates the function has the same or a very similar
+name to a function in the "egenmore" packge, but the function was
+independently implemented and is hence analogous to its gcollapse
+counterpart, not necessarily the function in egenmore.</small>
 
 The percentile syntax mimics that of `collapse` and `egen`, with the addition
 that quantiles are also supported. That is,
@@ -398,7 +399,7 @@ Differences from `collapse`
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
-Differences from `greshape`
+Differences from `reshape`
 
 - Allows an arbitrary number of variables in `i()` and `j()`
 - Several option allow turning off error checks for faster execution,
@@ -418,6 +419,8 @@ Differences from `greshape`
 - For that same reason, "advanced" syntax is not supported, including
   the subcommands: clear, error, query, i, j, xij, and xi.
 - `@` syntax can be modified via `match()`
+- `dropmiss` allows dropping missing observations when reshaping from
+  wide to long (via `long` or `gather`).
 
 Differences from `xtile`, `pctile`, and `_pctile`
 

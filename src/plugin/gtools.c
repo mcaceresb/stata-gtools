@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat Mar 23 16:44:57 EDT 2019
+ * Updated: Tue Apr 16 20:57:51 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.5.0
+ * Version: 1.5.1
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 23 Mar 2019
+ * @date 16 Apr 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -489,6 +489,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             summarize_detail,
             summarize_kvars,
             summarize_kstats,
+            greshape_dropmiss,
             greshape_code,
             greshape_kxij,
             greshape_kxi,
@@ -575,106 +576,107 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( N < 1 ) return (17001);
 
     // Parse switches
-    if ( (rc = sf_scalar_size("__gtools_debug",            &debug)            )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_verbose",          &verbose)          )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_benchmark",        &benchmark)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_any_if",           &any_if)           )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_init_targ",        &init_targ)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_invertix",         &invertix)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_skipcheck",        &skipcheck)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_mlast",            &mlast)            )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_subtract",         &subtract)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_ctolerance",       &ctolerance)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_hash_method",      &hash_method)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_weight_code",      &wcode)            )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_weight_pos",       &wpos)             )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_weight_sel",       &wselective)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_nunique",          &nunique)          )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gfile_byvar",      &gfile_byvar)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gfile_bycol",      &gfile_bycol)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gfile_bynum",      &gfile_bynum)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gfile_topnum",     &gfile_topnum)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gfile_topmat",     &gfile_topmat)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_debug",             &debug)             )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_verbose",           &verbose)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_benchmark",         &benchmark)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_any_if",            &any_if)            )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_init_targ",         &init_targ)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_invertix",          &invertix)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_skipcheck",         &skipcheck)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_mlast",             &mlast)             )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_subtract",          &subtract)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_ctolerance",        &ctolerance)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hash_method",       &hash_method)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_code",       &wcode)             )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_pos",        &wpos)              )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_weight_sel",        &wselective)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_nunique",           &nunique)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_byvar",       &gfile_byvar)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_bycol",       &gfile_bycol)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_bynum",       &gfile_bynum)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_topnum",      &gfile_topnum)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_topmat",      &gfile_topmat)      )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_seecount",         &seecount)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countonly",        &countonly)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_unsorted",         &unsorted)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_keepmiss",         &keepmiss)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_missing",          &missing)          )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_nomiss",           &nomiss)           )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_replace",          &replace)          )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_countmiss",        &countmiss)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_seecount",          &seecount)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countonly",         &countonly)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_unsorted",          &unsorted)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_keepmiss",          &keepmiss)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_missing",           &missing)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_nomiss",            &nomiss)            )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_replace",           &replace)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_countmiss",         &countmiss)         )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_numfmt_max",       &numfmt_max)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_numfmt_len",       &numfmt_len)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_cleanstr",         &cleanstr)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_colsep_len",       &colsep_len)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_sep_len",          &sep_len)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_numfmt_max",        &numfmt_max)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_numfmt_len",        &numfmt_len)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_cleanstr",          &cleanstr)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_colsep_len",        &colsep_len)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_sep_len",           &sep_len)           )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_top_groupmiss",    &top_groupmiss)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_miss",         &top_miss)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_matasave",     &top_matasave)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_invert",       &top_invert)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_alpha",        &top_alpha)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_other",        &top_other)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_lmiss",        &top_lmiss)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_lother",       &top_lother)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_top_nrows",        &top_nrows)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_groupmiss",     &top_groupmiss)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_miss",          &top_miss)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_matasave",      &top_matasave)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_invert",        &top_invert)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_alpha",         &top_alpha)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_other",         &top_other)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lmiss",         &top_lmiss)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_lother",        &top_lother)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_top_nrows",         &top_nrows)         )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_levels_return",    &levels_return)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_levels_matasave",  &levels_matasave)  )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_levels_gen",       &levels_gen)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_levels_replace",   &levels_replace)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_return",     &levels_return)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_matasave",   &levels_matasave)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_gen",        &levels_gen)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_levels_replace",    &levels_replace)    )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_xtile_xvars",      &xtile_xvars)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_nq",         &xtile_nq)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_nq2",        &xtile_nq2)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_cutvars",    &xtile_cutvars)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_ncuts",      &xtile_ncuts)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_qvars",      &xtile_qvars)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_gen",        &xtile_gen)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_pctile",     &xtile_pctile)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_genpct",     &xtile_genpct)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_pctpct",     &xtile_pctpct)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_altdef",     &xtile_altdef)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_missing",    &xtile_missing)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_strict",     &xtile_strict)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_min",        &xtile_minmax)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_method",     &xtile_method)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_bincount",   &xtile_bincount)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile__pctile",    &xtile__pctile)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_dedup",      &xtile_dedup)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",    &xtile_cutifin)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_xtile_cutby",      &xtile_cutby)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_xvars",       &xtile_xvars)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq",          &xtile_nq)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_nq2",         &xtile_nq2)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutvars",     &xtile_cutvars)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_ncuts",       &xtile_ncuts)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_qvars",       &xtile_qvars)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_gen",         &xtile_gen)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctile",      &xtile_pctile)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_genpct",      &xtile_genpct)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_pctpct",      &xtile_pctpct)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_altdef",      &xtile_altdef)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_missing",     &xtile_missing)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_strict",      &xtile_strict)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_min",         &xtile_minmax)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_method",      &xtile_method)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_bincount",    &xtile_bincount)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile__pctile",     &xtile__pctile)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_dedup",       &xtile_dedup)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutifin",     &xtile_cutifin)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_xtile_cutby",       &xtile_cutby)       )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_gstats_code",      &gstats_code)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_trim",      &winsor_trim)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_cutl",      &winsor_cutl)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_cuth",      &winsor_cuth)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_kvars",     &winsor_kvars)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_colvar", &summarize_colvar) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_pooled", &summarize_pooled) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_normal", &summarize_normal) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_detail", &summarize_detail) )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_kvars",  &summarize_kvars)  )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_summarize_kstats", &summarize_kstats) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gstats_code",       &gstats_code)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_trim",       &winsor_trim)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_cutl",       &winsor_cutl)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_cuth",       &winsor_cuth)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_winsor_kvars",      &winsor_kvars)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_colvar",  &summarize_colvar)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_pooled",  &summarize_pooled)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_normal",  &summarize_normal)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_detail",  &summarize_detail)  )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_kvars",   &summarize_kvars)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_summarize_kstats",  &summarize_kstats)  )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_greshape_code",    &greshape_code)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_kxij",    &greshape_kxij)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_kxi",     &greshape_kxi)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_kout",    &greshape_kout)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_klvls",   &greshape_klvls)   )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_str",     &greshape_str)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_greshape_jfile",   &greshape_jfile)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_dropmiss", &greshape_dropmiss) )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_code",     &greshape_code)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kxij",     &greshape_kxij)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kxi",      &greshape_kxi)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_kout",     &greshape_kout)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_klvls",    &greshape_klvls)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_str",      &greshape_str)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_greshape_jfile",    &greshape_jfile)    )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_encode",           &encode)           )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_data",       &group_data)       )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_group_fill",       &group_fill)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_encode",            &encode)            )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_data",        &group_data)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_group_fill",        &group_fill)        )) goto exit;
 
-    if ( (rc = sf_scalar_size("__gtools_k_stats",          &kvars_stats)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_vars",           &kvars_sources)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_targets",        &kvars_targets)    )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_k_group",          &kvars_group)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_stats",           &kvars_stats)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_vars",            &kvars_sources)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_targets",         &kvars_targets)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_k_group",           &kvars_group)       )) goto exit;
 
     if ( debug ) {
         printf("debug 1: Read all integer scalars\n");
@@ -830,120 +832,121 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         st_info->contract_vars += st_info->contract_which[i];
     }
 
-    st_info->in1              = in1;
-    st_info->in2              = in2;
-    st_info->N                = N;
-    st_info->Nread            = N;
+    st_info->in1               = in1;
+    st_info->in2               = in2;
+    st_info->N                 = N;
+    st_info->Nread             = N;
 
-    st_info->debug            = debug;
-    st_info->verbose          = verbose;
-    st_info->benchmark        = benchmark;
-    st_info->any_if           = any_if;
-    st_info->init_targ        = init_targ;
-    st_info->strmax           = strmax;
-    st_info->invertix         = invertix;
-    st_info->skipcheck        = skipcheck;
-    st_info->mlast            = mlast;
-    st_info->subtract         = subtract;
-    st_info->ctolerance       = ctolerance;
-    st_info->hash_method      = hash_method;
-    st_info->wcode            = wcode;
-    st_info->wpos             = wpos;
-    st_info->wselective       = wselective;
-    st_info->nunique          = nunique;
-    st_info->gfile_byvar      = gfile_byvar;
-    st_info->gfile_bycol      = gfile_bycol;
-    st_info->gfile_bynum      = gfile_bynum;
-    st_info->gfile_topnum     = gfile_topnum;
-    st_info->gfile_topmat     = gfile_topmat;
+    st_info->debug             = debug;
+    st_info->verbose           = verbose;
+    st_info->benchmark         = benchmark;
+    st_info->any_if            = any_if;
+    st_info->init_targ         = init_targ;
+    st_info->strmax            = strmax;
+    st_info->invertix          = invertix;
+    st_info->skipcheck         = skipcheck;
+    st_info->mlast             = mlast;
+    st_info->subtract          = subtract;
+    st_info->ctolerance        = ctolerance;
+    st_info->hash_method       = hash_method;
+    st_info->wcode             = wcode;
+    st_info->wpos              = wpos;
+    st_info->wselective        = wselective;
+    st_info->nunique           = nunique;
+    st_info->gfile_byvar       = gfile_byvar;
+    st_info->gfile_bycol       = gfile_bycol;
+    st_info->gfile_bynum       = gfile_bynum;
+    st_info->gfile_topnum      = gfile_topnum;
+    st_info->gfile_topmat      = gfile_topmat;
 
-    st_info->unsorted         = unsorted;
-    st_info->countonly        = countonly;
-    st_info->seecount         = seecount;
-    st_info->keepmiss         = keepmiss;
-    st_info->missing          = missing;
-    st_info->nomiss           = nomiss;
-    st_info->replace          = replace;
-    st_info->countmiss        = countmiss;
+    st_info->unsorted          = unsorted;
+    st_info->countonly         = countonly;
+    st_info->seecount          = seecount;
+    st_info->keepmiss          = keepmiss;
+    st_info->missing           = missing;
+    st_info->nomiss            = nomiss;
+    st_info->replace           = replace;
+    st_info->countmiss         = countmiss;
 
-    st_info->numfmt_max       = numfmt_max;
-    st_info->numfmt_len       = numfmt_len;
-    st_info->cleanstr         = cleanstr;
-    st_info->colsep_len       = colsep_len;
-    st_info->sep_len          = sep_len;
+    st_info->numfmt_max        = numfmt_max;
+    st_info->numfmt_len        = numfmt_len;
+    st_info->cleanstr          = cleanstr;
+    st_info->colsep_len        = colsep_len;
+    st_info->sep_len           = sep_len;
 
-    st_info->top_groupmiss    = top_groupmiss;
-    st_info->top_miss         = top_miss;
-    st_info->top_matasave     = top_matasave;
-    st_info->top_invert       = top_invert;
-    st_info->top_alpha        = top_alpha;
-    st_info->top_other        = top_other;
-    st_info->top_lmiss        = top_lmiss;
-    st_info->top_lother       = top_lother;
-    st_info->top_nrows        = top_nrows;
+    st_info->top_groupmiss     = top_groupmiss;
+    st_info->top_miss          = top_miss;
+    st_info->top_matasave      = top_matasave;
+    st_info->top_invert        = top_invert;
+    st_info->top_alpha         = top_alpha;
+    st_info->top_other         = top_other;
+    st_info->top_lmiss         = top_lmiss;
+    st_info->top_lother        = top_lother;
+    st_info->top_nrows         = top_nrows;
 
-    st_info->levels_return    = levels_return;
-    st_info->levels_matasave  = levels_matasave;
-    st_info->levels_gen       = levels_gen;
-    st_info->levels_replace   = levels_replace;
+    st_info->levels_return     = levels_return;
+    st_info->levels_matasave   = levels_matasave;
+    st_info->levels_gen        = levels_gen;
+    st_info->levels_replace    = levels_replace;
 
-    st_info->xtile_xvars      = xtile_xvars;
-    st_info->xtile_nq         = xtile_nq;
-    st_info->xtile_nq2        = xtile_nq2;
-    st_info->xtile_cutvars    = xtile_cutvars;
-    st_info->xtile_ncuts      = xtile_ncuts;
-    st_info->xtile_qvars      = xtile_qvars;
-    st_info->xtile_gen        = xtile_gen;
-    st_info->xtile_pctile     = xtile_pctile;
-    st_info->xtile_genpct     = xtile_genpct;
-    st_info->xtile_pctpct     = xtile_pctpct;
-    st_info->xtile_altdef     = xtile_altdef;
-    st_info->xtile_missing    = xtile_missing;
-    st_info->xtile_strict     = xtile_strict;
-    st_info->xtile_minmax     = xtile_minmax;
-    st_info->xtile_method     = xtile_method;
-    st_info->xtile_bincount   = xtile_bincount;
-    st_info->xtile__pctile    = xtile__pctile;
-    st_info->xtile_dedup      = xtile_dedup;
-    st_info->xtile_cutifin    = xtile_cutifin;
-    st_info->xtile_cutby      = xtile_cutby;
+    st_info->xtile_xvars       = xtile_xvars;
+    st_info->xtile_nq          = xtile_nq;
+    st_info->xtile_nq2         = xtile_nq2;
+    st_info->xtile_cutvars     = xtile_cutvars;
+    st_info->xtile_ncuts       = xtile_ncuts;
+    st_info->xtile_qvars       = xtile_qvars;
+    st_info->xtile_gen         = xtile_gen;
+    st_info->xtile_pctile      = xtile_pctile;
+    st_info->xtile_genpct      = xtile_genpct;
+    st_info->xtile_pctpct      = xtile_pctpct;
+    st_info->xtile_altdef      = xtile_altdef;
+    st_info->xtile_missing     = xtile_missing;
+    st_info->xtile_strict      = xtile_strict;
+    st_info->xtile_minmax      = xtile_minmax;
+    st_info->xtile_method      = xtile_method;
+    st_info->xtile_bincount    = xtile_bincount;
+    st_info->xtile__pctile     = xtile__pctile;
+    st_info->xtile_dedup       = xtile_dedup;
+    st_info->xtile_cutifin     = xtile_cutifin;
+    st_info->xtile_cutby       = xtile_cutby;
 
-    st_info->gstats_code      = gstats_code;
-    st_info->winsor_trim      = winsor_trim;
-    st_info->winsor_cutl      = winsor_cutl;
-    st_info->winsor_cuth      = winsor_cuth;
-    st_info->winsor_kvars     = winsor_kvars;
-    st_info->summarize_colvar = summarize_colvar;
-    st_info->summarize_pooled = summarize_pooled;
-    st_info->summarize_normal = summarize_normal;
-    st_info->summarize_detail = summarize_detail;
-    st_info->summarize_kvars  = summarize_kvars;
-    st_info->summarize_kstats = summarize_kstats;
+    st_info->gstats_code       = gstats_code;
+    st_info->winsor_trim       = winsor_trim;
+    st_info->winsor_cutl       = winsor_cutl;
+    st_info->winsor_cuth       = winsor_cuth;
+    st_info->winsor_kvars      = winsor_kvars;
+    st_info->summarize_colvar  = summarize_colvar;
+    st_info->summarize_pooled  = summarize_pooled;
+    st_info->summarize_normal  = summarize_normal;
+    st_info->summarize_detail  = summarize_detail;
+    st_info->summarize_kvars   = summarize_kvars;
+    st_info->summarize_kstats  = summarize_kstats;
 
-    st_info->greshape_code    = greshape_code;
-    st_info->greshape_kxij    = greshape_kxij;
-    st_info->greshape_kxi     = greshape_kxi;
-    st_info->greshape_kout    = greshape_kout;
-    st_info->greshape_klvls   = greshape_klvls;
-    st_info->greshape_str     = greshape_str;
-    st_info->greshape_jfile   = greshape_jfile;
-    st_info->greshape_anystr  = 0;
+    st_info->greshape_dropmiss = greshape_dropmiss;
+    st_info->greshape_code     = greshape_code;
+    st_info->greshape_kxij     = greshape_kxij;
+    st_info->greshape_kxi      = greshape_kxi;
+    st_info->greshape_kout     = greshape_kout;
+    st_info->greshape_klvls    = greshape_klvls;
+    st_info->greshape_str      = greshape_str;
+    st_info->greshape_jfile    = greshape_jfile;
+    st_info->greshape_anystr   = 0;
 
-    st_info->encode           = encode;
-    st_info->group_data       = group_data;
-    st_info->group_fill       = group_fill;
+    st_info->encode            = encode;
+    st_info->group_data        = group_data;
+    st_info->group_fill        = group_fill;
 
-    st_info->kvars_by         = kvars_by;
-    st_info->kvars_by_int     = kvars_by_int;
-    st_info->kvars_by_num     = kvars_by_num;
-    st_info->kvars_by_str     = kvars_by_str;
-    st_info->kvars_by_strL    = kvars_by_strL;
+    st_info->kvars_by          = kvars_by;
+    st_info->kvars_by_int      = kvars_by_int;
+    st_info->kvars_by_num      = kvars_by_num;
+    st_info->kvars_by_str      = kvars_by_str;
+    st_info->kvars_by_strL     = kvars_by_strL;
 
-    st_info->kvars_group      = kvars_group;
-    st_info->kvars_sources    = kvars_sources;
-    st_info->kvars_targets    = kvars_targets;
-    st_info->kvars_extra      = kvars_targets - kvars_sources;
-    st_info->kvars_stats      = kvars_stats;
+    st_info->kvars_group       = kvars_group;
+    st_info->kvars_sources     = kvars_sources;
+    st_info->kvars_targets     = kvars_targets;
+    st_info->kvars_extra       = kvars_targets - kvars_sources;
+    st_info->kvars_stats       = kvars_stats;
 
     /*********************************************************************
      *                              Cleanup                              *

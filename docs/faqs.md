@@ -36,6 +36,20 @@ plugins. Further, `strL` variabes can store binary data, which would
 require re-writing various portions of `gtools`; binary data support is
 planned for a future release but does not have an ETA.
 
+### Why do I get error `r(608)`?
+
+Some users have reported that when gtools tries to create temporary
+files it gives an error code `r(608)` (file cannot be modified; likely
+because the directory is read-only or the file became read-only). The
+user can set the temporary directory manually via
+
+```stata
+global GTOOLS_TEMPDIR .
+```
+
+where `.` will be the current directory. It can be any path to any
+existing directory as long as the user has read-write permission.
+
 ### My computer has a 32-bit CPU
 
 I have only compiled gtools for 64-bit CPUs. gtools uses 128-bit hashes
@@ -99,6 +113,29 @@ native commands:
    is slow. Similar inefficiencies are found in egen, isid, levelsof, contract,
    and so on. While they are fast enough for even modestly-sized data, when
    there are several million rows they begin to falter.
+
+I think an interesting encapsulation of this second point is found
+in the helpfile for the community-contributed `egenmore`. One of the
+entries reads:
+
+```
+nmiss(exp) [ , by(byvarlist) ] returns the number of missing values in exp (...)
+Remark: Why this was written is a mystery. The one-line command
+
+    egen nmiss = sum(missing(exp)) (...) shows that it is unnecessary.
+```
+
+I independently wrote a very similar command, namely `gegen nmissing`,
+so I obviously disagree the one-liner makes it unnecessary. The author
+of `egen nmiss` documents concern with functionality and speed of
+coding, not speed of execution. For small data, that is actually the
+correct trade-off. There is no reason to spend a large portion of your
+time optimizing `nmiss` if you will only gain a tenth of a second.
+However, `gtools` is meant to be used on large datasets, in which case
+the inefficiencies add up: The one-liner proposed creates a temporary
+variable and then sums it by group. `gtools`, on the other hand, simply
+counts the number missing by group as it iterates through the variable
+in the first place, which is a faster algorithm.
 
 ### How does hashing work?
 
@@ -171,4 +208,3 @@ there are at least 4 additional targets to create. In testing, the
 overhead has been ~10% of the total runtime. If the user expects J to be
 large, they can turn off this check via `forcemem`. If the user expects
 J to be small, they can force collapsing to disk via `forceio`.
-

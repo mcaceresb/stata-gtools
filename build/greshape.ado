@@ -1,4 +1,4 @@
-*! version 0.3.0 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 16Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -150,6 +150,7 @@ program define Long /* reshape long */
             fast               /// Do not preserve and restore the original dataset. Saves speed
             nochecks           /// Do not do any checks
             CHECKlevel(real 4) /// Check level
+            DROPMISSing        /// Drop missing values from reshape
             nodupcheck         /// Do not check for duplicates
             nomisscheck        /// Do not check for missing values or blanks in j
             match(str)         /// a string (e.g. @) to match or 'regex'
@@ -193,6 +194,7 @@ program define Long /* reshape long */
             KEYs(name)         /// varnames by levels -key()-
             xi(str)            /// Handle extraneous variables
             fast               /// Do not preserve and restore the original dataset. Saves speed
+            DROPMISSing        /// Drop missing values from reshape
             USELabels          /// Use labels as values instead of variable names
             USELabelsvars(str) /// Use labels as values instead of variable names
             ${GTOOLS_PARSE}    ///
@@ -441,7 +443,7 @@ program define Long /* reshape long */
     }
     mata: __greshape_w2l_meta = WideToLongMetaSave()
     global GTOOLS_CALLER greshape
-    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string'
+    local gopts xij($ReS_Xij_names) xi($ReS_Xi) f(`ReS_Data') `string' `dropmissing'
     local gopts greshape(`cmd', `gopts') gfunction(reshape) `opts'
     cap noi _gtools_internal ${ReS_i}, `gopts' missing
     global GTOOLS_CALLER ""
@@ -462,8 +464,14 @@ program define Long /* reshape long */
         rename ($ReS_Xij_keep) ($ReS_Xij_keepnames)
     }
     order $ReS_i $ReS_j $ReS_Xij_stubs $ReS_Xi
-    qui set obs `=_N * scalar(__greshape_klvls)'
-    * qui expand `=scalar(__greshape_klvls)'
+    if ( `"`dropmissing'"' != "" ) {
+        * disp as txt "({bf:warning:} -dropmiss- will remove IDs with all missing values)"
+        qui set obs `=scalar(__gtools_greshape_nrows)'
+    }
+    else {
+        qui set obs `=_N * scalar(__greshape_klvls)'
+        * qui expand `=scalar(__greshape_klvls)'
+    }
     if ( `FreeTimer' ) {
         qui timer off `FreeTimer'
         qui timer list

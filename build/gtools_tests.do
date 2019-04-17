@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Apr  4 09:58:19 EDT 2019
+* Updated: Tue Apr 16 20:58:07 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.3
+* Version: 1.5.4
 * Manual:  help gtools
 
 * Stata start-up options
@@ -7441,51 +7441,149 @@ program checks_greshape
     replace mpg   = .b if _n > 50
 
     preserve
-    greshape wide price mpg, i(make) j(foreign)
-    greshape long price mpg, i(make) j(foreign)
+        greshape wide price mpg, i(make) j(foreign)
+        greshape long price mpg, i(make) j(foreign)
 
-    greshape wide price mpg, i(make) j(foreign)
+        greshape wide price mpg, i(make) j(foreign)
+        gen long   price2 = _n    
+        gen double price3 = 3.14
+        note price2: When the night!
+        note price3: Has coooome....
+        greshape long price mpg, i(make) j(foreign)
+    restore
+
+    preserve
+        greshape spread price, i(make) j(foreign) xi(drop)
+        greshape gather _*, j(foreign) values(price)
+    restore
+
+    preserve
+        greshape spread mpg, i(make) j(foreign) xi(drop)
+        greshape gather _*,  j(foreign) values(mpg)
+    restore
+
+    preserve
+        greshape spread price mpg,   i(make) j(foreign) xi(drop)
+        greshape gather price* mpg*, j(foreign) values(price_mpg)
+    restore
+
     gen long   price2 = _n    
     gen double price3 = 3.14
     note price2: When the night!
     note price3: Has coooome....
-    greshape long price mpg, i(make) j(foreign)
+
+    preserve
+        greshape spread price, i(make) j(foreign) xi(drop)
+        greshape gather _*, j(foreign) values(price)
     restore
 
     preserve
-    greshape spread price, i(make) j(foreign) xi(drop)
-    greshape gather _*, j(foreign) values(price)
-    restore
-
-    preserve
-    greshape spread mpg, i(make) j(foreign) xi(drop)
-    greshape gather _*,  j(foreign) values(mpg)
-    restore
-
-    preserve
-    greshape spread price mpg,   i(make) j(foreign) xi(drop)
-    greshape gather price* mpg*, j(foreign) values(price_mpg)
-    restore
-
-    gen long   price2 = _n    
-    gen double price3 = 3.14
-    note price2: When the night!
-    note price3: Has coooome....
-
-    preserve
-    greshape spread price, i(make) j(foreign) xi(drop)
-    greshape gather _*, j(foreign) values(price)
-    restore
-
-    preserve
-    greshape spread mpg, i(make) j(foreign) xi(drop)
-    greshape gather _*,  j(foreign) values(mpg)
+        greshape spread mpg, i(make) j(foreign) xi(drop)
+        greshape gather _*,  j(foreign) values(mpg)
     restore
                                                               
     preserve
-    greshape spread price mpg,   i(make) j(foreign) xi(drop)
-    greshape gather price* mpg*, j(foreign) values(price_mpg)
+        greshape spread price mpg,   i(make) j(foreign) xi(drop)
+        greshape gather price* mpg*, j(foreign) values(price_mpg)
     restore
+
+    * Check dropmiss
+    * --------------
+
+    clear
+    set obs 10
+    gen i = _n
+    gen x1 = 1
+    gen x2 = 2
+    gen z1 = "a"
+    gen z2 = "bb"
+    preserve
+        greshape gather x*, values(x) key(var) dropmiss
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss nochecks
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss
+    restore, preserve
+        greshape gather z*, values(z) key(var) dropmiss
+    restore, preserve
+        greshape long z, by(i) key(var) dropmiss nochecks
+    restore
+        greshape long z, by(i) key(var) dropmiss
+
+    clear
+    set obs 10
+    gen i = _n
+    gen x1 = 1
+    gen x2 = 2
+    gen x3 = .
+    gen z1 = "a"
+    gen z2 = "bb"
+    gen z3 = ""
+    preserve
+        greshape gather x*, values(x) key(var) dropmiss
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss nochecks
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss
+    restore, preserve
+        greshape gather z*, values(z) key(var) dropmiss
+    restore, preserve
+        greshape long z, by(i) key(var) dropmiss nochecks
+    restore
+        greshape long z, by(i) key(var) dropmiss
+
+    clear
+    set obs 10
+    gen i = _n
+    gen x1 = 1
+    gen x2 = 2
+    gen x3 = 3
+    gen x4 = .
+    gen x5 = 5
+    replace x1 = . in 1
+    replace x2 = . in 1
+    replace x3 = . in 1
+    replace x5 = . in 1
+    replace x1 = . in 2
+    replace x2 = . in 3
+    replace x3 = . in 4
+    replace x5 = . in 5
+    replace x1 = . in 6
+    replace x2 = . in 7
+    replace x3 = . in 8
+    replace x5 = . in 9
+
+    gen z1 = "a"
+    gen z2 = "bb"
+    gen z3 = "ccc"
+    gen z4 = ""
+    gen z5 = "eeeee"
+    replace z1 = "" in 1
+    replace z2 = "" in 1
+    replace z3 = "" in 1
+    replace z5 = "" in 1
+    replace z1 = "" in 2
+    replace z2 = "" in 3
+    replace z3 = "" in 4
+    replace z5 = "" in 5
+    replace z1 = "" in 6
+    replace z2 = "" in 7
+    replace z3 = "" in 8
+    replace z5 = "" in 9
+
+    preserve
+        greshape gather x*, values(x) key(var) dropmiss
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss nochecks
+    restore, preserve
+        greshape long x, by(i) key(var) dropmiss
+    restore, preserve
+        greshape gather z*, values(z) key(var) dropmiss
+    restore, preserve
+        greshape long z, by(i) key(var) dropmiss nochecks
+    restore
+        greshape long z, by(i) key(var) dropmiss
+
 end
 
 capture program drop compare_greshape
@@ -8054,7 +8152,7 @@ disp as err "    set 1 `xi'"
         l
     restore, preserve
         keep i1 z1 z2 `xi'
-        greshape long z, i(i1) j(j) `opts'
+        greshape long z, i(i1) j(j) `opts' dropmiss
         l
     restore, preserve
         keep i1 w* z* `xi'
@@ -8064,6 +8162,10 @@ disp as err "    set 1 `xi'"
         * 1.2 str xij
         keep i1 x* `xi'
         greshape long x, i(i1) j(j) string `opts'
+        l
+    restore, preserve
+        keep i1 x* `xi'
+        greshape long x, i(i1) j(j) string `opts' dropmiss
         l
     restore, preserve
         keep i1 x* p* `xi'
@@ -8089,7 +8191,7 @@ disp as err "    set 2 `xi'"
         l
     restore, preserve
         keep i1 i2 z1 z2 `xi'
-        greshape long z, i(i?) j(j) `opts'
+        greshape long z, i(i?) j(j) `opts' dropmiss
         l
     restore, preserve
         keep i1 i2 w* z* `xi'
@@ -8099,6 +8201,10 @@ disp as err "    set 2 `xi'"
         * 1.2 str xij
         keep i1 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i1 i2 x* `xi'
+        greshape long x, i(i?) j(j) string `opts' dropmiss
         l
     restore, preserve
         keep i1 i2 x* p* `xi'
@@ -8124,7 +8230,7 @@ disp as err "    set 3 `xi'"
         l
     restore, preserve
         keep i4 i2 z1 z2 `xi'
-        greshape long z, i(i?) j(j) `opts'
+        greshape long z, i(i?) j(j) `opts' dropmiss
         l
     restore, preserve
         keep i4 i2 w* z* `xi'
@@ -8134,6 +8240,10 @@ disp as err "    set 3 `xi'"
         * 1.2 str xij
         keep i4 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i4 i2 x* `xi'
+        greshape long x, i(i?) j(j) string `opts' dropmiss
         l
     restore, preserve
         keep i4 i2 x* p* `xi'
@@ -8159,7 +8269,7 @@ disp as err "    set 4 `xi'"
         l
     restore, preserve
         keep i3 i4 i2 z1 z2 `xi'
-        greshape long z, i(i?) j(j) `opts'
+        greshape long z, i(i?) j(j) `opts' dropmiss
         l
     restore, preserve
         keep i3 i4 i2 w* z* `xi'
@@ -8169,6 +8279,10 @@ disp as err "    set 4 `xi'"
         * 1.2 str xij
         keep i3 i4 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i3 i4 i2 x* `xi'
+        greshape long x, i(i?) j(j) string `opts' dropmiss
         l
     restore, preserve
         keep i3 i4 i2 x* p* `xi'
@@ -8194,7 +8308,7 @@ disp as err "    set 5 `xi'"
         l
     restore, preserve
         keep i? i2 z1 z2 `xi'
-        greshape long z, i(i?) j(j) `opts'
+        greshape long z, i(i?) j(j) `opts' dropmiss
         l
     restore, preserve
         keep i? i2 w* z* `xi'
@@ -8204,6 +8318,10 @@ disp as err "    set 5 `xi'"
         * 1.2 str xij
         keep i? i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        keep i? i2 x* `xi'
+        greshape long x, i(i?) j(j) string `opts' dropmiss
         l
     restore, preserve
         keep i? i2 x* p* `xi'

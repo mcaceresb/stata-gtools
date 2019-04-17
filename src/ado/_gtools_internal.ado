@@ -1,4 +1,4 @@
-*! version 1.5.3 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.4 16Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1597,7 +1597,7 @@ program _gtools_internal, rclass
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0: copy local greshape
-            syntax anything, xij(str) [j(str) xi(str) File(str) STRing(int 0)]
+            syntax anything, xij(str) [j(str) xi(str) File(str) STRing(int 0) DROPMISSing]
 
             gettoken shape readwrite: anything
             local readwrite `readwrite'
@@ -1623,12 +1623,14 @@ program _gtools_internal, rclass
             }
 
             local gcall `gfunction' `readwrite' `"`file'"'
+
             scalar __gtools_greshape_code = cond(`"`shape'"' == "wide", 2, 1)
             if ( (`"`shape'"' == "wide") | ("`readwrite'" == "read") ) {
                 local reshapevars `j' `reshapevars'
             }
-            scalar __gtools_greshape_str = `string'
-            scalar __gtools_greshape_kxi = `:list sizeof xi'
+            scalar __gtools_greshape_str      = `string'
+            scalar __gtools_greshape_kxi      = `:list sizeof xi'
+            scalar __gtools_greshape_dropmiss = ( `"`dropmissing'"' != "" )
         }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction' `"${GTOOLS_GSTATS_FILE}"'
@@ -3636,15 +3638,18 @@ capture program drop greshape_scalars
 program greshape_scalars
     * 1 = long, 2 = wide
     if ( inlist(`"`1'"', "gen", "init", "alloc") ) {
-        scalar __gtools_greshape_code = 0
-        scalar __gtools_greshape_kxi  = 0
-        scalar __gtools_greshape_str  = 0
+        scalar __gtools_greshape_code     = 0
+        scalar __gtools_greshape_kxi      = 0
+        scalar __gtools_greshape_str      = 0
+        scalar __gtools_greshape_dropmiss = 0
+
         cap matrix list __gtools_greshape_xitypes
         if ( _rc ) matrix __gtools_greshape_xitypes = 0
         cap matrix list __gtools_greshape_types
         if ( _rc ) matrix __gtools_greshape_types = 0
         cap matrix list __gtools_greshape_maplevel
         if ( _rc ) matrix __gtools_greshape_maplevel = 0
+
         cap scalar dir __gtools_greshape_jfile
         if ( _rc ) scalar __gtools_greshape_jfile = 0
         cap scalar dir __gtools_greshape_kxij
@@ -3658,14 +3663,17 @@ program greshape_scalars
         cap scalar drop __gtools_greshape_code
         cap scalar drop __gtools_greshape_kxi
         cap scalar drop __gtools_greshape_str
+        cap scalar drop __gtools_greshape_dropmiss
+
         if ( `"${GTOOLS_CALLER}"' != "greshape" ) {
+            cap matrix drop __gtools_greshape_xitypes
+            cap matrix drop __gtools_greshape_types
+            cap matrix drop __gtools_greshape_maplevel
+
             cap scalar drop __gtools_greshape_jfile
             cap scalar drop __gtools_greshape_kxij
             cap scalar drop __gtools_greshape_kout
             cap scalar drop __gtools_greshape_klvls
-            cap matrix drop __gtools_greshape_xitypes
-            cap matrix drop __gtools_greshape_types
-            cap matrix drop __gtools_greshape_maplevel
         }
     }
 end

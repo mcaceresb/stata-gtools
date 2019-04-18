@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.5.5 (2019-04-18)
+
+### Features
+
+- Allows option `dropmiss` to use multiple output stubs.
+
 ## gtools-1.5.4 (2019-04-16)
 
 ### Features

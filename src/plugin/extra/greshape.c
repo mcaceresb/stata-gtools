@@ -877,12 +877,13 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     ST_retcode rc = 0;
     ST_double z;
 
+    GT_bool skiprow;
     GT_size *ixptr;
     GT_size selx, i, j, k, l, m, rowbytes, outbytes, xibytes, outobs;
 
     FILE *fhandle;
-    char *strptr, *jstr, *outstr, *xistr;
-    ST_double *dblptr, *jdbl, *outdbl, *xidbl;
+    char *strptr, *jstr, *outstr, *xistr, *xijstr;
+    ST_double *dblptr, *jdbl, *outdbl, *xijdbl, *xidbl;
 
     GT_size kvars    = st_info->kvars_by;
     GT_size kout     = st_info->greshape_kout;
@@ -979,13 +980,18 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     xibytes = GTOOLS_PWMAX(xibytes, 1);
     xistr   = calloc(1, xibytes);
-    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xidbl);
-    memset(xistr, '\0', xibytes);
+    xijstr  = calloc(1, outbytes);
+    xidbl   = calloc(GTOOLS_PWMAX(kxi,  1), sizeof *xidbl);
+    xijdbl  = calloc(GTOOLS_PWMAX(kout, 1), sizeof *xijdbl);
+    memset(xistr,  '\0', xibytes);
+    memset(xijstr, '\0', outbytes);
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_long", "outdbl"));
     if ( outstr == NULL ) return(sf_oom_error("sf_reshape_long", "outstr"));
     if ( xistr  == NULL ) return(sf_oom_error("sf_reshape_long", "xistr"));
+    if ( xijstr == NULL ) return(sf_oom_error("sf_reshape_long", "xijstr"));
     if ( xidbl  == NULL ) return(sf_oom_error("sf_reshape_long", "xidbl"));
+    if ( xijdbl == NULL ) return(sf_oom_error("sf_reshape_long", "xijdbl"));
 
     if ( outbytes == 0 ) {
         rc = 198;
@@ -1041,12 +1047,6 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     outobs = 0;
     rowbytes = (st_info->rowbytes + sizeof(GT_size));
     if ( st_info->greshape_dropmiss ) {
-        if ( kout > 1 ) {
-            sf_errprintf("multiple output variables not allowed with -dropmiss-\n");
-            rc = 198;
-            goto exit;
-        }
-
         for (j = 0; j < klevels; j++) {
             if ( !(maplevel[j] > 0) ) {
                 sf_errprintf("multiple output variables not allowed with -dropmiss-\n");
@@ -1073,19 +1073,24 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                     // dblptr is the row of the by variables
                     dblptr = st_info->st_by_numx + m * (kvars + 1);
                     for (j = 0; j < klevels; j++) {
-
-                        // Skip missing values
-                        if ( (l = maplevel[j]) > 0 ) {
-                            if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
-                        }
-                        else {
-                            z = SV_missval;
-                        }
-
-                        if ( SF_is_missing(z) ) continue;
+                        skiprow = 1;
 
                         // selx is the row in the output (long) vector
                         selx = outobs * krow; // m * krow * klevels + j * krow;
+
+                        // Copy each of the xij variables to buffer
+                        for (k = 0; k < kout; k++) {
+                            if ( (l = maplevel[k * klevels + j]) > 0 ) {
+                                if ( (rc = SF_vdata(l, i + st_info->in1, xijdbl + k)) ) goto exit;
+                                skiprow = skiprow && SF_is_missing(xijdbl[k]);
+                            }
+                            else {
+                                xijdbl[k] = SV_missval;
+                            }
+                        }
+
+                        // Skip missing rows
+                        if ( skiprow ) continue;
 
                         // copy a row of the by variables to the output vector
                         for (k = 0; k < kvars; k++) {
@@ -1095,8 +1100,10 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         // Copy the j variable value
                         outdbl[selx + kvars] = jdbl[j];
 
-                        // Copy each of the xij variables
-                        outdbl[selx + kvars + 1] = z;
+                        // Copy xij buffer to output matrix
+                        for (k = 0; k < kvars; k++) {
+                            outdbl[selx + kvars + k + 1] = xijdbl[k];
+                        }
 
                         // Copy each of the xi variables
                         if ( kxi ) {
@@ -1121,7 +1128,9 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         // m = st_info->info[*ixptr - 1];
                         m = *ixptr - 1;
 
-                        memset(xistr, '\0', xibytes);
+                        memset(xistr,  '\0', xibytes);
+                        memset(xijstr, '\0', outbytes);
+
                         for (k = 0; k < kxi; k++) {
                             if ( xitypes[k] ) {
                                 if ( (rc = SF_sdata(kvars + k + 1,
@@ -1138,9 +1147,36 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
                         strptr = st_info->st_by_charx + m * rowbytes;
                         for (j = 0; j < klevels; j++) {
-
-                            l    = maplevel[j];
+                            skiprow = 1;
                             selx = outobs * outbytes; // m * klevels * outbytes + j * outbytes;
+
+                            for (k = 0; k < kout; k++) {
+                                l = maplevel[k * klevels + j];
+                                if ( outtyp[k + 1] && (l > 0) ) {
+                                    if ( (rc = SF_sdata(l,
+                                                        i + st_info->in1,
+                                                        xijstr + outpos[k + 1])) ) goto exit;
+
+                                    skiprow = skiprow && (strcmp(xijstr + outpos[k + 1], "") == 0);
+                                }
+                                else {
+                                    if ( l > 0 ) {
+                                        if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                        skiprow = skiprow && SF_is_missing(z);
+                                    }
+                                    else {
+                                        z = SV_missval;
+                                    }
+
+                                    memcpy(
+                                        xijstr + outpos[k + 1],
+                                        &z,
+                                        sizeof(ST_double)
+                                    );
+                                }
+                            }
+
+                            if ( skiprow ) continue;
 
                             memcpy(
                                 outstr + selx,
@@ -1154,29 +1190,11 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                                 jbytes
                             );
 
-                            if ( outtyp[1] && (l > 0) ) {
-                                if ( (rc = SF_sdata(l,
-                                                    i + st_info->in1,
-                                                    outstr + selx + outpos[1])) ) goto exit;
-
-                                if ( strcmp(outstr + selx + outpos[1], "") == 0 ) continue;
-                            }
-                            else {
-                                if ( l > 0 ) {
-                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
-                                }
-                                else {
-                                    z = SV_missval;
-                                }
-
-                                if ( SF_is_missing(z) ) continue;
-
-                                memcpy(
-                                    outstr + selx + outpos[1],
-                                    &z,
-                                    sizeof(ST_double)
-                                );
-                            }
+                            memcpy(
+                                outstr + selx + outpos[1],
+                                xijstr + outpos[1],
+                                outpos[kout + 1] - outpos[1]
+                            );
 
                             if ( kxi ) {
                                 memcpy(
@@ -1215,9 +1233,36 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
                         dblptr = st_info->st_by_numx + m * (kvars + 1);
                         for (j = 0; j < klevels; j++) {
-
-                            l    = maplevel[j];
+                            skiprow = 1;
                             selx = outobs * outbytes; // m * klevels * outbytes + j * outbytes;
+
+                            for (k = 0; k < kout; k++) {
+                                l = maplevel[k * klevels + j];
+                                if ( outtyp[k + 1] && (l > 0) ) {
+                                    if ( (rc = SF_sdata(l,
+                                                        i + st_info->in1,
+                                                        xijstr + outpos[k + 1])) ) goto exit;
+
+                                    skiprow = skiprow && (strcmp(xijstr + outpos[k + 1], "") == 0);
+                                }
+                                else {
+                                    if ( l > 0 ) {
+                                        if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                        skiprow = skiprow && SF_is_missing(z);
+                                    }
+                                    else {
+                                        z = SV_missval;
+                                    }
+
+                                    memcpy(
+                                        xijstr + outpos[k + 1],
+                                        &z,
+                                        sizeof(ST_double)
+                                    );
+                                }
+                            }
+
+                            if ( skiprow ) continue;
 
                             memcpy(
                                 outstr + selx,
@@ -1231,29 +1276,11 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                                 jbytes
                             );
 
-                            if ( outtyp[1] && (l > 0) ) {
-                                if ( (rc = SF_sdata(l,
-                                                    i + st_info->in1,
-                                                    outstr + selx + outpos[1])) ) goto exit;
-
-                                if ( strcmp(outstr + selx + outpos[1], "") == 0 ) continue;
-                            }
-                            else {
-                                if ( l > 0 ) {
-                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
-                                }
-                                else {
-                                    z = SV_missval;
-                                }
-
-                                if ( SF_is_missing(z) ) continue;
-
-                                memcpy(
-                                    outstr + selx + outpos[1],
-                                    &z,
-                                    sizeof(ST_double)
-                                );
-                            }
+                            memcpy(
+                                outstr + selx + outpos[1],
+                                xijstr + outpos[1],
+                                outpos[kout + 1] - outpos[1]
+                            );
 
                             if ( kxi ) {
                                 memcpy(
@@ -1295,6 +1322,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                     // dblptr is the row of the by variables
                     dblptr = st_info->st_by_numx + m * (kvars + 1);
                     for (j = 0; j < klevels; j++) {
+
                         // selx is the row in the output (long) vector
                         selx = m * krow * klevels + j * krow;
 
@@ -1627,6 +1655,7 @@ exit:
     free(xipos);
     free(xistr);
     free(xidbl);
+    free(xijdbl);
 
     free(jstr);
     free(jdbl);

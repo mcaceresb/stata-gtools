@@ -7699,16 +7699,16 @@ program checks_inner_greshape_errors
         label var i4 "bye-a i4"
         preserve
             greshape gather i3 i4, values(val) by(i1 i2) xi(drop)
-            head
+            l in 1/10
         restore, preserve
             greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels
-            head
+            l in 1/10
         restore, preserve
             greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3)
-            head
+            l in 1/10
         restore, preserve
             greshape gather i3 i4, values(val) by(i1 i2) xi(drop) uselabels(i3, exclude)
-            head
+            l in 1/10
         restore
     }
 

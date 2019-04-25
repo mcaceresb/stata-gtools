@@ -190,8 +190,16 @@ program checks_greshape
         greshape gather z*, values(z) key(var) dropmiss
     restore, preserve
         greshape long z, by(i) key(var) dropmiss nochecks
-    restore
+    restore, preserve
         greshape long z, by(i) key(var) dropmiss
+    restore, preserve
+        greshape long x z, by(i) key(var) dropmiss
+    restore, preserve
+        greshape long x z, by(i) key(var) nochecks dropmiss
+    restore, preserve
+        greshape long x z, by(i) key(var) nochecks
+    restore
+        greshape long x z, by(i) key(var)
 
 end
 
@@ -768,6 +776,10 @@ disp as err "    set 1 `xi'"
         greshape long w z, i(i1) j(j) `opts'
         l
     restore, preserve
+        keep i1 w* z* `xi'
+        greshape long w z, i(i1) j(j) `opts' dropmiss
+        l
+    restore, preserve
         * 1.2 str xij
         keep i1 x* `xi'
         greshape long x, i(i1) j(j) string `opts'
@@ -781,13 +793,25 @@ disp as err "    set 1 `xi'"
         greshape long x p, i(i1) j(j) string `opts'
         l
     restore, preserve
+        keep i1 x* p* `xi'
+        greshape long x p, i(i1) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         * 1.3 mix xij
         keep i1 x* z* `xi'
         greshape long x z, i(i1) j(j) string `opts'
         l
     restore, preserve
+        keep i1 x* z* `xi'
+        greshape long x z, i(i1) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         drop i2-i4
         greshape long p w x y z, i(i1) j(j) string `opts'
+        l
+    restore, preserve
+        drop i2-i4
+        greshape long p w x y z, i(i1) j(j) string `opts' dropmiss
         l
     restore
 
@@ -807,6 +831,10 @@ disp as err "    set 2 `xi'"
         greshape long w z, i(i?) j(j) `opts'
         l
     restore, preserve
+        keep i1 i2 w* z* `xi'
+        greshape long w z, i(i?) j(j) `opts' dropmiss
+        l
+    restore, preserve
         * 1.2 str xij
         keep i1 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
@@ -820,13 +848,25 @@ disp as err "    set 2 `xi'"
         greshape long x p, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i1 i2 x* p* `xi'
+        greshape long x p, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         * 1.3 mix xij
         keep i1 i2 x* z* `xi'
         greshape long x z, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i1 i2 x* z* `xi'
+        greshape long x z, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         drop i3 i4
         greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i3 i4
+        greshape long p w x y z, i(i?) j(j) string `opts' dropmiss
         l
     restore
 
@@ -846,6 +886,10 @@ disp as err "    set 3 `xi'"
         greshape long w z, i(i?) j(j) `opts'
         l
     restore, preserve
+        keep i4 i2 w* z* `xi'
+        greshape long w z, i(i?) j(j) `opts' dropmiss
+        l
+    restore, preserve
         * 1.2 str xij
         keep i4 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
@@ -859,13 +903,25 @@ disp as err "    set 3 `xi'"
         greshape long x p, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i4 i2 x* p* `xi'
+        greshape long x p, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         * 1.3 mix xij
         keep i4 i2 x* z* `xi'
         greshape long x z, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i4 i2 x* z* `xi'
+        greshape long x z, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         drop i1 i2 i3
         greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i1 i2 i3
+        greshape long p w x y z, i(i?) j(j) string `opts' dropmiss
         l
     restore
 
@@ -885,6 +941,10 @@ disp as err "    set 4 `xi'"
         greshape long w z, i(i?) j(j) `opts'
         l
     restore, preserve
+        keep i3 i4 i2 w* z* `xi'
+        greshape long w z, i(i?) j(j) `opts' dropmiss
+        l
+    restore, preserve
         * 1.2 str xij
         keep i3 i4 i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
@@ -898,13 +958,25 @@ disp as err "    set 4 `xi'"
         greshape long x p, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i3 i4 i2 x* p* `xi'
+        greshape long x p, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         * 1.3 mix xij
         keep i3 i4 i2 x* z* `xi'
         greshape long x z, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i3 i4 i2 x* z* `xi'
+        greshape long x z, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         drop i1 i2
         greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        drop i1 i2
+        greshape long p w x y z, i(i?) j(j) string `opts' dropmiss
         l
     restore
 
@@ -924,6 +996,10 @@ disp as err "    set 5 `xi'"
         greshape long w z, i(i?) j(j) `opts'
         l
     restore, preserve
+        keep i? i2 w* z* `xi'
+        greshape long w z, i(i?) j(j) `opts' dropmiss
+        l
+    restore, preserve
         * 1.2 str xij
         keep i? i2 x* `xi'
         greshape long x, i(i?) j(j) string `opts'
@@ -937,12 +1013,23 @@ disp as err "    set 5 `xi'"
         greshape long x p, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i? i2 x* p* `xi'
+        greshape long x p, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         * 1.3 mix xij
         keep i? i2 x* z* `xi'
         greshape long x z, i(i?) j(j) string `opts'
         l
     restore, preserve
+        keep i? i2 x* z* `xi'
+        greshape long x z, i(i?) j(j) string `opts' dropmiss
+        l
+    restore, preserve
         greshape long p w x y z, i(i?) j(j) string `opts'
+        l
+    restore, preserve
+        greshape long p w x y z, i(i?) j(j) string `opts' dropmiss
         l
     restore
 end

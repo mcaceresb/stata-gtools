@@ -2,10 +2,10 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Apr 16 20:57:51 EDT 2019
+ * Updated: Wed Apr 24 21:54:06 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.5.1
+ * Version: 1.5.5
  *********************************************************************/
 
 /**

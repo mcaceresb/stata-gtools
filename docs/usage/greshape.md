@@ -130,7 +130,9 @@ Options
 - `string`        Whether to allow for string matches to each stub
 - `match(str)`    Where to match levels of `keys()` in stub (default `@`). Use `match(regex)`
                   for complex matches (see [examples below](#complex-stub-matches) for details).
-- `dropmiss`      Drop missing observations for reshaped variables (only one stub allowed).
+- `dropmiss`      Drop missing observations for reshaped variables, including extended
+                  missing values. With multiple stubs, it only drops the observation if
+                  _every_ output variable will be missing for that row.
 
 **Wide only**
 
@@ -157,7 +159,8 @@ Options
 - `uselabels[(str)]`  Store variable labels instead of their names. Optionally specify a varlist
                       with the variables to do this for (or `uselabels(varlist, exclude)`
                       to specify the variables _not_ to do this for).
-- `dropmiss`          Drop missing observations for reshaped variables.
+- `dropmiss`          Drop missing observations for reshaped variables, including extended
+                      missing values.
 
 **Spread only**
 
@@ -341,7 +344,8 @@ gen i = _n
 expand i
 bys i: gen j = _n
 gen x = _n
-greshape wide x, by(i) key(j)
+gen y = -_n
+greshape wide x y, by(i) key(j)
 ```
 
 When reshaping this data back into long, we would normally get
@@ -349,9 +353,10 @@ When reshaping this data back into long, we would normally get
 dispense with the additional missing values via `dropmiss`:
 
 ```stata
-greshape long x, by(i) key(j) dropmiss
+greshape long x y, by(i) key(j) dropmiss
 assert _N == 55
 assert x  == _n
+assert y  == -_n
 ```
 
 ### Fine-grain control over error checks

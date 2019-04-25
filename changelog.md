@@ -1,11 +1,12 @@
 Change Log
 ==========
 
-## gtools-1.5.5 (2019-04-18)
+## gtools-1.5.5 (2019-04-24)
 
 ### Features
 
-- Allows option `dropmiss` to use multiple output stubs.
+- Allows option `dropmiss` to use multiple output stubs in both `long`
+  and `long, nochecks`.
 
 ## gtools-1.5.4 (2019-04-16)
 

@@ -879,7 +879,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
 
     GT_bool skiprow;
     GT_size *ixptr;
-    GT_size selx, i, j, k, l, m, rowbytes, outbytes, xibytes, outobs;
+    GT_size selx, i, j, k, l, m, rowbytes, outbytes, xijbytes, xibytes, outobs;
 
     FILE *fhandle;
     char *strptr, *jstr, *outstr, *xistr, *xijstr;
@@ -946,6 +946,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     if ( outtyp   == NULL ) return(sf_oom_error("sf_reshape_long", "outtyp"));
     if ( index_st == NULL ) return(sf_oom_error("sf_reshape_long", "index_st"));
 
+    // Allocate space for j variable (str or double)
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
         jdbl = calloc(1, sizeof *jdbl);
@@ -954,6 +955,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         jdbl = calloc(klevels, sizeof *jdbl);
     }
 
+    // Allocate space for output array (ALL variables)
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
     if ( st_info->greshape_anystr ) {
         outdbl = malloc(sizeof(ST_double));
@@ -965,6 +967,14 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         outdbl = calloc(Nread * klevels * krow, sizeof *outdbl);
     }
 
+    if ( kxi ) {
+        xijbytes = outpos[kout + 1] - outpos[1];
+    }
+    else {
+        xijbytes = outbytes - outpos[1];
+    }
+
+    // Compute row bytes for xi variables (might be 0)
     xipos[0] = xibytes = 0;
     for (k = 0; k < kxi; k++) {
         if ( (l = xitypes[k]) ) {
@@ -978,11 +988,13 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
+    // Allocate space for helper arrays
     xibytes = GTOOLS_PWMAX(xibytes, 1);
     xistr   = calloc(1, xibytes);
     xijstr  = calloc(1, outbytes);
     xidbl   = calloc(GTOOLS_PWMAX(kxi,  1), sizeof *xidbl);
     xijdbl  = calloc(GTOOLS_PWMAX(kout, 1), sizeof *xijdbl);
+
     memset(xistr,  '\0', xibytes);
     memset(xijstr, '\0', outbytes);
 
@@ -1047,14 +1059,6 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
     outobs = 0;
     rowbytes = (st_info->rowbytes + sizeof(GT_size));
     if ( st_info->greshape_dropmiss ) {
-        for (j = 0; j < klevels; j++) {
-            if ( !(maplevel[j] > 0) ) {
-                sf_errprintf("multiple output variables not allowed with -dropmiss-\n");
-                rc = 198;
-                goto exit;
-            }
-        }
-
         if ( st_info->greshape_anystr == 0 ) {
             i = 0;
             for (ixptr = index_st; ixptr < index_st + Nread; ixptr++, i++) {
@@ -1101,7 +1105,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         outdbl[selx + kvars] = jdbl[j];
 
                         // Copy xij buffer to output matrix
-                        for (k = 0; k < kvars; k++) {
+                        for (k = 0; k < kout; k++) {
                             outdbl[selx + kvars + k + 1] = xijdbl[k];
                         }
 
@@ -1128,9 +1132,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         // m = st_info->info[*ixptr - 1];
                         m = *ixptr - 1;
 
-                        memset(xistr,  '\0', xibytes);
-                        memset(xijstr, '\0', outbytes);
-
+                        memset(xistr, '\0', xibytes);
                         for (k = 0; k < kxi; k++) {
                             if ( xitypes[k] ) {
                                 if ( (rc = SF_sdata(kvars + k + 1,
@@ -1149,6 +1151,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         for (j = 0; j < klevels; j++) {
                             skiprow = 1;
                             selx = outobs * outbytes; // m * klevels * outbytes + j * outbytes;
+                            memset(xijstr, '\0', outbytes);
 
                             for (k = 0; k < kout; k++) {
                                 l = maplevel[k * klevels + j];
@@ -1193,7 +1196,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                             memcpy(
                                 outstr + selx + outpos[1],
                                 xijstr + outpos[1],
-                                outpos[kout + 1] - outpos[1]
+                                xijbytes
                             );
 
                             if ( kxi ) {
@@ -1216,7 +1219,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         // m = st_info->info[*ixptr - 1];
                         m = *ixptr - 1;
 
-                        memset(xistr,  '\0', xibytes);
+                        memset(xistr, '\0', xibytes);
                         for (k = 0; k < kxi; k++) {
                             if ( xitypes[k] ) {
                                 if ( (rc = SF_sdata(kvars + k + 1,
@@ -1235,6 +1238,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         for (j = 0; j < klevels; j++) {
                             skiprow = 1;
                             selx = outobs * outbytes; // m * klevels * outbytes + j * outbytes;
+                            memset(xijstr, '\0', outbytes);
 
                             for (k = 0; k < kout; k++) {
                                 l = maplevel[k * klevels + j];
@@ -1279,7 +1283,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                             memcpy(
                                 outstr + selx + outpos[1],
                                 xijstr + outpos[1],
-                                outpos[kout + 1] - outpos[1]
+                                xijbytes
                             );
 
                             if ( kxi ) {
@@ -1383,6 +1387,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         strptr = st_info->st_by_charx + m * rowbytes;
                         for (j = 0; j < klevels; j++) {
                             selx = m * klevels * outbytes + j * outbytes;
+
                             memcpy(
                                 outstr + selx,
                                 strptr,
@@ -1453,6 +1458,7 @@ ST_retcode sf_reshape_long (struct StataInfo *st_info, int level, char *fname)
                         dblptr = st_info->st_by_numx + m * (kvars + 1);
                         for (j = 0; j < klevels; j++) {
                             selx = m * klevels * outbytes + j * outbytes;
+
                             memcpy(
                                 outstr + selx,
                                 dblptr,

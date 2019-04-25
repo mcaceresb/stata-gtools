@@ -88,15 +88,17 @@ gen i = _n
 expand i
 bys i: gen j = _n
 gen x = _n
-greshape wide x, by(i) key(j)
+gen y = -_n
+greshape wide x y, by(i) key(j)
 
 * When reshaping this data back into long, we would normally get
 * 100 observations, with 45 of them missing. However, we can
 * dispense with the additional missing values via `dropmiss`:
 
-greshape long x, by(i) key(j) dropmiss
+greshape long x y, by(i) key(j) dropmiss
 assert _N == 55
 assert x  == _n
+assert y  == -_n
 
 * Fine-grain control over error checks
 * ------------------------------------

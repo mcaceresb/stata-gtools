@@ -160,7 +160,7 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opt match(str)}} Where to match levels of {opt keys()} in stub (default {opt @}). Use {opt match(regex)} for complex matches.
 {p_end}
-{synopt :{opt dropm:iss}} Drop missing observations for reshaped variables (only one stub allowed).
+{synopt :{opt dropm:iss}} Drop missing observations for reshaped variables.
 {p_end}
 
 {syntab :Wide}

@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.5.4-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.5.5-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -580,6 +580,7 @@ TODO
 ----
 
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
+- [ ] Dropmissing vs dropmissing but not extended missing values.
 - [ ] Implement `collapse()` option for `greshape`.
 - [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`

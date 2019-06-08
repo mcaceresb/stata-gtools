@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Apr 24 21:54:27 EDT 2019
+* Updated: Sat Jun  8 16:17:45 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.5
+* Version: 1.5.6
 * Manual:  help gtools
 
 * Stata start-up options
@@ -24,26 +24,6 @@ set type double
 
 program main
     syntax, [NOIsily *]
-
-clear
-set obs 10000000
-* set obs 100
-gen groups = int(runiform() * 1000)
-* gen groups = int(runiform() * 100)
-* gen groups = int(runiform() * 10)
-gen rsort  = rnormal()
-gen rvar   = rnormal()
-gen w      = 5 * runiform()
-gen ix     = _n
-
-set rmsg on
-preserve
-gstats transform (normalize) z1 = rvar z2 = ix z3 = rsort , by(groups)
-gcollapse (mean) d1 = rvar d2 = ix d3 = rsort [aw = w], by(groups) merge _subtract fast
-restore
-
-exit 12345
-exit, clear
 
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx

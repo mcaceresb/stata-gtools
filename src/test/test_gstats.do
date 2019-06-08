@@ -3,6 +3,7 @@ program checks_gstats
     checks_gstats_winsor
     checks_gstats_summarize
     checks_gstats_transform
+    checks_gstats_transform nogreedy
 end
 
 capture program drop compare_gstats
@@ -10,8 +11,11 @@ program compare_gstats
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
     compare_gstats_winsor, cuts(30 70)
+
     compare_gstats_transform
     compare_gstats_transform, weights
+    compare_gstats_transform, nogreedy
+    compare_gstats_transform, nogreedy weights
 end
 
 ***********************************************************************
@@ -384,10 +388,10 @@ program checks_gstats_transform
         gen   _x3 = (price - _m1)
         gen   _x4 = (price - _d1)
 
-        gegen x1 = normalize(price),   by(`by') labelf(#stat:pretty# #sourcelabel#) replace
-        gegen x2 = standardize(price), by(`by')
-        gegen x3 = demean(price),      by(`by')
-        gegen x4 = demedian(price),    by(`by')
+        gegen x1 = normalize(price),   by(`by') `0' labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price), by(`by') `0'
+        gegen x3 = demean(price),      by(`by') `0'
+        gegen x4 = demedian(price),    by(`by') `0'
 
         gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
         gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
@@ -410,10 +414,10 @@ program checks_gstats_transform
         gen   _x3 = (price - _m1)
         gen   _x4 = (price - _d1)
 
-        gegen x1 = normalize(price)   [aw = gear_ratio * 10],  by(`by') labelf(#stat:pretty# #sourcelabel#) replace
-        gegen x2 = standardize(price) [aw = gear_ratio * 10],  by(`by')
-        gegen x3 = demean(price)      [aw = gear_ratio * 10],  by(`by')
-        gegen x4 = demedian(price)    [pw = gear_ratio / 10], by(`by')
+        gegen x1 = normalize(price)   [aw = gear_ratio * 10], by(`by') `0' labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price) [aw = gear_ratio * 10], by(`by') `0'
+        gegen x3 = demean(price)      [aw = gear_ratio * 10], by(`by') `0'
+        gegen x4 = demedian(price)    [pw = gear_ratio / 10], by(`by') `0'
 
         gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
         gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
@@ -436,10 +440,10 @@ program checks_gstats_transform
         gen   _x3 = (price - _m1)
         gen   _x4 = (price - _d1)
 
-        gegen x1 = normalize(price)   [fw = int(gear_ratio * 10)], by(`by') labelf(#stat:pretty# #sourcelabel#) replace
-        gegen x2 = standardize(price) [fw = int(gear_ratio * 10)], by(`by')
-        gegen x3 = demean(price)      [fw = int(gear_ratio * 10)], by(`by')
-        gegen x4 = demedian(price)    [iw = gear_ratio / 10],      by(`by')
+        gegen x1 = normalize(price)   [fw = int(gear_ratio * 10)], by(`by') `0' labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price) [fw = int(gear_ratio * 10)], by(`by') `0'
+        gegen x3 = demean(price)      [fw = int(gear_ratio * 10)], by(`by') `0'
+        gegen x4 = demedian(price)    [iw = gear_ratio / 10],      by(`by') `0'
 
         gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
         gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
@@ -681,7 +685,7 @@ program versus_gstats_transform, rclass
     forvalues i = 1 / 3 {
         timer clear
         timer on 42
-        qui gstats transform `tcall`i'' `if' `in' `wgt', by(`anything') wild replace
+        qui gstats transform `tcall`i'' `if' `in' `wgt', by(`anything') wild replace `options'
         timer off 42
         qui timer list
         local time_gtransform = r(t42)

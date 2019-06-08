@@ -737,8 +737,11 @@ program define Wide /* reshape wide */
     * of prefixes as stubs; otherwise the prefix is taken for every
     * variable
 
+    local ReS_Xij_stubs: copy global ReS_Xij_stubs
+    local ReS_prefix:    copy local prefix
+
     local k1: list sizeof prefix
-    local k2: list sizeof ReS_Xij
+    local k2: list sizeof ReS_Xij_stubs
     if ( `k1' > 1 ) {
         if ( `k1' != `k2' ) {
             disp as err `"mismatch: `k1' prefixes for `k2' stubs"'
@@ -751,7 +754,6 @@ program define Wide /* reshape wide */
             local ReS_prefix `ReS_prefix' `prefix'
         }
     }
-    else local ReS_prefix: copy local prefix
     global ReS_prefix: copy local ReS_prefix
 
     * Check that the spread call is sane
@@ -2456,7 +2458,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
             chars  = J(0, 2, "")
             _chars = st_dir("char", var, "*")
             if ( prefix ) {
-                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[j])
+                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[i])
             }
             else {
                 newvar = spread? lvl: GetVariableFromStub(stub, lvl)
@@ -2496,7 +2498,7 @@ void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
             if ( prefix ) {
-                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[j])
+                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[i])
             }
             else {
                 newvar = spread? lvl: GetVariableFromStub(stub, lvl)

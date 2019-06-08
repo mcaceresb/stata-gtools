@@ -582,6 +582,7 @@ TODO
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them (in order of how likely they are to come):
 
+- [ ] Document `prefix` option in greshape
 - [ ] Only read unique sources for `gstats transform`
 - [ ] Document `gstats transform` (including in `gegen`)
 - [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).

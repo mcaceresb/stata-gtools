@@ -843,8 +843,6 @@ program gcollapse, rclass
     else {
         forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
             mata: st_varlabel(gtools_targets[`k'], __gtools_gc_labels[`k'])
-        }
-        forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
             mata: st_varformat(gtools_targets[`k'], __gtools_gc_formats[`k'])
         }
     }

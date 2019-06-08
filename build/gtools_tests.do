@@ -8521,6 +8521,7 @@ capture program drop checks_gstats
 program checks_gstats
     checks_gstats_winsor
     checks_gstats_summarize
+    checks_gstats_transform
 end
 
 capture program drop compare_gstats
@@ -8528,6 +8529,8 @@ program compare_gstats
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
     compare_gstats_winsor, cuts(30 70)
+    compare_gstats_transform
+    compare_gstats_transform, weights
 end
 
 ***********************************************************************
@@ -8778,6 +8781,7 @@ end
 capture program drop compare_gstats_winsor
 program compare_gstats_winsor
     syntax, [*]
+
     qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2) double
@@ -8870,6 +8874,215 @@ program compare_fail_gstats_winsor
 end
 
 ***********************************************************************
+*                          Compare transform                          *
+***********************************************************************
+
+capture program drop checks_gstats_transform
+program checks_gstats_transform
+    foreach by in foreign rep78 mpg {
+        sysuse auto, clear
+
+        gegen _m1 = mean(price),   by(`by')
+        gegen _s1 = sd(price),     by(`by')
+        gegen _d1 = median(price), by(`by')
+        gen   _x1 = (price - _m1) / _s1
+        gen   _x3 = (price - _m1)
+        gen   _x4 = (price - _d1)
+
+        gegen x1 = normalize(price),   by(`by') labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price), by(`by')
+        gegen x3 = demean(price),      by(`by')
+        gegen x4 = demedian(price),    by(`by')
+
+        gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
+        gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
+        gen diff3 = abs(x3 - _x3) / max(min(abs(x3), abs(_x3)), 1)
+        gen diff4 = abs(x4 - _x4) / max(min(abs(x4), abs(_x4)), 1)
+
+        assert (diff1 < 1e-3) | mi(diff1)
+        assert (diff2 < 1e-3) | mi(diff2)
+        assert (diff3 < 1e-3) | mi(diff3)
+        assert (diff4 < 1e-3) | mi(diff4)
+    }
+
+    foreach by in foreign rep78 mpg {
+        sysuse auto, clear
+
+        gegen _m1 = mean(price)   [aw = gear_ratio * 10], by(`by')
+        gegen _s1 = sd(price)     [aw = gear_ratio * 10], by(`by')
+        gegen _d1 = median(price) [pw = gear_ratio / 10], by(`by')
+        gen   _x1 = (price - _m1) / _s1
+        gen   _x3 = (price - _m1)
+        gen   _x4 = (price - _d1)
+
+        gegen x1 = normalize(price)   [aw = gear_ratio * 10],  by(`by') labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price) [aw = gear_ratio * 10],  by(`by')
+        gegen x3 = demean(price)      [aw = gear_ratio * 10],  by(`by')
+        gegen x4 = demedian(price)    [pw = gear_ratio / 10], by(`by')
+
+        gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
+        gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
+        gen diff3 = abs(x3 - _x3) / max(min(abs(x3), abs(_x3)), 1)
+        gen diff4 = abs(x4 - _x4) / max(min(abs(x4), abs(_x4)), 1)
+
+        assert (diff1 < 1e-3) | mi(diff1)
+        assert (diff2 < 1e-3) | mi(diff2)
+        assert (diff3 < 1e-3) | mi(diff3)
+        assert (diff4 < 1e-3) | mi(diff4)
+    }
+
+    foreach by in foreign rep78 mpg {
+        sysuse auto, clear
+
+        gegen _m1 = mean(price)   [fw = int(gear_ratio * 10)], by(`by')
+        gegen _s1 = sd(price)     [fw = int(gear_ratio * 10)], by(`by')
+        gegen _d1 = median(price) [iw = gear_ratio / 10],      by(`by')
+        gen   _x1 = (price - _m1) / _s1
+        gen   _x3 = (price - _m1)
+        gen   _x4 = (price - _d1)
+
+        gegen x1 = normalize(price)   [fw = int(gear_ratio * 10)], by(`by') labelf(#stat:pretty# #sourcelabel#) replace
+        gegen x2 = standardize(price) [fw = int(gear_ratio * 10)], by(`by')
+        gegen x3 = demean(price)      [fw = int(gear_ratio * 10)], by(`by')
+        gegen x4 = demedian(price)    [iw = gear_ratio / 10],      by(`by')
+
+        gen diff1 = abs(x1 - _x1) / max(min(abs(x1), abs(_x1)), 1)
+        gen diff2 = abs(x2 - _x1) / max(min(abs(x2), abs(_x1)), 1)
+        gen diff3 = abs(x3 - _x3) / max(min(abs(x3), abs(_x3)), 1)
+        gen diff4 = abs(x4 - _x4) / max(min(abs(x4), abs(_x4)), 1)
+
+        assert (diff1 < 1e-3) | mi(diff1)
+        assert (diff2 < 1e-3) | mi(diff2)
+        assert (diff3 < 1e-3) | mi(diff3)
+        assert (diff4 < 1e-3) | mi(diff4)
+    }
+end
+
+capture program drop compare_gstats_transform
+program compare_gstats_transform
+    syntax, [weights *]
+
+    qui `noisily' gen_data, n(500)
+    qui expand 100
+    qui `noisily' random_draws, random(5) double
+    gen long   ix = _n
+    gen double ru = runiform() * 500
+    qui replace ix = . if mod(_n, 500) == 0
+    qui replace ru = . if mod(_n, 500) == 0
+    qui sort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "compare_gstats_transform, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    if ( `"`weights'"' != "" ) {
+
+        qui {
+            gen unif_0_100     = 100 * runiform() if mod(_n, 100)
+            gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+            gen float_unif_0_1 = runiform() if mod(_n, 100)
+            gen rnormal_0_10   = 10 * rnormal() if mod(_n, 100)
+        }
+
+        local wcall_a  wgt([aw = unif_0_100])
+        local wcall_f  wgt([fw = int_unif_0_100])
+        local wcall_a2 wgt([aw = float_unif_0_1])
+        local wcall_i  wgt([iw = rnormal_0_10])
+
+        compare_inner_gstats_transform, `options' `wcall_a'
+        disp
+
+        compare_inner_gstats_transform in 1 / 5, `options' `wcall_f'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_transform in `from' / `to', `options' `wcall_a2'
+        disp
+
+        compare_inner_gstats_transform if random2 > 0, `options' `wcall_i'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_transform if random2 < 0 in `from' / `to', `options' `wcall_a'
+        disp
+    }
+    else {
+        compare_inner_gstats_transform, `options'
+        disp
+
+        compare_inner_gstats_transform in 1 / 5, `options'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_transform in `from' / `to', `options'
+        disp
+
+        compare_inner_gstats_transform if random2 > 0, `options'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_transform if random2 < 0 in `from' / `to', `options'
+        disp
+    }
+end
+
+capture program drop compare_inner_gstats_transform
+program compare_inner_gstats_transform
+    syntax [if] [in], [wgt(passthru) *]
+
+    compare_fail_gstats_transform versus_gstats_transform `if' `in', `options' `wgt'
+
+    compare_fail_gstats_transform versus_gstats_transform str_12              `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform str_12 str_32 str_4 `if' `in', `options' `wgt'
+
+    compare_fail_gstats_transform versus_gstats_transform double1                 `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform double1 double2 double3 `if' `in', `options' `wgt'
+
+    compare_fail_gstats_transform versus_gstats_transform int1           `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 int2      `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 int2 int3 `if' `in', `options' `wgt'
+
+    compare_fail_gstats_transform versus_gstats_transform str_32 int3 double3  `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 double2 double3 `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform double? str_* int?   `if' `in', `options' `wgt'
+end
+
+capture program drop compare_fail_gstats_transform
+program compare_fail_gstats_transform
+    gettoken cmd 0: 0
+    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    cap `cmd' `0'
+    if ( _rc ) {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_transform (failed): full range, `anything'; `options'"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_transform (failed): [`if'`in'], `anything'; `options'"
+        }
+        exit _rc
+    }
+    else {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_transform (passed): full range, gstats results equal to manual (tol = `tol'; `anything'; `options')"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_transform (passed): [`if'`in'], gstats results equal to manual (tol = `tol'; `anything'; `options')"
+        }
+    }
+end
+
+***********************************************************************
 *                             Benchmarks                              *
 ***********************************************************************
 
@@ -8954,6 +9167,73 @@ program versus_gstats_winsor, rclass
 
     local rs = `time_winsor'  / `time_gwinsor'
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
+end
+
+capture program drop versus_gstats_transform
+program versus_gstats_transform, rclass
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) *]
+
+    local tcall1 (demean)    _out2 = random2 (demedian) _out3 = random3 (normalize) _out4 = random4 _out5 = random5
+    local tcall2 (demean)    _out* = random*
+    local tcall3 (normalize) _out* = random*
+
+    local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
+              */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
+              */ (median) _goutmed3 = random3
+    local gcall2 (mean) _gout*  = random*
+    local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
+
+    forvalues i = 1 / 3 {
+        timer clear
+        timer on 42
+        qui gstats transform `tcall`i'' `if' `in' `wgt', by(`anything') wild replace
+        timer off 42
+        qui timer list
+        local time_gtransform = r(t42)
+
+        timer clear
+        timer on 43
+        if ( `i' == 1 ) {
+            local start = 2
+            qui {
+                gcollapse `gcall`i'' `if' `in' `wgt', by(`anything') wild merge replace
+                gen _gout2 = (random2 - _goutm2)
+                gen _gout3 = (random3 - _goutmed3)
+                gen _gout4 = (random4 - _goutm4) / _gouts4
+                gen _gout5 = (random5 - _goutm5) / _gouts5
+            }
+        }
+        else if ( `i' == 2 ) {
+            local start = 1
+            qui gcollapse `gcall`i'' `if' `in' `wgt', by(`anything') wild merge replace _subtract
+        }
+        else if ( `i' == 3 ) {
+            local start = 1
+            qui {
+                gcollapse `gcall`i'' `if' `in' `wgt', by(`anything') wild merge replace
+                gen _gout1 = (random1 - _goutm1) / _gouts1
+                gen _gout2 = (random2 - _goutm2) / _gouts2
+                gen _gout3 = (random3 - _goutm3) / _gouts3
+                gen _gout4 = (random4 - _goutm4) / _gouts4
+                gen _gout5 = (random5 - _goutm5) / _gouts5
+            }
+        }
+        timer off 43
+        qui timer list
+        local time_manual = r(t43)
+
+        forvalues j = `start' / 5 {
+            cap assert (abs((_gout`j' - _out`j') / max(abs(_gout`j'), 1)) < `tol' | _gout`j' == _out`j')
+            if ( _rc ) {
+                disp `j'
+                exit _rc
+            }
+        }
+
+        cap drop _*
+        local rs = `time_manual'  / `time_gtransform'
+        di as txt "    `:di %6.3g `time_manual'' | `:di %13.3g `time_gtransform'' | `:di %11.4g `rs'' | (`i') `anything'"
+    }
 end
 capture program drop checks_duplicates
 program checks_duplicates
@@ -9565,5 +9845,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
+if ( `"`0'"' == "" ) local 0 dependencies basic_checks switches bench_test
 main, `0'

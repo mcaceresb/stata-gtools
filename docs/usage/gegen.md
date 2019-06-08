@@ -68,8 +68,8 @@ always. The functions here _should_ always be faster, however.
         may not be combined with by.  It creates one variable taking on
         values 1, 2, ... for the groups formed by varlist.  varlist may
         contain numeric variables, string variables, or a combination of
-        the two.  The order of the groups is the order in which varlist
-        appears in the data.  However, the user can specify:
+        the two.  The default order of the groups is the sort order of the
+        varlist. However, the user can specify:
 
             [+|-] varname [[+|-] varname ...]
 

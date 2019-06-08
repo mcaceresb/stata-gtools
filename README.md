@@ -579,28 +579,28 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
+These are options/features/improvements I would like to add, but I don't
+have an ETA for them (in order of how likely they are to come):
+
+- [ ] Document `gstats transform` (including in `gegen`)
+- [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Dropmissing vs dropmissing but not extended missing values.
-- [ ] Implement `collapse()` option for `greshape`.
-- [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`
 - [ ] Implement `selectoverflow(missing|closest)`
 - [ ] Add totals row for `J > 1` in gstats
-
-These are options/features/improvements I would like to add, but I don't
-have an ETA for them:
-
-- [ ] Implement `gmerge`
-    - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
+- [ ] Improve debugging info.
+- [ ] Implement `collapse()` option for `greshape`.
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.
 - [ ] Create a Stata C hashing API with thin wrappers around core functions.
     - [ ] This will be a C library that other users can import.
     - [ ] Some functionality will be available from Stata via gtooos, api()
-- [ ] Improve debugging info.
-- [ ] Improve code comments when you write the API!
-- [ ] Have some type of coding standard for the base (coding style)
+    - [ ] Improve code comments when you write the API!
+    - [ ] Have some type of coding standard for the base (coding style)
+- [ ] Implement `gmerge`
+    - [ ] Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 
 About
 -----

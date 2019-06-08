@@ -71,8 +71,8 @@ always be faster, however. They are:
 {pmore2}
 may not be combined with {cmd:by}.  It creates one variable taking on
 values 1, 2, ... for the groups formed by {it:varlist}.  {it:varlist} may
-contain numeric variables, string variables, or a combination of the two.  The
-order of the groups is the order in which {it:varlist} appears in the data.
+contain numeric variables, string variables, or a combination of the two.
+The default order of the groups is the sort order of the {it:varlist}.
 However, the user can specify:
 
 {pmore3}

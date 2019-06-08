@@ -14,6 +14,7 @@
 * rc 18102 - greshape wide j variables not unique within id
 * rc 18103 - greshape wide xi variables not unique within id
 * rc 18201 - gstats all variables are non-numeric (soft exit)
+* rc 18301 - gstats transform; unexpected number of stats passed to transform
 * --------
 * rc 17459 - isid special error
 * rc 17900 - multi-threading not available
@@ -3324,34 +3325,6 @@ program parse_targets
     }
 
     local stats: subinstr local stats "total" "sum", all
-    local allowed sum        ///
-                  nansum     ///
-                  mean       ///
-                  sd         ///
-                  variance   ///
-                  cv         ///
-                  max        ///
-                  min        ///
-                  range      ///
-                  count      ///
-                  median     ///
-                  iqr        ///
-                  percent    ///
-                  first      ///
-                  last       ///
-                  firstnm    ///
-                  lastnm     ///
-                  freq       ///
-                  semean     ///
-                  sebinomial ///
-                  sepoisson  ///
-                  nunique    ///
-                  nmissing   ///
-                  skewness   ///
-                  kurtosis   ///
-                  rawsum     ///
-                  rawnansum
-
     cap assert `:list sizeof uniq_targets' == `k_targets'
     if ( _rc ) {
         di as err "Cannot specify multiple targets with the same name."
@@ -3386,20 +3359,8 @@ program parse_targets
         local trg: word `k' of `targets'
         local st:  word `k' of `stats'
 
-        encode_aliases `st'
-        local st `r(stat)'
-
-        if ( `:list st in allowed' ) {
-            encode_stat `st' `keepadd'
-            mata: __gtools_stats[`k'] = `r(statcode)'
-        }
-        else {
-            cap noi encode_regex `st'
-            if ( `r(statcode)' == 0 ) {
-                error 110
-            }
-            else mata: __gtools_stats[`k'] = `r(statcode)'
-        }
+        encode_stat_allowed `st' `keepadd'
+        mata: __gtools_stats[`k'] = `r(statcode)'
 
         if ( "`k_exist'" != "sources" ) {
             cap confirm variable `trg'
@@ -3430,6 +3391,56 @@ program parse_targets
 
     cap mata: mata drop __gtools_stats
     cap mata: mata drop __gtools_pos_targets
+end
+
+capture program drop encode_stat_allowed
+program encode_stat_allowed, rclass
+    args st keepadd
+    local allowed sum        ///
+                  nansum     ///
+                  mean       ///
+                  sd         ///
+                  variance   ///
+                  cv         ///
+                  max        ///
+                  min        ///
+                  range      ///
+                  count      ///
+                  median     ///
+                  iqr        ///
+                  percent    ///
+                  first      ///
+                  last       ///
+                  firstnm    ///
+                  lastnm     ///
+                  freq       ///
+                  semean     ///
+                  sebinomial ///
+                  sepoisson  ///
+                  nunique    ///
+                  nmissing   ///
+                  skewness   ///
+                  kurtosis   ///
+                  rawsum     ///
+                  rawnansum
+
+    encode_aliases `st'
+    local st `r(stat)'
+
+    if ( `:list st in allowed' ) {
+        encode_stat `st' `keepadd'
+        local statcode `r(statcode)'
+    }
+    else {
+        cap noi encode_regex `st'
+        if ( `r(statcode)' == 0 ) {
+            disp as err "_gtools_internal/encode_stat_allowed: unknown stat `st'"
+            error 110
+        }
+        else local statcode `r(statcode)'
+    }
+
+    return scalar statcode = `statcode'
 end
 
 capture program drop encode_stat
@@ -3686,10 +3697,10 @@ capture program drop gstats_scalars
 program gstats_scalars
     scalar __gtools_gstats_code = .
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_winsor_trim    = .
-        scalar __gtools_winsor_cutl    = .
-        scalar __gtools_winsor_cuth    = .
-        scalar __gtools_winsor_kvars   = .
+        scalar __gtools_winsor_trim         = .
+        scalar __gtools_winsor_cutl         = .
+        scalar __gtools_winsor_cuth         = .
+        scalar __gtools_winsor_kvars        = .
 
         scalar __gtools_summarize_matasave  = 0
         scalar __gtools_summarize_pretty    = 0
@@ -3735,8 +3746,16 @@ program gstats_scalars
         scalar __gtools_summarize_largest2  = .
         scalar __gtools_summarize_largest1  = .
 
-        matrix __gtools_summarize_codes = .
-        mata: __gtools_summarize_codes = .
+        scalar __gtools_transform_kvars     = 1
+        scalar __gtools_transform_ktargets  = 1
+        scalar __gtools_transform_kgstats   = 1
+
+        matrix __gtools_summarize_codes     = .
+        matrix __gtools_transform_varfuns   = .
+        matrix __gtools_transform_statcode  = .
+        matrix __gtools_transform_statmap   = .
+
+        mata: __gtools_summarize_codes      = .
     }
     else {
         cap scalar drop __gtools_gstats_code
@@ -3789,9 +3808,572 @@ program gstats_scalars
         cap scalar drop __gtools_summarize_largest2
         cap scalar drop __gtools_summarize_largest1
 
+        cap scalar drop __gtools_transform_kvars
+        cap scalar drop __gtools_transform_ktargets
+        cap scalar drop __gtools_transform_kgstats
+
+        cap mata st_dropvar(__gtools_gst_dropvars)
+
         cap matrix drop __gtools_summarize_codes
+        cap matrix drop __gtools_transform_varfuns
+        cap matrix drop __gtools_transform_statcode
+        cap matrix drop __gtools_transform_statmap
+
         cap mata: mata drop __gtools_summarize_codes
+        cap mata: mata drop __gtools_gst_labels
+        cap mata: mata drop __gtools_gst_formats
+        cap mata: mata drop __gtools_gst_dropvars
+
+        cap mata: mata drop __gtools_transform_varfuns
+        cap mata: mata drop __gtools_transform_statcode
+        cap mata: mata drop __gtools_transform_statmap
     }
+end
+
+capture program drop gstats_transform
+program gstats_transform
+    syntax anything(equalok),  ///
+    [                          ///
+                               /// TODO: Maybe add rawstat at some point...
+        replace                ///
+        TYPEs(str)             /// override automatic types
+        WILDparse              /// parse assuming wildcard renaming
+        LABELFormat(passthru)  /// Custom label engine: (#stat#) #sourcelabel# is the default
+        LABELProgram(passthru) /// Program to parse labelformat (see examples)
+    ]
+
+    * TODO: I am being lazy and not doing the whole mapping of unique
+    * vars to non-unique vars... let's see what happens!
+
+    * TODO: I am being doubly lazy and not optimizing this much... just
+    * read, transform, write by group...let's see what happens!
+
+    * clear
+    * set obs 10
+    * forvalues i = 1 / 5 {
+    *     gen src`i' = `i'
+    * }
+    *
+    * gstats_transform_parse (stat1) targ1 = src1 src1
+    * gstats_transform_parse (stat1) targ1 = src1 src1 (stat2) src1
+    * gstats_transform_parse (stat1) targ1 = src1 src1 (stat2) src1 (stat3) ztar* = s*, wild
+    * gstats_transform_parse (stat1) src2 = src1 src1 = src2
+    *
+    * disp `"`__gtools_gst_targets'"'
+    * disp `"`__gtools_gst_vars'"'
+    * disp `"`__gtools_gst_stats'"'
+
+    * Parse transforms and variables
+    * ------------------------------
+
+    gstats_transform_parse `anything', `wildparse' `labelformat' `labelprogram'
+
+    local transforms standardize ///
+                     normalize   ///
+                     demean      ///
+                     demedian    //
+
+    local unknown
+    foreach stat of local __gtools_gst_stats {
+        if ( !`:list stat in transforms' ) {
+            local unknown `unknown' `stat'
+        }
+    }
+
+    if ( `"`unknown'"' != "" ) {
+        disp as err `"Uknown transformations: `unknown'"'
+    }
+
+    gstats_transform_types,             ///
+        vars(`__gtools_gst_vars')       ///
+        targets(`__gtools_gst_targets') ///
+        stats(`__gtools_gst_stats')     ///
+        types(`types')                  ///
+        prefix(__gtools_gst)
+
+    local kvars:    list sizeof __gtools_gst_vars
+    local ktargets: list sizeof __gtools_gst_targets
+    local kstat:    list sizeof __gtools_gst_stats
+    local ktype:    list sizeof __gtools_gst_types
+    local kretype:  list sizeof __gtools_gst_retype
+
+    local kbad = 0
+    local kbad = `kbad' | (`kvars' != `ktargets')
+    local kbad = `kbad' | (`kvars' != `kstat')
+    local kbad = `kbad' | (`kvars' != `ktype')
+    local kbad = `kbad' | (`kvars' != `kretype')
+
+    if ( `kbad' ) {
+        disp as err "gstats_transform: parsing error (inconsistent number of inputs)"
+        exit 198
+    }
+
+    local __gtools_gst_uniq_vars: list uniq __gtools_gst_vars
+    if ( !`:list __gtools_gst_uniq_vars === __gtools_gst_vars' ) {
+        * disp as err "warning: repeat sources not optimized"
+    }
+
+    * Parse variables to add
+    * ----------------------
+
+    * A variable needs to be "retyped" only if a target exists already
+    * and it has an unsuitable type. One of two things happens:
+    *
+    *     a) The target is also a source. Source gets renamed, used as
+    *        input, dropped.
+    *
+    *     b) The target is not a source. Target is renamed, dropped.
+
+    local __gtools_gst_i = 0
+    local __gtools_gst_dropvars
+    local __gtools_gst_vars: subinstr local __gtools_gst_vars " "  "  ", all
+
+    forvalues k = 1 / `ktargets' {
+        local retype: word `k' of `__gtools_gst_retype'
+        local target: word `k' of `__gtools_gst_targets'
+
+        cap confirm variable `target'
+        if ( _rc == 0 ) {
+            if ( `"`replace'"' == "" ) {
+                disp as err "gstats_transform: target exists without replace"
+                exit 198
+            }
+
+            if ( `retype' ) {
+                cap confirm variable __gtools_gst`__gtools_gst_i'
+                while ( _rc == 0 ) {
+                    local ++__gtools_gst_i
+                    cap confirm variable __gtools_gst`__gtools_gst_i'
+                }
+                rename `target' __gtools_gst`__gtools_gst_i'
+                local __gtools_gst_dropvars `__gtools_gst_dropvars' __gtools_gst`__gtools_gst_i'
+
+                if ( `:list target in __gtools_gst_vars' ) {
+                    local __gtools_gst_vars: subinstr local __gtools_gst_vars " `target' " " __gtools_gst`__gtools_gst_i' ", all
+                }
+            }
+
+            local __gtools_gst_vars: subinstr local __gtools_gst_vars "  " " ", all
+        }
+    }
+
+    local kadd = 0
+    local __gtools_gst_addvars
+    local __gtools_gst_addtypes
+    forvalues k = 1 / `ktargets' {
+        local target: word `k' of `__gtools_gst_targets'
+        local type:   word `k' of `__gtools_gst_types'
+        cap confirm variable `target'
+        if ( _rc ) {
+            local ++kadd
+            local __gtools_gst_addvars  `__gtools_gst_addvars'  `target'
+            local __gtools_gst_addtypes `__gtools_gst_addtypes' `type'
+        }
+    }
+
+    if ( `kadd' ) {
+        mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
+    }
+
+    mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
+    forvalues k = 1 / `ktargets' {
+        mata: st_varlabel( `"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_labels[`k'])
+        mata: st_varformat(`"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_formats[`k'])
+    }
+
+    * Generate matrices for plugin internals
+    * --------------------------------------
+
+    * -1          // sum
+    * -2          // mean
+    * -3          // sd
+    * -4          // max
+    * -5          // min
+    * -6          // count, n
+    * -7          // percent
+    * 50          // median
+    * -9          // iqr
+    * -10         // first
+    * -11         // firstnm
+    * -12         // last
+    * -13         // lastnm
+    * -14         // freq
+    * -15         // semean
+    * -16         // sebinomial
+    * -17         // sepoisson
+    * -18         // nunique
+    * -19         // skewness
+    * -20         // kurtosis
+    * -21         // rawsum
+    * -22         // nmissing
+    * -23         // variance
+    * -24         // cv
+    * -25         // range
+    * -101        // nansum
+    * -121        // rawnansum
+    * -206        // sum weight
+    * -203        // variance
+    * 1000 + #    // #th smallest
+    * -1000 - #   // #th largest
+    * 1000.5 + #  // raw #th smallest
+    * -1000.5 - # // raw #th largest
+
+    * -1          // standardize normalize
+    * -2          // demean
+    * -3          // demedian
+
+    * There are two sets of stats: The transformations and the group
+    * stats that the transformations use. For example, normalizing a
+    * variable uses the mean and standard deviation. For efficiency when
+    * doing multiple transforms, we only compute each group stat once.
+    * De-meaning and normalizing would only compute the mean once, for
+    * instance.
+    *
+    * Each transform has an internal code for its group stats. normalize
+    * has codes 1 and 2 for the mean and standard deviation, demedian
+    * has code 1 for the median, and so on. Hence we create a matrix
+    * with mappings from each stat to their stat's position on the array
+    * of group stats. If we have stats(demedian demean normalize) we get
+    *
+    *     (see above for encoding)
+    *
+    *     __gtools_transform_varfuns  // code for variable transforms
+    *     demedian demean normalize
+    *     -3       -2     -1
+    *
+    *     __gtools_transform_statcode // code for group stats
+    *     50     -2   -3
+    *     median mean sd
+    *
+    *     __gtools_transform_statmap  // mapping from transforms to the group stats
+    *     1 0 0
+    *     2 0 0
+    *     2 3 0
+    *
+    * The group stat array will have first the median, then the mean,
+    * then the standard deviation. Hence demedian will use the first
+    * stat, demean the second, and normalize the second and third.
+
+    local gs_standardize mean sd
+    local gs_normalize   mean sd
+    local gs_demean      mean
+    local gs_demedian    median
+
+    local gs
+    foreach stat of local __gtools_gst_stats {
+        local gs `gs' `gs_`stat''
+    }
+    local gs: list uniq gs
+
+    mata: __gtools_transform_varfuns  = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_statcode = J(1, `:list sizeof gs', .)
+    mata: __gtools_transform_statmap  = J(`:list sizeof __gtools_gst_stats', `:list sizeof gs', .)
+
+    forvalues l = 1 / `:list sizeof gs' {
+        local gstat: word `l' of `gs'
+        encode_stat_allowed `gstat' 0
+        mata: __gtools_transform_statcode[`l'] = `r(statcode)'
+    }
+
+    forvalues k = 1 / `:list sizeof __gtools_gst_stats' {
+        local stat:  word `k' of `__gtools_gst_stats'
+             if ( "`stat'" == "standardize" ) local statcode -1
+        else if ( "`stat'" == "normalize"   ) local statcode -1
+        else if ( "`stat'" == "demean"      ) local statcode -2
+        else if ( "`stat'" == "demedian"    ) local statcode -3
+        else                                  local statcode 0
+
+        if ( `statcode' == 0 ) {
+            disp as err "gstats_transform: unknown stat `stat'"
+            exit 198
+        }
+
+        mata: __gtools_transform_varfuns[`k'] = `statcode'
+
+        forvalues l = 1 / `:list sizeof gs' {
+            local gstat: word `l' of `gs'
+            forvalues m = 1 / `:list sizeof gs_`stat'' {
+                mata: __gtools_transform_statmap[`k', `m'] = `:list posof "`:word `m' of `gs_`stat'''" in gs'
+            }
+        }
+
+        cap mata: assert(all(rowsum(__gtools_transform_statmap :>= 0) :> 0))
+        if ( _rc ) {
+            disp as err "gstats_transform: error parsing transform mappings"
+            exit 198
+        }
+    }
+
+    * Return varlist for plugin internals
+
+    scalar __gtools_transform_kvars    = `:list sizeof __gtools_gst_vars'
+    scalar __gtools_transform_ktargets = `:list sizeof __gtools_gst_targets'
+    scalar __gtools_transform_kgstats  = `:list sizeof gs'
+    scalar __gtools_gstats_code        = 3
+
+    mata: st_matrix("__gtools_transform_varfuns",  __gtools_transform_varfuns) 
+    mata: st_matrix("__gtools_transform_statcode", __gtools_transform_statcode)
+    mata: st_matrix("__gtools_transform_statmap",  __gtools_transform_statmap) 
+
+    c_local varlist `__gtools_gst_vars' `__gtools_gst_targets'
+end
+
+* NOTE: Copy/paste from gcollapse.ado/parse_vars
+
+capture program drop gstats_transform_parse
+program gstats_transform_parse
+    syntax anything(equalok),  ///
+    [                          ///
+        WILDparse              /// parse assuming wildcard renaming
+        labelformat(str)       /// label prefix
+        labelprogram(str)      /// label program
+    ]
+
+    * Parse call into list of sources, targets, stats
+    * -----------------------------------------------
+
+    if ( "`wildparse'" != "" ) {
+        local rc = 0
+        ParseListWild `anything', loc(__gtools_gst_call) prefix(__gtools_gst)
+
+        local __gtools_bak_stats      : copy local __gtools_gst_stats
+        local __gtools_bak_vars       : copy local __gtools_gst_vars
+        local __gtools_bak_targets    : copy local __gtools_gst_targets
+        local __gtools_bak_uniq_stats : copy local __gtools_gst_uniq_stats
+        local __gtools_bak_uniq_vars  : copy local __gtools_gst_uniq_vars
+
+        ParseList `__gtools_gst_call', prefix(__gtools_gst)
+
+        cap assert ("`__gtools_gst_stats'"      == "`__gtools_bak_stats'")
+        local rc = max(_rc, `rc')
+
+        cap assert ("`__gtools_gst_vars'"       == "`__gtools_bak_vars'")
+        local rc = max(_rc, `rc')
+
+        cap assert ("`__gtools_gst_targets'"    == "`__gtools_bak_targets'")
+        local rc = max(_rc, `rc')
+
+        cap assert ("`__gtools_gst_uniq_stats'" == "`__gtools_bak_uniq_stats'")
+        local rc = max(_rc, `rc')
+
+        cap assert ("`__gtools_gst_uniq_vars'"  == "`__gtools_bak_uniq_vars'")
+        local rc = max(_rc, `rc')
+
+        if ( `rc' ) {
+            disp as error "gstats_transform_parse: Wild parsing inconsistent with standard parsing."
+            exit 198
+        }
+    }
+    else {
+        ParseList `anything',  prefix(__gtools_gst)
+    }
+
+    unab  __gtools_gst_vars:         `__gtools_gst_vars'
+    unab  __gtools_gst_uniq_vars:    `__gtools_gst_uniq_vars'
+    local __gtools_gst_uniq_targets: list uniq __gtools_gst_targets
+
+    if ( !`:list __gtools_gst_uniq_targets === __gtools_gst_targets' ) {
+        disp as err "gstats_transform_parse: repeat targets found in function call"
+        exit 198
+    }
+
+    * Get format and labels from sources
+    * ----------------------------------
+
+    if ( "`labelformat'" == "") local labelformat "(#stat#) #sourcelabel#"
+
+    local lnice_regex "(.*)(#stat:pretty#)(.*)"
+    local lpre_regex  "(.*)(#stat#)(.*)"
+    local lPre_regex  "(.*)(#Stat#)(.*)"
+    local lPRE_regex  "(.*)(#STAT#)(.*)"
+    local ltxt_regex  "(.*)(#sourcelabel#)(.*)"
+    local lsub_regex  "(.*)#sourcelabel:([0-9]+):([.0-9]+)#(.*)"
+
+    mata: __gtools_gst_labels  = J(1, `:list sizeof __gtools_gst_targets', "")
+    mata: __gtools_gst_formats = J(1, `:list sizeof __gtools_gst_targets', "")
+    forvalues k = 1 / `:list sizeof __gtools_gst_targets' {
+        local vl = `"`:variable label `:word `k' of `__gtools_gst_vars'''"'
+        local vl = cond(`"`vl'"' == "", `"`:word `k' of `__gtools_gst_vars''"', `"`vl'"')
+        local vp = `"`:word `k' of `__gtools_gst_stats''"'
+
+        if ( "`labelprogram'" == "" ) GtoolsPrettyStat `vp'
+        else `labelprogram' `vp'
+        local vpretty = `"`r(prettystat)'"'
+
+        if ( `"`vpretty'"' == "#default#" ) {
+            GtoolsPrettyStat `vp'
+            local vpretty = `"`r(prettystat)'"'
+        }
+
+        local lfmt_k = `"`labelformat'"'
+
+        if ( "`vp'" == "freq" ) {
+            if !regexm(`"`vl'"', "`ltxt_regex'") {
+                while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
+                    local lfmt_k = regexs(1) + `""' + regexs(3)
+                }
+            }
+            if !regexm(`"`vl'"', "`lsub_regex'") {
+                while regexm(`"`lfmt_k'"', "`lsub_regex'") {
+                    local lfmt_k = regexs(1) + `""' + regexs(4)
+                }
+            }
+        }
+        else {
+            if !regexm(`"`vl'"', "`ltxt_regex'") {
+                while regexm(`"`lfmt_k'"', "`ltxt_regex'") {
+                    local lfmt_k = regexs(1) + `"`vl'"' + regexs(3)
+                }
+            }
+            if !regexm(`"`vl'"', "`lsub_regex'") {
+                while regexm(`"`lfmt_k'"', "`lsub_regex'") {
+                    local lfmt_k = regexs(1) + substr(`"`vl'"', `:di regexs(2)', `:di regexs(3)') + regexs(4)
+                }
+            }
+        }
+
+        if !regexm(`"`vpretty'"', "`lnice_regex'") {
+            while regexm(`"`lfmt_k'"', "`lnice_regex'") {
+                local lfmt_k = regexs(1) + `"`vpretty'"' + regexs(3)
+            }
+        }
+        if !regexm(`"`vp'"', "`lpre_regex'") {
+            while regexm(`"`lfmt_k'"', "`lpre_regex'") {
+                local lfmt_k = regexs(1) + `"`vp'"' + regexs(3)
+            }
+        }
+        if !regexm(`"`vp'"', "`lPre_regex'") {
+            while regexm(`"`lfmt_k'"', "`lPre_regex'") {
+                local lfmt_k = regexs(1) + proper(`"`vp'"') + regexs(3)
+            }
+        }
+        if !regexm(`"`vp'"', "`lPRE_regex'") {
+            while regexm(`"`lfmt_k'"', "`lPRE_regex'") {
+                local lfmt_k = regexs(1) + upper(`"`vp'"') + regexs(3)
+            }
+        }
+        mata: __gtools_gst_labels[`k'] = `"`lfmt_k'"'
+
+        local vf = "`:format `:word `k' of `__gtools_gst_vars'''"
+        local vf = cond(inlist(`"`:word `k' of `__gtools_gst_stats''"', "count", "freq", "nunique", "nmissing"), "%8.0g", "`vf'")
+        mata: __gtools_gst_formats[`k'] = "`vf'"
+    }
+
+    * Locals one level up
+    * -------------------
+
+    c_local __gtools_gst_targets    : copy local __gtools_gst_targets
+    c_local __gtools_gst_vars       : copy local __gtools_gst_vars
+    c_local __gtools_gst_stats      : copy local __gtools_gst_stats
+    c_local __gtools_gst_uniq_vars  : copy local __gtools_gst_uniq_vars
+    c_local __gtools_gst_uniq_stats : copy local __gtools_gst_uniq_stats
+end
+
+capture program drop gstats_transform_types
+program gstats_transform_types
+    syntax, vars(str) targets(str) stats(str) prefix(str) [types(str)]
+
+    * Check all inputs are numeric
+    * ----------------------------
+
+    cap confirm var `vars'
+    if ( _rc ) {
+        disp as err "gstats_transform_types: sources must exit"
+        exit 198
+    }
+
+    cap confirm numeric var `vars'
+    if ( _rc ) {
+        disp as err "gstats_transform_types: numeric sources required"
+        exit 198
+    }
+
+    local sametype standardize ///
+                   normalize   ///
+                   demean      ///
+                   demedian    //
+
+    local upgrade
+    local types
+    local retype
+
+    * If types are empty, autoretype; else use user input
+    * ---------------------------------------------------
+
+    * NOTE(mauricio): retype is 1 if the target exists and the type is
+    * unsuitable or if the target does not exist (since "" will not
+    * equal any named type). In the former case retype is necessary,
+    * in the latter retype will get ignored and a new variable will be
+    * created.
+
+    if ( `"`types'"' == "" ) {
+        forvalues k = 1 / `:list sizeof vars' {
+            gettoken var    vars:    vars
+            gettoken target targets: targets
+            gettoken stat   stats:   stats
+
+            local var    `var'
+            local target `target'
+            local stat   `stat'
+            local type:  type `var'
+
+            cap confirm var `target'
+            if ( _rc ) local ttype
+            else local ttype: type `target'
+
+            if inlist(`"`type'"', "long") {
+                local types   `types'  double
+                local retype  `retype' `=!inlist("`ttype'", "double")'
+            }
+            else if inlist(`"`type'"', "int", "byte") {
+                local types   `types'  `:set type'
+                local retype  `retype' `=!inlist("`ttype'", "`:set type'", "double")'
+            }
+            else {
+                if ( `:list stat in sametype' ) {
+                    local types  `types'  `type'
+                    local retype `retype' `=!inlist("`ttype'", "`type'", "double")'
+                }
+                else if ( `:list stat in upgrade' ) {
+                    local types  `types'  double
+                    local retype `retype' `=!inlist("`ttype'", "double")'
+                }
+                else {
+                    disp as err "gstats_transform_types: Uknown stat found in function call"
+                    exit 198
+                }
+            }
+        }
+    }
+    else if ( `:list sizeof types' == 1 ) {
+        forvalues k = 1 / `:list sizeof targets' {
+            local target: word `k' of `targets'
+            cap confirm var `target'
+            if ( _rc ) local ttype
+            else local ttype: type `target'
+
+            local types  `types'  `types'
+            local retype `retype' `=("`ttype'" != "`types'")'
+        }
+    }
+    else if ( `:list sizeof types' != `:list sizeof targets' ) {
+        disp as err "gstats_transform_types: types() must be a single input or one input per target"
+        exit 198
+    }
+    else {
+        forvalues k = 1 / `:list sizeof targets' {
+            local tcmp:   word `k' of `types'
+            local target: word `k' of `targets'
+            cap confirm var `target'
+            if ( _rc ) local ttype
+            else local ttype: type `target'
+
+            local retype `retype' `=("`ttype'" != "`tcmp'")'
+        }
+    }
+
+    c_local `prefix'_types:  copy local types
+    c_local `prefix'_retype: copy local retype
 end
 
 capture program drop gstats_winsor
@@ -4666,6 +5248,266 @@ program GtoolsTempFile
     local f ${GTOOLS_TEMPDIR}/__gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
     global GTOOLS_TEMPFILES_INTERNAL ${GTOOLS_TEMPFILES_INTERNAL} __gtools_tmpfile_internal_`GTOOLS_TEMPFILES_INTERNAL_I'
     c_local `0': copy local f
+end
+
+***********************************************************************
+*            Input parsing (copy/paste from gcollapse.ado             *
+***********************************************************************
+
+capture program drop GtoolsPrettyStat
+program GtoolsPrettyStat, rclass
+
+    * Group stats
+    * -----------
+
+    if ( `"`0'"' == "sum"         ) local prettystat "Sum"
+    if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
+    if ( `"`0'"' == "mean"        ) local prettystat "Mean"
+    if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
+    if ( `"`0'"' == "variance"    ) local prettystat "Variance"
+    if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"
+    if ( `"`0'"' == "max"         ) local prettystat "Max"
+    if ( `"`0'"' == "min"         ) local prettystat "Min"
+    if ( `"`0'"' == "range"       ) local prettystat "Range"
+    if ( `"`0'"' == "count"       ) local prettystat "Count"
+    if ( `"`0'"' == "freq"        ) local prettystat "Group size"
+    if ( `"`0'"' == "percent"     ) local prettystat "Percent"
+    if ( `"`0'"' == "median"      ) local prettystat "Median"
+    if ( `"`0'"' == "iqr"         ) local prettystat "IQR"
+    if ( `"`0'"' == "first"       ) local prettystat "First"
+    if ( `"`0'"' == "firstnm"     ) local prettystat "First Non-Miss."
+    if ( `"`0'"' == "last"        ) local prettystat "Last"
+    if ( `"`0'"' == "lastnm"      ) local prettystat "Last Non-Miss."
+    if ( `"`0'"' == "semean"      ) local prettystat "SE Mean"
+    if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
+    if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
+    if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
+    if ( `"`0'"' == "nmissing"    ) local prettystat "N Missing"
+    if ( `"`0'"' == "skewness"    ) local prettystat "Skewness"
+    if ( `"`0'"' == "kurtosis"    ) local prettystat "Kurtosis"
+    if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "rawnansum"   ) local prettystat "Unweighted sum"
+
+    local match = 0
+    if regexm(`"`0'"', "^rawselect(-|)([0-9]+)$") {
+        if ( `"`:di regexs(1)'"' == "-" ) {
+            local Pretty Largest (Unweighted)
+        }
+        else {
+            local Pretty Smallest (Unweighted)
+        }
+        local p = `=regexs(2)'
+        local match = 1
+    }
+    else if regexm(`"`0'"', "^select(-|)([0-9]+)$") {
+        if ( `"`:di regexs(1)'"' == "-" ) {
+            local Pretty Largest
+        }
+        else {
+            local Pretty Smallest
+        }
+        local p = `=regexs(2)'
+        local match = 1
+    }
+    else if regexm(`"`0'"', "^p([0-9][0-9]?(\.[0-9]+)?)$") {
+        local p = `:di regexs(1)'
+        local Pretty Pctile
+        local match = 1
+    }
+
+    if ( `match' ) {
+        if ( inlist(substr(`"`p'"', -2, 2), "11", "12", "13") ) {
+            local prettystat "`s'th `Pretty'"
+        }
+        else {
+                 if ( mod(`p', 10) == 1 ) local prettystat "`p'st `Pretty'"
+            else if ( mod(`p', 10) == 2 ) local prettystat "`p'nd `Pretty'"
+            else if ( mod(`p', 10) == 3 ) local prettystat "`p'rd `Pretty'"
+            else                          local prettystat "`p'th `Pretty'"
+        }
+    }
+
+    * Transforms
+    * ----------
+
+    if ( `"`0'"' == "standardize" ) local prettystat "Standardized"
+    if ( `"`0'"' == "normalize"   ) local prettystat "Normalized"
+    if ( `"`0'"' == "demean"      ) local prettystat "De-meaned"
+    if ( `"`0'"' == "demedian"    ) local prettystat "De-medianed"
+
+    return local prettystat = `"`prettystat'"'
+end
+
+capture program drop ParseListWild
+program ParseListWild
+    syntax anything(equalok), LOCal(str) PREfix(str)
+    local stat mean
+
+    * Trim spaces
+    local 0: copy local anything
+    while strpos("`0'", "  ") {
+        local 0: subinstr local 0 "  " " ", all
+    }
+    local 0 `0'
+
+    * Parse each portion of the collapse call
+    while (trim("`0'") != "") {
+        GetStat   stat   0 : `0'
+        GetTarget target 0 : `0'
+        gettoken  vars   0 : 0
+
+        * Must specify stat (if blank, we do the mean)
+        if ( "`stat'" == "" ) {
+            disp as err "option stat() requried"
+            exit 198
+        }
+
+        if ( "`stat'" == "var"  ) local stat variance
+        if ( "`stat'" == "sem"  ) local stat semean
+        if ( "`stat'" == "seb"  ) local stat sebinomial
+        if ( "`stat'" == "sep"  ) local stat sepoisson
+        if ( "`stat'" == "skew" ) local stat skewness
+        if ( "`stat'" == "kurt" ) local stat kurtosis
+
+        * Parse bulk rename if applicable
+        unab usources : `vars'
+        if ( "`eqsign'" == "=" ) {
+            cap noi rename `vars' `target'
+            if ( _rc ) {
+                disp as err "Targets cannot exist with option {opt wildparse}."
+                exit `=_rc'
+            }
+            unab utargets : `target'
+            rename (`utargets') (`usources')
+
+            local full_vars    `full_vars'    `usources'
+            local full_targets `full_targets' `utargets'
+
+            local call `call' (`stat')
+            foreach svar of varlist `usources' {
+                gettoken tvar utargets: utargets
+                local call `call' `tvar' = `svar'
+                local full_stats  `full_stats' `stat'
+            }
+        }
+        else {
+            local call `call' (`stat') `usources'
+            local full_vars    `full_vars'    `usources'
+            local full_targets `full_targets' `usources'
+
+            foreach svar of varlist `usources' {
+                local full_stats `full_stats' `stat'
+            }
+        }
+
+        local target
+    }
+
+    * Check that targets don't repeat
+    local dups : list dups targets
+    if ("`dups'" != "") {
+        di as error "repeated targets in collapse: `dups'"
+        error 110
+    }
+
+    c_local `local'             : copy local call
+    c_local `prefix'_targets    `full_targets'
+    c_local `prefix'_stats      `full_stats'
+    c_local `prefix'_vars       `full_vars'
+    c_local `prefix'_uniq_stats : list uniq full_stats
+    c_local `prefix'_uniq_vars  : list uniq full_vars
+end
+
+* NOTE: Regular parsing is adapted from Sergio Correia's fcollapse.ado
+
+capture program drop ParseList
+program define ParseList
+    syntax anything(equalok), PREfix(str)
+    local stat mean
+
+    * Trim spaces
+    local 0: copy local anything
+    while strpos("`0'", "  ") {
+        local 0: subinstr local 0 "  " " "
+    }
+    local 0 `0'
+
+    while (trim("`0'") != "") {
+        GetStat stat 0 : `0'
+        GetTarget target 0 : `0'
+        gettoken vars 0 : 0
+        unab vars : `vars'
+
+        * Must specify stat (if blank, we do the mean)
+        if ( "`stat'" == "" ) {
+            disp as err "option stat() requried"
+            exit 198
+        }
+
+        foreach var of local vars {
+            if ("`target'" == "") local target `var'
+
+            if ( "`stat'" == "var"  ) local stat variance
+            if ( "`stat'" == "sem"  ) local stat semean
+            if ( "`stat'" == "seb"  ) local stat sebinomial
+            if ( "`stat'" == "sep"  ) local stat sepoisson
+            if ( "`stat'" == "skew" ) local stat skewness
+            if ( "`stat'" == "kurt" ) local stat kurtosis
+
+            local full_vars    `full_vars'    `var'
+            local full_targets `full_targets' `target'
+            local full_stats   `full_stats'   `stat'
+
+            local target
+        }
+    }
+
+    * Check that targets don't repeat
+    local dups : list dups targets
+    if ("`dups'" != "") {
+        di as error "repeated targets in collapse: `dups'"
+        error 110
+    }
+
+    c_local `prefix'_targets    `full_targets'
+    c_local `prefix'_stats      `full_stats'
+    c_local `prefix'_vars       `full_vars'
+    c_local `prefix'_uniq_stats : list uniq full_stats
+    c_local `prefix'_uniq_vars  : list uniq full_vars
+end
+
+capture program drop GetStat
+program define GetStat
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
+
+    gettoken stat rest : rest , match(parens)
+    if ("`parens'" != "") {
+        c_local `lhs' `stat'
+        c_local `rhs' `rest'
+    }
+end
+
+capture program drop GetTarget
+program define GetTarget
+    _on_colon_parse `0'
+    local before `s(before)'
+    gettoken lhs rhs : before
+    local rest `s(after)'
+
+    local rest : subinstr local rest "=" "= ", all
+    gettoken target rest : rest, parse("= ")
+    gettoken eqsign rest : rest
+    if ("`eqsign'" == "=") {
+        c_local `lhs' `target'
+        c_local `rhs' `rest'
+        c_local eqsign "="
+    }
+    else {
+        c_local eqsign
+    }
 end
 
 ***********************************************************************

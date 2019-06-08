@@ -30,6 +30,34 @@ open:
 # ./build.py
 # ./changelog.md
 
+# Add a group stat
+# ----------------
+#
+# ./README.md L318
+# ./docs/index.md L308
+# ./changelog.md note in new version which stats
+#     gcollapse
+#     gegen
+#     gstats tab
+# ./src/ado/_gtools_internal.ado L2496, L3395, L3435, L3525, L3685, L3978, L4619, L4672, L4975, L5007
+# ./src/ado/_gtools_internal.mata L1252, L1311
+# ./src/ado/gcollapse.ado L1106, L1743, L1845, L1932
+# ./src/ado/gegen.ado L63, L81, L820
+# ./docs/stata/
+# ./docs/usage/gcollapse.md L29
+# ./docs/usage/gegen.md L194
+# ./docs/usage/gstats_summarize.md L26
+# ./docs/stata/gcollapse.sthlp L50
+# ./docs/stata/gegen.sthlp L223
+# ./docs/stata/gstats_summarize.sthlp L278
+
+# Add to gstats
+# -------------
+#
+# ./src/ado/gstats.ado L27
+# ./src/ado/_gtools_internal.ado L2470, L3685
+# ./src/ado/_gtools_internal.ado L3795 add program gstats_<newfunc>
+
 # ---------------------------------------------------------------------
 # Gtools flags
 

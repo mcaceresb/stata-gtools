@@ -136,6 +136,13 @@ struct StataInfo {
     GT_size   summarize_kstats;
     ST_double *summarize_codes;
     //
+    GT_size   transform_kvars;
+    GT_size   transform_ktargets;
+    GT_size   transform_kgstats;
+    ST_double *transform_varfuns;
+    ST_double *transform_statcode;
+    GT_size   *transform_statmap;
+    //
     GT_bool   greshape_dropmiss;
     GT_bool   greshape_code;
     GT_size   greshape_kxij;

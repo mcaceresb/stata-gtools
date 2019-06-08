@@ -104,6 +104,7 @@ end
 * X | X | ReS_nodupcheck
 * X | X | ReS_nomisscheck
 * X | X | ReS_cmd
+*   | X | ReS_prefix
 * X | X | ReS_Xij_stubs
 * X |   | ReS_Xij_regex
 * X |   | ReS_Xij_add
@@ -600,6 +601,16 @@ program define Wide /* reshape wide */
             CHECKlevel(real 4) /// Check level
             nomisscheck        /// Do not check for missing values or blanks in j
             match(str)         /// a string (e.g. @) to match
+            prefix(str)        /// a list with the variable prefix format. default
+                               ///
+                               ///     #stub# [#stub# #blank# ...]
+                               ///
+                               /// where #stub# simply uses the stub as the variable prefix.
+                               /// @ syntax allowed. Examples of valid prefixes:
+                               ///
+                               ///     #stub# combo#stub# #stub#combo prefix mid@dle @suffix
+                               ///
+                               ///
             ${GTOOLS_PARSE}    ///
         ]
 
@@ -611,6 +622,7 @@ program define Wide /* reshape wide */
             by(varlist)      /// reshape by groups of -by()-
             i(varlist)       /// reshape by groups of -i()-
             xi(str)          /// Handle extraneous variables
+            prefix(str)      /// a list with the variable prefix format
             fast             /// Do not preserve and restore the original dataset. Saves speed
             ${GTOOLS_PARSE}  ///
         ]
@@ -694,17 +706,16 @@ program define Wide /* reshape wide */
 
     if ( `"`match'"' == "" ) local match @
 
-    global ReS_atwl      `atwl'
-    global ReS_match     `match'
-    global ReS_Xij       `anything'
-    global ReS_j         `j'
-    global ReS_i         `i'
-    global ReS_Xij_k     `:list sizeof anything'
-    global ReS_jsep:     copy local colseparate
+    global ReS_atwl   `atwl'
+    global ReS_match  `match'
+    global ReS_Xij    `anything'
+    global ReS_Xij_k  `:list sizeof anything'
+    global ReS_jsep:  copy local colseparate
 
     * This defines $ReS_Xij_stubs and potentially overwrites ReS_Xij
     ParseStubsByMatch wide
 
+    * This is mainly for spread; i are all the excluded variables
     unab oldlist: _all
     unab ReS_Xij_stubs: $ReS_Xij_stubs
     local restvars: list oldlist - ReS_Xij_stubs
@@ -718,6 +729,32 @@ program define Wide /* reshape wide */
     else {
         unab i: `i'
     }
+
+    global ReS_j `j'
+    global ReS_i `i'
+
+    * If there are multiple prefixes, you must specify the same number
+    * of prefixes as stubs; otherwise the prefix is taken for every
+    * variable
+
+    local k1: list sizeof prefix
+    local k2: list sizeof ReS_Xij
+    if ( `k1' > 1 ) {
+        if ( `k1' != `k2' ) {
+            disp as err `"mismatch: `k1' prefixes for `k2' stubs"'
+            exit 198
+        }
+    }
+    else if ( (`k1' == 1) & (`k2' > 1) ) {
+        local ReS_prefix
+        forvalues kk = 1 / `k2' {
+            local ReS_prefix `ReS_prefix' `prefix'
+        }
+    }
+    else local ReS_prefix: copy local prefix
+    global ReS_prefix: copy local ReS_prefix
+
+    * Check that the spread call is sane
 
     if ( `"`ReS_cmd'"' == "spread" ) {
         cap assert `:list i == restvars'
@@ -733,6 +770,8 @@ program define Wide /* reshape wide */
             exit 198
         }
     }
+
+    * gtools options!
 
     cap confirm str var `j'
     global ReS_str = (_rc == 0)
@@ -1265,6 +1304,7 @@ end
 
 capture mata: mata drop MakeMapLevel()
 capture mata: mata drop GetVariableFromStub()
+capture mata: mata drop GetVariableFromStubPrefix()
 mata:
 real matrix function MakeMapLevel(
     string colvector dsname,
@@ -1301,6 +1341,26 @@ string scalar function GetVariableFromStub(string scalar s, string scalar r)
 {
     real scalar l, m
     string scalar left, right
+
+    m = strlen(st_global(`"ReS_match"'))
+    l = strpos(s, st_global(`"ReS_match"'))
+    l = (l == 0)? strlen(s) + 1: l
+    left  = substr(s, 1, l - 1)
+    right = substr(s, l + m, .)
+    return(left + r + right)
+}
+
+string scalar function GetVariableFromStubPrefix(
+    string scalar s,
+    string scalar r,
+    string scalar p)
+{
+    real scalar l, m
+    string scalar left, right
+
+    p = subinstr(p, "#blank#", "", .)
+    p = subinstr(p, "#stub#",  s,  .)
+    s = p
 
     m = strlen(st_global(`"ReS_match"'))
     l = strpos(s, st_global(`"ReS_match"'))
@@ -1550,6 +1610,7 @@ program CheckVariableTypes
     local i: copy global rVANS
     local k: copy global ReS_Xij
     local j: copy global ReS_jv
+    local p: copy global ReS_prefix
     gettoken j1 jrest: j
 
     global ReS_Xij_keep: copy global rVANS
@@ -1560,37 +1621,88 @@ program CheckVariableTypes
     global ReS_Xij_addtypes
 
     if ( ("$ReS_cmd" != "spread") | ($ReS_Xij_k > 1) ) {
+
+        * Allow for custom user-defined prefixes and such. This is
+        * useful in gather but in wide it's basically a convoluted
+        * rename scheme...
+
         foreach stub of local k {
-            gettoken var i: i
+            gettoken var    i: i
+            gettoken prefix p: p
+
+            local prefix `prefix'
+            if ( `"`prefix'"' != "" ) {
+                local prefix: subinstr local prefix `"#blank#"' `""'
+                local prefix: subinstr local prefix `"#stub#"'  `"`stub'"'
+                local stub: copy local prefix
+            }
+
             if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
                 local _var: subinstr local stub `"$ReS_match"' `"`j1'"'
             }
             else {
                 local _var `stub'`j1'
             }
+
             global ReS_Xij_keepnames $ReS_Xij_keepnames `_var'
             global ReS_Xij_names     $ReS_Xij_names     `_var'
+
             foreach jv of local jrest {
-                global ReS_Xij_addtypes $ReS_Xij_addtypes `:type `var''
+
                 if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
                     local _var: subinstr local stub `"$ReS_match"' `"`jv'"'
                 }
                 else {
                     local _var `stub'`jv'
                 }
+
+                global ReS_Xij_addtypes $ReS_Xij_addtypes `:type `var''
                 global ReS_Xij_addvars  $ReS_Xij_addvars  `_var'
                 global ReS_Xij_names    $ReS_Xij_names    `_var'
             }
         }
     }
     else {
+
+        * Allow for custom user-defined prefixes and such. This is
+        * useful in gather but in wide it's basically a convoluted
+        * rename scheme...
+
         foreach var of local i {
-            global ReS_Xij_keepnames $ReS_Xij_keepnames `j1'
-            global ReS_Xij_names     $ReS_Xij_names     `j1'
+
+            local stub:   copy local k
+            local prefix: copy local p
+
+            local prefix `prefix'
+            if ( `"`prefix'"' != "" ) {
+                local prefix: subinstr local prefix `"#blank#"' `""'
+                local prefix: subinstr local prefix `"#stub#"'  `"`stub'"'
+                local stub: copy local prefix
+            }
+            else local stub
+
+            if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
+                local _var: subinstr local stub `"$ReS_match"' `"`j1'"'
+            }
+            else {
+                local _var `stub'`j1'
+            }
+
+            global ReS_Xij_keepnames $ReS_Xij_keepnames `_var'
+            global ReS_Xij_names     $ReS_Xij_names     `_var'
+
             foreach jv of local jrest {
+
+                if ( index(`"`stub'"', `"$ReS_match"') > 0 ) {
+                    local _var: subinstr local stub `"$ReS_match"' `"`jv'"'
+                }
+                else {
+                    local _var `stub'`jv'
+                }
+
                 global ReS_Xij_addtypes $ReS_Xij_addtypes `:type `var''
-                global ReS_Xij_addvars  $ReS_Xij_addvars  `jv'
-                global ReS_Xij_names    $ReS_Xij_names    `jv'
+                global ReS_Xij_addvars  $ReS_Xij_addvars  `_var'
+                global ReS_Xij_names    $ReS_Xij_names    `_var'
             }
         }
     }
@@ -2310,22 +2422,25 @@ mata:
 transmorphic scalar LongToWideMetaSave(real scalar spread)
 {
     transmorphic scalar LongToWideMeta
-    string rowvector rVANS, ReS_Xij,ReS_jv, ReS_jvraw
+    string rowvector rVANS, ReS_Xij,ReS_jv, ReS_jvraw, ReS_prefix
     string scalar newvar, var, stub, lvl, fmt
     string matrix chars, _chars
-    real scalar i, j, k
+    real scalar i, j, k, prefix
 
     LongToWideMeta = asarray_create()
-    fmt       = "%s[%s]"
-    rVANS     = tokens(st_global("rVANS"))
-    ReS_Xij   = tokens(st_global("ReS_Xij"))
-    ReS_jv    = tokens(st_global("ReS_jv"))
-    ReS_jvraw = tokens(st_global("ReS_jvraw"))
+    fmt        = "%s[%s]"
+    rVANS      = tokens(st_global("rVANS"))
+    ReS_Xij    = tokens(st_global("ReS_Xij"))
+    ReS_jv     = tokens(st_global("ReS_jv"))
+    ReS_jvraw  = tokens(st_global("ReS_jvraw"))
+    ReS_prefix = tokens(st_global("ReS_prefix"))
+    prefix     = (length(ReS_prefix) > 0)
 
-    asarray(LongToWideMeta, "rVANS",     rVANS)
-    asarray(LongToWideMeta, "ReS_Xij",   ReS_Xij)
-    asarray(LongToWideMeta, "ReS_jv",    ReS_jv)
-    asarray(LongToWideMeta, "ReS_jvraw", ReS_jvraw)
+    asarray(LongToWideMeta, "rVANS",      rVANS)
+    asarray(LongToWideMeta, "ReS_Xij",    ReS_Xij)
+    asarray(LongToWideMeta, "ReS_jv",     ReS_jv)
+    asarray(LongToWideMeta, "ReS_jvraw",  ReS_jvraw)
+    asarray(LongToWideMeta, "ReS_prefix", ReS_prefix)
 
     // Keep labels, value labels, formats, and characteristics of
     // each source variable. All will be applied to (copied to) each
@@ -2340,7 +2455,12 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
             lbl = ReS_jvraw[j]
             chars  = J(0, 2, "")
             _chars = st_dir("char", var, "*")
-            newvar = spread? lvl: GetVariableFromStub(stub, lvl)
+            if ( prefix ) {
+                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[j])
+            }
+            else {
+                newvar = spread? lvl: GetVariableFromStub(stub, lvl)
+            }
             for (k = 1; k <= rows(_chars); k++) {
                 chars = chars \ (
                     sprintf(fmt, newvar, _chars[k]),
@@ -2360,21 +2480,27 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
 void LongToWideMetaApply(transmorphic scalar LongToWideMeta, real scalar spread)
 {
 
-    string rowvector ReS_Xij,ReS_jv
+    string rowvector ReS_Xij,ReS_jv, ReS_prefix
     string scalar newvar, stub, lvl
     string matrix chars
-    real scalar i, j, k
+    real scalar i, j, k, prefix
 
-    ReS_Xij = asarray(LongToWideMeta, "ReS_Xij")
-    ReS_jv  = asarray(LongToWideMeta, "ReS_jv")
+    ReS_Xij    = asarray(LongToWideMeta, "ReS_Xij")
+    ReS_jv     = asarray(LongToWideMeta, "ReS_jv")
+    ReS_prefix = asarray(LongToWideMeta, "ReS_prefix")
+    prefix     = (length(ReS_prefix) > 0)
 
     spread = (spread & (cols(ReS_Xij) == 1))
     for (i = 1; i <= cols(ReS_Xij); i++) {
         stub = ReS_Xij[i]
         for (j = 1; j <= cols(ReS_jv); j++) {
             lvl = ReS_jv[j]
-            newvar = spread? lvl: GetVariableFromStub(stub, lvl)
-
+            if ( prefix ) {
+                newvar = GetVariableFromStubPrefix(stub, lvl, ReS_prefix[j])
+            }
+            else {
+                newvar = spread? lvl: GetVariableFromStub(stub, lvl)
+            }
             st_varlabel(newvar,  asarray(LongToWideMeta, newvar + "lbl"))
             st_varformat(newvar, asarray(LongToWideMeta, newvar + "fmt"))
 

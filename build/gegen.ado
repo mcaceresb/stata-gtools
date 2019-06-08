@@ -108,6 +108,40 @@ program define gegen, byable(onecall) rclass
                 skewness   ///
                 kurtosis
 
+    local transforms standardize ///
+                     normalize   ///
+                     demean      ///
+                     demedian    //
+
+    local direct winsorize ///
+                 winsor     //
+
+    * If function is a transform, call gstats transform
+    * -------------------------------------------------
+
+    if ( `:list fcn in transforms' ) {
+        cap confirm var `args'
+        if ( _rc ) {
+            disp as err `"`fcn' requires single variable input"'
+            exit _rc
+        }
+        local options types(`type') `options'
+        cap noi gstats transform (`fcn') `name' = `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
+
+    if ( `:list fcn in direct' ) {
+        if ( `"`fcn'"' == "winsorize" ) local fcn winsor
+        cap confirm var `args'
+        if ( _rc ) {
+            disp as err `"`fcn' requires single variable input"'
+            exit _rc
+        }
+        local options gen(`name') `options'
+        cap noi gstats `fcn' `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
+
     * If function does not exist, fall back on egen
     * ---------------------------------------------
 

@@ -1,6 +1,43 @@
 Change Log
 ==========
 
+## gtools-1.5.6 (2019-06-XX)
+
+### Features
+
+- New function `gstats transform` which applies a transformation to
+  a variable; that is `y_i = f(x_i)`. For example,
+
+      gstats transform (demean) y = x, by(group)
+
+  gives
+      
+      n_j  = sum_i 1{group_i = j}
+      s_j  = sum_i 1{group_i = j} * x_i
+      y_ij = x_i - s_j / n_j
+
+  available:
+    
+    normalize, standardize: f(x) = (x - mean(x)) / sd(x)
+    demean:                 f(x) = (x - mean(x))
+    demedian:               f(x) = (x - median(x))
+
+- Closes #63: `greshape wide/gather` allows `prefix(...)` for custom
+  output names.
+
+- Closes #62: New stats available in `gegen`:
+    - winsor, winsorize call `gstats winsor`
+    - standardize, normalize, demean, demedian call `gstats transform`
+
+### Enhancements
+
+- `gunique, detail` now uses `gstats sum, detail`
+
+### Bug fixes
+
+- Closes #64: Removes `head` command from `greshape` tests (done a few
+  commits ago but someone noticed before the merge).
+
 ## gtools-1.5.5 (2019-04-24)
 
 ### Features

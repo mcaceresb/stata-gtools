@@ -922,6 +922,7 @@ program define Wide /* reshape wide */
     else {
         GreshapeTempFile ReS_Data
     }
+disp "debug 1: $ReS_Xij"
     mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -1353,23 +1354,22 @@ string scalar function GetVariableFromStub(string scalar s, string scalar r)
 }
 
 string scalar function GetVariableFromStubPrefix(
-    string scalar s,
-    string scalar r,
-    string scalar p)
+    string scalar stub,
+    string scalar level,
+    string scalar prefix)
 {
     real scalar l, m
-    string scalar left, right
+    string scalar left, right, out
 
-    p = subinstr(p, "#blank#", "", .)
-    p = subinstr(p, "#stub#",  s,  .)
-    s = p
+    s = subinstr(prefix, "#blank#", "",   .)
+    s = subinstr(s,      "#stub#",  stub, .)
 
     m = strlen(st_global(`"ReS_match"'))
     l = strpos(s, st_global(`"ReS_match"'))
     l = (l == 0)? strlen(s) + 1: l
     left  = substr(s, 1, l - 1)
     right = substr(s, l + m, .)
-    return(left + r + right)
+    return(left + level + right)
 }
 
 end

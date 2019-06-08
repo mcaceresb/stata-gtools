@@ -489,6 +489,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             summarize_detail,
             summarize_kvars,
             summarize_kstats,
+            transform_greedy,
             transform_kvars,
             transform_ktargets,
             transform_kgstats,
@@ -662,6 +663,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_summarize_detail",   &summarize_detail)   )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_kvars",    &summarize_kvars)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_kstats",   &summarize_kstats)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_transform_greedy",   &transform_greedy)   )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_kvars",    &transform_kvars)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_ktargets", &transform_ktargets) )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_kgstats",  &transform_kgstats)  )) goto exit;
@@ -959,6 +961,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->summarize_detail   = summarize_detail;
     st_info->summarize_kvars    = summarize_kvars;
     st_info->summarize_kstats   = summarize_kstats;
+    st_info->transform_greedy   = transform_greedy;
     st_info->transform_kvars    = transform_kvars;
     st_info->transform_ktargets = transform_ktargets;
     st_info->transform_kgstats  = transform_kgstats;
@@ -1070,6 +1073,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tsummarize_detail:   "GT_size_cfmt"\n",  summarize_detail  );
         sf_printf_debug("\tsummarize_kvars:    "GT_size_cfmt"\n",  summarize_kvars   );
         sf_printf_debug("\tsummarize_kstats:   "GT_size_cfmt"\n",  summarize_kstats  );
+        sf_printf_debug("\ttransform_greedy:   "GT_size_cfmt"\n",  transform_greedy );
         sf_printf_debug("\ttransform_kvars:    "GT_size_cfmt"\n",  transform_kvars   );
         sf_printf_debug("\ttransform_ktargets: "GT_size_cfmt"\n",  transform_ktargets);
         sf_printf_debug("\ttransform_kgstats:  "GT_size_cfmt"\n",  transform_kgstats );

@@ -26,6 +26,17 @@ void gf_stats_transform_apply (
     ST_double *stats
 );
 
+ST_retcode sf_write_transform (
+    struct StataInfo *st_info,
+    ST_double *transform
+);
+
+ST_retcode sf_read_transform (
+    struct StataInfo *st_info,
+    ST_double *transform,
+    ST_double *weights
+);
+
 ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 {
 
@@ -42,28 +53,38 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
     GT_size i, j, k, l, nj, spos, start, end;
     ST_double scode, tcode, *dblptr, *wgtptr;
 
-    GT_size kvars    = st_info->kvars_by;
-    GT_size ktargets = st_info->transform_ktargets;
-    GT_size kgstats  = st_info->transform_kgstats;
+    GT_bool greedy   = st_info->transform_greedy;
     GT_bool weights  = st_info->wcode > 0;
     GT_bool aweights = (st_info->wcode == 1);
+
+    GT_size kvars    = st_info->kvars_by;
+    GT_size ksources = st_info->transform_kvars;
+    GT_size ktargets = st_info->transform_ktargets;
+    GT_size kgstats  = st_info->transform_kgstats;
     GT_size wpos     = st_info->wpos;
     GT_size nj_max   = st_info->info[1] - st_info->info[0];
+    GT_size Nread    = st_info->Nread;
+    GT_size J        = st_info->J;
+    clock_t timer    = clock();
 
-    for (j = 1; j < st_info->J; j++) {
+    for (j = 1; j < J; j++) {
         if (nj_max < (st_info->info[j + 1] - st_info->info[j]))
             nj_max = (st_info->info[j + 1] - st_info->info[j]);
     }
 
-    ST_double *gsrc_weight  = calloc(weights? st_info->Nread: 1, sizeof *gsrc_weight);
-    ST_double *gsrc_pbuffer = calloc(weights? 2 * nj_max: 1,     sizeof *gsrc_pbuffer);
+    ST_double *gsrc_vars    = calloc(greedy? ksources * Nread: 1, sizeof *gsrc_vars);
+    ST_double *gsrc_weight  = calloc(weights? Nread: 1,           sizeof *gsrc_weight);
+    ST_double *gsrc_pbuffer = calloc(weights? 2 * nj_max: 1,      sizeof *gsrc_pbuffer);
+
     ST_double *gsrc_buffer  = calloc(nj_max,   sizeof *gsrc_buffer);
     ST_double *gsrc_sbuffer = calloc(nj_max,   sizeof *gsrc_sbuffer);
     ST_double *gsrc_stats   = calloc(kgstats,  sizeof *gsrc_stats);
     GT_size   *gsrc_kstats  = calloc(ktargets, sizeof *gsrc_kstats);
 
+    if ( gsrc_vars    == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_vars"));
     if ( gsrc_weight  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_weight"));
     if ( gsrc_pbuffer == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_pbuffer"));
+
     if ( gsrc_buffer  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_buffer"));
     if ( gsrc_sbuffer == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_sbuffer"));
     if ( gsrc_stats   == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_stats"));
@@ -80,83 +101,184 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
         if ( (rc = gf_stats_transform_check(tcode, gsrc_kstats[k])) ) goto exit;
     }
 
+    if ( st_info->benchmark > 1 )
+        sf_running_timer (&timer, "\ttransform step 1: variable setup");
+
     if ( weights ) {
 
-        // read weights so they are all grouped; necessary bc weights are re-used
+        if ( greedy ) {
 
-        wgtptr = gsrc_weight;
-        for (j = 0; j < st_info->J; j++) {
-            start  = st_info->info[j];
-            end    = st_info->info[j + 1];
-            nj     = end - start;
-            for (i = start; i < end; i++, wgtptr++) {
-                if ( (rc = SF_vdata(wpos, st_info->index[i] + st_info->in1, wgtptr)) ) goto exit;
-            }
-        }
+            // read stuff from stata in order; way faster
+            if ( (rc = sf_read_transform (st_info, gsrc_vars, gsrc_weight)) ) goto exit;
 
-        // but the rest are read by group in not a particularly efficient fashion
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 2: copied sources in order");
 
-        for (k = 0; k < st_info->transform_ktargets; k++) {
-            tcode  = st_info->transform_varfuns[k];
+            // apply the transforms
+            dblptr = gsrc_vars;
             wgtptr = gsrc_weight;
-            for (j = 0; j < st_info->J; j++) {
+            for (j = 0; j < J; j++) {
                 start  = st_info->info[j];
                 end    = st_info->info[j + 1];
                 nj     = end - start;
-                dblptr = gsrc_buffer;
-                for (i = start; i < end; i++, dblptr++) {
-                    if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                for (k = 0; k < ktargets; k++) {
+                    tcode  = st_info->transform_varfuns[k];
+                    for (l = 0; l < gsrc_kstats[k]; l++) {
+                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                        scode = st_info->transform_statcode[spos];
+                        gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                            dblptr,
+                            wgtptr,
+                            nj,
+                            scode,
+                            aweights,
+                            gsrc_pbuffer
+                        );
+                    }
+                    gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    dblptr += nj;
                 }
-                for (l = 0; l < gsrc_kstats[k]; l++) {
-                    spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                    scode = st_info->transform_statcode[spos];
-                    gsrc_stats[l] = gf_stats_transform_stat_weighted(
-                        gsrc_buffer,
-                        wgtptr,
-                        nj,
-                        scode,
-                        aweights,
-                        gsrc_pbuffer
-                    );
-                }
-                gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
                 wgtptr += nj;
-                dblptr = gsrc_buffer;
-                for (i = start; i < end; i++, dblptr++) {
-                    if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
+            }
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 3: applied transform");
+
+            // copy back to stata
+            if ( (rc = sf_write_transform(st_info, gsrc_vars)) ) goto exit;
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 4: copied targets to stata");
+
+        }
+        else {
+
+            // read weights so they are all grouped; necessary bc weights are re-used
+            wgtptr = gsrc_weight;
+            for (j = 0; j < J; j++) {
+                start  = st_info->info[j];
+                end    = st_info->info[j + 1];
+                nj     = end - start;
+                for (i = start; i < end; i++, wgtptr++) {
+                    if ( (rc = SF_vdata(wpos, st_info->index[i] + st_info->in1, wgtptr)) ) goto exit;
                 }
             }
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 2: read weights");
+
+            // but the rest are read by group in not a particularly efficient fashion
+            for (k = 0; k < ktargets; k++) {
+                tcode  = st_info->transform_varfuns[k];
+                wgtptr = gsrc_weight;
+                for (j = 0; j < J; j++) {
+                    start  = st_info->info[j];
+                    end    = st_info->info[j + 1];
+                    nj     = end - start;
+                    dblptr = gsrc_buffer;
+                    for (i = start; i < end; i++, dblptr++) {
+                        if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                    }
+                    for (l = 0; l < gsrc_kstats[k]; l++) {
+                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                        scode = st_info->transform_statcode[spos];
+                        gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                            gsrc_buffer,
+                            wgtptr,
+                            nj,
+                            scode,
+                            aweights,
+                            gsrc_pbuffer
+                        );
+                    }
+                    gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    wgtptr += nj;
+                    dblptr = gsrc_buffer;
+                    for (i = start; i < end; i++, dblptr++) {
+                        if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
+                    }
+                }
+            }
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 3: applied transform");
         }
     }
     else {
-        for (k = 0; k < st_info->transform_ktargets; k++) {
-            tcode = st_info->transform_varfuns[k];
-            for (j = 0; j < st_info->J; j++) {
+        if ( greedy ) {
+
+            // read stuff from stata in order; way faster
+            if ( (rc = sf_read_transform (st_info, gsrc_vars, NULL)) ) goto exit;
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 2: copied sources in order");
+
+            // apply the transforms
+            dblptr = gsrc_vars;
+            for (j = 0; j < J; j++) {
                 start  = st_info->info[j];
                 end    = st_info->info[j + 1];
                 nj     = end - start;
-                dblptr = gsrc_buffer;
-                for (i = start; i < end; i++, dblptr++) {
-                    if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                for (k = 0; k < ktargets; k++) {
+                    tcode  = st_info->transform_varfuns[k];
+                    for (l = 0; l < gsrc_kstats[k]; l++) {
+                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                        scode = st_info->transform_statcode[spos];
+                        gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_sbuffer, nj, scode);
+                    }
+                    gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    dblptr += nj;
                 }
-                for (l = 0; l < gsrc_kstats[k]; l++) {
-                    spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                    scode = st_info->transform_statcode[spos];
-                    gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_sbuffer, nj, scode);
+            }
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 3: applied transform");
+
+            // copy back to stata
+            if ( (rc = sf_write_transform(st_info, gsrc_vars)) ) goto exit;
+
+            if ( st_info->benchmark > 1 )
+                sf_running_timer (&timer, "\ttransform step 4: copied targets to stata");
+
+        }
+        else {
+
+            // all at once! lean memory use
+            for (k = 0; k < ktargets; k++) {
+                tcode = st_info->transform_varfuns[k];
+                for (j = 0; j < J; j++) {
+                    start  = st_info->info[j];
+                    end    = st_info->info[j + 1];
+                    nj     = end - start;
+                    dblptr = gsrc_buffer;
+                    for (i = start; i < end; i++, dblptr++) {
+                        if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                    }
+                    for (l = 0; l < gsrc_kstats[k]; l++) {
+                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                        scode = st_info->transform_statcode[spos];
+                        gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_sbuffer, nj, scode);
+                    }
+                    gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    dblptr = gsrc_buffer;
+                    for (i = start; i < end; i++, dblptr++) {
+                        if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
+                    }
                 }
-                gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
-                dblptr = gsrc_buffer;
-                for (i = start; i < end; i++, dblptr++) {
-                    if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
-                }
+
+                if ( st_info->benchmark > 1 )
+                    sf_running_timer (&timer, "\ttransform step 2: applied transform");
+
             }
         }
     }
 
 exit:
 
+    free (gsrc_vars);
     free (gsrc_weight);
     free (gsrc_pbuffer);
+
     free (gsrc_buffer);
     free (gsrc_sbuffer);
     free (gsrc_stats);
@@ -476,4 +598,97 @@ void gf_stats_transform_apply (
             }
         }
     }
+}
+
+/*********************************************************************
+ *                       Quasi-generic helpers                       *
+ *********************************************************************/
+
+ST_retcode sf_read_transform (
+    struct StataInfo *st_info,
+    ST_double *transform,
+    ST_double *weights)
+{
+
+    ST_retcode rc = 0;
+    GT_size i, j, k, start, end, nj, sel;
+    GT_bool wgt = (weights != NULL);
+
+    GT_size *pos      = calloc(st_info->J,     sizeof *pos);
+    GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
+
+    for (j = 0; j < st_info->J; j++) {
+        pos[j] = 0;
+    }
+
+    for (i = 0; i < st_info->Nread; i++) {
+        index_st[i] = 0;
+    }
+
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        for (i = start; i < end; i++)
+            index_st[st_info->index[i]] = j + 1;
+    }
+
+    for (i = 0; i < st_info->Nread; i++) {
+        if ( index_st[i] == 0 ) continue;
+        j     = index_st[i] - 1;
+        start = st_info->info[j];
+        end   = st_info->info[j + 1];
+        nj    = end - start;
+        for (k = 0; k < st_info->transform_kvars; k++) {
+            sel = start * st_info->transform_kvars + nj * k;
+            if ( (rc = SF_vdata(st_info->kvars_by + k + 1,
+                                i + st_info->in1,
+                                transform + sel + pos[j])) ) goto exit;
+        }
+        if ( wgt ) {
+            if ( (rc = SF_vdata(st_info->wpos,
+                                i + st_info->in1,
+                                weights + start + pos[j])) ) goto exit;
+        }
+        pos[j]++;
+    }
+
+exit:
+    free (pos);
+    free (index_st);
+
+    return (rc);
+}
+
+ST_retcode sf_write_transform (
+    struct StataInfo *st_info,
+    ST_double *transform)
+{
+
+    ST_retcode rc = 0;
+    GT_size i, j, k, start, end, nj, sel;
+    GT_size *pos = calloc(st_info->J, sizeof *pos);
+
+    for (j = 0; j < st_info->J; j++) {
+        pos[j] = 0;
+    }
+
+    for (j = 0; j < st_info->J; j++) {
+        start  = st_info->info[j];
+        end    = st_info->info[j + 1];
+        nj     = end - start;
+        for (i = start; i < end; i++) {
+            for (k = 0; k < st_info->transform_ktargets; k++) {
+                sel = start * st_info->transform_ktargets + nj * k;
+                if ( (rc = SF_vstore(st_info->kvars_by + k + 1 + st_info->transform_ktargets,
+                                     st_info->index[i] + st_info->in1,
+                                     *(transform + sel + pos[j]))) ) goto exit;
+            }
+            pos[j]++;
+        }
+    }
+
+exit:
+    free (pos);
+
+    return (rc);
 }

@@ -245,18 +245,32 @@ program checks_gstats_winsor
     set rmsg on
     winsor2 x y, by(id) s(_w1)
     gstats winsor x y, by(id) s(_w2)
+    gegen x_g3 = winsor(x), by(id)
+    gegen y_g3 = winsor(y), by(id)
+
     desc
     assert abs(x_w1 - x_w2) < 1e-6
     assert abs(y_w1 - y_w2) < 1e-6
+    assert abs(x_g3 - x_w2) < 1e-6
+    assert abs(y_g3 - y_w2) < 1e-6
 
     replace y = . if mod(_n, 123) == 0
     replace x = . if mod(_n, 321) == 0
+
     gstats winsor x [w=y], by(id) s(_w3)
     gstats winsor x [w=y], by(id) s(_w5) trim
+
+    gegen x_g4 = winsor(x) [w=y], by(id)
+    gegen x_g5 = winsor(x) [w=y], by(id) trim
+
     gegen p1  = pctile(x) [aw = y], by(id) p(1)
     gegen p99 = pctile(x) [aw = y], by(id) p(99)
+
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
+
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
+    assert (abs(x_g4 - x_w3) < 1e-6 | mi(x_g4 - x_w3))
+    assert (abs(x_g5 - x_w5) < 1e-6 | mi(x_g5 - x_w5))
 end
 
 capture program drop compare_gstats_winsor

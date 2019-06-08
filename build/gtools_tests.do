@@ -25,6 +25,26 @@ set type double
 program main
     syntax, [NOIsily *]
 
+clear
+set obs 10000000
+* set obs 100
+gen groups = int(runiform() * 1000)
+* gen groups = int(runiform() * 100)
+* gen groups = int(runiform() * 10)
+gen rsort  = rnormal()
+gen rvar   = rnormal()
+gen w      = 5 * runiform()
+gen ix     = _n
+
+set rmsg on
+preserve
+gstats transform (normalize) z1 = rvar z2 = ix z3 = rsort , by(groups)
+gcollapse (mean) d1 = rvar d2 = ix d3 = rsort [aw = w], by(groups) merge _subtract fast
+restore
+
+exit 12345
+exit, clear
+
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }
@@ -2975,6 +2995,18 @@ program checks_gquantiles
 
     assert gx2 == gx3
     assert gx3 == gx4
+
+    gegen ggx0 = xtile(x)
+    gegen ggx1 = xtile(log(x) + 1) if mod(_n, 10) in 20 / 80
+    gegen ggx2 = xtile(x) [w = w],  nq(7) method(1)
+    gegen ggx3 = xtile(x) [aw = w], nq(7) method(2)
+    gegen ggx4 = xtile(x) [pw = w], nq(7) method(0)
+
+    assert ggx0 == gx0
+    assert ggx1 == gx1
+    assert ggx2 == gx2
+    assert ggx2 == gx2
+    assert ggx4 == gx4
 
     drop gx*
 
@@ -8764,18 +8796,32 @@ program checks_gstats_winsor
     set rmsg on
     winsor2 x y, by(id) s(_w1)
     gstats winsor x y, by(id) s(_w2)
+    gegen x_g3 = winsor(x), by(id)
+    gegen y_g3 = winsor(y), by(id)
+
     desc
     assert abs(x_w1 - x_w2) < 1e-6
     assert abs(y_w1 - y_w2) < 1e-6
+    assert abs(x_g3 - x_w2) < 1e-6
+    assert abs(y_g3 - y_w2) < 1e-6
 
     replace y = . if mod(_n, 123) == 0
     replace x = . if mod(_n, 321) == 0
+
     gstats winsor x [w=y], by(id) s(_w3)
     gstats winsor x [w=y], by(id) s(_w5) trim
+
+    gegen x_g4 = winsor(x) [w=y], by(id)
+    gegen x_g5 = winsor(x) [w=y], by(id) trim
+
     gegen p1  = pctile(x) [aw = y], by(id) p(1)
     gegen p99 = pctile(x) [aw = y], by(id) p(99)
+
     gen x_w4 = cond(x < p1, p1, cond(x > p99, p99, x))
+
     assert (abs(x_w3 - x_w4) < 1e-6 | mi(x_w3 - x_w4))
+    assert (abs(x_g4 - x_w3) < 1e-6 | mi(x_g4 - x_w3))
+    assert (abs(x_g5 - x_w5) < 1e-6 | mi(x_g5 - x_w5))
 end
 
 capture program drop compare_gstats_winsor
@@ -9845,5 +9891,5 @@ end
 * ---------------------------------------------------------------------
 * Run the things
 
-if ( `"`0'"' == "" ) local 0 dependencies basic_checks switches bench_test
+if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

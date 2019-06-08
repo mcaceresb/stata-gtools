@@ -25,6 +25,26 @@ set type double
 program main
     syntax, [NOIsily *]
 
+clear
+set obs 10000000
+* set obs 100
+gen groups = int(runiform() * 1000)
+* gen groups = int(runiform() * 100)
+* gen groups = int(runiform() * 10)
+gen rsort  = rnormal()
+gen rvar   = rnormal()
+gen w      = 5 * runiform()
+gen ix     = _n
+
+set rmsg on
+preserve
+gstats transform (normalize) z1 = rvar z2 = ix z3 = rsort , by(groups)
+gcollapse (mean) d1 = rvar d2 = ix d3 = rsort [aw = w], by(groups) merge _subtract fast
+restore
+
+exit 12345
+exit, clear
+
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }

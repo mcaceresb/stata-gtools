@@ -136,6 +136,7 @@ struct StataInfo {
     GT_size   summarize_kstats;
     ST_double *summarize_codes;
     //
+    GT_bool   transform_greedy;
     GT_size   transform_kvars;
     GT_size   transform_ktargets;
     GT_size   transform_kgstats;

@@ -3746,6 +3746,7 @@ program gstats_scalars
         scalar __gtools_summarize_largest2  = .
         scalar __gtools_summarize_largest1  = .
 
+        scalar __gtools_transform_greedy    = 0
         scalar __gtools_transform_kvars     = 1
         scalar __gtools_transform_ktargets  = 1
         scalar __gtools_transform_kgstats   = 1
@@ -3808,6 +3809,7 @@ program gstats_scalars
         cap scalar drop __gtools_summarize_largest2
         cap scalar drop __gtools_summarize_largest1
 
+        cap scalar drop __gtools_transform_greedy
         cap scalar drop __gtools_transform_kvars
         cap scalar drop __gtools_transform_ktargets
         cap scalar drop __gtools_transform_kgstats
@@ -3836,6 +3838,7 @@ program gstats_transform
     [                          ///
                                /// TODO: Maybe add rawstat at some point...
         replace                ///
+        nogreedy               /// use memory-heavy algorithm
         TYPEs(str)             /// override automatic types
         WILDparse              /// parse assuming wildcard renaming
         LABELFormat(passthru)  /// Custom label engine: (#stat#) #sourcelabel# is the default
@@ -4106,14 +4109,15 @@ program gstats_transform
 
     * Return varlist for plugin internals
 
+    scalar __gtools_transform_greedy   = (`"`greedy'"' != "nogreedy")
     scalar __gtools_transform_kvars    = `:list sizeof __gtools_gst_vars'
     scalar __gtools_transform_ktargets = `:list sizeof __gtools_gst_targets'
     scalar __gtools_transform_kgstats  = `:list sizeof gs'
     scalar __gtools_gstats_code        = 3
 
-    mata: st_matrix("__gtools_transform_varfuns",  __gtools_transform_varfuns) 
+    mata: st_matrix("__gtools_transform_varfuns",  __gtools_transform_varfuns)
     mata: st_matrix("__gtools_transform_statcode", __gtools_transform_statcode)
-    mata: st_matrix("__gtools_transform_statmap",  __gtools_transform_statmap) 
+    mata: st_matrix("__gtools_transform_statmap",  __gtools_transform_statmap)
 
     c_local varlist `__gtools_gst_vars' `__gtools_gst_targets'
 end

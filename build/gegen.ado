@@ -108,6 +108,9 @@ program define gegen, byable(onecall) rclass
                 skewness   ///
                 kurtosis
 
+    * gegen aliases for other gtools functions
+    * ----------------------------------------
+
     local transforms standardize ///
                      normalize   ///
                      demean      ///
@@ -116,8 +119,10 @@ program define gegen, byable(onecall) rclass
     local direct winsorize ///
                  winsor     //
 
-    * If function is a transform, call gstats transform
-    * -------------------------------------------------
+    if ( `"`fcn'"' == "xtile" ) {
+        cap noi fasterxtile `name' = `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
 
     if ( `:list fcn in transforms' ) {
         cap confirm var `args'

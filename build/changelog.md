@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## gtools-1.5.6 (2019-06-XX)
+## gtools-1.5.6 (2019-06-08)
 
 ### Features
 

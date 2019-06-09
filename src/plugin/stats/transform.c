@@ -195,7 +195,9 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     wgtptr += nj;
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
-                        if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
+                        if ( (rc = SF_vstore(kvars + k + 1 + ksources,
+                                             st_info->index[i] + st_info->in1,
+                                             *dblptr)) ) goto exit;
                     }
                 }
             }
@@ -262,7 +264,9 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
-                        if ( (rc = SF_vstore(kvars + k + 1 + ktargets, st_info->index[i] + st_info->in1, *dblptr)) ) goto exit;
+                        if ( (rc = SF_vstore(kvars + k + 1 + ksources,
+                                             st_info->index[i] + st_info->in1,
+                                             *dblptr)) ) goto exit;
                     }
                 }
 
@@ -679,7 +683,7 @@ ST_retcode sf_write_transform (
         for (i = start; i < end; i++) {
             for (k = 0; k < st_info->transform_ktargets; k++) {
                 sel = start * st_info->transform_ktargets + nj * k;
-                if ( (rc = SF_vstore(st_info->kvars_by + k + 1 + st_info->transform_ktargets,
+                if ( (rc = SF_vstore(st_info->kvars_by + k + 1 + st_info->transform_kvars,
                                      st_info->index[i] + st_info->in1,
                                      *(transform + sel + pos[j]))) ) goto exit;
             }

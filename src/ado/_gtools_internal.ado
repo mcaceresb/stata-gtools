@@ -3911,11 +3911,6 @@ program gstats_transform
         exit 198
     }
 
-    local __gtools_gst_uniq_vars: list uniq __gtools_gst_vars
-    if ( !`:list __gtools_gst_uniq_vars === __gtools_gst_vars' ) {
-        * disp as err "warning: repeat sources not optimized"
-    }
-
     * Parse variables to add
     * ----------------------
 
@@ -4027,16 +4022,12 @@ program gstats_transform
 
     * There are two sets of stats: The transformations and the group
     * stats that the transformations use. For example, normalizing a
-    * variable uses the mean and standard deviation. For efficiency when
-    * doing multiple transforms, we only compute each group stat once.
-    * De-meaning and normalizing would only compute the mean once, for
-    * instance.
-    *
-    * Each transform has an internal code for its group stats. normalize
-    * has codes 1 and 2 for the mean and standard deviation, demedian
-    * has code 1 for the median, and so on. Hence we create a matrix
-    * with mappings from each stat to their stat's position on the array
-    * of group stats. If we have stats(demedian demean normalize) we get
+    * variable uses the mean and standard deviation. Each transform has
+    * an internal code for its group stats. normalize has codes 1 and 2
+    * for the mean and standard deviation, demedian has code 1 for the
+    * median, and so on. Hence we create a matrix with mappings from
+    * each stat to their stat's position on the array of group stats. If
+    * we have stats(demedian demean normalize) we get
     *
     *     (see above for encoding)
     *
@@ -4106,6 +4097,11 @@ program gstats_transform
             exit 198
         }
     }
+
+    * NOTE(mauricio): Unlike gcollapse, here we can't really have a set
+    * of unique sources that get mapped to multiple targets because each
+    * source gets transformed! So you will need to read each source in
+    * unmodified for as many targets as you have.
 
     * Return varlist for plugin internals
 

@@ -172,6 +172,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opt match(str)}} Where to replace levels of {opt keys()} in stub (default {opt @}).
 {p_end}
+{synopt :{opt prefix(str)}} Custom renaming of reshaped variables (one rename per stub; {opt @} syntax allowed).
+{p_end}
 
 {syntab :Common long and wide options}
 {synopt :{opt fast}} Do not wrap the reshape in preserve/restore pairs.
@@ -200,6 +202,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 
 {syntab :Spread}
 {synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with variable names.
+{p_end}
+{synopt :{opt prefix(str)}} Custom renaming of reshaped variables (one common rename; {opt @} syntax allowed).
 {p_end}
 
 {syntab :Common gather and spread options}

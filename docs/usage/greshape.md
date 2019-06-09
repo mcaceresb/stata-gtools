@@ -140,6 +140,11 @@ Options
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with stub suffixes (alias `j()`).
 - `colsepparate(str)` Column separator when multiple variables are passed to `j()`.
 - `match(str)`        Where to replace the levels of `keys()` in stub (default `@`).
+- `prefix(str)`       Custom renaming of reshaped variables. One rename per stub; {opt @} syntax allowed.
+                      For example, with two stubs you can specify `prefix(#stub# foo@bar)` and the first
+                      stub's variables will be named normally (`#stub#` is replaced with the stub name)
+                      while the second will be named `foo@bar` with `@` replaced by the `j()` variable's
+                      values.
 
 **Wide and long**
 
@@ -165,6 +170,10 @@ Options
 **Spread only**
 
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with variable names.
+- `prefix(str)`       Custom renaming of reshaped variables. One common rename; {opt @} syntax allowed.
+                      For example, with two stubs you can specify `prefix(foo@bar)` and the output
+                      variables will be named `foo@bar` with `@` replaced by the `key()` variable's
+                      values.
 
 **Gather and Spread**
 
@@ -304,6 +313,20 @@ greshape long inc[year]r ue, by(id) keys(year) match([year])
 list, sepby(id)
 greshape wide inc[year]r ue, by(id) keys(year) match([year])
 list
+```
+
+Output variables can be renamed using user-specified patterns.
+
+```stata
+webuse reshape3, clear
+qui greshape long inc@r ue, by(id) keys(year)
+qui greshape wide inc[hi]r ue, by(id) keys(year) prefix(year[hi]income #stub#) match([hi])
+desc, full
+
+webuse reshape3, clear
+qui greshape gather inc*r ue*, values(values) key(variable)
+qui greshape spread values, key(variable) prefix(foo@bar_#stub#)
+desc, full
 ```
 
 Note that stata variable syntax is only supported for long to wide,

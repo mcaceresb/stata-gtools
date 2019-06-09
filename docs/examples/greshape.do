@@ -53,6 +53,18 @@ list, sepby(id)
 greshape wide inc[year]r ue, by(id) keys(year) match([year])
 list
 
+* Output variables can be renamed using user-specified patterns.
+
+webuse reshape3, clear
+qui greshape long inc@r ue, by(id) keys(year)
+qui greshape wide inc[hi]r ue, by(id) keys(year) prefix(year[hi]income #stub#) match([hi])
+desc, full
+
+webuse reshape3, clear
+qui greshape gather inc*r ue*, values(values) key(variable)
+qui greshape spread values, key(variable) prefix(foo@bar_#stub#)
+desc, full
+
 * Note that stata variable syntax is only supported for long to wide,
 * and cannot be combined with `@` syntax. For complex pattern matching
 * from wide to long, use match(regex) or match(ustrregex). With regex,

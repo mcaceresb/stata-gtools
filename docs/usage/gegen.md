@@ -57,6 +57,19 @@ may not be used with sebinomial or sepoisson.
 Compiled functions
 ------------------
 
+The following are simply wrappers for other _gtools_ functions.
+Consult each command's corresponding help files:
+
+    function              -> calls
+    -----------------------------------------
+    xtile(exp)            -> fasterxtile
+    standardize(varname)  -> gstats transform
+    normalize(varname)    -> gstats transform
+    demean(varname)       -> gstats transform
+    demedian(varname)     -> gstats transform
+    winsor(varname)       -> gstats winsor
+    winsorize(varname)    -> gstats winsor
+
 The functions listed here have been compiled and hence will run very quickly.
 Functions not listed here hash the data and then call egen with by(varlist)
 set to the hash, which is often faster than calling egen directly, but not

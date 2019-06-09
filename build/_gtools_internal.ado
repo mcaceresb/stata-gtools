@@ -3845,27 +3845,6 @@ program gstats_transform
         LABELProgram(passthru) /// Program to parse labelformat (see examples)
     ]
 
-    * TODO: I am being lazy and not doing the whole mapping of unique
-    * vars to non-unique vars... let's see what happens!
-
-    * TODO: I am being doubly lazy and not optimizing this much... just
-    * read, transform, write by group...let's see what happens!
-
-    * clear
-    * set obs 10
-    * forvalues i = 1 / 5 {
-    *     gen src`i' = `i'
-    * }
-    *
-    * gstats_transform_parse (stat1) targ1 = src1 src1
-    * gstats_transform_parse (stat1) targ1 = src1 src1 (stat2) src1
-    * gstats_transform_parse (stat1) targ1 = src1 src1 (stat2) src1 (stat3) ztar* = s*, wild
-    * gstats_transform_parse (stat1) src2 = src1 src1 = src2
-    *
-    * disp `"`__gtools_gst_targets'"'
-    * disp `"`__gtools_gst_vars'"'
-    * disp `"`__gtools_gst_stats'"'
-
     * Parse transforms and variables
     * ------------------------------
 
@@ -3911,11 +3890,6 @@ program gstats_transform
         exit 198
     }
 
-    local __gtools_gst_uniq_vars: list uniq __gtools_gst_vars
-    if ( !`:list __gtools_gst_uniq_vars === __gtools_gst_vars' ) {
-        * disp as err "warning: repeat sources not optimized"
-    }
-
     * Parse variables to add
     * ----------------------
 
@@ -3930,6 +3904,10 @@ program gstats_transform
     local __gtools_gst_i = 0
     local __gtools_gst_dropvars
     local __gtools_gst_vars: subinstr local __gtools_gst_vars " "  "  ", all
+
+    local krecast = 0
+    local recast_sources
+    local recast_targets
 
     forvalues k = 1 / `ktargets' {
         local retype: word `k' of `__gtools_gst_retype'
@@ -3953,6 +3931,9 @@ program gstats_transform
 
                 if ( `:list target in __gtools_gst_vars' ) {
                     local __gtools_gst_vars: subinstr local __gtools_gst_vars " `target' " " __gtools_gst`__gtools_gst_i' ", all
+                    local recast_sources `recast_sources' __gtools_gst`__gtools_gst_i'
+                    local recast_targets `recast_targets' `target'
+                    local ++krecast
                 }
             }
 
@@ -3976,6 +3957,16 @@ program gstats_transform
 
     if ( `kadd' ) {
         mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
+    }
+
+    if ( `krecast' ) {
+        scalar __gtools_k_recast = `krecast'
+        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
+        local rc = _rc
+        cap scalar drop __gtools_k_recast
+        if ( `rc' ) {
+            exit `rc'
+        }
     }
 
     mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
@@ -4027,16 +4018,12 @@ program gstats_transform
 
     * There are two sets of stats: The transformations and the group
     * stats that the transformations use. For example, normalizing a
-    * variable uses the mean and standard deviation. For efficiency when
-    * doing multiple transforms, we only compute each group stat once.
-    * De-meaning and normalizing would only compute the mean once, for
-    * instance.
-    *
-    * Each transform has an internal code for its group stats. normalize
-    * has codes 1 and 2 for the mean and standard deviation, demedian
-    * has code 1 for the median, and so on. Hence we create a matrix
-    * with mappings from each stat to their stat's position on the array
-    * of group stats. If we have stats(demedian demean normalize) we get
+    * variable uses the mean and standard deviation. Each transform has
+    * an internal code for its group stats. normalize has codes 1 and 2
+    * for the mean and standard deviation, demedian has code 1 for the
+    * median, and so on. Hence we create a matrix with mappings from
+    * each stat to their stat's position on the array of group stats. If
+    * we have stats(demedian demean normalize) we get
     *
     *     (see above for encoding)
     *
@@ -4107,6 +4094,11 @@ program gstats_transform
         }
     }
 
+    * NOTE(mauricio): Unlike gcollapse, here we can't really have a set
+    * of unique sources that get mapped to multiple targets because each
+    * source gets transformed! So you will need to read each source in
+    * unmodified for as many targets as you have.
+
     * Return varlist for plugin internals
 
     scalar __gtools_transform_greedy   = (`"`greedy'"' != "nogreedy")
@@ -4138,7 +4130,7 @@ program gstats_transform_parse
 
     if ( "`wildparse'" != "" ) {
         local rc = 0
-        ParseListWild `anything', loc(__gtools_gst_call) prefix(__gtools_gst)
+        ParseListWild `anything', loc(__gtools_gst_call) prefix(__gtools_gst) default(demean)
 
         local __gtools_bak_stats      : copy local __gtools_gst_stats
         local __gtools_bak_vars       : copy local __gtools_gst_vars
@@ -4146,7 +4138,7 @@ program gstats_transform_parse
         local __gtools_bak_uniq_stats : copy local __gtools_gst_uniq_stats
         local __gtools_bak_uniq_vars  : copy local __gtools_gst_uniq_vars
 
-        ParseList `__gtools_gst_call', prefix(__gtools_gst)
+        ParseList `__gtools_gst_call', prefix(__gtools_gst) default(demean)
 
         cap assert ("`__gtools_gst_stats'"      == "`__gtools_bak_stats'")
         local rc = max(_rc, `rc')
@@ -4169,7 +4161,7 @@ program gstats_transform_parse
         }
     }
     else {
-        ParseList `anything',  prefix(__gtools_gst)
+        ParseList `anything',  prefix(__gtools_gst) default(demean)
     }
 
     unab  __gtools_gst_vars:         `__gtools_gst_vars'
@@ -5344,8 +5336,8 @@ end
 
 capture program drop ParseListWild
 program ParseListWild
-    syntax anything(equalok), LOCal(str) PREfix(str)
-    local stat mean
+    syntax anything(equalok), LOCal(str) PREfix(str) default(str)
+    local stat `default'
 
     * Trim spaces
     local 0: copy local anything
@@ -5426,8 +5418,8 @@ end
 
 capture program drop ParseList
 program define ParseList
-    syntax anything(equalok), PREfix(str)
-    local stat mean
+    syntax anything(equalok), PREfix(str) default(str)
+    local stat `default'
 
     * Trim spaces
     local 0: copy local anything

@@ -43,7 +43,12 @@ open:
 # ./src/ado/_gtools_internal.mata L1252, L1311
 # ./src/ado/gcollapse.ado L1106, L1743, L1845, L1932
 # ./src/ado/gegen.ado L63, L81, L820
-# ./docs/stata/
+# ./src/plugin/collapse/gtools_math.c
+# ./src/plugin/collapse/gtools_math.h
+# ./src/plugin/collapse/gtools_math_unw.c
+# ./src/plugin/collapse/gtools_math_unw.h
+# ./src/plugin/collapse/gtools_math_w.c
+# ./src/plugin/collapse/gtools_math_w.h
 # ./docs/usage/gcollapse.md L29
 # ./docs/usage/gegen.md L194
 # ./docs/usage/gstats_summarize.md L26

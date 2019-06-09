@@ -60,11 +60,26 @@ allowed for the functions listed below and mimic {cmd:collapse} and
 with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
 may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 
-{phang}
-Functions not listed here hash the data and then call {opt egen} with
-{opth by(varlist)} set to the hash, which is often faster than calling
-{opt egen} directly, but not always. Natively supported functions should
-always be faster, however. They are:
+{pstd}
+The following are simply wrappers for other {it:gtools} functions.
+They all allow {opth by(varlist)} as an option. Consult each command's
+corresponding help files for details:
+
+            {opt function}              -> {opt calls}
+            {hline 41}
+            {opth xtile(exp)}            -> {help fasterxtile}
+            {opth standardize(varname)}  -> {help gstats transform}
+            {opth normalize(varname)}    -> {help gstats transform}
+            {opth demean(varname)}       -> {help gstats transform}
+            {opth demedian(varname)}     -> {help gstats transform}
+            {opth winsor(varname)}       -> {help gstats winsor}
+            {opth winsorize(varname)}    -> {help gstats winsor}
+
+{pstd}
+The functions listed below have been compiled and hence will run very quickly.
+Functions not listed here hash the data and then call {opt egen} with {opth by(varlist)}
+set to the hash, which is often faster than calling {opt egen} directly, but not always.
+Natively supported functions should always be faster, however. They are:
 
 {phang2}
 {opth group(varlist)} [{cmd:,} {opt m:issing} {opth counts(newvarname)} {opth fill(real)}]{p_end}

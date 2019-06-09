@@ -8909,6 +8909,18 @@ end
 
 capture program drop checks_gstats_transform
 program checks_gstats_transform
+    clear
+    set obs 10
+    gen long x1 = _n
+    gen long x2 = -_n
+    gstats transform x1 = x2 x2 = x1, replace `0'
+    assert x1 != .
+    assert x2 != .
+    gstats transform x1, replace `0'
+    assert x1 != .
+    gstats transform x1 x2, replace `0'
+    assert x2 != .
+
     foreach by in foreign rep78 mpg {
         sysuse auto, clear
 

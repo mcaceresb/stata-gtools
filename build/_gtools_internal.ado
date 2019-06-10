@@ -1,4 +1,4 @@
-*! version 1.5.6 08Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.7 09Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -5763,7 +5763,7 @@ program GtoolsPrettyStat, rclass
     if ( `r(match)' ) {
         local range `r(lower)' to `r(upper)'
         GtoolsPrettyStat `r(stat)'
-        local prettystat "moving `r(prettystat)' (`range')"
+        local prettystat "Moving `r(prettystat)' (`range')"
     }
 
     return local prettystat = `"`prettystat'"'

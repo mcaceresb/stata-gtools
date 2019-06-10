@@ -1,4 +1,4 @@
-*! version 0.3.0 08Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.4.0 09Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats

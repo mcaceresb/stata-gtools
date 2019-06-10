@@ -58,7 +58,8 @@ Compiled functions
 ------------------
 
 The following are simply wrappers for other _gtools_ functions.
-Consult each command's corresponding help files:
+Consult each command's corresponding help files (`stat` is any
+stat available to `gcollapse` except percent, nunique):
 
     function              -> calls
     -----------------------------------------
@@ -67,6 +68,7 @@ Consult each command's corresponding help files:
     normalize(varname)    -> gstats transform
     demean(varname)       -> gstats transform
     demedian(varname)     -> gstats transform
+    moving_stat(varname)  -> gstats transform
     winsor(varname)       -> gstats winsor
     winsorize(varname)    -> gstats winsor
 

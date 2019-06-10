@@ -63,7 +63,8 @@ may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 {pstd}
 The following are simply wrappers for other {it:gtools} functions.
 They all allow {opth by(varlist)} as an option. Consult each command's
-corresponding help files for details:
+corresponding help files for details ({it:stat} is any stat available
+to {cmd:gcollapse} except percent, nunique):
 
             {opt function}              -> {opt calls}
             {hline 41}
@@ -72,6 +73,7 @@ corresponding help files for details:
             {opth normalize(varname)}    -> {help gstats transform}
             {opth demean(varname)}       -> {help gstats transform}
             {opth demedian(varname)}     -> {help gstats transform}
+            {opth moving_stat(varname)}  -> {help gstats transform}
             {opth winsor(varname)}       -> {help gstats winsor}
             {opth winsorize(varname)}    -> {help gstats winsor}
 

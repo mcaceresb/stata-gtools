@@ -20,12 +20,74 @@ where clist is either
 
 or any combination of the `varlist` or `target_var` forms, and stat is one of
 
+| Stat             | Description
+| ---------------- | -----------
+| demean           | subtract the mean (default)
+| demedian         | subtract the median
+| normalize        | (x - mean) / sd
+| standardize      | same as normalize
+| moving stat # #  | moving statistic _stat_; # specify the relative bounds (e.g. -3 1 means from 3 lag to 1 lead)
+| moving stat      | as above; requires input option `window(# #)` with lower and upper window bounds
+
+`moving` may be combined with any one of the folloing stats:
+
 | Stat        | Description
 | ----------- | -----------
-| demean      | subtract the mean (default)
-| demedian    | subtract the median
-| normalize   | (x - mean) / sd
-| standardize | same as normalize
+| mean        | means (default)
+| count       | number of nonmissing observations
+| nmissing    | number of missing observations
+| median      | medians
+| p#.#        | arbitrary quantiles (#.# must be strictly between 0, 100)
+| p1          | 1st percentile
+| p2          | 2nd percentile
+| ...         | 3rd-49th percentiles
+| p50         | 50th percentile (same as median)
+| ...         | 51st-97th percentiles
+| p98         | 98th percentile
+| p99         | 99th percentile
+| iqr         | interquartile range
+| sum         | sums
+| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
+| nansum      | sum; returns . instead of 0 if all entries are missing
+| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
+| sd          | standard deviation
+| variance    | variance
+| cv          | coefficient of variation (`sd/mean`)
+| semean      | standard error of the mean (sd/sqrt(n))
+| sebinomial  | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
+| sepoisson   | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness    | Skewness
+| kurtosis    | Kurtosis
+| max         | maximums
+| min         | minimums
+| select#     | `#`th smallest non-missing
+| select-#    | `#`th largest non-missing
+| rawselect#  | `#`th smallest non-missing, ignoring weights
+| rawselect-# | `#`th largest non-missing, ignoring weights
+| range       | range (`max` - `min`)
+| first       | first value
+| last        | last value
+| firstnm     | first nonmissing value
+| lastnm      | last nonmissing value
+
+Note that `moving` uses a window defined by the _observations_. That
+would be equivalent to computing time series rolling window statistics
+using the time variable set to `_n`. For example, given some vector `x_i`
+with `N` observations, we have
+
+```
+Input -> Range
+--------------------------------
+-3 3  -> x_{i - 3} to x_{i + 3}
+-3 .  -> x_{i - 3} to x_N
+.  3  -> x_1 to x_{i + 3}
+-3 -1 -> x_{i - 3} to x_{i - 1}
+-3 0  -> x_{i - 3} to x_i
+5  10 -> x_{i + 5} to x_{i + 10}
+```
+
+and so on. If the observation is outside of the admisible range (e.g.
+`-10 10` but `i = 5`) the output is set to missing.
 
 Options
 -------
@@ -55,9 +117,19 @@ Options
             #default# to use the default engine. The programm is passed the
             requested stat by gcollapse.
 
+- `autorename[(str)]` Automatically name targets based on requested stats.
+            Default is `#source#_#stat#`.
+
 - `nogreedy` Use slower but memory-efficient (non-greedy) algorithm.
 
 - `types(str)` Override variable types for targets (**use with caution**).
+
+- `window(lower upper)` Relative observation range for moving statistics
+            (if not specified in call). E.g. `window(-3 1)` means from 3
+            lagged observations to 1 leading observation, inclusive. 0
+            means up to or from the current observation; window(. #)`
+            and `window(# .)` mean from the start and through the end,
+            respectively.
 
 ### Gtools
 
@@ -110,6 +182,10 @@ Examples
 You can download the raw code for the examples below
 [here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gstats_transform.do)
 
+### Basic usage
+
+Syntax is largely analogous to `gcollapse`
+
 ```stata
 sysuse auto, clear
 
@@ -119,4 +195,28 @@ gegen dm_price   = demean(price),      by(foreign)
 
 gstats transform (normalize) norm_mpg = mpg (demean) dm_mpg = mpg, by(foreign) replace
 gstats transform (demean) mpg (normalize) price, by(foreign) replace
+gstats transform (demean) mpg (normalize) xx = price [w = rep78], by(foreign) auto(#stat#_#source#)
+```
+
+### Moving statistics
+
+Note the moving window is defined relative to the current observation.
+
+```stata
+clear
+set obs 20
+gen g = _n > 10
+gen x = _n
+gen w = mod(_n, 7)
+
+gegen x1 = moving_mean(x), window(-2 2) by(g)
+gstats transform (moving mean -1 3) x2 = x, by(g)
+gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x (moving select3) x5 = x, by(g) window(-3 3)
+l
+
+drop x?
+gegen x1 = moving_mean(x) [fw = w], window(-2 2) by(g)
+gstats transform (moving mean -1 3) x2 = x [aw = w], by(g)
+gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x [pw = w / 7], by(g) window(-3 3)
+l
 ```

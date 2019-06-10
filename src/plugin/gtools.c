@@ -753,6 +753,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->transform_statmap
     );
 
+    st_info->transform_moving   = calloc(transform_ktargets, sizeof st_info->transform_moving);
+    st_info->transform_moving_l = calloc(transform_ktargets, sizeof st_info->transform_moving_l);
+    st_info->transform_moving_u = calloc(transform_ktargets, sizeof st_info->transform_moving_u);
+
     st_info->wselmat         = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
     st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
@@ -760,21 +764,24 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
-    if ( st_info->byvars_strL        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
-    if ( st_info->byvars_lens        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
-    if ( st_info->invert             == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
-    if ( st_info->wselmat            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
-    if ( st_info->pos_num_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
-    if ( st_info->pos_str_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
-    if ( st_info->group_targets      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
-    if ( st_info->group_init         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
-    if ( st_info->greshape_types     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
-    if ( st_info->greshape_xitypes   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
-    if ( st_info->greshape_maplevel  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
-    if ( st_info->summarize_codes    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
-    if ( st_info->transform_varfuns  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
-    if ( st_info->transform_statcode == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
-    if ( st_info->transform_statmap  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
+    if ( st_info->byvars_strL         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
+    if ( st_info->byvars_lens         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->invert              == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat             == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
+    if ( st_info->pos_num_byvars      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+    if ( st_info->group_targets       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
+    if ( st_info->group_init          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->greshape_types      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
+    if ( st_info->greshape_xitypes    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
+    if ( st_info->greshape_maplevel   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
+    if ( st_info->summarize_codes     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
+    if ( st_info->transform_varfuns   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
+    if ( st_info->transform_statcode  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
+    if ( st_info->transform_statmap   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
+    if ( st_info->transform_moving    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
+    if ( st_info->transform_moving_l  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
+    if ( st_info->transform_moving_u  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
 
     if ( st_info->pos_targets     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
     if ( st_info->statcode        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
@@ -797,6 +804,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->transform_varfuns")
     GTOOLS_GC_ALLOCATED("st_info->transform_statcode")
     GTOOLS_GC_ALLOCATED("st_info->transform_statmap")
+    GTOOLS_GC_ALLOCATED("st_info->transform_moving")
+    GTOOLS_GC_ALLOCATED("st_info->transform_moving_l")
+    GTOOLS_GC_ALLOCATED("st_info->transform_moving_u")
 
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
@@ -857,6 +867,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             st_info->transform_statmap[transform_kgstats * i + j] = (GT_size) z;
         }
     }
+
+    if ( (rc = sf_get_vector ("__gtools_transform_moving",   st_info->transform_moving))   ) goto exit;
+    if ( (rc = sf_get_vector ("__gtools_transform_moving_l", st_info->transform_moving_l)) ) goto exit;
+    if ( (rc = sf_get_vector ("__gtools_transform_moving_u", st_info->transform_moving_u)) ) goto exit;
 
     if ( debug ) {
         printf("debug 4: Read matrices into arrays\n");
@@ -1001,7 +1015,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tin1:                "GT_size_cfmt"\n",  in1               );
         sf_printf_debug("\tin2:                "GT_size_cfmt"\n",  in2               );
         sf_printf_debug("\tN:                  "GT_size_cfmt"\n",  N                 );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\tdebug:              "GT_size_cfmt"\n",  debug             );
         sf_printf_debug("\tverbose:            "GT_size_cfmt"\n",  verbose           );
         sf_printf_debug("\tbenchmark:          "GT_size_cfmt"\n",  benchmark         );
@@ -1026,7 +1040,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgfile_byvar:        "GT_size_cfmt"\n",  gfile_byvar       );
         sf_printf_debug("\tgfile_bycol:        "GT_size_cfmt"\n",  gfile_bycol       );
         sf_printf_debug("\tgfile_bynum:        "GT_size_cfmt"\n",  gfile_bynum       );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\ttop_miss:           "GT_size_cfmt"\n",  top_miss          );
         sf_printf_debug("\ttop_groupmiss:      "GT_size_cfmt"\n",  top_groupmiss     );
         sf_printf_debug("\ttop_matasave:       "GT_size_cfmt"\n",  top_matasave      );
@@ -1035,12 +1049,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\ttop_other:          "GT_size_cfmt"\n",  top_other         );
         sf_printf_debug("\ttop_lmiss:          "GT_size_cfmt"\n",  top_lmiss         );
         sf_printf_debug("\ttop_lother:         "GT_size_cfmt"\n",  top_lother        );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\tlevels_return:      "GT_size_cfmt"\n",  levels_return     );
         sf_printf_debug("\tlevels_matasave:    "GT_size_cfmt"\n",  levels_matasave   );
         sf_printf_debug("\tlevels_gen:         "GT_size_cfmt"\n",  levels_gen        );
         sf_printf_debug("\tlevels_replace:     "GT_size_cfmt"\n",  levels_replace    );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\txtile_xvars:        "GT_size_cfmt"\n",  xtile_xvars       );
         sf_printf_debug("\txtile_nq:           "GT_size_cfmt"\n",  xtile_nq          );
         sf_printf_debug("\txtile_nq2:          "GT_size_cfmt"\n",  xtile_nq2         );
@@ -1061,7 +1075,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\txtile_dedup:        "GT_size_cfmt"\n",  xtile_dedup       );
         sf_printf_debug("\txtile_cutifin:      "GT_size_cfmt"\n",  xtile_cutifin     );
         sf_printf_debug("\txtile_cutby:        "GT_size_cfmt"\n",  xtile_cutby       );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\tgstats_code:        "GT_size_cfmt"\n",  gstats_code       );
         sf_printf_debug("\twinsor_trim:        "GT_size_cfmt"\n",  winsor_trim       );
         sf_printf_debug("\twinsor_cutl:        "GT_size_cfmt"\n",  winsor_cutl       );
@@ -1086,10 +1100,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tany_if:             "GT_size_cfmt"\n",  any_if            );
         sf_printf_debug("\tcountmiss:          "GT_size_cfmt"\n",  countmiss         );
         sf_printf_debug("\treplace:            "GT_size_cfmt"\n",  replace           );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\tgroup_data:         "GT_size_cfmt"\n",  group_data        );
         sf_printf_debug("\tgroup_fill:         "GT_size_cfmt"\n",  group_fill        );
-        sf_printf_debug("\n");                                                       
+        sf_printf_debug("\n");
         sf_printf_debug("\tkvars_stats:        "GT_size_cfmt"\n",  kvars_stats       );
         sf_printf_debug("\tkvars_targets:      "GT_size_cfmt"\n",  kvars_targets     );
         sf_printf_debug("\tkvars_sources:      "GT_size_cfmt"\n",  kvars_sources     );
@@ -2178,6 +2192,9 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->transform_varfuns);
         free (st_info->transform_statcode);
         free (st_info->transform_statmap);
+        free (st_info->transform_moving);
+        free (st_info->transform_moving_l);
+        free (st_info->transform_moving_u);
 
         free (st_info->pos_num_byvars);
         free (st_info->pos_str_byvars);
@@ -2200,6 +2217,9 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->transform_varfuns")
         GTOOLS_GC_FREED("st_info->transform_statcode")
         GTOOLS_GC_FREED("st_info->transform_statmap")
+        GTOOLS_GC_FREED("st_info->transform_moving")
+        GTOOLS_GC_FREED("st_info->transform_moving_l")
+        GTOOLS_GC_FREED("st_info->transform_moving_u")
 
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")

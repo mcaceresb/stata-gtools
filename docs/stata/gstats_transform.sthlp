@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  08Jun2019}{...}
+{* *! version 0.2.0  08Jun2019}{...}
 {viewerdialog gstats_transform "dialog gstats_transform"}{...}
 {vieweralsosee "[R] gstats_transform" "mansection R gstats_transform"}{...}
 {viewerjumpto "Syntax" "gstats_transform##syntax"}{...}
@@ -41,13 +41,73 @@ the latest stable version.
 {p 4 4 2}or any combination of the {it:varlist} or {it:target_var} forms, and
 {it:stat} is one of{p_end}
 
-{p2colset 9 22 24 2}{...}
+{p2colset 9 26 28 2}{...}
 {p2col :{opt demean}}subtract the mean (default){p_end}
 {p2col :{opt demedian}}subtract the median{p_end}
 {p2col :{opt normalize}}(x - mean) / sd{p_end}
 {p2col :{opt standardize}}same as {opt normalize}{p_end}
+{p2col :{opt moving stat # #}}moving statistic {it:stat}; # specify the relative bounds (e.g. -3 1 means from 3 lag to 1 lead){p_end}
+{p2col :{opt moving stat}}as above; requires input option {opt window(# #)} with lower and upper window bounds{p_end}
 {p2colreset}{...}
 
+{p 4 4 2}{it:moving} may be combined with any one of the folloing stats:{p_end}
+
+{p2colset 9 22 24 2}{...}
+{p2col :{opt mean}}means (default){p_end}
+{p2col :{opt count}}number of nonmissing observations{p_end}
+{p2col :{opt nmissing}}number of missing observations{p_end}
+{p2col :{opt sum}}sums{p_end}
+{p2col :{opt rawsum}}sums, ignoring optionally specified weights ({bf:note}: zero-weighted obs are still excluded){p_end}
+{p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt median}}medians (same as {opt p50}){p_end}
+{p2col :{opt p#.#}}arbitrary quantiles{p_end}
+{p2col :{opt p1}}1st percentile{p_end}
+{p2col :{opt p2}}2nd percentile{p_end}
+{p2col :{it:...}}3rd{hline 1}49th percentiles{p_end}
+{p2col :{opt p50}}50th percentile (same as {cmd:median}){p_end}
+{p2col :{it:...}}51st{hline 1}97th percentiles{p_end}
+{p2col :{opt p98}}98th percentile{p_end}
+{p2col :{opt p99}}99th percentile{p_end}
+{p2col :{opt iqr}}interquartile range{p_end}
+{p2col :{opt sd}}standard deviation{p_end}
+{p2col :{opt var:iance}}variance{p_end}
+{p2col :{opt cv}}coefficient of variation ({cmd:sd/mean}){p_end}
+{p2col :{opt select#}}#th smallest{p_end}
+{p2col :{opt select-#}}#th largest{p_end}
+{p2col :{opt rawselect#}}#th smallest, ignoring weights{p_end}
+{p2col :{opt rawselect-#}}#th largest, ignoring weights{p_end}
+{p2col :{opt max}}maximums{p_end}
+{p2col :{opt min}}minimums{p_end}
+{p2col :{opt range}}range = {opt max} - {opt min}{p_end}
+{p2col :{opt first}}first value{p_end}
+{p2col :{opt last}}last value{p_end}
+{p2col :{opt firstnm}}first nonmissing value{p_end}
+{p2col :{opt lastnm}}last nonmissing value{p_end}
+{p2col :{opt sem:ean}}standard error of the mean ({cmd:sd/sqrt(n)}){p_end}
+{p2col :{opt seb:inomial}}standard error of the mean, binomial ({cmd:sqrt(p(1-p)/n)}) (missing if source not 0, 1){p_end}
+{p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
+{p2col :{opt skewness}}Skewness{p_end}
+{p2col :{opt kurtosis}}Kurtosis{p_end}
+{p2colreset}{...}
+
+{pstd}Note that {it:moving} uses a window defined by the
+{it:observations}. That would be equivalent to computing time series
+rolling window statistics using the time variable set to {it:_n}. For
+example, given some vector {it:x_i} with {it:N} observations, we have
+{p_end}
+
+            Input -> Range
+            {hline 32}
+            -3 3  -> x_{i - 3} to x_{i + 3}
+            -3 .  -> x_{i - 3} to x_N
+            .  3  -> x_1 to x_{i + 3}
+            -3 -1 -> x_{i - 3} to x_{i - 1}
+            -3 0  -> x_{i - 3} to x_i
+            5  10 -> x_{i + 5} to x_{i + 10}
+
+and so on. If the observation is outside of the admisible range (e.g.
+`-10 10` but `i = 5`) the output is set to missing.
 {synoptset 23 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}
@@ -63,9 +123,13 @@ the latest stable version.
 {p_end}
 {synopt:{opth labelp:rogram(str)}}Program to parse {opt labelformat} (see examples).
 {p_end}
+{synopt :{cmd:auto:rename}[{cmd:(}{str}{cmd:)}]}Automatically name targets based on requested stats. Default is {it:#source#_#stat#}.
+{p_end}
 {synopt:{opt nogreedy}}Use slower but memory-efficient (non-greedy) algorithm.
 {p_end}
 {synopt:{opth type:s(str)}}Override variable types for targets ({bf:use with caution}).
+{p_end}
+{synopt:{opt window(lower upper)}}Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
 {p_end}
 
 {syntab:Gtools}

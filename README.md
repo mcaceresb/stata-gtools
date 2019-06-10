@@ -373,17 +373,19 @@ gegen target = select(var), by(varlist) n(-#)
 ```
 
 In addition, the following are allowed in `gegen` as wrappers to other
-gtools functions:
+gtools functions (`stat` is any stat available to `gcollapse`, except
+percent, nunique):
 
-| Function    | calls            |
-| ----------- | ---------------- |
-| xtile       | fasterxtile      |
-| standardize | gstats transform |
-| normalize   | gstats transform |
-| demean      | gstats transform |
-| demedian    | gstats transform |
-| winsor      | gstats winsor    |
-| winsorize   | gstats winsor    |
+| Function      | calls            |
+| ------------- | ---------------- |
+| xtile         | fasterxtile      |
+| standardize   | gstats transform |
+| normalize     | gstats transform |
+| demean        | gstats transform |
+| demedian      | gstats transform |
+| moving\_stat  | gstats transform |
+| winsor        | gstats winsor    |
+| winsorize     | gstats winsor    |
 
 Last, when `gegen` calls a function that is not implemented internally
 by `gtools`, it will hash the by variables and call `egen` with `by`

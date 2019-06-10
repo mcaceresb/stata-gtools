@@ -143,6 +143,9 @@ struct StataInfo {
     ST_double *transform_varfuns;
     ST_double *transform_statcode;
     GT_size   *transform_statmap;
+    ST_double *transform_moving;
+    ST_double *transform_moving_l;
+    ST_double *transform_moving_u;
     //
     GT_bool   greshape_dropmiss;
     GT_bool   greshape_code;

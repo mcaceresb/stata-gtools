@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.5.7 (2019-06-09)
+
+### Features
+
+- `gstats transform, auto[()]` allows automagically naming
+  targets based on the source variable's name and the statistic
+  requested. Default is `#source#_#stat#`.
+
+- `gstats transform (moving stat lower upper)` computes moving
+  window statistics. `gegen x = moving_stat(y), window(lower upper)`
+  is an alias.
+
 ## gtools-1.5.6 (2019-06-08)
 
 ### Features

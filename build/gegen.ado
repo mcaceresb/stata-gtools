@@ -124,7 +124,8 @@ program define gegen, byable(onecall) rclass
         exit _rc
     }
 
-    if ( `:list fcn in transforms' ) {
+    local moving = regexm(`"`fcn'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$")
+    if ( `:list fcn in transforms' | `moving' ) {
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'

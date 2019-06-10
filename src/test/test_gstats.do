@@ -378,6 +378,29 @@ end
 
 capture program drop checks_gstats_transform
 program checks_gstats_transform
+
+    sysuse auto, clear
+    gstats transform (normalize) p1 = price p2 = price (demean) p3 = price (moving first) p4 = price, by(foreign) nogreedy
+
+    local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
+    local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
+    local stats       nmissing sum mean max min range count first last firstnm lastnm median iqr skew kurt
+
+    foreach stat in `stats' `selections' `percentiles' {
+        disp "`stat'"
+        qui sysuse auto, clear
+        gstats transform (moving `stat' -3  -1) x1 = price, by(foreign)
+        gstats transform (moving `stat'  4  2)  x2 = price, by(foreign)
+        gstats transform (moving `stat'  3  6)  x3 = price, by(foreign)
+        gstats transform (moving `stat'  -3 6)  x4 = price, by(foreign)
+
+        local r1 moving `stat' -3 -1
+        local r2 moving `stat' -3 6
+        local r3 moving `stat' -3 .
+        local r4 moving `stat'
+        gstats transform (`r1') x5 = price (`r2') x6 = price (`r3') x7 = price (`r4') x8 = price, by(foreign) replace window(. 4)
+    }
+
     clear
     set obs 10
     gen long x1 = _n
@@ -389,6 +412,12 @@ program checks_gstats_transform
     assert x1 != .
     gstats transform x1 x2, replace `0'
     assert x2 != .
+
+    clear
+    set obs 10
+    gen long x1 = _n
+    gen long x2 = -_n
+    gstats transform x1 x2 (normalize) x1 x2, autorename replace `0'
 
     foreach by in foreign rep78 mpg {
         sysuse auto, clear

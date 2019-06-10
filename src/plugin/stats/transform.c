@@ -3,9 +3,28 @@ ST_retcode gf_stats_transform_check (
     GT_size kstats
 );
 
+void gf_stats_transform_apply (
+    ST_double *buffer,
+    GT_size   nj,
+    ST_double tcode,
+    ST_double *stats
+);
+
+void gf_stats_transform_moving(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    GT_size   nj,
+    ST_double scode,
+    GT_bool   aweights,
+    ST_double *pbuffer,
+    ST_double *output,
+    ST_double lower,
+    ST_double upper
+);
+
 ST_double gf_stats_transform_stat (
     ST_double *buffer,
-    ST_double *sbuffer,
+    ST_double *pbuffer,
     GT_size nj,
     ST_double scode
 );
@@ -17,13 +36,6 @@ ST_double gf_stats_transform_stat_weighted (
     ST_double scode,
     GT_bool   aweights,
     ST_double *pbuffer
-);
-
-void gf_stats_transform_apply (
-    ST_double *buffer,
-    GT_size   nj,
-    ST_double tcode,
-    ST_double *stats
 );
 
 ST_retcode sf_write_transform (
@@ -74,10 +86,10 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 
     ST_double *gsrc_vars    = calloc(greedy? ksources * Nread: 1, sizeof *gsrc_vars);
     ST_double *gsrc_weight  = calloc(weights? Nread: 1,           sizeof *gsrc_weight);
-    ST_double *gsrc_pbuffer = calloc(weights? 2 * nj_max: 1,      sizeof *gsrc_pbuffer);
+    ST_double *gsrc_pbuffer = calloc(weights? 2 * nj_max: nj_max, sizeof *gsrc_pbuffer);
 
+    ST_double *gsrc_output  = calloc(nj_max,   sizeof *gsrc_output);
     ST_double *gsrc_buffer  = calloc(nj_max,   sizeof *gsrc_buffer);
-    ST_double *gsrc_sbuffer = calloc(nj_max,   sizeof *gsrc_sbuffer);
     ST_double *gsrc_stats   = calloc(kgstats,  sizeof *gsrc_stats);
     GT_size   *gsrc_kstats  = calloc(ktargets, sizeof *gsrc_kstats);
 
@@ -85,8 +97,8 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
     if ( gsrc_weight  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_weight"));
     if ( gsrc_pbuffer == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_pbuffer"));
 
+    if ( gsrc_output  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_output"));
     if ( gsrc_buffer  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_buffer"));
-    if ( gsrc_sbuffer == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_sbuffer"));
     if ( gsrc_stats   == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_stats"));
     if ( gsrc_kstats  == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_kstats"));
 
@@ -123,19 +135,34 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    for (l = 0; l < gsrc_kstats[k]; l++) {
-                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                        scode = st_info->transform_statcode[spos];
-                        gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                    if ( tcode == -4 ) {
+                        gf_stats_transform_moving(
                             dblptr,
                             wgtptr,
                             nj,
-                            scode,
+                            st_info->transform_moving[k],
                             aweights,
-                            gsrc_pbuffer
+                            gsrc_pbuffer,
+                            gsrc_output,
+                            st_info->transform_moving_l[k],
+                            st_info->transform_moving_u[k]
                         );
                     }
-                    gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    else {
+                        for (l = 0; l < gsrc_kstats[k]; l++) {
+                            spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                            scode = st_info->transform_statcode[spos];
+                            gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                                dblptr,
+                                wgtptr,
+                                nj,
+                                scode,
+                                aweights,
+                                gsrc_pbuffer
+                            );
+                        }
+                        gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    }
                     dblptr += nj;
                 }
                 wgtptr += nj;
@@ -179,19 +206,34 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                     }
-                    for (l = 0; l < gsrc_kstats[k]; l++) {
-                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                        scode = st_info->transform_statcode[spos];
-                        gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                    if ( tcode == -4 ) {
+                        gf_stats_transform_moving(
                             gsrc_buffer,
                             wgtptr,
                             nj,
-                            scode,
+                            st_info->transform_moving[k],
                             aweights,
-                            gsrc_pbuffer
+                            gsrc_pbuffer,
+                            gsrc_output,
+                            st_info->transform_moving_l[k],
+                            st_info->transform_moving_u[k]
                         );
                     }
-                    gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    else {
+                        for (l = 0; l < gsrc_kstats[k]; l++) {
+                            spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                            scode = st_info->transform_statcode[spos];
+                            gsrc_stats[l] = gf_stats_transform_stat_weighted(
+                                gsrc_buffer,
+                                wgtptr,
+                                nj,
+                                scode,
+                                aweights,
+                                gsrc_pbuffer
+                            );
+                        }
+                        gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    }
                     wgtptr += nj;
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
@@ -223,12 +265,27 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    for (l = 0; l < gsrc_kstats[k]; l++) {
-                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                        scode = st_info->transform_statcode[spos];
-                        gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_sbuffer, nj, scode);
+                    if ( tcode == -4 ) {
+                        gf_stats_transform_moving(
+                            dblptr,
+                            NULL,
+                            nj,
+                            st_info->transform_moving[k],
+                            aweights,
+                            gsrc_pbuffer,
+                            gsrc_output,
+                            st_info->transform_moving_l[k],
+                            st_info->transform_moving_u[k]
+                        );
                     }
-                    gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    else {
+                        for (l = 0; l < gsrc_kstats[k]; l++) {
+                            spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                            scode = st_info->transform_statcode[spos];
+                            gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_pbuffer, nj, scode);
+                        }
+                        gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                    }
                     dblptr += nj;
                 }
             }
@@ -256,12 +313,27 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                     }
-                    for (l = 0; l < gsrc_kstats[k]; l++) {
-                        spos  = st_info->transform_statmap[kgstats * k + l] - 1;
-                        scode = st_info->transform_statcode[spos];
-                        gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_sbuffer, nj, scode);
+                    if ( tcode == -4 ) {
+                        gf_stats_transform_moving(
+                            gsrc_buffer,
+                            NULL,
+                            nj,
+                            st_info->transform_moving[k],
+                            aweights,
+                            gsrc_pbuffer,
+                            gsrc_output,
+                            st_info->transform_moving_l[k],
+                            st_info->transform_moving_u[k]
+                        );
                     }
-                    gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    else {
+                        for (l = 0; l < gsrc_kstats[k]; l++) {
+                            spos  = st_info->transform_statmap[kgstats * k + l] - 1;
+                            scode = st_info->transform_statcode[spos];
+                            gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_pbuffer, nj, scode);
+                        }
+                        gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                    }
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vstore(kvars + k + 1 + ksources,
@@ -283,8 +355,8 @@ exit:
     free (gsrc_weight);
     free (gsrc_pbuffer);
 
+    free (gsrc_output);
     free (gsrc_buffer);
-    free (gsrc_sbuffer);
     free (gsrc_stats);
     free (gsrc_kstats);
 
@@ -302,8 +374,208 @@ ST_retcode gf_stats_transform_check (
     if ( (tcode == -1) & (kstats != 2) ) return(18301);
     if ( (tcode == -2) & (kstats != 1) ) return(18301);
     if ( (tcode == -3) & (kstats != 1) ) return(18301);
+    if ( (tcode == -4) & (kstats != 0) ) return(18301);
     return (0);
 }
+
+void gf_stats_transform_apply (
+    ST_double *buffer,
+    GT_size   nj,
+    ST_double tcode,
+    ST_double *stats)
+{
+    ST_double *dblptr;
+    if ( tcode == -1 ) {
+        if ( (stats[0] < SV_missval) && (stats[1] < SV_missval) ) {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                if ( *dblptr < SV_missval ) {
+                    *dblptr = (*dblptr - stats[0]) / stats[1];
+                }
+            }
+        }
+        else {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                *dblptr = SV_missval;
+            }
+        }
+    }
+    else if ( tcode == -2 ) {
+        if ( stats[0] < SV_missval ) {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                if ( *dblptr < SV_missval ) {
+                    *dblptr = (*dblptr - stats[0]);
+                }
+            }
+        }
+        else {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                *dblptr = SV_missval;
+            }
+        }
+    }
+    else if ( tcode == -3 ) {
+        if ( stats[0] < SV_missval ) {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                if ( *dblptr < SV_missval ) {
+                    *dblptr = (*dblptr - stats[0]);
+                }
+            }
+        }
+        else {
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                *dblptr = SV_missval;
+            }
+        }
+    }
+    // moving stat implemented sepparately in sf_stats_transform_moving
+}
+
+void gf_stats_transform_moving(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    GT_size   nj,
+    ST_double scode,
+    GT_bool   aweights,
+    ST_double *pbuffer,
+    ST_double *output,
+    ST_double lower,
+    ST_double upper)
+{
+
+    GT_int    i, lint, uint;
+    GT_size   nmoving;
+    GT_bool   wgt = (wbuffer != NULL);
+    ST_double z;
+
+    if ( wgt ) {
+        if ( (upper < SV_missval) && (lower < SV_missval) ) {
+            lint = (GT_int) lower;
+            uint = (GT_int) upper;
+            for (i = 0; i < nj; i++) {
+                if ( (uint < lint ) || (i + lint < 0) || (i + uint >= nj) ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (uint - lint + 1);
+                    output[i] = gf_stats_transform_stat_weighted(
+                        buffer + (i + lint),
+                        wbuffer,
+                        nmoving,
+                        scode,
+                        aweights,
+                        pbuffer
+                    );
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else if ( upper < SV_missval ) {
+            uint = (GT_int) upper;
+            for (i = 0; i < nj; i++) {
+                if ( i + uint >= nj ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (i + uint + 1);
+                    output[i] = gf_stats_transform_stat_weighted(
+                        buffer,
+                        wbuffer,
+                        nmoving,
+                        scode,
+                        aweights,
+                        pbuffer
+                    );
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else if ( lower < SV_missval ) {
+            lint = (GT_int) lower;
+            for (i = 0; i < nj; i++) {
+                if ( i + lint < 0 ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (nj - (i + lint));
+                    output[i] = gf_stats_transform_stat_weighted(
+                        buffer + (i + lint),
+                        wbuffer,
+                        nmoving,
+                        scode,
+                        aweights,
+                        pbuffer
+                    );
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else {
+            z = gf_stats_transform_stat_weighted(
+                buffer,
+                wbuffer,
+                nj,
+                scode,
+                aweights,
+                pbuffer
+            );
+            for (i = 0; i < nj; i++) {
+                buffer[i] = z;
+            }
+        }
+    }
+    else {
+        if ( (upper < SV_missval) && (lower < SV_missval) ) {
+            lint = (GT_int) lower;
+            uint = (GT_int) upper;
+            for (i = 0; i < nj; i++) {
+                if ( (uint < lint ) || (i + lint < 0) || (i + uint >= nj) ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (uint - lint + 1);
+                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode);
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else if ( upper < SV_missval ) {
+            uint = (GT_int) upper;
+            for (i = 0; i < nj; i++) {
+                if ( i + uint >= nj ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (i + uint + 1);
+                    output[i] = gf_stats_transform_stat(buffer, pbuffer, nmoving, scode);
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else if ( lower < SV_missval ) {
+            lint = (GT_int) lower;
+            for (i = 0; i < nj; i++) {
+                if ( i + lint < 0 ) {
+                    output[i] = SV_missval;
+                }
+                else {
+                    nmoving   = (GT_size) (nj - (i + lint));
+                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode);
+                }
+            }
+            memcpy(buffer, output, nj * sizeof(ST_double));
+        }
+        else {
+            z = gf_stats_transform_stat(buffer, pbuffer, nj, scode);
+            for (i = 0; i < nj; i++) {
+                buffer[i] = z;
+            }
+        }
+    }
+}
+
+/*********************************************************************
+ *                          Stat functions                           *
+ *********************************************************************/
 
 ST_double gf_stats_transform_stat_weighted (
     ST_double *buffer,
@@ -447,7 +719,7 @@ ST_double gf_stats_transform_stat_weighted (
 
 ST_double gf_stats_transform_stat (
     ST_double *buffer,
-    ST_double *sbuffer,
+    ST_double *pbuffer,
     GT_size nj,
     ST_double scode)
 {
@@ -493,7 +765,7 @@ ST_double gf_stats_transform_stat (
     }
     else {
         sint = 0;
-        sdblptr = sbuffer;
+        sdblptr = pbuffer;
         for (dblptr = buffer; dblptr < buffer + nj; dblptr++, sdblptr++) {
             if ( *dblptr < SV_missval ) {
                 sint++;
@@ -514,7 +786,7 @@ ST_double gf_stats_transform_stat (
                 sdbl = SV_missval;
             }
             else {
-                sdbl = gf_qselect_range(sbuffer, 0, snj, sth);
+                sdbl = gf_qselect_range(pbuffer, 0, snj, sth);
             }
         }
         else if ( scode < -1000 ) { // #th largest (all-missing selects among missing)
@@ -524,7 +796,7 @@ ST_double gf_stats_transform_stat (
                 sdbl = SV_missval;
             }
             else {
-                sdbl = gf_qselect_range(sbuffer, 0, snj, sth);
+                sdbl = gf_qselect_range(pbuffer, 0, snj, sth);
             }
         }
         else if ( sint == 0 ) { // no obs
@@ -545,63 +817,11 @@ ST_double gf_stats_transform_stat (
             sdbl = SV_missval;
         }
         else { // etc
-            sdbl = gf_switch_fun_code (scode, sbuffer, 0, sint);
+            sdbl = gf_switch_fun_code (scode, pbuffer, 0, sint);
         }
     }
 
     return (sdbl);
-}
-
-void gf_stats_transform_apply (
-    ST_double *buffer,
-    GT_size   nj,
-    ST_double tcode,
-    ST_double *stats)
-{
-    // TODO: maybe lag, rolling stats (e.g. moving average), etc.
-    ST_double *dblptr;
-    if ( tcode == -1 ) {
-        if ( (stats[0] < SV_missval) && (stats[1] < SV_missval) ) {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                if ( *dblptr < SV_missval ) {
-                    *dblptr = (*dblptr - stats[0]) / stats[1];
-                }
-            }
-        }
-        else {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                *dblptr = SV_missval;
-            }
-        }
-    }
-    else if ( tcode == -2 ) {
-        if ( stats[0] < SV_missval ) {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                if ( *dblptr < SV_missval ) {
-                    *dblptr = (*dblptr - stats[0]);
-                }
-            }
-        }
-        else {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                *dblptr = SV_missval;
-            }
-        }
-    }
-    else if ( tcode == -3 ) {
-        if ( stats[0] < SV_missval ) {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                if ( *dblptr < SV_missval ) {
-                    *dblptr = (*dblptr - stats[0]);
-                }
-            }
-        }
-        else {
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                *dblptr = SV_missval;
-            }
-        }
-    }
 }
 
 /*********************************************************************

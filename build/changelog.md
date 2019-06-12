@@ -10,6 +10,10 @@ Change Log
   with the `interval(#[statlow] #[stathigh] [var])` option. Access
   via `gegen` using `range_stat` with the `interval()` option.
 
+- `gstats range` and `gstats moving` are aliases for `gstats transform`.
+  They assume that every stat specified is a range stat or a moving
+  stat, respectively.
+
 - `gcollapse`, `gegen`, `gstats tab` now allow function `geomean`
   for the geometric mean.
 

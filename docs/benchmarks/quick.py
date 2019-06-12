@@ -48,7 +48,7 @@ df = pd.DataFrame(
         ['winsor2\n(vs gstats)',             19.93,  0.86],
         ['summ, detail\n(vs gstats)',        41.3,   1.51],
         ['tabstat, 10 groups\n(vs gstats)',  18.5,   1.24],
-        ['rangestat -10 to 10\n(vs gstats)', 108.9,  7.8],
+        ['rangestat mean\n(vs gstats)',      108.9,  7.8],
     ],
     columns = [' ', 'Stata', 'gtools']
 )

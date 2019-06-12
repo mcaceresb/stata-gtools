@@ -53,7 +53,8 @@ ST_double gf_stats_transform_stat (
     ST_double *buffer,
     ST_double *pbuffer,
     GT_size nj,
-    ST_double scode
+    ST_double scode,
+    GT_bool   nomissing
 );
 
 ST_double gf_stats_transform_stat_exclude (
@@ -61,6 +62,7 @@ ST_double gf_stats_transform_stat_exclude (
     ST_double *pbuffer,
     GT_size   nj,
     ST_double scode,
+    GT_bool   nomissing,
     GT_size   i
 );
 
@@ -410,7 +412,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                         for (l = 0; l < gsrc_kstats[k]; l++) {
                             spos  = st_info->transform_statmap[kgstats * k + l] - 1;
                             scode = st_info->transform_statcode[spos];
-                            gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_pbuffer, nj, scode);
+                            gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_pbuffer, nj, scode, 0);
                         }
                         gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
                     }
@@ -489,7 +491,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                         for (l = 0; l < gsrc_kstats[k]; l++) {
                             spos  = st_info->transform_statmap[kgstats * k + l] - 1;
                             scode = st_info->transform_statcode[spos];
-                            gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_pbuffer, nj, scode);
+                            gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_pbuffer, nj, scode, 0);
                         }
                         gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
                     }
@@ -651,7 +653,7 @@ void gf_stats_transform_range(
 
     GT_size   nrange;
     GT_int    i, ixl, ixu;
-    GT_bool   wgt = (wbuffer != NULL);
+    GT_bool   wgt = (wbuffer != NULL), nomissing = 0;
     ST_double z, zlow, zhigh, ldbl, udbl;
     ST_double *sptr, *eptr;
     GT_int    *ixlower = indeces;
@@ -1136,14 +1138,14 @@ void gf_stats_transform_range(
             // statistic was requested, compute scalar * stat.
 
             if ( lcode != 0 ) {
-                ldbl = lower * gf_stats_transform_stat(ibuffer, pbuffer, nj, lcode);
+                ldbl = lower * gf_stats_transform_stat(ibuffer, pbuffer, nj, lcode, 0);
             }
             else {
                 ldbl = lower;
             }
 
             if ( ucode != 0 ) {
-                udbl = upper * gf_stats_transform_stat(ibuffer, pbuffer, nj, ucode);
+                udbl = upper * gf_stats_transform_stat(ibuffer, pbuffer, nj, ucode, 0);
             }
             else {
                 udbl = upper;
@@ -1160,7 +1162,7 @@ void gf_stats_transform_range(
             //         if ( zlow < intvar[j] zhigh )
             //             buffer[k++] = buffer[j]
             //
-            //     gf_stats_transform_stat(buffer, pbuffer, k, scode)
+            //     gf_stats_transform_stat(buffer, pbuffer, k, scode, 0)
             //
             // This is very slow. It is amazingly way faster to sort the
             // data first and then get the indeces for the start and end
@@ -1315,6 +1317,7 @@ void gf_stats_transform_range(
                                 pbuffer,
                                 ixupper[i] - ixlower[i],
                                 scode,
+                                0,
                                 i - ixlower[i]
                             );
                         }
@@ -1323,7 +1326,8 @@ void gf_stats_transform_range(
                                 buffer + ixlower[i],
                                 pbuffer,
                                 ixupper[i] - ixlower[i],
-                                scode
+                                scode,
+                                0
                             );
                         }
                     }
@@ -1353,7 +1357,8 @@ void gf_stats_transform_range(
                                 buffer + ixl,
                                 pbuffer,
                                 ixu - ixl,
-                                scode
+                                scode,
+                                0
                             );
                         }
                         else if ( scode == -6 || scode == -14 ) {
@@ -1385,7 +1390,7 @@ void gf_stats_transform_range(
              *********************************************************************/
 
             if ( ucode != 0 ) {
-                udbl = upper * gf_stats_transform_stat(ibuffer, pbuffer, nj, ucode);
+                udbl = upper * gf_stats_transform_stat(ibuffer, pbuffer, nj, ucode, 0);
             }
             else {
                 udbl = upper;
@@ -1440,6 +1445,7 @@ void gf_stats_transform_range(
                                 pbuffer,
                                 ixupper[i],
                                 scode,
+                                0,
                                 i
                             );
                         }
@@ -1448,7 +1454,8 @@ void gf_stats_transform_range(
                                 buffer,
                                 pbuffer,
                                 ixupper[i],
-                                scode
+                                scode,
+                                0
                             );
                         }
                     }
@@ -1470,7 +1477,8 @@ void gf_stats_transform_range(
                                 buffer,
                                 pbuffer,
                                 ixu,
-                                scode
+                                scode,
+                                0
                             );
                         }
                         else if ( scode == -6 || scode == -14 ) {
@@ -1501,7 +1509,7 @@ void gf_stats_transform_range(
              *********************************************************************/
 
             if ( lcode != 0 ) {
-                ldbl = lower * gf_stats_transform_stat(ibuffer, pbuffer, nj, lcode);
+                ldbl = lower * gf_stats_transform_stat(ibuffer, pbuffer, nj, lcode, 0);
             }
             else {
                 ldbl = lower;
@@ -1555,6 +1563,7 @@ void gf_stats_transform_range(
                                 pbuffer,
                                 nrange - ixlower[i],
                                 scode,
+                                0,
                                 i - ixlower[i]
                             );
                         }
@@ -1563,7 +1572,8 @@ void gf_stats_transform_range(
                                 buffer + ixlower[i],
                                 pbuffer,
                                 nrange - ixlower[i],
-                                scode
+                                scode,
+                                0
                             );
                         }
                     }
@@ -1585,7 +1595,8 @@ void gf_stats_transform_range(
                                 buffer + ixl,
                                 pbuffer,
                                 nrange - ixl,
-                                scode
+                                scode,
+                                0
                             );
                         }
                         else if ( scode == -6 || scode == -14 ) {
@@ -1617,13 +1628,25 @@ void gf_stats_transform_range(
              *********************************************************************/
 
             if ( excludeself ) {
+                nomissing = 1;
                 for (i = 0; i < nj; i++) {
-                    output[i] = gf_stats_transform_stat_exclude(buffer, pbuffer, nj, scode, i);
+                    if ( !(buffer[i] < SV_missval) ) {
+                        nomissing = 0;
+                        break;
+                    }
+                }
+
+                for (i = 0; i < nj; i++) {
+                    // output[i] = gf_stats_transform_stat_exclude(buffer, pbuffer, nj, scode, 0, i);
+                    z         = buffer[i];
+                    buffer[i] = buffer[0];
+                    output[i] = gf_stats_transform_stat(buffer + 1, buffer + 1, nj - 1, scode, nomissing);
+                    buffer[0] = z;
                 }
                 memcpy(buffer, output, nj * sizeof(ST_double));
             }
             else {
-                z = gf_stats_transform_stat(buffer, pbuffer, nj, scode);
+                z = gf_stats_transform_stat(buffer, pbuffer, nj, scode, 0);
                 for (i = 0; i < nj; i++) {
                     buffer[i] = z;
                 }
@@ -1783,7 +1806,7 @@ void gf_stats_transform_moving(
                 }
                 else {
                     nmoving   = (GT_size) (uint - lint + 1);
-                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode);
+                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode, 0);
                 }
             }
             memcpy(buffer, output, nj * sizeof(ST_double));
@@ -1796,7 +1819,7 @@ void gf_stats_transform_moving(
                 }
                 else {
                     nmoving   = (GT_size) (i + uint + 1);
-                    output[i] = gf_stats_transform_stat(buffer, pbuffer, nmoving, scode);
+                    output[i] = gf_stats_transform_stat(buffer, pbuffer, nmoving, scode, 0);
                 }
             }
             memcpy(buffer, output, nj * sizeof(ST_double));
@@ -1809,13 +1832,13 @@ void gf_stats_transform_moving(
                 }
                 else {
                     nmoving   = (GT_size) (nj - (i + lint));
-                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode);
+                    output[i] = gf_stats_transform_stat(buffer + (i + lint), pbuffer, nmoving, scode, 0);
                 }
             }
             memcpy(buffer, output, nj * sizeof(ST_double));
         }
         else {
-            z = gf_stats_transform_stat(buffer, pbuffer, nj, scode);
+            z = gf_stats_transform_stat(buffer, pbuffer, nj, scode, 0);
             for (i = 0; i < nj; i++) {
                 buffer[i] = z;
             }
@@ -1997,6 +2020,7 @@ ST_double gf_stats_transform_stat_exclude (
     ST_double *pbuffer,
     GT_size   nj,
     ST_double scode,
+    GT_bool   nomissing,
     GT_size   i)
 {
 
@@ -2011,14 +2035,15 @@ ST_double gf_stats_transform_stat_exclude (
         *bufptr = *dblptr;
     }
 
-    return (gf_stats_transform_stat(pbuffer, pbuffer, nj - 1, scode));
+    return (gf_stats_transform_stat(pbuffer, pbuffer, nj - 1, scode, nomissing));
 }
 
 ST_double gf_stats_transform_stat (
     ST_double *buffer,
     ST_double *pbuffer,
-    GT_size nj,
-    ST_double scode)
+    GT_size   nj,
+    ST_double scode,
+    GT_bool   nomissing)
 {
 
     GT_int  sth, snj;
@@ -2061,11 +2086,18 @@ ST_double gf_stats_transform_stat (
         sdbl = SV_missval;
     }
     else {
-        sint = 0;
-        for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-            if ( *dblptr < SV_missval ) {
-                pbuffer[sint++] = *dblptr;
+        if ( nomissing ) {
+            sint = nj;
+            dblptr = buffer;
+        }
+        else {
+            sint = 0;
+            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                if ( *dblptr < SV_missval ) {
+                    pbuffer[sint++] = *dblptr;
+                }
             }
+            dblptr = pbuffer;
         }
 
         if ( scode == -6 ) { // count
@@ -2081,7 +2113,7 @@ ST_double gf_stats_transform_stat (
                 sdbl = SV_missval;
             }
             else {
-                sdbl = gf_qselect_range(pbuffer, 0, snj, sth);
+                sdbl = gf_qselect_range(dblptr, 0, snj, sth);
             }
         }
         else if ( scode < -1000 ) { // #th largest (all-missing selects among missing)
@@ -2091,7 +2123,7 @@ ST_double gf_stats_transform_stat (
                 sdbl = SV_missval;
             }
             else {
-                sdbl = gf_qselect_range(pbuffer, 0, snj, sth);
+                sdbl = gf_qselect_range(dblptr, 0, snj, sth);
             }
         }
         else if ( sint == 0 ) { // no obs
@@ -2112,7 +2144,7 @@ ST_double gf_stats_transform_stat (
             sdbl = SV_missval;
         }
         else { // etc
-            sdbl = gf_switch_fun_code (scode, pbuffer, 0, sint);
+            sdbl = gf_switch_fun_code (scode, dblptr, 0, sint);
         }
     }
 

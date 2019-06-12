@@ -41,25 +41,27 @@ the latest stable version.
 {p 4 4 2}or any combination of the {it:varlist} or {it:target_var} forms, and
 {it:stat} is one of{p_end}
 
-{p2colset 9 26 28 2}{...}
+{p2colset 9 28 30 2}{...}
 {p2col :{opt demean}}subtract the mean (default){p_end}
 {p2col :{opt demedian}}subtract the median{p_end}
 {p2col :{opt normalize}}(x - mean) / sd{p_end}
 {p2col :{opt standardize}}same as {opt normalize}{p_end}
-{p2col :{opt moving stat # #}}moving statistic {it:stat}; # specify the relative bounds (e.g. -3 1 means from 3 lag to 1 lead){p_end}
-{p2col :{opt moving stat}}as above; requires input option {opt window(# #)} with lower and upper window bounds{p_end}
+{p2col :{opt moving stat [# #]}}moving statistic {it:stat}; # specify the relative bounds ({help gstats transform##moving_format:see below}){p_end}
+{p2col :{opt range stat ...}}range statistic {it:stat} for observations within specified interval ({help gstats transform##interval_format:see below}){p_end}
 {p2colreset}{...}
 
-{p 4 4 2}{it:moving} may be combined with any one of the folloing stats:{p_end}
+{p 4 4 2} {cmd:gstats moving} and {cmd:gstats range} are aliases for
+{cmd:gstats transform}. In this case all the requested statistics are
+assumed to be moving or range statistics, respectively. {cmd:moving} and
+{bf:range} may be combined with any one of the folloing:{p_end}
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
+{p2col :{opt geomean}}geometric mean{p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt nmissing}}number of missing observations{p_end}
 {p2col :{opt sum}}sums{p_end}
-{p2col :{opt rawsum}}sums, ignoring optionally specified weights ({bf:note}: zero-weighted obs are still excluded){p_end}
 {p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
-{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
 {p2col :{opt median}}medians (same as {opt p50}){p_end}
 {p2col :{opt p#.#}}arbitrary quantiles{p_end}
 {p2col :{opt p1}}1st percentile{p_end}
@@ -75,8 +77,6 @@ the latest stable version.
 {p2col :{opt cv}}coefficient of variation ({cmd:sd/mean}){p_end}
 {p2col :{opt select#}}#th smallest{p_end}
 {p2col :{opt select-#}}#th largest{p_end}
-{p2col :{opt rawselect#}}#th smallest, ignoring weights{p_end}
-{p2col :{opt rawselect-#}}#th largest, ignoring weights{p_end}
 {p2col :{opt max}}maximums{p_end}
 {p2col :{opt min}}minimums{p_end}
 {p2col :{opt range}}range = {opt max} - {opt min}{p_end}
@@ -91,23 +91,65 @@ the latest stable version.
 {p2col :{opt kurtosis}}Kurtosis{p_end}
 {p2colreset}{...}
 
-{pstd}Note that {it:moving} uses a window defined by the
-{it:observations}. That would be equivalent to computing time series
-rolling window statistics using the time variable set to {it:_n}. For
-example, given some vector {it:x_i} with {it:N} observations, we have
-{p_end}
+{marker interval_format}{...}
+{dlgtab:Interval format}
 
-            Input -> Range
-            {hline 32}
-            -3 3  -> x_{i - 3} to x_{i + 3}
-            -3 .  -> x_{i - 3} to x_N
-            .  3  -> x_1 to x_{i + 3}
-            -3 -1 -> x_{i - 3} to x_{i - 1}
-            -3 0  -> x_{i - 3} to x_i
-            5  10 -> x_{i + 5} to x_{i + 10}
+{pstd}
+{cmd:range stat} must specify an interval or use the {opt interval(...)}
+option. The interval must be of the form
 
-and so on. If the observation is outside of the admisible range (e.g.
-`-10 10` but `i = 5`) the output is set to missing.
+{p 8 17 2}
+{bf:#}[{it:statlow}] {bf:#}[{it:stathigh}] [{it:var}]
+
+{pstd}
+This computes, for each observation {it:i}, the summary statistic {it:stat}
+among all observations {it:j} of the source variable such that
+
+{p 8 17 2}
+var[i] + # * statlow(var) <= var[j] <= var[i] + # * stathigh(var)
+
+{pstd}
+if {it:var} is not specified, it is taken to be the source variable itself.
+{it:statlow} and {it:stathigh} are summary statistics computed based on
+{it:every} value of {it:var}. If they are not specified, then {bf:#} is used by
+itself to construct the bounds, but {bf:#} may be missing ({bf:.}) to mean no
+upper or lower bound. For example, given some variable {it:x} with {it:N} observations,
+we have{p_end}
+
+            Input      ->  Meaning
+            {hline 55}
+            -2 2 time  ->  j: time[i] - 2 <= time[j] <= time[i] + 2
+                           i.e. {it:stat} within a 2-period time window
+
+            -sd sd     ->  j: x[i] - sd(x) <= x[j] <= x[i] + sd(x)
+                           i.e. {it:stat} for obs within a standard dev
+
+{marker moving_format}{...}
+{dlgtab:Moving window format}
+
+{pstd}{bf:moving stat} must specify a relative range or use the {opt window(# #)}
+option. The relative range uses a window defined by the {it:observations}. This
+would be equivalent to computing time series rolling window statistics
+using the time variable set to {it:_n}. For example, given some variable
+{it:x} with {it:N} observations, we have{p_end}
+
+            Input  ->  Range
+            {hline 31}
+            -3  3  ->  x[i - 3] to x[i + 3]
+            -3  .  ->  x[i - 3] to x[N]
+             .  3  ->  x[1]     to x[i + 3]
+            -3 -1  ->  x[i - 3] to x[i - 1]
+            -3  0  ->  x[i - 3] to x[i]
+             5 10  ->  x[i + 5] to x[i + 10]
+
+{pstd}and so on. If the observation is outside of the admisible range
+(e.g. {it:-10 10} but {it:i = 5}) the output is set to missing. If you
+don't specify a range in ({it:moving stat}) then the range in {opt:window(# #)}
+is used.
+
+{marker options}{...}
+{title:Options}
+
 {synoptset 23 tabbed}{...}
 {marker table_options}{...}
 {synopthdr}

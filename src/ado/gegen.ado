@@ -1,4 +1,4 @@
-*! version 1.2.0 09Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -84,6 +84,7 @@ program define gegen, byable(onecall) rclass
                 sum        ///
                 nansum     ///
                 mean       ///
+                geomean    ///
                 sd         ///
                 variance   ///
                 cv         ///
@@ -125,7 +126,8 @@ program define gegen, byable(onecall) rclass
     }
 
     local moving = regexm(`"`fcn'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$")
-    if ( `:list fcn in transforms' | `moving' ) {
+    local range  = regexm(`"`fcn'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$")
+    if ( `:list fcn in transforms' | `moving' | `range' ) {
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
@@ -863,6 +865,7 @@ program parse_target_type, rclass
     if ( "`fcn'" == "sum"        ) return local retype = "double"
     if ( "`fcn'" == "nansum"     ) return local retype = "double"
     if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "geomean"    ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
     if ( "`fcn'" == "variance"   ) return local retype = "`retype_B'"
     if ( "`fcn'" == "cv"         ) return local retype = "`retype_B'"

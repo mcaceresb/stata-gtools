@@ -35,6 +35,7 @@ program checks_gcollapse
 
     local gcall
     local gcall `gcall' (mean)      mean      = price
+    local gcall `gcall' (geomean)   geomean   = price
     local gcall `gcall' (sd)        sd        = price
     local gcall `gcall' (variance)  variance  = price
     local gcall `gcall' (cv)        cv        = price
@@ -412,7 +413,7 @@ program checks_inner_collapse
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
     local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
-    local stats nunique nmissing sum mean max min range count percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -1042,7 +1043,7 @@ program _compare_inner_gcollapse_gegen
     local options  `options_'
 
     local sestats
-    local stats nunique nmissing sum mean max min range percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd variance cv
         local sestats `sestats' sd variance cv
@@ -1755,6 +1756,7 @@ program _compare_inner_gcollapse_select
     local gcall
     local gcall `gcall' (count)       nj          = random1
     local gcall `gcall' (mean)        mean        = random1
+    local gcall `gcall' (geomean)     geomean     = random1
     if !regexm("pw", `"`wgt'"') {
     local gcall `gcall' (sd)          sd          = random1
     local gcall `gcall' (variance)    variance    = random1

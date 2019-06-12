@@ -29,6 +29,7 @@ or any combination of the `varlist` or `target_var` forms, and stat is one of
 | Stat        | Description
 | ----------- | -----------
 | mean        | means (default)
+| geomean     | geometric means
 | count       | number of nonmissing observations
 | nmissing    | number of missing observations
 | nunique     | counts unique elements

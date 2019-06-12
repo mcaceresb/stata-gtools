@@ -14,6 +14,7 @@ ST_double gf_array_dquantile_range (
 
 ST_double gf_array_dsum_range      (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dmean_range     (const ST_double v[], const GT_size start, const GT_size end);
+ST_double gf_array_dgeomean_range  (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dsd_range       (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dvar_range      (const ST_double v[], const GT_size start, const GT_size end);
 ST_double gf_array_dcv_range       (const ST_double v[], const GT_size start, const GT_size end);

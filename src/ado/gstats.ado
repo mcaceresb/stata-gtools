@@ -1,4 +1,4 @@
-*! version 0.4.0 09Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats
@@ -10,8 +10,7 @@ program gstats, rclass
     local alias_tabstat tab    ///
                         tabs   ///
                         tabst  ///
-                        tabsta ///
-                        tabstat
+                        tabsta
 
     local alias_summarize su      ///
                           sum     ///
@@ -21,14 +20,20 @@ program gstats, rclass
                           summari ///
                           summariz
 
+    local alias_transform range moving
+
     local stats_sorted tabstat ///
                        summarize
 
     local stats dir       ///
                 winsor    ///
                 transform ///
+                range     ///
+                moving    ///
                 tabstat   ///
                 summarize
+
+    if ( `:list stat in alias_transform' ) local statprefix statprefix(`stat'_)
 
     local alias
     foreach a of local stats {
@@ -99,7 +104,7 @@ program gstats, rclass
     local opts   `weights' `compress' `forcestrl' nods `unsorted' `missing'
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `oncollision' `hashmethod' `debug'
-    local gstats  gfunction(stats) gstats(`stat' `anything', `options')
+    local gstats  gfunction(stats) gstats(`stat' `anything', `options' `statprefix')
 
     cap noi _gtools_internal `by' `if' `in', `opts' `gstats'
     local rc = _rc

@@ -280,6 +280,7 @@ The following data is stored {opt GstatsOutput}:
 {synopt:{space 4}{it:statname}}Definition{p_end}
 {space 4}{synoptline}
 {synopt:{space 4}{opt me:an}} mean{p_end}
+{synopt:{space 4}{opt geomean}}geometric mean{p_end}
 {synopt:{space 4}{opt co:unt}} count of nonmissing observations{p_end}
 {synopt:{space 4}{opt n}} same as {cmd:count}{p_end}
 {synopt:{space 4}{opt nmiss:ing}} number of missing observations{p_end}

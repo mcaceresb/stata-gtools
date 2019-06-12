@@ -35,6 +35,11 @@ ST_double gf_array_dmean_unweighted (
     GT_size N
 );
 
+ST_double gf_array_dgeomean_unweighted (
+    ST_double *v,
+    GT_size N
+);
+
 ST_double gf_array_dsd_unweighted (
     ST_double *v,
     GT_size N

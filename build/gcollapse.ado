@@ -1,4 +1,4 @@
-*! version 1.2.0 04Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -collapse- implementation using C for faster processing
 
 capture program drop gcollapse
@@ -1104,6 +1104,7 @@ program parse_vars
     local stats sum        ///
                 nansum     /// if every entry is missing, output . instead of 0
                 mean       ///
+                geomean    ///
                 sd         ///
                 variance   ///
                 cv         ///
@@ -1743,6 +1744,7 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "sum"         ) local prettystat "Sum"
     if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
     if ( `"`0'"' == "mean"        ) local prettystat "Mean"
+    if ( `"`0'"' == "geomean"     ) local prettystat "Geometric mean"
     if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
     if ( `"`0'"' == "variance"    ) local prettystat "Variance"
     if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"

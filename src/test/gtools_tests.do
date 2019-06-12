@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Jun  9 20:37:29 EDT 2019
+* Updated: Tue Jun 11 22:20:28 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.7
+* Version: 1.5.8
 * Manual:  help gtools
 
 * Stata start-up options
@@ -87,6 +87,7 @@ program main
             cap ssc install fastxtile
             cap ssc install egenmisc
             cap ssc install egenmore
+            cap ssc install rangestat
             ftools, compile
         }
 

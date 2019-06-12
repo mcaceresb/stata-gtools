@@ -13,27 +13,31 @@ Syntax
 
 where clist is either
 
-```stata
+```
 [(stat)] varlist [ [(stat)] ... ]
 [(stat)] target_var=varname [target_var=varname ...] [ [(stat)] ...]
 ```
 
 or any combination of the `varlist` or `target_var` forms, and stat is one of
 
-| Stat             | Description
-| ---------------- | -----------
-| demean           | subtract the mean (default)
-| demedian         | subtract the median
-| normalize        | (x - mean) / sd
-| standardize      | same as normalize
-| moving stat # #  | moving statistic _stat_; # specify the relative bounds (e.g. -3 1 means from 3 lag to 1 lead)
-| moving stat      | as above; requires input option `window(# #)` with lower and upper window bounds
+| Stat              | Description
+| ----------------- | -----------
+| demean            | subtract the mean (default)
+| demedian          | subtract the median
+| normalize         | (x - mean) / sd
+| standardize       | same as normalize
+| moving stat [# #] | moving statistic _stat_; # specify the relative bounds (see below)
+| range stat ...    | range statistic _stat_ for observations within specified interval (see below)
 
-`moving` may be combined with any one of the folloing stats:
+`gstats moving` and `gstats range` are aliases for `gstats transform`.
+In this case all the requested statistics are assumed to be moving or
+range statistics, respectively. `moving` and `range` may be combined
+with any one of the folloing:
 
 | Stat        | Description
 | ----------- | -----------
 | mean        | means (default)
+| geomean     | geometric means
 | count       | number of nonmissing observations
 | nmissing    | number of missing observations
 | median      | medians
@@ -47,9 +51,7 @@ or any combination of the `varlist` or `target_var` forms, and stat is one of
 | p99         | 99th percentile
 | iqr         | interquartile range
 | sum         | sums
-| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
 | nansum      | sum; returns . instead of 0 if all entries are missing
-| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
 | sd          | standard deviation
 | variance    | variance
 | cv          | coefficient of variation (`sd/mean`)
@@ -62,32 +64,72 @@ or any combination of the `varlist` or `target_var` forms, and stat is one of
 | min         | minimums
 | select#     | `#`th smallest non-missing
 | select-#    | `#`th largest non-missing
-| rawselect#  | `#`th smallest non-missing, ignoring weights
-| rawselect-# | `#`th largest non-missing, ignoring weights
 | range       | range (`max` - `min`)
 | first       | first value
 | last        | last value
 | firstnm     | first nonmissing value
 | lastnm      | last nonmissing value
 
+### Interval format
+
+`range stat` must specify an interval or use the `interval(...)`
+option. The interval must be of the form
+
+```
+#[statlow] #[stathigh] [var]
+```
+
+This computes, for each observation `i`, the summary statistic `stat`
+among all observations `j` of the source variable such that
+
+```
+var[i] + # * statlow(var) <= var[j] <= var[i] + # * stathigh(var)
+```
+
+if `var` is not specified, it is taken to be the source variable itself.
+`statlow` and `stathigh` are summary statistics computed based on
+_every_ value of `var`. If they are not specified, then `#` is used by
+itself to construct the bounds, but `#` may be missing (`.`) to mean
+no upper or lower bound. For example, given some vector `x_i` with `N`
+observations, we have
+
+```
+    Input      ->  Meaning
+    -------------------------------------------------------
+    -2 2 time  ->  j: time[i] - 2 <= time[j] <= time[i] + 2
+                   i.e. stat within a 2-period time window
+
+    -sd sd     ->  j: x[i] - sd(x) <= x[j] <= x[i] + sd(x)
+                   i.e. stat for obs within a standard dev
+```
+
+### Moving window format
+
 Note that `moving` uses a window defined by the _observations_. That
 would be equivalent to computing time series rolling window statistics
 using the time variable set to `_n`. For example, given some vector `x_i`
 with `N` observations, we have
 
+`moving stat` must specify a relative range or use the `window(# #)`
+option. The relative range uses a window defined by the observations.
+This would be equivalent to computing time series rolling window
+statistics using the time variable set to `_n`. For example, given some
+variable `x` with `N` observations, we have
+
 ```
-Input -> Range
---------------------------------
--3 3  -> x_{i - 3} to x_{i + 3}
--3 .  -> x_{i - 3} to x_N
-.  3  -> x_1 to x_{i + 3}
--3 -1 -> x_{i - 3} to x_{i - 1}
--3 0  -> x_{i - 3} to x_i
-5  10 -> x_{i + 5} to x_{i + 10}
+    Input  ->  Range
+    --------------------------------
+    -3  3  ->  x[i - 3] to x[i + 3]
+    -3  .  ->  x[i - 3] to x[N]
+     .  3  ->  x[1]     to x[i + 3]
+    -3 -1  ->  x[i - 3] to x[i - 1]
+    -3  0  ->  x[i - 3] to x[i]
+     5 10  ->  x[i + 5] to x[i + 10]
 ```
 
 and so on. If the observation is outside of the admisible range (e.g.
-`-10 10` but `i = 5`) the output is set to missing.
+`-10 10` but `i = 5`) the output is set to missing. If you don't specify
+a range in `(it:moving stat)` then the range in `window(# #)` is used.
 
 Options
 -------
@@ -193,9 +235,58 @@ gegen norm_price = normalize(price),   by(foreign)
 gegen std_price  = standardize(price), by(foreign)
 gegen dm_price   = demean(price),      by(foreign)
 
-gstats transform (normalize) norm_mpg = mpg (demean) dm_mpg = mpg, by(foreign) replace
-gstats transform (demean) mpg (normalize) price, by(foreign) replace
-gstats transform (demean) mpg (normalize) xx = price [w = rep78], by(foreign) auto(#stat#_#source#)
+local opts by(foreign) replace
+gstats transform (normalize) norm_mpg = mpg (demean) dm_mpg = mpg, `opts'
+gstats transform (demean) mpg (normalize) price [w = rep78], `opts'
+gstats transform (demean) mpg (normalize) xx = price, `opts' auto(#stat#_#source#)
+```
+
+### Range statistics
+
+This can be used to compute statistics within a specified range.
+It can also do rolling window statistics. This is similar to the
+user-written program `rangestat`:
+
+```stata
+webuse grunfeld, clear
+
+gstats transform (range mean -3 0 year) x1 = invest
+gstats transform (range mean -3 3 year) x2 = invest
+gstats transform (range mean  . 3 year) x3 = invest
+gstats transform (range mean -3 . year) x4 = invest
+```
+
+These compute moving averages using a 3-year lag, a two-sided 3-year
+window, a 3-year lead recursive window (i.e. from a 3-year lead back
+until the first observation), and a 3-year lag reverse recursive
+window (i.e. from a 3-year lag until the last observation).
+
+You can also specify the boudns to be a summary statistic times a
+scalar. For example
+
+```stata
+gstats transform (range mean -0.5sd 0.5sd) x5 = invest
+```
+
+computes the mean within half a standard deviation of invest (if we
+don't specify a range variable, then the source variable is used).
+We can specify different intervals per variable as well as a global
+interval used whenever a variable-specific interval is not used:
+
+```stata
+local i6 (range mean -3 0 year) x6 = invest
+local i7 (range mean -0.5sd 2cv mvalue) x7 = invest
+local i8 (range mean) x8 = mvalue x9 = kstock
+
+local opts labelf(#stat:pretty#: #sourcelabel#)
+gstats transform `i6' `i7' `i8', by(company) interval(-3 3 year) `opts'
+```
+
+You can also exclude the current observation from the computation
+
+```stata
+gstats transform (range mean -3 0 year) x10 = invest, excludeself
+gegen x11 = range_mean(invest), by(company) excludeself interval(-3 0 year)
 ```
 
 ### Moving statistics
@@ -211,7 +302,8 @@ gen w = mod(_n, 7)
 
 gegen x1 = moving_mean(x), window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x, by(g)
-gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x (moving select3) x5 = x, by(g) window(-3 3)
+gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x ///
+    (moving select3) x5 = x, by(g) window(-3 3)
 l
 
 drop x?

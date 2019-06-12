@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.5.7-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.5.8-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -329,6 +329,7 @@ The following are implemented internally in C:
 | rawsum      |     X     |         |      X     |
 | rawnansum   |     X     |         |      X     |
 | mean        |     X     |   X     |      X     |
+| geomean     |     X     |   X     |      X     |
 | median      |     X     |   X     |      X     |
 | percentiles |     X     |   X     |      X     |
 | iqr         |     X     |   X     |      X     |
@@ -376,16 +377,17 @@ In addition, the following are allowed in `gegen` as wrappers to other
 gtools functions (`stat` is any stat available to `gcollapse`, except
 percent, nunique):
 
-| Function      | calls            |
-| ------------- | ---------------- |
-| xtile         | fasterxtile      |
-| standardize   | gstats transform |
-| normalize     | gstats transform |
-| demean        | gstats transform |
-| demedian      | gstats transform |
-| moving\_stat  | gstats transform |
-| winsor        | gstats winsor    |
-| winsorize     | gstats winsor    |
+| Function     | calls            |
+| ------------ | ---------------- |
+| xtile        | fasterxtile      |
+| standardize  | gstats transform |
+| normalize    | gstats transform |
+| demean       | gstats transform |
+| demedian     | gstats transform |
+| moving\_stat | gstats transform |
+| range\_stat  | gstats transform |
+| winsor       | gstats winsor    |
+| winsorize    | gstats winsor    |
 
 Last, when `gegen` calls a function that is not implemented internally
 by `gtools`, it will hash the by variables and call `egen` with `by`
@@ -597,7 +599,6 @@ TODO
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them (in order of how likely they are to come):
 
-- [ ] `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Dropmissing vs dropmissing but not extended missing values.
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`

@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.5.8 (2019-06-11)
+
+### Features
+
+- `gstats transform` can compute rolling/range statistics via
+  `(range stat #[statlow] #[stathigh] [var])` or `(range stat)`
+  with the `interval(#[statlow] #[stathigh] [var])` option. Access
+  via `gegen` using `range_stat` with the `interval()` option.
+
+- `gcollapse`, `gegen`, `gstats tab` now allow function `geomean`
+  for the geometric mean.
+
 ## gtools-1.5.7 (2019-06-09)
 
 ### Features
@@ -23,13 +35,13 @@ Change Log
       gstats transform (demean) y = x, by(group)
 
   gives
-      
+
       n_j  = sum_i 1{group_i = j}
       s_j  = sum_i 1{group_i = j} * x_i
       y_ij = x_i - s_j / n_j
 
   available:
-    
+
     normalize, standardize: f(x) = (x - mean(x)) / sd(x)
     demean:                 f(x) = (x - mean(x))
     demedian:               f(x) = (x - median(x))

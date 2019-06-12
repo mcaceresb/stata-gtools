@@ -67,15 +67,16 @@ corresponding help files for details ({it:stat} is any stat available
 to {cmd:gcollapse} except percent, nunique):
 
             {opt function}              -> {opt calls}
-            {hline 41}
-            {opth xtile(exp)}            -> {help fasterxtile}
-            {opth standardize(varname)}  -> {help gstats transform}
-            {opth normalize(varname)}    -> {help gstats transform}
-            {opth demean(varname)}       -> {help gstats transform}
-            {opth demedian(varname)}     -> {help gstats transform}
-            {opth moving_stat(varname)}  -> {help gstats transform}
-            {opth winsor(varname)}       -> {help gstats winsor}
-            {opth winsorize(varname)}    -> {help gstats winsor}
+            {hline 40}                  
+            {opth xtile(exp)}           -> {help fasterxtile}
+            {opth standardize(varname)} -> {help gstats transform}
+            {opth normalize(varname)}   -> {help gstats transform}
+            {opth demean(varname)}      -> {help gstats transform}
+            {opth demedian(varname)}    -> {help gstats transform}
+            {opth moving_stat(varname)} -> {help gstats transform}
+            {opth range_stat(varname)}  -> {help gstats transform}
+            {opth winsor(varname)}      -> {help gstats winsor}
+            {opth winsorize(varname)}   -> {help gstats winsor}
 
 {pstd}
 The functions listed below have been compiled and hence will run very quickly.
@@ -159,6 +160,12 @@ of {it:exp}.
         {opth mean(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the mean of
+{it:exp}.
+
+{marker geomean()}{...}
+        {opth geomean(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within {it:varlist}) containing the geometric mean of
 {it:exp}.
 
 {marker median()}{...}

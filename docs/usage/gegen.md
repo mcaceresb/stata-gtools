@@ -61,16 +61,17 @@ The following are simply wrappers for other _gtools_ functions.
 Consult each command's corresponding help files (`stat` is any
 stat available to `gcollapse` except percent, nunique):
 
-    function              -> calls
-    -----------------------------------------
-    xtile(exp)            -> fasterxtile
-    standardize(varname)  -> gstats transform
-    normalize(varname)    -> gstats transform
-    demean(varname)       -> gstats transform
-    demedian(varname)     -> gstats transform
-    moving_stat(varname)  -> gstats transform
-    winsor(varname)       -> gstats winsor
-    winsorize(varname)    -> gstats winsor
+    function             -> calls
+    ----------------------------------------
+    xtile(exp)           -> fasterxtile
+    standardize(varname) -> gstats transform
+    normalize(varname)   -> gstats transform
+    demean(varname)      -> gstats transform
+    demedian(varname)    -> gstats transform
+    moving_stat(varname) -> gstats transform
+    range_stat(varname)  -> gstats transform
+    winsor(varname)      -> gstats winsor
+    winsorize(varname)   -> gstats winsor
 
 The functions listed here have been compiled and hence will run very quickly.
 Functions not listed here hash the data and then call egen with by(varlist)
@@ -148,6 +149,9 @@ or a list of variables.
 
     mean(exp)
         creates a constant (within varlist) containing the mean of exp.
+
+    geomean(exp)
+        creates a constant (within varlist) containing the geometric mean of exp.
 
     median(exp)
         creates a constant (within varlist) containing the median of exp.

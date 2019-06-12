@@ -1,4 +1,4 @@
-*! version 1.5.7 09Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.8 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -3399,6 +3399,7 @@ program encode_stat_allowed, rclass
     local allowed sum        ///
                   nansum     ///
                   mean       ///
+                  geomean    ///
                   sd         ///
                   variance   ///
                   cv         ///
@@ -3452,6 +3453,7 @@ program encode_stat, rclass
     if ( "`stat'" == "sum"       ) local statcode = -1 - `keepadd'
     if ( "`stat'" == "nansum"    ) local statcode = -101
     if ( "`stat'" == "mean"      ) local statcode = -2
+    if ( "`stat'" == "geomean"   ) local statcode = -26
     if ( "`stat'" == "sd"        ) local statcode = -3
     if ( "`stat'" == "variance"  ) local statcode = -23
     if ( "`stat'" == "cv"        ) local statcode = -24
@@ -3544,6 +3546,7 @@ program encode_aliases, rclass
     local allowed sum        ///
                   nansum     ///
                   mean       ///
+                  geomean    ///
                   sd         ///
                   variance   ///
                   cv         ///
@@ -3572,6 +3575,7 @@ program encode_aliases, rclass
     local alias_sum        su
     local alias_nansum     nansu
     local alias_mean       me         mea
+    local alias_geomean
     local alias_sd
     local alias_variance   var        vari       varia      varian     varianc
     local alias_cv
@@ -3657,6 +3661,7 @@ program encode_stat_types, rclass
     if ( "`stat'" == "sum"        ) local type double
     if ( "`stat'" == "nansum"     ) local type double
     if ( "`stat'" == "mean"       ) local type `deftype'
+    if ( "`stat'" == "geomean"    ) local type `deftype'
     if ( "`stat'" == "sd"         ) local type `deftype'
     if ( "`stat'" == "variance"   ) local type `deftype'
     if ( "`stat'" == "cv"         ) local type `deftype'
@@ -3834,6 +3839,197 @@ program encode_moving, rclass
     return scalar upper = `rupper'
 end
 
+capture program drop encode_range
+program encode_range, rclass
+    syntax anything, [interval(str) var(str)]
+
+    encode_range_parse `interval'
+
+    local linterval `r(linterval)'
+    local uinterval `r(uinterval)'
+    local variable  `r(variable)'
+    local lstat     `r(lstat)'
+    local ustat     `r(ustat)'
+
+    if ( `"`linterval'"' == ""  ) local linterval .
+    if ( `"`uinterval'"' == ""  ) local uinterval .
+    if ( `"`r(lsign)'"'  == "-" ) local linterval -`linterval'
+    if ( `"`r(usign)'"'  == "-" ) local uinterval -`uinterval'
+    if ( `"`variable'"'  == ""  ) local variable  `var'
+
+    local iwarn = 0
+    if ( regexm(`"`anything'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$") ) {
+        local imatch = 1
+        local istat  = regexs(1)
+        cap local ilower = regexs(2)
+        cap local iupper = regexs(3)
+        cap local ivar   = regexs(4)
+
+        if ( `"`ilower'"' == "" ) local ilower `linterval'`lstat'
+        if ( `"`iupper'"' == "" ) local iupper `uinterval'`ustat'
+        if ( `"`ivar'"'   == "" ) local ivar   `variable'
+
+        encode_range_parse `ilower' `iupper' `ivar'
+
+        local ilower `r(linterval)'
+        local iupper `r(uinterval)'
+        local ivar   `r(variable)'
+        local ilstat `r(lstat)'
+        local iustat `r(ustat)'
+        local ilsign `r(lsign)'
+        local iusign `r(usign)'
+
+        local iwarn = `iwarn' | ((`iupper' == .) & (`ilower' == .))
+
+        local checkcodes scode lcode ucode
+        foreach checkstat in istat ilstat iustat {
+            gettoken checkcode checkcodes: checkcodes
+            if ( `"``checkstat''"' != "" ) {
+                encode_aliases ``checkstat''
+                local `checkstat' `r(stat)'
+
+                cap encode_stat_allowed ``checkstat'' 0
+                local `checkcode' = `r(statcode)'
+                if ( _rc ) {
+                    disp as err "range: unknown sub-statistic ``checkstat''"
+                    exit 198
+                }
+
+                if inlist("``checkstat''", "percent", "nunique") {
+                    disp as err "range: ``checkstat'' not implemented"
+                    exit 198
+                }
+            }
+            else {
+                local `checkcode' = 0
+            }
+        }
+
+        local irangestr `ivar' within `ivar'[i] `ilsign' `ilower'`ilstat' to `ivar'[i] `iusign' `iupper'`iustat'
+
+        if ( `"`ilsign'"' == "-" ) local ilower -`ilower'
+        if ( `"`iusign'"' == "-" ) local iupper -`iupper'
+
+        local stat range_`istat'_`ilower'`ilstat'_`iupper'`iustat'_`ivar'
+    }
+    else {
+        local irangestr
+        local scode  = 0
+        local lcode  = 0
+        local ucode  = 0
+        local iwarn  = 0
+        local imatch = 0
+        local stat:   copy local anything
+        local istat:  copy local anything
+        local ilower
+        local ilstat
+        local iupper
+        local iustat
+        local ivar
+    }
+
+    c_local stat: copy local stat
+
+    return local stat:     copy local istat
+    return local lower:    copy local ilower
+    return local lstat:    copy local ilstat
+    return local upper:    copy local iupper
+    return local ustat:    copy local iustat
+    return local var:      copy local ivar
+    return local rangestr: copy local irangestr
+
+    return local name   = strtoname(`"`stat'"')
+    return scalar scode = `scode'
+    return scalar lcode = `lcode'
+    return scalar ucode = `ucode'
+    return scalar warn  = `iwarn'
+    return scalar match = `imatch'
+end
+
+capture program drop encode_range_parse
+program encode_range_parse, rclass
+
+    gettoken linterval uinterval: 0
+    gettoken uinterval variable:  uinterval
+
+    local linterval `linterval'
+    local uinterval `uinterval'
+    local variable  `variable'
+    local lstat
+    local ustat
+
+    if ( `"`0'"' != "" ) {
+        if ( (`"`linterval'"' == "") | (`"`uinterval'"' == "") ) {
+            disp as err "range: option interval() requires a lower and upper bound"
+            exit 198
+        }
+
+        cap confirm integer number `linterval'
+        if ( _rc & (`"`linterval'"' != ".") ) {
+            encode_range_stat `linterval'
+            if ( `r(imatch)' == 0 ) {
+                disp as err "range: option interval() incorrectly specified"
+                exit 7
+            }
+            local linterval `r(iscalar)'
+            local lstat     `r(istat)'
+            local lsign     `r(isign)'
+        }
+        else if ( _rc == 0 ) {
+            * negative numbers would have a '-' sign prepended already
+            local lsign = cond(`linterval' < 0, "", "+")
+        }
+
+        cap confirm integer number `uinterval'
+        if ( _rc & (`"`uinterval'"' != ".") ) {
+            encode_range_stat `uinterval'
+            if ( `r(imatch)' == 0 ) {
+                disp as err "range: option interval() incorrectly specified"
+                exit 7
+            }
+            local uinterval `r(iscalar)'
+            local ustat     `r(istat)'
+            local usign     `r(isign)'
+        }
+        else if ( _rc == 0 ) {
+            * negative numbers would have a '-' sign prepended already
+            local usign = cond(`uinterval' < 0, "", "+")
+        }
+    }
+
+    return local linterval: copy local linterval
+    return local uinterval: copy local uinterval
+    return local variable:  copy local variable
+    return local lstat:     copy local lstat
+    return local ustat:     copy local ustat
+    return local lsign:     copy local lsign
+    return local usign:     copy local usign
+end
+
+capture program drop encode_range_stat
+program encode_range_stat, rclass
+    if ( regexm(`"`0'"', "^(\+|-)?([0-9]+\.[0-9]+|\.[0-9]+|[0-9]+)?(.*)$") ) {
+        local imatch      = 1
+        cap local isign   = regexs(1)
+        cap local iscalar = regexs(2)
+        cap local istat   = regexs(3)
+        if ( `"`isign'"' != "-" ) {
+            local isign +
+        }
+        else {
+            local isign -
+        }
+        if ( `"`iscalar'"' == "" ) local iscalar 1
+    }
+    else {
+        local imatch    = 0
+    }
+    return scalar imatch = `imatch'
+    return local isign   : copy local isign
+    return local iscalar : copy local iscalar
+    return local istat   : copy local istat
+end
+
 ***********************************************************************
 *                              greshape                               *
 ***********************************************************************
@@ -3890,69 +4086,80 @@ capture program drop gstats_scalars
 program gstats_scalars
     scalar __gtools_gstats_code = .
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_winsor_trim         = .
-        scalar __gtools_winsor_cutl         = .
-        scalar __gtools_winsor_cuth         = .
-        scalar __gtools_winsor_kvars        = .
+        scalar __gtools_winsor_trim            = .
+        scalar __gtools_winsor_cutl            = .
+        scalar __gtools_winsor_cuth            = .
+        scalar __gtools_winsor_kvars           = .
 
-        scalar __gtools_summarize_matasave  = 0
-        scalar __gtools_summarize_pretty    = 0
-        scalar __gtools_summarize_colvar    = 0
-        scalar __gtools_summarize_noprint   = 0
-        scalar __gtools_summarize_nosep     = 0
-        scalar __gtools_summarize_pooled    = 0
-        scalar __gtools_summarize_normal    = 0
-        scalar __gtools_summarize_detail    = 0
-        scalar __gtools_summarize_kvars     = 0
-        scalar __gtools_summarize_kstats    = 0
-        scalar __gtools_summarize_tabstat   = 0
-        scalar __gtools_summarize_lwidth    = 16
-        scalar __gtools_summarize_separator = 0
-        scalar __gtools_summarize_format    = 0
-        scalar __gtools_summarize_dfmt      = "%9.0g"
+        scalar __gtools_summarize_matasave     = 0
+        scalar __gtools_summarize_pretty       = 0
+        scalar __gtools_summarize_colvar       = 0
+        scalar __gtools_summarize_noprint      = 0
+        scalar __gtools_summarize_nosep        = 0
+        scalar __gtools_summarize_pooled       = 0
+        scalar __gtools_summarize_normal       = 0
+        scalar __gtools_summarize_detail       = 0
+        scalar __gtools_summarize_kvars        = 0
+        scalar __gtools_summarize_kstats       = 0
+        scalar __gtools_summarize_tabstat      = 0
+        scalar __gtools_summarize_lwidth       = 16
+        scalar __gtools_summarize_separator    = 0
+        scalar __gtools_summarize_format       = 0
+        scalar __gtools_summarize_dfmt         = "%9.0g"
 
-        scalar __gtools_summarize_N         = .
-        scalar __gtools_summarize_sum_w     = .
-        scalar __gtools_summarize_sum       = .
-        scalar __gtools_summarize_mean      = .
-        scalar __gtools_summarize_min       = .
-        scalar __gtools_summarize_max       = .
-        scalar __gtools_summarize_Var       = .
-        scalar __gtools_summarize_sd        = .
-        scalar __gtools_summarize_p1        = .
-        scalar __gtools_summarize_p5        = .
-        scalar __gtools_summarize_p10       = .
-        scalar __gtools_summarize_p25       = .
-        scalar __gtools_summarize_p50       = .
-        scalar __gtools_summarize_p75       = .
-        scalar __gtools_summarize_p90       = .
-        scalar __gtools_summarize_p95       = .
-        scalar __gtools_summarize_p99       = .
-        scalar __gtools_summarize_skewness  = .
-        scalar __gtools_summarize_kurtosis  = .
-        scalar __gtools_summarize_smallest1 = .
-        scalar __gtools_summarize_smallest2 = .
-        scalar __gtools_summarize_smallest3 = .
-        scalar __gtools_summarize_smallest4 = .
-        scalar __gtools_summarize_largest4  = .
-        scalar __gtools_summarize_largest3  = .
-        scalar __gtools_summarize_largest2  = .
-        scalar __gtools_summarize_largest1  = .
+        scalar __gtools_summarize_N            = .
+        scalar __gtools_summarize_sum_w        = .
+        scalar __gtools_summarize_sum          = .
+        scalar __gtools_summarize_mean         = .
+        scalar __gtools_summarize_min          = .
+        scalar __gtools_summarize_max          = .
+        scalar __gtools_summarize_Var          = .
+        scalar __gtools_summarize_sd           = .
+        scalar __gtools_summarize_p1           = .
+        scalar __gtools_summarize_p5           = .
+        scalar __gtools_summarize_p10          = .
+        scalar __gtools_summarize_p25          = .
+        scalar __gtools_summarize_p50          = .
+        scalar __gtools_summarize_p75          = .
+        scalar __gtools_summarize_p90          = .
+        scalar __gtools_summarize_p95          = .
+        scalar __gtools_summarize_p99          = .
+        scalar __gtools_summarize_skewness     = .
+        scalar __gtools_summarize_kurtosis     = .
+        scalar __gtools_summarize_smallest1    = .
+        scalar __gtools_summarize_smallest2    = .
+        scalar __gtools_summarize_smallest3    = .
+        scalar __gtools_summarize_smallest4    = .
+        scalar __gtools_summarize_largest4     = .
+        scalar __gtools_summarize_largest3     = .
+        scalar __gtools_summarize_largest2     = .
+        scalar __gtools_summarize_largest1     = .
 
-        scalar __gtools_transform_greedy    = 0
-        scalar __gtools_transform_kvars     = 1
-        scalar __gtools_transform_ktargets  = 1
-        scalar __gtools_transform_kgstats   = 1
+        scalar __gtools_transform_greedy       = 0
+        scalar __gtools_transform_kvars        = 1
+        scalar __gtools_transform_ktargets     = 1
+        scalar __gtools_transform_kgstats      = 1
+        scalar __gtools_transform_range_k      = 0
+        scalar __gtools_transform_range_xs     = 0
+        scalar __gtools_transform_range_xb     = 0
 
-        matrix __gtools_summarize_codes     = .
-        matrix __gtools_transform_varfuns   = .
-        matrix __gtools_transform_statcode  = .
-        matrix __gtools_transform_statmap   = .
-        matrix __gtools_transform_moving    = 0
-        matrix __gtools_transform_moving_l  = .
-        matrix __gtools_transform_moving_u  = .
+        matrix __gtools_summarize_codes        = .
+        matrix __gtools_transform_varfuns      = .
+        matrix __gtools_transform_statcode     = .
+        matrix __gtools_transform_statmap      = .
 
-        mata: __gtools_summarize_codes      = .
+        matrix __gtools_transform_moving       = 0
+        matrix __gtools_transform_moving_l     = .
+        matrix __gtools_transform_moving_u     = .
+
+        matrix __gtools_transform_range        = 0
+        matrix __gtools_transform_range_pos    = 0
+        matrix __gtools_transform_range_l      = .
+        matrix __gtools_transform_range_u      = .
+        matrix __gtools_transform_range_ls     = 0
+        matrix __gtools_transform_range_us     = 0
+
+        mata: __gtools_summarize_codes         = .
     }
     else {
         cap scalar drop __gtools_gstats_code
@@ -4009,6 +4216,9 @@ program gstats_scalars
         cap scalar drop __gtools_transform_kvars
         cap scalar drop __gtools_transform_ktargets
         cap scalar drop __gtools_transform_kgstats
+        cap scalar drop __gtools_transform_range_k
+        cap scalar drop __gtools_transform_range_xs
+        cap scalar drop __gtools_transform_range_xb
 
         cap mata st_dropvar(__gtools_gst_dropvars)
 
@@ -4016,9 +4226,17 @@ program gstats_scalars
         cap matrix drop __gtools_transform_varfuns
         cap matrix drop __gtools_transform_statcode
         cap matrix drop __gtools_transform_statmap
+
         cap matrix drop __gtools_transform_moving
         cap matrix drop __gtools_transform_moving_l
         cap matrix drop __gtools_transform_moving_u
+
+        cap matrix drop __gtools_transform_range
+        cap matrix drop __gtools_transform_range_pos
+        cap matrix drop __gtools_transform_range_l
+        cap matrix drop __gtools_transform_range_u
+        cap matrix drop __gtools_transform_range_ls
+        cap matrix drop __gtools_transform_range_us
 
         cap mata: mata drop __gtools_summarize_codes
         cap mata: mata drop __gtools_gst_labels
@@ -4028,9 +4246,17 @@ program gstats_scalars
         cap mata: mata drop __gtools_transform_varfuns
         cap mata: mata drop __gtools_transform_statcode
         cap mata: mata drop __gtools_transform_statmap
+
         cap mata: mata drop __gtools_transform_moving
         cap mata: mata drop __gtools_transform_moving_l
         cap mata: mata drop __gtools_transform_moving_u
+
+        cap mata: mata drop __gtools_transform_range
+        cap mata: mata drop __gtools_transform_range_pos
+        cap mata: mata drop __gtools_transform_range_l
+        cap mata: mata drop __gtools_transform_range_u
+        cap mata: mata drop __gtools_transform_range_ls
+        cap mata: mata drop __gtools_transform_range_us
     }
 end
 
@@ -4042,12 +4268,18 @@ program gstats_transform
         replace                    ///
         nogreedy                   /// use memory-heavy algorithm
         TYPEs(str)                 /// override automatic types
-        window(passthru)           /// moving window if not specified in the stat
+                                   ///
         WILDparse                  /// parse assuming wildcard renaming
         AUTOrename                 /// automagically name targets if no target is specified
         AUTOrenameformat(passthru) ///
         LABELFormat(passthru)      /// Custom label engine: (#stat#) #sourcelabel# is the default
         LABELProgram(passthru)     /// Program to parse labelformat (see examples)
+        statprefix(passthru)       /// add prefix to every stat
+                                   ///
+        window(passthru)           /// moving window if not specified in the stat
+        interval(passthru)         /// interval if not specified in the stat
+        excludeself                /// exclude current obs from statistic
+        excludebounds              /// interval is strict (do not include bounds)
     ]
 
     * Parse transforms and variables
@@ -4059,7 +4291,7 @@ program gstats_transform
         `labelprogram'                 ///
         `autorename'                   ///
         `autorenameformat'             ///
-        `window'
+        `window' `interval' `statprefix'
 
     local transforms standardize ///
                      normalize   ///
@@ -4070,7 +4302,10 @@ program gstats_transform
     foreach stat of local __gtools_gst_stats {
         if ( !`:list stat in transforms' ) {
             encode_moving `stat'
-            if ( `r(match)' == 0 ) {
+            local rmatch = `r(match)'
+            encode_range `stat'
+            local rmatch = `r(match)' | `rmatch'
+            if ( `rmatch' == 0 ) {
                 local unknown `unknown' `stat'
             }
         }
@@ -4078,6 +4313,7 @@ program gstats_transform
 
     if ( `"`unknown'"' != "" ) {
         disp as err `"Uknown transformations: `unknown'"'
+        exit 198
     }
 
     * if ( !`:list __gtools_gst_uniq_vars === __gtools_gst_vars' ) {
@@ -4224,6 +4460,7 @@ program gstats_transform
     * -23         // variance
     * -24         // cv
     * -25         // range
+    * -26         // geomean
     * -101        // nansum
     * -121        // rawnansum
     * -206        // sum weight
@@ -4250,10 +4487,10 @@ program gstats_transform
     *             //
     *             //     window() fills stat calls w/o lower/upper.
     *             //
-    * -5          // interval
+    * -5          // range
     *             //     syntax via stat call
     *             //
-    *             //         (interval stat lower upper [reference])
+    *             //         (range stat lower upper [reference])
     *             //
     *             //     and/or via interval() option
     *             //
@@ -4264,14 +4501,14 @@ program gstats_transform
     *             //     the source is taken as its own reference. lower
     *             //     an upper can be statistical transformations:
     *             //
-    *             //         (interval mean -2sd  0.5sd)
-    *             //         (interval skew -2    1.5cv)
+    *             //         (range mean -2sd  0.5sd)
+    *             //         (range skew -2    1.5cv)
     *             //         interval(-sd sd varname)
     *             //
     *             //     if either lower or upper are not numbers then
     *             //     they will try to be parsed in the format above.
     *             //     the number in front of the stat is multipled by
-    *             //     the stat requested. so (interval mean -2sd 0.5sd)
+    *             //     the stat requested. so (range mean -2sd 0.5sd)
     *             //     will compute for x[i] the average over j s.t.
     *             //     x[i] - 2 * sd(x) <= x[j] <= x[i] + 0.5 * sd(x)
 
@@ -4291,56 +4528,60 @@ program gstats_transform
     *     upper window bound. 1 means up to the next obs, . means all
     *     obs after, 0 means end at current obs, etc.
 
-    * Interval stats
-    * --------------
+    * Range stats
+    * -----------
 
-    * __gtools_transform_interval
+    * __gtools_transform_range
     *     stat code with the statistic to compute in the interval window.
-    *     e.g. (-2, 0, -3, 0, 75) means interval mean, non-interval stat,
-    *     interval sd, non-interval stat, and interval 75th percentile.
+    *     e.g. (-2, 0, -3, 0, 75) means range mean, non-range stat,
+    *     range sd, non-range stat, and range 75th percentile.
     *
-    * __gtools_transform_interval_k
-    *     numver of reference interval variables
+    * __gtools_transform_range_xs
     *
-    * __gtools_transform_interval_pos
-    *     position of reference interval variable. i.e. the input is
+    * __gtools_transform_range_xb
     *
-    *         [byvars] sources targets [intervalvars] [weightvar]
+    * __gtools_transform_range_k
+    *     number of reference range variables
+    *
+    * __gtools_transform_range_pos
+    *     position of reference range variable. i.e. the input is
+    *
+    *         [byvars] sources targets [rangevars] [weightvar]
     *
     *     the kth entry of this matrix maps the kth source with the
-    *     corresponding reference interval variable. if the reference
+    *     corresponding reference range variable. if the reference
     *     variable is the source, this is 0.
     *
-    * __gtools_transform_interval_l
-    * __gtools_transform_interval_u
+    * __gtools_transform_range_l
+    * __gtools_transform_range_u
     *
-    *     lower and upper interval windows for the kth statistic, if it is
-    *     an interval statistic. The ith observation is computed over
+    *     lower and upper range windows for the kth statistic, if it is
+    *     an range statistic. The ith observation is computed over
     *     sources[j, k] s.t.
     *
     *         lower <= sources[j, k] <= upper
     *
     *     where
     *
-    *         l     = __gtools_transform_interval_pos[k]
-    *         lower = intervalvars[i, l] + __gtools_transform_interval_l[k]
-    *         upper = intervalvars[i, l] + __gtools_transform_interval_u[k]
+    *         l     = __gtools_transform_range_pos[k]
+    *         lower = rangevars[i, l] + __gtools_transform_range_l[k]
+    *         upper = rangevars[i, l] + __gtools_transform_range_u[k]
     *
     *     If l is 0 then this is computed with
     *
-    *         lower = sources[i, k] + __gtools_transform_interval_l[k]
-    *         upper = sources[i, k] + __gtools_transform_interval_u[k]
+    *         lower = sources[i, k] + __gtools_transform_range_l[k]
+    *         upper = sources[i, k] + __gtools_transform_range_u[k]
     *
     *     Note that both lower and upper are ADDED, so lower must be
     *     npassed as a negative umber if you want to subtract it.
     *
-    *     Last, if the interval has a reference statistic attached to
+    *     Last, if the range has a reference statistic attached to
     *     it, then lower/upper are the scalar it multiplies:
     *
-    *         lscalar = __gtools_transform_interval_l[k]
-    *         uscalar = __gtools_transform_interval_u[k]
-    *         lower   = intervalvars[i, l] + lscalar * lstat[k]
-    *         upper   = intervalvars[i, l] + uscalar * ustat[k]
+    *         lscalar = __gtools_transform_range_l[k]
+    *         uscalar = __gtools_transform_range_u[k]
+    *         lower   = rangevars[i, l] + lscalar * lstat[k]
+    *         upper   = rangevars[i, l] + uscalar * ustat[k]
     *
     *     or
     *
@@ -4349,28 +4590,28 @@ program gstats_transform
     *
     *     as applicable. For details on lstat and ustat see below.
     *
-    * __gtools_transform_interval_ls
-    * __gtools_transform_interval_us
+    * __gtools_transform_range_ls
+    * __gtools_transform_range_us
     *
-    *     lower and upper interval statistics for the kth statistic,
-    *     if it is an interval statistic and if a statistical
+    *     lower and upper range statistics for the kth statistic,
+    *     if it is an range statistic and if a statistical
     *     transformation was requested. Lower and upper bounds
     *     lstat[k] and ustat[k] referenced above are obtained from
-    *     intervalvars[i, l] or sources[i, k], as applicable. The
+    *     rangevars[i, l] or sources[i, k], as applicable. The
     *     requested statistic is computed over all i.
     *
     *     these vectors contain the code's statistic. if there is
     *     no reference statistic, the entry is just 0. For example,
     *     this computes the mean price within a standard deviation:
     *
-    *         (interval mean -sd sd) price
+    *         (range mean -sd sd) price
     *
-    *         l       = __gtools_transform_interval_pos[k] <- 0
-    *         lscalar = __gtools_transform_interval_l[k]   <- -1
-    *         uscalar = __gtools_transform_interval_u[k]   <- 1
+    *         l       = __gtools_transform_range_pos[k] <- 0
+    *         lscalar = __gtools_transform_range_l[k]   <- -1
+    *         uscalar = __gtools_transform_range_u[k]   <- 1
     *
-    *         lcode   = __gtools_transform_interval_ls[k]  <- -3
-    *         ucode   = __gtools_transform_interval_us[k]  <- -3
+    *         lcode   = __gtools_transform_range_ls[k]  <- -3
+    *         ucode   = __gtools_transform_range_us[k]  <- -3
     *         lstat   = sd(sources[i, k]) over all i
     *         ustat   = sd(sources[i, k]) over all i
     *
@@ -4416,19 +4657,32 @@ program gstats_transform
     local gs_demean      mean
     local gs_demedian    median
     local gs_moving
+    local gs_range
 
     local gs
+    local rangevars
     foreach stat of local __gtools_gst_stats {
         local gs `gs' `gs_`stat''
+        encode_range `stat'
+        local rangevars `rangevars' `r(var)'
     }
     local gs: list uniq gs
+    local rangevars: list uniq rangevars
 
-    mata: __gtools_transform_varfuns    = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_statcode   = J(1, max((`:list sizeof gs', 1)), 0)
-    mata: __gtools_transform_statmap    = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
-    mata: __gtools_transform_moving     = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_moving_l   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_moving_u   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_varfuns   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_statcode  = J(1, max((`:list sizeof gs', 1)), 0)
+    mata: __gtools_transform_statmap   = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
+
+    mata: __gtools_transform_moving    = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_moving_l  = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_moving_u  = J(1, `:list sizeof __gtools_gst_stats', .)
+
+    mata: __gtools_transform_range     = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_pos = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_l   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_u   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_ls  = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_us  = J(1, `:list sizeof __gtools_gst_stats', 0)
 
     forvalues l = 1 / `:list sizeof gs' {
         local gstat: word `l' of `gs'
@@ -4436,7 +4690,10 @@ program gstats_transform
         mata: __gtools_transform_statcode[`l'] = `r(statcode)'
     }
 
+    local bwarn4 = 0
+    local bwarn5 = 0
     local rwarn = 0
+    local iwarn = 0
     forvalues k = 1 / `:list sizeof __gtools_gst_stats' {
         local stat:  word `k' of `__gtools_gst_stats'
 
@@ -4446,6 +4703,7 @@ program gstats_transform
         else if ( "`stat'" == "demedian"    ) local statcode -3
         else                                  local statcode 0
 
+        * moving matrices
         encode_moving `stat'
         local rwarn = `rwarn' | `r(warn)'
         if ( `r(match)' ) {
@@ -4454,21 +4712,38 @@ program gstats_transform
                 exit 198
             }
             local statcode -4
+            local bwarn4 = 1
             mata: __gtools_transform_moving[`k']   = `r(scode)'
             mata: __gtools_transform_moving_l[`k'] = `r(lower)'
             mata: __gtools_transform_moving_u[`k'] = `r(upper)'
         }
-        else {
-            mata: __gtools_transform_moving[`k'] = 0
+
+        * interval matrices
+        encode_range `stat'
+        local iwarn = `iwarn' | `r(warn)'
+        if ( `r(match)' ) {
+            if ( `r(scode)' == 0 ) {
+                disp as err "gstats_transform: range parsing error; unknown substat"
+                exit 198
+            }
+            local statcode -5
+            local bwarn5 = 1
+            mata: __gtools_transform_range[`k']     = `r(scode)'
+            mata: __gtools_transform_range_l[`k']   = `r(lower)'
+            mata: __gtools_transform_range_u[`k']   = `r(upper)'
+            mata: __gtools_transform_range_ls[`k']  = `r(lcode)'
+            mata: __gtools_transform_range_us[`k']  = `r(ucode)'
+            mata: __gtools_transform_range_pos[`k'] = `:list posof "`r(var)'" in rangevars'
         }
 
+        * other matrices
         if ( `statcode' == 0 ) {
             disp as err "gstats_transform: unknown stat `stat'"
             exit 198
         }
 
         mata: __gtools_transform_varfuns[`k'] = `statcode'
-        if !inlist(`statcode', -4) {
+        if !inlist(`statcode', -4, -5) {
             forvalues l = 1 / `:list sizeof gs' {
                 local gstat: word `l' of `gs'
                 forvalues m = 1 / `:list sizeof gs_`stat'' {
@@ -4484,8 +4759,20 @@ program gstats_transform
         }
     }
 
+    if ( `bwarn4' ) {
+        disp as txt "{bf:warning}: requested transform {bf:'moving'} is in beta"
+    }
+
+    if ( `bwarn5' ) {
+        disp as txt "{bf:warning}: requested transform {bf:'range'} is in beta"
+    }
+
     if ( `rwarn' ) {
-        disp as err "{bf:warning}: requested moving statistic without a window"
+        disp as txt "{bf:warning}: requested moving statistic without a window"
+    }
+
+    if ( `iwarn' ) {
+        disp as txt "{bf:warning}: requested range statistic without an interval"
     }
 
     * NOTE(mauricio): Unlike gcollapse, here we can't really have a set
@@ -4500,15 +4787,26 @@ program gstats_transform
     scalar __gtools_transform_ktargets = `:list sizeof __gtools_gst_targets'
     scalar __gtools_transform_kgstats  = `:list sizeof gs'
     scalar __gtools_gstats_code        = 3
+    scalar __gtools_transform_range_k  = `:list sizeof rangevars'
+    scalar __gtools_transform_range_xs = (`"`excludeself'"'   != "")
+    scalar __gtools_transform_range_xb = (`"`excludebounds'"' != "")
 
-    mata: st_matrix("__gtools_transform_moving",   __gtools_transform_moving)
-    mata: st_matrix("__gtools_transform_moving_l", __gtools_transform_moving_l)
-    mata: st_matrix("__gtools_transform_moving_u", __gtools_transform_moving_u)
-    mata: st_matrix("__gtools_transform_varfuns",   __gtools_transform_varfuns)
-    mata: st_matrix("__gtools_transform_statmap",   __gtools_transform_statmap)
-    mata: st_matrix("__gtools_transform_statcode",  __gtools_transform_statcode)
+    mata: st_matrix("__gtools_transform_varfuns",      __gtools_transform_varfuns)
+    mata: st_matrix("__gtools_transform_statmap",      __gtools_transform_statmap)
+    mata: st_matrix("__gtools_transform_statcode",     __gtools_transform_statcode)
 
-    c_local varlist `__gtools_gst_vars' `__gtools_gst_targets'
+    mata: st_matrix("__gtools_transform_moving",       __gtools_transform_moving)
+    mata: st_matrix("__gtools_transform_moving_l",     __gtools_transform_moving_l)
+    mata: st_matrix("__gtools_transform_moving_u",     __gtools_transform_moving_u)
+
+    mata: st_matrix("__gtools_transform_range",     __gtools_transform_range)
+    mata: st_matrix("__gtools_transform_range_pos", __gtools_transform_range_pos)
+    mata: st_matrix("__gtools_transform_range_l",   __gtools_transform_range_l)
+    mata: st_matrix("__gtools_transform_range_u",   __gtools_transform_range_u)
+    mata: st_matrix("__gtools_transform_range_ls",  __gtools_transform_range_ls)
+    mata: st_matrix("__gtools_transform_range_us",  __gtools_transform_range_us)
+
+    c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars'
 end
 
 * NOTE: Copy/paste from gcollapse.ado/parse_vars
@@ -4521,6 +4819,8 @@ program gstats_transform_parse
         autorename            /// automagically name targets if no target is specified
         autorenameformat(str) ///
         window(passthru)      /// moving window if not specified in the stat
+        interval(passthru)    /// interval if not specified in the stat
+        statprefix(passthru)  /// add prefix to every stat
         labelformat(str)      /// label prefix
         labelprogram(str)     /// label program
     ]
@@ -4528,9 +4828,12 @@ program gstats_transform_parse
     * Parse call into list of sources, targets, stats
     * -----------------------------------------------
 
+    local opts     prefix(__gtools_gst) default(demean)
+    local passthru `window' `interval' `statprefix'
     if ( "`wildparse'" != "" ) {
         local rc = 0
-        ParseListWild `anything', loc(__gtools_gst_call) prefix(__gtools_gst) default(demean) `window'
+
+        ParseListWild `anything', loc(__gtools_gst_call) `opts' `passthru'
 
         local __gtools_bak_stats      : copy local __gtools_gst_stats
         local __gtools_bak_vars       : copy local __gtools_gst_vars
@@ -4538,7 +4841,7 @@ program gstats_transform_parse
         local __gtools_bak_uniq_stats : copy local __gtools_gst_uniq_stats
         local __gtools_bak_uniq_vars  : copy local __gtools_gst_uniq_vars
 
-        ParseList `__gtools_gst_call', prefix(__gtools_gst) default(demean) `window'
+        ParseList `__gtools_gst_call',  `opts' `passthru'
 
         cap assert ("`__gtools_gst_stats'"      == "`__gtools_bak_stats'")
         local rc = max(_rc, `rc')
@@ -4561,7 +4864,7 @@ program gstats_transform_parse
         }
     }
     else {
-        ParseList `anything',  prefix(__gtools_gst) default(demean) `window'
+        ParseList `anything', `opts' `passthru'
     }
 
     if ( `"`autorenameformat'"' != "" ) local autorename       autorename
@@ -4740,31 +5043,43 @@ program gstats_transform_types
             else local ttype: type `target'
 
             encode_moving `stat'
+            local rmatch = `r(match)'
             if ( `r(match)' ) {
                 encode_stat_types `r(stat)' `type' `ttype'
                 local types  `types'  `r(type)'
                 local retype `retype' `r(retype)'
             }
-            else if inlist(`"`type'"', "long") {
-                local types   `types'  double
-                local retype  `retype' `=!inlist("`ttype'", "double")'
+
+            encode_range `stat'
+            local rmatch = `r(match)' | `rmatch'
+            if ( `r(match)' ) {
+                encode_stat_types `r(stat)' `type' `ttype'
+                local types  `types'  `r(type)'
+                local retype `retype' `r(retype)'
             }
-            else if inlist(`"`type'"', "int", "byte") {
-                local types   `types'  `:set type'
-                local retype  `retype' `=!inlist("`ttype'", "`:set type'", "double")'
-            }
-            else {
-                if ( `:list stat in sametype' ) {
-                    local types  `types'  `type'
-                    local retype `retype' `=!inlist("`ttype'", "`type'", "double")'
+
+            if ( `rmatch' == 0 ) {
+                if inlist(`"`type'"', "long") {
+                    local types   `types'  double
+                    local retype  `retype' `=!inlist("`ttype'", "double")'
                 }
-                else if ( `:list stat in upgrade' ) {
-                    local types  `types'  double
-                    local retype `retype' `=!inlist("`ttype'", "double")'
+                else if inlist(`"`type'"', "int", "byte") {
+                    local types   `types'  `:set type'
+                    local retype  `retype' `=!inlist("`ttype'", "`:set type'", "double")'
                 }
                 else {
-                    disp as err "gstats_transform_types: Uknown stat found in function call"
-                    exit 198
+                    if ( `:list stat in sametype' ) {
+                        local types  `types'  `type'
+                        local retype `retype' `=!inlist("`ttype'", "`type'", "double")'
+                    }
+                    else if ( `:list stat in upgrade' ) {
+                        local types  `types'  double
+                        local retype `retype' `=!inlist("`ttype'", "double")'
+                    }
+                    else {
+                        disp as err "gstats_transform_types: Uknown stat found in function call"
+                        exit 198
+                    }
                 }
             }
         }
@@ -5077,6 +5392,7 @@ program gstats_summarize
     * -23         // variance
     * -24         // cv
     * -25         // range
+    * -26         // geomean
     * -101        // nansum
     * -121        // rawnansum
     * -206        // sum weight
@@ -5687,6 +6003,7 @@ program GtoolsPrettyStat, rclass
     if ( `"`0'"' == "sum"         ) local prettystat "Sum"
     if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
     if ( `"`0'"' == "mean"        ) local prettystat "Mean"
+    if ( `"`0'"' == "geomean"     ) local prettystat "Geometric mean"
     if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
     if ( `"`0'"' == "variance"    ) local prettystat "Variance"
     if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"
@@ -5766,12 +6083,19 @@ program GtoolsPrettyStat, rclass
         local prettystat "Moving `r(prettystat)' (`range')"
     }
 
+    encode_range `0'
+    if ( `r(match)' ) {
+        local rangestr `r(rangestr)'
+        GtoolsPrettyStat `r(stat)'
+        local prettystat "`r(prettystat)' for `rangestr'"
+    }
+
     return local prettystat = `"`prettystat'"'
 end
 
 capture program drop ParseListWild
 program ParseListWild
-    syntax anything(equalok), LOCal(str) PREfix(str) default(str) [window(passthru)]
+    syntax anything(equalok), LOCal(str) PREfix(str) default(str) [window(passthru) interval(passthru) statprefix(str)]
     local stat `default'
 
     * Trim spaces
@@ -5800,6 +6124,7 @@ program ParseListWild
         if ( "`stat'" == "skew" ) local stat skewness
         if ( "`stat'" == "kurt" ) local stat kurtosis
 
+        local stat `statprefix'`stat'
         encode_moving `stat', `window'
 
         * Parse bulk rename if applicable
@@ -5816,19 +6141,25 @@ program ParseListWild
             local full_vars    `full_vars'    `usources'
             local full_targets `full_targets' `utargets'
 
-            local call `call' (`stat')
             foreach svar of varlist `usources' {
                 gettoken tvar utargets: utargets
-                local call `call' `tvar' = `svar'
+
+                * Parsed here because each interval call can specify a
+                * different reference variable. If no reference variable
+                * is specified then it is assumed to be the source.
+
+                encode_range `stat', `interval' var(`svar')
+                local call `call' (`stat') `tvar' = `svar'
                 local full_stats  `full_stats' `stat'
             }
         }
         else {
-            local call `call' (`stat') `usources'
             local full_vars    `full_vars'    `usources'
             local full_targets `full_targets' `usources'
 
             foreach svar of varlist `usources' {
+                encode_range `stat', `interval' var(`svar')
+                local call `call' (`stat') `svar'
                 local full_stats `full_stats' `stat'
             }
         }
@@ -5855,7 +6186,7 @@ end
 
 capture program drop ParseList
 program define ParseList
-    syntax anything(equalok), PREfix(str) default(str) [window(passthru)]
+    syntax anything(equalok), PREfix(str) default(str) [window(passthru) interval(passthru) statprefix(str)]
     local stat `default'
 
     * Trim spaces
@@ -5877,17 +6208,20 @@ program define ParseList
             exit 198
         }
 
+        if ( "`stat'" == "var"  ) local stat variance
+        if ( "`stat'" == "sem"  ) local stat semean
+        if ( "`stat'" == "seb"  ) local stat sebinomial
+        if ( "`stat'" == "sep"  ) local stat sepoisson
+        if ( "`stat'" == "skew" ) local stat skewness
+        if ( "`stat'" == "kurt" ) local stat kurtosis
+
+        local stat `statprefix'`stat'
+        encode_moving `stat', `window'
+
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 
-            if ( "`stat'" == "var"  ) local stat variance
-            if ( "`stat'" == "sem"  ) local stat semean
-            if ( "`stat'" == "seb"  ) local stat sebinomial
-            if ( "`stat'" == "sep"  ) local stat sepoisson
-            if ( "`stat'" == "skew" ) local stat skewness
-            if ( "`stat'" == "kurt" ) local stat kurtosis
-
-            encode_moving `stat', `window'
+            encode_range `stat', `interval' var(`var')
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Jun  9 20:37:29 EDT 2019
+* Updated: Tue Jun 11 22:20:28 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.7
+* Version: 1.5.8
 * Manual:  help gtools
 
 * Stata start-up options
@@ -87,6 +87,7 @@ program main
             cap ssc install fastxtile
             cap ssc install egenmisc
             cap ssc install egenmore
+            cap ssc install rangestat
             ftools, compile
         }
 
@@ -553,6 +554,7 @@ program checks_gcollapse
 
     local gcall
     local gcall `gcall' (mean)      mean      = price
+    local gcall `gcall' (geomean)   geomean   = price
     local gcall `gcall' (sd)        sd        = price
     local gcall `gcall' (variance)  variance  = price
     local gcall `gcall' (cv)        cv        = price
@@ -930,7 +932,7 @@ program checks_inner_collapse
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
     local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
-    local stats nunique nmissing sum mean max min range count percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -1560,7 +1562,7 @@ program _compare_inner_gcollapse_gegen
     local options  `options_'
 
     local sestats
-    local stats nunique nmissing sum mean max min range percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd variance cv
         local sestats `sestats' sd variance cv
@@ -2273,6 +2275,7 @@ program _compare_inner_gcollapse_select
     local gcall
     local gcall `gcall' (count)       nj          = random1
     local gcall `gcall' (mean)        mean        = random1
+    local gcall `gcall' (geomean)     geomean     = random1
     if !regexm("pw", `"`wgt'"') {
     local gcall `gcall' (sd)          sd          = random1
     local gcall `gcall' (variance)    variance    = random1
@@ -5076,7 +5079,7 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -8679,7 +8682,7 @@ program _checks_gstats_summarize
     gstats tab price       , s(mean sd min max)
     gstats tab price       , statistics(count n nmissing percent nunique)
     gstats tab price       , stats(rawsum nansum rawnansum median p32.4 p50 p99)
-    gstats tab price       , stat(iqr q median sd variance cv)
+    gstats tab price       , stat(iqr q median sd variance cv geomean)
     gstats tab price       ,
     gstats tab price       , stat(min max range select2 select10 select-4 select-9)
     cap gstats tab price   , stat(select0)
@@ -8815,8 +8818,8 @@ program compare_gstats_winsor
     qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2) double
-    gen long   ix = _n
-    gen double ru = runiform() * 500
+    gen long   ix  = _n
+    gen double ru  = runiform() * 500
     qui replace ix = . if mod(_n, 500) == 0
     qui replace ru = . if mod(_n, 500) == 0
     qui sort random1
@@ -8910,27 +8913,16 @@ end
 capture program drop checks_gstats_transform
 program checks_gstats_transform
 
+    local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
+    local selections  select1 select2 select5 select-5 select-2 select-1
+    local stats       nmissing sum mean geomean cv sd variance max min range count first last firstnm lastnm median iqr skew kurt
+
+    *********************************
+    *  Basic check transform stats  *
+    *********************************
+
     sysuse auto, clear
     gstats transform (normalize) p1 = price p2 = price (demean) p3 = price (moving first) p4 = price, by(foreign) nogreedy
-
-    local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
-    local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
-    local stats       nmissing sum mean max min range count first last firstnm lastnm median iqr skew kurt
-
-    foreach stat in `stats' `selections' `percentiles' {
-        disp "`stat'"
-        qui sysuse auto, clear
-        gstats transform (moving `stat' -3  -1) x1 = price, by(foreign)
-        gstats transform (moving `stat'  4  2)  x2 = price, by(foreign)
-        gstats transform (moving `stat'  3  6)  x3 = price, by(foreign)
-        gstats transform (moving `stat'  -3 6)  x4 = price, by(foreign)
-
-        local r1 moving `stat' -3 -1
-        local r2 moving `stat' -3 6
-        local r3 moving `stat' -3 .
-        local r4 moving `stat'
-        gstats transform (`r1') x5 = price (`r2') x6 = price (`r3') x7 = price (`r4') x8 = price, by(foreign) replace window(. 4)
-    }
 
     clear
     set obs 10
@@ -8949,6 +8941,237 @@ program checks_gstats_transform
     gen long x1 = _n
     gen long x2 = -_n
     gstats transform x1 x2 (normalize) x1 x2, autorename replace `0'
+
+    ******************
+    *  Moving stats  *
+    ******************
+
+    foreach by in foreign mpg {
+        disp "`by'"
+        foreach stat in `stats' `selections' `percentiles' {
+            disp "    `stat'"
+            qui sysuse auto, clear
+            qui replace mpg = . if mod(_n, 19) == 0
+            qui {
+                gstats transform (moving `stat' -3  -1) x1 = price, by(`by') `0'
+                gstats transform (moving `stat'  4  2)  x2 = price, by(`by') `0'
+                gstats transform (moving `stat'  3  6)  x3 = price, by(`by') `0'
+                gstats transform (moving `stat'  -3 6)  x4 = price, by(`by') `0'
+            }
+
+            local r1 moving `stat' -3 -1
+            local r2 moving `stat' -3 6
+            local r3 moving `stat' -3 .
+            local r4 moving `stat'
+            local call (`r1') x5 = price (`r2') x6 = price (`r3') x7 = price (`r4') x8 = price
+
+            qui {
+                gstats transform `call' , by(`by') replace window(-4 4) `0'
+                gstats transform `call' , by(`by') replace window( 4 8) `0'
+                gstats transform `call' , by(`by') replace window( 8 3) `0'
+                gstats transform `call' , by(`by') replace window(-4 .) `0'
+                gstats transform `call' , by(`by') replace window( . 4) `0'
+                gstats transform `call' , by(`by') replace window( . .) `0'
+
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace window(-4 4) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace window( 4 8) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace window( 9 2) `0'
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace window(-4 .) `0'
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace window( . 4) `0'
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace window( . .) `0'
+            }
+        }
+    }
+
+    *****************
+    *  Range stats  *
+    *****************
+
+    foreach by in foreign mpg {
+        disp "`by' (main)"
+        qui sysuse auto, clear
+        qui keep if mod(_n, 3) == 0
+        qui replace mpg = . if mod(_n, 19) == 0
+        local sl: copy local stat
+        local ul: copy local stat
+
+        foreach stat in `stats' `selections' `percentiles' {
+            disp "    `stat'"
+
+            local s1  ( range `stat'   -3      5.5      gear_ratio ) p1  = price      g1  = weight
+            local s2  ( range `stat'   -3     -1        mpg        ) p2  = price      g2  = weight
+            local s3  ( range `stat' 7.33      3        length     ) p3  = gear_ratio g3  = weight
+            local s4  ( range `stat'   -3      5.5                 ) p4  = gear_ratio g4  = weight
+            local s5  ( range `stat'   -3     -1                   ) p5  = gear_ratio g5  = weight
+            local s6  ( range `stat'    2      6.25     turn       ) p6  = gear_ratio g6  = weight
+            local s7  ( range `stat'   -3      .        turn       ) p7  = gear_ratio g7  = weight
+            local s8  ( range `stat'    .      3        gear_ratio ) p8  = gear_ratio g8  = weight
+            local s9  ( range `stat'    .     -3        gear_ratio ) p9  = price      g9  = weight
+            local s10 ( range `stat' 7.33      3                   ) p10 = price      g10 = weight
+            local s11 ( range `stat'    2      6.25                ) p11 = price      g11 = weight
+            local s12 ( range `stat'   -3      .                   ) p12 = gear_ratio g12 = weight
+            local s13 ( range `stat'    .      3                   ) p13 = gear_ratio g13 = weight
+            local s14 ( range `stat'    .     -3                   ) p14 = price      g14 = weight
+            local s15 ( range `stat'    3      .        gear_ratio ) p15 = price      g15 = weight
+            local s16 ( range `stat'                               ) p16 = price      g16 = weight
+
+            local call
+            forvalues i = 1 / 16 {
+                local call `call' `s`i''
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0'
+                gstats transform `call' , by(`by') replace interval( 4 8) `0'
+                gstats transform `call' , by(`by') replace interval( 8 3) `0'
+                gstats transform `call' , by(`by') replace interval(-4 .) `0'
+                gstats transform `call' , by(`by') replace interval( . 4) `0'
+                gstats transform `call' , by(`by') replace interval( . .) `0'
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0'
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0'
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0'
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0'
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( 4 8) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( 8 3) `0' excludeself
+                gstats transform `call' , by(`by') replace interval(-4 .) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( . 4) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( . .) `0' excludeself
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0' excludeself
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0' excludeself
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0' excludeself
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0' excludeself
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0' excludeself
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0' excludeself
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( 4 8) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( 8 3) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval(-4 .) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( . 4) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( . .) `0' excludebounds
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0' excludebounds
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0' excludebounds
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0' excludebounds
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0' excludebounds
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0' excludebounds
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0' excludebounds
+            }
+        }
+
+        disp "`by' (combo)"
+        qui sysuse auto, clear
+        qui keep if mod(_n, 3) == 0
+        qui replace mpg = . if mod(_n, 19) == 0
+        local sl: copy local stat
+        local ul: copy local stat
+
+        foreach stat in `stats' `selections' `percentiles' {
+            disp "    `stat'"
+
+            local s1  ( range mean       -3`sl'  5.5`ul'  gear_ratio ) p1  = price      g1  = weight
+            local s2  ( range mean        3      .                   ) p2  = price      g2  = weight
+            local s3  ( range nmissing   -3`sl'  5.5`ul'             ) p3  = gear_ratio g3  = weight
+            local s4  ( range sum        -3`sl' -1`ul'               ) p4  = gear_ratio g4  = weight
+            local s5  ( range mean     7.33`sl'  3`ul'               ) p5  = gear_ratio g5  = weight
+            local s6  ( range geomean     2`sl'  6.25`ul'            ) p6  = gear_ratio g6  = weight
+            local s7  ( range cv         -3`sl'  .                   ) p7  = gear_ratio g7  = weight
+            local s8  ( range sd          .      3`ul'               ) p8  = gear_ratio g8  = weight
+            local s9  ( range variance   -3`sl' -1`ul'    length     ) p9  = gear_ratio g9  = weight
+            local s10 ( range max      7.33`sl'  3`ul'    length     ) p10 = price      g10 = weight
+            local s11 ( range min         .     -3`ul'               ) p11 = price      g11 = weight
+            local s12 ( range range       2`sl'  6.25`ul' gear_ratio ) p12 = price      g12 = weight
+            local s13 ( range count       3      .                   ) p13 = price      g13 = weight
+            local s14 ( range first      -3`sl'  .        gear_ratio ) p14 = price      g14 = weight
+            local s15 ( range last        .      3`ul'    mpg        ) p15 = price      g15 = weight
+            local s16 ( range mean        .     -3`ul'    mpg        ) p16 = price      g16 = weight
+            local s17 ( range firstnm    -3`sl'  5.5                 ) p17 = price      g17 = weight
+            local s18 ( range lastnm      3      .        mpg        ) p18 = price      g18 = weight
+            local s19 ( range median     -3`sl'  5.5      gear_ratio ) p19 = price      g19 = weight
+            local s20 ( range iqr        -3     -1`ul'               ) p20 = price      g20 = weight
+            local s21 ( range skew       -3     -1`ul'    gear_ratio ) p21 = price      g21 = weight
+            local s22 ( range kurt                                   ) p22 = price      g22 = weight
+
+            local call
+            forvalues i = 1 / 22 {
+                local call `call' `s`i''
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0'
+                gstats transform `call' , by(`by') replace interval( 4 8) `0'
+                gstats transform `call' , by(`by') replace interval( 8 3) `0'
+                gstats transform `call' , by(`by') replace interval(-4 .) `0'
+                gstats transform `call' , by(`by') replace interval( . 4) `0'
+                gstats transform `call' , by(`by') replace interval( . .) `0'
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0'
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0'
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0'
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0'
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0'
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( 4 8) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( 8 3) `0' excludeself
+                gstats transform `call' , by(`by') replace interval(-4 .) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( . 4) `0' excludeself
+                gstats transform `call' , by(`by') replace interval( . .) `0' excludeself
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0' excludeself
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0' excludeself
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0' excludeself
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0' excludeself
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0' excludeself
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0' excludeself
+            }
+
+            qui {
+                gstats transform `call' , by(`by') replace interval(-4 4) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( 4 8) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( 8 3) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval(-4 .) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( . 4) `0' excludebounds
+                gstats transform `call' , by(`by') replace interval( . .) `0' excludebounds
+            }
+
+            qui {
+                gstats transform `call' [ w = gear_ratio * 10]      , by(`by') replace interval(-4 4) `0' excludebounds
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 4 8) `0' excludebounds
+                gstats transform `call' [aw = gear_ratio * 10]      , by(`by') replace interval( 9 2) `0' excludebounds
+                gstats transform `call' [fw = int(gear_ratio * 10)] , by(`by') replace interval(-4 .) `0' excludebounds
+                gstats transform `call' [iw = gear_ratio / 10]      , by(`by') replace interval( . 4) `0' excludebounds
+                gstats transform `call' [pw = gear_ratio / 10]      , by(`by') replace interval( . .) `0' excludebounds
+            }
+        }
+    }
+
+    *******************
+    *  Non-moving by  *
+    *******************
 
     foreach by in foreign rep78 mpg {
         sysuse auto, clear
@@ -9034,7 +9257,7 @@ program compare_gstats_transform
     syntax, [weights *]
 
     qui `noisily' gen_data, n(500)
-    qui expand 100
+    qui expand 20
     qui `noisily' random_draws, random(5) double
     gen long   ix = _n
     gen double ru = runiform() * 500
@@ -9112,43 +9335,85 @@ capture program drop compare_inner_gstats_transform
 program compare_inner_gstats_transform
     syntax [if] [in], [wgt(passthru) *]
 
-    compare_fail_gstats_transform versus_gstats_transform `if' `in', `options' `wgt'
+    * ---------------------------------------------------------------------
 
-    compare_fail_gstats_transform versus_gstats_transform str_12              `if' `in', `options' `wgt'
-    compare_fail_gstats_transform versus_gstats_transform str_12 str_32 str_4 `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform                         `if' `in', `options' `wgt'
+
+    compare_fail_gstats_transform versus_gstats_transform str_12                  `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform str_12 str_32 str_4     `if' `in', `options' `wgt'
 
     compare_fail_gstats_transform versus_gstats_transform double1                 `if' `in', `options' `wgt'
     compare_fail_gstats_transform versus_gstats_transform double1 double2 double3 `if' `in', `options' `wgt'
 
-    compare_fail_gstats_transform versus_gstats_transform int1           `if' `in', `options' `wgt'
-    compare_fail_gstats_transform versus_gstats_transform int1 int2      `if' `in', `options' `wgt'
-    compare_fail_gstats_transform versus_gstats_transform int1 int2 int3 `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1                    `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 int2               `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 int2 int3          `if' `in', `options' `wgt'
 
-    compare_fail_gstats_transform versus_gstats_transform str_32 int3 double3  `if' `in', `options' `wgt'
-    compare_fail_gstats_transform versus_gstats_transform int1 double2 double3 `if' `in', `options' `wgt'
-    compare_fail_gstats_transform versus_gstats_transform double? str_* int?   `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform str_32 int3 double3     `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform int1 double2 double3    `if' `in', `options' `wgt'
+    compare_fail_gstats_transform versus_gstats_transform double? str_* int?      `if' `in', `options' `wgt'
+
+    * ---------------------------------------------------------------------
+
+    if ( `"`wgt'"' == "" ) {
+        compare_fail_gstats_transform versus_gstats_transform_moving                         `if' `in', `options' `wgt' pr(rangestat w/index)
+
+        compare_fail_gstats_transform versus_gstats_transform_moving str_12                  `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving str_12 str_32 str_4     `if' `in', `options' `wgt' pr(rangestat w/index)
+
+        compare_fail_gstats_transform versus_gstats_transform_moving double1                 `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving double1 double2 double3 `if' `in', `options' `wgt' pr(rangestat w/index)
+
+        compare_fail_gstats_transform versus_gstats_transform_moving int1                    `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving int1 int2               `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving int1 int2 int3          `if' `in', `options' `wgt' pr(rangestat w/index)
+
+        compare_fail_gstats_transform versus_gstats_transform_moving str_32 int3 double3     `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving int1 double2 double3    `if' `in', `options' `wgt' pr(rangestat w/index)
+        compare_fail_gstats_transform versus_gstats_transform_moving double? str_* int?      `if' `in', `options' `wgt' pr(rangestat w/index)
+    }
+
+    * ---------------------------------------------------------------------
+
+    if ( `"`wgt'"' == "" ) {
+        compare_fail_gstats_transform versus_gstats_transform_range                         `if' `in', `options' `wgt' pr(rangestat)
+
+        compare_fail_gstats_transform versus_gstats_transform_range str_12                  `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range str_12 str_32 str_4     `if' `in', `options' `wgt' pr(rangestat)
+
+        compare_fail_gstats_transform versus_gstats_transform_range double1                 `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range double1 double2 double3 `if' `in', `options' `wgt' pr(rangestat)
+
+        compare_fail_gstats_transform versus_gstats_transform_range int1                    `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range int1 int2               `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range int1 int2 int3          `if' `in', `options' `wgt' pr(rangestat)
+
+        compare_fail_gstats_transform versus_gstats_transform_range str_32 int3 double3     `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range int1 double2 double3    `if' `in', `options' `wgt' pr(rangestat)
+        compare_fail_gstats_transform versus_gstats_transform_range double? str_* int?      `if' `in', `options' `wgt' pr(rangestat)
+    }
 end
 
 capture program drop compare_fail_gstats_transform
 program compare_fail_gstats_transform
     gettoken cmd 0: 0
-    syntax [anything] [if] [in], [tol(real 1e-6) *]
+    syntax [anything] [if] [in], [tol(real 1e-6) PRogram(str) *]
     cap `cmd' `0'
     if ( _rc ) {
         if ( "`if'`in'" == "" ) {
-            di "    compare_gstats_transform (failed): full range, `anything'; `options'"
+            di "    compare_gstats_transform (failed): full range (vs `program') `anything'; `options'"
         }
         else if ( "`if'`in'" != "" ) {
-            di "    compare_gstats_transform (failed): [`if'`in'], `anything'; `options'"
+            di "    compare_gstats_transform (failed): [`if'`in'] (vs `program') `anything'; `options'"
         }
         exit _rc
     }
     else {
         if ( "`if'`in'" == "" ) {
-            di "    compare_gstats_transform (passed): full range, gstats results equal to manual (tol = `tol'; `anything'; `options')"
+            di "    compare_gstats_transform (passed): full range, gstats results equal to `program' (tol = `tol'; `anything'; `options')"
         }
         else if ( "`if'`in'" != "" ) {
-            di "    compare_gstats_transform (passed): [`if'`in'], gstats results equal to manual (tol = `tol'; `anything'; `options')"
+            di "    compare_gstats_transform (passed): [`if'`in'], gstats results equal to `program' (tol = `tol'; `anything'; `options')"
         }
     }
 end
@@ -9240,6 +9505,10 @@ program versus_gstats_winsor, rclass
     di as txt "    `:di %6.3g `time_winsor'' | `:di %13.3g `time_gwinsor'' | `:di %11.4g `rs'' | `anything'"
 end
 
+***********************************************************************
+*                          Transform versus                           *
+***********************************************************************
+
 capture program drop versus_gstats_transform
 program versus_gstats_transform, rclass
     syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) *]
@@ -9305,6 +9574,214 @@ program versus_gstats_transform, rclass
         local rs = `time_manual'  / `time_gtransform'
         di as txt "    `:di %6.3g `time_manual'' | `:di %13.3g `time_gtransform'' | `:di %11.4g `rs'' | (`i') `anything'"
     }
+end
+
+capture program drop versus_gstats_transform_range
+program versus_gstats_transform_range, rclass
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) pr(str) *]
+
+    local rcall1
+    local rcall2
+    local rcall3
+    local rcall4
+
+    local rcall1 `rcall1'  (count)    _out1  = random2
+    local rcall1 `rcall1'  (first)    _out12 = random2
+    local rcall1 `rcall1'  (firstnm)  _out13 = random2
+    local rcall1 `rcall1'  (min)      _out9  = random2
+    local rcall1 `rcall1'  (mean)     _out3  = random2
+                        
+    local rcall2 `rcall2'  (missing)  _out2  = random2
+    local rcall2 `rcall2'  (last)     _out14 = random2
+    local rcall2 `rcall2'  (lastnm)   _out15 = random2
+    local rcall2 `rcall2'  (max)      _out11 = random2
+    local rcall2 `rcall2'  (sum)      _out4  = random2
+                        
+    local rcall3 `rcall3'  (sd)       _out5  = random2
+    local rcall3 `rcall3'  (variance) _out6  = random2
+
+    local rcall4 `rcall4'  (skewness) _out7  = random2
+    local rcall4 `rcall4'  (kurtosis) _out8  = random2
+    local rcall4 `rcall4'  (median)   _out10 = random2
+
+    local tcall1
+    local tcall2
+    local tcall3
+    local tcall4
+
+    local tcall1 `tcall1' (range count)    _gout1  = random2
+    local tcall1 `tcall1' (range first)    _gout12 = random2
+    local tcall1 `tcall1' (range firstnm)  _gout13 = random2
+    local tcall1 `tcall1' (range min)      _gout9  = random2
+    local tcall1 `tcall1' (range mean)     _gout3  = random2
+
+    local tcall2 `tcall2' (range nmissing) _gout2  = random2
+    local tcall2 `tcall2' (range last)     _gout14 = random2
+    local tcall2 `tcall2' (range lastnm)   _gout15 = random2
+    local tcall2 `tcall2' (range max)      _gout11 = random2
+    local tcall2 `tcall2' (range sum)      _gout4  = random2
+
+    local tcall3 `tcall3' (range sd)       _gout5  = random2
+    local tcall3 `tcall3' (range variance) _gout6  = random2
+
+    local tcall4 `tcall4' (range skewness) _gout7  = random2
+    local tcall4 `tcall4' (range kurtosis) _gout8  = random2
+    local tcall4 `tcall4' (range median)   _gout10 = random2
+
+    local opts
+    gegen double _sd = sd(random4) `if' `in' `wgt', by(`anything')
+    qui gen double _low  = random4 - 0.75 * _sd
+    qui gen double _high = random4 + 0.75 * _sd
+
+    timer clear
+    timer on 42
+    qui gstats transform `tcall1'  `if' `in' `wgt', by(`anything') `options' interval(-0.5    0.5    random3)
+    qui gstats transform `tcall2'  `if' `in' `wgt', by(`anything') `options' interval(-0.75sd 0.75sd random4)
+    qui gstats transform `tcall3'  `if' `in' `wgt', by(`anything') `options' interval(-0.5      .    random3)
+    qui gstats transform `tcall4'  `if' `in' `wgt', by(`anything') `options' interval(   .    0.5    random3)
+    timer off 42
+    qui timer list
+    local time_gtransform = r(t42)
+
+    timer clear
+    timer on 43
+    rangestat `rcall1' `if' `in' `wgt', by(`anything') interval(random3 -0.5   0.5)
+    rangestat `rcall2' `if' `in' `wgt', by(`anything') interval(random4 _low _high)
+    rangestat `rcall3' `if' `in' `wgt', by(`anything') interval(random3 -0.5     .)
+    rangestat `rcall4' `if' `in' `wgt', by(`anything') interval(random3    .   0.5)
+    timer off 43
+    qui timer list
+    local time_manual = r(t43)
+
+    forvalues j = 1 / 15 {
+        cap assert (((abs(_gout`j' - _out`j') / max(abs(_gout`j'), 1)) < `tol') | (_gout`j' == _out`j'))
+        if ( _rc ) {
+            disp `j'
+            exit _rc
+        }
+    }
+    * head random? _sd _low _high _gout4 _out4
+
+    cap drop _*
+    local rs = `time_manual'  / `time_gtransform'
+    di as txt "    `:di %6.3g `time_manual'' | `:di %13.3g `time_gtransform'' | `:di %11.4g `rs'' | (`i') `anything'"
+end
+
+capture program drop versus_gstats_transform_moving
+program versus_gstats_transform_moving, rclass
+    syntax [anything] [if] [in], [tol(real 1e-6) wgt(str) pr(str) *]
+
+    local rcall1
+    local rcall2
+    local rcall3
+
+    local rcall1 `rcall1'  (count)    _out1  = random2
+    local rcall1 `rcall1'  (first)    _out12 = random2
+    local rcall1 `rcall1'  (firstnm)  _out13 = random2
+    local rcall1 `rcall1'  (min)      _out9  = random2
+    local rcall1 `rcall1'  (mean)     _out3  = random2
+                        
+    local rcall2 `rcall2'  (missing)  _out2  = random2
+    local rcall2 `rcall2'  (last)     _out14 = random2
+    local rcall2 `rcall2'  (lastnm)   _out15 = random2
+    local rcall2 `rcall2'  (max)      _out11 = random2
+    local rcall2 `rcall2'  (sum)      _out4  = random2
+                        
+    local rcall3 `rcall3'  (sd)       _out5  = random2
+    local rcall3 `rcall3'  (variance) _out6  = random2
+    local rcall3 `rcall3'  (skewness) _out7  = random2
+    local rcall3 `rcall3'  (kurtosis) _out8  = random2
+    local rcall3 `rcall3'  (median)   _out10 = random2
+
+    local tcall1
+    local tcall2
+    local tcall3
+
+    local tcall1 `tcall1' (moving count)    _gout1  = random2
+    local tcall1 `tcall1' (moving first)    _gout12 = random2
+    local tcall1 `tcall1' (moving firstnm)  _gout13 = random2
+    local tcall1 `tcall1' (moving min)      _gout9  = random2
+    local tcall1 `tcall1' (moving mean)     _gout3  = random2
+
+    local tcall2 `tcall2' (moving nmissing) _gout2  = random2
+    local tcall2 `tcall2' (moving last)     _gout14 = random2
+    local tcall2 `tcall2' (moving lastnm)   _gout15 = random2
+    local tcall2 `tcall2' (moving max)      _gout11 = random2
+    local tcall2 `tcall2' (moving sum)      _gout4  = random2
+
+    local tcall3 `tcall3' (moving sd)       _gout5  = random2
+    local tcall3 `tcall3' (moving variance) _gout6  = random2
+    local tcall3 `tcall3' (moving skewness) _gout7  = random2
+    local tcall3 `tcall3' (moving kurtosis) _gout8  = random2
+    local tcall3 `tcall3' (moving median)   _gout10 = random2
+
+    if ( `"`anything'"' != "" ) {
+        qui bys `anything': gen _index = _n
+        qui bys `anything': gen _ilow  = _n > 5
+        qui bys `anything': gen _ihigh = _n < (_N - 5 + 1)
+    }
+    else {
+        qui gen _index = _n
+        qui gen _ilow  = _n > 5
+        qui gen _ihigh = _n < (_N - 5 + 1)
+    }
+
+    timer clear
+    timer on 42
+    qui gstats transform `tcall1'  `if' `in' `wgt', by(`anything') `options' window(-5 5)
+    qui gstats transform `tcall2'  `if' `in' `wgt', by(`anything') `options' window(-5 .)
+    qui gstats transform `tcall3'  `if' `in' `wgt', by(`anything') `options' window( . 5)
+    timer off 42
+    qui timer list
+    local time_gtransform = r(t42)
+
+    timer clear
+    timer on 43
+    qui rangestat `rcall1' `if' `in' `wgt', by(`anything') interval(_index -5 5)
+    qui rangestat `rcall2' `if' `in' `wgt', by(`anything') interval(_index -5 .)
+    qui rangestat `rcall3' `if' `in' `wgt', by(`anything') interval(_index  . 5)
+    timer off 43
+    qui timer list
+    local time_manual = r(t43)
+
+    qui {
+        replace _out1  = . if _ilow == 0
+        replace _out12 = . if _ilow == 0
+        replace _out13 = . if _ilow == 0
+        replace _out9  = . if _ilow == 0
+        replace _out3  = . if _ilow == 0
+
+        replace _out1  = . if _ihigh == 0
+        replace _out12 = . if _ihigh == 0
+        replace _out13 = . if _ihigh == 0
+        replace _out9  = . if _ihigh == 0
+        replace _out3  = . if _ihigh == 0
+
+        replace _out2  = . if _ilow == 0
+        replace _out14 = . if _ilow == 0
+        replace _out15 = . if _ilow == 0
+        replace _out11 = . if _ilow == 0
+        replace _out4  = . if _ilow == 0
+
+        replace _out5  = . if _ihigh == 0
+        replace _out6  = . if _ihigh == 0
+        replace _out7  = . if _ihigh == 0
+        replace _out8  = . if _ihigh == 0
+        replace _out10 = . if _ihigh == 0
+    }
+
+    forvalues j = 1 / 15 {
+        cap assert (((abs(_gout`j' - _out`j') / max(abs(_gout`j'), 1)) < `tol') | (_gout`j' == _out`j'))
+        if ( _rc ) {
+            disp `j'
+            gen _diff`j' = abs(_gout`j' - _out`j') / max(abs(_gout`j'), 1)
+            * exit _rc
+        }
+    }
+
+    cap drop _*
+    local rs = `time_manual'  / `time_gtransform'
+    di as txt "    `:di %6.3g `time_manual'' | `:di %13.3g `time_gtransform'' | `:di %11.4g `rs'' | (`i') `anything'"
 end
 capture program drop checks_duplicates
 program checks_duplicates

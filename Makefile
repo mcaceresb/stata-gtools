@@ -39,22 +39,27 @@ open:
 #     gcollapse
 #     gegen
 #     gstats tab
-# ./src/ado/_gtools_internal.ado L2496, L3395, L3435, L3525, L3685, L3978, L4619, L4672, L4975, L5007
+#
+# ./docs/usage/gcollapse.md L29
+# ./docs/usage/gegen.md L194
+# ./docs/usage/gstats_summarize.md L26
+# ./docs/usage/gstats_transform.md L34
+# ./docs/stata/gcollapse.sthlp L50
+# ./docs/stata/gegen.sthlp L223
+# ./docs/stata/gstats_summarize.sthlp L278
+# ./docs/stata/gstats_transform.sthlp L55
+#
+# ./src/ado/_gtools_internal.ado L2496, L3395, L3545, L3660, L3915, L4200, L5060, L5420, L5690, L5800, L5900
 # ./src/ado/_gtools_internal.mata L1252, L1311
 # ./src/ado/gcollapse.ado L1106, L1743, L1845, L1932
 # ./src/ado/gegen.ado L63, L81, L820
+#
 # ./src/plugin/collapse/gtools_math.c
 # ./src/plugin/collapse/gtools_math.h
 # ./src/plugin/collapse/gtools_math_unw.c
 # ./src/plugin/collapse/gtools_math_unw.h
 # ./src/plugin/collapse/gtools_math_w.c
 # ./src/plugin/collapse/gtools_math_w.h
-# ./docs/usage/gcollapse.md L29
-# ./docs/usage/gegen.md L194
-# ./docs/usage/gstats_summarize.md L26
-# ./docs/stata/gcollapse.sthlp L50
-# ./docs/stata/gegen.sthlp L223
-# ./docs/stata/gstats_summarize.sthlp L278
 
 # Add to gstats
 # -------------

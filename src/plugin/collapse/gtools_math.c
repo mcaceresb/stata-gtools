@@ -88,6 +88,23 @@ ST_double gf_array_dmean_range (const ST_double v[], const GT_size start, const 
 }
 
 /**
+ * @brief Geometric mean of enries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Geometric mean of the elements of @v from @start to @end
+ */
+ST_double gf_array_dgeomean_range (const ST_double v[], const GT_size start, const GT_size end) {
+    GT_size i;
+    ST_double vsum = 0;
+    for (i = start; i < end; i++)
+        vsum += log(v[i]);
+
+    return (exp(vsum / (end - start)));
+}
+
+/**
  * @brief Sum of entries in range of array
  *
  * @param v vector of doubles containing the current group's variables
@@ -101,6 +118,7 @@ ST_double gf_array_dsum_range (const ST_double v[], const GT_size start, const G
     ST_double vsum = 0;
     for (i = start; i < end; i++)
         vsum += v[i];
+
     return (vsum);
 }
 
@@ -460,6 +478,7 @@ ST_double gf_code_fun (char * fname)
     else if ( strcmp (fname, "variance")   == 0 ) return (-23);  // variance
     else if ( strcmp (fname, "cv")         == 0 ) return (-24);  // cv
     else if ( strcmp (fname, "range")      == 0 ) return (-25);  // range
+    else if ( strcmp (fname, "geomean")    == 0 ) return (-26);  // geomean
     else {                                                       
         ST_double q = (ST_double) atof(fname);                   // quantile
         return (q > 0? q: 0);
@@ -496,6 +515,7 @@ ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size star
     else if ( fcode == -23  ) return (gf_array_dvar_range     (v, start, end)); // variance
     else if ( fcode == -24  ) return (gf_array_dcv_range      (v, start, end)); // cv
     else if ( fcode == -25  ) return (gf_array_drange_range   (v, start, end)); // range
+    else if ( fcode == -26  ) return (gf_array_dgeomean_range (v, start, end)); // geomean
     else {
         return (gf_array_dquantile_range(v, start, end, fcode));                // percentiles
     }

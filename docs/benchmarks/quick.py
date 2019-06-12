@@ -33,22 +33,22 @@ import json
 
 df = pd.DataFrame(
     [
-        ['collapse\n(sum, mean)',           23.10,  1.65],
-        ['collapse\n(sd, median)',          39.16,  1.39],
-        ['reshape long',                    100.85, 6.68],
-        ['reshape wide',                    110.06, 8.57],
-        ['xtile\n(vs gquantiles)',          26.85,  1.25],
-        ['pctile\n(vs gquantiles)',         21.82,  0.90],
-        ['egen',                            32.41,  0.88],
-        ['contract',                        8.25,   0.87],
-        ['isid',                            44.12,  0.92],
-        ['duplicates',                      40.78,  1.10],
-        ['levelsof',                        2.80,   0.50],
-        ['distinct',                        30.24,  0.57],
-        ['winsor2\n(vs gstats)',            19.93,  0.86],
-        ['summ, detail\n(vs gstats)',       41.3,   1.51],
-        ['tabstat, 10 groups\n(vs gstats)', 18.5,   1.24],
-
+        ['collapse\n(sum, mean)',            23.10,  1.65],
+        ['collapse\n(sd, median)',           39.16,  1.39],
+        ['reshape long',                     100.85, 6.68],
+        ['reshape wide',                     110.06, 8.57],
+        ['xtile\n(vs gquantiles)',           26.85,  1.25],
+        ['pctile\n(vs gquantiles)',          21.82,  0.90],
+        ['egen',                             32.41,  0.88],
+        ['contract',                         8.25,   0.87],
+        ['isid',                             44.12,  0.92],
+        ['duplicates',                       40.78,  1.10],
+        ['levelsof',                         2.80,   0.50],
+        ['distinct',                         30.24,  0.57],
+        ['winsor2\n(vs gstats)',             19.93,  0.86],
+        ['summ, detail\n(vs gstats)',        41.3,   1.51],
+        ['tabstat, 10 groups\n(vs gstats)',  18.5,   1.24],
+        ['rangestat -10 to 10\n(vs gstats)', 108.9,  7.8],
     ],
     columns = [' ', 'Stata', 'gtools']
 )

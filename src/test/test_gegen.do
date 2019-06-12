@@ -163,7 +163,7 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson

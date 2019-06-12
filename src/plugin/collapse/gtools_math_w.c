@@ -49,6 +49,7 @@ ST_double gf_switch_fun_code_w (
     else if ( fcode == -23  ) return (gf_array_dvar_weighted      (v, N, w, vsum, wsum, vcount, aw)); // variance
     else if ( fcode == -24  ) return (gf_array_dcv_weighted       (v, N, w, vsum, wsum, vcount, aw)); // cv
     else if ( fcode == -25  ) return (gf_array_drange_weighted    (v, N));                            // range
+    else if ( fcode == -26  ) return (gf_array_dgeomean_weighted  (v, N, w));                         // geomean
     else {
         return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                 // percentiles
     }
@@ -330,6 +331,41 @@ ST_double gf_array_dmean_weighted (
     }
 
     return (wsum == 0? SV_missval: vsum / wsum);
+}
+
+/**
+ * @brief Weighted geometric mean of enries in range of array
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w weights
+ * @return Geometric mean of the elements of @v
+ */
+ST_double gf_array_dgeomean_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w)
+{
+    ST_double *vptr;
+    ST_double *wptr = w;
+    ST_double vsum = 0;
+    ST_double wsum = 0;
+
+    // Note that for the geometric mean, a weight of w_i means that
+    // v_i should be multiplied by itself w_i times, hence
+    //
+    //     geomean = (prod_i v_i^w_i)^(1 / (sum w_i))
+    //
+    // or exp((sum_i w_i log(v_i)) / (sum w_i))
+
+    for (vptr = v; vptr < v + N; vptr++, wptr++) {
+        if ( *vptr < SV_missval ) {
+            wsum += *wptr;
+            vsum += log(*vptr) * (*wptr);
+        }
+    }
+
+    return (wsum == 0? SV_missval: exp(vsum / wsum));
 }
 
 /**

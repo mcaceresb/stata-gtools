@@ -124,14 +124,15 @@ Options
 ### Long and Wide
 
 **Long only**
-**Wide only**
-**Wide and long**
 
 - `by(varlist)`   (Required) Use varlist as the ID variables (alias `i()`).
 - `keys(varname)` Wide to long: varname, new variable to store stub suffixes (default `_j`; alias `j()`).
 - `string`        Whether to allow for string matches to each stub
 - `match(str)`    Where to match levels of `keys()` in stub (default `@`). Use `match(regex)`
                   for complex matches (see [examples below](#complex-stub-matches) for details).
+- `dropmiss`      Drop missing observations for reshaped variables, including extended
+                  missing values. With multiple stubs, it only drops the observation if
+                  _every_ output variable will be missing for that row.
 
 **Wide only**
 
@@ -139,6 +140,11 @@ Options
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with stub suffixes (alias `j()`).
 - `colsepparate(str)` Column separator when multiple variables are passed to `j()`.
 - `match(str)`        Where to replace the levels of `keys()` in stub (default `@`).
+- `prefix(str)`       Custom renaming of reshaped variables. One rename per stub; {opt @} syntax allowed.
+                      For example, with two stubs you can specify `prefix(#stub# foo@bar)` and the first
+                      stub's variables will be named normally (`#stub#` is replaced with the stub name)
+                      while the second will be named `foo@bar` with `@` replaced by the `j()` variable's
+                      values.
 
 **Wide and long**
 
@@ -158,10 +164,16 @@ Options
 - `uselabels[(str)]`  Store variable labels instead of their names. Optionally specify a varlist
                       with the variables to do this for (or `uselabels(varlist, exclude)`
                       to specify the variables _not_ to do this for).
+- `dropmiss`          Drop missing observations for reshaped variables, including extended
+                      missing values.
 
 **Spread only**
 
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with variable names.
+- `prefix(str)`       Custom renaming of reshaped variables. One common rename; {opt @} syntax allowed.
+                      For example, with two stubs you can specify `prefix(foo@bar)` and the output
+                      variables will be named `foo@bar` with `@` replaced by the `key()` variable's
+                      values.
 
 **Gather and Spread**
 
@@ -303,6 +315,20 @@ greshape wide inc[year]r ue, by(id) keys(year) match([year])
 list
 ```
 
+Output variables can be renamed using user-specified patterns.
+
+```stata
+webuse reshape3, clear
+qui greshape long inc@r ue, by(id) keys(year)
+qui greshape wide inc[hi]r ue, by(id) keys(year) prefix(year[hi]income #stub#) match([hi])
+desc, full
+
+webuse reshape3, clear
+qui greshape gather inc*r ue*, values(values) key(variable)
+qui greshape spread values, key(variable) prefix(foo@bar_#stub#)
+desc, full
+```
+
 Note that stata variable syntax is only supported for long to wide,
 and cannot be combined with `@` syntax. For complex pattern matching
 from wide to long, use `match(regex)` or `match(ustrregex)`. With
@@ -327,6 +353,33 @@ not uncommon across several regex implementations).
 webuse reshape1, clear
 greshape gather inc* ue*, values(values) keys(varaible)
 greshape spread values, keys(varaible)
+```
+
+### Drop missing observations
+
+Often it is desireable to drop missing observations when reshaping long.
+For example
+
+```stata
+clear
+set obs 10
+gen i = _n
+expand i
+bys i: gen j = _n
+gen x = _n
+gen y = -_n
+greshape wide x y, by(i) key(j)
+```
+
+When reshaping this data back into long, we would normally get
+100 observations, with 45 of them missing. However, we can
+dispense with the additional missing values via `dropmiss`:
+
+```stata
+greshape long x y, by(i) key(j) dropmiss
+assert _N == 55
+assert x  == _n
+assert y  == -_n
 ```
 
 ### Fine-grain control over error checks

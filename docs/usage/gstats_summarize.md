@@ -26,6 +26,7 @@ The following are available via `gstats tab`
 | Stat        | Description
 | ----------- | -----------
 | mean        | means (default)
+| geomean     | geometric means
 | count       | number of nonmissing observations
 | nmissing    | number of missing observations
 | nunique     | counts unique elements

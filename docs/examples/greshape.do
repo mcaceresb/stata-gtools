@@ -53,6 +53,18 @@ list, sepby(id)
 greshape wide inc[year]r ue, by(id) keys(year) match([year])
 list
 
+* Output variables can be renamed using user-specified patterns.
+
+webuse reshape3, clear
+qui greshape long inc@r ue, by(id) keys(year)
+qui greshape wide inc[hi]r ue, by(id) keys(year) prefix(year[hi]income #stub#) match([hi])
+desc, full
+
+webuse reshape3, clear
+qui greshape gather inc*r ue*, values(values) key(variable)
+qui greshape spread values, key(variable) prefix(foo@bar_#stub#)
+desc, full
+
 * Note that stata variable syntax is only supported for long to wide,
 * and cannot be combined with `@` syntax. For complex pattern matching
 * from wide to long, use match(regex) or match(ustrregex). With regex,
@@ -75,6 +87,30 @@ greshape wide inc@r u?, by(id) keys(year)
 webuse reshape1, clear
 greshape gather inc* ue*, values(values) key(varaible)
 greshape spread values, key(varaible)
+
+* Drop missing observations
+* -------------------------
+
+* Often it is desireable to drop missing observations when reshaping long.
+* For example
+
+clear
+set obs 10
+gen i = _n
+expand i
+bys i: gen j = _n
+gen x = _n
+gen y = -_n
+greshape wide x y, by(i) key(j)
+
+* When reshaping this data back into long, we would normally get
+* 100 observations, with 45 of them missing. However, we can
+* dispense with the additional missing values via `dropmiss`:
+
+greshape long x y, by(i) key(j) dropmiss
+assert _N == 55
+assert x  == _n
+assert y  == -_n
 
 * Fine-grain control over error checks
 * ------------------------------------

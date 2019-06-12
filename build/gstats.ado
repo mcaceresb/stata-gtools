@@ -1,4 +1,4 @@
-*! version 0.2.1 25Feb2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Implementation of several statistical functions and transformations
 
 capture program drop gstats
@@ -10,8 +10,7 @@ program gstats, rclass
     local alias_tabstat tab    ///
                         tabs   ///
                         tabst  ///
-                        tabsta ///
-                        tabstat
+                        tabsta
 
     local alias_summarize su      ///
                           sum     ///
@@ -21,13 +20,20 @@ program gstats, rclass
                           summari ///
                           summariz
 
+    local alias_transform range moving
+
     local stats_sorted tabstat ///
                        summarize
 
-    local stats dir     ///
-                winsor  ///
-                tabstat ///
+    local stats dir       ///
+                winsor    ///
+                transform ///
+                range     ///
+                moving    ///
+                tabstat   ///
                 summarize
+
+    if ( `:list stat in alias_transform' ) local statprefix statprefix(`stat'_)
 
     local alias
     foreach a of local stats {
@@ -51,17 +57,12 @@ program gstats, rclass
         gettoken dir stats: stats
         disp as txt "Available:"
         foreach stat of local stats {
-            * if ( "`stat'" == "tabstat" ) {
-            *     disp as txt "    {help gstats summarize:gstats tabstat} (alias for summarize)"
-            * }
-            * else {
-            * }
             disp as txt "    {help gstats `stat'}"
         }
         exit 0
     }
 
-    syntax varlist             /// Variables to check
+    syntax anything(equalok)   /// Variables/things to check
         [if] [in]              /// [if condition] [in start / end]
         [aw fw pw iw] ,        /// [weight type = exp]
     [                          ///
@@ -103,7 +104,7 @@ program gstats, rclass
     local opts   `weights' `compress' `forcestrl' nods `unsorted' `missing'
     local opts   `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts   `opts' `oncollision' `hashmethod' `debug'
-    local gstats  gfunction(stats) gstats(`stat' `varlist', `options')
+    local gstats  gfunction(stats) gstats(`stat' `anything', `options' `statprefix')
 
     cap noi _gtools_internal `by' `if' `in', `opts' `gstats'
     local rc = _rc
@@ -132,6 +133,10 @@ program gstats, rclass
     }
     else if ( `rc' == 18201 ) {
         exit 0
+    }
+    else if ( `rc' == 18301 ) {
+        di as txt "gstats_transform: internal parsing error (unexpected number of stats in transform)"
+        exit `rc'
     }
     else if ( `rc' ) exit `rc'
 

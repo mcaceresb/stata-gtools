@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.0  25Feb2019}{...}
+{* *! version 0.4.0  09Jun2019}{...}
 {viewerdialog gstats "dialog gstats"}{...}
 {vieweralsosee "[R] gstats" "mansection R gstats"}{...}
 {viewerjumpto "Syntax" "gstats##syntax"}{...}
@@ -34,9 +34,13 @@ transformations, including:
 as a fast {opt winsor2} alternative (accepts weights). {p_end}
 
 {p 8 17 2}
-{help gstats summarize:{bf:gstats {ul:sum}marize}} and
-{help gstats summarize:{bf:gstats {ul:tab}stat}} are fast,
+{help gstats summarize:{bf:{ul:sum}marize}} and
+{help gstats summarize:{bf:{ul:tab}stat}} are fast,
 by-able alternatives to {opt summarize, detail} and {opt tabtsat} (accept weights). {p_end}
+
+{p 8 17 2}
+{help gstats transform:{bf:transform}}
+to apply various statistical transformations (accepts weights). {p_end}
 
 {marker description}{...}
 {title:Description}

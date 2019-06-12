@@ -1,6 +1,85 @@
 Change Log
 ==========
 
+## gtools-1.5.8 (2019-06-11)
+
+### Features
+
+- `gstats transform` can compute rolling/range statistics via
+  `(range stat #[statlow] #[stathigh] [var])` or `(range stat)`
+  with the `interval(#[statlow] #[stathigh] [var])` option. Access
+  via `gegen` using `range_stat` with the `interval()` option.
+
+- `gstats range` and `gstats moving` are aliases for `gstats transform`.
+  They assume that every stat specified is a range stat or a moving
+  stat, respectively.
+
+- `gcollapse`, `gegen`, `gstats tab` now allow function `geomean`
+  for the geometric mean.
+
+## gtools-1.5.7 (2019-06-09)
+
+### Features
+
+- `gstats transform, auto[()]` allows automagically naming
+  targets based on the source variable's name and the statistic
+  requested. Default is `#source#_#stat#`.
+
+- `gstats transform (moving stat lower upper)` computes moving
+  window statistics. `gegen x = moving_stat(y), window(lower upper)`
+  is an alias.
+
+## gtools-1.5.6 (2019-06-08)
+
+### Features
+
+- New function `gstats transform` which applies a transformation to
+  a variable; that is `y_i = f(x_i)`. For example,
+
+      gstats transform (demean) y = x, by(group)
+
+  gives
+
+      n_j  = sum_i 1{group_i = j}
+      s_j  = sum_i 1{group_i = j} * x_i
+      y_ij = x_i - s_j / n_j
+
+  available:
+
+    normalize, standardize: f(x) = (x - mean(x)) / sd(x)
+    demean:                 f(x) = (x - mean(x))
+    demedian:               f(x) = (x - median(x))
+
+- Closes #63: `greshape wide/gather` allows `prefix(...)` for custom
+  output names.
+
+- Closes #62: New stats available in `gegen`:
+    - winsor, winsorize call `gstats winsor`
+    - standardize, normalize, demean, demedian call `gstats transform`
+
+### Enhancements
+
+- `gunique, detail` now uses `gstats sum, detail`
+
+### Bug fixes
+
+- Closes #64: Removes `head` command from `greshape` tests (done a few
+  commits ago but someone noticed before the merge).
+
+## gtools-1.5.5 (2019-04-24)
+
+### Features
+
+- Allows option `dropmiss` to use multiple output stubs in both `long`
+  and `long, nochecks`.
+
+## gtools-1.5.4 (2019-04-16)
+
+### Features
+
+- Adds option `dropmiss` to drop missing observations when reshaping long
+  (via `long` or `gather`).
+
 ## gtools-1.5.3 (2019-04-04)
 
 ### Enhancements

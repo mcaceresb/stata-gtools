@@ -81,6 +81,12 @@ ST_double gf_array_dmean_weighted (
     ST_double *w
 );
 
+ST_double gf_array_dgeomean_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w
+);
+
 ST_double gf_array_dsd_weighted (
     ST_double *v,
     GT_size N,

@@ -25,6 +25,7 @@ pages:
         - gstats:        
             - winsor:    usage/gstats_winsor.md
             - sum/tab:   usage/gstats_summarize.md
+            - transform: usage/gstats_transform.md
 
 theme: readthedocs
 

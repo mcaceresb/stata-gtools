@@ -135,6 +135,18 @@ program checks_gquantiles
     assert gx2 == gx3
     assert gx3 == gx4
 
+    gegen ggx0 = xtile(x)
+    gegen ggx1 = xtile(log(x) + 1) if mod(_n, 10) in 20 / 80
+    gegen ggx2 = xtile(x) [w = w],  nq(7) method(1)
+    gegen ggx3 = xtile(x) [aw = w], nq(7) method(2)
+    gegen ggx4 = xtile(x) [pw = w], nq(7) method(0)
+
+    assert ggx0 == gx0
+    assert ggx1 == gx1
+    assert ggx2 == gx2
+    assert ggx2 == gx2
+    assert ggx4 == gx4
+
     drop gx*
 
     fasterxtile gx0 = x, by(a)

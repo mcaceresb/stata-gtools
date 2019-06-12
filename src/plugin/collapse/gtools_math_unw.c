@@ -40,6 +40,7 @@ ST_double gf_switch_fun_code_unw (
     else if ( fcode == -23  ) return ((vcount > 1)? gf_array_dvar_unweighted (v, N): SV_missval);    // variance
     else if ( fcode == -24  ) return ((vcount > 1)? gf_array_dcv_unweighted  (v, N): SV_missval);    // cv
     else if ( fcode == -25  ) return (gf_array_drange_weighted     (v, N));                          // range
+    else if ( fcode == -26  ) return (gf_array_dgeomean_unweighted (v, N));                          // geomean
     else {
         return (gf_array_dquantile_unweighted(v, N, fcode, p_buffer));  // percentiles
     }
@@ -66,6 +67,33 @@ ST_double gf_array_dmean_unweighted (ST_double *v, GT_size N)
 
     if ( nobs > 0 ) {
         return (vsum / nobs);
+    }
+    else {
+        return (SV_missval);
+    }
+}
+
+/**
+ * @brief Geometric mean of enries in range of array, unweighted
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @return Geometric mean of the elements of @v from @start to @end
+ */
+ST_double gf_array_dgeomean_unweighted (ST_double *v, GT_size N)
+{
+    ST_double *vptr = v;
+    ST_double vsum  = 0;
+    GT_size   nobs  = 0;
+    for (vptr = v; vptr < v + N; vptr++) {
+        if ( *vptr < SV_missval ) {
+            vsum += log(*vptr);
+            nobs += 1;
+        }
+    }
+
+    if ( nobs > 0 ) {
+        return (exp(vsum / nobs));
     }
     else {
         return (SV_missval);

@@ -101,7 +101,7 @@ program gunique, rclass
         local r_Ndisp = trim(`"`: di %21.0gc `r(N)''"')
         local r_Jdisp = trim(`"`: di %21.0gc `r(J)''"')
 
-        sum `count' in 1 / `=r(J)', d
+        gstats sum `count' in 1 / `=r(J)', d
     }
     else {
         cap noi _gtools_internal `varlist' `if' `in', `countonly' `unsorted' `opts' gfunction(unique)

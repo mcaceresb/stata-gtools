@@ -1,4 +1,4 @@
-*! version 1.1.3 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -84,6 +84,7 @@ program define gegen, byable(onecall) rclass
                 sum        ///
                 nansum     ///
                 mean       ///
+                geomean    ///
                 sd         ///
                 variance   ///
                 cv         ///
@@ -107,6 +108,47 @@ program define gegen, byable(onecall) rclass
                 nmissing   ///
                 skewness   ///
                 kurtosis
+
+    * gegen aliases for other gtools functions
+    * ----------------------------------------
+
+    local transforms standardize ///
+                     normalize   ///
+                     demean      ///
+                     demedian    //
+
+    local direct winsorize ///
+                 winsor     //
+
+    if ( `"`fcn'"' == "xtile" ) {
+        cap noi fasterxtile `name' = `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
+
+    local moving = regexm(`"`fcn'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$")
+    local range  = regexm(`"`fcn'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$")
+    if ( `:list fcn in transforms' | `moving' | `range' ) {
+        cap confirm var `args'
+        if ( _rc ) {
+            disp as err `"`fcn' requires single variable input"'
+            exit _rc
+        }
+        local options types(`type') `options'
+        cap noi gstats transform (`fcn') `name' = `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
+
+    if ( `:list fcn in direct' ) {
+        if ( `"`fcn'"' == "winsorize" ) local fcn winsor
+        cap confirm var `args'
+        if ( _rc ) {
+            disp as err `"`fcn' requires single variable input"'
+            exit _rc
+        }
+        local options gen(`name') `options'
+        cap noi gstats `fcn' `args' `if' `in' `wgt', by(`byvars') `options'
+        exit _rc
+    }
 
     * If function does not exist, fall back on egen
     * ---------------------------------------------
@@ -823,6 +865,7 @@ program parse_target_type, rclass
     if ( "`fcn'" == "sum"        ) return local retype = "double"
     if ( "`fcn'" == "nansum"     ) return local retype = "double"
     if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "geomean"    ) return local retype = "`retype_B'"
     if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
     if ( "`fcn'" == "variance"   ) return local retype = "`retype_B'"
     if ( "`fcn'" == "cv"         ) return local retype = "`retype_B'"

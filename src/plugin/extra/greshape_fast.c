@@ -29,11 +29,12 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     ST_retcode rc = 0;
     ST_double z;
 
-    GT_size selx, i, j, k, l, outbytes, xibytes;
+    GT_bool skiprow;
+    GT_size selx, i, j, k, l, outbytes, xijbytes, xibytes, outobs;
 
     FILE *fhandle;
-    char *jstr, *outstr, *xistr;
-    ST_double *jdbl, *outdbl, *xidbl;
+    char *jstr, *outstr, *xistr, *xijstr;
+    ST_double *jdbl, *outdbl, *xidbl, *xijdbl;
 
     GT_size kvars    = st_info->kvars_by;
     GT_size kout     = st_info->greshape_kout;
@@ -97,6 +98,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
     if ( outpos == NULL ) return(sf_oom_error("sf_reshape_flong", "outpos"));
     if ( outtyp == NULL ) return(sf_oom_error("sf_reshape_flong", "outtyp"));
 
+    // Allocate space for j variable (str or double)
     jstr = calloc(klevels, jbytes);
     if ( st_info->greshape_str ) {
         jdbl = calloc(1, sizeof *jdbl);
@@ -105,6 +107,7 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         jdbl = calloc(klevels, sizeof *jdbl);
     }
 
+    // Allocate space for output array (ALL variables)
     outbytes = sf_reshape_bytes(st_info, outpos, outtyp);
     if ( st_info->greshape_anystr ) {
         outdbl = malloc(sizeof(ST_double));
@@ -116,6 +119,14 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         outdbl = calloc(N * klevels * krow, sizeof *outdbl);
     }
 
+    if ( kxi ) {
+        xijbytes = outpos[kout + 1] - outpos[1];
+    }
+    else {
+        xijbytes = outbytes - outpos[1];
+    }
+
+    // Compute row bytes for xi variables (might be 0)
     xipos[0] = xibytes = 0;
     for (k = 0; k < kxi; k++) {
         if ( (l = st_info->greshape_xitypes[k]) ) {
@@ -129,10 +140,15 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
+    // Allocate space for helper arrays
     xibytes = GTOOLS_PWMAX(xibytes, 1);
     xistr   = calloc(1, xibytes);
-    xidbl   = calloc(GTOOLS_PWMAX(kxi, 1), sizeof *xidbl);
-    memset(xistr, '\0', xibytes);
+    xijstr  = calloc(1, outbytes);
+    xidbl   = calloc(GTOOLS_PWMAX(kxi,  1), sizeof *xidbl);
+    xijdbl  = calloc(GTOOLS_PWMAX(kout, 1), sizeof *xijdbl);
+
+    memset(xistr,  '\0', xibytes);
+    memset(xijstr, '\0', outbytes);
 
     if ( outdbl == NULL ) return(sf_oom_error("sf_reshape_flong", "outdbl"));
     if ( outstr == NULL ) return(sf_oom_error("sf_reshape_flong", "outstr"));
@@ -180,196 +196,452 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
         sf_printf_debug("debug 3 (sf_reshape): Reshape long\n");
     }
 
-    if ( st_info->greshape_anystr == 0 ) {
-        for (i = 0; i < N; i++) {
-            // bufdbl is the row of the by variables
-            for (k = 0; k < kvars; k++) {
-                if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
-            }
-
-            // Copy each of the xi variables
-            for (k = 0; k < kxi; k++) {
-                if ( (rc = SF_vdata(kvars + k + 1,
-                                    i + st_info->in1,
-                                    xidbl + k)) ) goto exit;
-            }
-
-            for (j = 0; j < klevels; j++) {
-                // selx is the row in the output (long) vector
-                selx = i * krow * klevels + j * krow;
-
-                // copy a row of the by variables to the output vector
+    outobs = 0;
+    if ( st_info->greshape_dropmiss ) {
+        if ( st_info->greshape_anystr == 0 ) {
+            for (i = 0; i < N; i++) {
+                // bufdbl is the row of the by variables
                 for (k = 0; k < kvars; k++) {
-                    outdbl[selx + k] = bufdbl[k];
-                }
-
-                // Copy the j variable value
-                outdbl[selx + kvars] = jdbl[j];
-
-                // Copy each of the xij variables
-                for (k = 0; k < kout; k++) {
-                    if ( (l = maplevel[k * klevels + j]) > 0 ) {
-                        if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
-                        outdbl[selx + kvars + k + 1] = z;
-                    }
-                    else {
-                        outdbl[selx + kvars + k + 1] = SV_missval;
-                    }
+                    if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
                 }
 
                 // Copy each of the xi variables
-                if ( kxi ) {
-                    memcpy(
-                        outdbl + selx + kvars + kout + 1,
-                        xidbl,
-                        kxi * sizeof(ST_double)
-                    );
-                }
-            }
-        }
-    }
-    else {
-        if ( st_info->kvars_by_str ) {
-            for (i = 0; i < N; i++) {
-                memset(bufstr, '\0', st_info->rowbytes);
-                for (k = 0; k < kvars; k++) {
-                    if ( st_info->byvars_lens[k] > 0 ) {
-                        if ( (rc = SF_sdata(k + 1,
-                                            i + st_info->in1,
-                                            bufstr + st_info->positions[k])) ) goto exit;
-                    }
-                    else {
-                        if ( (rc = SF_vdata(k + 1,
-                                            i + st_info->in1,
-                                            &z)) ) goto exit;
-                        memcpy(bufstr + st_info->positions[k], &z, sizeof(ST_double));
-                    }
-                }
-
-                memset(xistr, '\0', xibytes);
                 for (k = 0; k < kxi; k++) {
-                    if ( st_info->greshape_xitypes[k] ) {
-                        if ( (rc = SF_sdata(kvars + k + 1,
-                                            i + st_info->in1,
-                                            xistr + xipos[k])) ) goto exit;
-                    }
-                    else {
-                        if ( (rc = SF_vdata(kvars + k + 1,
-                                            i + st_info->in1,
-                                            &z)) ) goto exit;
-                        memcpy(xistr + xipos[k], &z, sizeof(ST_double));
-                    }
+                    if ( (rc = SF_vdata(kvars + k + 1,
+                                        i + st_info->in1,
+                                        xidbl + k)) ) goto exit;
                 }
 
                 for (j = 0; j < klevels; j++) {
-                    selx = i * klevels * outbytes + j * outbytes;
-                    memcpy(
-                        outstr + selx,
-                        bufstr,
-                        outpos[0]
-                    );
+                    skiprow = 1;
 
-                    memcpy(
-                        outstr + selx + outpos[0],
-                        jstr + j * jbytes,
-                        jbytes
-                    );
+                    // selx is the row in the output (long) vector
+                    selx = outobs * krow; // + j * krow;
 
+                    // Copy each of the xij variables
                     for (k = 0; k < kout; k++) {
-                        l = maplevel[k * klevels + j];
-                        if ( outtyp[k + 1] && (l > 0) ) {
-                            if ( (rc = SF_sdata(l,
-                                                i + st_info->in1,
-                                                outstr + selx + outpos[k + 1])) ) goto exit;
+                        if ( (l = maplevel[k * klevels + j]) > 0 ) {
+                            if ( (rc = SF_vdata(l, i + st_info->in1, xijdbl + k)) ) goto exit;
+                            skiprow = skiprow && SF_is_missing(xijdbl[k]);
                         }
                         else {
-                            if ( l > 0 ) {
-                                if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
-                            }
-                            else {
-                                z = SV_missval;
-                            }
-                            memcpy(
-                                outstr + selx + outpos[k + 1],
-                                &z,
-                                sizeof(ST_double)
-                            );
+                            xijdbl[k] = SV_missval;
                         }
                     }
 
+                    // Skip missing rows
+                    if ( skiprow ) continue;
+
+                    // copy a row of the by variables to the output vector
+                    for (k = 0; k < kvars; k++) {
+                        outdbl[selx + k] = bufdbl[k];
+                    }
+
+                    // Copy the j variable value
+                    outdbl[selx + kvars] = jdbl[j];
+
+                    // Copy each of the xij variables
+                    outdbl[selx + kvars + 1] = z;
+
+                    // Copy xij buffer to output matrix
+                    for (k = 0; k < kout; k++) {
+                        outdbl[selx + kvars + k + 1] = xijdbl[k];
+                    }
+
+                    // Copy each of the xi variables
                     if ( kxi ) {
                         memcpy(
-                            outstr + selx + outpos[kout + 1],
-                            xistr,
-                            xibytes
+                            outdbl + selx + kvars + kout + 1,
+                            xidbl,
+                            kxi * sizeof(ST_double)
+                        );
+                    }
+
+                    // Augment obs count
+                    outobs++;
+                }
+            }
+        }
+        else {
+            if ( st_info->kvars_by_str ) {
+                for (i = 0; i < N; i++) {
+                    memset(bufstr, '\0', st_info->rowbytes);
+                    for (k = 0; k < kvars; k++) {
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( (rc = SF_sdata(k + 1,
+                                                i + st_info->in1,
+                                                bufstr + st_info->positions[k])) ) goto exit;
+                        }
+                        else {
+                            if ( (rc = SF_vdata(k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(bufstr + st_info->positions[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    memset(xistr, '\0', xibytes);
+                    for (k = 0; k < kxi; k++) {
+                        if ( st_info->greshape_xitypes[k] ) {
+                            if ( (rc = SF_sdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                xistr + xipos[k])) ) goto exit;
+                        }
+                        else {
+                            if ( (rc = SF_vdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(xistr + xipos[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    for (j = 0; j < klevels; j++) {
+                        skiprow = 1;
+                        selx = outobs * outbytes; // + j * outbytes;
+                        memset(xijstr, '\0', outbytes);
+
+                        for (k = 0; k < kout; k++) {
+                            l = maplevel[k * klevels + j];
+                            if ( outtyp[k + 1] && (l > 0) ) {
+                                if ( (rc = SF_sdata(l,
+                                                    i + st_info->in1,
+                                                    xijstr + outpos[k + 1])) ) goto exit;
+
+                                skiprow = skiprow && (strcmp(xijstr + outpos[k + 1], "") == 0);
+                            }
+                            else {
+                                if ( l > 0 ) {
+                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                    skiprow = skiprow && SF_is_missing(z);
+                                }
+                                else {
+                                    z = SV_missval;
+                                }
+
+                                memcpy(
+                                    xijstr + outpos[k + 1],
+                                    &z,
+                                    sizeof(ST_double)
+                                );
+                            }
+                        }
+
+                        if ( skiprow ) continue;
+
+                        memcpy(
+                            outstr + selx,
+                            bufstr,
+                            outpos[0]
+                        );
+
+                        memcpy(
+                            outstr + selx + outpos[0],
+                            jstr + j * jbytes,
+                            jbytes
+                        );
+
+                        memcpy(
+                            outstr + selx + outpos[1],
+                            xijstr + outpos[1],
+                            xijbytes
+                        );
+
+                        if ( kxi ) {
+                            memcpy(
+                                outstr + selx + outpos[kout + 1],
+                                xistr,
+                                xibytes
+                            );
+                        }
+
+                        outobs++;
+                    }
+                }
+            }
+            else {
+                for (i = 0; i < N; i++) {
+                    for (k = 0; k < kvars; k++) {
+                        if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
+                    }
+
+                    memset(xistr, '\0', xibytes);
+                    for (k = 0; k < kxi; k++) {
+                        if ( st_info->greshape_xitypes[k] ) {
+                            if ( (rc = SF_sdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                xistr + xipos[k])) ) goto exit;
+                        }
+                        else {
+                            if ( (rc = SF_vdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(xistr + xipos[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    for (j = 0; j < klevels; j++) {
+                        skiprow = 1;
+                        selx = outobs * outbytes; // + j * outbytes;
+                        memset(xijstr, '\0', outbytes);
+
+                        for (k = 0; k < kout; k++) {
+                            l = maplevel[k * klevels + j];
+                            if ( outtyp[k + 1] && (l > 0) ) {
+                                if ( (rc = SF_sdata(l,
+                                                    i + st_info->in1,
+                                                    xijstr + outpos[k + 1])) ) goto exit;
+
+                                skiprow = skiprow && (strcmp(xijstr + outpos[k + 1], "") == 0);
+                            }
+                            else {
+                                if ( l > 0 ) {
+                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                    skiprow = skiprow && SF_is_missing(z);
+                                }
+                                else {
+                                    z = SV_missval;
+                                }
+
+                                memcpy(
+                                    xijstr + outpos[k + 1],
+                                    &z,
+                                    sizeof(ST_double)
+                                );
+                            }
+                        }
+
+                        if ( skiprow ) continue;
+
+                        memcpy(
+                            outstr + selx,
+                            bufdbl,
+                            outpos[0]
+                        );
+
+                        memcpy(
+                            outstr + selx + outpos[0],
+                            jstr + j * jbytes,
+                            jbytes
+                        );
+
+                        memcpy(
+                            outstr + selx + outpos[1],
+                            xijstr + outpos[1],
+                            xijbytes
+                        );
+
+                        if ( kxi ) {
+                            memcpy(
+                                outstr + selx + outpos[kout + 1],
+                                xistr,
+                                xibytes
+                            );
+                        }
+
+                        outobs++;
+                    }
+                }
+            }
+        }
+
+        if ( outobs == 0 ) {
+            sf_errprintf("no observations: all missing values with option -dropmiss-\n");
+            rc = 2000;
+            goto exit;
+        }
+    }
+    else {
+        if ( st_info->greshape_anystr == 0 ) {
+            for (i = 0; i < N; i++) {
+                // bufdbl is the row of the by variables
+                for (k = 0; k < kvars; k++) {
+                    if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
+                }
+
+                // Copy each of the xi variables
+                for (k = 0; k < kxi; k++) {
+                    if ( (rc = SF_vdata(kvars + k + 1,
+                                        i + st_info->in1,
+                                        xidbl + k)) ) goto exit;
+                }
+
+                for (j = 0; j < klevels; j++) {
+                    // selx is the row in the output (long) vector
+                    selx = i * krow * klevels + j * krow;
+
+                    // copy a row of the by variables to the output vector
+                    for (k = 0; k < kvars; k++) {
+                        outdbl[selx + k] = bufdbl[k];
+                    }
+
+                    // Copy the j variable value
+                    outdbl[selx + kvars] = jdbl[j];
+
+                    // Copy each of the xij variables
+                    for (k = 0; k < kout; k++) {
+                        if ( (l = maplevel[k * klevels + j]) > 0 ) {
+                            if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                            outdbl[selx + kvars + k + 1] = z;
+                        }
+                        else {
+                            outdbl[selx + kvars + k + 1] = SV_missval;
+                        }
+                    }
+
+                    // Copy each of the xi variables
+                    if ( kxi ) {
+                        memcpy(
+                            outdbl + selx + kvars + kout + 1,
+                            xidbl,
+                            kxi * sizeof(ST_double)
                         );
                     }
                 }
             }
         }
         else {
-            for (i = 0; i < N; i++) {
-                for (k = 0; k < kvars; k++) {
-                    if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
-                }
-
-                memset(xistr, '\0', xibytes);
-                for (k = 0; k < kxi; k++) {
-                    if ( st_info->greshape_xitypes[k] ) {
-                        if ( (rc = SF_sdata(kvars + k + 1,
-                                            i + st_info->in1,
-                                            xistr + xipos[k])) ) goto exit;
-                    }
-                    else {
-                        if ( (rc = SF_vdata(kvars + k + 1,
-                                            i + st_info->in1,
-                                            &z)) ) goto exit;
-                        memcpy(xistr + xipos[k], &z, sizeof(ST_double));
-                    }
-                }
-
-                for (j = 0; j < klevels; j++) {
-                    selx = i * klevels * outbytes + j * outbytes;
-                    memcpy(
-                        outstr + selx,
-                        bufdbl,
-                        outpos[0]
-                    );
-
-                    memcpy(
-                        outstr + selx + outpos[0],
-                        jstr + j * jbytes,
-                        jbytes
-                    );
-
-                    for (k = 0; k < kout; k++) {
-                        l = maplevel[k * klevels + j];
-                        if ( outtyp[k + 1] && (l > 0) ) {
-                            if ( (rc = SF_sdata(l,
+            if ( st_info->kvars_by_str ) {
+                for (i = 0; i < N; i++) {
+                    memset(bufstr, '\0', st_info->rowbytes);
+                    for (k = 0; k < kvars; k++) {
+                        if ( st_info->byvars_lens[k] > 0 ) {
+                            if ( (rc = SF_sdata(k + 1,
                                                 i + st_info->in1,
-                                                outstr + selx + outpos[k + 1])) ) goto exit;
+                                                bufstr + st_info->positions[k])) ) goto exit;
                         }
                         else {
-                            if ( l > 0 ) {
-                                if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                            if ( (rc = SF_vdata(k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(bufstr + st_info->positions[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    memset(xistr, '\0', xibytes);
+                    for (k = 0; k < kxi; k++) {
+                        if ( st_info->greshape_xitypes[k] ) {
+                            if ( (rc = SF_sdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                xistr + xipos[k])) ) goto exit;
+                        }
+                        else {
+                            if ( (rc = SF_vdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(xistr + xipos[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    for (j = 0; j < klevels; j++) {
+                        selx = i * klevels * outbytes + j * outbytes;
+                        memcpy(
+                            outstr + selx,
+                            bufstr,
+                            outpos[0]
+                        );
+
+                        memcpy(
+                            outstr + selx + outpos[0],
+                            jstr + j * jbytes,
+                            jbytes
+                        );
+
+                        for (k = 0; k < kout; k++) {
+                            l = maplevel[k * klevels + j];
+                            if ( outtyp[k + 1] && (l > 0) ) {
+                                if ( (rc = SF_sdata(l,
+                                                    i + st_info->in1,
+                                                    outstr + selx + outpos[k + 1])) ) goto exit;
                             }
                             else {
-                                z = SV_missval;
+                                if ( l > 0 ) {
+                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                }
+                                else {
+                                    z = SV_missval;
+                                }
+                                memcpy(
+                                    outstr + selx + outpos[k + 1],
+                                    &z,
+                                    sizeof(ST_double)
+                                );
                             }
+                        }
+
+                        if ( kxi ) {
                             memcpy(
-                                outstr + selx + outpos[k + 1],
-                                &z,
-                                sizeof(ST_double)
+                                outstr + selx + outpos[kout + 1],
+                                xistr,
+                                xibytes
                             );
                         }
                     }
+                }
+            }
+            else {
+                for (i = 0; i < N; i++) {
+                    for (k = 0; k < kvars; k++) {
+                        if ( (rc = SF_vdata(k + 1, i + st_info->in1, bufdbl + k)) ) goto exit;
+                    }
 
-                    if ( kxi ) {
+                    memset(xistr, '\0', xibytes);
+                    for (k = 0; k < kxi; k++) {
+                        if ( st_info->greshape_xitypes[k] ) {
+                            if ( (rc = SF_sdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                xistr + xipos[k])) ) goto exit;
+                        }
+                        else {
+                            if ( (rc = SF_vdata(kvars + k + 1,
+                                                i + st_info->in1,
+                                                &z)) ) goto exit;
+                            memcpy(xistr + xipos[k], &z, sizeof(ST_double));
+                        }
+                    }
+
+                    for (j = 0; j < klevels; j++) {
+                        selx = i * klevels * outbytes + j * outbytes;
                         memcpy(
-                            outstr + selx + outpos[kout + 1],
-                            xistr,
-                            xibytes
+                            outstr + selx,
+                            bufdbl,
+                            outpos[0]
                         );
+
+                        memcpy(
+                            outstr + selx + outpos[0],
+                            jstr + j * jbytes,
+                            jbytes
+                        );
+
+                        for (k = 0; k < kout; k++) {
+                            l = maplevel[k * klevels + j];
+                            if ( outtyp[k + 1] && (l > 0) ) {
+                                if ( (rc = SF_sdata(l,
+                                                    i + st_info->in1,
+                                                    outstr + selx + outpos[k + 1])) ) goto exit;
+                            }
+                            else {
+                                if ( l > 0 ) {
+                                    if ( (rc = SF_vdata(l, i + st_info->in1, &z)) ) goto exit;
+                                }
+                                else {
+                                    z = SV_missval;
+                                }
+                                memcpy(
+                                    outstr + selx + outpos[k + 1],
+                                    &z,
+                                    sizeof(ST_double)
+                                );
+                            }
+                        }
+
+                        if ( kxi ) {
+                            memcpy(
+                                outstr + selx + outpos[kout + 1],
+                                xistr,
+                                xibytes
+                            );
+                        }
                     }
                 }
             }
@@ -479,18 +751,34 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
      *                       Step 4: Copy to disk                        *
      *********************************************************************/
 
-    if ( (rc = SF_scal_save ("__gtools_greshape_nrows",
-                             (ST_double) N * klevels)) ) goto exit;
+    if ( st_info->greshape_dropmiss ) {
+        if ( (rc = SF_scal_save ("__gtools_greshape_nrows",
+                                 (ST_double) outobs)) ) goto exit;
+    }
+    else {
+        if ( (rc = SF_scal_save ("__gtools_greshape_nrows",
+                                 (ST_double) N * klevels)) ) goto exit;
+    }
 
     if ( (rc = SF_scal_save ("__gtools_greshape_ncols",
                              (ST_double) krow)) ) goto exit;
 
     fhandle = fopen(fname, "wb");
-    if ( st_info->greshape_anystr ) {
-        rc = (fwrite(outstr, outbytes, N * klevels, fhandle) != (N * klevels));
+    if ( st_info->greshape_dropmiss ) {
+        if ( st_info->greshape_anystr ) {
+            rc = (fwrite(outstr, outbytes, outobs, fhandle) != (outobs));
+        }
+        else {
+            rc = (fwrite(outdbl, sizeof *outdbl, outobs * krow, fhandle) != (outobs * krow));
+        }
     }
     else {
-        rc = (fwrite(outdbl, sizeof *outdbl, N * klevels * krow, fhandle) != (N * klevels * krow));
+        if ( st_info->greshape_anystr ) {
+            rc = (fwrite(outstr, outbytes, N * klevels, fhandle) != (N * klevels));
+        }
+        else {
+            rc = (fwrite(outdbl, sizeof *outdbl, N * klevels * krow, fhandle) != (N * klevels * krow));
+        }
     }
     fclose (fhandle);
 

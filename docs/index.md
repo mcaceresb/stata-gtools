@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.3%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.8%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.3 04Apr2019`
+`version 1.5.8 11Jun2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -65,15 +65,17 @@ or thousands of times faster, but this is an edge case.</small>
 
 __*Extra commands*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                        |
-| ------------------- | ------------------ | ----------------------- | ---------------------------- |
-| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
-|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
-|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
-| gstats winsor       | winsor2            |  10 to 40 / 10 to 20    | Can use weights              |
-| gunique             | unique             |  4 to 26 / 4 to 12      |                              |
-| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                         |
+| ------------------- | ------------------ | ----------------------- | ----------------------------- |
+| fasterxtile         | fastxtile          | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
+|                     | egenmisc (SSC) (-) | 8 to 25 / 2.5 to 6      |                               |
+|                     | astile (SSC) (-)   | 8 to 12 / 3.5 to 6      |                               |
+| gstats winsor       | winsor2            | 10 to 40 / 10 to 20     | Allows weights                |
+| gunique             | unique             | 4 to 26 / 4 to 12       |                               |
+| gdistinct           | distinct           | 4 to 26 / 4 to 12       | Also saves results in matrix  |
+| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)           |
+| gstats range        | rangestat          | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
+| gstats transform    |                    |                         | Various statistical functions |
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -96,6 +98,7 @@ details and examples, see each command's help page:
 - [greshape](usage/greshape#examples)
 - [gquantiles](usage/gquantiles#examples)
 - [gstats sum/tab](usage/gstats_summarize#examples)
+- [gstats transform/range/moving](usage/gstats_transform#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
@@ -277,6 +280,15 @@ greshape long f p, i(foreign) j(j)
 
 greshape spread f p, j(j)
 greshape gather f? p?, j(j) value(fp)
+
+* gstats transform (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
+* gstats range  (stat) out = src [...] [if] [if] [weight], by(varlist) [options]
+* gstats moving (stat) out = src [...] [if] [if] [weight], by(varlist) [options]
+
+sysuse auto, clear
+gstats transform (normalize) price (demean) price (range mean -sd sd) price, auto
+gstats range  (mean) mean_r = price (sd) sd_r = price, interval(-10 10 mpg)
+gstats moving (mean) mean_m = price (sd) sd_m = price, by(foreign) window(-5 5)
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -313,17 +325,18 @@ The following are implemented internally in C:
 | total       |           |   X     |            |
 | count       |     X     |   X     |      X     |
 | nunique     |     X     |   X     |      X     |
-| nmissing    |     X     |   X     |      X     |
+| nmissing    |     X     |   X (+) |      X     |
 | sum         |     X     |   X     |      X     |
 | nansum      |     X     |   X     |      X     |
 | rawsum      |     X     |         |      X     |
 | rawnansum   |     X     |         |      X     |
 | mean        |     X     |   X     |      X     |
+| geomean     |     X     |   X     |      X     |
 | median      |     X     |   X     |      X     |
 | percentiles |     X     |   X     |      X     |
 | iqr         |     X     |   X     |      X     |
 | sd          |     X     |   X     |      X     |
-| variance    |     X     |   X     |      X     |
+| variance    |     X     |   X (+) |      X     |
 | cv          |     X     |   X     |      X     |
 | max         |     X     |   X     |      X     |
 | min         |     X     |   X     |      X     |
@@ -335,15 +348,16 @@ The following are implemented internally in C:
 | last        |     X     |   X (+) |      X     |
 | firstnm     |     X     |   X (+) |      X     |
 | lastnm      |     X     |   X (+) |      X     |
-| semean      |     X     |   X     |      X     |
+| semean      |     X     |   X (+) |      X     |
 | sebinomial  |     X     |   X     |      X     |
 | sepoisson   |     X     |   X     |      X     |
 | skewness    |     X     |   X     |      X     |
 | kurtosis    |     X     |   X     |      X     |
 
-<small>(+) first, last, firstmn, and lastnm are different from their counterparts
-in the egenmore package and, instead, they are analogous to the gcollapse
-counterparts.</small>
+<small>(+) indicates the function has the same or a very similar
+name to a function in the "egenmore" packge, but the function was
+independently implemented and is hence analogous to its gcollapse
+counterpart, not necessarily the function in egenmore.</small>
 
 The percentile syntax mimics that of `collapse` and `egen`, with the addition
 that quantiles are also supported. That is,
@@ -360,6 +374,22 @@ gcollapse (select#) target = var [(select-#) target = var ...] , by(varlist)
 gegen target = select(var), by(varlist) n(#)
 gegen target = select(var), by(varlist) n(-#)
 ```
+
+In addition, the following are allowed in `gegen` as wrappers to other
+gtools functions (`stat` is any stat available to `gcollapse`, except
+`percent`, `nunique`):
+
+| Function     | calls            |
+| ------------ | ---------------- |
+| xtile        | fasterxtile      |
+| standardize  | gstats transform |
+| normalize    | gstats transform |
+| demean       | gstats transform |
+| demedian     | gstats transform |
+| moving\_stat | gstats transform |
+| range\_stat  | gstats transform |
+| winsor       | gstats winsor    |
+| winsorize    | gstats winsor    |
 
 Last, when `gegen` calls a function that is not implemented internally by
 `gtools`, it will hash the by variables and call `egen` with `by` set to an
@@ -398,7 +428,7 @@ Differences from `collapse`
 - `gcollapse, labelformat` allows specifying the output label using placeholders.
 - `gcollapse, sumcheck` keeps integer types with `sum` if the sum will not overflow.
 
-Differences from `greshape`
+Differences from `reshape`
 
 - Allows an arbitrary number of variables in `i()` and `j()`
 - Several option allow turning off error checks for faster execution,
@@ -418,6 +448,8 @@ Differences from `greshape`
 - For that same reason, "advanced" syntax is not supported, including
   the subcommands: clear, error, query, i, j, xij, and xi.
 - `@` syntax can be modified via `match()`
+- `dropmiss` allows dropping missing observations when reshaping from
+  wide to long (via `long` or `gather`).
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -513,6 +545,31 @@ Differences from `duplicates`
   enhances performance but it might be harder to read. Pass option `sort`
   (`sorted`) to mimic `duplicates` behavior and sort the list.
 
+Differences from `rangestat`
+
+- Note that `gstats range` is an alias for `gstats transform` that assumes
+  all the stats requested are range statistics. However, it can be called
+  in conjunction with any other transform via `(range stat ...)`. It was
+  not intended to be a replacement of `rangestat` but it can replicate some
+  of its functionality.
+
+- `flex_stat`s (reg, corr, cov) are not allowed.
+
+- Intervals are of the form `interval(low high [keyvar])`; if `keyvar`
+  is missing then it is taken to be the source variable.
+
+r Variables are not allowed in place of `low` or `high`. Instead they
+  must be `#[stat]` where `#` is a number and `stat` is an optional
+  summary statistic; e.g. `interval(-sd 0.5sd x)`.
+
+- Separate interval and interval variables can be specified for each
+  target; e.g. `gstats range (mean -3 3) x (mean -2 . time) y ...`.
+
+- All statistics allowed by `gstats tab` are allowed by `gstats range`
+  (except `nunique` or `percent`).
+
+- Options `casewise`, `describe`, and `local` are not allowed.
+
 Hashing and Sorting
 -------------------
 
@@ -565,27 +622,26 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
+These are options/features/improvements I would like to add, but I don't
+have an ETA for them (in order of how likely they are to come):
+
 - Update benchmarks for all commands. Still on 0.8 benchmarks.
-- `geomean` for geometric mean (`exp(mean(log(x)))` for gcollapse, gstats tab, gegen).
+- Dropmissing vs dropmissing but not extended missing values.
 - Allow keeping both variable names and labels in `greshape spread/gather`
-- Implement `collapse()` option for `greshape`.
 - Implement `selectoverflow(missing|closest)`
 - Add totals row for `J > 1` in gstats
-
-These are options/features/improvements I would like to add, but I don't
-have an ETA for them:
-
-- Implement `gmerge`
-    - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
+- Improve debugging info.
+- Implement `collapse()` option for `greshape`.
 - Add support for binary `strL` variables.
 - Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.
 - Create a Stata C hashing API with thin wrappers around core functions.
     - This will be a C library that other users can import.
     - Some functionality will be available from Stata via gtooos, api()
-- Improve debugging info.
-- Improve code comments when you write the API!
-- Have some type of coding standard for the base (coding style)
+    - Improve code comments when you write the API!
+    - Have some type of coding standard for the base (coding style)
+- Implement `gmerge`
+    - Integration with [ReadStat](https://github.com/WizardMac/ReadStat/tree/master/src)?
 
 About
 -----

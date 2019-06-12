@@ -1255,6 +1255,7 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
     if ( pretty ) {
         if ( scode ==  -1   )  return("Sum")                  // sum
         if ( scode ==  -2   )  return("Mean")                 // mean
+        if ( scode ==  -26  )  return("Geometric mean")       // geomean
         if ( scode ==  -3   )  return("St Dev.")              // sd
         if ( scode ==  -4   )  return("Max")                  // max
         if ( scode ==  -5   )  return("Min")                  // min
@@ -1311,6 +1312,7 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
     else {
         if ( scode ==  -1   ) return("sum")
         if ( scode ==  -2   ) return("mean")
+        if ( scode ==  -26  ) return("geomean")
         if ( scode ==  -3   ) return("sd")
         if ( scode ==  -4   ) return("max")
         if ( scode ==  -5   ) return("min")

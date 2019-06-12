@@ -11,7 +11,7 @@ program bench
 end
 
 clear
-set obs 10 00000
+set obs 10000000
 gen groups = int(runiform() * 1000)
 gen rsort  = rnormal()
 gen rvar   = rnormal()
@@ -107,26 +107,30 @@ gen smallg = mod(groups, 10)
 bench 81: qui gstats tab rvar, by(smallg) s(n mean min max)
 bench 80: qui tabstat rvar,    by(smallg) s(n mean min max)
 
-local commands     ///
-        collapse   ///
-        collapse   ///
-        reshape    ///
-        reshape    ///
-        xtile      ///
-        pctile     ///
-        egen       ///
-        contract   ///
-        isid       ///
-        duplicates ///
-        levelsof   ///
-        distinct   ///
-        winsor     ///
-        sum_detail ///
-        tabstat
+bench 86: qui gstats range (mean) g_rm = rvar, by(groups) interval(-10 10 ix)
+bench 85: qui rangestat (mean) r_rm = rvar, by(groups) interval(ix -10 10)
+
+local commands   ///
+      collapse   ///
+      collapse   ///
+      reshape    ///
+      reshape    ///
+      xtile      ///
+      pctile     ///
+      egen       ///
+      contract   ///
+      isid       ///
+      duplicates ///
+      levelsof   ///
+      distinct   ///
+      winsor     ///
+      sum_detail ///
+      tabstat    ///
+      range_stat
 
 local bench_table `"     Versus | Native | gtools | % faster "'
 local bench_table `"`bench_table'"' _n(1) `" ---------- | ------ | ------ | -------- "'
-forvalues i = 10(5)80 {
+forvalues i = 10(5)85 {
     gettoken cmd commands: commands
     local pct      "`:disp %7.2f  100 * (`r`i'' - `r`=`i'+1'') / `r`i'''"
     local dnative  "`:disp %6.2f `r`i'''"

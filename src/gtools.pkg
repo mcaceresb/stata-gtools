@@ -91,6 +91,8 @@ f gstats_tab.sthlp
 f gstats_sum.sthlp
 f gstats_summarize.sthlp
 f gstats_transform.sthlp
+f gstats_range.sthlp
+f gstats_moving.sthlp
 f gtools.sthlp
 f lgtools.mlib
 f gtools_windows_v2.plugin

@@ -65,15 +65,17 @@ or thousands of times faster, but this is an edge case.</small>
 
 __*Extra commands*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                        |
-| ------------------- | ------------------ | ----------------------- | ---------------------------- |
-| fasterxtile         | fastxtile          |  20 to 30 / 2.5 to 3.5  | Can use `by()`               |
-|                     | egenmisc (SSC) (-) |  8 to 25 / 2.5 to 6     |                              |
-|                     | astile (SSC) (-)   |  8 to 12 / 3.5 to 6     |                              |
-| gstats winsor       | winsor2            |  10 to 40 / 10 to 20    | Can use weights              |
-| gunique             | unique             |  4 to 26 / 4 to 12      |                              |
-| gdistinct           | distinct           |  4 to 26 / 4 to 12      | Also saves results in matrix |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)          |
+| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                         |
+| ------------------- | ------------------ | ----------------------- | ----------------------------- |
+| fasterxtile         | fastxtile          | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
+|                     | egenmisc (SSC) (-) | 8 to 25 / 2.5 to 6      |                               |
+|                     | astile (SSC) (-)   | 8 to 12 / 3.5 to 6      |                               |
+| gstats winsor       | winsor2            | 10 to 40 / 10 to 20     | Allows weights                |
+| gunique             | unique             | 4 to 26 / 4 to 12       |                               |
+| gdistinct           | distinct           | 4 to 26 / 4 to 12       | Also saves results in matrix  |
+| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)           |
+| gstats range        | rangestat          | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
+| gstats transform    |                    |                         | Various statistical functions |
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -96,6 +98,7 @@ details and examples, see each command's help page:
 - [greshape](usage/greshape#examples)
 - [gquantiles](usage/gquantiles#examples)
 - [gstats sum/tab](usage/gstats_summarize#examples)
+- [gstats transform/range/moving](usage/gstats_transform#examples)
 - [gtoplevelsof](usage/gtoplevelsof#examples)
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
@@ -277,6 +280,15 @@ greshape long f p, i(foreign) j(j)
 
 greshape spread f p, j(j)
 greshape gather f? p?, j(j) value(fp)
+
+* gstats transform (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
+* gstats range  (stat) out = src [...] [if] [if] [weight], by(varlist) [options]
+* gstats moving (stat) out = src [...] [if] [if] [weight], by(varlist) [options]
+
+sysuse auto, clear
+gstats transform (normalize) price (demean) price (range mean -sd sd) price, auto
+gstats range  (mean) mean_r = price (sd) sd_r = price, interval(-10 10 mpg)
+gstats moving (mean) mean_m = price (sd) sd_m = price, by(foreign) window(-5 5)
 ```
 
 See the [FAQs](faqs) or the respective documentation for a list of supported
@@ -365,7 +377,7 @@ gegen target = select(var), by(varlist) n(-#)
 
 In addition, the following are allowed in `gegen` as wrappers to other
 gtools functions (`stat` is any stat available to `gcollapse`, except
-percent, nunique):
+`percent`, `nunique`):
 
 | Function     | calls            |
 | ------------ | ---------------- |
@@ -532,6 +544,31 @@ Differences from `duplicates`
 - `gduplicates` does not sort `examples` or `list` by default. This massively
   enhances performance but it might be harder to read. Pass option `sort`
   (`sorted`) to mimic `duplicates` behavior and sort the list.
+
+Differences from `rangestat`
+
+- Note that `gstats range` is an alias for `gstats transform` that assumes
+  all the stats requested are range statistics. However, it can be called
+  in conjunction with any other transform via `(range stat ...)`. It was
+  not intended to be a replacement of `rangestat` but it can replicate some
+  of its functionality.
+
+- `flex_stat`s (reg, corr, cov) are not allowed.
+
+- Intervals are of the form `interval(low high [keyvar])`; if `keyvar`
+  is missing then it is taken to be the source variable.
+
+r Variables are not allowed in place of `low` or `high`. Instead they
+  must be `#[stat]` where `#` is a number and `stat` is an optional
+  summary statistic; e.g. `interval(-sd 0.5sd x)`.
+
+- Separate interval and interval variables can be specified for each
+  target; e.g. `gstats range (mean -3 3) x (mean -2 . time) y ...`.
+
+- All statistics allowed by `gstats tab` are allowed by `gstats range`
+  (except `nunique` or `percent`).
+
+- Options `casewise`, `describe`, and `local` are not allowed.
 
 Hashing and Sorting
 -------------------

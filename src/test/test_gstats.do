@@ -464,22 +464,22 @@ program checks_gstats_transform
         foreach stat in `stats' `selections' `percentiles' {
             disp "    `stat'"
 
-            local s1  ( range `stat'   -3      5.5      gear_ratio ) p1  = price      g1  = weight
-            local s2  ( range `stat'   -3     -1        mpg        ) p2  = price      g2  = weight
-            local s3  ( range `stat' 7.33      3        length     ) p3  = gear_ratio g3  = weight
-            local s4  ( range `stat'   -3      5.5                 ) p4  = gear_ratio g4  = weight
-            local s5  ( range `stat'   -3     -1                   ) p5  = gear_ratio g5  = weight
-            local s6  ( range `stat'    2      6.25     turn       ) p6  = gear_ratio g6  = weight
-            local s7  ( range `stat'   -3      .        turn       ) p7  = gear_ratio g7  = weight
-            local s8  ( range `stat'    .      3        gear_ratio ) p8  = gear_ratio g8  = weight
-            local s9  ( range `stat'    .     -3        gear_ratio ) p9  = price      g9  = weight
-            local s10 ( range `stat' 7.33      3                   ) p10 = price      g10 = weight
-            local s11 ( range `stat'    2      6.25                ) p11 = price      g11 = weight
-            local s12 ( range `stat'   -3      .                   ) p12 = gear_ratio g12 = weight
-            local s13 ( range `stat'    .      3                   ) p13 = gear_ratio g13 = weight
-            local s14 ( range `stat'    .     -3                   ) p14 = price      g14 = weight
-            local s15 ( range `stat'    3      .        gear_ratio ) p15 = price      g15 = weight
-            local s16 ( range `stat'                               ) p16 = price      g16 = weight
+            local s1  ( range `stat'   -3      5.5      gear_ratio ) p1  = price       // g1  = weight
+            local s2  ( range `stat'   -3     -1        mpg        ) p2  = price       // g2  = weight
+            local s3  ( range `stat' 7.33      3        length     ) p3  = gear_ratio  // g3  = weight
+            local s4  ( range `stat'   -3      5.5                 ) p4  = gear_ratio  // g4  = weight
+            local s5  ( range `stat'   -3     -1                   ) p5  = gear_ratio  // g5  = weight
+            local s6  ( range `stat'    2      6.25     turn       ) p6  = gear_ratio  // g6  = weight
+            local s7  ( range `stat'   -3      .        turn       ) p7  = gear_ratio  // g7  = weight
+            local s8  ( range `stat'    .      3        gear_ratio ) p8  = gear_ratio  // g8  = weight
+            local s9  ( range `stat'    .     -3        gear_ratio ) p9  = price       // g9  = weight
+            local s10 ( range `stat' 7.33      3                   ) p10 = price       // g10 = weight
+            local s11 ( range `stat'    2      6.25                ) p11 = price       // g11 = weight
+            local s12 ( range `stat'   -3      .                   ) p12 = gear_ratio  // g12 = weight
+            local s13 ( range `stat'    .      3                   ) p13 = gear_ratio  // g13 = weight
+            local s14 ( range `stat'    .     -3                   ) p14 = price       // g14 = weight
+            local s15 ( range `stat'    3      .        gear_ratio ) p15 = price       // g15 = weight
+            local s16 ( range `stat'                               ) p16 = price       // g16 = weight
 
             local call
             forvalues i = 1 / 16 {
@@ -551,28 +551,28 @@ program checks_gstats_transform
         foreach stat in `stats' `selections' `percentiles' {
             disp "    `stat'"
 
-            local s1  ( range mean       -3`sl'  5.5`ul'  gear_ratio ) p1  = price      g1  = weight
-            local s2  ( range mean        3      .                   ) p2  = price      g2  = weight
-            local s3  ( range nmissing   -3`sl'  5.5`ul'             ) p3  = gear_ratio g3  = weight
-            local s4  ( range sum        -3`sl' -1`ul'               ) p4  = gear_ratio g4  = weight
-            local s5  ( range mean     7.33`sl'  3`ul'               ) p5  = gear_ratio g5  = weight
-            local s6  ( range geomean     2`sl'  6.25`ul'            ) p6  = gear_ratio g6  = weight
-            local s7  ( range cv         -3`sl'  .                   ) p7  = gear_ratio g7  = weight
-            local s8  ( range sd          .      3`ul'               ) p8  = gear_ratio g8  = weight
-            local s9  ( range variance   -3`sl' -1`ul'    length     ) p9  = gear_ratio g9  = weight
-            local s10 ( range max      7.33`sl'  3`ul'    length     ) p10 = price      g10 = weight
-            local s11 ( range min         .     -3`ul'               ) p11 = price      g11 = weight
-            local s12 ( range range       2`sl'  6.25`ul' gear_ratio ) p12 = price      g12 = weight
-            local s13 ( range count       3      .                   ) p13 = price      g13 = weight
-            local s14 ( range first      -3`sl'  .        gear_ratio ) p14 = price      g14 = weight
-            local s15 ( range last        .      3`ul'    mpg        ) p15 = price      g15 = weight
-            local s16 ( range mean        .     -3`ul'    mpg        ) p16 = price      g16 = weight
-            local s17 ( range firstnm    -3`sl'  5.5                 ) p17 = price      g17 = weight
-            local s18 ( range lastnm      3      .        mpg        ) p18 = price      g18 = weight
-            local s19 ( range median     -3`sl'  5.5      gear_ratio ) p19 = price      g19 = weight
-            local s20 ( range iqr        -3     -1`ul'               ) p20 = price      g20 = weight
-            local s21 ( range skew       -3     -1`ul'    gear_ratio ) p21 = price      g21 = weight
-            local s22 ( range kurt                                   ) p22 = price      g22 = weight
+            local s1  ( range mean       -3`sl'  5.5`ul'  gear_ratio ) p1  = price       // g1  = weight
+            local s2  ( range mean        3      .                   ) p2  = price       // g2  = weight
+            local s3  ( range nmissing   -3`sl'  5.5`ul'             ) p3  = gear_ratio  // g3  = weight
+            local s4  ( range sum        -3`sl' -1`ul'               ) p4  = gear_ratio  // g4  = weight
+            local s5  ( range mean     7.33`sl'  3`ul'               ) p5  = gear_ratio  // g5  = weight
+            local s6  ( range geomean     2`sl'  6.25`ul'            ) p6  = gear_ratio  // g6  = weight
+            local s7  ( range cv         -3`sl'  .                   ) p7  = gear_ratio  // g7  = weight
+            local s8  ( range sd          .      3`ul'               ) p8  = gear_ratio  // g8  = weight
+            local s9  ( range variance   -3`sl' -1`ul'    length     ) p9  = gear_ratio  // g9  = weight
+            local s10 ( range max      7.33`sl'  3`ul'    length     ) p10 = price       // g10 = weight
+            local s11 ( range min         .     -3`ul'               ) p11 = price       // g11 = weight
+            local s12 ( range range       2`sl'  6.25`ul' gear_ratio ) p12 = price       // g12 = weight
+            local s13 ( range count       3      .                   ) p13 = price       // g13 = weight
+            local s14 ( range first      -3`sl'  .        gear_ratio ) p14 = price       // g14 = weight
+            local s15 ( range last        .      3`ul'    mpg        ) p15 = price       // g15 = weight
+            local s16 ( range mean        .     -3`ul'    mpg        ) p16 = price       // g16 = weight
+            local s17 ( range firstnm    -3`sl'  5.5                 ) p17 = price       // g17 = weight
+            local s18 ( range lastnm      3      .        mpg        ) p18 = price       // g18 = weight
+            local s19 ( range median     -3`sl'  5.5      gear_ratio ) p19 = price       // g19 = weight
+            local s20 ( range iqr        -3     -1`ul'               ) p20 = price       // g20 = weight
+            local s21 ( range skew       -3     -1`ul'    gear_ratio ) p21 = price       // g21 = weight
+            local s22 ( range kurt                                   ) p22 = price       // g22 = weight
 
             local call
             forvalues i = 1 / 22 {

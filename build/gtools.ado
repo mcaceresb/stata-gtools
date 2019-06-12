@@ -439,6 +439,15 @@ program gtools_showcase
     gtools_cmd
     gtools_cmd  greshape spread f p, j(j)
     gtools_cmd  greshape gather f? p?, j(j) value(fp)
+
+    gtools_head gstats transform (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
+    disp "    gstats range  (stat) out = src [...] [if] [if] [weight], by(varlist) [options]"
+    disp "    gstats moving (stat) out = src [...] [if] [if] [weight], by(varlist) [options]"
+
+    gtools_cmd sysuse auto, clear
+    gtools_cmd gstats transform (normalize) price (demean) price (range mean -sd sd) price, auto
+    gtools_cmd gstats range  (mean) mean_r = price (sd) sd_r = price, interval(-10 10 mpg)
+    gtools_cmd gstats moving (mean) mean_m = price (sd) sd_m = price, by(foreign) window(-5 5)
 end
 
 capture program drop gtools_head

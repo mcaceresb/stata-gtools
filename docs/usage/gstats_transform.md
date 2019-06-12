@@ -51,7 +51,9 @@ with any one of the folloing:
 | p99         | 99th percentile
 | iqr         | interquartile range
 | sum         | sums
+| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
 | nansum      | sum; returns . instead of 0 if all entries are missing
+| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
 | sd          | standard deviation
 | variance    | variance
 | cv          | coefficient of variation (`sd/mean`)
@@ -64,6 +66,8 @@ with any one of the folloing:
 | min         | minimums
 | select#     | `#`th smallest non-missing
 | select-#    | `#`th largest non-missing
+| rawselect#  | `#`th smallest non-missing, ignoring weights
+| rawselect-# | `#`th largest non-missing, ignoring weights
 | range       | range (`max` - `min`)
 | first       | first value
 | last        | last value
@@ -269,8 +273,12 @@ gstats transform (range mean -0.5sd 0.5sd) x5 = invest
 ```
 
 computes the mean within half a standard deviation of invest (if we
-don't specify a range variable, then the source variable is used).
-We can specify different intervals per variable as well as a global
+don't specify a range variable, then the source variable is used). Note
+that we used `gstats range` instead of `gstats transform`. This is
+simply an alias that assumes every subsequent statistic will be a range
+statistic. It is provided for ease of syntax.
+
+We can specify also different intervals per variable as well as a global
 interval used whenever a variable-specific interval is not used:
 
 ```stata
@@ -285,13 +293,14 @@ gstats transform `i6' `i7' `i8', by(company) interval(-3 3 year) `opts'
 You can also exclude the current observation from the computation
 
 ```stata
-gstats transform (range mean -3 0 year) x10 = invest, excludeself
+gstats range (mean -3 0 year) x10 = invest, excludeself
 gegen x11 = range_mean(invest), by(company) excludeself interval(-3 0 year)
 ```
 
 ### Moving statistics
 
 Note the moving window is defined relative to the current observation.
+As with range, gstats moving is an alias:
 
 ```stata
 clear
@@ -302,13 +311,12 @@ gen w = mod(_n, 7)
 
 gegen x1 = moving_mean(x), window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x, by(g)
-gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x ///
-    (moving select3) x5 = x, by(g) window(-3 3)
+gstats moving (sd -4 .) x3 = x (p75) x4 = x (select3) x5 = x, by(g) window(-3 3)
 l
 
 drop x?
 gegen x1 = moving_mean(x) [fw = w], window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x [aw = w], by(g)
-gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x [pw = w / 7], by(g) window(-3 3)
+gstats moving (sd -4 .) x3 = x (p75) x4 = x [pw = w / 7], by(g) window(-3 3)
 l
 ```

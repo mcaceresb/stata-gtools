@@ -61,7 +61,9 @@ assumed to be moving or range statistics, respectively. {cmd:moving} and
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt nmissing}}number of missing observations{p_end}
 {p2col :{opt sum}}sums{p_end}
+{p2col :{opt rawsum}}sums, ignoring optionally specified weights ({bf:note}: zero-weighted obs are still excluded){p_end}
 {p2col :{opt nansum}}sum; returns . instead of 0 if all entries are missing{p_end}
+{p2col :{opt rawnansum}}rawsum; returns . instead of 0 if all entries are missing{p_end}
 {p2col :{opt median}}medians (same as {opt p50}){p_end}
 {p2col :{opt p#.#}}arbitrary quantiles{p_end}
 {p2col :{opt p1}}1st percentile{p_end}
@@ -77,6 +79,8 @@ assumed to be moving or range statistics, respectively. {cmd:moving} and
 {p2col :{opt cv}}coefficient of variation ({cmd:sd/mean}){p_end}
 {p2col :{opt select#}}#th smallest{p_end}
 {p2col :{opt select-#}}#th largest{p_end}
+{p2col :{opt rawselect#}}#th smallest, ignoring weights{p_end}
+{p2col :{opt rawselect-#}}#th largest, ignoring weights{p_end}
 {p2col :{opt max}}maximums{p_end}
 {p2col :{opt min}}minimums{p_end}
 {p2col :{opt range}}range = {opt max} - {opt min}{p_end}

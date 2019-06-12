@@ -4759,20 +4759,20 @@ program gstats_transform
         }
     }
 
-    if ( `bwarn4' ) {
-        disp as txt "{bf:warning}: requested transform {bf:'moving'} is in beta"
-    }
-
-    if ( `bwarn5' ) {
-        disp as txt "{bf:warning}: requested transform {bf:'range'} is in beta"
-    }
+    * if ( `bwarn4' ) {
+    *     disp as txt "{bf:warning}: requested transform {bf:'moving'} is in beta"
+    * }
+    *
+    * if ( `bwarn5' ) {
+    *     disp as txt "{bf:warning}: requested transform {bf:'range'} is in beta"
+    * }
 
     if ( `rwarn' ) {
-        disp as txt "{bf:warning}: requested moving statistic without a window"
+        disp as txt "{bf:note:} requested moving statistic without a window"
     }
 
     if ( `iwarn' ) {
-        disp as txt "{bf:warning}: requested range statistic without an interval"
+        disp as txt "{bf:note:} requested range statistic without an interval"
     }
 
     * NOTE(mauricio): Unlike gcollapse, here we can't really have a set
@@ -6124,7 +6124,9 @@ program ParseListWild
         if ( "`stat'" == "skew" ) local stat skewness
         if ( "`stat'" == "kurt" ) local stat kurtosis
 
-        local stat `statprefix'`stat'
+        if ( substr(`"`stat'"', 1, length(`"`statprefix'"')) != `"`statprefix'"' ) {
+            local stat `statprefix'`stat'
+        }
         encode_moving `stat', `window'
 
         * Parse bulk rename if applicable
@@ -6215,7 +6217,9 @@ program define ParseList
         if ( "`stat'" == "skew" ) local stat skewness
         if ( "`stat'" == "kurt" ) local stat kurtosis
 
-        local stat `statprefix'`stat'
+        if ( substr(`"`stat'"', 1, length(`"`statprefix'"')) != `"`statprefix'"' ) {
+            local stat `statprefix'`stat'
+        }
         encode_moving `stat', `window'
 
         foreach var of local vars {

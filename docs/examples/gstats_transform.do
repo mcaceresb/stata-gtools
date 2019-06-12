@@ -36,12 +36,17 @@ gstats transform (range mean -3 . year) x4 = invest
 * You can also specify the boudns to be a summary statistic times a
 * scalar. For example
 
-gstats transform (range mean -0.5sd 0.5sd) x5 = invest
+gstats range (mean -0.5sd 0.5sd) x5 = invest
 
 * computes the mean within half a standard deviation of invest (if we
 * don't specify a range variable, then the source variable is used).
-* We can specify different intervals per variable as well as a global
-* interval used whenever a variable-specific interval is not used:
+* Note that we used `gstats range` instead of `gstats transform`. This
+* is simply an alias that assumes every subsequent statistic will
+* be a range statistic. It is provided for ease of syntax.
+
+* We can specify also different intervals per variable as well as a
+* global interval used whenever a variable-specific interval is not
+* used:
 
 local i6 (range mean -3 0 year) x6 = invest
 local i7 (range mean -0.5sd 2cv mvalue) x7 = invest
@@ -50,15 +55,16 @@ local i8 (range mean) x8 = mvalue x9 = kstock
 local opts labelf(#stat:pretty#: #sourcelabel#)
 gstats transform `i6' `i7' `i8', by(company) interval(-3 3 year) `opts'
 
-* You can also exclude the current observation from the computation
+* You can even exclude the current observation from the computation
 
-gstats transform (range mean -3 0 year) x10 = invest, excludeself
+gstats range (mean -3 0 year) x10 = invest, excludeself
 gegen x11 = range_mean(invest), by(company) excludeself interval(-3 0 year)
 
 * Moving statistics
 * -----------------
 
 * Note the moving window is defined relative to the current observation.
+* As with range, gstats moving is an alias:
 
 clear
 set obs 20
@@ -68,12 +74,11 @@ gen w = mod(_n, 7)
 
 gegen x1 = moving_mean(x), window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x, by(g)
-gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x ///
-    (moving select3) x5 = x, by(g) window(-3 3)
+gstats moving (sd -4 .) x3 = x (p75) x4 = x (select3) x5 = x, by(g) window(-3 3)
 l
 
 drop x?
 gegen x1 = moving_mean(x) [fw = w], window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x [aw = w], by(g)
-gstats transform (moving sd -4 .) x3 = x (moving p75) x4 = x [pw = w / 7], by(g) window(-3 3)
+gstats moving (sd -4 .) x3 = x (p75) x4 = x [pw = w / 7], by(g) window(-3 3)
 l

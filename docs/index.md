@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.8%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.9%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.8 11Jun2019`
+`version 1.5.9 22Jun2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -558,7 +558,7 @@ Differences from `rangestat`
 - Intervals are of the form `interval(low high [keyvar])`; if `keyvar`
   is missing then it is taken to be the source variable.
 
-r Variables are not allowed in place of `low` or `high`. Instead they
+- Variables are not allowed in place of `low` or `high`. Instead they
   must be `#[stat]` where `#` is a number and `stat` is an optional
   summary statistic; e.g. `interval(-sd 0.5sd x)`.
 

@@ -114,11 +114,11 @@ would be equivalent to computing time series rolling window statistics
 using the time variable set to `_n`. For example, given some vector `x_i`
 with `N` observations, we have
 
-`moving stat` must specify a relative range or use the `window(# #)`
-option. The relative range uses a window defined by the observations.
-This would be equivalent to computing time series rolling window
-statistics using the time variable set to `_n`. For example, given some
-variable `x` with `N` observations, we have
+`moving stat` must specify a relative range or use the `window(# #)` option.
+The relative range uses a window defined by the observations. This would
+be equivalent to computing time series rolling window statistics using
+the time variable set to `_n`. For example, given some variable `x` with
+`N` observations, we have
 
 ```
     Input  ->  Range
@@ -133,7 +133,7 @@ variable `x` with `N` observations, we have
 
 and so on. If the observation is outside of the admisible range (e.g.
 `-10 10` but `i = 5`) the output is set to missing. If you don't specify
-a range in `(it:moving stat)` then the range in `window(# #)` is used.
+a range in `(moving stat)` then the range in `window(# #)` is used.
 
 Options
 -------
@@ -147,7 +147,7 @@ Options
 
 - `wildparse` specifies that the function call should be parsed assuming
               targets are named using rename-stle syntax. For example,
-              `gcollapse (sum) s_x* = x*, wildparse`
+              `gstats transform (demean) s_x* = x*, wildparse`
 
 - `labelformat(str)` Specifies the label format of the output. #stat# is
             replaced with the statistic: #Stat# for titlecase, #STAT# for
@@ -176,6 +176,11 @@ Options
             means up to or from the current observation; window(. #)`
             and `window(# .)` mean from the start and through the end,
             respectively.
+
+- `interval(#[stat] #[stat] [var])` The interval for range
+            statistics. Since each range statistic can specify its own
+            interval and variables, this is only used for range statistics
+            that don't specify an interval.
 
 ### Gtools
 
@@ -278,7 +283,7 @@ that we used `gstats range` instead of `gstats transform`. This is
 simply an alias that assumes every subsequent statistic will be a range
 statistic. It is provided for ease of syntax.
 
-We can specify also different intervals per variable as well as a global
+You can specify also different intervals per variable as well as a global
 interval used whenever a variable-specific interval is not used:
 
 ```stata
@@ -294,7 +299,14 @@ You can also exclude the current observation from the computation
 
 ```stata
 gstats range (mean -3 0 year) x10 = invest, excludeself
-gegen x11 = range_mean(invest), by(company) excludeself interval(-3 0 year)
+gegen x11 = range_sum(invest), by(company) excludeself interval(. .)
+```
+
+Or the bounds of the interval. For instance, you can sum all investments
+that are smaller than the current observation:
+
+```stata
+gstats range (sum . 0) x12 = invest, excludebounds
 ```
 
 ### Moving statistics

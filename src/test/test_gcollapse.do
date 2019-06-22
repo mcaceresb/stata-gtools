@@ -473,6 +473,22 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * Parsing by: in gegen
+    qui {
+        clear
+        set obs 10
+        gen var = mod(_n, 3)
+        gen y   = _n
+        gen u   = runiform()
+        cap noi by var: gegen x = mean(max(y, y[1]))
+        by var (u), sort: gegen x = mean(max(y, y[1]))
+        sort y
+        bys var (u): gegen z = mean(max(y, y[1]))
+        bys var (u):  egen w = mean(max(y, y[1]))
+        assert x == z
+        assert x == w
+    }
+
     * Parsing negatives
     qui {
         sysuse auto, clear

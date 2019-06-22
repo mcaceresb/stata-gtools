@@ -44,7 +44,7 @@ gstats range (mean -0.5sd 0.5sd) x5 = invest
 * is simply an alias that assumes every subsequent statistic will
 * be a range statistic. It is provided for ease of syntax.
 
-* We can specify also different intervals per variable as well as a
+* You can specify also different intervals per variable as well as a
 * global interval used whenever a variable-specific interval is not
 * used:
 
@@ -59,6 +59,11 @@ gstats transform `i6' `i7' `i8', by(company) interval(-3 3 year) `opts'
 
 gstats range (mean -3 0 year) x10 = invest, excludeself
 gegen x11 = range_mean(invest), by(company) excludeself interval(-3 0 year)
+
+* Or the bounds of the interval. For instance, you can sum all
+* investments that are smaller than the current observation:
+
+gstats range (sum . 0) x12 = invest, excludebounds
 
 * Moving statistics
 * -----------------

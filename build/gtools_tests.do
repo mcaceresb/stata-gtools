@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Jun 11 22:20:28 EDT 2019
+* Updated: Sat Jun 22 02:01:04 EDT 2019 
 * Purpose: Unit tests for gtools
-* Version: 1.5.8
+* Version: 1.5.9
 * Manual:  help gtools
 
 * Stata start-up options
@@ -991,6 +991,22 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * Parsing by: in gegen
+    qui {
+        clear
+        set obs 10
+        gen var = mod(_n, 3)
+        gen y   = _n
+        gen u   = runiform()
+        cap noi by var: gegen x = mean(max(y, y[1]))
+        by var (u), sort: gegen x = mean(max(y, y[1]))
+        sort y
+        bys var (u): gegen z = mean(max(y, y[1]))
+        bys var (u):  egen w = mean(max(y, y[1]))
+        assert x == z
+        assert x == w
+    }
 
     * Parsing negatives
     qui {

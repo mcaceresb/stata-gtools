@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.5.9 (2019-06-22)
+
+### Bug Fixes
+
+- `by: gegen` now generates variables using the `by` prefix.
+  This would give incorrect answers if the expression inside
+  egen assumed that it would be generated with `by`. For example
+  `by var: gegen x = mean(max(y, y[1]))`
+
 ## gtools-1.5.8 (2019-06-11)
 
 ### Features

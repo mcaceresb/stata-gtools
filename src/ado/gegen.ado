@@ -1,4 +1,4 @@
-*! version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+* version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -121,6 +121,10 @@ program define gegen, byable(onecall) rclass
                  winsor     //
 
     if ( `"`fcn'"' == "xtile" ) {
+        if ( _by() ) {
+            disp as err "by: prefix not allowed with `fcn'"
+            exit 198
+        }
         cap noi fasterxtile `name' = `args' `if' `in' `wgt', by(`byvars') `options'
         exit _rc
     }
@@ -133,6 +137,10 @@ program define gegen, byable(onecall) rclass
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
+        if ( _by() ) {
+            disp as err "by: prefix not allowed with `fcn'"
+            exit 198
+        }
         local options types(`type') `options'
         cap noi gstats transform (`fcn') `name' = `args' `if' `in' `wgt', by(`byvars') `options'
         exit _rc
@@ -144,6 +152,10 @@ program define gegen, byable(onecall) rclass
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
             exit _rc
+        }
+        if ( _by() ) {
+            disp as err "by: prefix not allowed with `fcn'"
+            exit 198
         }
         local options gen(`name') `options'
         cap noi gstats `fcn' `args' `if' `in' `wgt', by(`byvars') `options'
@@ -204,8 +216,11 @@ program define gegen, byable(onecall) rclass
 
             local gopts `hashmethod' `oncollision' `verbose' `_subtract' `_ctolerance'
             local gopts `gopts' `compress' `forcestrl' `benchmark' `benchmarklevel' `ds' `nods'
-
             local popts _type(`type') _name(`name') _fcn(`fcn') _args(`args') _byvars(`byvars')
+
+            * NOTE(mauricio): I don't think you need to do anything special if by()
+            * here because L50 to L67 of egen.ado just pass by() as an argument.
+
             cap noi egen_fallback `if' `in', kwargs(`gopts') `popts' `options' `gtools_capture'
             exit _rc
         }
@@ -572,7 +587,12 @@ program define gegen, byable(onecall) rclass
     local rc = 0
     if ( !((`:list sizeof args' == 1) & (`:list args in memvars')) ) {
         tempvar exp
-        cap gen double `exp' = `args'
+        if ( _by() ) {
+            cap by `_byvars': gen double `exp' = `args'
+        }
+        else {
+            cap gen double `exp' = `args'
+        }
         local rc = _rc
     }
 

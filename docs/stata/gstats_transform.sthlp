@@ -177,6 +177,8 @@ is used.
 {p_end}
 {synopt:{opt window(lower upper)}}Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
 {p_end}
+{synopt:{opt window(#[stat] #[stat] [var])}}Interval for range statistics that don't specify their own interval.
+{p_end}
 
 {syntab:Gtools}
 {synopt :{opt compress}}Try to compress strL to str#.

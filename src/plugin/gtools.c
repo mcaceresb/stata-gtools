@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Jun 11 22:20:11 EDT 2019
+ * Updated: Sat Aug  3 17:27:12 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.5.8
+ * Version: 1.5.10
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 11 Jun 2019
+ * @date 03 Aug 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -2221,6 +2221,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->wselmat);
         free (st_info->invert);
         free (st_info->missval);
+        free (st_info->byvars_strL);
         free (st_info->byvars_lens);
         free (st_info->group_targets);
         free (st_info->group_init);
@@ -2252,6 +2253,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->wselmat")
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
+        GTOOLS_GC_FREED("st_info->byvars_strL")
         GTOOLS_GC_FREED("st_info->byvars_lens")
         GTOOLS_GC_FREED("st_info->group_targets")
         GTOOLS_GC_FREED("st_info->group_init")
@@ -2308,11 +2310,16 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->index);
         GTOOLS_GC_FREED("st_info->index")
     }
-    if ( st_info->free >= 7 ) {
-        free (st_info->ix);
-        GTOOLS_GC_FREED("st_info->ix")
-    }
-    if ( (st_info->free >= 6) & (st_info->free <= 7) & (level != 11) ) {
+    if ( (st_info->free >= 6) & (level != 11) ) {
+
+        // NOTE: free code 8 is deprecated; it used to be used to
+        // differentiate scenarios where st_into->st_by* variables were
+        // not allocated, but it conflicts with free code 9, which denotes
+        // whether st_into->output has been allocated. The latter can
+        // be allocated in both scenarios where st_by has and scenarios
+        // where it hasn't been allocated, so we now always allocate
+        // st_into->st_by* variables when we get to free code 6 and above.
+
         free (st_info->strL_bybytes);
         free (st_info->st_by_numx);
         free (st_info->st_by_charx);
@@ -2320,6 +2327,10 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->strL_bybytes")
         GTOOLS_GC_FREED("st_info->st_by_numx")
         GTOOLS_GC_FREED("st_info->st_by_charx")
+    }
+    if ( st_info->free >= 7 ) {
+        free (st_info->ix);
+        GTOOLS_GC_FREED("st_info->ix")
     }
     if ( st_info->free >= 9 ) {
         free (st_info->output);

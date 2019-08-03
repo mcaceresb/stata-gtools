@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.5.10 (2019-08-03)
+
+### Bug Fixes
+
+- Fixed memory leak where the C by variables were not cleared from memory
+  of `st_into->output` was allocated because free code was upgraded from 6
+  or 7 to 9. Conditional logic in place said that by variables should not
+  be cleared if free code was greater than 7, but that was only meant to
+  skip free code 8 and free code 9 in _some_ scripts, but not all. Code 8
+  logic was deprecated and now by variables are allocated with code 8, so
+  they are always clared if free code is 6 or higher.
+
 ## gtools-1.5.9 (2019-06-22)
 
 ### Bug Fixes

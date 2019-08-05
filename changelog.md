@@ -5,8 +5,8 @@ Change Log
 
 ### Features
 
-- Fixes #67; adds `gegen x = rank(varname) [wgt], by(varlist)` via
-  `gstats transform (rank)`. Weights are optional.
+- Fixes #67; adds `gegen x = rank(varname) [wgt], by(varlist) ties(type)`
+  via `gstats transform (rank) [wgt], by() ties()`. Weights are optional.
 
 ### Bug Fixes
 

@@ -49,6 +49,16 @@ void gf_stats_transform_moving(
     ST_double upper
 );
 
+void gf_stats_transform_rank(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    GT_size   nj,
+    GT_size   ties,
+    GT_bool   aweights,
+    ST_double *sbuffer,
+    ST_double *output
+);
+
 ST_double gf_stats_transform_stat (
     ST_double *buffer,
     ST_double *pbuffer,
@@ -193,7 +203,18 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    if ( tcode == -5 ) {
+                    if ( tcode == -6 ) {
+                        gf_stats_transform_rank(
+                            dblptr,
+                            wgtptr,
+                            nj,
+                            st_info->transform_rank_ties[k],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -5 ) {
                         gf_stats_transform_range(
                             dblptr,
                             wgtptr,
@@ -295,7 +316,18 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                         }
                     }
-                    if ( tcode == -5 ) {
+                    if ( tcode == -6 ) {
+                        gf_stats_transform_rank(
+                            gsrc_buffer,
+                            wgtptr,
+                            nj,
+                            st_info->transform_rank_ties[k],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -5 ) {
                         gf_stats_transform_range(
                             gsrc_buffer,
                             wgtptr,
@@ -375,7 +407,18 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    if ( tcode == -5 ) {
+                    if ( tcode == -6 ) {
+                        gf_stats_transform_rank(
+                            dblptr,
+                            NULL,
+                            nj,
+                            st_info->transform_rank_ties[k],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -5 ) {
                         gf_stats_transform_range(
                             dblptr,
                             NULL,
@@ -454,7 +497,18 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                         }
                     }
-                    if ( tcode == -5 ) {
+                    if ( tcode == -6 ) {
+                        gf_stats_transform_rank(
+                            gsrc_buffer,
+                            NULL,
+                            nj,
+                            st_info->transform_rank_ties[k],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -5 ) {
                         gf_stats_transform_range(
                             gsrc_buffer,
                             NULL,
@@ -540,6 +594,7 @@ ST_retcode gf_stats_transform_check (
     if ( (tcode == -3) & (kstats != 1) ) return(18301);
     if ( (tcode == -4) & (kstats != 0) ) return(18301);
     if ( (tcode == -5) & (kstats != 0) ) return(18301);
+    if ( (tcode == -6) & (kstats != 0) ) return(18301);
     return (0);
 }
 
@@ -592,8 +647,9 @@ void gf_stats_transform_apply (
             }
         }
     }
-    // moving stat implemented sepparately in sf_stats_transform_moving
-    // range stat implemented sepparately in sf_stats_transform_range
+    // moving stat implemented sepparately in gf_stats_transform_moving
+    // range stat implemented sepparately in gf_stats_transform_range
+    // rank stat implemented sepparately in gf_stats_transform_rank
 }
 
 /*********************************************************************
@@ -1697,6 +1753,199 @@ void gf_stats_transform_range_sort(
         );
 
     }
+}
+
+/*********************************************************************
+ *                            Rank values                            *
+ *********************************************************************/
+
+void gf_stats_transform_rank(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    GT_size   nj,
+    GT_size   ties,
+    GT_bool   aweights,
+    ST_double *sbuffer,
+    ST_double *output)
+{
+
+    GT_size i, iprev, j, rank, nrank, nonmiss;
+    ST_double z, wcum, rankdbl, nrankdbl;
+    GT_size invert[2]; invert[0] = 0; invert[1] = 0;
+
+    if ( wbuffer != NULL ) {
+        nonmiss = 0;
+        for (i = 0; i < nj; i++) {
+            if ( buffer[i] < SV_missval && wbuffer[i] < SV_missval ) {
+                sbuffer[nonmiss * 3 + 0] = buffer[i];
+                sbuffer[nonmiss * 3 + 1] = i;
+                sbuffer[nonmiss * 3 + 2] = wbuffer[i];
+                nonmiss++;
+            }
+        }
+
+        // NOTE: Field (2) counts # higher than, effectively inverting the
+        // ranking. UniqueStable (5) uses a stable sort to break ties.
+
+        if ( ties == 2 ) {
+            quicksort_bsd (
+                sbuffer,
+                nonmiss,
+                3 * (sizeof *sbuffer),
+                xtileCompareInvert,
+                NULL
+            );
+        }
+        else if ( ties == 5 ) {
+            MultiQuicksortDbl(
+                sbuffer,
+                nonmiss,
+                0,
+                1,
+                3 * (sizeof *sbuffer),
+                invert
+            );
+        }
+        else {
+            quicksort_bsd (
+                sbuffer,
+                nonmiss,
+                3 * (sizeof *sbuffer),
+                xtileCompare,
+                NULL
+            );
+        }
+
+        // NOTE: With weights, we count the value of the weight to use
+        // as the ranking. Note that
+
+        if ( ties == 1 ) {
+            i = 0;
+            wcum = 0;
+            while ( i < nonmiss) {
+                iprev    = i;
+                z        = sbuffer[i * 3];
+                nrankdbl = wcum;
+                rankdbl  = 0;
+                while ( i < nonmiss && z == sbuffer[i * 3] ) {
+                    rankdbl  += sbuffer[i * 3 + 2] * (nrankdbl + (sbuffer[i * 3 + 2] + 1) / 2);
+                    nrankdbl += sbuffer[i * 3 + 2];
+                    i++;
+                }
+                rankdbl /= (nrankdbl - wcum);
+                wcum     = nrankdbl;
+                for (j = iprev; j < i; j++) {
+                    buffer[(GT_size) sbuffer[j * 3 + 1]] = rankdbl;
+                }
+            }
+        }
+        else if ( ties == 2 || ties == 3 ) {
+
+            // NOTE: Field (2) and track (3) are mirrors of each other
+            // and the only difference should be how the vector was
+            // sorted: ascending gives track, descending gives field.
+
+            z = *sbuffer;
+            rankdbl = wcum = 0;
+            for (i = 0; i < nonmiss; i++) {
+                if ( z != sbuffer[i * 3] ) {
+                    rankdbl = wcum;
+                    z = sbuffer[i * 3];
+                }
+                wcum += sbuffer[i * 3 + 2];
+                buffer[(GT_size) sbuffer[i * 3 + 1]] = 1 + rankdbl;
+            }
+        }
+        else if ( ties == 4 || ties == 5 ) {
+            rankdbl = 0;
+            for (i = 0; i < nonmiss; i++) {
+                rankdbl += sbuffer[i * 3 + 2];
+                buffer[(GT_size) sbuffer[i * 3 + 1]] = rankdbl;
+            }
+        }
+    }
+    else {
+        nonmiss = 0;
+        for (i = 0; i < nj; i++) {
+            if ( buffer[i] < SV_missval ) {
+                sbuffer[nonmiss * 2 + 0] = buffer[i];
+                sbuffer[nonmiss * 2 + 1] = i;
+                nonmiss++;
+            }
+        }
+
+        // NOTE: Field (2) counts # higher than, effectively inverting
+        // the ranking
+
+        if ( ties == 2 ) {
+            quicksort_bsd (
+                sbuffer,
+                nonmiss,
+                2 * (sizeof *sbuffer),
+                xtileCompareInvert,
+                NULL
+            );
+        }
+        else if ( ties == 5 ) {
+            MultiQuicksortDbl(
+                sbuffer,
+                nonmiss,
+                0,
+                1,
+                2 * (sizeof *sbuffer),
+                invert
+            );
+        }
+        else {
+            quicksort_bsd (
+                sbuffer,
+                nonmiss,
+                2 * (sizeof *sbuffer),
+                xtileCompare,
+                NULL
+            );
+        }
+
+        if ( ties == 1 ) {
+            i = 0;
+            while ( i < nonmiss) {
+                iprev   = i;
+                z       = sbuffer[i * 2];
+                rankdbl = i;
+                nrank   = 1;
+                while ( i < nonmiss && z == sbuffer[i * 2] ) {
+                    nrank++;
+                    i++;
+                }
+                rankdbl += ((nrank % 2)? (0.5 * nrank): (nrank / 2));
+                for (j = iprev; j < i; j++) {
+                    buffer[(GT_size) sbuffer[j * 2 + 1]] = rankdbl;
+                }
+            }
+        }
+        else if ( ties == 2 || ties == 3 ) {
+
+            // NOTE: Field (2) and track (3) are mirrors of each other
+            // and the only difference should be how the vector was
+            // sorted: ascending gives track, descending gives field.
+
+            z = *sbuffer;
+            rank = 1;
+            for (i = 0; i < nonmiss; i++) {
+                if ( z != sbuffer[i * 2] ) {
+                    rank = i + 1;
+                    z = sbuffer[i * 2];
+                }
+                buffer[(GT_size) sbuffer[i * 2 + 1]] = rank;
+            }
+        }
+        else if ( ties == 4 || ties == 5 ) {
+            for (i = 0; i < nonmiss; i++) {
+                buffer[(GT_size) sbuffer[i * 2 + 1]] = i + 1;
+            }
+        }
+    }
+
 }
 
 /*********************************************************************

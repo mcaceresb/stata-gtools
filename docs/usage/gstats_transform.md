@@ -26,6 +26,7 @@ or any combination of the `varlist` or `target_var` forms, and stat is one of
 | demedian          | subtract the median
 | normalize         | (x - mean) / sd
 | standardize       | same as normalize
+| rank              | rank observations; use option ties() to specify how ties are handled
 | moving stat [# #] | moving statistic _stat_; # specify the relative bounds (see below)
 | range stat ...    | range statistic _stat_ for observations within specified interval (see below)
 
@@ -182,6 +183,18 @@ Options
             interval and variables, this is only used for range statistics
             that don't specify an interval.
 
+- `ties(str)` How to break ties for `rank`. With multiple targets, specify
+            one common method for all targets or one method per target, using
+            `.` for non-rank targets. (E.g. If requesting 5 statistics, the 2nd
+            and 4th being rank, use `ties(. unique . default .)`). By `default`,
+            observations with the same value are assigned their average rank.
+            With `field`, the rank is 1 + the number of values that are higher,
+            without correcting for ties.  With `track`, the rank is 1 + the
+            number of values that are lower, without correcting for ties.
+            With `unique`, the rank is 1 to # of values, with ties broken
+            arbitrarily; `stableunique` does the same but ties are broken
+            by the order values appear in the data.
+
 ### Gtools
 
 (Note: These are common to every gtools command.)
@@ -227,6 +240,43 @@ the mean.
 
 Every function available to `gstats transform` can be called via `gegen`.
 
+### `rank` with weights
+
+It's most natural to think about frequency weights, but other weights are allowed
+(non-integer weights can be used at the user's discretion).
+
+- `ties(default)` Average rank. Without weights, if there are 3 values with
+  the same value and 2 values are smaller, then the average weight is
+
+    2 + 3 * (3 + 1) / 2 / 3 = 4
+
+  In general, for k values with the same value and i smaller values,
+
+    i + k * (k + 1) / 2 / k = i + (k + 1) / 2
+
+  With weights, if there are 3 values with the vame value and 2 values
+  are smaller, the average weight is
+
+    W(i) = w_1 + ... + w_i
+    S(i) = W(i - 1) * w_i + w_i * (w_i + 1) / 2
+    R(5) = R(4) = R(3)
+    R(3) = (S(3) + S(4) + S(5)) / (w_3 + w_4 + w_5)
+
+  In general, for k values with the same value and i smaller values,
+
+    R(i + 1) = ... = R(i + k)
+    R(i + k) = (S(i + 1) + ... + S(i + k)) / (W(i + k) - W(i))
+
+- `ties(field)` 1 + the cummulative sum of all weights with a corresponding
+  variable value greater than the current value.
+
+- `ties(track)` 1 + the cummulative sum of all weights with a corresponding
+  variable value lower than the current value.
+
+- `ties(unique)` and `ties(stableunique)`; Cummulative sum of all weights with
+  a corresponding value less than or equal to the current value. Ties are broken
+  arbitrarily and by the order values appear in the data, respectively.
+
 Examples
 --------
 
@@ -243,9 +293,11 @@ sysuse auto, clear
 gegen norm_price = normalize(price),   by(foreign)
 gegen std_price  = standardize(price), by(foreign)
 gegen dm_price   = demean(price),      by(foreign)
+gegen rank_price = rank(price),        by(foreign)
 
 local opts by(foreign) replace
-gstats transform (normalize) norm_mpg = mpg (demean) dm_mpg = mpg, `opts'
+gstats transform (standardize) std_price = price (demean) dm_mpg = mpg, `opts'
+gstats transform (normalize) norm_mpg = mpg (rank) rank_price = price, `opts'
 gstats transform (demean) mpg (normalize) price [w = rep78], `opts'
 gstats transform (demean) mpg (normalize) xx = price, `opts' auto(#stat#_#source#)
 ```

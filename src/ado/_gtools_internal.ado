@@ -1,4 +1,4 @@
-*! version 1.5.10 03Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.5.11 04Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -4143,6 +4143,7 @@ program gstats_scalars
         scalar __gtools_transform_range_xs     = 0
         scalar __gtools_transform_range_xb     = 0
 
+        matrix __gtools_transform_rank_ties    = 1
         matrix __gtools_summarize_codes        = .
         matrix __gtools_transform_varfuns      = .
         matrix __gtools_transform_statcode     = .
@@ -4222,6 +4223,7 @@ program gstats_scalars
 
         cap mata st_dropvar(__gtools_gst_dropvars)
 
+        cap matrix drop __gtools_transform_rank_ties
         cap matrix drop __gtools_summarize_codes
         cap matrix drop __gtools_transform_varfuns
         cap matrix drop __gtools_transform_statcode
@@ -4238,6 +4240,7 @@ program gstats_scalars
         cap matrix drop __gtools_transform_range_ls
         cap matrix drop __gtools_transform_range_us
 
+        cap mata: mata drop __gtools_transform_rank_ties
         cap mata: mata drop __gtools_summarize_codes
         cap mata: mata drop __gtools_gst_labels
         cap mata: mata drop __gtools_gst_formats
@@ -4262,24 +4265,25 @@ end
 
 capture program drop gstats_transform
 program gstats_transform
-    syntax anything(equalok),      ///
-    [                              ///
-                                   /// TODO: Maybe add rawstat at some point...
-        replace                    ///
-        nogreedy                   /// use memory-heavy algorithm
-        TYPEs(str)                 /// override automatic types
-                                   ///
-        WILDparse                  /// parse assuming wildcard renaming
-        AUTOrename                 /// automagically name targets if no target is specified
-        AUTOrenameformat(passthru) ///
-        LABELFormat(passthru)      /// Custom label engine: (#stat#) #sourcelabel# is the default
-        LABELProgram(passthru)     /// Program to parse labelformat (see examples)
-        statprefix(passthru)       /// add prefix to every stat
-                                   ///
-        window(passthru)           /// moving window if not specified in the stat
-        interval(passthru)         /// interval if not specified in the stat
-        excludeself                /// exclude current obs from statistic
-        excludebounds              /// interval is strict (do not include bounds)
+    syntax anything(equalok),       ///
+    [                               ///
+                                    /// TODO: Maybe add rawstat at some point...
+        replace                     ///
+        nogreedy                    /// use memory-heavy algorithm
+        TYPEs(str)                  /// override automatic types
+                                    ///
+        WILDparse                   /// parse assuming wildcard renaming
+        AUTOrename                  /// automagically name targets if no target is specified
+        AUTOrenameformat(passthru)  ///
+        LABELFormat(passthru)       /// Custom label engine: (#stat#) #sourcelabel# is the default
+        LABELProgram(passthru)      /// Program to parse labelformat (see examples)
+        statprefix(passthru)        /// add prefix to every stat
+                                    ///
+        ties(str)                   /// how to resolve ties (one per target; use . for non-rank targets)
+        window(passthru)            /// moving window if not specified in the stat
+        interval(passthru)          /// interval if not specified in the stat
+        excludeself                 /// exclude current obs from statistic
+        excludebounds               /// interval is strict (do not include bounds)
     ]
 
     * Parse transforms and variables
@@ -4293,10 +4297,11 @@ program gstats_transform
         `autorenameformat'             ///
         `window' `interval' `statprefix'
 
-    local transforms standardize ///
+    local transforms rank        ///
+                     standardize ///
                      normalize   ///
                      demean      ///
-                     demedian    //
+                     demedian     //
 
     local unknown
     foreach stat of local __gtools_gst_stats {
@@ -4328,6 +4333,7 @@ program gstats_transform
         targets(`__gtools_gst_targets') ///
         stats(`__gtools_gst_stats')     ///
         types(`types')                  ///
+        ties(`ties')                    ///
         prefix(__gtools_gst)
 
     local kvars:    list sizeof __gtools_gst_vars
@@ -4335,12 +4341,14 @@ program gstats_transform
     local kstat:    list sizeof __gtools_gst_stats
     local ktype:    list sizeof __gtools_gst_types
     local kretype:  list sizeof __gtools_gst_retype
+    local ktcodes:  list sizeof __gtools_gst_tcodes
 
     local kbad = 0
     local kbad = `kbad' | (`kvars' != `ktargets')
     local kbad = `kbad' | (`kvars' != `kstat')
     local kbad = `kbad' | (`kvars' != `ktype')
     local kbad = `kbad' | (`kvars' != `kretype')
+    local kbad = `kbad' | (`kvars' != `ktcodes')
 
     if ( `kbad' ) {
         disp as err "gstats_transform: parsing error (inconsistent number of inputs)"
@@ -4511,6 +4519,7 @@ program gstats_transform
     *             //     the stat requested. so (range mean -2sd 0.5sd)
     *             //     will compute for x[i] the average over j s.t.
     *             //     x[i] - 2 * sd(x) <= x[j] <= x[i] + 0.5 * sd(x)
+    * -6          // rank
 
     * moving stats
     * ------------
@@ -4652,12 +4661,14 @@ program gstats_transform
     * Generate matrices for plugin internals
     * --------------------------------------
 
+    local gs_nostats_codes -4 -5 -6
     local gs_standardize mean sd
     local gs_normalize   mean sd
     local gs_demean      mean
     local gs_demedian    median
     local gs_moving
     local gs_range
+    local gs_rank
 
     local gs
     local rangevars
@@ -4701,6 +4712,7 @@ program gstats_transform
         else if ( "`stat'" == "normalize"   ) local statcode -1
         else if ( "`stat'" == "demean"      ) local statcode -2
         else if ( "`stat'" == "demedian"    ) local statcode -3
+        else if ( "`stat'" == "rank"        ) local statcode -6
         else                                  local statcode 0
 
         * moving matrices
@@ -4743,7 +4755,7 @@ program gstats_transform
         }
 
         mata: __gtools_transform_varfuns[`k'] = `statcode'
-        if !inlist(`statcode', -4, -5) {
+        if ( !`:list statcode in gs_nostats_codes' ) {
             forvalues l = 1 / `:list sizeof gs' {
                 local gstat: word `l' of `gs'
                 forvalues m = 1 / `:list sizeof gs_`stat'' {
@@ -4782,22 +4794,23 @@ program gstats_transform
 
     * Return varlist for plugin internals
 
-    scalar __gtools_transform_greedy   = (`"`greedy'"' != "nogreedy")
-    scalar __gtools_transform_kvars    = `:list sizeof __gtools_gst_vars'
-    scalar __gtools_transform_ktargets = `:list sizeof __gtools_gst_targets'
-    scalar __gtools_transform_kgstats  = `:list sizeof gs'
-    scalar __gtools_gstats_code        = 3
-    scalar __gtools_transform_range_k  = `:list sizeof rangevars'
-    scalar __gtools_transform_range_xs = (`"`excludeself'"'   != "")
-    scalar __gtools_transform_range_xb = (`"`excludebounds'"' != "")
+    scalar __gtools_transform_greedy    = (`"`greedy'"' != "nogreedy")
+    scalar __gtools_transform_kvars     = `:list sizeof __gtools_gst_vars'
+    scalar __gtools_transform_ktargets  = `:list sizeof __gtools_gst_targets'
+    scalar __gtools_transform_kgstats   = `:list sizeof gs'
+    scalar __gtools_gstats_code         = 3
+    scalar __gtools_transform_range_k   = `:list sizeof rangevars'
+    scalar __gtools_transform_range_xs  = (`"`excludeself'"'   != "")
+    scalar __gtools_transform_range_xb  = (`"`excludebounds'"' != "")
 
-    mata: st_matrix("__gtools_transform_varfuns",      __gtools_transform_varfuns)
-    mata: st_matrix("__gtools_transform_statmap",      __gtools_transform_statmap)
-    mata: st_matrix("__gtools_transform_statcode",     __gtools_transform_statcode)
+    mata: st_matrix("__gtools_transform_rank_ties", strtoreal(tokens(st_local("__gtools_gst_tcodes"))))
+    mata: st_matrix("__gtools_transform_varfuns",   __gtools_transform_varfuns)
+    mata: st_matrix("__gtools_transform_statmap",   __gtools_transform_statmap)
+    mata: st_matrix("__gtools_transform_statcode",  __gtools_transform_statcode)
 
-    mata: st_matrix("__gtools_transform_moving",       __gtools_transform_moving)
-    mata: st_matrix("__gtools_transform_moving_l",     __gtools_transform_moving_l)
-    mata: st_matrix("__gtools_transform_moving_u",     __gtools_transform_moving_u)
+    mata: st_matrix("__gtools_transform_moving",    __gtools_transform_moving)
+    mata: st_matrix("__gtools_transform_moving_l",  __gtools_transform_moving_l)
+    mata: st_matrix("__gtools_transform_moving_u",  __gtools_transform_moving_u)
 
     mata: st_matrix("__gtools_transform_range",     __gtools_transform_range)
     mata: st_matrix("__gtools_transform_range_pos", __gtools_transform_range_pos)
@@ -4992,7 +5005,7 @@ end
 
 capture program drop gstats_transform_types
 program gstats_transform_types
-    syntax, vars(str) targets(str) stats(str) prefix(str) [types(str)]
+    syntax, vars(str) targets(str) stats(str) prefix(str) [types(str) ties(str)]
 
     * Check all inputs are numeric
     * ----------------------------
@@ -5018,6 +5031,100 @@ program gstats_transform_types
     local types
     local retype
 
+    * Special parsing for rank type
+    * -----------------------------
+
+    if ( (`:list sizeof ties' > 1) & (`:list sizeof ties' != `:list sizeof targets') ) {
+        disp as err "gstats_transform_types: only one tie-break or one tie-break per target in ties()"
+        exit 198
+    }
+
+    if ( scalar(__gtools_weight_code) > 0 ) {
+        local mintype_rank double
+    }
+    else if ( `=_N' < maxbyte() ) {
+        local mintype_rank byte
+    }
+    else if ( `=_N' < maxint() ) {
+        local mintype_rank int
+    }
+    else if ( `=_N' < maxlong() ) {
+        local mintype_rank long
+    }
+    else {
+        local mintype_rank double
+    }
+
+    local tcodes
+    local rtypes
+    local default       d de def defa defau defaul default .
+    local field         f fi fie fiel field
+    local track         t tr tra trac track
+    local unique        u un uni uniq uniqu unique
+    local stableunique  s st sta stab stabl stable stableu stableun stableuni stableuniq stableuniqu stableunique
+
+    if ( `:list sizeof ties' > 1 ) {
+        foreach t of local ties {
+            if ( `:list t in default' | (`"`t'"' == "") ) {
+                local ties_code = 1
+                local rtype = cond(`"`mintype_rank'"' != "double", "`:set type'", "double")
+            }
+            else if ( `:list t in field' ) {
+                local ties_code = 2
+                local rtype `mintype_rank'
+            }
+            else if ( `:list t in track' ) {
+                local ties_code = 3
+                local rtype `mintype_rank'
+            }
+            else if ( `:list t in unique' ) {
+                local ties_code = 4
+                local rtype `mintype_rank'
+            }
+            else if ( `:list ties in stableunique' ) {
+                local ties_code = 5
+                local rtype `mintype_rank'
+            }
+            else {
+                disp as err "ties(`t') not allowed"
+                exit 198
+            }
+            local tcodes `tcodes' `ties_code'
+            local rtypes `rtypes' `rtype'
+        }
+    }
+    else {
+        if ( `:list ties in default' | (`"`ties'"' == "") ) {
+            local ties_code = 1
+            local rtype = cond(inlist(`"`mintype_rank'"', "long", "double"), "double", "`:set type'")
+        }
+        else if ( `:list ties in field' ) {
+            local ties_code = 2
+            local rtype `mintype_rank'
+        }
+        else if ( `:list ties in track' ) {
+            local ties_code = 3
+            local rtype `mintype_rank'
+        }
+        else if ( `:list ties in unique' ) {
+            local ties_code = 4
+            local rtype `mintype_rank'
+        }
+        else if ( `:list ties in stableunique' ) {
+            local ties_code = 5
+            local rtype `mintype_rank'
+        }
+        else {
+            disp as err "gstats_transform_types: ties(`ties') not allowed"
+            exit 198
+        }
+
+        forvalues k = 1 / `:list sizeof targets' {
+            local tcodes `tcodes' `ties_code'
+            local rtypes `rtypes' `rtype'
+        }
+    }
+
     * If types are empty, autoretype; else use user input
     * ---------------------------------------------------
 
@@ -5032,10 +5139,12 @@ program gstats_transform_types
             gettoken var    vars:    vars
             gettoken target targets: targets
             gettoken stat   stats:   stats
+            gettoken rtype  rtypes:  rtypes
 
             local var    `var'
             local target `target'
             local stat   `stat'
+            local rtype  `rtype'
             local type:  type `var'
 
             cap confirm var `target'
@@ -5056,6 +5165,33 @@ program gstats_transform_types
                 encode_stat_types `r(stat)' `type' `ttype'
                 local types  `types'  `r(type)'
                 local retype `retype' `r(retype)'
+            }
+
+            if ( `"`stat'"' == "rank" ) {
+                local types `types' `rtype'
+                if ( inlist("`ttype'", "`rtype'", "double") ) {
+                    local retype `retype' 0
+                }
+                else if ( "`ttype'" == "float" ) {
+                    local retype `retype' `=inlist("`rtype'", "long", "double")'
+                }
+                else if ( "`ttype'" == "long" ) {
+                    local retype `retype' `=inlist("`rtype'", "double")'
+                }
+                else if ( "`ttype'" == "int" ) {
+                    local retype `retype' `=!inlist("`rtype'", "int", "byte")'
+                }
+                else if ( "`ttype'" == "byte" ) {
+                    local retype `retype' `=!inlist("`rtype'", "byte")'
+                }
+                else if ( "`ttype'" == "" ) {
+                    local retype `retype' 1
+                }
+                else {
+                    disp as err "gstats_transform_types: Unable to parse type '`ttype''"
+                    exit 198
+                }
+                local rmatch = 1
             }
 
             if ( `rmatch' == 0 ) {
@@ -5111,6 +5247,7 @@ program gstats_transform_types
         }
     }
 
+    c_local `prefix'_tcodes: copy local tcodes
     c_local `prefix'_types:  copy local types
     c_local `prefix'_retype: copy local retype
 end
@@ -6095,7 +6232,8 @@ end
 
 capture program drop ParseListWild
 program ParseListWild
-    syntax anything(equalok), LOCal(str) PREfix(str) default(str) [window(passthru) interval(passthru) statprefix(str)]
+    local opts window(passthru) interval(passthru) statprefix(str)
+    syntax anything(equalok), LOCal(str) PREfix(str) default(str) [`opts']
     local stat `default'
 
     * Trim spaces
@@ -6188,7 +6326,8 @@ end
 
 capture program drop ParseList
 program define ParseList
-    syntax anything(equalok), PREfix(str) default(str) [window(passthru) interval(passthru) statprefix(str)]
+    local opts window(passthru) interval(passthru) statprefix(str)
+    syntax anything(equalok), PREfix(str) default(str) [`opts']
     local stat `default'
 
     * Trim spaces

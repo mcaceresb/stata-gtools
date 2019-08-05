@@ -152,6 +152,137 @@ program checks_gegen
     gegen p_nm = nmissing(x) [pw = 987654321], by(y)
     assert cond(mi(x), mi(s) & mi(f_s) & mi(a_s), !mi(s) & !mi(f_s) & !mi(a_s))
     assert cond(mi(x), (nm == 5) & (a_nm == 5) & (f_nm == 5 * 1314) & (p_nm == 5 * 987654321), (nm == 0) & (a_nm == 0) & (f_nm == 0) & (p_nm == 0))
+
+    clear
+    set obs 10000
+    gen x = ceil(runiform() * 10)
+    gen g = round(_n / 100)
+
+     egen double rankx_def1 = rank(x)
+    gegen double rankx_def2 = rank(x)
+
+     egen rankx_track1 = rank(x), track
+    gegen rankx_track2 = rank(x), ties(track)
+
+     egen rankx_field1 = rank(x), field
+    gegen rankx_field2 = rank(x), ties(field)
+
+     egen long rankx_uniq1 = rank(x), uniq
+    gegen long rankx_uniq2 = rank(x), ties(uniq)
+
+    gegen rankx_uniq3 = rank(x), ties(stable)
+
+     egen double rankx_group_def1 = rank(x), by(g)
+    gegen double rankx_group_def2 = rank(x), by(g)
+
+     egen rankx_group_track1 = rank(x), by(g) track
+    gegen rankx_group_track2 = rank(x), by(g) ties(track)
+
+     egen rankx_group_field1 = rank(x), by(g) field
+    gegen rankx_group_field2 = rank(x), by(g) ties(field)
+
+     egen long rankx_group_uniq1 = rank(x), by(g) uniq
+    gegen long rankx_group_uniq2 = rank(x), by(g) ties(uniq)
+
+    gegen rankx_group_uniq3 = rank(x), by(g) ties(stable)
+
+    assert (rankx_def1   == rankx_def2)
+    assert (rankx_track1 == rankx_track2)
+    assert (rankx_field1 == rankx_field2)
+
+    sort x, stable
+    assert rankx_uniq3 == _n
+
+    gisid rankx_uniq1
+    gisid rankx_uniq2
+
+    assert (rankx_group_def1   == rankx_group_def2)
+    assert (rankx_group_track1 == rankx_group_track2)
+    assert (rankx_group_field1 == rankx_group_field2)
+
+    cap drop ix
+    sort g x, stable
+    by g: gen ix = _n
+    assert rankx_group_uniq3 == ix
+
+    gisid g rankx_group_uniq1
+    gisid g rankx_group_uniq2
+
+    gegen double rankx_def2 = rank(x) [fw = 1], replace
+    gegen rankx_track2      = rank(x) [fw = 1], replace ties(track)
+    gegen rankx_field2      = rank(x) [fw = 1], replace ties(field)
+    gegen long rankx_uniq2  = rank(x) [fw = 1], replace ties(uniq)
+    gegen rankx_uniq3       = rank(x) [fw = 1], replace ties(stable)
+
+    gegen double rankx_group_def2 = rank(x) [fw = 1], replace by(g)
+    gegen rankx_group_track2      = rank(x) [fw = 1], replace by(g) ties(track)
+    gegen rankx_group_field2      = rank(x) [fw = 1], replace by(g) ties(field)
+    gegen long rankx_group_uniq2  = rank(x) [fw = 1], replace by(g) ties(uniq)
+    gegen rankx_group_uniq3       = rank(x) [fw = 1], replace by(g) ties(stable)
+
+    assert (rankx_def1   == rankx_def2)
+    assert (rankx_track1 == rankx_track2)
+    assert (rankx_field1 == rankx_field2)
+
+    sort x, stable
+    assert rankx_uniq3 == _n
+
+    gisid rankx_uniq1
+    gisid rankx_uniq2
+
+    assert (rankx_group_def1   == rankx_group_def2)
+    assert (rankx_group_track1 == rankx_group_track2)
+    assert (rankx_group_field1 == rankx_group_field2)
+
+    cap drop ix
+    sort g x, stable
+    by g: gen ix = _n
+    assert rankx_group_uniq3 == ix
+
+    gisid g rankx_group_uniq1
+    gisid g rankx_group_uniq2
+
+    clear
+    set obs 10
+    gen x = rnormal()
+    gen fw = _n
+    gen aw = runiform() * 5
+    gen pw = runiform()
+    gen iw = rnormal()
+    replace fw = . in 5
+    replace x  = . in 3
+
+    gegen r1_def    = rank(x) [fw = fw], ties(def)
+    gegen r1_field  = rank(x) [fw = fw], ties(field)
+    gegen r1_track  = rank(x) [fw = fw], ties(track)
+    gegen r1_uniq   = rank(x) [fw = fw], ties(uniq)
+    gegen r1_stable = rank(x) [fw = fw], ties(stable)
+
+    gegen r2 = rank(x) [aw = aw]
+    gegen r3 = rank(x) [pw = pw]
+    gegen r4 = rank(x) [iw = iw]
+
+    gisid r1_uniq, missok
+    gisid r1_stable, missok
+
+    expand fw
+
+    gegen r_def    = rank(x) if !mi(fw), ties(def)
+    gegen r_field  = rank(x) if !mi(fw), ties(field)
+    gegen r_track  = rank(x) if !mi(fw), ties(track)
+
+    assert r_def    == r1_def   
+    assert r_field  == r1_field 
+    assert r_track  == r1_track 
+
+    egen e_def    = rank(x) if !mi(fw), def
+    egen e_field  = rank(x) if !mi(fw), field
+    egen e_track  = rank(x) if !mi(fw), track
+
+    assert e_def    == r1_def   
+    assert e_field  == r1_field 
+    assert e_track  == r1_track 
+
 end
 
 capture program drop checks_inner_egen
@@ -163,7 +294,7 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt rank
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -235,7 +366,7 @@ program compare_egen
         local forcestrl: disp cond(strpos(lower("`c(os)'"), "windows"), "forcestrl", "")
         compare_inner_egen strL1,             `options' tol(`tol') hash(0) `forcestrl' sort
         compare_inner_egen strL1 strL2,       `options' tol(`tol') hash(2) `forcestrl' shuffle
-        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1) `forcestrl' 
+        compare_inner_egen strL1 strL2 strL3, `options' tol(`tol') hash(1) `forcestrl'
     }
 end
 

@@ -112,10 +112,13 @@ program define gegen, byable(onecall) rclass
     * gegen aliases for other gtools functions
     * ----------------------------------------
 
-    local transforms standardize ///
+    * NOTE: With retype, let the captured functions determine type
+
+    local transforms rank        ///
+                     standardize ///
                      normalize   ///
                      demean      ///
-                     demedian    //
+                     demedian     //
 
     local direct winsorize ///
                  winsor     //
@@ -124,6 +127,9 @@ program define gegen, byable(onecall) rclass
         if ( _by() ) {
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
+        }
+        if ( `retype' ) {
+            disp as err "warning: type ignored with gegen function xtile"
         }
         cap noi fasterxtile `name' = `args' `if' `in' `wgt', by(`byvars') `options'
         exit _rc
@@ -141,6 +147,7 @@ program define gegen, byable(onecall) rclass
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
+        if ( `retype' ) local type
         local options types(`type') `options'
         cap noi gstats transform (`fcn') `name' = `args' `if' `in' `wgt', by(`byvars') `options'
         exit _rc
@@ -156,6 +163,9 @@ program define gegen, byable(onecall) rclass
         if ( _by() ) {
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
+        }
+        if ( `retype' ) {
+            disp as err "warning: type ignored with gegen function `fcn'"
         }
         local options gen(`name') `options'
         cap noi gstats `fcn' `args' `if' `in' `wgt', by(`byvars') `options'

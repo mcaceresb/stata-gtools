@@ -3,6 +3,7 @@ clear all
 * set obs 10000000
 set obs 1000000
 gen x = ceil(runiform()*10000)
+gen g = round(_n / 100)
 tempfile data
 save `data'
 
@@ -15,7 +16,7 @@ use `data', clear
 
 * With egen
 timer on 1
-egen rank_x = rank(x)
+* egen rank_x = rank(x)
 timer off 1
 
 * With gtools
@@ -26,8 +27,8 @@ gen rank2_x = `t1' + `t2' / 2 - 0.5
 timer off 2
 
 * Validate
-gen same = rank_x==rank2_x
-sum
+* gen same = rank_x==rank2_x
+* sum
 
 *---------------------------------------------
 * egen rank, track
@@ -43,12 +44,14 @@ timer off 3
 
 * With gtools 
 timer on 4
-gegen rank2_x = group(x)
+tempvar t1 t2
+gen `t1' = x
+fasterxtile `t2' = x, nq(`=_N')
 timer off 4
 
 * Validate
-gen same = rank_x==rank2_x
-sum 
+* gen same = rank_x==rank2_x
+* sum 
 
 *---------------------------------------------
 * egen rank, field
@@ -70,8 +73,8 @@ gen rank2_x = `r(N)' - `t1' - `t2' + 2
 timer off 6
 
 * Validate they produce same results
-gen same = rank_x==rank2_x
-sum 
+* gen same = rank_x==rank2_x
+* sum 
 
 *---------------------------------------------
 * Display relative speeds

@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat Aug  3 17:27:12 EDT 2019
+ * Updated: Sun Aug  4 23:01:36 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.5.10
+ * Version: 1.5.11
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 03 Aug 2019
+ * @date 04 Aug 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -744,6 +744,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->summarize_codes
     );
 
+    st_info->transform_rank_ties = calloc(
+        transform_ktargets,
+        sizeof st_info->transform_rank_ties
+    );
+
     st_info->transform_varfuns = calloc(
         transform_ktargets,
         sizeof st_info->transform_varfuns
@@ -777,37 +782,38 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
-    if ( st_info->byvars_strL        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
-    if ( st_info->byvars_lens        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
-    if ( st_info->invert             == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
-    if ( st_info->wselmat            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
-    if ( st_info->pos_num_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
-    if ( st_info->pos_str_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
-    if ( st_info->group_targets      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
-    if ( st_info->group_init         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
-    if ( st_info->greshape_types     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
-    if ( st_info->greshape_xitypes   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
-    if ( st_info->greshape_maplevel  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
-    if ( st_info->summarize_codes    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
-    if ( st_info->transform_varfuns  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
-    if ( st_info->transform_statcode == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
-    if ( st_info->transform_statmap  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
-    if ( st_info->transform_moving   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
-    if ( st_info->transform_moving_l == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
-    if ( st_info->transform_moving_u == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
-
-    if ( st_info->transform_range    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
-    if ( st_info->transform_range_pos== NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
-    if ( st_info->transform_range_l  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_l"));
-    if ( st_info->transform_range_u  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_u"));
-    if ( st_info->transform_range_ls == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_ls"));
-    if ( st_info->transform_range_us == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_us"));
-
-    if ( st_info->pos_targets        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
-    if ( st_info->statcode           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
-    if ( st_info->contract_which     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
-    if ( st_info->xtile_quantiles    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
-    if ( st_info->xtile_cutoffs      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
+    if ( st_info->byvars_strL         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
+    if ( st_info->byvars_lens         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->invert              == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat             == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
+    if ( st_info->pos_num_byvars      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+    if ( st_info->group_targets       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
+    if ( st_info->group_init          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->greshape_types      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
+    if ( st_info->greshape_xitypes    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
+    if ( st_info->greshape_maplevel   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
+    if ( st_info->summarize_codes     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
+    if ( st_info->transform_rank_ties == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_rank_ties"));
+    if ( st_info->transform_varfuns   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
+    if ( st_info->transform_statcode  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
+    if ( st_info->transform_statmap   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
+    if ( st_info->transform_moving    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
+    if ( st_info->transform_moving_l  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
+    if ( st_info->transform_moving_u  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
+                                      
+    if ( st_info->transform_range     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
+    if ( st_info->transform_range_pos == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
+    if ( st_info->transform_range_l   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_l"));
+    if ( st_info->transform_range_u   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_u"));
+    if ( st_info->transform_range_ls  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_ls"));
+    if ( st_info->transform_range_us  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_us"));
+                                      
+    if ( st_info->pos_targets         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
+    if ( st_info->statcode            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
+    if ( st_info->contract_which      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
+    if ( st_info->xtile_quantiles     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
+    if ( st_info->xtile_cutoffs       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_strL")
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
@@ -821,6 +827,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->greshape_xitypes")
     GTOOLS_GC_ALLOCATED("st_info->greshape_maplevel")
     GTOOLS_GC_ALLOCATED("st_info->summarize_codes")
+    GTOOLS_GC_ALLOCATED("st_info->transform_rank_ties")
     GTOOLS_GC_ALLOCATED("st_info->transform_varfuns")
     GTOOLS_GC_ALLOCATED("st_info->transform_statcode")
     GTOOLS_GC_ALLOCATED("st_info->transform_statmap")
@@ -884,8 +891,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( (rc = sf_get_vector ("__gtools_transform_varfuns",  st_info->transform_varfuns))  ) goto exit;
-    if ( (rc = sf_get_vector ("__gtools_transform_statcode", st_info->transform_statcode)) ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_transform_rank_ties", st_info->transform_rank_ties)) ) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_transform_varfuns",   st_info->transform_varfuns))   ) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_transform_statcode",  st_info->transform_statcode))  ) goto exit;
 
     for (i = 0; i < transform_ktargets; i++) {
         for (j = 0; j < transform_kgstats; j++) {
@@ -2229,6 +2237,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->greshape_xitypes);
         free (st_info->greshape_maplevel);
         free (st_info->summarize_codes);
+        free (st_info->transform_rank_ties);
         free (st_info->transform_varfuns);
         free (st_info->transform_statcode);
         free (st_info->transform_statmap);
@@ -2261,6 +2270,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->greshape_xitypes")
         GTOOLS_GC_FREED("st_info->greshape_maplevel")
         GTOOLS_GC_FREED("st_info->summarize_codes")
+        GTOOLS_GC_FREED("st_info->transform_rank_ties")
         GTOOLS_GC_FREED("st_info->transform_varfuns")
         GTOOLS_GC_FREED("st_info->transform_statcode")
         GTOOLS_GC_FREED("st_info->transform_statmap")

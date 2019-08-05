@@ -1,6 +1,20 @@
 Change Log
 ==========
 
+## gtools-1.5.11 (2019-08-04)
+
+### Features
+
+- Fixes #67; adds `gegen x = rank(varname) [wgt], by(varlist)` via
+  `gstats transform (rank)`. Weights are optional.
+
+### Bug Fixes
+
+- Fixed bug where a by variable being used as a source but not a
+  target got renamed to the target and was no longer available as a by
+  variable. Now a new variable should be created and the by variable
+  remains unchanged.
+
 ## gtools-1.5.10 (2019-08-03)
 
 ### Bug Fixes

@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.5.10"
+#define GTOOLS_VERSION "1.5.11"
 
 /*
  * Style
@@ -143,6 +143,7 @@ struct StataInfo {
     GT_size   transform_range_k;
     GT_bool   transform_range_xs;
     GT_bool   transform_range_xb;
+    GT_size   *transform_rank_ties;
     ST_double *transform_varfuns;
     ST_double *transform_statcode;
     GT_size   *transform_statmap;

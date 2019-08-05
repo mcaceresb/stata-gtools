@@ -791,7 +791,7 @@ program gcollapse, rclass
 
         local ifcond (`=_N > 0')                          ///
                    & (`=scalar(__gtools_gc_k_extra)' > 0) ///
-                   & ( `used_io' | ("`forceio'" == "forceio") ) 
+                   & ( `used_io' | ("`forceio'" == "forceio") )
         if ( `ifcond' ) {
             gtools_timer on `t97'
 
@@ -1245,6 +1245,7 @@ program parse_keep_drop, rclass
         local __gtools_gc_uniq_vars: subinstr local __gtools_gc_uniq_vars " "  "  ", all
         local __gtools_gc_keepvars:  subinstr local __gtools_gc_keepvars  " "  "  ", all
 
+        local by: subinstr local by " "  "  ", all
         local K: list sizeof __gtools_gc_targets
         forvalues k = 1 / `K' {
             unab memvars : _all
@@ -1260,7 +1261,11 @@ program parse_keep_drop, rclass
             * Always try to use as target; will recast if necessary
             if ( `:list k_var in __gtools_gc_uniq_vars' ) {
                 local __gtools_gc_uniq_vars: list __gtools_gc_uniq_vars - k_var
-                if ( !`:list k_var in __gtools_gc_targets' & !`:list k_target in memvars' ) {
+                if ( !`:list k_var in __gtools_gc_targets' & !`:list k_target in memvars' & !`:list k_var in by' ) {
+                    * local by " `by' "
+                    * local by: subinstr local by " `k_var' " " `k_target' ", all
+                    * local by `by'
+
                     local __gtools_gc_vars      " `__gtools_gc_vars' "
                     local __gtools_gc_uniq_vars " `__gtools_gc_uniq_vars' "
                     local __gtools_gc_keepvars  " `__gtools_gc_keepvars' "
@@ -1270,10 +1275,16 @@ program parse_keep_drop, rclass
                     local __gtools_gc_vars      `__gtools_gc_vars'
                     local __gtools_gc_uniq_vars `__gtools_gc_uniq_vars'
                     local __gtools_gc_keepvars  `__gtools_gc_keepvars'
+
                     rename `k_var' `k_target'
                 }
             }
         }
+
+        local by " `by' "
+        local by: subinstr local by "  "  " ", all
+        local by `by'
+
         local __gtools_gc_vars      " `__gtools_gc_vars' "
         local __gtools_gc_uniq_vars " `__gtools_gc_uniq_vars' "
         local __gtools_gc_keepvars  " `__gtools_gc_keepvars' "

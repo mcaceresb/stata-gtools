@@ -4,9 +4,9 @@
 sysuse auto, clear
 greg price mpg
 greg price mpg, by(foreign) robust
-greg price mpg, absorb(headroom) 
-greg price mpg, cluster(headroom) 
-greg price mpg, by(foreign) absorb(rep78 headroom) cluster(headroom) 
+greg price mpg, absorb(headroom)
+greg price mpg, cluster(headroom)
+greg price mpg, by(foreign) absorb(rep78 headroom) cluster(headroom)
 
 greg price mpg, mata(coefsOnly, nose)
 greg price mpg, mata(seOnly,    nob)
@@ -14,7 +14,7 @@ greg price mpg, mata(nothing,   nob nose)
 
 greg price mpg, prefix(b(_b_)) replace
 greg price mpg, prefix(se(_se_)) replace
-greg price mpg, absorb(rep78 headroom) prefix(b(_b_) se(_se_) hdfe(_hdfe_))
+greg price mpg, absorb(rep78 headroom) prefix(b(_b_) se(_se_) hdfe(_hdfe_)) replace
 drop _*
 
 greg price mpg, gen(b(_b_mpg _b_cons))

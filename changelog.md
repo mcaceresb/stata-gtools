@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.6.0 (2019-08-18)
+
+### Features
+
+- Adds `gregress`  (alias `greg`) with regressions by group, including
+  robust SE, cluster SE (one-way or nested only), and absorb several FE
+  (including HDFE, although the algorithm is inefficient at the moment).
+
 ## gtools-1.5.11 (2019-08-04)
 
 ### Features

@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.5.11-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.6.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -77,6 +77,7 @@ __*Extra commands*__
 
 | Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                         |
 | ------------------- | ------------------ | ----------------------- | ----------------------------- |
+| gregress            | asreg, reghdfe     | (.)                     | Beta release; see TODO        |
 | fasterxtile         | fastxtile          | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
 |                     | egenmisc (SSC) (-) | 8 to 25 / 2.5 to 6      |                               |
 |                     | astile (SSC) (-)   | 8 to 12 / 3.5 to 6      |                               |
@@ -86,6 +87,11 @@ __*Extra commands*__
 | gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)           |
 | gstats range        | rangestat          | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
 | gstats transform    |                    |                         | Various statistical functions |
+
+<small>(.) `gregress` does not aim to mimic all the functionality of any given command,
+but it _can_ compute a linear regression by group, with one-way or nested cluster SE
+as well as high-dimensional fixed effects. Rolling regressions, weights, and multi-way
+cluster SE are planned for the next point release.</small>
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -113,6 +119,7 @@ details and examples, see each command's help page:
 - [gtoplevelsof](https://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples)
 - [gegen](https://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples)
 - [gdistinct](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples)
+- [gregress](https://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples)
 
 In addition, several commands take gsort-style input, that is
 
@@ -223,6 +230,10 @@ The syntax is generally analogous to the standard commands (see the correspondin
 help files for full syntax and options):
 ```stata
 sysuse auto, clear
+
+* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
+gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
+gregress price mpg, by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -633,6 +644,22 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 
 TODO
 ----
+
+Planned features for `gtools-1.7.0`:
+
+- [ ] Flexible save options for regress
+    - Choose which coefs/se to save
+    - Choose which set of results to save
+    - Include number of clusters per group
+    - Include number of absorb levels per group
+    - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
+    - `predict()`, including `xb` and `e`.
+- [ ] Weights in `gregress` (all the code is in place; just needs copy/paste and debug)
+- [ ] Non-nested multi-way clustering for `gregress`.
+- [ ] Rolling (interval) and moving options for `gregress`.
+- [ ] Accelerate HDFE corner cases in `gregress`
+- [ ] `cumsum` for `gstats transform` (normal cumsum)
+- [ ] `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them (in order of how likely they are to come):

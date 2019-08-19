@@ -110,11 +110,11 @@ ST_retcode sf_get_vector_int (char *st_matrix, GT_int *v)
     GT_size ncol = SF_col(st_matrix);
     GT_size nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
     else if ( (ncol == 0) & (nrow == 0) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
 
@@ -150,11 +150,11 @@ ST_retcode sf_get_vector_size (char *st_matrix, GT_size *v)
     GT_size ncol = SF_col(st_matrix);
     GT_size nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
     else if ( (ncol == 0) & (nrow == 0) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
 

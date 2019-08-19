@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.5.11"
+#define GTOOLS_VERSION "1.6.0"
 
 /*
  * Style
@@ -76,6 +76,8 @@ struct StataInfo {
     GT_size   gfile_bynum;
     GT_size   gfile_topnum;
     GT_size   gfile_topmat;
+    GT_size   gfile_gregb;
+    GT_size   gfile_gregse;
     //
     GT_size   biject;
     GT_size   encode;
@@ -156,6 +158,27 @@ struct StataInfo {
     ST_double *transform_range_u;
     ST_double *transform_range_ls;
     ST_double *transform_range_us;
+    //
+    GT_size   gregress_kvars;
+    GT_bool   gregress_cons;
+    GT_bool   gregress_rowmajor;
+    GT_bool   gregress_colmajor;
+    GT_bool   gregress_robust;
+    GT_size   gregress_cluster;
+    GT_size   gregress_cluster_bytes;
+    GT_size   gregress_absorb;
+    GT_size   gregress_absorb_bytes;
+    ST_double gregress_hdfetol;
+    GT_bool   gregress_savemata;
+    GT_bool   gregress_savemb;
+    GT_bool   gregress_savemse;
+    GT_bool   gregress_savegb;
+    GT_bool   gregress_savegse;
+    GT_bool   gregress_saveghdfe;
+    GT_int    *gregress_cluster_types;
+    GT_size   *gregress_cluster_offsets;
+    GT_int    *gregress_absorb_types;
+    GT_size   *gregress_absorb_offsets;
     //
     GT_bool   greshape_dropmiss;
     GT_bool   greshape_code;

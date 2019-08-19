@@ -92,6 +92,12 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
         sf_printf_debug("debug 3 (sf_stats_winsor): Read from Stata in order.\n");
     }
 
+    // Note that offset_source is only used as J x k when we group missing
+    // values, because then the offset is different for each variable as
+    // each variable can have a different number of missings. When there are
+    // no missing values (or, as with weights, when we deal with them later)
+    // we use the same count of non-missings.
+
     i = 0;
     if ( weights ) {
         for (stptr = index_st; stptr < index_st + Nread; stptr++, i++) {

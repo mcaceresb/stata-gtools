@@ -1,4 +1,4 @@
-*! version 1.5.11 04Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.6.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -15,10 +15,12 @@
 * rc 18103 - greshape wide xi variables not unique within id
 * rc 18201 - gstats all variables are non-numeric (soft exit)
 * rc 18301 - gstats transform; unexpected number of stats passed to transform
+* rc 18401 - gregress k > N (too many vars/absorb levels)
 * --------
 * rc 17459 - isid special error
 * rc 17900 - multi-threading not available
 * rc 17901 - generic not implemented
+* rc 17902 - gtools API OOM
 * rc 17999 - collision error
 * --------
 * > 0 to < 100 strict gives quantiles
@@ -40,6 +42,9 @@ program _gtools_internal, rclass
     }
 
     if ( `"${GTOOLS_TEMPDIR}"' == "" ) {
+        tempfile gregfile
+        tempfile gregbfile
+        tempfile gregsefile
         tempfile gstatsfile
         tempfile gbyvarfile
         tempfile gbycolfile
@@ -48,6 +53,9 @@ program _gtools_internal, rclass
         tempfile gtopmatfile
     }
     else {
+        GtoolsTempFile gregfile
+        GtoolsTempFile gregbfile
+        GtoolsTempFile gregsefile
         GtoolsTempFile gstatsfile
         GtoolsTempFile gbyvarfile
         GtoolsTempFile gbycolfile
@@ -56,6 +64,9 @@ program _gtools_internal, rclass
         GtoolsTempFile gtopmatfile
     }
 
+    global GTOOLS_GREG_FILE:    copy local gregfile
+    global GTOOLS_GREGB_FILE:   copy local gregbfile
+    global GTOOLS_GREGSE_FILE:  copy local gregsefile
     global GTOOLS_GSTATS_FILE:  copy local gstatsfile
     global GTOOLS_BYVAR_FILE:   copy local gbyvarfile
     global GTOOLS_BYCOL_FILE:   copy local gbycolfile
@@ -88,6 +99,7 @@ program _gtools_internal, rclass
                          gquantiles   ///
                          gstats       ///
                          greshape     /// 11
+                         gregress     ///
                          ghash
 
     if ( !(`:list GTOOLS_CALLER in GTOOLS_CALLERS') | ("$GTOOLS_CALLER" == "") ) {
@@ -174,6 +186,7 @@ program _gtools_internal, rclass
                                   /// ---------------
                                   ///
         greshape(str)             /// options for greshape (to parse later)
+        gregress(str)             /// options for gregress (to parse later)
         gstats(str)               /// options for gstats (to parse later)
         gquantiles(str)           /// options for gquantiles (to parse later)
         gcontract(str)            /// options for gcontract (to parse later)
@@ -307,6 +320,7 @@ program _gtools_internal, rclass
         disp as txt `"    gquantiles:       `gquantiles'"'
         disp as txt `"    gcontract:        `gcontract'"'
         disp as txt `"    gstats:           `gstats'"'
+        disp as txt `"    gregress:         `gregress'"'
         disp as txt `"    greshape:         `greshape'"'
         disp as txt `"    gcollapse:        `gcollapse'"'
         disp as txt `"    gtop:             `gtop'"'
@@ -401,6 +415,7 @@ program _gtools_internal, rclass
                          top      ///
                          contract ///
                          stats    ///
+                         regress  ///
                          reshape  ///
                          quantiles
 
@@ -693,6 +708,9 @@ program _gtools_internal, rclass
     mata: st_numscalar("__gtools_gfile_topnum", strlen(st_local("gtopnumfile")) + 1)
     mata: st_numscalar("__gtools_gfile_topmat", strlen(st_local("gtopmatfile")) + 1)
 
+    mata: st_numscalar("__gtools_gfile_gregb",  strlen(st_local("gregbfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_gregse", strlen(st_local("gregsefile")) + 1)
+
     scalar __gtools_init_targ   = 0
     scalar __gtools_any_if      = `any_if'
     scalar __gtools_verbose     = `verbose'
@@ -771,6 +789,7 @@ program _gtools_internal, rclass
     matrix __gtools_xtile_quantbin  = J(1, 1, .)
     matrix __gtools_xtile_cutbin    = J(1, 1, .)
 
+    gregress_scalars init
     gstats_scalars   init
     greshape_scalars init
 
@@ -1633,6 +1652,291 @@ program _gtools_internal, rclass
             scalar __gtools_greshape_kxi      = `:list sizeof xi'
             scalar __gtools_greshape_dropmiss = ( `"`dropmissing'"' != "" )
         }
+        else if ( inlist("`gfunction'",  "regress") ) {
+            local gcall `gfunction' `"${GTOOLS_GREG_FILE}"'
+            local 0: copy local gregress
+            syntax varlist(numeric ts fv), [ /// TODO: ts fv not yet supported!
+                Robust                       /// Robust SE
+                cluster(str)                 /// Cluster by varlist
+                absorb(str)                  /// Absorb each var in varlist as FE
+                hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
+                noConstant                   /// Whether to add a constant
+                rowmajor                     /// Read matrix in row major order
+                colmajor                     /// Read matrix in column major order
+                                             ///
+                mata(str)                    /// save in mata (default)
+                GENerate(str)                /// save in varlist
+                prefix(str)                  /// save prepending prefix
+                replace                      /// Replace targets, if they exist
+            ]
+
+            if ( (`"`rowmajor'"' != "") & (`"`colmajor'"' != "") ) {
+                disp as err "Specify only one of {opt rowmajor} or {opt colmajor}"
+                exit 198
+            }
+
+            * TODO: strL support
+            if ( `"`cluster'"' != "" ) {
+                GenericParseTypes `cluster', mat(__gtools_gregress_clustyp)
+            }
+
+            if ( `"`absorb'"' != "" ) {
+                GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
+            }
+
+            local regressvars `varlist' `cluster' `absorb'
+
+            scalar __gtools_gregress_kvars    = `:list sizeof varlist'
+            scalar __gtools_gregress_cons     = `"`constant'"' != "noconstant"
+            scalar __gtools_gregress_rowmajor = `"`rowmajor'"' != ""
+            scalar __gtools_gregress_colmajor = `"`colmajor'"' != ""
+            scalar __gtools_gregress_robust   = `"`robust'"'   != ""
+            scalar __gtools_gregress_cluster  = `:list sizeof cluster'
+            scalar __gtools_gregress_absorb   = `:list sizeof absorb'
+            scalar __gtools_gregress_hdfetol  = `hdfetol'
+
+            if ( scalar(__gtools_gregress_cluster) > 1 ) {
+                disp as txt "({bf:warning}: cluster() with multiple variables is assumed to be nested)"
+            }
+
+            if ( scalar(__gtools_gregress_absorb) > 0 & scalar(__gtools_gregress_rowmajor) ) {
+                disp as err "absorb() is not available with option -rowmajor-"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
+
+            if ( scalar(__gtools_gregress_kvars) < 2 ) {
+                disp as err "2 or more variables required: depvar indepvar [indepvar ...]"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
+
+            local yxvarlist: copy local varlist
+            gettoken yvarlist xvarlist: yxvarlist
+            scalar __gtools_gregress_kv = __gtools_gregress_kvars - 1 + __gtools_gregress_cons * (__gtools_gregress_absorb == 0)
+
+            if ( `"`mata'`generate'`prefix'"' == "" ) {
+                scalar __gtools_gregress_savemata = 1
+                scalar __gtools_gregress_savemb   = 1
+                scalar __gtools_gregress_savemse  = 1
+                local saveGregressMata GtoolsRegress
+                mata: `saveGregressMata' = GtoolsRegressOutput()
+                mata: `saveGregressMata'.whoami = `"`saveGregressMata'"'
+            }
+            else {
+                if ( `"`mata'"' != "" ) {
+                    local 0 `mata'
+                    cap noi syntax [namelist(max = 1)], [noB noSE]
+                    if ( `"`namelist'"' == "" ) local namelist GtoolsRegress 
+
+                    scalar __gtools_gregress_savemata = 1
+                    scalar __gtools_gregress_savemb   = `"`b'"'  != "nob"
+                    scalar __gtools_gregress_savemse  = `"`se'"' != "nose"
+
+                    local saveGregressMata `namelist'
+                    mata: `saveGregressMata' = GtoolsRegressOutput()
+                    mata: `saveGregressMata'.whoami = `"`saveGregressMata'"'
+                }
+
+                if ( (`"`generate'"' != "") & (`"`prefix'"' != "") ) {
+                    disp as err "gen() and prefix() are mutually exclusive"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+
+                if ( `"`generate'"' != "" ) {
+                    local 0, `generate'
+                    cap noi syntax, [b(str) se(str) hdfe(str)]
+                    if ( _rc ) {
+                        disp as err "error parsing gen()"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`:list sizeof b' != scalar(__gtools_gregress_kv)) & (`"`b'"' != "") ) {
+                        disp as err "number of output variables in gen(b()) does not match number of inputs"
+                        if ( scalar(__gtools_gregress_cons) ) {
+                            if ( `:list sizeof b' == (scalar(__gtools_gregress_kv) - 1) ) {
+                                disp as err "Did you forget the constant?"
+                            }
+                        }
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`:list sizeof se' != scalar(__gtools_gregress_kv)) & (`"`se'"' != "") ) {
+                        disp as err "number of output variables in gen(se()) does not match number of inputs"
+                        if ( scalar(__gtools_gregress_cons) ) {
+                            if ( `:list sizeof se' == (scalar(__gtools_gregress_kv) - 1) ) {
+                                disp as err "Did you forget the constant?"
+                            }
+                        }
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`"`hdfe'"' != "") & (scalar(__gtools_gregress_absorb) == 0) ) {
+                        disp as err "gen(hdfe()) without absorb() just makes a copy of the variables"
+                    }
+                    else if ( (`:list sizeof hdfe' != scalar(__gtools_gregress_kvars)) & (`"`hdfe'"' != "") ) {
+                        disp as err "number of output variables in gen(hdfe()) does not match number of inputs"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( "`replace'" == "" ) {
+                        cap noi confirm new var `b' `se' `hdfe'
+                        if ( _rc ) {
+                            local rc = _rc
+                            clean_all `rc'
+                            exit `rc'
+                        }
+                    }
+
+                    local nvar = 0
+                    local togen
+                    foreach var in `b' `se' `hdfe' {
+                        cap confirm var `var'
+                        if ( _rc ) {
+                            local togen `togen' `var'
+                            local ++nvar
+                        }
+                    }
+
+                    scalar __gtools_gregress_savegb    = `"`b'"'    != ""
+                    scalar __gtools_gregress_savegse   = `"`se'"'   != ""
+                    scalar __gtools_gregress_saveghdfe = `"`hdfe'"' != ""
+
+                    if ( `nvar' > 0 ) {
+                        qui mata: (void) st_addvar(J(1, `nvar', `"`:set type'"'), tokens(`"`togen'"'))
+                    }
+                    local regressvars `regressvars' `b' `se' `hdfe'
+                }
+
+                if ( `"`prefix'"' != "" ) {
+                    local 0, `prefix'
+                    cap noi syntax, [b(str) se(str) hdfe(str)]
+                    if ( _rc ) {
+                        disp as err "error parsing prefix()"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`:list sizeof b' != 1) & (`"`b'"' != "") ) {
+                        disp as err "specify a single prefix in prefix(b())"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`:list sizeof se' != 1) & (`"`se'"' != "") ) {
+                        disp as err "specify a single prefix in prefix(se())"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    if ( (`:list sizeof hdfe' != 1) & (`"`hdfe'"' != "") ) {
+                        disp as err "specify a single prefix in prefix(hdfe())"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
+
+                    local bvars
+                    local sevars
+                    if ( `"`hdfe'"' != "" ) {
+                        local hdfevars `hdfe'`yvarlist'
+                        cap confirm name `hdfe'`yvarlist'
+                        if ( _rc ) {
+                            disp as err "prefix(hdfe()) results in invalid variable name, `hdfe'`yvarlist'"
+                            local rc = 198
+                            clean_all `rc'
+                            exit `rc'
+                        }
+                    }
+
+                    if ( scalar(__gtools_gregress_cons) * (scalar(__gtools_gregress_absorb) == 0) ) {
+                        local cons cons
+                    }
+                    else local cons
+
+                    foreach xvar in `xvarlist' `cons' {
+                        if ( `"`b'"' != "" ) {
+                            local bvars  `bvars' `b'`xvar'
+                            cap confirm name `b'`xvar'
+                            if ( _rc ) {
+                                disp as err "prefix(b()) results in invalid variable name, `b'`xvar'"
+                                local rc = 198
+                                clean_all `rc'
+                                exit `rc'
+                            }
+                        }
+                        if ( `"`se'"' != "" ) {
+                            local sevars  `sevars' `se'`xvar'
+                            cap confirm name `se'`xvar'
+                            if ( _rc ) {
+                                disp as err "prefix(se()) results in invalid variable name, `se'`xvar'"
+                                local rc = 198
+                                clean_all `rc'
+                                exit `rc'
+                            }
+                        }
+                        if ( `"`hdfe'"' != "" ) {
+                            local hdfevars  `hdfevars' `hdfe'`xvar'
+                            cap confirm name `hdfe'`xvar'
+                            if ( _rc ) {
+                                disp as err "prefix(hdfe()) results in invalid variable name, `hdfe'`xvar'"
+                                local rc = 198
+                                clean_all `rc'
+                                exit `rc'
+                            }
+                        }
+                    }
+
+                    if ( "`replace'" == "" ) {
+                        cap noi confirm new var `bvars' `sevars' `hdfevars'
+                        if ( _rc ) {
+                            local rc = _rc
+                            clean_all `rc'
+                            exit `rc'
+                        }
+                    }
+
+                    local nvar = 0
+                    local togen
+                    foreach var in `bvars' `sevars' `hdfevars' {
+                        cap confirm var `var'
+                        if ( _rc ) {
+                            local togen `togen' `var'
+                            local ++nvar
+                        }
+                    }
+
+                    scalar __gtools_gregress_savegb    = `"`b'"'    != ""
+                    scalar __gtools_gregress_savegse   = `"`se'"'   != ""
+                    scalar __gtools_gregress_saveghdfe = `"`hdfe'"' != ""
+
+                    if ( `nvar' > 0 ) {
+                        qui mata: (void) st_addvar(J(1, `nvar', `"`:set type'"'), tokens(`"`togen'"'))
+                    }
+
+                    local regressvars `regressvars' `bvars' `sevars' `hdfevars'
+                }
+            }
+
+            if ( `"`saveGregressMata'"' != "" ) {
+                mata: `saveGregressMata'.init()
+            }
+        }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction' `"${GTOOLS_GSTATS_FILE}"'
             gettoken gstat gstats: gstats
@@ -2316,7 +2620,7 @@ program _gtools_internal, rclass
 
         local plugvars `byvars' `etargets' `extravars' `level_targets'
         local plugvars `plugvars' `statvars' `contractvars' `xvars'
-        local plugvars `plugvars' `reshapevars'
+        local plugvars `plugvars' `reshapevars' `regressvars'
 
         scalar __gtools_weight_pos = `:list sizeof plugvars' + 1
         cap noi plugin call gtools_plugin `plugvars' `wvar' `ifin', `gcall'
@@ -2591,6 +2895,25 @@ program _gtools_internal, rclass
         * return matrix numlevels = __gtools_top_num
     }
 
+    * regress results
+    if ( inlist("`gfunction'", "regress") ) {
+        if ( scalar(__gtools_gregress_savemata) ) {
+            if ( scalar(__gtools_gregress_savemb) ) {
+                mata `saveGregressMata'.b  = GtoolsReadMatrix(st_local("gregbfile"),  `r_J', st_numscalar("__gtools_gregress_kv"))
+            }
+            if ( scalar(__gtools_gregress_savemse) ) {
+                mata `saveGregressMata'.se = GtoolsReadMatrix(st_local("gregsefile"), `r_J', st_numscalar("__gtools_gregress_kv"))
+            }
+            mata `saveGregressMata'.J = `r_J'
+
+            mata: `saveGregressMata'.ByLevels = GtoolsByLevels()
+            mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
+            mata: `saveGregressMata'.ByLevels.caller = "gregress"
+            mata: `saveGregressMata'.ByLevels.read("%16.0g", 1)
+            disp as txt "Results in `saveGregressMata'; see {stata mata `saveGregressMata'.desc()}"
+        }
+    }
+
     * quantile info
     if ( inlist("`gfunction'", "quantiles") ) {
         return local  quantiles    = "`quantiles'"
@@ -2662,6 +2985,9 @@ program clean_all
 
     set varabbrev ${GTOOLS_USER_INTERNAL_VARABBREV}
     global GTOOLS_USER_INTERNAL_VARABBREV
+    global GTOOLS_GREG_FILE
+    global GTOOLS_GREGB_FILE
+    global GTOOLS_GREGSE_FILE
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
     global GTOOLS_BYCOL_FILE
@@ -2675,6 +3001,8 @@ program clean_all
     cap scalar drop __gtools_gfile_bynum
     cap scalar drop __gtools_gfile_topnum
     cap scalar drop __gtools_gfile_topmat
+    cap scalar drop __gtools_gfile_gregb
+    cap scalar drop __gtools_gfile_gregse
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
@@ -2792,6 +3120,7 @@ program clean_all
     cap matrix drop __gtools_stats
     cap matrix drop __gtools_pos_targets
 
+    gregress_scalars drop
     gstats_scalars   drop
     greshape_scalars drop `_keepgreshape'
 
@@ -2958,7 +3287,7 @@ program parse_by_types, rclass
         }
     }
 
-    local need_compress = `GTOOLS_STRL_FAIL' | (`c(stata_version)' < 14)
+    local need_compress = `GTOOLS_STRL_FAIL' | (`c(stata_version)' < 14.1)
     if ( ("`varstrL'" != "") & `need_compress' & ("`compress'" != "") ) {
         qui compress `varstrL', nocoalesce
     }
@@ -2991,7 +3320,7 @@ program parse_by_types, rclass
                         _n(1) "from the Stata Plugin Interface, which does not allow writing to strL"  ///
                         _n(1) "variables from a plugin."
         }
-        else if ( `c(stata_version)' < 14 ) {
+        else if ( `c(stata_version)' < 14.1 ) {
             disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. I tried"            ///
                         _n(1) ""                                                                                    ///
                         _n(1) "    {stata compress `varstrL'}"                                                      ///
@@ -3016,7 +3345,7 @@ program parse_by_types, rclass
                         _n(1) "comes from the Stata Plugin Interface, which does not allow writing to"                      ///
                         _n(1) "strL variables from a plugin."
         }
-        else if ( `c(stata_version)' < 14 ) {
+        else if ( `c(stata_version)' < 14.1 ) {
             disp as err _n(1) "gtools for Stata 13 and earlier does not support strL variables. If your"                          ///
                         _n(1) "strL variables are string-only, try"                                                               ///
                         _n(1) ""                                                                                                  ///
@@ -3031,7 +3360,7 @@ program parse_by_types, rclass
         }
         exit 17002
     }
-    else if ( ("`varstrL'" != "") & (`c(stata_version)' >= 14) & ("`forcestrl'" == "") ) {
+    else if ( ("`varstrL'" != "") & (`c(stata_version)' >= 14.1) & ("`forcestrl'" == "") ) {
         scalar __gtools_k_strL = `:list sizeof varstrL'
         cap noi plugin call gtools_plugin `varstrL', checkstrL
         if ( _rc ) {
@@ -3727,30 +4056,56 @@ end
 
 capture program drop GenericParseTypes
 program GenericParseTypes
-    syntax varlist, mat(name) [strl(int 0)]
+    syntax varlist, mat(name) [matstrl(name)]
 
     cap disp ustrregexm("a", "a")
     if ( _rc ) local regex regex
     else local regex ustrregex
 
+    tempvar strlen
     local types
+    local strl
     foreach var of varlist `varlist' {
         if ( `regex'm("`:type `var''", "str([1-9][0-9]*|L)") ) {
-            if ( (`regex's(1) == "L") & (`strl' == 0) ) {
-                disp as err "Unsupported type `:type `var''"
+            if ( (`regex's(1) == "L") & (`"`matstrl'"' == "") ) {
+                disp as err "ParseTypes(`mat'): Unsupported type `:type `var''"
                 exit 198
             }
-            local types `types' `=`regex's(1)'
+            else if ( `regex's(1) == "L" ) {
+                cap confirm var `strlen'
+                if ( _rc ) {
+                    qui gen `strlen' = length(`var')
+                }
+                else {
+                    qui replace `strlen' = length(`var')
+                }
+                qui sum `strlen', meanonly
+
+                local strl  `strl'  1
+                local types `types' `r(max)'
+            }
+            else {
+                local strl  `strl'  0
+                local types `types' `=`regex's(1)'
+            }
         }
-        else if ( inlist("`:type `var''", "byte", "int", "long", "float", "double") ) {
+        else if inlist("`:type `var''", "byte", "int", "long") {
+            local strl  `strl'  0
+            local types `types' -1
+        }
+        else if inlist("`:type `var''", "float", "double") {
+            local strl  `strl'  0
             local types `types' 0
         }
         else {
-            disp as err "Unknown type `:type `var''"
+            disp as err "ParseTypes(`mat'): Unknown type `:type `var''"
             exit 198
         }
     }
-    mata: st_matrix(st_local("mat"), strtoreal(tokens(st_local("types"))))
+    mata: st_matrix(st_local("mat"),  strtoreal(tokens(st_local("types"))))
+    if ( `"`matstrl'"' != "" ) {
+        mata: st_matrix(st_local("matstrl"), strtoreal(tokens(st_local("strlen"))))
+    }
 end
 
 capture program drop encode_moving
@@ -4075,6 +4430,52 @@ program greshape_scalars
             cap scalar drop __gtools_greshape_kout
             cap scalar drop __gtools_greshape_klvls
         }
+    }
+end
+
+***********************************************************************
+*                              gregress                               *
+***********************************************************************
+
+capture program drop gregress_scalars
+program gregress_scalars
+    if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
+        scalar __gtools_gregress_kv        = 0
+        scalar __gtools_gregress_kvars     = 0
+        scalar __gtools_gregress_cons      = 0
+        scalar __gtools_gregress_rowmajor  = 0
+        scalar __gtools_gregress_colmajor  = 0
+        scalar __gtools_gregress_robust    = 0
+        scalar __gtools_gregress_cluster   = 0
+        scalar __gtools_gregress_absorb    = 0
+        scalar __gtools_gregress_hdfetol   = 0
+        scalar __gtools_gregress_savemata  = 0
+        scalar __gtools_gregress_savemb    = 0
+        scalar __gtools_gregress_savemse   = 0
+        scalar __gtools_gregress_savegb    = 0
+        scalar __gtools_gregress_savegse   = 0
+        scalar __gtools_gregress_saveghdfe = 0
+        matrix __gtools_gregress_clustyp   = .
+        matrix __gtools_gregress_abstyp    = .
+    }
+    else {
+        cap scalar drop __gtools_gregress_kv
+        cap scalar drop __gtools_gregress_kvars
+        cap scalar drop __gtools_gregress_cons
+        cap scalar drop __gtools_gregress_rowmajor
+        cap scalar drop __gtools_gregress_colmajor
+        cap scalar drop __gtools_gregress_robust
+        cap scalar drop __gtools_gregress_cluster
+        cap scalar drop __gtools_gregress_absorb
+        cap scalar drop __gtools_gregress_hdfetol
+        cap scalar drop __gtools_gregress_savemata
+        cap scalar drop __gtools_gregress_savemb
+        cap scalar drop __gtools_gregress_savemse
+        cap scalar drop __gtools_gregress_savegb
+        cap scalar drop __gtools_gregress_savegse
+        cap scalar drop __gtools_gregress_saveghdfe
+        cap matrix drop __gtools_gregress_clustyp
+        cap matrix drop __gtools_gregress_abstyp
     }
 end
 

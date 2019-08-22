@@ -330,27 +330,29 @@ program checks_gregress
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
-    clear
-    set matsize 10000
-    set maxvar 50000
-    set obs 10000
-    gen g = ceil(runiform()*10)
-    gen e = rnormal() * 5
-    forvalues i = 1 / 1000 {
-        gen x`i' = rnormal() * `i' + `i'
+    if ( `c(MP)' ) {
+        clear
+        set matsize 10000
+        set maxvar 50000
+        set obs 10000
+        gen g = ceil(runiform()*10)
+        gen e = rnormal() * 5
+        forvalues i = 1 / 1000 {
+            gen x`i' = rnormal() * `i' + `i'
+        }
+        gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
+
+        greg y x*, colmajor mata(r1)
+        greg y x*, rowmajor mata(r2)
+            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+
+        * Fairly slow...
+        greg y x*, colmajor cluster(g) mata(r1)
+        greg y x*, rowmajor cluster(g) mata(r2)
+            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
     }
-    gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
-
-    greg y x*, colmajor mata(r1)
-    greg y x*, rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-
-    * Fairly slow...
-    greg y x*, colmajor cluster(g) mata(r1)
-    greg y x*, rowmajor cluster(g) mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------

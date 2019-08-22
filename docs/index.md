@@ -65,23 +65,25 @@ or thousands of times faster, but this is an edge case.</small>
 
 __*Extra commands*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                         |
-| ------------------- | ------------------ | ----------------------- | ----------------------------- |
-| gregress            | asreg, reghdfe     | (.)                     | Beta release; see TODO        |
-| fasterxtile         | fastxtile          | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
-|                     | egenmisc (SSC) (-) | 8 to 25 / 2.5 to 6      |                               |
-|                     | astile (SSC) (-)   | 8 to 12 / 3.5 to 6      |                               |
-| gstats winsor       | winsor2            | 10 to 40 / 10 to 20     | Allows weights                |
-| gunique             | unique             | 4 to 26 / 4 to 12       |                               |
-| gdistinct           | distinct           | 4 to 26 / 4 to 12       | Also saves results in matrix  |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)           |
-| gstats range        | rangestat          | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
-| gstats transform    |                    |                         | Various statistical functions |
+| Function            | Similar (SSC/SJ)         | Speedup (IC / MP)       | Notes                         |
+| ------------------- | ------------------------ | ----------------------- | ----------------------------- |
+| gregress, gpoisson  | asreg, reghdfe, ppmlhdfe | (.)                     | Beta release; allows `by()`   |
+| fasterxtile         | fastxtile                | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
+|                     | egenmisc (SSC) (-)       | 8 to 25 / 2.5 to 6      |                               |
+|                     | astile (SSC) (-)         | 8 to 12 / 3.5 to 6      |                               |
+| gstats winsor       | winsor2                  | 10 to 40 / 10 to 20     | Allows weights                |
+| gunique             | unique                   | 4 to 26 / 4 to 12       |                               |
+| gdistinct           | distinct                 | 4 to 26 / 4 to 12       | Also saves results in matrix  |
+| gtop (gtoplevelsof) | groups, select()         | (+)                     | See table notes (+)           |
+| gstats range        | rangestat                | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
+| gstats transform    |                          |                         | Various statistical functions |
 
-<small>(.) `gregress` does not aim to mimic all the functionality of any given command,
-but it _can_ compute a linear regression by group, with one-way or nested cluster SE
-as well as high-dimensional fixed effects. Rolling regressions, weights, and multi-way
-cluster SE are planned for the next point release.</small>
+<small>(.) `gregress` and `gpoisson` do not aim to mimic all the
+functionality of any given command; they computes a linear or poisson
+regression by group, optionally with weights, one-way or nested
+clusters, and/or high-dimensional fixed effects. Rolling regressions,
+weights, and multi-way cluster SE are planned for the next point
+release.</small>
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -224,6 +226,10 @@ sysuse auto, clear
 * gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
 gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
 gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
+gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+gpoisson price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -462,6 +468,17 @@ Differences from `reshape`
 - `@` syntax can be modified via `match()`
 - `dropmiss` allows dropping missing observations when reshaping from
   wide to long (via `long` or `gather`).
+
+Differences from `regress`, `poisson`, `reghdfe`, and `ppmlhdfe`
+
+- `gregress` and `gpoisson` do not aim to replicate the entire table of
+  estimation results, nor the entire suite of post-estimation results
+  and tests, that `regress` (`reghdfe`) and `poisson` (`ppmlhdfe`) make
+  available. At the moment, they are considered beta software and only
+  coefficients and standard errors are computed.
+- `by()` and `absorb()` are allowed.
+- Results are saved either to mata or copied to variables in the dataset
+  in memory.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 

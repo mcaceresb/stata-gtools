@@ -110,7 +110,7 @@ details and examples, see each command's help page:
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
 - [gdistinct](usage/gdistinct#examples)
-- [gregress](usage/gregress#examples)
+- [gregress and gpoisson](usage/gregress#examples)
 
 In addition, several commands take gsort-style input, that is
 

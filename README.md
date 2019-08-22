@@ -120,7 +120,7 @@ details and examples, see each command's help page:
 - [gtoplevelsof](https://gtools.readthedocs.io/en/latest/usage/gtoplevelsof/index.html#examples)
 - [gegen](https://gtools.readthedocs.io/en/latest/usage/gegen/index.html#examples)
 - [gdistinct](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples)
-- [gregress](https://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples)
+- [gregress and gpoisson](https://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples)
 
 In addition, several commands take gsort-style input, that is
 

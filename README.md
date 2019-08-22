@@ -91,9 +91,8 @@ __*Extra commands*__
 <small>(.) `gregress` and `gpoisson` do not aim to mimic all the
 functionality of any given command; they computes a linear or poisson
 regression by group, optionally with weights, one-way or nested
-clusters, and/or high-dimensional fixed effects. Rolling regressions,
-weights, and multi-way cluster SE are planned for the next point
-release.</small>
+clusters, and/or high-dimensional fixed effects. Rolling regressions
+and multi-way cluster SE are planned for the next point release.</small>
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>

@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.9%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.5.11%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.5.9 22Jun2019`
+`version 1.6.1 21Aug2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -65,17 +65,25 @@ or thousands of times faster, but this is an edge case.</small>
 
 __*Extra commands*__
 
-| Function            | Similar (SSC/SJ)   | Speedup (IC / MP)       | Notes                         |
-| ------------------- | ------------------ | ----------------------- | ----------------------------- |
-| fasterxtile         | fastxtile          | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
-|                     | egenmisc (SSC) (-) | 8 to 25 / 2.5 to 6      |                               |
-|                     | astile (SSC) (-)   | 8 to 12 / 3.5 to 6      |                               |
-| gstats winsor       | winsor2            | 10 to 40 / 10 to 20     | Allows weights                |
-| gunique             | unique             | 4 to 26 / 4 to 12       |                               |
-| gdistinct           | distinct           | 4 to 26 / 4 to 12       | Also saves results in matrix  |
-| gtop (gtoplevelsof) | groups, select()   | (+)                     | See table notes (+)           |
-| gstats range        | rangestat          | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
-| gstats transform    |                    |                         | Various statistical functions |
+| Function            | Similar (SSC/SJ)         | Speedup (IC / MP)       | Notes                         |
+| ------------------- | ------------------------ | ----------------------- | ----------------------------- |
+| gregress, gpoisson  | asreg, reghdfe, ppmlhdfe | (.)                     | Beta release; allows `by()`   |
+| fasterxtile         | fastxtile                | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
+|                     | egenmisc (SSC) (-)       | 8 to 25 / 2.5 to 6      |                               |
+|                     | astile (SSC) (-)         | 8 to 12 / 3.5 to 6      |                               |
+| gstats winsor       | winsor2                  | 10 to 40 / 10 to 20     | Allows weights                |
+| gunique             | unique                   | 4 to 26 / 4 to 12       |                               |
+| gdistinct           | distinct                 | 4 to 26 / 4 to 12       | Also saves results in matrix  |
+| gtop (gtoplevelsof) | groups, select()         | (+)                     | See table notes (+)           |
+| gstats range        | rangestat                | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
+| gstats transform    |                          |                         | Various statistical functions |
+
+<small>(.) `gregress` and `gpoisson` do not aim to mimic all the
+functionality of any given command; they computes a linear or poisson
+regression by group, optionally with weights, one-way or nested
+clusters, and/or high-dimensional fixed effects. Rolling regressions,
+weights, and multi-way cluster SE are planned for the next point
+release.</small>
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -103,6 +111,7 @@ details and examples, see each command's help page:
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
 - [gdistinct](usage/gdistinct#examples)
+- [gregress](usage/gregress#examples)
 
 In addition, several commands take gsort-style input, that is
 
@@ -213,6 +222,14 @@ The syntax is generally analogous to the standard commands (see the correspondin
 help files for full syntax and options):
 ```stata
 sysuse auto, clear
+
+* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
+gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
+gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
+gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+gpoisson price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -388,6 +405,7 @@ gtools functions (`stat` is any stat available to `gcollapse`, except
 | demedian     | gstats transform |
 | moving\_stat | gstats transform |
 | range\_stat  | gstats transform |
+| rank         | gstats transform |
 | winsor       | gstats winsor    |
 | winsorize    | gstats winsor    |
 
@@ -450,6 +468,17 @@ Differences from `reshape`
 - `@` syntax can be modified via `match()`
 - `dropmiss` allows dropping missing observations when reshaping from
   wide to long (via `long` or `gather`).
+
+Differences from `regress`, `poisson`, `reghdfe`, and `ppmlhdfe`
+
+- `gregress` and `gpoisson` do not aim to replicate the entire table of
+  estimation results, nor the entire suite of post-estimation results
+  and tests, that `regress` (`reghdfe`) and `poisson` (`ppmlhdfe`) make
+  available. At the moment, they are considered beta software and only
+  coefficients and standard errors are computed.
+- `by()` and `absorb()` are allowed.
+- Results are saved either to mata or copied to variables in the dataset
+  in memory.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -621,6 +650,20 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 
 TODO
 ----
+
+Planned features for `gtools-1.7.0`:
+
+- Flexible save options for regress
+    - Choose which coefs/se to save
+    - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
+    - `predict()`, including `xb` and `e`.
+- Singularity check
+- Remove colinear by group in `gregress`
+- Non-nested multi-way clustering for `gregress`.
+- Rolling (interval) and moving options for `gregress`.
+- Accelerate HDFE corner cases in `gregress`
+- `cumsum` for `gstats transform` (normal cumsum)
+- `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them (in order of how likely they are to come):

@@ -8,9 +8,11 @@ sysuse auto, clear
 gegen norm_price = normalize(price),   by(foreign)
 gegen std_price  = standardize(price), by(foreign)
 gegen dm_price   = demean(price),      by(foreign)
+gegen rank_price = rank(price),        by(foreign)
 
 local opts by(foreign) replace
-gstats transform (normalize) norm_mpg = mpg (demean) dm_mpg = mpg, `opts'
+gstats transform (standardize) std_price = price (demean) dm_mpg = mpg, `opts'
+gstats transform (normalize) norm_mpg = mpg (rank) rank_price = price, `opts'
 gstats transform (demean) mpg (normalize) price [w = rep78], `opts'
 gstats transform (demean) mpg (normalize) xx = price, `opts' auto(#stat#_#source#)
 

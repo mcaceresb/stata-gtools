@@ -70,6 +70,7 @@ stat available to `gcollapse` except percent, nunique):
     demedian(varname)    -> gstats transform
     moving_stat(varname) -> gstats transform
     range_stat(varname)  -> gstats transform
+    rank(varname)        -> gstats transform
     winsor(varname)      -> gstats winsor
     winsorize(varname)   -> gstats winsor
 

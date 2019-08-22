@@ -23,6 +23,26 @@
 #include "sf_printf.c"
 
 /**
+ * @brief Read scalar into a signed integer
+ *
+ * @param st_scalar name of Stata scalar
+ * @param sval Scalar value
+ * @return Read scalar into GT_int variable
+ */
+ST_retcode sf_scalar_int (char *st_scalar, GT_int *sval)
+{
+    ST_retcode rc = 0;
+    ST_double _double;
+    if ( (rc = SF_scal_use(st_scalar, &_double)) ) {
+        return (rc);
+    }
+    else {
+        *sval = (GT_int) _double;
+    }
+    return (rc);
+}
+
+/**
  * @brief Read scalar into unsigned integer
  *
  * @param st_scalar name of Stata scalar
@@ -110,11 +130,11 @@ ST_retcode sf_get_vector_int (char *st_matrix, GT_int *v)
     GT_size ncol = SF_col(st_matrix);
     GT_size nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
     else if ( (ncol == 0) & (nrow == 0) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
 
@@ -150,11 +170,11 @@ ST_retcode sf_get_vector_size (char *st_matrix, GT_size *v)
     GT_size ncol = SF_col(st_matrix);
     GT_size nrow = SF_row(st_matrix);
     if ( (ncol > 1) & (nrow > 1) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
     else if ( (ncol == 0) & (nrow == 0) ) {
-        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix into an array\n", nrow, ncol);
+        sf_errprintf("tried to read a "GT_size_cfmt" by "GT_size_cfmt" matrix (%s) into an array\n", nrow, ncol, st_matrix);
         return (198);
     }
 

@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Jun 11 22:20:11 EDT 2019
+ * Updated: Wed Aug 21 19:38:58 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.5.8
+ * Version: 1.6.1
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 11 Jun 2019
+ * @date 21 Aug 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -52,6 +52,10 @@
 #include "quantiles/gquantiles_math_w.c"
 #include "quantiles/gquantiles_utils.c"
 #include "quantiles/gquantiles.c"
+
+#include "api/hashing.c"
+#include "api/groupby.c"
+#include "regress/gregress.c"
 
 int main()
 {
@@ -98,6 +102,7 @@ STDLL stata_call(int argc, char *argv[])
      *     - quantiles: Percentiles, xtile, bin counts, and more.             *
      *     - collapse:  Summary stat by group.                                *
      *     - stats:     Several stat functions and transforms.                *
+     *     - regress:   Linear regression (incl rolling and by group)         *
      *     - reshape:   Reshape data from wide to long and the converse       *
      *                                                                        *
      **************************************************************************/
@@ -341,6 +346,16 @@ STDLL stata_call(int argc, char *argv[])
             if ( (rc = sf_xtile_by    (st_info, 0))  ) goto exit;
         }
     }
+    else if ( strcmp(todo, "regress") == 0 ) {
+        size_t flength = strlen(argv[1]) + 1;
+        GTOOLS_CHAR (fname, flength);
+        strcpy (fname, argv[1]);
+
+        if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
+        if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
+        if ( (rc = sf_check_hash  (st_info, st_info->gregress_savemata? 2: 22)) ) goto exit;
+        if ( (rc = sf_regress     (st_info, 0, fname)) ) goto exit;
+    }
     else if ( strcmp(todo, "stats") == 0 ) {
         size_t flength = strlen(argv[1]) + 1;
         GTOOLS_CHAR (fname, flength);
@@ -418,6 +433,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 {
     ST_double z;
     ST_retcode rc = 0;
+    GT_int vlen;
     GT_size i, j, start, in1, in2, N;
     GT_size debug,
             verbose,
@@ -445,6 +461,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gfile_bynum,
             gfile_topnum,
             gfile_topmat,
+            gfile_gregb,
+            gfile_gregse,
+            gfile_gregclus,
+            gfile_gregabs,
             top_miss,
             top_groupmiss,
             top_matasave,
@@ -480,8 +500,6 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             xtile_cutby,
             gstats_code,
             winsor_trim,
-            winsor_cutl,
-            winsor_cuth,
             winsor_kvars,
             summarize_colvar,
             summarize_pooled,
@@ -496,6 +514,23 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             transform_range_k,
             transform_range_xs,
             transform_range_xb,
+            gregress_kvars,
+            gregress_cons,
+            gregress_rowmajor,
+            gregress_colmajor,
+            gregress_robust,
+            gregress_cluster,
+            gregress_absorb,
+            gregress_savemata,
+            gregress_savemb,
+            gregress_savemse,
+            gregress_savegb,
+            gregress_savegse,
+            gregress_saveghdfe,
+            gregress_range,
+            gregress_poisson,
+            gregress_poisiter,
+            gregress_moving,
             greshape_dropmiss,
             greshape_code,
             greshape_kxij,
@@ -523,6 +558,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             kvars_by_num,
             kvars_by_str,
             kvars_by_strL;
+    GT_int  gregress_moving_l,
+            gregress_moving_u;
 
     /*********************************************************************
      *       Fallback whenever this is not parsed (set to missing)       *
@@ -603,6 +640,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gfile_bynum",           &gfile_bynum)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_topnum",          &gfile_topnum)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_topmat",          &gfile_topmat)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregb",           &gfile_gregb)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregse",          &gfile_gregse)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregclus",        &gfile_gregclus)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregabs",         &gfile_gregabs)         )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",              &seecount)              )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",             &countonly)             )) goto exit;
@@ -657,8 +698,6 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     if ( (rc = sf_scalar_size("__gtools_gstats_code",           &gstats_code)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_trim",           &winsor_trim)           )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_cutl",           &winsor_cutl)           )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_winsor_cuth",           &winsor_cuth)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_kvars",          &winsor_kvars)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_colvar",      &summarize_colvar)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_pooled",      &summarize_pooled)      )) goto exit;
@@ -673,6 +712,26 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_transform_range_k",     &transform_range_k)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_range_xs",    &transform_range_xs)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_range_xb",    &transform_range_xb)    )) goto exit;
+
+    if ( (rc = sf_scalar_size("__gtools_gregress_kvars",        &gregress_kvars)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_cons",         &gregress_cons)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_rowmajor",     &gregress_rowmajor)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_colmajor",     &gregress_colmajor)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_robust",       &gregress_robust)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_cluster",      &gregress_cluster)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_absorb",       &gregress_absorb)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savemata",     &gregress_savemata)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savemb",       &gregress_savemb)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savemse",      &gregress_savemse)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savegb",       &gregress_savegb)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savegse",      &gregress_savegse)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_saveghdfe",    &gregress_saveghdfe)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_range",        &gregress_range)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_poisson",      &gregress_poisson)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_poisiter",     &gregress_poisiter)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_moving",       &gregress_moving)       )) goto exit;
+    if ( (rc = sf_scalar_int ("__gtools_gregress_moving_l",     &gregress_moving_l)     )) goto exit;
+    if ( (rc = sf_scalar_int ("__gtools_gregress_moving_u",     &gregress_moving_u)     )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_greshape_dropmiss",     &greshape_dropmiss)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_greshape_code",         &greshape_code)         )) goto exit;
@@ -703,6 +762,18 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = SF_scal_use("__gtools_top_freq",  &(st_info->top_freq)  )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_top_ntop",  &(st_info->top_ntop)  )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_top_pct",   &(st_info->top_pct)   )) ) return (rc);
+
+    // Vars for winsor
+    if ( (rc = SF_scal_use("__gtools_winsor_cutl", &(st_info->winsor_cutl) )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_winsor_cuth", &(st_info->winsor_cuth) )) ) return (rc);
+
+    // Vars for gregress
+    if ( (rc = SF_scal_use("__gtools_gregress_hdfetol",  &(st_info->gregress_hdfetol)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_poistol",  &(st_info->gregress_poistol)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_l",  &(st_info->gregress_range_l)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_u",  &(st_info->gregress_range_u)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_ls", &(st_info->gregress_range_ls) )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_us", &(st_info->gregress_range_us) )) ) return (rc);
 
     // Parse number of variables
     if ( (rc = sf_scalar_size("__gtools_kvars",      &kvars_by)      )) goto exit;
@@ -744,6 +815,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->summarize_codes
     );
 
+    st_info->transform_rank_ties = calloc(
+        transform_ktargets,
+        sizeof st_info->transform_rank_ties
+    );
+
     st_info->transform_varfuns = calloc(
         transform_ktargets,
         sizeof st_info->transform_varfuns
@@ -770,6 +846,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->transform_range_ls  = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_range_ls);
     st_info->transform_range_us  = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_range_us);
 
+    st_info->gregress_cluster_types   = calloc(GTOOLS_PWMAX(gregress_cluster, 1), sizeof st_info->gregress_cluster_types);
+    st_info->gregress_cluster_offsets = calloc(GTOOLS_PWMAX(gregress_cluster, 1), sizeof st_info->gregress_cluster_offsets);
+    st_info->gregress_absorb_types    = calloc(GTOOLS_PWMAX(gregress_absorb,  1), sizeof st_info->gregress_absorb_types);
+    st_info->gregress_absorb_offsets  = calloc(GTOOLS_PWMAX(gregress_absorb,  1), sizeof st_info->gregress_absorb_offsets);
+
     st_info->wselmat         = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->wselmat);
     st_info->pos_targets     = calloc((kvars_targets > 1)? kvars_targets   : 1, sizeof st_info->pos_targets);
     st_info->statcode        = calloc((kvars_stats   > 1)? kvars_stats     : 1, sizeof st_info->statcode);
@@ -777,37 +858,43 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_cutoffs   = calloc((xtile_ncuts   > 0)? xtile_ncuts + 1 : 1, sizeof st_info->xtile_cutoffs);
     st_info->contract_which  = calloc(4, sizeof st_info->contract_which);
 
-    if ( st_info->byvars_strL        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
-    if ( st_info->byvars_lens        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
-    if ( st_info->invert             == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
-    if ( st_info->wselmat            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
-    if ( st_info->pos_num_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
-    if ( st_info->pos_str_byvars     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
-    if ( st_info->group_targets      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
-    if ( st_info->group_init         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
-    if ( st_info->greshape_types     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
-    if ( st_info->greshape_xitypes   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
-    if ( st_info->greshape_maplevel  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
-    if ( st_info->summarize_codes    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
-    if ( st_info->transform_varfuns  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
-    if ( st_info->transform_statcode == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
-    if ( st_info->transform_statmap  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
-    if ( st_info->transform_moving   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
-    if ( st_info->transform_moving_l == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
-    if ( st_info->transform_moving_u == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
+    if ( st_info->byvars_strL              == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_strL"));
+    if ( st_info->byvars_lens              == NULL ) return (sf_oom_error("sf_parse_info", "st_info->byvars_lens"));
+    if ( st_info->invert                   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->invert"));
+    if ( st_info->wselmat                  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->wselmat"));
+    if ( st_info->pos_num_byvars           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_num_byvars"));
+    if ( st_info->pos_str_byvars           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_str_byvars"));
+    if ( st_info->group_targets            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_targets"));
+    if ( st_info->group_init               == NULL ) return (sf_oom_error("sf_parse_info", "st_info->group_init"));
+    if ( st_info->greshape_types           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_types"));
+    if ( st_info->greshape_xitypes         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_xitypes"));
+    if ( st_info->greshape_maplevel        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->greshape_maplevel"));
+    if ( st_info->summarize_codes          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->summarize_codes"));
+    if ( st_info->transform_rank_ties      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_rank_ties"));
+    if ( st_info->transform_varfuns        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_varfuns"));
+    if ( st_info->transform_statcode       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statcode"));
+    if ( st_info->transform_statmap        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_statmap"));
+    if ( st_info->transform_moving         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
+    if ( st_info->transform_moving_l       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
+    if ( st_info->transform_moving_u       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
 
-    if ( st_info->transform_range    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
-    if ( st_info->transform_range_pos== NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
-    if ( st_info->transform_range_l  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_l"));
-    if ( st_info->transform_range_u  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_u"));
-    if ( st_info->transform_range_ls == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_ls"));
-    if ( st_info->transform_range_us == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_us"));
+    if ( st_info->transform_range          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
+    if ( st_info->transform_range_pos      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
+    if ( st_info->transform_range_l        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_l"));
+    if ( st_info->transform_range_u        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_u"));
+    if ( st_info->transform_range_ls       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_ls"));
+    if ( st_info->transform_range_us       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_us"));
 
-    if ( st_info->pos_targets        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
-    if ( st_info->statcode           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
-    if ( st_info->contract_which     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
-    if ( st_info->xtile_quantiles    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
-    if ( st_info->xtile_cutoffs      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
+    if ( st_info->gregress_cluster_types   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_cluster_types"));
+    if ( st_info->gregress_cluster_offsets == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_cluster_offsets"));
+    if ( st_info->gregress_absorb_types    == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_absorb_types"));
+    if ( st_info->gregress_absorb_offsets  == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_absorb_offsets"));
+
+    if ( st_info->pos_targets              == NULL ) return (sf_oom_error("sf_parse_info", "st_info->pos_targets"));
+    if ( st_info->statcode                 == NULL ) return (sf_oom_error("sf_parse_info", "st_info->statcode"));
+    if ( st_info->contract_which           == NULL ) return (sf_oom_error("sf_parse_info", "st_info->contract_which"));
+    if ( st_info->xtile_quantiles          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_quantiles"));
+    if ( st_info->xtile_cutoffs            == NULL ) return (sf_oom_error("sf_parse_info", "st_info->xtile_cutoffs"));
 
     GTOOLS_GC_ALLOCATED("st_info->byvars_strL")
     GTOOLS_GC_ALLOCATED("st_info->byvars_lens")
@@ -821,6 +908,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->greshape_xitypes")
     GTOOLS_GC_ALLOCATED("st_info->greshape_maplevel")
     GTOOLS_GC_ALLOCATED("st_info->summarize_codes")
+    GTOOLS_GC_ALLOCATED("st_info->transform_rank_ties")
     GTOOLS_GC_ALLOCATED("st_info->transform_varfuns")
     GTOOLS_GC_ALLOCATED("st_info->transform_statcode")
     GTOOLS_GC_ALLOCATED("st_info->transform_statmap")
@@ -884,8 +972,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         }
     }
 
-    if ( (rc = sf_get_vector ("__gtools_transform_varfuns",  st_info->transform_varfuns))  ) goto exit;
-    if ( (rc = sf_get_vector ("__gtools_transform_statcode", st_info->transform_statcode)) ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_transform_rank_ties", st_info->transform_rank_ties)) ) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_transform_varfuns",   st_info->transform_varfuns))   ) goto exit;
+    if ( (rc = sf_get_vector      ("__gtools_transform_statcode",  st_info->transform_statcode))  ) goto exit;
 
     for (i = 0; i < transform_ktargets; i++) {
         for (j = 0; j < transform_kgstats; j++) {
@@ -905,6 +994,39 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_get_vector      ("__gtools_transform_range_ls",  st_info->transform_range_ls))  ) goto exit;
     if ( (rc = sf_get_vector      ("__gtools_transform_range_us",  st_info->transform_range_us))  ) goto exit;
 
+    if ( (rc = sf_get_vector_int  ("__gtools_gregress_clustyp", st_info->gregress_cluster_types)) ) goto exit;
+    if ( (rc = sf_get_vector_int  ("__gtools_gregress_abstyp",  st_info->gregress_absorb_types))  ) goto exit;
+
+    st_info->gregress_cluster_bytes = 0;
+    if ( gregress_cluster ) {
+        for (i = 1; i < gregress_cluster + 1; i++) {
+            vlen = st_info->gregress_cluster_types[i - 1] * sizeof(char);
+            if ( vlen > 0 ) {
+                st_info->gregress_cluster_bytes += (vlen + sizeof(char));
+                st_info->gregress_cluster_offsets[i - 1] = (vlen + sizeof(char));
+            }
+            else {
+                st_info->gregress_cluster_bytes += sizeof(ST_double);
+                st_info->gregress_cluster_offsets[i - 1] = sizeof(ST_double);
+            }
+        }
+    }
+
+    st_info->gregress_absorb_bytes = 0;
+    if ( gregress_absorb ) {
+        for (i = 1; i < gregress_absorb + 1; i++) {
+            vlen = st_info->gregress_absorb_types[i - 1] * sizeof(char);
+            if ( vlen > 0 ) {
+                st_info->gregress_absorb_bytes += (vlen + sizeof(char));
+                st_info->gregress_absorb_offsets[i - 1] = (vlen + sizeof(char));
+            }
+            else {
+                st_info->gregress_absorb_bytes += sizeof(ST_double);
+                st_info->gregress_absorb_offsets[i - 1] = sizeof(ST_double);
+            }
+        }
+    }
+
     if ( debug ) {
         printf("debug 4: Read matrices into arrays\n");
     }
@@ -923,7 +1045,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->in2                   = in2;
     st_info->N                     = N;
     st_info->Nread                 = N;
-                                   
+
     st_info->debug                 = debug;
     st_info->verbose               = verbose;
     st_info->benchmark             = benchmark;
@@ -945,7 +1067,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gfile_bynum           = gfile_bynum;
     st_info->gfile_topnum          = gfile_topnum;
     st_info->gfile_topmat          = gfile_topmat;
-                                   
+    st_info->gfile_gregb           = gfile_gregb;
+    st_info->gfile_gregse          = gfile_gregse;
+    st_info->gfile_gregclus        = gfile_gregclus;
+    st_info->gfile_gregabs         = gfile_gregabs;
+
     st_info->unsorted              = unsorted;
     st_info->countonly             = countonly;
     st_info->seecount              = seecount;
@@ -954,13 +1080,13 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->nomiss                = nomiss;
     st_info->replace               = replace;
     st_info->countmiss             = countmiss;
-                                   
+
     st_info->numfmt_max            = numfmt_max;
     st_info->numfmt_len            = numfmt_len;
     st_info->cleanstr              = cleanstr;
     st_info->colsep_len            = colsep_len;
     st_info->sep_len               = sep_len;
-                                   
+
     st_info->top_groupmiss         = top_groupmiss;
     st_info->top_miss              = top_miss;
     st_info->top_matasave          = top_matasave;
@@ -970,12 +1096,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->top_lmiss             = top_lmiss;
     st_info->top_lother            = top_lother;
     st_info->top_nrows             = top_nrows;
-                                   
+
     st_info->levels_return         = levels_return;
     st_info->levels_matasave       = levels_matasave;
     st_info->levels_gen            = levels_gen;
     st_info->levels_replace        = levels_replace;
-                                   
+
     st_info->xtile_xvars           = xtile_xvars;
     st_info->xtile_nq              = xtile_nq;
     st_info->xtile_nq2             = xtile_nq2;
@@ -996,11 +1122,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->xtile_dedup           = xtile_dedup;
     st_info->xtile_cutifin         = xtile_cutifin;
     st_info->xtile_cutby           = xtile_cutby;
-                                   
+
     st_info->gstats_code           = gstats_code;
     st_info->winsor_trim           = winsor_trim;
-    st_info->winsor_cutl           = winsor_cutl;
-    st_info->winsor_cuth           = winsor_cuth;
     st_info->winsor_kvars          = winsor_kvars;
     st_info->summarize_colvar      = summarize_colvar;
     st_info->summarize_pooled      = summarize_pooled;
@@ -1016,6 +1140,26 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->transform_range_xs    = transform_range_xs;
     st_info->transform_range_xb    = transform_range_xb;
 
+    st_info->gregress_kvars        = gregress_kvars;
+    st_info->gregress_cons         = gregress_cons;
+    st_info->gregress_rowmajor     = gregress_rowmajor;
+    st_info->gregress_colmajor     = gregress_colmajor;
+    st_info->gregress_robust       = gregress_robust;
+    st_info->gregress_cluster      = gregress_cluster;
+    st_info->gregress_absorb       = gregress_absorb;
+    st_info->gregress_savemata     = gregress_savemata;
+    st_info->gregress_savemb       = gregress_savemb;
+    st_info->gregress_savemse      = gregress_savemse;
+    st_info->gregress_savegb       = gregress_savegb;
+    st_info->gregress_savegse      = gregress_savegse;
+    st_info->gregress_saveghdfe    = gregress_saveghdfe;
+    st_info->gregress_moving       = gregress_moving;
+    st_info->gregress_moving_l     = gregress_moving_l;
+    st_info->gregress_moving_u     = gregress_moving_u;
+    st_info->gregress_range        = gregress_range;
+    st_info->gregress_poisson      = gregress_poisson;
+    st_info->gregress_poisiter     = gregress_poisiter;
+
     st_info->greshape_dropmiss     = greshape_dropmiss;
     st_info->greshape_code         = greshape_code;
     st_info->greshape_kxij         = greshape_kxij;
@@ -1025,17 +1169,17 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->greshape_str          = greshape_str;
     st_info->greshape_jfile        = greshape_jfile;
     st_info->greshape_anystr       = 0;
-                                   
+
     st_info->encode                = encode;
     st_info->group_data            = group_data;
     st_info->group_fill            = group_fill;
-                                   
+
     st_info->kvars_by              = kvars_by;
     st_info->kvars_by_int          = kvars_by_int;
     st_info->kvars_by_num          = kvars_by_num;
     st_info->kvars_by_str          = kvars_by_str;
     st_info->kvars_by_strL         = kvars_by_strL;
-                                   
+
     st_info->kvars_group           = kvars_group;
     st_info->kvars_sources         = kvars_sources;
     st_info->kvars_targets         = kvars_targets;
@@ -1051,7 +1195,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tin1:                   "GT_size_cfmt"\n",  in1                  );
         sf_printf_debug("\tin2:                   "GT_size_cfmt"\n",  in2                  );
         sf_printf_debug("\tN:                     "GT_size_cfmt"\n",  N                    );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\tdebug:                 "GT_size_cfmt"\n",  debug                );
         sf_printf_debug("\tverbose:               "GT_size_cfmt"\n",  verbose              );
         sf_printf_debug("\tbenchmark:             "GT_size_cfmt"\n",  benchmark            );
@@ -1076,7 +1220,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgfile_byvar:           "GT_size_cfmt"\n",  gfile_byvar          );
         sf_printf_debug("\tgfile_bycol:           "GT_size_cfmt"\n",  gfile_bycol          );
         sf_printf_debug("\tgfile_bynum:           "GT_size_cfmt"\n",  gfile_bynum          );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\ttop_miss:              "GT_size_cfmt"\n",  top_miss             );
         sf_printf_debug("\ttop_groupmiss:         "GT_size_cfmt"\n",  top_groupmiss        );
         sf_printf_debug("\ttop_matasave:          "GT_size_cfmt"\n",  top_matasave         );
@@ -1085,12 +1229,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\ttop_other:             "GT_size_cfmt"\n",  top_other            );
         sf_printf_debug("\ttop_lmiss:             "GT_size_cfmt"\n",  top_lmiss            );
         sf_printf_debug("\ttop_lother:            "GT_size_cfmt"\n",  top_lother           );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\tlevels_return:         "GT_size_cfmt"\n",  levels_return        );
         sf_printf_debug("\tlevels_matasave:       "GT_size_cfmt"\n",  levels_matasave      );
         sf_printf_debug("\tlevels_gen:            "GT_size_cfmt"\n",  levels_gen           );
         sf_printf_debug("\tlevels_replace:        "GT_size_cfmt"\n",  levels_replace       );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\txtile_xvars:           "GT_size_cfmt"\n",  xtile_xvars          );
         sf_printf_debug("\txtile_nq:              "GT_size_cfmt"\n",  xtile_nq             );
         sf_printf_debug("\txtile_nq2:             "GT_size_cfmt"\n",  xtile_nq2            );
@@ -1111,11 +1255,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\txtile_dedup:           "GT_size_cfmt"\n",  xtile_dedup          );
         sf_printf_debug("\txtile_cutifin:         "GT_size_cfmt"\n",  xtile_cutifin        );
         sf_printf_debug("\txtile_cutby:           "GT_size_cfmt"\n",  xtile_cutby          );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\tgstats_code:           "GT_size_cfmt"\n",  gstats_code          );
         sf_printf_debug("\twinsor_trim:           "GT_size_cfmt"\n",  winsor_trim          );
-        sf_printf_debug("\twinsor_cutl:           "GT_size_cfmt"\n",  winsor_cutl          );
-        sf_printf_debug("\twinsor_cuth:           "GT_size_cfmt"\n",  winsor_cuth          );
         sf_printf_debug("\twinsor_kvars:          "GT_size_cfmt"\n",  winsor_kvars         );
         sf_printf_debug("\tsummarize_colvar:      "GT_size_cfmt"\n",  summarize_colvar     );
         sf_printf_debug("\tsummarize_pooled:      "GT_size_cfmt"\n",  summarize_pooled     );
@@ -1131,6 +1273,35 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\ttransform_range_xb:    "GT_size_cfmt"\n",  transform_range_xb   );
         sf_printf_debug("\ttransform_range_xs:    "GT_size_cfmt"\n",  transform_range_xs   );
         sf_printf_debug("\n");
+        sf_printf_debug("\tgregress_kvars:        "GT_size_cfmt"\n",  gregress_kvars       );
+        sf_printf_debug("\tgregress_cons:         "GT_size_cfmt"\n",  gregress_cons        );
+        sf_printf_debug("\tgregress_rowmajor:     "GT_size_cfmt"\n",  gregress_rowmajor    );
+        sf_printf_debug("\tgregress_colmajor:     "GT_size_cfmt"\n",  gregress_colmajor    );
+        sf_printf_debug("\tgregress_robust:       "GT_size_cfmt"\n",  gregress_robust      );
+        sf_printf_debug("\tgregress_cluster:      "GT_size_cfmt"\n",  gregress_cluster     );
+        sf_printf_debug("\tgregress_absorb:       "GT_size_cfmt"\n",  gregress_absorb      );
+        sf_printf_debug("\tgregress_savemata:     "GT_size_cfmt"\n",  gregress_savemata    );
+        sf_printf_debug("\tgregress_savemb:       "GT_size_cfmt"\n",  gregress_savemb      );
+        sf_printf_debug("\tgregress_savemse:      "GT_size_cfmt"\n",  gregress_savemse     );
+        sf_printf_debug("\tgregress_savegb:       "GT_size_cfmt"\n",  gregress_savegb      );
+        sf_printf_debug("\tgregress_savegse:      "GT_size_cfmt"\n",  gregress_savegse     );
+        sf_printf_debug("\tgregress_saveghdfe:    "GT_size_cfmt"\n",  gregress_saveghdfe   );
+        sf_printf_debug("\tgregress_moving:       "GT_size_cfmt"\n",  gregress_moving      );
+        sf_printf_debug("\tgregress_moving_l:     "GT_size_cfmt"\n",  gregress_moving_l    );
+        sf_printf_debug("\tgregress_moving_u:     "GT_size_cfmt"\n",  gregress_moving_u    );
+        sf_printf_debug("\tgregress_range:        "GT_size_cfmt"\n",  gregress_range       );
+        sf_printf_debug("\tgregress_poisson:      "GT_size_cfmt"\n",  gregress_poisson     );
+        sf_printf_debug("\tgregress_poisiter:     "GT_size_cfmt"\n",  gregress_poisiter    );
+        sf_printf_debug("\n");
+        sf_printf_debug("\tgreshape_dropmiss:     "GT_size_cfmt"\n",  greshape_dropmiss    );
+        sf_printf_debug("\tgreshape_code:         "GT_size_cfmt"\n",  greshape_code        );
+        sf_printf_debug("\tgreshape_kxij:         "GT_size_cfmt"\n",  greshape_kxij        );
+        sf_printf_debug("\tgreshape_kxi:          "GT_size_cfmt"\n",  greshape_kxi         );
+        sf_printf_debug("\tgreshape_kout:         "GT_size_cfmt"\n",  greshape_kout        );
+        sf_printf_debug("\tgreshape_klvls:        "GT_size_cfmt"\n",  greshape_klvls       );
+        sf_printf_debug("\tgreshape_str:          "GT_size_cfmt"\n",  greshape_str         );
+        sf_printf_debug("\tgreshape_jfile:        "GT_size_cfmt"\n",  greshape_jfile       );
+        sf_printf_debug("\n");
         sf_printf_debug("\thash_method:           "GT_size_cfmt"\n",  hash_method          );
         sf_printf_debug("\twcode:                 "GT_size_cfmt"\n",  wcode                );
         sf_printf_debug("\twpos:                  "GT_size_cfmt"\n",  wpos                 );
@@ -1139,10 +1310,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tany_if:                "GT_size_cfmt"\n",  any_if               );
         sf_printf_debug("\tcountmiss:             "GT_size_cfmt"\n",  countmiss            );
         sf_printf_debug("\treplace:               "GT_size_cfmt"\n",  replace              );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\tgroup_data:            "GT_size_cfmt"\n",  group_data           );
         sf_printf_debug("\tgroup_fill:            "GT_size_cfmt"\n",  group_fill           );
-        sf_printf_debug("\n");                                                             
+        sf_printf_debug("\n");
         sf_printf_debug("\tkvars_stats:           "GT_size_cfmt"\n",  kvars_stats          );
         sf_printf_debug("\tkvars_targets:         "GT_size_cfmt"\n",  kvars_targets        );
         sf_printf_debug("\tkvars_sources:         "GT_size_cfmt"\n",  kvars_sources        );
@@ -2221,6 +2392,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->wselmat);
         free (st_info->invert);
         free (st_info->missval);
+        free (st_info->byvars_strL);
         free (st_info->byvars_lens);
         free (st_info->group_targets);
         free (st_info->group_init);
@@ -2228,6 +2400,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->greshape_xitypes);
         free (st_info->greshape_maplevel);
         free (st_info->summarize_codes);
+        free (st_info->transform_rank_ties);
         free (st_info->transform_varfuns);
         free (st_info->transform_statcode);
         free (st_info->transform_statmap);
@@ -2240,6 +2413,10 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->transform_range_u);
         free (st_info->transform_range_ls);
         free (st_info->transform_range_us);
+        free (st_info->gregress_cluster_types);
+        free (st_info->gregress_cluster_offsets);
+        free (st_info->gregress_absorb_types);
+        free (st_info->gregress_absorb_offsets);
 
         free (st_info->pos_num_byvars);
         free (st_info->pos_str_byvars);
@@ -2252,6 +2429,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->wselmat")
         GTOOLS_GC_FREED("st_info->invert")
         GTOOLS_GC_FREED("st_info->missval")
+        GTOOLS_GC_FREED("st_info->byvars_strL")
         GTOOLS_GC_FREED("st_info->byvars_lens")
         GTOOLS_GC_FREED("st_info->group_targets")
         GTOOLS_GC_FREED("st_info->group_init")
@@ -2259,6 +2437,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->greshape_xitypes")
         GTOOLS_GC_FREED("st_info->greshape_maplevel")
         GTOOLS_GC_FREED("st_info->summarize_codes")
+        GTOOLS_GC_FREED("st_info->transform_rank_ties")
         GTOOLS_GC_FREED("st_info->transform_varfuns")
         GTOOLS_GC_FREED("st_info->transform_statcode")
         GTOOLS_GC_FREED("st_info->transform_statmap")
@@ -2271,6 +2450,10 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->transform_range_u")
         GTOOLS_GC_FREED("st_info->transform_range_ls")
         GTOOLS_GC_FREED("st_info->transform_range_us")
+        GTOOLS_GC_FREED("st_info->gregress_cluster_types")
+        GTOOLS_GC_FREED("st_info->gregress_cluster_offsets")
+        GTOOLS_GC_FREED("st_info->gregress_absorb_types")
+        GTOOLS_GC_FREED("st_info->gregress_absorb_offsets")
 
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")
@@ -2308,11 +2491,16 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->index);
         GTOOLS_GC_FREED("st_info->index")
     }
-    if ( st_info->free >= 7 ) {
-        free (st_info->ix);
-        GTOOLS_GC_FREED("st_info->ix")
-    }
-    if ( (st_info->free >= 6) & (st_info->free <= 7) & (level != 11) ) {
+    if ( (st_info->free >= 6) & (level != 11) ) {
+
+        // NOTE: free code 8 is deprecated; it used to be used to
+        // differentiate scenarios where st_into->st_by* variables were
+        // not allocated, but it conflicts with free code 9, which denotes
+        // whether st_into->output has been allocated. The latter can
+        // be allocated in both scenarios where st_by has and scenarios
+        // where it hasn't been allocated, so we now always allocate
+        // st_into->st_by* variables when we get to free code 6 and above.
+
         free (st_info->strL_bybytes);
         free (st_info->st_by_numx);
         free (st_info->st_by_charx);
@@ -2320,6 +2508,10 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->strL_bybytes")
         GTOOLS_GC_FREED("st_info->st_by_numx")
         GTOOLS_GC_FREED("st_info->st_by_charx")
+    }
+    if ( st_info->free >= 7 ) {
+        free (st_info->ix);
+        GTOOLS_GC_FREED("st_info->ix")
     }
     if ( st_info->free >= 9 ) {
         free (st_info->output);

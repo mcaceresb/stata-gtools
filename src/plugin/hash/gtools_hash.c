@@ -806,6 +806,11 @@ bycopy:
         }
     }
     else {
+
+        st_info->st_by_charx  = malloc(sizeof *st_info->st_by_charx);
+        st_info->st_by_numx   = malloc(sizeof *st_info->st_by_numx);
+        st_info->strL_bybytes = malloc(sizeof *st_info->strL_bybytes);;
+
         st_info->free = 8;
     }
 

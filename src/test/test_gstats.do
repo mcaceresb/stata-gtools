@@ -383,6 +383,10 @@ program checks_gstats_transform
     local selections  select1 select2 select5 select-5 select-2 select-1
     local stats       nmissing sum mean geomean cv sd variance max min range count first last firstnm lastnm median iqr skew kurt
 
+    local percentiles p1 p30.5 p70.5 p99
+    local selections  select1 select5 select-2 select-1
+    local stats       nmissing sum mean geomean cv sd variance max min range count first last firstnm lastnm median iqr skew kurt
+
     *********************************
     *  Basic check transform stats  *
     *********************************
@@ -982,6 +986,7 @@ program versus_gstats_transform, rclass
     local tcall1 (demean)    _out2 = random2 (demedian) _out3 = random3 (normalize) _out4 = random4 _out5 = random5
     local tcall2 (demean)    _out* = random*
     local tcall3 (normalize) _out* = random*
+    local tcall4 (rank)      _out* = random*
 
     local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
               */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
@@ -989,10 +994,13 @@ program versus_gstats_transform, rclass
     local gcall2 (mean) _gout*  = random*
     local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
 
-    forvalues i = 1 / 3 {
+    local I = cond(`"`wgt'"' == "", 4, 3)
+    forvalues i = 1 / `I' {
+        local opts = cond(`i' != 4, "", "ties(. track . field .)")
+
         timer clear
         timer on 42
-        qui gstats transform `tcall`i'' `if' `in' `wgt', by(`anything') wild replace `options'
+        qui gstats transform `tcall`i'' `if' `in' `wgt', by(`anything') wild replace `options' `opts'
         timer off 42
         qui timer list
         local time_gtransform = r(t42)
@@ -1023,6 +1031,14 @@ program versus_gstats_transform, rclass
                 gen _gout4 = (random4 - _goutm4) / _gouts4
                 gen _gout5 = (random5 - _goutm5) / _gouts5
             }
+        }
+        else if ( `i' == 4 ) {
+            local start = 1
+            egen double _gout1 = rank(random1) `if' `in', by(`anything')
+            egen double _gout2 = rank(random2) `if' `in', by(`anything') track
+            egen double _gout3 = rank(random3) `if' `in', by(`anything')
+            egen double _gout4 = rank(random4) `if' `in', by(`anything') field
+            egen double _gout5 = rank(random5) `if' `in', by(`anything')
         }
         timer off 43
         qui timer list

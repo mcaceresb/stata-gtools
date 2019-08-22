@@ -26,4 +26,7 @@ ST_retcode sf_byx_save_top      (struct StataInfo *st_info, GT_size ntop, GT_siz
 
 void sf_format_size (GT_size n, char *out);
 
+ST_retcode sf_scalar_int  (char *st_scalar, GT_int  *sval);
+ST_retcode sf_scalar_size (char *st_scalar, GT_size *sval);
+
 #endif

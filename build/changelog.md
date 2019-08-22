@@ -1,6 +1,56 @@
 Change Log
 ==========
 
+## gtools-1.6.1 (2019-08-20)
+
+### Features
+
+- Adds `gpoisson` computed via IRLS
+- Adds weights to `gregress` and `gpoisson`
+
+### Bug fixes
+
+- Fixed cluster regression bug where `X` was passed instead of `xptr`
+
+### Enhancements
+
+- Modularized the code base so that aliases are assigned to internal functions
+  instead of the copy/paste if/else branching statements.
+
+## gtools-1.6.0 (2019-08-18)
+
+### Features
+
+- Adds `gregress`  (alias `greg`) with regressions by group, including
+  robust SE, cluster SE (one-way or nested only), and absorb several FE
+  (including HDFE, although the algorithm is inefficient at the moment).
+
+## gtools-1.5.11 (2019-08-04)
+
+### Features
+
+- Fixes #67; adds `gegen x = rank(varname) [wgt], by(varlist) ties(type)`
+  via `gstats transform (rank) [wgt], by() ties()`. Weights are optional.
+
+### Bug Fixes
+
+- Fixed bug where a by variable being used as a source but not a
+  target got renamed to the target and was no longer available as a by
+  variable. Now a new variable should be created and the by variable
+  remains unchanged.
+
+## gtools-1.5.10 (2019-08-03)
+
+### Bug Fixes
+
+- Fixed memory leak where the C by variables were not cleared from memory
+  of `st_into->output` was allocated because free code was upgraded from 6
+  or 7 to 9. Conditional logic in place said that by variables should not
+  be cleared if free code was greater than 7, but that was only meant to
+  skip free code 8 and free code 9 in _some_ scripts, but not all. Code 8
+  logic was deprecated and now by variables are allocated with code 8, so
+  they are always clared if free code is 6 or higher.
+
 ## gtools-1.5.9 (2019-06-22)
 
 ### Bug Fixes

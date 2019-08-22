@@ -75,6 +75,7 @@ to {cmd:gcollapse} except percent, nunique):
             {opth demedian(varname)}    -> {help gstats transform}
             {opth moving_stat(varname)} -> {help gstats transform}
             {opth range_stat(varname)}  -> {help gstats transform}
+            {opth rank(varname)}        -> {help gstats transform}
             {opth winsor(varname)}      -> {help gstats winsor}
             {opth winsorize(varname)}   -> {help gstats winsor}
 

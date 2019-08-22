@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Jun 22 02:01:04 EDT 2019 
+* Updated: Wed Aug 21 19:38:30 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.5.9
+* Version: 1.6.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -62,6 +62,7 @@ program main
         * qui do test_hashsort.do
         * qui do test_gstats.do
         * qui do test_greshape.do
+        * qui do test_gregress.do
 
         * qui do docs/examples/gcollapse.do
         * qui do docs/examples/gcontract.do
@@ -76,6 +77,7 @@ program main
         * qui do docs/examples/glevelsof.do, nostop
         * qui do docs/examples/gstats.do
         * qui do docs/examples/greshape.do
+        * qui do docs/examples/gregress.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install ralpha
@@ -105,8 +107,9 @@ program main
             unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))
@@ -152,6 +155,7 @@ program main
             compare_toplevelsof,   `noisily' oncollision(error) tol(1e-4) wgt(both f)
             compare_gstats,        `noisily' oncollision(error)
             compare_greshape,      `noisily' oncollision(error)
+            * compare_gregress,      `noisily' oncollision(error)
 
             compare_gquantiles_by, `noisily' oncollision(error)
             compare_gquantiles_by, `noisily' oncollision(error) noaltdef wgt(both mix)
@@ -184,6 +188,7 @@ program main
             bench_hashsort,      n(1000) bench(1)   `noisily' oncollision(error) benchmode
             bench_gstats,        n(1000) bench(1)   `noisily' oncollision(error)
             bench_greshape,      n(1000) bench(1)   `noisily' oncollision(error)
+            * bench_gregress,      n(1000) bench(1)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(10)  n(100)    style(ftools) vars(6)  oncollision(error)
@@ -208,6 +213,7 @@ program main
             bench_hashsort,      n(10000)   bench(10)   `noisily' oncollision(error) benchmode
             bench_gstats,        n(10000)   bench(10)   `noisily' oncollision(error)
             bench_greshape,      n(10000)   bench(10)   `noisily' oncollision(error)
+            * bench_gregress,      n(10000)   bench(10)   `noisily' oncollision(error)
 
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(sum)    vars(15) oncollision(error)
             bench_collapse, collapse fcollapse bench(1000) n(100)    style(ftools) vars(6)  oncollision(error)

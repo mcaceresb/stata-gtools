@@ -46,6 +46,7 @@ the latest stable version.
 {p2col :{opt demedian}}subtract the median{p_end}
 {p2col :{opt normalize}}(x - mean) / sd{p_end}
 {p2col :{opt standardize}}same as {opt normalize}{p_end}
+{p2col :{opt rank}}rank observations; use option {opt ties()} to specify how ties are handled{p_end}
 {p2col :{opt moving stat [# #]}}moving statistic {it:stat}; # specify the relative bounds ({help gstats transform##moving_format:see below}){p_end}
 {p2col :{opt range stat ...}}range statistic {it:stat} for observations within specified interval ({help gstats transform##interval_format:see below}){p_end}
 {p2colreset}{...}
@@ -159,7 +160,7 @@ is used.
 {synopthdr}
 {synoptline}
 {syntab :Options}
-{synopt:{opth by(varname)}}Group statistics by variable.
+{synopt:{opth by(varlist)}}Group statistics by variable.
 {p_end}
 {synopt:{opt replace}}Allow replacing existing variables.
 {p_end}
@@ -177,7 +178,9 @@ is used.
 {p_end}
 {synopt:{opt window(lower upper)}}Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
 {p_end}
-{synopt:{opt window(#[stat] #[stat] [var])}}Interval for range statistics that don't specify their own interval.
+{synopt:{opt interval(#[stat] #[stat] [var])}}Interval for range statistics that don't specify their own interval.
+{p_end}
+{synopt:{opt ties(str)}}How to break ties for {opt rank}. {opt d:efault} assigns the average rank; {opt u:nique} breaks ties arbitrarily; {opt stableunique} breaks ties using the order values appear in the data; {opt f:ield} counts the number of values greater than; {opt t:rack} counts the number of values less than.
 {p_end}
 
 {syntab:Gtools}

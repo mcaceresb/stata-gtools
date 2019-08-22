@@ -1,5 +1,6 @@
 cap mata: mata drop GtoolsResults()
 cap mata: mata drop GtoolsByLevels()
+cap mata: mata drop GtoolsRegressOutput()
 
 cap mata: mata drop GtoolsReadMatrix()
 cap mata: mata drop GtoolsDecodeStat()
@@ -1783,3 +1784,259 @@ string scalar function GtoolsGtopUnquote(string scalar quoted_str)
     return (quoted_str);
 }
 end
+
+***********************************************************************
+*                      Gtools Regression Output                       *
+***********************************************************************
+
+mata:
+class GtoolsRegressOutput
+{
+    real   scalar    kx
+    real   scalar    cons
+    string scalar    setype
+    real   matrix    b
+    real   scalar    saveb
+    real   matrix    se
+    real   scalar    savese
+
+    real   scalar    J
+    real   scalar    by
+    string rowvector byvars
+    real   scalar    absorb
+    string rowvector absorbvars
+    real   matrix    njabsorb
+    real   scalar    savenjabsorb
+    string rowvector clustervars
+    real   colvector njcluster
+    real   scalar    savenjcluster
+
+    class GtoolsByLevels ByLevels
+    string scalar whoami
+    string scalar caller
+
+    void init()
+    void print()
+    void desc()
+    void readMatrices()
+}
+
+void function GtoolsRegressOutput::init()
+{
+    caller = st_numscalar("__gtools_gregress_poisson")? "gpoisson": "gregress"
+    saveb  = st_numscalar("__gtools_gregress_savemb")
+    savese = st_numscalar("__gtools_gregress_savemse")
+    savenjabsorb  = 0
+    savenjcluster = 0
+
+    if ( st_numscalar("__gtools_gregress_cluster") > 0 ) {
+        setype = "cluster"
+        clustervars = tokens(st_local("cluster"))
+    }
+    else if ( st_numscalar("__gtools_gregress_robust") ) {
+        setype = "robust"
+    }
+    else {
+        setype = "homoskedastic"
+    }
+
+    if ( st_numscalar("__gtools_gregress_absorb") > 0 ) {
+        cons = 0
+        absorb = 1
+        absorbvars = tokens(st_local("absorb"))
+    }
+    else {
+        absorb = 0
+        if ( st_numscalar("__gtools_gregress_cons") ) {
+            cons = 1
+        }
+        else {
+            cons = 0
+        }
+    }
+
+    kx = st_numscalar("__gtools_gregress_kv")
+    if ( st_local("byvars") != "" ) {
+        by = 1
+        byvars = tokens(st_local("byvars"))
+    }
+    else {
+        by = 0
+    }
+}
+
+void function GtoolsRegressOutput::readMatrices()
+{
+    real scalar runols, runse, runhdfe
+    J = strtoreal(st_local("r_J"))
+    if ( st_numscalar("__gtools_gregress_savemb") ) {
+        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, st_numscalar("__gtools_gregress_kv"))
+    }
+    if ( st_numscalar("__gtools_gregress_savemse") ) {
+        se = GtoolsReadMatrix(st_local("gregsefile"), J, st_numscalar("__gtools_gregress_kv"))
+    }
+
+    runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")
+    runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse") | runols
+    runse   = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")
+    runhdfe = st_numscalar("__gtools_gregress_saveghdfe")
+
+    if ( (setype == "cluster") & runols & runse ) {
+        njcluster = GtoolsReadMatrix(st_local("gregclusfile"), J, 1)
+        savenjcluster = 1
+    }
+
+    if ( absorb & (runols | runse | runhdfe) ) {
+        njabsorb = GtoolsReadMatrix(st_local("gregabsfile"), J, st_numscalar("__gtools_gregress_absorb"))
+        savenjabsorb = 1
+    }
+}
+
+void function GtoolsRegressOutput::print()
+{
+    real scalar j, k
+    if ( savese ) {
+        for (j = 1; j <= J; j++) {
+            for (k = 1; k <= kx; k++) {
+                printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
+            }
+                printf("\n")
+        }
+    }
+    else if ( saveb ) {
+        for (j = 1; j <= J; j++) {
+            for (k = 1; k <= kx; k++) {
+                printf("\t%9.6g\n", b[j, k])
+            }
+        }
+    }
+}
+
+void function GtoolsRegressOutput::desc()
+{
+    string matrix printstr
+    real scalar i, j, nrows, bpos, sepos, bypos, apos, cpos
+    real rowvector printlens
+    string rowvector printfmts
+
+    nrows = 4
+    if ( saveb ) {
+        nrows = nrows + 1
+        bpos  = nrows
+    }
+    if ( savese ) {
+        sepos = nrows + 1
+        nrows = nrows + 2
+    }
+    if ( by ) {
+        bypos = nrows + 1
+        nrows = nrows + 3
+    }
+    if ( absorb ) {
+        apos  = nrows + 1
+        nrows = nrows + 1 + savenjabsorb
+    }
+    if ( setype == "cluster" ) {
+        cpos  = nrows + 1
+        nrows = nrows + 1 + savenjcluster
+    }
+
+    printstr = J(nrows, 3, " ")
+
+    printstr[1, 1] = "object"
+    printstr[1, 2] = "value"
+    printstr[1, 3] = "description"
+
+    printstr[3, 1] = "kx"
+    printstr[3, 2] = sprintf("%g", kx)
+    printstr[3, 3] = "number of (non-absorbed) covariates"
+
+    printstr[4, 1] = "cons"
+    printstr[4, 2] = sprintf("%g", cons)
+    printstr[4, 3] = "whether a constant was added automagically"
+
+    if ( saveb ) {
+        printstr[bpos, 1] = "b"
+        printstr[bpos, 2] = sprintf("%g x %g matrix", rows(b),  cols(b))
+        printstr[bpos, 3] = "regression coefficients"
+    }
+    if ( savese ) {
+        printstr[sepos,     1] = "se"
+        printstr[sepos + 1, 1] = "setype"
+        printstr[sepos,     2] = sprintf("%g x %g matrix", rows(se), cols(se))
+        printstr[sepos + 1, 2] = sprintf("%s", setype)
+        printstr[sepos,     3] = "corresponding standard errors"
+        printstr[sepos + 1, 3] = "type of SE computed (homoskedastic, robust, or cluster)"
+    }
+    if ( by ) {
+        printstr[bypos,     1] = "byvars"
+        printstr[bypos + 1, 1] = "J"
+        printstr[bypos + 2, 1] = "ByLevels"
+        printstr[bypos,     2] = sprintf("1 x %g row vector", cols(byvars))
+        printstr[bypos + 1, 2] = sprintf("%g", J)
+        printstr[bypos + 2, 2] = sprintf("GtoolsByLevels class object")
+        printstr[bypos,     3] = "grouping variable names"
+        printstr[bypos + 1, 3] = "number of levels defined by grouping variables"
+        printstr[bypos + 2, 3] = sprintf("grouping variable levels; see %s.ByLevels.desc() for details", whoami)
+    }
+    if ( absorb ) {
+        printstr[apos, 1] = "absorbvars"
+        printstr[apos, 2] = sprintf("1 x %g row vector", cols(absorbvars))
+        printstr[apos, 3] = "variables absorbed as fixed effects"
+        if ( savenjabsorb ) {
+            printstr[apos + 1, 1] = "njabsorb"
+            printstr[apos + 1, 2] = sprintf("%g x %g row vector", rows(njabsorb), cols(njabsorb))
+            printstr[apos + 1, 3] = "number of FE each absorb variable had for each grouping level"
+        }
+    }
+    if ( setype == "cluster" ) {
+        printstr[cpos, 1] = "clustervars"
+        printstr[cpos, 2] = sprintf("1 x %g row vector", cols(clustervars))
+        printstr[cpos, 3] = "cluster variables"
+        if ( savenjcluster ) {
+            printstr[cpos + 1, 1] = "njcluster"
+            printstr[cpos + 1, 2] = sprintf("%g x %g row vector", rows(njcluster), cols(njcluster))
+            printstr[cpos + 1, 3] = "number of clusters per grouping level"
+        }
+    }
+
+    printlens      = colmax(strlen(printstr))
+    printfmts      = J(1, 3, "")
+    printstr[2, 1] = sprintf("{hline %g}", printlens[1])
+    printstr[2, 2] = sprintf("{hline %g}", printlens[2])
+    printstr[2, 3] = sprintf("{hline %g}", printlens[3])
+    printfmts[1]   = sprintf("%%-%gs", printlens[1])
+    printfmts[2]   = sprintf("%%%gs",  printlens[2])
+    printfmts[3]   = sprintf("%%-%gs", printlens[3])
+
+    printf("\n")
+    printf("    %s is a class object with %s results\n", whoami, caller)
+    printf("\n")
+    for(i = 1; i <= rows(printstr); i++) {
+        printf("        | ")
+        if ( i == 2 ) {
+            for(j = 1; j <= cols(printstr); j++) {
+                printf(printstr[i, j])
+                printf(" | ")
+            }
+        }
+        else {
+            for(j = 1; j <= cols(printstr); j++) {
+                printf(printfmts[j], printstr[i, j])
+                printf(" | ")
+            }
+        }
+            printf("\n")
+    }
+    printf("\n")
+
+    // else {
+    //     printf("\n")
+    //     printf("    %s is a class object to store regression results; it is currently empty.\n", whoami)
+    //     printf("\n")
+    // }
+}
+end
+
+// mata mata set matastrict on
+// do _gtools_internal.mata

@@ -1,4 +1,4 @@
-v 1.6.0
+v 1.6.1
 d
 d 'GTOOLS': Faster implementation of common Stata commands optimized for large datasets
 d
@@ -35,6 +35,7 @@ d KW: fasterxtile
 d KW: gquantiles
 d KW: gcollapse
 d KW: greshape
+d KW: gpoisson
 d KW: gregress
 d KW: gcontract
 d KW: gisid
@@ -53,7 +54,7 @@ d
 d Author: Mauricio Caceres Bravo
 d Support: email mauricio.caceres.bravo@gmail.com
 d
-d Distribution-Date: 20190818
+d Distribution-Date: 20190821
 d
 f _gtools_internal.ado
 f _gtools_internal.mata
@@ -71,6 +72,7 @@ f gisid.ado
 f gduplicates.ado
 f hashsort.ado
 f greshape.ado
+f gpoisson.ado
 f greg.ado
 f gregress.ado
 f gstats.ado
@@ -89,6 +91,7 @@ f gisid.sthlp
 f gduplicates.sthlp
 f hashsort.sthlp
 f greshape.sthlp
+f gpoisson.sthlp
 f greg.sthlp
 f gregress.sthlp
 f gstats.sthlp

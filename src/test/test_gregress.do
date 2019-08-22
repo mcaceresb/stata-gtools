@@ -1,82 +1,248 @@
 capture program drop checks_gregress
 program checks_gregress
+    local tol 1e-8
 
     sysuse auto, clear
-    egen headcode = group(headroom)
-    gen byte ones = 1
+    gen w = _n
+    gegen headcode = group(headroom)
 
-    reg price rep78 mpg headcode
-    greg price rep78 mpg headcode, v mata(g1)
-    greg price rep78 mpg headcode, v mata(g2) rowmajor
-    greg price rep78 mpg headcode, v mata(g3) colmajor
-    mata: g1.b  \ g2.b  \ g3.b
-    mata: g1.se \ g2.se \ g3.se
+    foreach v in v1 v2 v3 v4 v5 v6 v7 v8 {
+        disp "`v'"
+        local w
+        local r
 
-    reg price rep78 mpg headcode, r
-    greg price rep78 mpg headcode, mata(g1) v r
-    greg price rep78 mpg headcode, mata(g2) v r rowmajor
-    greg price rep78 mpg headcode, mata(g3) v r colmajor
-    mata: g1.b  \ g2.b  \ g3.b
-    mata: g1.se \ g2.se \ g3.se
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v4" ) local w [fw = w]
 
-    gen fdbl = 0.5 - foreign
-    reg price rep78 mpg headcode, cluster(fdbl)
-    greg price rep78 mpg headcode, mata(g1) v cluster(fdbl) bench(3)
-    greg price rep78 mpg headcode, mata(g2) v cluster(fdbl) rowmajor
-    greg price rep78 mpg headcode, mata(g3) v cluster(fdbl) colmajor
-    mata: g1.b  \ g2.b  \ g3.b
-    mata: g1.se \ g2.se \ g3.se
+        if ( "`v'" == "v3" ) local r rowmajor
+        if ( "`v'" == "v4" ) local r rowmajor
+        if ( "`v'" == "v6" ) local r rowmajor
+        if ( "`v'" == "v8" ) local r rowmajor
 
-    areg price rep78 mpg headcode, absorb(foreign)
-    greg price rep78 mpg headcode, mata(g1) v absorb(foreign) bench(3)
-    greg price rep78 mpg headcode, mata(g2) v absorb(foreign) colmajor
-    mata: g1.b  \ g2.b
-    mata: g1.se \ g2.se
+        if ( "`v'" == "v5" ) local w [aw = w]
+        if ( "`v'" == "v6" ) local w [aw = w]
 
-    * {
-    *     local varlist rep78 mpg headcode ones
-    *     marksample touse
-    *     mata: y = st_data(., "price", st_local("touse"))
-    *     mata: X = st_data(., tokens("`varlist'"), st_local("touse"))
-    *     mata: XX = X' * X
-    *     mata: Xy = X' * y
-    *     mata: b  = invsym(XX) * Xy
-    *     mata: e  = y - X * b
-    *     mata: D  = X' * diag(e:^2) * X
-    *     mata: D
-    *     mata: D * invsym(XX)
-    *     mata: invsym(XX) * D * invsym(XX)
-    *     mata: diagonal(invsym(XX) * D * invsym(XX))
-    *     mata: XX
-    *     mata: Xy
-    *     mata: invsym(XX) * Xy
-    * }
+        if ( "`v'" == "v7" ) local w [pw = w]
+        if ( "`v'" == "v8" ) local w [pw = w]
 
-    by foreign: reg price rep78 mpg headcode
-    greg price rep78 mpg headcode, mata(g1) v by(foreign)
-    greg price rep78 mpg headcode, mata(g2) v by(foreign) colmajor
-    greg price rep78 mpg headcode, mata(g3) v by(foreign) rowmajor
-    mata: g1.b  \ g2.b  \ g3.b
-    mata: g1.se \ g2.se \ g3.se
+        qui greg price mpg `w', by(foreign) `r'
+            qui reg price mpg if foreign == 0 `w'
+            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[1, .]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[1, .]) :< `tol'))
+            qui reg price mpg if foreign == 1 `w'
+            mata: assert(all((abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[2, .])) :< `tol'))
+            mata: assert(all((abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[2, .])) :< `tol'))
+        qui greg price mpg `w', by(foreign) robust `r'
+            qui reg price mpg if foreign == 0 `w', robust
+            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[1, .]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[1, .]) :< `tol'))
+            qui reg price mpg if foreign == 1 `w', robust
+            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[2, .]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[2, .]) :< `tol'))
+        qui greg price mpg `w', by(foreign) cluster(headroom) `r'
+            qui reg price mpg if foreign == 0 `w', cluster(headcode)
+            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[1, .]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[1, .]) :< `tol'))
+            qui reg price mpg if foreign == 1 `w', cluster(headcode)
+            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[2, .]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[2, .]) :< `tol'))
 
-    by foreign: reg price rep78 mpg headcode, r
-    greg price rep78 mpg headcode, mata(g1)  v by(foreign) r
-    greg price rep78 mpg headcode, mata(g2)  v by(foreign) r colmajor
-    greg price rep78 mpg headcode, mata(g3)  v by(foreign) r rowmajor
-    mata: g1.b  \ g2.b  \ g3.b
-    mata: g1.se \ g2.se \ g3.se
+        if ( "`v'" == "v3" ) continue
+        if ( "`v'" == "v4" ) continue
+        if ( "`v'" == "v6" ) continue
+        if ( "`v'" == "v8" ) continue
 
-    by foreign: areg price rep78 mpg, absorb(headcode)
-    greg price rep78 mpg, mata(g1)  v by(foreign) absorb(headcode)
-    greg price rep78 mpg, mata(g2)  v by(foreign) absorb(headcode) colmajor
-    mata: g1.b  \ g2.b
-    mata: g1.se \ g2.se
+        qui greg price mpg `w', absorb(rep78)
+            qui areg price mpg `w', absorb(rep78)
+            mata: assert(all(abs(st_matrix("r(table)")[1, 1] :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2, 1] :- GtoolsRegress.se[1, 1]) :< `tol'))
+        qui greg price mpg `w', absorb(rep78) robust
+            qui areg price mpg `w', absorb(rep78) robust
+            mata: assert(all(abs(st_matrix("r(table)")[1, 1] :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2, 1] :- GtoolsRegress.se[1, 1]) :< `tol'))
+        qui greg price mpg `w', absorb(rep78) cluster(headroom)
+            qui areg price mpg `w', absorb(rep78) cluster(headroom)
+            mata: assert(all(abs(st_matrix("r(table)")[1, 1] :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(st_matrix("r(table)")[2, 1] :- GtoolsRegress.se[1, 1]) :< `tol'))
+
+        qui greg price mpg `w', by(foreign) absorb(rep78)
+            qui areg price mpg if foreign == 0 `w', absorb(rep78)
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+            qui areg price mpg if foreign == 1 `w', absorb(rep78)
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[2, 1]) :< `tol'))
+        qui greg price mpg `w', by(foreign) absorb(rep78) robust
+            qui areg price mpg if foreign == 0 `w', absorb(rep78) robust
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+            qui areg price mpg if foreign == 1 `w', absorb(rep78) robust
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[2, 1]) :< `tol'))
+        qui greg price mpg `w', by(foreign) absorb(rep78) cluster(headroom)
+            qui areg price mpg if foreign == 0 `w', absorb(rep78) cluster(headroom)
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+            qui areg price mpg if foreign == 1 `w', absorb(rep78) cluster(headroom)
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[2, 1]) :< `tol'))
+
+        qui greg price mpg `w', absorb(rep78 headroom)
+            qui reg price mpg i.rep78 i.headcode `w'
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+        qui greg price mpg `w', absorb(rep78 headroom) robust
+            qui reg price mpg i.rep78 i.headcode `w', robust
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+        qui greg price mpg `w', absorb(rep78 headroom) cluster(headroom)
+            qui reg price mpg i.rep78 i.headcode `w', vce(cluster headcode)
+            mata: assert(all(abs(`=_b[mpg]' :- GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(abs(`=_se[mpg]' :- GtoolsRegress.se[1, 1]) :< `tol'))
+
+        qui greg price mpg `w', by(foreign) absorb(rep78 headroom)
+            qui reg price mpg i.rep78 i.headcode if foreign == 0 `w'
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[1, 1]) :< `tol'))
+            qui reg price mpg i.rep78 i.headcode if foreign == 1 `w'
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[2, 1]) :< `tol'))
+        qui greg price mpg `w', by(foreign) absorb(rep78 headroom) robust
+            qui reg price mpg i.rep78 i.headcode if foreign == 0 `w', robust
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[1, 1]) :< `tol'))
+            qui reg price mpg i.rep78 i.headcode if foreign == 1 `w', robust
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[2, 1]) :< `tol'))
+        qui greg price mpg `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
+            qui reg price mpg i.rep78 i.headcode if foreign == 0 `w', cluster(headroom)
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[1, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[1, 1]) :< `tol'))
+            qui reg price mpg i.rep78 i.headcode if foreign == 1 `w', cluster(headroom)
+            mata: assert(all(reldif(`=_b[mpg]', GtoolsRegress.b[2, 1]) :< `tol'))
+            mata: assert(all(reldif(`=_se[mpg]', GtoolsRegress.se[2, 1]) :< `tol'))
+    }
+
+    * ------------------------------------------------------------------------
+    * ------------------------------------------------------------------------
+
+    local tol 1e-4
+    webuse ships, clear
+    expand 2
+    gen by = 1.5 - (_n < _N / 2)
+    gen w = _n
+    foreach v in v1 v2 v3 v4 v5 v6 {
+        disp "`v'"
+        local w
+        local r
+
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v4" ) local w [fw = w]
+
+        if ( "`v'" == "v3" ) local r rowmajor
+        if ( "`v'" == "v4" ) local r rowmajor
+        if ( "`v'" == "v6" ) local r rowmajor
+
+        if ( "`v'" == "v5" ) local w [pw = w]
+        if ( "`v'" == "v6" ) local w [pw = w]
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', robust `r'
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship) `r'
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) robust `r'
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 1.5, r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) cluster(ship) `r'
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 1.5, cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4], t[1, cols(t)]
+            mata se = t[2, 1::4], t[2, cols(t)]
+            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+
+        if ( "`v'" == "v3" ) continue
+        if ( "`v'" == "v4" ) continue
+        if ( "`v'" == "v6" ) continue
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) r
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) cluster(ship)
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) robust
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 1.5, r
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+
+        qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) cluster(ship)
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+        qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 1.5, cluster(ship)
+            mata t  = st_matrix("r(table)")
+            mata b  = t[1, 1::4]
+            mata se = t[2, 1::4]
+            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+    }
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
     clear
-    set rmsg on
     set obs 10000
     gen e = rnormal() * 50
     gen g = ceil(runiform()*100)
@@ -85,19 +251,33 @@ program checks_gregress
     }
     gen byte ones = 1
     gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + g + e
-
-    reg y x1 x2 x3 x4
+    gen w = int(50 * runiform())
     areg y x1 x2 x3 x4, absorb(g)
     greg y x1 x2 x3 x4, absorb(g) mata(coefs)
-    mata: (coefs.b  \ coefs.se)'
     greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
-    mata: (coefs.b  \ coefs.se)'
     greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) replace
     greg y x1 x2 x3 x4, absorb(g) prefix(b(_b_))
     greg y x1 x2 x3 x4, absorb(g) prefix(se(_se_))
     greg y x1 x2 x3 x4, absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
-    greg y x1 x2 x3 x4, absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4))
+    greg y x1 x2 x3 x4, absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
     greg y x1 x2 x3 x4, absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
+    assert (_hdfe_y == _hy)
+    foreach var in x1 x2 x3 x4 {
+        assert (_hdfe_`var' == _h`var')
+        assert (_b_`var' == _b`var')
+        assert (_se_`var' == _se`var')
+    }
+
+    drop _*
+    areg y x1 x2 x3 x4 [fw = w], absorb(g)
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) mata(coefs)
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) replace
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(b(_b_))
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(se(_se_))
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
+    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
     assert (_hdfe_y == _hy)
     foreach var in x1 x2 x3 x4 {
         assert (_hdfe_`var' == _h`var')
@@ -109,7 +289,6 @@ program checks_gregress
     * ------------------------------------------------------------------------
 
     clear
-    set rmsg on
     set obs 10000000
     gen e = rnormal() * 20
     gen g = ceil(runiform()*100)
@@ -118,218 +297,120 @@ program checks_gregress
     }
     gen byte ones = 1
     gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
+    gen w = int(50 * runiform())
 
-    reg  y x1 x2 x3 x4
-    greg y x1 x2 x3 x4, bench(3) v colmajor
-    greg y x1 x2 x3 x4, bench(3) v rowmajor
+    greg y x1 x2 x3 x4, colmajor mata(r1)
+    greg y x1 x2 x3 x4, rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4, r colmajor mata(r1)
+    greg y x1 x2 x3 x4, r rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4, cluster(g) colmajor mata(r1)
+    greg y x1 x2 x3 x4, cluster(g) rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4, absorb(g)
 
-    reg  y x1 x2 x3 x4, r
-    greg y x1 x2 x3 x4, r bench(3) v colmajor
-    greg y x1 x2 x3 x4, r bench(3) v rowmajor
-
-    reg  y x1 x2 x3 x4, cluster(g)
-    greg y x1 x2 x3 x4, cluster(g) bench(3) v colmajor
-    greg y x1 x2 x3 x4, cluster(g) bench(3) v rowmajor
-
-    areg y x1 x2 x3 x4, absorb(g)
-    greg y x1 x2 x3 x4, absorb(g) bench(3) v colmajor
-
-    sort g
-
-    reg y x1  x2 x3 x4, cluster(g)
-    greg y x1 x2 x3 x4, cluster(g) bench(3) v colmajor
-    greg y x1 x2 x3 x4, cluster(g) bench(3) v rowmajor
-
-    areg    y x1 x2 x3 x4, absorb(g)
-    reghdfe y x1 x2 x3 x4, absorb(g)
-    greg    y x1 x2 x3 x4, absorb(g) bench(3) v colmajor
-
-    {
-        local varlist x1 x2 x3 x4 ones
-        marksample touse
-        mata: y = st_data(., "y", st_local("touse"))
-        mata: X = st_data(., tokens("`varlist'"), st_local("touse"))
-        mata: XX = X' * X
-        mata: Xy = X' * y
-        mata: invsym(XX) * Xy
-    }
-    * mata: XX
-    * mata: det(XX)
-    * mata: invsym(XX)
-    * mata: XX * invsym(XX)
-
-    * ------------------------------------------------------------------------
-    * ------------------------------------------------------------------------
-
-    clear all
-    set matsize 10000
-    set maxvar 50000
-    set rmsg on
-    set obs 250
-    gen g = ceil(runiform()*10)
-    gen e = rnormal() * 5
-    forvalues i = 1 / 4000 {
-        gen x`i' = rnormal() * `i' + `i'
-    }
-    gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
-
-    * reg y x*
-    greg y x*, bench(3) colmajor
-    greg y x*, bench(3) rowmajor
-
-    greg y x*, bench(3) colmajor by(g)
-    greg y x*, bench(3) rowmajor by(g)
-
-    greg y x*, bench(3) colmajor absorb(g)
-
-    * super slow ):
-    * greg y x*, bench(3) colmajor cluster(g)
-    * greg y x*, bench(3) rowmajor cluster(g)
-
-    {
-        local varlist x*
-        marksample touse
-        mata: y = st_data(., "y", st_local("touse"))
-        mata: X = st_data(., tokens("`varlist'"), st_local("touse"))
-        mata: XX = X' * X
-        mata: Xy = X' * y
-        mata: _tmp_ = invsym(XX)
-        * mata: I = _tmp_ * XX
-        mata: b = _tmp_ * Xy
-    }
-
-    * ------------------------------------------------------------------------
-    * ------------------------------------------------------------------------
-
-    * Set up
-    clear all
-    set obs 10000000
-    set seed 123
-
-    * Generate a dataset
-    gen g = ceil(runiform()*1000)
-    gen x = runiform()
-    gen y = g + g*x + rnormal()
-    sort g
-    tempfile t1
-    save `t1'
-
-    * Test with regressby
-    use `t1', clear
-    timer on 1
-    regressby y x, by(g) nocov
-    timer off 1
-    list in 1
-
-    * Test with regressby
-    use `t1', clear
-    timer on 2
-    gregress y x, by(g)
-    timer off 2
-
-    * Test with regressby
-    use `t1', clear
-    timer on 3
-    gregress y x, by(g)
-    timer off 3
-
-    * * Test with asreg
-    * use `t1', clear
-    * timer on 4
-    * by g: asreg y x
-    * timer off 4
-    * list in 1
-
-    timer list
+    greg y x1 x2 x3 x4 [fw = w], colmajor mata(r1)
+    greg y x1 x2 x3 x4 [fw = w], rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4 [fw = w], r colmajor mata(r1)
+    greg y x1 x2 x3 x4 [fw = w], r rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4 [fw = w], cluster(g) colmajor mata(r1)
+    greg y x1 x2 x3 x4 [fw = w], cluster(g) rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4 [fw = w], absorb(g)
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
     clear
-    local N 1000000
-    local G 10000
-    set rmsg on
-    set obs `N'
-    gen g1 = int(runiform() * `G')
-    gen g2 = int(runiform() * `G')
-    gen g3 = int(runiform() * `G')
-    gen g4 = int(runiform() * `G')
-    gen x1 = runiform()
-    gen x2 = runiform()
-    gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + 20 * rnormal()
+    set matsize 10000
+    set maxvar 50000
+    set obs 10000
+    gen g = ceil(runiform()*10)
+    gen e = rnormal() * 5
+    forvalues i = 1 / 1000 {
+        gen x`i' = rnormal() * `i' + `i'
+    }
+    gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
 
-    greg y x1 x2, absorb(g1 g2 g3) save(mata(greg))
-    mata greg.b', greg.se'
-    reghdfe y x1 x2, absorb(g1 g2 g3)
+    greg y x*, colmajor mata(r1)
+    greg y x*, rowmajor mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
 
-    greg y x1 x2, absorb(g1 g2 g3) save(mata(greg)) r
-    mata greg.b', greg.se'
-    reghdfe y x1 x2, absorb(g1 g2 g3) vce(robust)
-
-    greg y x1 x2, absorb(g1 g2 g3) cluster(g4) save(mata(greg))
-    mata greg.b', greg.se'
-    reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)
-
-    * greg y x1 x2
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4)
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(mata(zz))
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(mata(zz) prefix(b(_b_) se(_se_)))
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(mata(zz) prefix(b(_b_) se(_se_))) replace
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(mata(zz) gen(b(b1 b2) se(se1 se2)))
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(mata(zz) gen(b(b1 b2) se(se1 se2))) replace
-    *
-    * cap drop _b_*
-    * cap drop _se_*
-    * cap drop b1 b2
-    * cap drop se1 se2
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(prefix(b(_b_) se(_se_)))
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(prefix(b(_b_) se(_se_))) replace
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(gen(b(b1 b2) se(se1 se2)))
-    * greg y x1 x2, absorb(g1 g2 g3) by(g4) save(gen(b(b1 b2) se(se1 se2))) replace
+    * Fairly slow...
+    greg y x*, colmajor cluster(g) mata(r1)
+    greg y x*, rowmajor cluster(g) mata(r2)
+        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
-    set rmsg on
-    use "DT1.dta", clear
-    tab v1, gen(_v)
-    reg v3 v1 v2 id4 id5
-    reg v3 _v2-_v5 v2 id4 id5
-    gegen _id3 = group(id3)
-
-    * reghdfe v3 v2 id4 id5 _v2-_v5, absorb(id6) tolerance(1e-6)
-    * reghdfe v3 v2 id4 id5 _v2-_v5, absorb(id6 _id3) tolerance(1e-6)
-
-    * reghdfe v3 v2 id4 id5 _v2-_v5, absorb(id6)     vce(cluster id6)
-    * reghdfe v3 v2 id4 id5 _v2-_v5, absorb(id6 id1) vce(cluster id6)
-    * * reghdfe v3 v2 id4 id5 _v2-_v5, absorb(id6 id3) vce(cluster id6)
-
-    * simpleHDFE v3 v2 id4 id5 _v2-_v5, absorb(id6)
-    * simpleHDFE v3 v2 id4 id5 _v2-_v5, absorb(id6 id3)
-    * simpleHDFE v3 v2 id4 id5 _v2-_v5, absorb(id6 id1)
+    * clear
+    * local N 1000000
+    * local G 10000
+    * set rmsg on
+    * set obs `N'
+    * gen g1 = int(runiform() * `G')
+    * gen g2 = int(runiform() * `G')
+    * gen g3 = int(runiform() * `G')
+    * gen g4 = int(runiform() * `G')
+    * gen x1 = runiform()
+    * gen x2 = runiform()
+    * gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + 20 * rnormal()
+    * gen w  = int(50 * runiform())
     *
-    * greg v3 v2 id4 id5 _v2-_v5, absorb(id6)      bench(3)
-    * greg v3 v2 id4 id5 _v2-_v5, absorb(id6 id1)  bench(3)
-    * * greg v3 v2 id4 id5 _v2-_v5, absorb(id6 id3) bench(3)
+    * reghdfe y x1 x2, absorb(g1 g2 g3)
+    * greg y x1 x2, absorb(g1 g2 g3) mata(greg)
+    * mata greg.print()
     *
-    * greg v3 v2 id4 id5 _v2-_v5, absorb(id6)      cluster(id6) bench(3)
-    * mata (GtoolsRegress.b \ GtoolsRegress.se)'
-    * greg v3 v2 id4 id5 _v2-_v5, absorb(id6 id1)   cluster(id6) bench(3)
-    * mata (GtoolsRegress.b \ GtoolsRegress.se)'
-    * * greg v3 v2 id4 id5 _v2-_v5, absorb(id6 id3)  cluster(id6) bench(3)
-    * * mata (GtoolsRegress.b \ GtoolsRegress.se)'
+    * reghdfe y x1 x2, absorb(g1 g2 g3) vce(robust)
+    * greg y x1 x2, absorb(g1 g2 g3) mata(greg) r
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)
+    * greg y x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [fw = w], absorb(g1 g2 g3)
+    * greg y x1 x2 [fw = w], absorb(g1 g2 g3) mata(greg)
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [fw = w], absorb(g1 g2 g3) vce(robust)
+    * greg y x1 x2 [fw = w], absorb(g1 g2 g3) mata(greg) r
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [fw = w], absorb(g1 g2 g3) vce(cluster g4)
+    * greg y x1 x2 [fw = w], absorb(g1 g2 g3) cluster(g4) mata(greg)
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [aw = w], absorb(g1 g2 g3)
+    * greg y x1 x2 [aw = w], absorb(g1 g2 g3) mata(greg)
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [aw = w], absorb(g1 g2 g3) vce(robust)
+    * greg y x1 x2 [aw = w], absorb(g1 g2 g3) mata(greg) r
+    * mata greg.print()
+    *
+    * reghdfe y x1 x2 [aw = w], absorb(g1 g2 g3) vce(cluster g4)
+    * greg y x1 x2 [aw = w], absorb(g1 g2 g3) cluster(g4) mata(greg)
+    * mata greg.print()
 
-    * DT1 <- DT[1:(nrow(DT)/2)]
-    * DT1[, "iv1"] = as.numeric(DT1[, "v1"] == 1)
-    * DT1[, "iv2"] = as.numeric(DT1[, "v1"] == 2)
-    * DT1[, "iv3"] = as.numeric(DT1[, "v1"] == 3)
-    * DT1[, "iv4"] = as.numeric(DT1[, "v1"] == 4)
-    * DT1[, "iv5"] = as.numeric(DT1[, "v1"] == 5)
-    * system.time(res1 <- felm(v3 ~ v1 + v2 + id4 + id5, DT1))
-    * system.time(res2 <- felm(v3 ~ v2 + id4 + id5 + iv2 + iv3 + iv4 + iv5, DT1))
-    * system.time(res3 <- felm(v3 ~ v2 + id4 + id5 + iv2 + iv3 + iv4 + iv5 | id6 | 0 | id6, DT1))
-    * system.time(res4 <- felm(v3 ~ v2 + id4 + id5 + iv2 + iv3 + iv4 + iv5 | id6 + id3 | 0 | id6, DT1))
-    * system.time(res5 <- felm(v3 ~ v2 + id4 + id5 + iv2 + iv3 + iv4 + iv5 | id6 + id1 | 0 | id6, DT1))
+    * ------------------------------------------------------------------------
+    * ------------------------------------------------------------------------
+
+    * Well, there is an issue when the number of absorbed effects are
+    * close to the number of observations ):
+
 end
 
 * capture program drop simpleHDFE

@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sun Jun  9 18:39:07 EDT 2019
+# Updated: Wed Aug 21 18:39:07 EDT 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -118,6 +118,7 @@ gtools_ssc = [
     "greshape.ado",
     "gregress.ado",
     "greg.ado",
+    "gpoisson.ado",
     "gstats.ado",
     "gduplicates.ado",
     "gquantiles.ado",
@@ -134,6 +135,7 @@ gtools_ssc = [
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
     "greshape.sthlp",
+    "gpoisson.sthlp",
     "greg.sthlp",
     "gregress.sthlp",
     "gstats.sthlp",
@@ -339,6 +341,11 @@ copy2(
 )
 
 copy2(
+    path.join("docs", "stata", "gregress.sthlp"),
+    path.join("docs", "stata", "gpoisson.sthlp")
+)
+
+copy2(
     path.join("docs", "stata", "gstats_summarize.sthlp"),
     path.join("docs", "stata", "gstats_sum.sthlp")
 )
@@ -368,6 +375,7 @@ copy2(path.join("docs", "stata", "gtop.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),     gdir)
 copy2(path.join("docs", "stata", "gisid.sthlp"),            gdir)
 copy2(path.join("docs", "stata", "greshape.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "gpoisson.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "greg.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gregress.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
@@ -396,6 +404,7 @@ copy2(path.join("src", "ado", "gtop.ado"),              gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),      gdir)
 copy2(path.join("src", "ado", "gisid.ado"),             gdir)
 copy2(path.join("src", "ado", "greshape.ado"),          gdir)
+copy2(path.join("src", "ado", "gpoisson.ado"),          gdir)
 copy2(path.join("src", "ado", "greg.ado"),              gdir)
 copy2(path.join("src", "ado", "gregress.ado"),          gdir)
 copy2(path.join("src", "ado", "gstats.ado"),            gdir)

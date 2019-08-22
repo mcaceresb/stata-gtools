@@ -50,7 +50,7 @@ faster than {cmd:gcollapse}.
 {synopthdr}
 {synoptline}
 {syntab :Tabstat Options}
-{synopt:{opth by(varname)}}Group statistics by variable.
+{synopt:{opth by(varlist)}}Group statistics by variable.
 {p_end}
 {synopt:{cmdab:s:tatistics:(}{it:{help gstats_summarize##statname:stat}} [{it:...}]{cmd:)}}Report
 specified statistics; default for {opt tabstat} is count, sum, mean, sd, min, max.
@@ -70,7 +70,7 @@ Use format to display summary stats; default %9.0g
 {p_end}
 {synopt:{opt mean:only}}Calculate only the count, sum, mean, min, max.
 {p_end}
-{synopt:{opth by(varname)}}Group by variable; all stats are computed but output is in the style of tabstat.
+{synopt:{opth by(varlist)}}Group by variable; all stats are computed but output is in the style of tabstat.
 {p_end}
 {synopt:{opt sep:arator(#)}}Draw separator line after every {it:#} variables; default is {cmd:separator(5)}.
 {p_end}

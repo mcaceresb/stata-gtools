@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sun Aug 18 23:38:58 EDT 2019
+ * Updated: Wed Aug 21 19:38:58 EDT 2019
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.6.0
+ * Version: 1.6.1
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 18 Aug 2019
+ * @date 21 Aug 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -463,6 +463,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gfile_topmat,
             gfile_gregb,
             gfile_gregse,
+            gfile_gregclus,
+            gfile_gregabs,
             top_miss,
             top_groupmiss,
             top_matasave,
@@ -525,6 +527,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gregress_savegb,
             gregress_savegse,
             gregress_saveghdfe,
+            gregress_range,
+            gregress_poisson,
+            gregress_poisiter,
+            gregress_moving,
             greshape_dropmiss,
             greshape_code,
             greshape_kxij,
@@ -552,6 +558,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             kvars_by_num,
             kvars_by_str,
             kvars_by_strL;
+    GT_int  gregress_moving_l,
+            gregress_moving_u;
 
     /*********************************************************************
      *       Fallback whenever this is not parsed (set to missing)       *
@@ -634,6 +642,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gfile_topmat",          &gfile_topmat)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregb",           &gfile_gregb)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregse",          &gfile_gregse)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregclus",        &gfile_gregclus)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregabs",         &gfile_gregabs)         )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",              &seecount)              )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",             &countonly)             )) goto exit;
@@ -716,6 +726,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gregress_savegb",       &gregress_savegb)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_savegse",      &gregress_savegse)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_saveghdfe",    &gregress_saveghdfe)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_range",        &gregress_range)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_poisson",      &gregress_poisson)      )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_poisiter",     &gregress_poisiter)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_moving",       &gregress_moving)       )) goto exit;
+    if ( (rc = sf_scalar_int ("__gtools_gregress_moving_l",     &gregress_moving_l)     )) goto exit;
+    if ( (rc = sf_scalar_int ("__gtools_gregress_moving_u",     &gregress_moving_u)     )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_greshape_dropmiss",     &greshape_dropmiss)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_greshape_code",         &greshape_code)         )) goto exit;
@@ -752,7 +768,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = SF_scal_use("__gtools_winsor_cuth", &(st_info->winsor_cuth) )) ) return (rc);
 
     // Vars for gregress
-    if ( (rc = SF_scal_use("__gtools_gregress_hdfetol", &(st_info->gregress_hdfetol) )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_hdfetol",  &(st_info->gregress_hdfetol)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_poistol",  &(st_info->gregress_poistol)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_l",  &(st_info->gregress_range_l)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_u",  &(st_info->gregress_range_u)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_ls", &(st_info->gregress_range_ls) )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_range_us", &(st_info->gregress_range_us) )) ) return (rc);
 
     // Parse number of variables
     if ( (rc = sf_scalar_size("__gtools_kvars",      &kvars_by)      )) goto exit;
@@ -1048,6 +1069,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gfile_topmat          = gfile_topmat;
     st_info->gfile_gregb           = gfile_gregb;
     st_info->gfile_gregse          = gfile_gregse;
+    st_info->gfile_gregclus        = gfile_gregclus;
+    st_info->gfile_gregabs         = gfile_gregabs;
 
     st_info->unsorted              = unsorted;
     st_info->countonly             = countonly;
@@ -1130,6 +1153,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gregress_savegb       = gregress_savegb;
     st_info->gregress_savegse      = gregress_savegse;
     st_info->gregress_saveghdfe    = gregress_saveghdfe;
+    st_info->gregress_moving       = gregress_moving;
+    st_info->gregress_moving_l     = gregress_moving_l;
+    st_info->gregress_moving_u     = gregress_moving_u;
+    st_info->gregress_range        = gregress_range;
+    st_info->gregress_poisson      = gregress_poisson;
+    st_info->gregress_poisiter     = gregress_poisiter;
 
     st_info->greshape_dropmiss     = greshape_dropmiss;
     st_info->greshape_code         = greshape_code;
@@ -1257,6 +1286,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgregress_savegb:       "GT_size_cfmt"\n",  gregress_savegb      );
         sf_printf_debug("\tgregress_savegse:      "GT_size_cfmt"\n",  gregress_savegse     );
         sf_printf_debug("\tgregress_saveghdfe:    "GT_size_cfmt"\n",  gregress_saveghdfe   );
+        sf_printf_debug("\tgregress_moving:       "GT_size_cfmt"\n",  gregress_moving      );
+        sf_printf_debug("\tgregress_moving_l:     "GT_size_cfmt"\n",  gregress_moving_l    );
+        sf_printf_debug("\tgregress_moving_u:     "GT_size_cfmt"\n",  gregress_moving_u    );
+        sf_printf_debug("\tgregress_range:        "GT_size_cfmt"\n",  gregress_range       );
+        sf_printf_debug("\tgregress_poisson:      "GT_size_cfmt"\n",  gregress_poisson     );
+        sf_printf_debug("\tgregress_poisiter:     "GT_size_cfmt"\n",  gregress_poisiter    );
         sf_printf_debug("\n");
         sf_printf_debug("\tgreshape_dropmiss:     "GT_size_cfmt"\n",  greshape_dropmiss    );
         sf_printf_debug("\tgreshape_code:         "GT_size_cfmt"\n",  greshape_code        );

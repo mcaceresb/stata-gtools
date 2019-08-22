@@ -262,8 +262,8 @@ program checks_gegen
     gegen r3 = rank(x) [pw = pw]
     gegen r4 = rank(x) [iw = iw]
 
-    gisid r1_uniq, missok
-    gisid r1_stable, missok
+    gisid r1_uniq if !mi(r1_uniq)
+    gisid r1_stable if !mi(r1_stable)
 
     expand fw
 
@@ -275,14 +275,13 @@ program checks_gegen
     assert r_field  == r1_field 
     assert r_track  == r1_track 
 
-    egen e_def    = rank(x) if !mi(fw), def
+    egen e_def    = rank(x) if !mi(fw)
     egen e_field  = rank(x) if !mi(fw), field
     egen e_track  = rank(x) if !mi(fw), track
 
     assert e_def    == r1_def   
     assert e_field  == r1_field 
     assert e_track  == r1_track 
-
 end
 
 capture program drop checks_inner_egen
@@ -294,7 +293,8 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt rank
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local skipbulk
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
@@ -302,7 +302,7 @@ program checks_inner_egen
     tempvar gvar
     foreach fun of local stats {
         `noisily' gegen `gvar' = `fun'(random1) `wgt', by(`anything') replace `options'
-        if ( "`weight'" == "" ) {
+        if ( "`weight'" == "" & !(`:list fun in skipbulk') ) {
         `noisily' gegen `gvar' = `fun'(random*) `wgt', by(`anything') replace `options'
         }
     }

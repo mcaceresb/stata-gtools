@@ -1,4 +1,4 @@
-ST_double GtoolsStatsWeights (
+ST_double GtoolsStatsWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,
@@ -6,14 +6,14 @@ ST_double GtoolsStatsWeights (
     ST_double statcode)
 {
     if ( statcode == -2 ) {
-        return (GtoolsStatsMeanWeights(source, weights, index, N));
+        return (GtoolsStatsMeanWeighted(source, weights, index, N));
     }
     else {
-        return (GtoolsStatsQuantileWeights(source, weights, index, N));
+        return (GtoolsStatsQuantileWeighted(source, weights, index, N));
     }
 }
 
-ST_double GtoolsStatsMeanWeights (
+ST_double GtoolsStatsMeanWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,
@@ -31,7 +31,7 @@ ST_double GtoolsStatsMeanWeights (
     return (z / W);
 }
 
-ST_double GtoolsStatsQuantileWeights (
+ST_double GtoolsStatsQuantileWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,

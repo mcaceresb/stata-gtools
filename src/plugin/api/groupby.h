@@ -1,16 +1,27 @@
 #ifndef GTOOLSGROUPBYAPI
 #define GTOOLSGROUPBYAPI
 
-void GtoolsGroupByTransform (
+typedef void (*GtoolsGroupByTransform)(
+    struct GtoolsHash *,
+    ST_double *,
+    GT_size   *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    GT_size
+);
+
+void GtoolsGroupByTransformUnweighted (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,
     GT_size   *statMaps,
     ST_double *sources,
+    ST_double *weights,
     ST_double *targets,
     GT_size   ktargets
 );
 
-void GtoolsGroupByTransformWeights (
+void GtoolsGroupByTransformWeighted (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,
     GT_size   *statMaps,
@@ -39,7 +50,7 @@ void GtoolsTransformDeMean (
     GT_size   N
 );
 
-void GtoolsTransformWeights (
+void GtoolsTransformWeighted (
     ST_double *source,
     ST_double *weights,
     ST_double *target,
@@ -48,7 +59,7 @@ void GtoolsTransformWeights (
     ST_double statcode
 );
 
-void GtoolsTransformDeMeanWeights (
+void GtoolsTransformDeMeanWeighted (
     ST_double *source,
     ST_double *weights,
     ST_double *target,
@@ -79,7 +90,7 @@ ST_double GtoolsStatsQuantile (
     GT_size   N
 );
 
-ST_double GtoolsStatsWeights (
+ST_double GtoolsStatsWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,
@@ -87,14 +98,14 @@ ST_double GtoolsStatsWeights (
     ST_double statcode
 );
 
-ST_double GtoolsStatsMeanWeights (
+ST_double GtoolsStatsMeanWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,
     GT_size   N
 );
 
-ST_double GtoolsStatsQuantileWeights (
+ST_double GtoolsStatsQuantileWeighted (
     ST_double *source,
     ST_double *weights,
     GT_size   *index,
@@ -105,16 +116,27 @@ ST_double GtoolsStatsQuantileWeights (
  *                               Misc                                *
  *********************************************************************/
 
-void GtoolsGroupByHDFE (
+typedef void (*GtoolsGroupByHDFE)(
+    struct GtoolsHash *,
+    GT_size,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    GT_size,
+    ST_double
+);
+
+void GtoolsGroupByHDFEUnweighted (
     struct GtoolsHash *GtoolsHashInfo,
     GT_size   khashes,
     ST_double *sources,
+    ST_double *weights,
     ST_double *targets,
     GT_size   ktargets,
     ST_double tol
 );
 
-void GtoolsGroupByHDFEWeights (
+void GtoolsGroupByHDFEWeighted (
     struct GtoolsHash *GtoolsHashInfo,
     GT_size   khashes,
     ST_double *sources,

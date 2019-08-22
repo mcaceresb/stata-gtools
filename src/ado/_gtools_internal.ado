@@ -1,4 +1,4 @@
-*! version 1.6.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.6.1 21Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -45,6 +45,8 @@ program _gtools_internal, rclass
         tempfile gregfile
         tempfile gregbfile
         tempfile gregsefile
+        tempfile gregclusfile
+        tempfile gregabsfile
         tempfile gstatsfile
         tempfile gbyvarfile
         tempfile gbycolfile
@@ -56,6 +58,8 @@ program _gtools_internal, rclass
         GtoolsTempFile gregfile
         GtoolsTempFile gregbfile
         GtoolsTempFile gregsefile
+        GtoolsTempFile gregclusfile
+        GtoolsTempFile gregabsfile
         GtoolsTempFile gstatsfile
         GtoolsTempFile gbyvarfile
         GtoolsTempFile gbycolfile
@@ -64,15 +68,17 @@ program _gtools_internal, rclass
         GtoolsTempFile gtopmatfile
     }
 
-    global GTOOLS_GREG_FILE:    copy local gregfile
-    global GTOOLS_GREGB_FILE:   copy local gregbfile
-    global GTOOLS_GREGSE_FILE:  copy local gregsefile
-    global GTOOLS_GSTATS_FILE:  copy local gstatsfile
-    global GTOOLS_BYVAR_FILE:   copy local gbyvarfile
-    global GTOOLS_BYCOL_FILE:   copy local gbycolfile
-    global GTOOLS_BYNUM_FILE:   copy local gbynumfile
-    global GTOOLS_GTOPNUM_FILE: copy local gtopnumfile
-    global GTOOLS_GTOPMAT_FILE: copy local gtopmatfile
+    global GTOOLS_GREG_FILE:     copy local gregfile
+    global GTOOLS_GREGB_FILE:    copy local gregbfile
+    global GTOOLS_GREGSE_FILE:   copy local gregsefile
+    global GTOOLS_GREGCLUS_FILE: copy local gregclusfile
+    global GTOOLS_GREGABS_FILE:  copy local gregabsfile
+    global GTOOLS_GSTATS_FILE:   copy local gstatsfile
+    global GTOOLS_BYVAR_FILE:    copy local gbyvarfile
+    global GTOOLS_BYCOL_FILE:    copy local gbycolfile
+    global GTOOLS_BYNUM_FILE:    copy local gbynumfile
+    global GTOOLS_GTOPNUM_FILE:  copy local gtopnumfile
+    global GTOOLS_GTOPMAT_FILE:  copy local gtopmatfile
 
     global GTOOLS_USER_INTERNAL_VARABBREV `c(varabbrev)'
     * set varabbrev off
@@ -708,8 +714,10 @@ program _gtools_internal, rclass
     mata: st_numscalar("__gtools_gfile_topnum", strlen(st_local("gtopnumfile")) + 1)
     mata: st_numscalar("__gtools_gfile_topmat", strlen(st_local("gtopmatfile")) + 1)
 
-    mata: st_numscalar("__gtools_gfile_gregb",  strlen(st_local("gregbfile")) + 1)
-    mata: st_numscalar("__gtools_gfile_gregse", strlen(st_local("gregsefile")) + 1)
+    mata: st_numscalar("__gtools_gfile_gregb",    strlen(st_local("gregbfile"))    + 1)
+    mata: st_numscalar("__gtools_gfile_gregse",   strlen(st_local("gregsefile"))   + 1)
+    mata: st_numscalar("__gtools_gfile_gregclus", strlen(st_local("gregclusfile")) + 1)
+    mata: st_numscalar("__gtools_gfile_gregabs",  strlen(st_local("gregabsfile"))  + 1)
 
     scalar __gtools_init_targ   = 0
     scalar __gtools_any_if      = `any_if'
@@ -1659,10 +1667,16 @@ program _gtools_internal, rclass
                 Robust                       /// Robust SE
                 cluster(str)                 /// Cluster by varlist
                 absorb(str)                  /// Absorb each var in varlist as FE
+                interval(str)                /// Interval for rolling regressions
+                window(str)                  /// Window for moving regressions
                 hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
                 noConstant                   /// Whether to add a constant
                 rowmajor                     /// Read matrix in row major order
                 colmajor                     /// Read matrix in column major order
+                                             ///
+                poistol(real 1e-8)           /// Tolerance for poisson convergence
+                poisiter(int 1000)           /// Max iterations for poisson convergence
+                poisson                      /// Poisson regression
                                              ///
                 mata(str)                    /// save in mata (default)
                 GENerate(str)                /// save in varlist
@@ -1670,9 +1684,88 @@ program _gtools_internal, rclass
                 replace                      /// Replace targets, if they exist
             ]
 
+            if ( (`"`window'"' != "") & (`"`interval'"' != "") ) {
+                disp as err "moving() and window() are mutually exclusive options"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
+
+            if ( (`"`window'"' != "") | (`"`interval'"' != "") ) {
+                if ( `"`window'"'   != "" ) local what window
+                if ( `"`interval'"' != "" ) local what interval
+
+                disp as err "option `what'() is planned for the next release"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+
+                if ( `"`cluster'"' != "" ) {
+                    disp as err "cluster() cannot yet be combined with `what'(); this is planned for the next release"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+
+                if ( `"`absorb'"' != "" ) {
+                    disp as err "absorb() cannot yet be combined with `what'(); this is planned for the next release"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+            }
+
+            if ( `"`window'"' != "" ) {
+                encode_moving moving regress `interval'
+                if ( `r(warn)' ) {
+                    disp as txt "{bf:note:} requested window() without a window; will ignore"
+                }
+                else if ( `r(match)' ) {
+                    scalar __gtools_gregress_moving   = `r(scode)'
+                    scalar __gtools_gregress_moving_l = `r(lower)'
+                    scalar __gtools_gregress_moving_u = `r(upper)'
+                }
+                else {
+                    disp as err "window() incorrectly specified"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+            }
+
+            local intervalvar
+            if ( `"`interval'"' != "" ) {
+                encode_range range regress `interval'
+                if ( `r(warn)' ) {
+                    disp as txt "{bf:note:} requested interval() without an interval; will ignore"
+                }
+                else if ( `r(match)' & (`"`r(var)'"' == "") ) {
+                    disp as err "interval() requires a variable; interval(lower upper varname)"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+                else if ( `r(match)' ) {
+                    scalar __gtools_gregress_range    = 1
+                    scalar __gtools_gregress_range_l  = `r(lower)'
+                    scalar __gtools_gregress_range_u  = `r(upper)'
+                    scalar __gtools_gregress_range_ls = `r(lcode)'
+                    scalar __gtools_gregress_range_us = `r(ucode)'
+                    local intervalvar `r(var)'
+                }
+                else {
+                    disp as err "interval() incorrectly specified"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+            }
+
             if ( (`"`rowmajor'"' != "") & (`"`colmajor'"' != "") ) {
                 disp as err "Specify only one of {opt rowmajor} or {opt colmajor}"
-                exit 198
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
             }
 
             * TODO: strL support
@@ -1684,16 +1777,23 @@ program _gtools_internal, rclass
                 GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
             }
 
-            local regressvars `varlist' `cluster' `absorb'
+            if ( (`"`cluster'"' == "") & (`"`robust'"' == "") & (`wcode' == 4) ) {
+                disp as txt "{bf:note:} robust SE will be computed with pweights"
+            }
+
+            local regressvars `varlist' `cluster' `absorb' `intervalvar'
 
             scalar __gtools_gregress_kvars    = `:list sizeof varlist'
             scalar __gtools_gregress_cons     = `"`constant'"' != "noconstant"
             scalar __gtools_gregress_rowmajor = `"`rowmajor'"' != ""
             scalar __gtools_gregress_colmajor = `"`colmajor'"' != ""
-            scalar __gtools_gregress_robust   = `"`robust'"'   != ""
+            scalar __gtools_gregress_robust   = `"`robust'"'   != "" | `wcode' == 4
             scalar __gtools_gregress_cluster  = `:list sizeof cluster'
             scalar __gtools_gregress_absorb   = `:list sizeof absorb'
             scalar __gtools_gregress_hdfetol  = `hdfetol'
+            scalar __gtools_gregress_poisson  = `"`poisson'"' != ""
+            scalar __gtools_gregress_poisiter = `poisiter'
+            scalar __gtools_gregress_poistol  = `poistol'
 
             if ( scalar(__gtools_gregress_cluster) > 1 ) {
                 disp as txt "({bf:warning}: cluster() with multiple variables is assumed to be nested)"
@@ -1729,7 +1829,7 @@ program _gtools_internal, rclass
                 if ( `"`mata'"' != "" ) {
                     local 0 `mata'
                     cap noi syntax [namelist(max = 1)], [noB noSE]
-                    if ( `"`namelist'"' == "" ) local namelist GtoolsRegress 
+                    if ( `"`namelist'"' == "" ) local namelist GtoolsRegress
 
                     scalar __gtools_gregress_savemata = 1
                     scalar __gtools_gregress_savemb   = `"`b'"'  != "nob"
@@ -1741,10 +1841,14 @@ program _gtools_internal, rclass
                 }
 
                 if ( (`"`generate'"' != "") & (`"`prefix'"' != "") ) {
-                    disp as err "gen() and prefix() are mutually exclusive"
-                    local rc = 198
-                    clean_all `rc'
-                    exit `rc'
+                    local 0, `generate' `prefix'
+                    cap syntax, [b(str) se(str) hdfe(str)]
+                    if ( _rc ) {
+                        disp as err "cannot specify multiple saves across gen() and prefix()"
+                        local rc = 198
+                        clean_all `rc'
+                        exit `rc'
+                    }
                 }
 
                 if ( `"`generate'"' != "" ) {
@@ -1935,6 +2039,10 @@ program _gtools_internal, rclass
 
             if ( `"`saveGregressMata'"' != "" ) {
                 mata: `saveGregressMata'.init()
+            }
+
+            if ( `wcode' == 3 ) {
+                disp as txt "{bf:note:} iweights mimic the behavior of aweights"
             }
         }
         else if ( inlist("`gfunction'",  "stats") ) {
@@ -2898,17 +3006,11 @@ program _gtools_internal, rclass
     * regress results
     if ( inlist("`gfunction'", "regress") ) {
         if ( scalar(__gtools_gregress_savemata) ) {
-            if ( scalar(__gtools_gregress_savemb) ) {
-                mata `saveGregressMata'.b  = GtoolsReadMatrix(st_local("gregbfile"),  `r_J', st_numscalar("__gtools_gregress_kv"))
-            }
-            if ( scalar(__gtools_gregress_savemse) ) {
-                mata `saveGregressMata'.se = GtoolsReadMatrix(st_local("gregsefile"), `r_J', st_numscalar("__gtools_gregress_kv"))
-            }
-            mata `saveGregressMata'.J = `r_J'
-
+            local caller = cond(scalar(__gtools_gregress_poisson), "gpoisson", "gregress")
+            mata: `saveGregressMata'.readMatrices()
             mata: `saveGregressMata'.ByLevels = GtoolsByLevels()
             mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
-            mata: `saveGregressMata'.ByLevels.caller = "gregress"
+            mata: `saveGregressMata'.ByLevels.caller = `"`caller'"'
             mata: `saveGregressMata'.ByLevels.read("%16.0g", 1)
             disp as txt "Results in `saveGregressMata'; see {stata mata `saveGregressMata'.desc()}"
         }
@@ -4449,12 +4551,23 @@ program gregress_scalars
         scalar __gtools_gregress_cluster   = 0
         scalar __gtools_gregress_absorb    = 0
         scalar __gtools_gregress_hdfetol   = 0
+        scalar __gtools_gregress_poisson   = 0
+        scalar __gtools_gregress_poisiter  = 0
+        scalar __gtools_gregress_poistol   = 0
         scalar __gtools_gregress_savemata  = 0
         scalar __gtools_gregress_savemb    = 0
         scalar __gtools_gregress_savemse   = 0
         scalar __gtools_gregress_savegb    = 0
         scalar __gtools_gregress_savegse   = 0
         scalar __gtools_gregress_saveghdfe = 0
+        scalar __gtools_gregress_moving    = 0
+        scalar __gtools_gregress_moving_l  = 0
+        scalar __gtools_gregress_moving_u  = 0
+        scalar __gtools_gregress_range     = 0
+        scalar __gtools_gregress_range_l   = 0
+        scalar __gtools_gregress_range_u   = 0
+        scalar __gtools_gregress_range_ls  = 0
+        scalar __gtools_gregress_range_us  = 0
         matrix __gtools_gregress_clustyp   = .
         matrix __gtools_gregress_abstyp    = .
     }
@@ -4468,12 +4581,23 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb
         cap scalar drop __gtools_gregress_hdfetol
+        cap scalar drop __gtools_gregress_poisson
+        cap scalar drop __gtools_gregress_poisiter
+        cap scalar drop __gtools_gregress_poistol
         cap scalar drop __gtools_gregress_savemata
         cap scalar drop __gtools_gregress_savemb
         cap scalar drop __gtools_gregress_savemse
         cap scalar drop __gtools_gregress_savegb
         cap scalar drop __gtools_gregress_savegse
         cap scalar drop __gtools_gregress_saveghdfe
+        cap scalar drop __gtools_gregress_moving
+        cap scalar drop __gtools_gregress_moving_l
+        cap scalar drop __gtools_gregress_moving_u
+        cap scalar drop __gtools_gregress_range
+        cap scalar drop __gtools_gregress_range_l
+        cap scalar drop __gtools_gregress_range_u
+        cap scalar drop __gtools_gregress_range_ls
+        cap scalar drop __gtools_gregress_range_us
         cap matrix drop __gtools_gregress_clustyp
         cap matrix drop __gtools_gregress_abstyp
     }

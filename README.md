@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.6.0-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.6.1-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -233,7 +233,7 @@ sysuse auto, clear
 
 * gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
 gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
-gregress price mpg, by(foreign) absorb(rep78 headroom) cluster(rep78)
+gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -649,12 +649,10 @@ Planned features for `gtools-1.7.0`:
 
 - [ ] Flexible save options for regress
     - Choose which coefs/se to save
-    - Choose which set of results to save
-    - Include number of clusters per group
-    - Include number of absorb levels per group
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
     - `predict()`, including `xb` and `e`.
-- [ ] Weights in `gregress` (all the code is in place; just needs copy/paste and debug)
+- [ ] Singularity check
+- [ ] Remove colinear by group in `gregress`
 - [ ] Non-nested multi-way clustering for `gregress`.
 - [ ] Rolling (interval) and moving options for `gregress`.
 - [ ] Accelerate HDFE corner cases in `gregress`

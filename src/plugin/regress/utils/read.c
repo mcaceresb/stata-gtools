@@ -5,6 +5,7 @@ ST_retcode sf_regress_read_colmajor (
     ST_double *w,
     void      *G,
     void      *FE,
+    ST_double *I,
     GT_size   *nj)
 {
 
@@ -12,6 +13,7 @@ ST_retcode sf_regress_read_colmajor (
     ST_double *xptr;
     GT_size i, j, k, l, start, end, nobs, offset_buffer, *stptr;
 
+    GT_bool interval  = st_info->gregress_range;
     GT_size kref      = 0;
     GT_size kclus     = st_info->gregress_cluster;
     GT_size kabs      = st_info->gregress_absorb;
@@ -53,7 +55,7 @@ ST_retcode sf_regress_read_colmajor (
 
     i = 0;
     if ( st_info->wcode > 0 ) {
-        if ( kclus || kabs ) {
+        if ( kclus || kabs || interval ) {
             for (stptr = index_st; stptr < index_st + st_info->Nread; stptr++, i++) {
                 if ( *stptr ) {
                     j     = *stptr - 1;
@@ -106,6 +108,13 @@ ST_retcode sf_regress_read_colmajor (
                                                 (ST_double *) (FE + offset_buffer))) ) goto exit;
                         }
                         offset_buffer += (st_info->N - start - nj[j]) * absoff[k];
+                    }
+
+                    if ( interval ) {
+                        kref += kabs;
+                        if ( (rc = SF_vdata(kref,
+                                            i + st_info->in1,
+                                            I + start + nj[j])) ) goto exit;
                     }
 
                     if ( (rc = SF_vdata(st_info->wpos,
@@ -148,7 +157,7 @@ ST_retcode sf_regress_read_colmajor (
         }
     }
     else {
-        if ( kclus || kabs ) {
+        if ( kclus || kabs || interval ) {
             for (stptr = index_st; stptr < index_st + st_info->Nread; stptr++, i++) {
                 if ( *stptr ) {
                     j     = *stptr - 1;
@@ -201,6 +210,13 @@ ST_retcode sf_regress_read_colmajor (
                                                 (ST_double *) (FE + offset_buffer))) ) goto exit;
                         }
                         offset_buffer += (st_info->N - start - nj[j]) * absoff[k];
+                    }
+
+                    if ( interval ) {
+                        kref += kabs;
+                        if ( (rc = SF_vdata(kref,
+                                            i + st_info->in1,
+                                            I + start + nj[j])) ) goto exit;
                     }
 
                     nj[j]++;
@@ -258,6 +274,7 @@ ST_retcode sf_regress_read_rowmajor (
     ST_double *w,
     void      *G,
     void      *FE,
+    ST_double *I,
     GT_size   *nj)
 {
 
@@ -265,6 +282,7 @@ ST_retcode sf_regress_read_rowmajor (
     ST_double *xptr;
     GT_size i, j, k, l, start, end, offset_buffer, *stptr;
 
+    GT_bool interval  = st_info->gregress_range;
     GT_size kref      = 0;
     GT_size kclus     = st_info->gregress_cluster;
     GT_size kabs      = st_info->gregress_absorb;
@@ -306,7 +324,7 @@ ST_retcode sf_regress_read_rowmajor (
 
     i = 0;
     if ( st_info->wcode > 0 ) {
-        if ( kclus || kabs ) {
+        if ( kclus || kabs || interval ) {
             for (stptr = index_st; stptr < index_st + st_info->Nread; stptr++, i++) {
                 if ( *stptr ) {
                     j     = *stptr - 1;
@@ -357,6 +375,13 @@ ST_retcode sf_regress_read_rowmajor (
                                                 (ST_double *) (FE + offset_buffer))) ) goto exit;
                         }
                         offset_buffer += (st_info->N - start - nj[j]) * absoff[k];
+                    }
+
+                    if ( interval ) {
+                        kref += kabs;
+                        if ( (rc = SF_vdata(kref,
+                                            i + st_info->in1,
+                                            I + start + nj[j])) ) goto exit;
                     }
 
                     if ( (rc = SF_vdata(st_info->wpos,
@@ -397,7 +422,7 @@ ST_retcode sf_regress_read_rowmajor (
         }
     }
     else {
-        if ( kclus || kabs ) {
+        if ( kclus || kabs || interval ) {
             for (stptr = index_st; stptr < index_st + st_info->Nread; stptr++, i++) {
                 if ( *stptr ) {
                     j     = *stptr - 1;
@@ -448,6 +473,13 @@ ST_retcode sf_regress_read_rowmajor (
                                                 (ST_double *) (FE + offset_buffer))) ) goto exit;
                         }
                         offset_buffer += (st_info->N - start - nj[j]) * absoff[k];
+                    }
+
+                    if ( interval ) {
+                        kref += kabs;
+                        if ( (rc = SF_vdata(kref,
+                                            i + st_info->in1,
+                                            I + start + nj[j])) ) goto exit;
                     }
 
                     nj[j]++;

@@ -70,7 +70,7 @@ Options
 
 ### Tabstat Options
 
-- `by(varname)`            Group statistics by variable.
+- `by(varlist)`            Group statistics by variable.
 - `statistics(stat [...])` Report specified statistics; default for tabstat is count, sum, mean, sd, min, max.
 - `columns(stat|var)`      Columns are statistics (default) or variables.
 - `prettystats`            Pretty statistic header names
@@ -81,7 +81,7 @@ Options
 
 - `nodetail`           Do not display the full set of statistics.
 - `meanonly`           Calculate only the count, sum, mean, min, max.
-- `by(varname)`        Group by variable; all stats are computed but output is in the style of tabstat.
+- `by(varlist)`        Group by variable; all stats are computed but output is in the style of tabstat.
 - `separator(#)`       Draw separator line after every # variables; default is `separator(5)`.
 - `tabstat`            Compute and display statistics in the style of tabstat.
 

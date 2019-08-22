@@ -383,6 +383,10 @@ program checks_gstats_transform
     local selections  select1 select2 select5 select-5 select-2 select-1
     local stats       nmissing sum mean geomean cv sd variance max min range count first last firstnm lastnm median iqr skew kurt
 
+    local percentiles p1 p30.5 p70.5 p99
+    local selections  select1 select5 select-2 select-1
+    local stats       nmissing sum mean geomean cv sd variance max min range count first last firstnm lastnm median iqr skew kurt
+
     *********************************
     *  Basic check transform stats  *
     *********************************

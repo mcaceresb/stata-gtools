@@ -1,19 +1,18 @@
-void GtoolsGroupByHDFE (
+void GtoolsGroupByHDFEUnweighted(
     struct GtoolsHash *GtoolsHashInfo,
     GT_size   khashes,
     ST_double *sources,
+    ST_double *weights,
     ST_double *targets,
     GT_size   ktargets,
     ST_double tol)
 {
+    GT_bool update;
     GT_size i, j, k, l, m, start, nj, *ixptr;
     ST_double mean, diff, *srcptr, *trgptr;
     struct GtoolsHash *ghptr;
 
-    if ( targets == NULL ) {
-        targets = sources;
-    }
-
+    update = 0;
     diff = 1;
     while ( diff > tol ) {
         ghptr = GtoolsHashInfo;
@@ -23,7 +22,7 @@ void GtoolsGroupByHDFE (
                 start  = ghptr->info[j];
                 nj     = ghptr->info[j + 1] - start;
                 ixptr  = ghptr->index + start;
-                srcptr = sources;
+                srcptr = update? targets: sources;
                 trgptr = targets;
                 for (k = 0; k < ktargets; k++, srcptr += ghptr->nobs, trgptr += ghptr->nobs) {
                     mean = GtoolsStatsMean(srcptr, ixptr, nj);
@@ -34,12 +33,13 @@ void GtoolsGroupByHDFE (
                     }
                 }
             }
+            update = 1;
             if ( diff < tol ) break;
         }
     }
 }
 
-void GtoolsGroupByHDFEWeights (
+void GtoolsGroupByHDFEWeighted (
     struct GtoolsHash *GtoolsHashInfo,
     GT_size   khashes,
     ST_double *sources,
@@ -48,14 +48,12 @@ void GtoolsGroupByHDFEWeights (
     GT_size   ktargets,
     ST_double tol)
 {
+    GT_bool update;
     GT_size i, j, k, l, m, start, nj, *ixptr;
     ST_double mean, diff, *srcptr, *trgptr;
     struct GtoolsHash *ghptr;
 
-    if ( targets == NULL ) {
-        targets = sources;
-    }
-
+    update = 0;
     diff = 1;
     while ( diff > tol ) {
         ghptr = GtoolsHashInfo;
@@ -65,10 +63,10 @@ void GtoolsGroupByHDFEWeights (
                 start  = ghptr->info[j];
                 nj     = ghptr->info[j + 1] - start;
                 ixptr  = ghptr->index + start;
-                srcptr = sources;
+                srcptr = update? targets: sources;
                 trgptr = targets;
                 for (k = 0; k < ktargets; k++, srcptr += ghptr->nobs, trgptr += ghptr->nobs) {
-                    mean = GtoolsStatsMeanWeights(srcptr, weights, ixptr, nj);
+                    mean = GtoolsStatsMeanWeighted(srcptr, weights, ixptr, nj);
                     diff = GTOOLS_PWMAX(diff, fabs(mean));
                     for (i = 0; i < nj; i++) {
                         m = ixptr[i];
@@ -76,6 +74,7 @@ void GtoolsGroupByHDFEWeights (
                     }
                 }
             }
+            update = 1;
             if ( diff < tol ) break;
         }
     }

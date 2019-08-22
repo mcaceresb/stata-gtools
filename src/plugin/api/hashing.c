@@ -134,6 +134,6 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
         }
     }
 
-    return (0);
+     return (0);
 }
 

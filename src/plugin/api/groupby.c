@@ -25,20 +25,17 @@
 // {
 // }
 
-void GtoolsGroupByTransform (
+void GtoolsGroupByTransformUnweighted (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,
     GT_size   *statMaps,
     ST_double *sources,
+    ST_double *weights,
     ST_double *targets,
     GT_size   ktargets)
 {
     GT_size j, k, start, end;
     ST_double *srcptr, *trgptr;
-
-    if ( targets == NULL ) {
-        targets = sources;
-    }
 
     for (j = 0; j < GtoolsHashInfo->nlevels; j++) {
         start  = GtoolsHashInfo->info[j];
@@ -57,7 +54,7 @@ void GtoolsGroupByTransform (
     }
 }
 
-void GtoolsGroupByTransformWeights (
+void GtoolsGroupByTransformWeighted (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,
     GT_size   *statMaps,
@@ -69,17 +66,13 @@ void GtoolsGroupByTransformWeights (
     GT_size j, k, start, end;
     ST_double *srcptr, *trgptr;
 
-    if ( targets == NULL ) {
-        targets = sources;
-    }
-
     for (j = 0; j < GtoolsHashInfo->nlevels; j++) {
         start  = GtoolsHashInfo->info[j];
         end    = GtoolsHashInfo->info[j + 1];
         trgptr = targets;
         for (k = 0; k < ktargets; k++, trgptr += GtoolsHashInfo->nobs) {
             srcptr = sources + GtoolsHashInfo->nobs * statMaps[k];
-            GtoolsTransformWeights(
+            GtoolsTransformWeighted(
                 srcptr,
                 weights,
                 trgptr,

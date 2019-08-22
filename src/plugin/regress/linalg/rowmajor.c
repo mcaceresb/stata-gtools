@@ -13,6 +13,7 @@
 void gf_regress_ols_rowmajor(
     ST_double *X,
     ST_double *y,
+    ST_double *w,
     ST_double *XX,
     ST_double *Xy,
     ST_double *e,
@@ -29,6 +30,7 @@ void gf_regress_ols_rowmajor(
 
 void gf_regress_ols_robust_rowmajor(
     ST_double *e,
+    ST_double *w,
     ST_double *V,
     ST_double *VV,
     ST_double *X,
@@ -36,16 +38,16 @@ void gf_regress_ols_robust_rowmajor(
     ST_double *se,
     GT_size N,
     GT_size kx,
-    GT_size kmodel)
+    GT_size kmodel,
+    gf_regress_vceadj vceadj)
 {
     GT_size i;
-    ST_double qc;
+    ST_double qc = vceadj(N, kmodel, 0, w);
 
     gf_regress_linalg_dsymm_w2rowmajor(X,  X,  V, e, N, kx);
     gf_regress_linalg_dgemm_rowmajor  (V,  XX, VV, kx, kx, kx);
     gf_regress_linalg_dgemm_rowmajor  (XX, VV, V,  kx, kx, kx);
 
-    qc = ((ST_double) N) / ((ST_double) (N - kmodel));
     for (i = 0; i < kx; i++) {
         se[i] = sqrt(V[i * kx + i] * qc);
     }
@@ -53,10 +55,12 @@ void gf_regress_ols_robust_rowmajor(
 
 void gf_regress_ols_cluster_rowmajor(
     ST_double *e,
+    ST_double *w,
     GT_size   *info,
     GT_size   *index,
     GT_size   J,
     ST_double *U,
+    GT_size   *ux,
     ST_double *V,
     ST_double *VV,
     ST_double *X,
@@ -64,7 +68,8 @@ void gf_regress_ols_cluster_rowmajor(
     ST_double *se,
     GT_size N,
     GT_size kx,
-    GT_size kmodel)
+    GT_size kmodel,
+    gf_regress_vceadj vceadj)
 {
     GT_size i, j, nj, *ix;
     ST_double qc, *uptr;
@@ -81,7 +86,7 @@ void gf_regress_ols_cluster_rowmajor(
     gf_regress_linalg_dgemm_rowmajor (V,  XX, VV, kx, kx, kx);
     gf_regress_linalg_dgemm_rowmajor (XX, VV, V,  kx, kx, kx);
 
-    qc = (((ST_double) (N - 1)) / ((ST_double) (N - kmodel))) * ((ST_double) J / ((ST_double) (J - 1)));
+    qc = vceadj(N, kmodel, J, w);
     for (i = 0; i < kx; i++) {
         se[i] = sqrt(V[i * kx + i] * qc);
     }

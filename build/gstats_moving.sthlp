@@ -160,7 +160,7 @@ is used.
 {synopthdr}
 {synoptline}
 {syntab :Options}
-{synopt:{opth by(varname)}}Group statistics by variable.
+{synopt:{opth by(varlist)}}Group statistics by variable.
 {p_end}
 {synopt:{opt replace}}Allow replacing existing variables.
 {p_end}

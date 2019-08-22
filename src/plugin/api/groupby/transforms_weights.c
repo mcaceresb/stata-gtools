@@ -1,4 +1,4 @@
-void GtoolsTransformWeights (
+void GtoolsTransformWeighted (
     ST_double *source,
     ST_double *weights,
     ST_double *target,
@@ -7,11 +7,11 @@ void GtoolsTransformWeights (
     ST_double statcode)
 {
     if ( statcode == -2 ) {
-        GtoolsTransformDeMeanWeights(source, weights, target, index, N);
+        GtoolsTransformDeMeanWeighted(source, weights, target, index, N);
     }
 }
 
-void GtoolsTransformDeMeanWeights (
+void GtoolsTransformDeMeanWeighted (
     ST_double *source,
     ST_double *weights,
     ST_double *target,
@@ -19,7 +19,7 @@ void GtoolsTransformDeMeanWeights (
     GT_size   N)
 {
     GT_size i;
-    ST_double z = GtoolsStatsMeanWeights(source, weights, index, N);
+    ST_double z = GtoolsStatsMeanWeighted(source, weights, index, N);
     for (i = 0; i < N; i++) {
         target[index[i]] = source[index[i]] - z;
     }

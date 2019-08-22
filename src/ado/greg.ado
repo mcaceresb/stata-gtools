@@ -1,5 +1,5 @@
 *! version 0.1.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Implementation of (rolling, grouped) regressions
+*! Implementation of grouped regressions with HDFE
 
 cap program drop greg
 program greg, rclass

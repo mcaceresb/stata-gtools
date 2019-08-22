@@ -8,7 +8,7 @@ winsor, contract, levelsof, duplicates, and unique/distinct.
 ![Stable Version](https://img.shields.io/badge/stable-v1.5.11%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.6.0 18Aug2019`
+`version 1.6.1 21Aug2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -223,7 +223,7 @@ sysuse auto, clear
 
 * gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
 gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
-gregress price mpg, by(foreign) absorb(rep78 headroom) cluster(rep78)
+gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -638,16 +638,13 @@ Planned features for `gtools-1.7.0`:
 
 - Flexible save options for regress
     - Choose which coefs/se to save
-    - Choose which set of results to save
-    - Include number of clusters per group
-    - Include number of absorb levels per group
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
     - `predict()`, including `xb` and `e`.
-- Weights in `gregress` (all the code is in place; just needs copy/paste and debug)
+- Singularity check
+- Remove colinear by group in `gregress`
 - Non-nested multi-way clustering for `gregress`.
 - Rolling (interval) and moving options for `gregress`.
 - Accelerate HDFE corner cases in `gregress`
-- `gstats transform (hdfe), absorb(...)` for HDFE transform.
 - `cumsum` for `gstats transform` (normal cumsum)
 - `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
 

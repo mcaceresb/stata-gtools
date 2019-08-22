@@ -2,9 +2,12 @@
  *                         Index; unweighted                         *
  *********************************************************************/
 
+// TODO: vceadj should also pass ix
+// TODO: when doing cluster, etc. you should also passs ix
 void gf_regress_ols_ixcolmajor(
     ST_double *X,
     ST_double *y,
+    ST_double *w,
     GT_size *ix,
     GT_size nix,
     ST_double *XX,
@@ -23,6 +26,7 @@ void gf_regress_ols_ixcolmajor(
 
 void gf_regress_ols_robust_ixcolmajor(
     ST_double *e,
+    ST_double *w,
     GT_size *ix,
     GT_size nix,
     ST_double *V,
@@ -32,16 +36,16 @@ void gf_regress_ols_robust_ixcolmajor(
     ST_double *se,
     GT_size N,
     GT_size kx,
-    GT_size kmodel)
+    GT_size kmodel,
+    gf_regress_vceadj vceadj)
 {
     GT_size i;
-    ST_double qc;
+    ST_double qc = vceadj(N, kmodel, 0, w);
 
     gf_regress_linalg_dsymm_w2ixcolmajor (X,  X,  V, e, ix, nix, N, kx);
     gf_regress_linalg_dgemm_colmajor     (V,  XX, VV, kx, kx, kx);
     gf_regress_linalg_dgemm_colmajor     (XX, VV, V,  kx, kx, kx);
 
-    qc = ((ST_double) N) / ((ST_double) (N - kmodel));
     for (i = 0; i < kx; i++) {
         se[i] = sqrt(V[i * kx + i] * qc);
     }
@@ -152,7 +156,7 @@ void gf_regress_ols_wixcolmajor(
     gf_regress_linalg_dsysv              (XX, kx);
     gf_regress_linalg_dgemTv_wixcolmajor (X, y, Xy, w, ix, nix, N, kx);
     gf_regress_linalg_dgemTv_colmajor    (XX, Xy, b, kx, kx);
-    gf_regress_linalg_error_wixcolmajor  (y, X, b, w, ix, nix, e, N, kx);
+    gf_regress_linalg_error_ixcolmajor   (y, X, b, ix, nix, e, N, kx);
 }
 
 void gf_regress_ols_robust_wixcolmajor(
@@ -167,21 +171,45 @@ void gf_regress_ols_robust_wixcolmajor(
     ST_double *se,
     GT_size N,
     GT_size kx,
-    GT_size kmodel)
+    GT_size kmodel,
+    gf_regress_vceadj vceadj)
 {
     GT_size i;
     ST_double qc;
-    ST_double Ndbl = 0;
+    qc = vceadj(N, kmodel, 0, w);
 
-    gf_regress_linalg_dsymm_w2ixcolmajor (X,  X,  V, e, ix, nix, N, kx);
+    gf_regress_linalg_dsymm_we2ixcolmajor(X,  X,  V, e, w, ix, nix, N, kx);
     gf_regress_linalg_dgemm_colmajor     (V,  XX, VV, kx, kx, kx);
     gf_regress_linalg_dgemm_colmajor     (XX, VV, V,  kx, kx, kx);
 
-    for (i = 0; i < nix; i++) {
-        Ndbl += w[ix[i]];
+    for (i = 0; i < kx; i++) {
+        se[i] = sqrt(V[i * kx + i] * qc);
     }
+}
 
-    qc = Ndbl / (Ndbl - kmodel);
+void gf_regress_ols_robust_fwixcolmajor(
+    ST_double *e,
+    ST_double *w,
+    GT_size *ix,
+    GT_size nix,
+    ST_double *V,
+    ST_double *VV,
+    ST_double *X,
+    ST_double *XX,
+    ST_double *se,
+    GT_size N,
+    GT_size kx,
+    GT_size kmodel,
+    gf_regress_vceadj vceadj)
+{
+    GT_size i;
+    ST_double qc;
+    qc = vceadj(N, kmodel, 0, w);
+
+    gf_regress_linalg_dsymm_fwe2ixcolmajor(X,  X,  V, e, w, ix, nix, N, kx);
+    gf_regress_linalg_dgemm_colmajor      (V,  XX, VV, kx, kx, kx);
+    gf_regress_linalg_dgemm_colmajor      (XX, VV, V,  kx, kx, kx);
+
     for (i = 0; i < kx; i++) {
         se[i] = sqrt(V[i * kx + i] * qc);
     }
@@ -245,6 +273,80 @@ void gf_regress_linalg_dsymm_w2ixcolmajor(
             for (l = 0; l < nix; l++) {
                 m = ix[l];
                 *cptr += aptr[m] * bptr[m] * w[m] * w[m];
+            }
+        }
+    }
+
+    // Since C is symmetric, we only compute the lower triangle and then
+    // copy it back into the opper triangle
+
+    for (i = 0; i < K; i++) {
+        for (j = i + 1; j < K; j++) {
+            C[i * K + j] = C[j * K + i];
+        }
+    }
+}
+
+void gf_regress_linalg_dsymm_we2ixcolmajor(
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    ST_double *e,
+    ST_double *w,
+    GT_size *ix,
+    GT_size nix,
+    GT_size N,
+    GT_size K)
+{
+    GT_size i, j, l, m;
+    ST_double *aptr, *bptr, *cptr;
+
+    for (i = 0; i < K; i++) {
+        bptr = B;
+        for (j = 0; j <= i; j++) {
+            aptr = A + i * N;
+            cptr = C + i * K + j;
+            *cptr = 0;
+            for (l = 0; l < nix; l++) {
+                m = ix[l];
+                *cptr += aptr[m] * bptr[m] * e[m] * e[m] * w[m] * w[m];
+            }
+        }
+    }
+
+    // Since C is symmetric, we only compute the lower triangle and then
+    // copy it back into the opper triangle
+
+    for (i = 0; i < K; i++) {
+        for (j = i + 1; j < K; j++) {
+            C[i * K + j] = C[j * K + i];
+        }
+    }
+}
+
+void gf_regress_linalg_dsymm_fwe2ixcolmajor(
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    ST_double *e,
+    ST_double *w,
+    GT_size *ix,
+    GT_size nix,
+    GT_size N,
+    GT_size K)
+{
+    GT_size i, j, l, m;
+    ST_double *aptr, *bptr, *cptr;
+
+    for (i = 0; i < K; i++) {
+        bptr = B;
+        for (j = 0; j <= i; j++) {
+            aptr = A + i * N;
+            cptr = C + i * K + j;
+            *cptr = 0;
+            for (l = 0; l < nix; l++) {
+                m = ix[l];
+                *cptr += aptr[m] * bptr[m] * e[m] * e[m] * w[m];
             }
         }
     }

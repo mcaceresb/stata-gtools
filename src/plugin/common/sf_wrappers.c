@@ -23,6 +23,26 @@
 #include "sf_printf.c"
 
 /**
+ * @brief Read scalar into a signed integer
+ *
+ * @param st_scalar name of Stata scalar
+ * @param sval Scalar value
+ * @return Read scalar into GT_int variable
+ */
+ST_retcode sf_scalar_int (char *st_scalar, GT_int *sval)
+{
+    ST_retcode rc = 0;
+    ST_double _double;
+    if ( (rc = SF_scal_use(st_scalar, &_double)) ) {
+        return (rc);
+    }
+    else {
+        *sval = (GT_int) _double;
+    }
+    return (rc);
+}
+
+/**
  * @brief Read scalar into unsigned integer
  *
  * @param st_scalar name of Stata scalar

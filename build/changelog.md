@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-1.6.1 (2019-08-20)
+
+### Features
+
+- Adds `gpoisson` computed via IRLS
+- Adds weights to `gregress` and `gpoisson`
+
+### Bug fixes
+
+- Fixed cluster regression bug where `X` was passed instead of `xptr`
+
+### Enhancements
+
+- Modularized the code base so that aliases are assigned to internal functions
+  instead of the copy/paste if/else branching statements.
+
 ## gtools-1.6.0 (2019-08-18)
 
 ### Features

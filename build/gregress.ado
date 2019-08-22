@@ -1,5 +1,5 @@
 *! version 0.1.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Implementation of (grouped, rolling, moving) regressions
+*! Implementation of grouped regressions with HDFE
 
 capture program drop gregress
 program gregress, rclass
@@ -23,7 +23,8 @@ program gregress, rclass
         noMISSing                 /// Exclude groups with any missing values by level
         Robust                    /// Robust SE
         cluster(str)              /// Cluster by varlist
-        absorb(str)               /// Absorb each var in varlist as FE
+        absorb(str)               /// Absorb each var in varlist as FE 
+        poisson                   /// Poisson regression
         *                         /// Regress options
                                   ///
         compress                  /// Try to compress strL variables
@@ -37,7 +38,7 @@ program gregress, rclass
         debug(passthru)           /// Print debugging info to console
     ]
 
-    // TODO: model(linear | poisson)
+    disp as txt "{bf:warning} gregress is beta software; use with caution"
 
     if ( `"`missing'"' == "nomissing" ) local missing
     else local missing missing
@@ -51,27 +52,37 @@ program gregress, rclass
     * exclude missing values in varlist.
 
 	if ( `"`weight'"' != "" ) {
-        disp as err "weights are planned for the next point release"
-        exit 198
-
 		tempvar touse w
 		qui gen double `w' `exp' `if' `in'
 		local wgt `"[`weight'=`w']"'
         local weights weights(`weight' `w')
         mark `touse' `if' `in' `wgt'
-        markout `varlist' `cluster' `absorb'
+        markout `touse' `varlist' `cluster' `absorb'
         local if if `touse'
 	}
     else {
         local weights
         local _varlist: copy local varlist
         local varlist `varlist' `cluster' `absorb'
-        marksample touse `if' `in', strok
+        marksample touse, strok
         local varlist: copy local _varlist
         local if if `touse'
     }
 
-    local options `options' `robust' cluster(`cluster') absorb(`absorb')
+    if ( `"`poisson'"' != "" ) {
+        gettoken y x: varlist
+        qui count if (`y' < 0) & `touse'
+        if ( `r(N)' > 0 ) {
+            disp as err "`y' must be non-negative"
+            exit 198
+        }
+        qui count if (`y' != int(`y')) & `touse'
+        if ( `r(N)' > 0 ) {
+            disp as txt "{bf:note} you are responsible for interpretation of noncount dep. variable"
+        }
+    }
+
+    local options `options' `robust' cluster(`cluster') absorb(`absorb') `poisson'
     local opts    `weights' `compress' `forcestrl' nods unsorted `missing'
     local opts    `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts    `opts' `oncollision' `hashmethod' `debug'

@@ -8,12 +8,16 @@
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:gregress} {hline 2}} Regressions by group with clustering and HDFE{p_end}
+{p2col :{cmd:gregress} {hline 2}} OLS, WLS, and IRLS regressions by group with clustering and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
 the latest stable version.
+
+{pstd}
+{it:Warning}: {opt gregress} and {opt gpoisson} are in beta; use with
+caution (e.g. there are no colinearity or singularity checks).
 
 {marker syntax}{...}
 {title:Syntax}
@@ -24,7 +28,15 @@ the latest stable version.
 {indepvars}
 {ifin}
 [{it:{help gregress##weight:weight}}]
-[{cmd:,} {opth by(varlist)} it:{help gregress##table_options:options}}]
+[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
+
+{p 8 17 2}
+{opt gpoisson}
+{depvar}
+{indepvars}
+{ifin}
+[{it:{help gregress##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
 
 {pstd}
 By default, results are saved into a mata class object named
@@ -35,7 +47,10 @@ or {opt prefix()} (either can be combined with {opt mata()}, but not
 each other).
 
 {pstd}
-Note that extended varlist syntax is {bf:not} supported.
+Note that extended varlist syntax is {bf:not} supported. Further,
+{opt fweight}s behave differently that other weighting schemes; that
+is, this assumes that the weight refers to the number of available
+{it:observations}.  Other weights run WLS.
 
 {marker options}{...}
 {title:Options}
@@ -68,6 +83,12 @@ Note that extended varlist syntax is {bf:not} supported.
 {synopt:{opt noc:onstant}}Whether to add a constant (cannot be combined with {opt absorb()}).
 {p_end}
 
+{syntab :Poisson Options}
+{synopt:{opth poistol(real)}}Tolerance level for poisson IRLS algoritm (default 1e-8).
+{p_end}
+{synopt:{opth poisiter(int)}}Maximum number of iterations for poisson IRLS (default 1000).
+{p_end}
+
 {syntab:Gtools}
 {synopt:{opt compress}}Try to compress strL to str#.
 {p_end}
@@ -88,8 +109,7 @@ Note that extended varlist syntax is {bf:not} supported.
 
 {marker weight}{...}
 {p 4 6 2}
-{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s
-are allowed.
+{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are allowed.
 {p_end}
 
 {marker description}{...}
@@ -97,12 +117,17 @@ are allowed.
 
 {pstd}
 {cmd:gregress} runs a simple OLS regression, optionally by group, with
-cluster SE, and/or with multi-way high-dimensional fixed effects. The
-results are by default saved into a mata object (default {opt GtoolsRegress}).
-Run {opt mata GtoolsRegress.desc()} for details; the following data is stored:
+cluster SE, and/or with multi-way high-dimensional fixed effects.
+{cmd:gpoisson} runs a poisson regression via IRLS, with the same
+options available. The results are by default saved into a mata object
+(default {opt GtoolsRegress}).  Run {opt mata GtoolsRegress.desc()} for
+details; the following data is stored:
 
         regression info
         ---------------
+
+            string scalar caller
+                whether the results are from gregress or gpoisson
 
             real scalar kx
                 number of (non-absorbed) covariates
@@ -131,8 +156,20 @@ Run {opt mata GtoolsRegress.desc()} for details; the following data is stored:
             string colvector absorbvars
                 variables absorbed as fixed effects
 
+            string colvector njabsorb
+                number of FE to be absorbed for each variaable and by level
+
+            string colvector savenjabsorb
+                whether njabsorb is stored
+
             string colvector clustervars
                 cluster variables
+
+            string colvector njcluster
+                number of clusters per by level
+
+            string colvector savenjcluster
+                whether njcluster is stored
 
             real scalar by
                 whether there were any grouping variables

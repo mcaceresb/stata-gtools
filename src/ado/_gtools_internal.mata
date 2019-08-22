@@ -1805,19 +1805,29 @@ class GtoolsRegressOutput
     string rowvector byvars
     real   scalar    absorb
     string rowvector absorbvars
+    real   matrix    njabsorb
+    real   scalar    savenjabsorb
     string rowvector clustervars
+    real   colvector njcluster
+    real   scalar    savenjcluster
 
     class GtoolsByLevels ByLevels
     string scalar whoami
+    string scalar caller
 
     void init()
+    void print()
     void desc()
+    void readMatrices()
 }
 
 void function GtoolsRegressOutput::init()
 {
+    caller = st_numscalar("__gtools_gregress_poisson")? "gpoisson": "gregress"
     saveb  = st_numscalar("__gtools_gregress_savemb")
     savese = st_numscalar("__gtools_gregress_savemse")
+    savenjabsorb  = 0
+    savenjcluster = 0
 
     if ( st_numscalar("__gtools_gregress_cluster") > 0 ) {
         setype = "cluster"
@@ -1845,13 +1855,60 @@ void function GtoolsRegressOutput::init()
         }
     }
 
-    kx = st_numscalar("__gtools_gregress_kvars") + cons
+    kx = st_numscalar("__gtools_gregress_kv")
     if ( st_local("byvars") != "" ) {
         by = 1
         byvars = tokens(st_local("byvars"))
     }
     else {
         by = 0
+    }
+}
+
+void function GtoolsRegressOutput::readMatrices()
+{
+    real scalar runols, runse, runhdfe
+    J = strtoreal(st_local("r_J"))
+    if ( st_numscalar("__gtools_gregress_savemb") ) {
+        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, st_numscalar("__gtools_gregress_kv"))
+    }
+    if ( st_numscalar("__gtools_gregress_savemse") ) {
+        se = GtoolsReadMatrix(st_local("gregsefile"), J, st_numscalar("__gtools_gregress_kv"))
+    }
+
+    runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")
+    runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse") | runols
+    runse   = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")
+    runhdfe = st_numscalar("__gtools_gregress_saveghdfe")
+
+    if ( (setype == "cluster") & runols & runse ) {
+        njcluster = GtoolsReadMatrix(st_local("gregclusfile"), J, 1)
+        savenjcluster = 1
+    }
+
+    if ( absorb & (runols | runse | runhdfe) ) {
+        njabsorb = GtoolsReadMatrix(st_local("gregabsfile"), J, st_numscalar("__gtools_gregress_absorb"))
+        savenjabsorb = 1
+    }
+}
+
+void function GtoolsRegressOutput::print()
+{
+    real scalar j, k
+    if ( savese ) {
+        for (j = 1; j <= J; j++) {
+            for (k = 1; k <= kx; k++) {
+                printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
+            }
+                printf("\n")
+        }
+    }
+    else if ( saveb ) {
+        for (j = 1; j <= J; j++) {
+            for (k = 1; k <= kx; k++) {
+                printf("\t%9.6g\n", b[j, k])
+            }
+        }
     }
 }
 
@@ -1876,12 +1933,12 @@ void function GtoolsRegressOutput::desc()
         nrows = nrows + 3
     }
     if ( absorb ) {
-        nrows = nrows + 1
-        apos  = nrows
+        apos  = nrows + 1
+        nrows = nrows + 1 + savenjabsorb
     }
     if ( setype == "cluster" ) {
-        nrows = nrows + 1
-        cpos  = nrows
+        cpos  = nrows + 1
+        nrows = nrows + 1 + savenjcluster
     }
 
     printstr = J(nrows, 3, " ")
@@ -1926,13 +1983,22 @@ void function GtoolsRegressOutput::desc()
         printstr[apos, 1] = "absorbvars"
         printstr[apos, 2] = sprintf("1 x %g row vector", cols(absorbvars))
         printstr[apos, 3] = "variables absorbed as fixed effects"
+        if ( savenjabsorb ) {
+            printstr[apos + 1, 1] = "njabsorb"
+            printstr[apos + 1, 2] = sprintf("%g x %g row vector", rows(njabsorb), cols(njabsorb))
+            printstr[apos + 1, 3] = "number of FE each absorb variable had for each grouping level"
+        }
     }
     if ( setype == "cluster" ) {
         printstr[cpos, 1] = "clustervars"
         printstr[cpos, 2] = sprintf("1 x %g row vector", cols(clustervars))
         printstr[cpos, 3] = "cluster variables"
+        if ( savenjcluster ) {
+            printstr[cpos + 1, 1] = "njcluster"
+            printstr[cpos + 1, 2] = sprintf("%g x %g row vector", rows(njcluster), cols(njcluster))
+            printstr[cpos + 1, 3] = "number of clusters per grouping level"
+        }
     }
-
 
     printlens      = colmax(strlen(printstr))
     printfmts      = J(1, 3, "")
@@ -1944,7 +2010,7 @@ void function GtoolsRegressOutput::desc()
     printfmts[3]   = sprintf("%%-%gs", printlens[3])
 
     printf("\n")
-    printf("    %s is a class object with group levels\n", whoami)
+    printf("    %s is a class object with %s results\n", whoami, caller)
     printf("\n")
     for(i = 1; i <= rows(printstr); i++) {
         printf("        | ")
@@ -1971,3 +2037,6 @@ void function GtoolsRegressOutput::desc()
     // }
 }
 end
+
+// mata mata set matastrict on
+// do _gtools_internal.mata

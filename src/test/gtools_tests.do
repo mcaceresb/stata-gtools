@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Aug 18 23:38:30 EDT 2019
+* Updated: Wed Aug 21 19:38:30 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.6.0
+* Version: 1.6.1
 * Manual:  help gtools
 
 * Stata start-up options
@@ -107,9 +107,9 @@ program main
             unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
             unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
 
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gquantiles_by, `noisily' oncollision(error) wgt([fw = int1]))

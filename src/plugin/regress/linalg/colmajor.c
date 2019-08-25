@@ -261,17 +261,50 @@ void gf_regress_linalg_dgemm_colmajor(
     GT_size k3)
 {
     GT_size i, j, l;
-    ST_double z, *aptr, *bptr;
-
+    ST_double *aptr, *bptr, *cptr;
+    memset(C, '\0', k1 * k3 * sizeof(ST_double));
+    bptr = B;
     for (i = 0; i < k3; i++) {
-        for (j = 0; j < k1; j++) {
-            aptr = A + j * k2;
-            bptr = B + i * k2;
-            z = 0;
-            for (l = 0; l < k2; l++, aptr++, bptr++) {
-                z += (*aptr) * (*bptr);
+        aptr = A;
+        for (j = 0; j < k2; j++, bptr++) {
+            cptr = C + i * k1;
+            for (l = 0; l < k1; l++, aptr++, cptr++) {
+                *cptr += (*aptr) * (*bptr);
             }
-            C[i * k1 + j] = z;
+        }
+    }
+}
+
+/**
+ * @brief Compute C = A' B, where A is N by k1 and B is N by k2
+ *
+ * @A N x k1 matrix
+ * @B N x k2 matrix
+ * @C k1 x k2 matrix
+ * @N Number of rows in A, B
+ * @k1 Number of columns in A
+ * @k2 Number of columns in B
+ * @return Store A' B in @C
+ */
+void gf_regress_linalg_dgemTm_colmajor(
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    GT_size N,
+    GT_size k1,
+    GT_size k2)
+{
+    GT_size i, k, l;
+    ST_double *aptr, *bptr, *cptr;
+    memset(C, '\0', k1 * k2 * sizeof(ST_double));
+    cptr = C;
+    for (l = 0; l < k2; l++) {
+        aptr = A;
+        for (k = 0; k < k1; k++, cptr++) {
+            bptr = B + l * N;
+            for (i = 0; i < N; i++, aptr++, bptr++) {
+                *cptr += (*aptr) * (*bptr);
+            }
         }
     }
 }

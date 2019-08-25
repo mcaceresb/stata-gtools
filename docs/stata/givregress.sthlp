@@ -1,14 +1,14 @@
 {smcl}
 {* *! version 0.1.0  18Aug2019}{...}
-{viewerdialog gregress "dialog gregress"}{...}
-{vieweralsosee "[R] gregress" "mansection R gregress"}{...}
-{viewerjumpto "Syntax" "gregress##syntax"}{...}
-{viewerjumpto "Description" "gregress##description"}{...}
-{viewerjumpto "Statistics" "gregress##statistics"}{...}
+{viewerdialog givregress "dialog givregress"}{...}
+{vieweralsosee "[R] givregress" "mansection R givregress"}{...}
+{viewerjumpto "Syntax" "givregress##syntax"}{...}
+{viewerjumpto "Description" "givregress##description"}{...}
+{viewerjumpto "Statistics" "givregress##statistics"}{...}
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:gregress} {hline 2}} OLS linear regressions by group with weights, clustering, and HDFE{p_end}
+{p2col :{cmd:givregress} {hline 2}} OLS linear regressions by group with weights, clustering, and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -16,23 +16,24 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gregress} is in beta; use with caution (e.g. there
+{it:Warning}: {opt givregress} is in beta; use with caution (e.g. there
 are no colinearity or singularity checks).
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 17 2}
-{opt gregress}
+{opt givregress}
 {depvar}
-{indepvars}
+{cmd:(}{it:endogenous}{cmd:=}{it:instruments}{cmd:)}
+[{it:exogenous}]
 {ifin}
-[{it:{help gregress##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
+[{it:{help givregress##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help givregress##table_options:options}}]
 
 {pstd}
 By default, results are saved into a mata class object named
-{opt GtoolsRegress}. Run {opt mata GtoolsRegress.desc()} for
+{opt GtoolsIV}. Run {opt mata GtoolsIV.desc()} for
 details; the name and contents can be modified via {opt mata()}.
 The results can also be saved into variables via {opt gen()}
 or {opt prefix()} (either can be combined with {opt mata()}, but not
@@ -42,7 +43,7 @@ each other).
 Note that extended varlist syntax is {bf:not} supported. Further,
 {opt fweight}s behave differently that other weighting schemes; that
 is, this assumes that the weight refers to the number of available
-{it:observations}.  Other weights run WLS.
+{it:observations}. 
 
 {marker options}{...}
 {title:Options}
@@ -102,17 +103,17 @@ is, this assumes that the weight refers to the number of available
 {title:Description}
 
 {pstd}
-{cmd:gregress} estimates a linear regression model via OLS,
+{cmd:givregress}  estimates a linear IV model via 2SLS,
 optionally weighted, by group, with cluster SE, and/or with multi-way
 high-dimensional fixed effects.  The results are by default saved
-into a mata object (default {opt GtoolsRegress}).  Run {opt mata
-GtoolsRegress.desc()} for details; the following data is stored:
+into a mata object (default {opt GtoolsIV}).  Run {opt mata
+GtoolsIV.desc()} for details; the following data is stored:
 
         regression info
         ---------------
 
             string scalar caller
-                model used; should be "gregress"
+                model used; should be "givregress"
 
             real scalar kx
                 number of (non-absorbed) covariates
@@ -166,7 +167,7 @@ GtoolsRegress.desc()} for details; the following data is stored:
                 number of levels defined by grouping variables
 
             class GtoolsByLevels ByLevels
-                grouping variable levels; see GtoolsRegress.ByLevels.desc() for details
+                grouping variable levels; see GtoolsIV.ByLevels.desc() for details
 
         variable levels (empty if without -by()-)
         -----------------------------------------
@@ -212,7 +213,7 @@ GtoolsRegress.desc()} for details; the following data is stored:
 
 {pstd}
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/givregress/index.html#examples":online documentation}
 for examples.
 
 {marker author}{...}

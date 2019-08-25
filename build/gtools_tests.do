@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Aug 21 19:38:30 EDT 2019
+* Updated: Sun Aug 25 12:38:30 EDT 2019
 * Purpose: Unit tests for gtools
-* Version: 1.6.1
+* Version: 1.6.2
 * Manual:  help gtools
 
 * Stata start-up options
@@ -8694,7 +8694,7 @@ program checks_gregress
     gegen headcode = group(headroom)
 
     foreach v in v1 v2 v3 v4 v5 v6 v7 v8 {
-        disp "`v'"
+        disp "greg checks `v'"
         local w
         local r
 
@@ -8813,13 +8813,190 @@ program checks_gregress
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
+    local tol 1e-6
+    sysuse auto, clear
+    gen w = _n
+    gegen headcode = group(headroom)
+
+    local v
+    local w
+    foreach v in v1 v2 v3 v4 {
+        local w
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v3" ) local w [aw = w]
+        if ( "`v'" == "v4" ) local w [pw = w]
+        disp "iv checks `v': `w'"
+
+        foreach av in v1 v2 v3 {
+            if ( `"`av'"' == "v1" ) local avars
+            if ( `"`av'"' == "v2" ) local avars i.rep78
+            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+
+            if ( `"`av'"' == "v1" ) local absorb
+            if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
+            if ( `"`av'"' == "v3" ) local absorb absorb(rep78 headcode)
+
+            foreach vce in small robust cluster(headcode) {
+                local gvce  = cond(`"`vce'"' == "small", "", `"`vce'"')
+                local small = cond(`"`vce'"' == "small", "", `"small"')
+                disp _skip(4) "basic checks: `vce' `small' `absorb'"
+                qui givregress price (mpg = gear_ratio) weight turn                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight turn `avars'      `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 1"
+                qui givregress price (mpg = gear_ratio) weight                                 `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars'      `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 2"
+                qui givregress price (mpg = gear_ratio)                                        `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio)             `avars'      `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 3"
+                if ( "`av'" == "v1" ) {
+                qui givregress price (mpg = gear_ratio) weight                                 `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars'      `w' , `vce' noc `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 4"
+                }
+                qui givregress price (mpg = gear_ratio turn displacement) weight               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn displacement) weight `avars' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 5"
+                qui givregress price (mpg = gear_ratio turn) weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn) weight `avars'      `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 6"
+                qui givregress price (mpg weight = gear_ratio turn)                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) `avars'      `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 7"
+                qui givregress price (mpg weight = gear_ratio turn) displacement               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) displacement `avars' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 8"
+                qui givregress price (mpg weight = gear_ratio turn displacement)               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn displacement) `avars' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+disp _skip(8) "check 9"
+            }
+        }
+
+        * expand 10
+        * gen _by = mod(_n, 2)
+        * local by by(_by)
+        local by by(foreign)
+        local if1 if foreign == 0
+        local if2 if foreign == 1
+        foreach av in v1 v2 v3 {
+            if ( `"`av'"' == "v1" ) local avars
+            if ( `"`av'"' == "v2" ) local avars i.rep78
+            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+
+            if ( `"`av'"' == "v1" ) local absorb
+            if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
+            if ( `"`av'"' == "v3" ) local absorb absorb(rep78 headcode)
+
+            foreach vce in small robust cluster(headcode) {
+                local gvce  = cond(`"`vce'"' == "small", "", `"`vce'"')
+                local small = cond(`"`vce'"' == "small", "", `"small"')
+                disp _skip(4) "`by' checks: `vce' `small' `absorb'"
+                qui givregress price (mpg = gear_ratio) weight turn                            `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight turn `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio) weight turn `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 1"
+                qui givregress price (mpg = gear_ratio) weight                                 `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 2"
+                qui givregress price (mpg = gear_ratio)                                        `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg = gear_ratio)             `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio)             `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 3"
+                if ( "`av'" == "v1" ) {
+                qui givregress price (mpg = gear_ratio) weight                                 `w' , `gvce' `absorb' noc `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars' `if1' `w' , `vce' noc `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio) weight      `avars' `if2' `w' , `vce' noc `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 4"
+                }
+                qui givregress price (mpg = gear_ratio turn displacement) weight               `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg = gear_ratio turn displacement) weight `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio turn displacement) weight `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 5"
+                qui givregress price (mpg = gear_ratio turn) weight                            `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg = gear_ratio turn) weight `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg = gear_ratio turn) weight `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 6"
+                qui givregress price (mpg weight = gear_ratio turn)                            `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 7"
+                qui givregress price (mpg weight = gear_ratio turn) displacement               `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) displacement `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn) displacement `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 8"
+                qui givregress price (mpg weight = gear_ratio turn displacement)               `w' , `gvce' `absorb' `by'
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn displacement) `avars' `if1' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[1, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[1, .]) :< `tol'))
+                    qui ivregress 2sls price (mpg weight = gear_ratio turn displacement) `avars' `if2' `w' , `vce' `small'
+                    mata: assert(all(reldif(st_matrix("r(table)")[1, 1..GtoolsIV.kx], GtoolsIV.b[2, .])  :< `tol'))
+                    mata: assert(all(reldif(st_matrix("r(table)")[2, 1..GtoolsIV.kx], GtoolsIV.se[2, .]) :< `tol'))
+disp _skip(8) "check 9"
+            }
+        }
+    }
+
+    * ------------------------------------------------------------------------
+    * ------------------------------------------------------------------------
+
     local tol 1e-4
     webuse ships, clear
     expand 2
     gen by = 1.5 - (_n < _N / 2)
     gen w = _n
     foreach v in v1 v2 v3 v4 v5 v6 {
-        disp "`v'"
+        disp "poisson checks `v'"
         local w
         local r
 
@@ -8838,44 +9015,44 @@ program checks_gregress
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship) `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) robust `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, r
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[1, .])) < `tol')
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 1.5, r
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) cluster(ship) `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[1, .])) < `tol')
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 1.5, cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4], t[1, cols(t)]
             mata se = t[2, 1::4], t[2, cols(t)]
-            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
 
         if ( "`v'" == "v3" ) continue
         if ( "`v'" == "v4" ) continue
@@ -8886,44 +9063,44 @@ program checks_gregress
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) cluster(ship)
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b)) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se)) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) robust
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, r
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[1, .])) < `tol')
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 1.5, r
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) cluster(ship)
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b[1, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[1, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[1, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[1, .])) < `tol')
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 1.5, cluster(ship)
             mata t  = st_matrix("r(table)")
             mata b  = t[1, 1::4]
             mata se = t[2, 1::4]
-            mata assert(max(reldif(b, GtoolsRegress.b[2, .])) < `tol')
-            mata assert(max(reldif(se, GtoolsRegress.se[2, .])) < `tol')
+            mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
+            mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
     }
 
     * ------------------------------------------------------------------------
@@ -9017,27 +9194,30 @@ program checks_gregress
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
-    clear
-    set matsize 10000
-    set maxvar 50000
-    set obs 10000
-    gen g = ceil(runiform()*10)
-    gen e = rnormal() * 5
-    forvalues i = 1 / 1000 {
-        gen x`i' = rnormal() * `i' + `i'
+    if ( `c(MP)' ) {
+        local tol 1e-8
+        clear all
+        set matsize 10000
+        set maxvar 50000
+        set obs 10000
+        gen g = ceil(runiform()*10)
+        gen e = rnormal() * 5
+        forvalues i = 1 / 1000 {
+            gen x`i' = rnormal() * `i' + `i'
+        }
+        gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
+
+        greg y x*, colmajor mata(r1)
+        greg y x*, rowmajor mata(r2)
+            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+
+        * Fairly slow...
+        greg y x*, colmajor cluster(g) mata(r1)
+        greg y x*, rowmajor cluster(g) mata(r2)
+            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
+            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
     }
-    gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
-
-    greg y x*, colmajor mata(r1)
-    greg y x*, rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-
-    * Fairly slow...
-    greg y x*, colmajor cluster(g) mata(r1)
-    greg y x*, rowmajor cluster(g) mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------

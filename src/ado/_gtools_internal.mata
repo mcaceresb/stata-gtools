@@ -1823,7 +1823,15 @@ class GtoolsRegressOutput
 
 void function GtoolsRegressOutput::init()
 {
-    caller = st_numscalar("__gtools_gregress_poisson")? "gpoisson": "gregress"
+    if ( st_numscalar("__gtools_gregress_poisson") ) {
+        caller = "gpoisson"
+    }
+    else if ( st_numscalar("__gtools_gregress_ivreg") ) {
+        caller = "givregress"
+    }
+    else {
+        caller = "gregress"
+    }
     saveb  = st_numscalar("__gtools_gregress_savemb")
     savese = st_numscalar("__gtools_gregress_savemse")
     savenjabsorb  = 0
@@ -1870,10 +1878,10 @@ void function GtoolsRegressOutput::readMatrices()
     real scalar runols, runse, runhdfe
     J = strtoreal(st_local("r_J"))
     if ( st_numscalar("__gtools_gregress_savemb") ) {
-        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, st_numscalar("__gtools_gregress_kv"))
+        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, kx)
     }
     if ( st_numscalar("__gtools_gregress_savemse") ) {
-        se = GtoolsReadMatrix(st_local("gregsefile"), J, st_numscalar("__gtools_gregress_kv"))
+        se = GtoolsReadMatrix(st_local("gregsefile"), J, kx)
     }
 
     runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")

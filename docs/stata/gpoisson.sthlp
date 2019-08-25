@@ -1,14 +1,14 @@
 {smcl}
 {* *! version 0.1.0  18Aug2019}{...}
-{viewerdialog gregress "dialog gregress"}{...}
-{vieweralsosee "[R] gregress" "mansection R gregress"}{...}
-{viewerjumpto "Syntax" "gregress##syntax"}{...}
-{viewerjumpto "Description" "gregress##description"}{...}
-{viewerjumpto "Statistics" "gregress##statistics"}{...}
+{viewerdialog gpoisson "dialog gpoisson"}{...}
+{vieweralsosee "[R] gpoisson" "mansection R gpoisson"}{...}
+{viewerjumpto "Syntax" "gpoisson##syntax"}{...}
+{viewerjumpto "Description" "gpoisson##description"}{...}
+{viewerjumpto "Statistics" "gpoisson##statistics"}{...}
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:gregress} {hline 2}} OLS, WLS, and IRLS regressions by group with clustering and HDFE{p_end}
+{p2col :{cmd:gpoisson} {hline 2}} IRLS poisson regressions by group with weights, clustering, and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -16,31 +16,23 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gregress} and {opt gpoisson} are in beta; use with
-caution (e.g. there are no colinearity or singularity checks).
+{it:Warning}: {opt gpoisson} is in beta; use with caution (e.g. there
+are no colinearity or singularity checks).
 
 {marker syntax}{...}
 {title:Syntax}
-
-{p 8 17 2}
-{opt gregress}
-{depvar}
-{indepvars}
-{ifin}
-[{it:{help gregress##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
 
 {p 8 17 2}
 {opt gpoisson}
 {depvar}
 {indepvars}
 {ifin}
-[{it:{help gregress##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
+[{it:{help gpoisson##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gpoisson##table_options:options}}]
 
 {pstd}
 By default, results are saved into a mata class object named
-{opt GtoolsRegress}. Run {opt mata GtoolsRegress.desc()} for
+{opt GtoolsPoisson}. Run {opt mata GtoolsPoisson.desc()} for
 details; the name and contents can be modified via {opt mata()}.
 The results can also be saved into variables via {opt gen()}
 or {opt prefix()} (either can be combined with {opt mata()}, but not
@@ -50,7 +42,7 @@ each other).
 Note that extended varlist syntax is {bf:not} supported. Further,
 {opt fweight}s behave differently that other weighting schemes; that
 is, this assumes that the weight refers to the number of available
-{it:observations}.  Other weights run WLS.
+{it:observations}.
 
 {marker options}{...}
 {title:Options}
@@ -82,8 +74,6 @@ is, this assumes that the weight refers to the number of available
 {p_end}
 {synopt:{opt noc:onstant}}Whether to add a constant (cannot be combined with {opt absorb()}).
 {p_end}
-
-{syntab :Poisson Options}
 {synopt:{opth poistol(real)}}Tolerance level for poisson IRLS algoritm (default 1e-8).
 {p_end}
 {synopt:{opth poisiter(int)}}Maximum number of iterations for poisson IRLS (default 1000).
@@ -116,18 +106,17 @@ is, this assumes that the weight refers to the number of available
 {title:Description}
 
 {pstd}
-{cmd:gregress} runs a simple OLS regression, optionally by group, with
-cluster SE, and/or with multi-way high-dimensional fixed effects.
-{cmd:gpoisson} runs a poisson regression via IRLS, with the same
-options available. The results are by default saved into a mata object
-(default {opt GtoolsRegress}).  Run {opt mata GtoolsRegress.desc()} for
-details; the following data is stored:
+{cmd:gpoisson} estimates a poisson regression model via IRLS,
+optionally weighted, by group, with cluster SE, and/or with multi-way
+high-dimensional fixed effects.  The results are by default saved
+into a mata object (default {opt GtoolsPoisson}).  Run {opt mata
+GtoolsPoisson.desc()} for details; the following data is stored:
 
         regression info
         ---------------
 
             string scalar caller
-                whether the results are from gregress or gpoisson
+                model used; should be "gpoisson"
 
             real scalar kx
                 number of (non-absorbed) covariates
@@ -181,7 +170,7 @@ details; the following data is stored:
                 number of levels defined by grouping variables
 
             class GtoolsByLevels ByLevels
-                grouping variable levels; see GtoolsRegress.ByLevels.desc() for details
+                grouping variable levels; see GtoolsPoisson.ByLevels.desc() for details
 
         variable levels (empty if without -by()-)
         -----------------------------------------
@@ -227,7 +216,7 @@ details; the following data is stored:
 
 {pstd}
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#examples":online documentation}
 for examples.
 
 {marker author}{...}
@@ -259,4 +248,3 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {pstd}
 help for
 {help gtools}
-

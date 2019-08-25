@@ -1,5 +1,6 @@
 #include "gregress.h"
 #include "models/poisson.c"
+#include "models/ivregress.c"
 #include "utils/read.c"
 #include "linalg/common.c"
 #include "linalg/colmajor.c"
@@ -17,9 +18,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
      *********************************************************************/
 
     // ST_double z, d;
-    ST_double diff, *xptr, *yptr, *wptr, *bptr, *septr, *xdmptr;
+    ST_double diff, *xptr, *yptr, *wptr, *bptr, *septr, *xdmptr, *ivendog, *ivexog, *ivzptr;
     ST_retcode rc = 0;
-    GT_size i, j, k, l, offset, krefb, krefse, krefhdfe, start, end, out, iter;
+    GT_size i, j, k, l, njobs, offset, krefb, krefse, krefhdfe, start, end, out, iter;
     ST_double *njclusptr, *njabsptr;
 
     FILE *fgregb;
@@ -49,6 +50,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GT_size kmodel     = kx;
     GT_size N          = st_info->N;
     GT_size J          = st_info->J;
+    GT_bool ivreg      = st_info->gregress_ivreg;
+    GT_size ivkendog   = st_info->gregress_ivkendog;
+    GT_size ivkexog    = st_info->gregress_ivkexog + (kabs == 0) * st_info->gregress_cons;
+    GT_size ivkz       = st_info->gregress_ivkz;
+    GT_size kv         = ivreg? ivkexog + ivkendog: kx;
     GT_bool poisson    = st_info->gregress_poisson;
     GT_size poisiter   = st_info->gregress_poisiter;
     GT_bool runols     = st_info->gregress_savemse || st_info->gregress_savegse
@@ -88,6 +94,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     ST_double *VV = calloc(kx * kx, sizeof *VV);
     GT_size   *nj = calloc(J,       sizeof *nj);
 
+    ST_double *BZ = calloc(ivreg? (ivkz + ivkexog) * ivkendog: 1, sizeof *BZ);
+    ST_double *PZ = calloc(ivreg? nj_max * ivkendog: 1, sizeof *PZ);
     ST_double *U  = calloc(kclus? nj_max * kx: 1, sizeof *U);
     GT_size   *ux = calloc(kclus? nj_max: 1, sizeof *ux);
     void      *G  = calloc(kclus? N:  1, bytesclus? bytesclus: 1);
@@ -117,6 +125,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     if ( VV == NULL ) return(sf_oom_error("sf_regress", "VV"));
     if ( nj == NULL ) return(sf_oom_error("sf_regress", "nj"));
 
+    if ( BZ == NULL ) return(sf_oom_error("sf_regress", "BZ"));
+    if ( PZ == NULL ) return(sf_oom_error("sf_regress", "PZ"));
     if ( U  == NULL ) return(sf_oom_error("sf_regress", "U"));
     if ( ux == NULL ) return(sf_oom_error("sf_regress", "ux"));
     if ( G  == NULL ) return(sf_oom_error("sf_regress", "G"));
@@ -175,6 +185,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             rc = 198;
             goto exit;
         }
+        if ( ivreg ) {
+            sf_errprintf("IV is not allowed with option -rowmajor-");
+            rc = 198;
+            goto exit;
+        }
     }
     else {
         sf_regress_read = sf_regress_read_colmajor;
@@ -202,10 +217,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
     // TODO: Mess with this based on aw, fw, pw, iw?
     if ( st_info->wcode > 0 ) {
+        gf_regress_iv           = gf_regress_iv_w;
         gf_regress_poisson_init = gf_regress_poisson_init_w;
         gf_regress_poisson_iter = gf_regress_poisson_iter_w;
     }
     else {
+        gf_regress_iv           = gf_regress_iv_unw;
         gf_regress_poisson_init = gf_regress_poisson_init_unw;
         gf_regress_poisson_iter = gf_regress_poisson_iter_unw;
     }
@@ -319,7 +336,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     njclusptr = njclus;
     njabsptr  = njabs;
 
-    if ( runols && !poisson ) {
+    if ( runols && ivreg ) {
         if ( runse ) {
             if ( kclus ) {
 
@@ -327,13 +344,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------
 
                 for (j = 0; j < J; j++) {
-                    kmodel = kx;
+                    njobs   = nj[j];
+                    kmodel  = kx;
+                    ivendog = xptr;
+                    ivexog  = ivendog + ivkendog * njobs;
+                    ivzptr  = ivexog + ivkexog * njobs;
                     if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                          GtoolsGroupByTransform,
                                                          GtoolsGroupByHDFE,
                                                          stats,
                                                          maps,
-                                                         nj[j],
+                                                         njobs,
                                                          kabs,
                                                          kx,
                                                          &kmodel,
@@ -347,12 +368,14 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
-                    if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                    // NOTE: Do this here since absorb automagically sets it using kx
+                    kmodel -= ivkz;
+                    if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
+                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
 
-                    gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, nj[j], kx);
-                    ClusterHash->nobs = nj[j];
+                    ClusterHash->nobs = njobs;
                     if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
                         if ( rc == 17902 ) {
                             return (sf_oom_error("sf_regress", "ClusterHash"));
@@ -373,11 +396,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         ux,
                         V,
                         VV,
-                        xptr,
+                        ivendog,
                         XX,
                         septr,
-                        nj[j],
-                        kx,
+                        njobs,
+                        ivkendog + ivkexog,
                         kmodel,
                         vceadj
                     );
@@ -386,11 +409,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     ClusterHash->offset += ClusterHash->nobs;
 
                     njclusptr++;
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
-                    bptr  += kx;
-                    septr += kx;
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kv;
+                    septr += kv;
                     ghptr  = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
@@ -404,13 +427,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // -------------
 
                 for (j = 0; j < J; j++) {
-                    kmodel = kx;
+                    njobs   = nj[j];
+                    kmodel  = kx;
+                    ivendog = xptr;
+                    ivexog  = ivendog + ivkendog * njobs;
+                    ivzptr  = ivexog + ivkexog * njobs;
                     if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                          GtoolsGroupByTransform,
                                                          GtoolsGroupByHDFE,
                                                          stats,
                                                          maps,
-                                                         nj[j],
+                                                         njobs,
                                                          kabs,
                                                          kx,
                                                          &kmodel,
@@ -424,16 +451,18 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
-                    if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                    // NOTE: Do this here since absorb automagically sets it using kx
+                    kmodel -= ivkz;
+                    if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, nj[j], kx);
-                    gf_regress_ols_robust (e, wptr, V, VV, xptr, XX, septr, nj[j], kx, kmodel, vceadj);
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
-                    bptr  += kx;
-                    septr += kx;
+                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
+                    gf_regress_ols_robust (e, wptr, V, VV, ivendog, XX, septr, njobs, ivkendog + ivkexog, kmodel, vceadj);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kv;
+                    septr += kv;
                     ghptr  = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
@@ -447,13 +476,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------------
 
                 for (j = 0; j < J; j++) {
-                    kmodel = kx;
+                    njobs   = nj[j];
+                    kmodel  = kx;
+                    ivendog = xptr;
+                    ivexog  = ivendog + ivkendog * njobs;
+                    ivzptr  = ivexog + ivkexog * njobs;
                     if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                          GtoolsGroupByTransform,
                                                          GtoolsGroupByHDFE,
                                                          stats,
                                                          maps,
-                                                         nj[j],
+                                                         njobs,
                                                          kabs,
                                                          kx,
                                                          &kmodel,
@@ -467,16 +500,18 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
-                    if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                    // NOTE: Do this here since absorb automagically sets it using kx
+                    kmodel -= ivkz;
+                    if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, nj[j], kx);
-                    gf_regress_ols_se (e, wptr, XX, septr, nj[j], kx, kmodel);
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
-                    bptr  += kx;
-                    septr += kx;
+                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
+                    gf_regress_ols_se (e, wptr, XX, septr, njobs, ivkendog + ivkexog, kmodel);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kv;
+                    septr += kv;
                     ghptr  = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
@@ -487,13 +522,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         }
         else {
             for (j = 0; j < J; j++) {
-                kmodel = kx;
+                njobs   = nj[j];
+                kmodel  = kx;
+                ivendog = xptr;
+                ivexog  = ivendog + ivkendog * njobs;
+                ivzptr  = ivexog + ivkexog * njobs;
                 if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                      GtoolsGroupByTransform,
                                                      GtoolsGroupByHDFE,
                                                      stats,
                                                      maps,
-                                                     nj[j],
+                                                     njobs,
                                                      kabs,
                                                      kx,
                                                      &kmodel,
@@ -507,14 +546,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                      hdfetol)) ) {
                     goto exit;
                 }
-                if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                // NOTE: Do this here since absorb automagically sets it using kx
+                kmodel -= ivkz;
+                if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                     goto exit;
                 }
-                gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, nj[j], kx);
-                xptr  += nj[j] * kx;
-                yptr  += nj[j];
-                wptr  += nj[j];
-                bptr  += kx;
+                gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
+                xptr  += njobs * kx;
+                yptr  += njobs;
+                wptr  += njobs;
+                bptr  += kv;
                 ghptr  = AbsorbHashes;
                 for (k = 0; k < kabs; k++, ghptr++) {
                     GtoolsHashFreePartial(ghptr);
@@ -531,11 +572,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------
 
                 for (j = 0; j < J; j++) {
-                    iter = 0;
-                    diff = 1;
+                    njobs = nj[j];
+                    iter  = 0;
+                    diff  = 1;
                     panelsetup = 1;
                     xdmptr = kabs? xdm: xptr;
-                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, nj[j]);
+                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
 
                     while ( (++iter < poisiter) && fabs(diff) > poistol ) {
                         kmodel = kx;
@@ -544,7 +586,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              GtoolsGroupByHDFE,
                                                              stats,
                                                              maps,
-                                                             nj[j],
+                                                             njobs,
                                                              kabs,
                                                              kx,
                                                              &kmodel,
@@ -558,18 +600,18 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              hdfetol)) ) {
                             goto exit;
                         }
-                        if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, nj[j], kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, nj[j]);
+                        gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
+                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, nj[j], diff, poistol, poisiter, buf1)) ) {
+                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
                         goto exit;
                     }
 
-                    ClusterHash->nobs = nj[j];
+                    ClusterHash->nobs = njobs;
                     if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
                         if ( rc == 17902 ) {
                             return (sf_oom_error("sf_regress", "ClusterHash"));
@@ -593,7 +635,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         xdmptr,
                         XX,
                         septr,
-                        nj[j],
+                        njobs,
                         kx,
                         kmodel,
                         vceadj
@@ -603,9 +645,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     ClusterHash->offset += ClusterHash->nobs;
 
                     njclusptr++;
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
                     bptr  += kx;
                     septr += kx;
                     ghptr  = AbsorbHashes;
@@ -621,11 +663,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // -------------
 
                 for (j = 0; j < J; j++) {
-                    iter = 0;
-                    diff = 1;
+                    njobs = nj[j];
+                    iter  = 0;
+                    diff  = 1;
                     panelsetup = 1;
                     xdmptr = kabs? xdm: xptr;
-                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, nj[j]);
+                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
                     while ( (++iter < poisiter) && fabs(diff) > poistol ) {
                         kmodel = kx;
                         if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
@@ -633,7 +676,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              GtoolsGroupByHDFE,
                                                              stats,
                                                              maps,
-                                                             nj[j],
+                                                             njobs,
                                                              kabs,
                                                              kx,
                                                              &kmodel,
@@ -647,20 +690,20 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              hdfetol)) ) {
                             goto exit;
                         }
-                        if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, nj[j], kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, nj[j]);
+                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
+                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, nj[j], diff, poistol, poisiter, buf1)) ) {
+                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
                         goto exit;
                     }
-                    gf_regress_ols_robust (e, mu, V, VV, xdmptr, XX, septr, nj[j], kx, kmodel, vceadj);
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
+                    gf_regress_ols_robust (e, mu, V, VV, xdmptr, XX, septr, njobs, kx, kmodel, vceadj);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
                     bptr  += kx;
                     septr += kx;
                     ghptr  = AbsorbHashes;
@@ -676,11 +719,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------------
 
                 for (j = 0; j < J; j++) {
-                    iter = 0;
-                    diff = 1;
+                    njobs = nj[j];
+                    iter  = 0;
+                    diff  = 1;
                     panelsetup = 1;
                     xdmptr = kabs? xdm: xptr;
-                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, nj[j]);
+                    gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
                     while ( (++iter < poisiter) && fabs(diff) > poistol ) {
                         kmodel = kx;
                         if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
@@ -688,7 +732,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              GtoolsGroupByHDFE,
                                                              stats,
                                                              maps,
-                                                             nj[j],
+                                                             njobs,
                                                              kabs,
                                                              kx,
                                                              &kmodel,
@@ -702,20 +746,20 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                              hdfetol)) ) {
                             goto exit;
                         }
-                        if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, nj[j], kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, nj[j]);
+                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
+                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, nj[j], diff, poistol, poisiter, buf1)) ) {
+                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
                         goto exit;
                     }
-                    gf_regress_ols_se (e, mu, XX, septr, nj[j], kx, kmodel);
-                    xptr  += nj[j] * kx;
-                    yptr  += nj[j];
-                    wptr  += nj[j];
+                    gf_regress_ols_se (e, mu, XX, septr, njobs, kx, kmodel);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
                     bptr  += kx;
                     septr += kx;
                     ghptr  = AbsorbHashes;
@@ -728,11 +772,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         }
         else {
             for (j = 0; j < J; j++) {
-                iter = 0;
-                diff = 1;
+                njobs = nj[j];
+                iter  = 0;
+                diff  = 1;
                 panelsetup = 1;
                 xdmptr = kabs? xdm: xptr;
-                gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, nj[j]);
+                gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
                 while ( (++iter < poisiter) && fabs(diff) > poistol ) {
                     kmodel = kx;
                     if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
@@ -740,7 +785,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          GtoolsGroupByHDFE,
                                                          stats,
                                                          maps,
-                                                         nj[j],
+                                                         njobs,
                                                          kabs,
                                                          kx,
                                                          &kmodel,
@@ -754,19 +799,19 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
-                    if ( (rc = gf_regress_notidentified(nj[j], kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                    if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, nj[j], kx);
-                    diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, nj[j]);
+                    gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
+                    diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
                     panelsetup = 0;
                 }
-                if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, nj[j], diff, poistol, poisiter, buf1)) ) {
+                if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
                     goto exit;
                 }
-                xptr  += nj[j] * kx;
-                yptr  += nj[j];
-                wptr  += nj[j];
+                xptr  += njobs * kx;
+                yptr  += njobs;
+                wptr  += njobs;
                 bptr  += kx;
                 ghptr  = AbsorbHashes;
                 for (k = 0; k < kabs; k++, ghptr++) {
@@ -795,6 +840,214 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 wptr,
                 hdfetol
             );
+        }
+    }
+    else if ( runols ) {
+        if ( runse ) {
+            if ( kclus ) {
+
+                // Cluster errors
+                // --------------
+
+                for (j = 0; j < J; j++) {
+                    njobs  = nj[j];
+                    kmodel = kx;
+                    if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
+                                                         GtoolsGroupByTransform,
+                                                         GtoolsGroupByHDFE,
+                                                         stats,
+                                                         maps,
+                                                         njobs,
+                                                         kabs,
+                                                         kx,
+                                                         &kmodel,
+                                                         njabsptr,
+                                                         xptr,
+                                                         yptr,
+                                                         wptr,
+                                                         xptr,
+                                                         yptr,
+                                                         1,
+                                                         hdfetol)) ) {
+                        goto exit;
+                    }
+                    if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        goto exit;
+                    }
+
+                    gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
+                    ClusterHash->nobs = njobs;
+                    if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
+                        if ( rc == 17902 ) {
+                            return (sf_oom_error("sf_regress", "ClusterHash"));
+                        }
+                        else {
+                            goto exit;
+                        }
+                    }
+
+                    *njclusptr = ClusterHash->nlevels;
+                    gf_regress_ols_cluster(
+                        e,
+                        wptr,
+                        ClusterHash->info,
+                        ClusterHash->index,
+                        ClusterHash->nlevels,
+                        U,
+                        ux,
+                        V,
+                        VV,
+                        xptr,
+                        XX,
+                        septr,
+                        njobs,
+                        kx,
+                        kmodel,
+                        vceadj
+                    );
+
+                    GtoolsHashFreePartial(ClusterHash);
+                    ClusterHash->offset += ClusterHash->nobs;
+
+                    njclusptr++;
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kx;
+                    septr += kx;
+                    ghptr  = AbsorbHashes;
+                    for (k = 0; k < kabs; k++, ghptr++) {
+                        GtoolsHashFreePartial(ghptr);
+                        ghptr->offset += ghptr->nobs;
+                    }
+                }
+            }
+            else if ( st_info->gregress_robust ) {
+
+                // Robust errors
+                // -------------
+
+                for (j = 0; j < J; j++) {
+                    njobs  = nj[j];
+                    kmodel = kx;
+                    if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
+                                                         GtoolsGroupByTransform,
+                                                         GtoolsGroupByHDFE,
+                                                         stats,
+                                                         maps,
+                                                         njobs,
+                                                         kabs,
+                                                         kx,
+                                                         &kmodel,
+                                                         njabsptr,
+                                                         xptr,
+                                                         yptr,
+                                                         wptr,
+                                                         xptr,
+                                                         yptr,
+                                                         1,
+                                                         hdfetol)) ) {
+                        goto exit;
+                    }
+                    if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        goto exit;
+                    }
+                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
+                    gf_regress_ols_robust (e, wptr, V, VV, xptr, XX, septr, njobs, kx, kmodel, vceadj);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kx;
+                    septr += kx;
+                    ghptr  = AbsorbHashes;
+                    for (k = 0; k < kabs; k++, ghptr++) {
+                        GtoolsHashFreePartial(ghptr);
+                        ghptr->offset += ghptr->nobs;
+                    }
+                }
+            }
+            else {
+
+                // Homoskedastic errors
+                // --------------------
+
+                for (j = 0; j < J; j++) {
+                    njobs  = nj[j];
+                    kmodel = kx;
+                    if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
+                                                         GtoolsGroupByTransform,
+                                                         GtoolsGroupByHDFE,
+                                                         stats,
+                                                         maps,
+                                                         njobs,
+                                                         kabs,
+                                                         kx,
+                                                         &kmodel,
+                                                         njabsptr,
+                                                         xptr,
+                                                         yptr,
+                                                         wptr,
+                                                         xptr,
+                                                         yptr,
+                                                         1,
+                                                         hdfetol)) ) {
+                        goto exit;
+                    }
+                    if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                        goto exit;
+                    }
+                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
+                    gf_regress_ols_se (e, wptr, XX, septr, njobs, kx, kmodel);
+                    xptr  += njobs * kx;
+                    yptr  += njobs;
+                    wptr  += njobs;
+                    bptr  += kx;
+                    septr += kx;
+                    ghptr  = AbsorbHashes;
+                    for (k = 0; k < kabs; k++, ghptr++) {
+                        GtoolsHashFreePartial(ghptr);
+                        ghptr->offset += ghptr->nobs;
+                    }
+                }
+            }
+        }
+        else {
+            for (j = 0; j < J; j++) {
+                njobs  = nj[j];
+                kmodel = kx;
+                if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
+                                                     GtoolsGroupByTransform,
+                                                     GtoolsGroupByHDFE,
+                                                     stats,
+                                                     maps,
+                                                     njobs,
+                                                     kabs,
+                                                     kx,
+                                                     &kmodel,
+                                                     njabsptr,
+                                                     xptr,
+                                                     yptr,
+                                                     wptr,
+                                                     xptr,
+                                                     yptr,
+                                                     1,
+                                                     hdfetol)) ) {
+                    goto exit;
+                }
+                if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
+                    goto exit;
+                }
+                gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
+                xptr  += njobs * kx;
+                yptr  += njobs;
+                wptr  += njobs;
+                bptr  += kx;
+                ghptr  = AbsorbHashes;
+                for (k = 0; k < kabs; k++, ghptr++) {
+                    GtoolsHashFreePartial(ghptr);
+                    ghptr->offset += ghptr->nobs;
+                }
+            }
         }
     }
     else if ( kabs && st_info->gregress_saveghdfe ) {
@@ -893,7 +1146,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             if ( (rc = SF_macro_use("GTOOLS_GREGB_FILE",  GTOOLS_GREGB_FILE,  st_info->gfile_gregb)  )) goto exit;
 
             fgregb = fopen(GTOOLS_GREGB_FILE,  "wb");
-            rc = rc | (fwrite(b, sizeof(b), J * kx, fgregb) != (J * kx));
+            rc = rc | (fwrite(b, sizeof(b), J * kv, fgregb) != (J * kv));
             fclose(fgregb);
         }
 
@@ -901,7 +1154,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             if ( (rc = SF_macro_use("GTOOLS_GREGSE_FILE", GTOOLS_GREGSE_FILE, st_info->gfile_gregse) )) goto exit;
 
             fgregse = fopen(GTOOLS_GREGSE_FILE, "wb");
-            rc = rc | (fwrite(se, sizeof(se), J * kx, fgregse) != (J * kx));
+            rc = rc | (fwrite(se, sizeof(se), J * kv, fgregse) != (J * kv));
             fclose(fgregse);
         }
 
@@ -929,8 +1182,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
     if ( st_info->gregress_savegb || st_info->gregress_savegse || st_info->gregress_saveghdfe ) {
         krefb    = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1;
-        krefse   = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kx * st_info->gregress_savegb;
-        krefhdfe = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kx * st_info->gregress_savegb + kx * st_info->gregress_savegse;
+        krefse   = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb;
+        krefhdfe = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb + kv * st_info->gregress_savegse;
 
         bptr  = b;
         septr = se;
@@ -942,16 +1195,18 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             end   = st_info->info[l + 1];
             for (i = start; i < end; i++) {
                 out = st_info->index[i] + st_info->in1;
+                // beta and SE only compute one coef per xendog, xexog
                 if ( st_info->gregress_savegb ) {
-                    for (k = 0; k < kx; k++) {
+                    for (k = 0; k < kv; k++) {
                         if ( (rc = SF_vstore(krefb + k, out, bptr[k])) ) goto exit;
                     }
                 }
                 if ( st_info->gregress_savegse ) {
-                    for (k = 0; k < kx; k++) {
+                    for (k = 0; k < kv; k++) {
                         if ( (rc = SF_vstore(krefse + k, out, septr[k])) ) goto exit;
                     }
                 }
+                // However, de-meanining/de-hdfe happened for xendog, xexog, _and_ Z
                 if ( st_info->gregress_saveghdfe ) {
                     if ( (rc = SF_vstore(krefhdfe, out, *yptr)) ) goto exit;
                     for (k = 0; k < kx; k++) {
@@ -961,8 +1216,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     yptr++;
                 }
             }
-            bptr  += kx;
-            septr += kx;
+            bptr  += kv;
+            septr += kv;
             // xptr  += end - start;
             // yptr  += end - start;
         }
@@ -993,6 +1248,8 @@ exit:
     free(VV);
     free(nj);
 
+    free(BZ);
+    free(PZ);
     free(U);
     free(ux);
     free(G);
@@ -1101,11 +1358,12 @@ ST_retcode gf_regress_absorb_iter(
     ST_double hdfetol)
 {
     ST_retcode rc = 0;
-    GT_size j, k;
+    GT_size j, k, njobs;
     struct GtoolsHash *ghptr;
     if ( kabs == 1 ) {
         for (j = 0; j < J; j++) {
-            AbsorbHashes->nobs = nj[j];
+            njobs = nj[j];
+            AbsorbHashes->nobs = njobs;
             if ( (rc = GtoolsHashPanel(AbsorbHashes)) ) {
                 if ( rc == 17902 ) {
                     return (sf_oom_error("sf_regress", "AbsorbHashes"));
@@ -1123,16 +1381,17 @@ ST_retcode gf_regress_absorb_iter(
             GtoolsHashFreePartial (AbsorbHashes);
             AbsorbHashes->offset += AbsorbHashes->nobs;
 
-            xptr += nj[j] * kx;
-            yptr += nj[j];
-            wptr += nj[j];
+            xptr += njobs * kx;
+            yptr += njobs;
+            wptr += njobs;
         }
     }
     else if ( kabs > 1 ) {
         for (j = 0; j < J; j++) {
-            ghptr  = AbsorbHashes;
+            njobs = nj[j];
+            ghptr = AbsorbHashes;
             for (k = 0; k < kabs; k++, ghptr++) {
-                ghptr->nobs = nj[j];
+                ghptr->nobs = njobs;
                 if ( (rc = GtoolsHashPanel(ghptr)) ) {
                     if ( rc == 17902 ) {
                         return (sf_oom_error("sf_regress", "AbsorbHashes"));
@@ -1153,9 +1412,9 @@ ST_retcode gf_regress_absorb_iter(
                 GtoolsHashFreePartial(ghptr);
                 ghptr->offset += ghptr->nobs;
             }
-            xptr += nj[j] * kx;
-            yptr += nj[j];
-            wptr += nj[j];
+            xptr += njobs * kx;
+            yptr += njobs;
+            wptr += njobs;
         }
     }
 
@@ -1163,6 +1422,52 @@ exit:
     return (rc);
 }
 
+ST_retcode gf_regress_iv_notidentified (
+    GT_size nj,
+    GT_size kabs,
+    GT_size ivkendog,
+    GT_size ivkexog,
+    GT_size ivkz,
+    GT_size kmodel,
+    char *buf1,
+    char *buf2,
+    char *buf3)
+{
+    if ( (kmodel < nj) && ((kmodel + ivkz - ivkendog) < nj) ) {
+        return(0);
+    }
+    else {
+        if ( (kmodel + ivkz - ivkendog) >= nj ) {
+            sf_format_size(nj, buf1);
+            sf_format_size((kmodel + ivkz - ivkendog), buf2);
+            if ( kabs ) {
+                sf_format_size((kmodel + kabs - ivkendog - ivkexog - 1), buf3);
+                sf_errprintf("insufficient observations (%s) for the first stage: %s variables and %s absorb levels\n",
+                             buf1, buf2, buf3);
+            }
+            else {
+                sf_errprintf("insufficient observations (%s) for the first stage: for %s variables\n",
+                             buf1, buf2);
+            }
+        }
+
+        if ( kmodel >= nj ) {
+            sf_format_size(nj, buf1);
+            sf_format_size(kmodel, buf2);
+            if ( kabs ) {
+                sf_format_size((kmodel + kabs - ivkendog - ivkexog - 1), buf3);
+                sf_errprintf("insufficient observations (%s) for the second stage: %s variables and %s absorb levels\n",
+                             buf1, buf2, buf3);
+            }
+            else {
+                sf_errprintf("insufficient observations (%s) for the second stage: for %s variables\n",
+                             buf1, buf2);
+            }
+        }
+
+        return(18401);
+    }
+}
 
 ST_retcode gf_regress_notidentified (
     GT_size nj,

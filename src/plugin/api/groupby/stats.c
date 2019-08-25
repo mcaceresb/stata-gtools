@@ -12,6 +12,19 @@ ST_double GtoolsStats (
     }
 }
 
+ST_double GtoolsStatsSum (
+    ST_double *source,
+    GT_size   *index,
+    GT_size   N)
+{
+    GT_size i;
+    ST_double z = 0;
+    for (i = 0; i < N; i++) {
+        z += source[index[i]];
+    }
+    return (z);
+}
+
 ST_double GtoolsStatsMean (
     ST_double *source,
     GT_size   *index,

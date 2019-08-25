@@ -9,24 +9,28 @@ pages:
     - Advanced:
         - Compiling: compiling.md
     - Usage:
-        - gcollapse:             usage/gcollapse.md
-        - gquantiles:            usage/gquantiles.md
-        - greshape:              usage/greshape.md
-        - gregress and gpoisson: usage/gregress.md
-        - gcontract:             usage/gcontract.md
-        - gegen:                 usage/gegen.md
-        - gdistinct:             usage/gdistinct.md
-        - gunique:               usage/gunique.md
-        - gisid:                 usage/gisid.md
-        - gduplicates:           usage/gduplicates.md
-        - glevelsof:             usage/glevelsof.md
-        - gtop:                  usage/gtoplevelsof.md
-        - hashsort:              usage/hashsort.md
-        - gtools:                usage/gtools.md
-        - gstats:        
-            - winsor:    usage/gstats_winsor.md
-            - sum/tab:   usage/gstats_summarize.md
-            - transform: usage/gstats_transform.md
+        - gtools:           usage/gtools.md
+    - Data manipulation:
+        - gcollapse:        usage/gcollapse.md
+        - greshape:         usage/greshape.md
+        - gcontract:        usage/gcontract.md
+        - hashsort:         usage/hashsort.md
+        - gisid:            usage/gisid.md
+        - glevelsof:        usage/glevelsof.md
+        - gtop:             usage/gtoplevelsof.md
+    - Statistics:
+        - gegen:            usage/gegen.md
+        - gquantiles:       usage/gquantiles.md
+        - gstats winsor:    usage/gstats_winsor.md
+        - gstats sum/tab:   usage/gstats_summarize.md
+        - gstats transform: usage/gstats_transform.md
+        - gdistinct:        usage/gdistinct.md
+        - gunique:          usage/gunique.md
+        - gduplicates:      usage/gduplicates.md
+    - Regression models:
+        - gregress:         usage/gregress.md
+        - givregress:       usage/givregress.md
+        - gpoisson:         usage/gpoisson.md
 
 theme: readthedocs
 

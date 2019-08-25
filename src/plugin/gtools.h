@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.6.1"
+#define GTOOLS_VERSION "1.6.2"
 
 /*
  * Style
@@ -188,6 +188,10 @@ struct StataInfo {
     GT_bool   gregress_poisson;
     GT_size   gregress_poisiter;
     ST_double gregress_poistol;
+    GT_bool   gregress_ivreg;
+    GT_size   gregress_ivkendog;
+    GT_size   gregress_ivkexog;
+    GT_size   gregress_ivkz;
     GT_int    *gregress_cluster_types;
     GT_size   *gregress_cluster_offsets;
     GT_int    *gregress_absorb_types;

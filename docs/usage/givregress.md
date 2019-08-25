@@ -1,24 +1,24 @@
-Linear Regression (OLS)
-=======================
+Instrumental Variables Regression (2SLS)
+========================================
 
-OLS linear regressions by group with weights, clustering, and HDFE
+2SLS IV regressions by group with weights, clustering, and HDFE
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gregress` is in beta; use with caution (e.g. there are no
+    `givregress` is in beta; use with caution (e.g. there are no
     colinearity or singularity checks).
 
 Syntax
 ------
 
-<p><span class="codespan"><b><u>greg</u>ress</b> depvar indepvars [if] [in]  [weight] [, ///</span>
+<p><span class="codespan"><b>givregress</b> depvar (endogenous = instruments) [exogenous]  ///</span>
 </br>
-<span class="codespan">&emsp;&emsp;&emsp; by() absorb() <span style="font-style:italic;">options</span>] </span></p>
+<span class="codespan">&emsp;&emsp;&emsp; [if] [in] [weight] [, by() absorb() <span style="font-style:italic;">options</span>] </span></p>
 
 By default, results are saved into a mata class object named
-`GtoolsRegress`. Run `mata GtoolsRegress.desc()` for details; the name
+`GtoolsIV`. Run `mata GtoolsIV.desc()` for details; the name
 and contents can be modified via `mata()`.  The results can also be
 saved into variables via `gen()` or `prefix()` (either can be combined
 with `mata()`, but not each other).
@@ -26,7 +26,7 @@ with `mata()`, but not each other).
 Note that extended varlist syntax is _**not**_ supported. Further,
 `fweights` behave differently than other weighting schemes; that
 is, this assumes that the weight referes to the number of available
-_observations_. Other weights run WLS.
+_observations_.
 
 Options
 -------
@@ -90,18 +90,18 @@ Options
 Remarks
 -------
 
-`gregress` estimates a linear regression model via OLS, optionally
-weighted, by group, with cluster SE, and/or with multi-way
-high-dimensional fixed effects.  The results are by default saved into a
-mata object (default `GtoolsRegress`).  Run `mata GtoolsRegress.desc()`
-for details; the following data is stored:
+`gregress` estimates a linear IV model via 2SLS, optionally weighted,
+by group, with cluster SE, and/or with multi-way high-dimensional fixed
+effects.  The results are by default saved into a mata object (default
+`GtoolsIV`).  Run `mata GtoolsIV.desc()` for details; the following data
+is stored:
 
 ```
 regression info
 ---------------
 
     string scalar caller
-        model used; should be "gregress"
+        model used; should be "givregress"
 
     real scalar kx
         number of (non-absorbed) covariates
@@ -143,7 +143,7 @@ regression info
         number of levels defined by grouping variables
 
     class GtoolsByLevels ByLevels
-        grouping variable levels; see GtoolsRegress.ByLevels.desc() for details
+        grouping variable levels; see GtoolsIV.ByLevels.desc() for details
 
 variable levels (empty if without -by()-)
 -----------------------------------------
@@ -195,27 +195,18 @@ You can download the raw code for the examples below
 
 ```stata
 sysuse auto, clear
-greg price mpg
-greg price mpg, by(foreign) robust
-greg price mpg [fw = rep78], absorb(headroom)
-greg price mpg, cluster(headroom)
-greg price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(headroom)
 
-greg price mpg, mata(coefsOnly, nose)
-greg price mpg, mata(seOnly,    nob)
-greg price mpg, mata(nothing,   nob nose)
+givregress price (mpg = gear_ratio) weight turn
+givregress price (mpg = gear_ratio), cluster(headroom)
+givregress price (mpg weight = gear_ratio turn displacement), absorb(rep78 headroom)
 
-greg price mpg, prefix(b(_b_)) replace
-greg price mpg, prefix(se(_se_)) replace
-greg price mpg, absorb(rep78 headroom) prefix(b(_b_) se(_se_) hdfe(_hdfe_)) replace
-drop _*
+givregress price (mpg = gear_ratio) weight [fw = rep78], absorb(headroom)
+givregress price (mpg = gear_ratio turn displacement) weight [aw = rep78], by(foreign)
 
-greg price mpg, gen(b(_b_mpg _b_cons))
-greg price mpg, gen(se(_se_mpg _se_cons))
-greg price mpg, absorb(rep78 headroom) gen(hdfe(_hdfe_price _hdfe_mpg))
+givregress price (mpg = gear_ratio turn) weight, by(foreign) mata(coefsOnly, nose) prefix(b(_b_) se(_se_))
+givregress price (mpg weight = gear_ratio turn), mata(seOnly, nob) prefix(hdfe(_hdfe_))
+givregress price (mpg weight = gear_ratio turn) displacement, mata(nothing, nob nose)
 ```
-
-### Basic Benchmark
 
 ```stata
 clear
@@ -233,38 +224,26 @@ gen x2 = x4 + runiform()
 gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal()
 gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
-timer clear
-timer on 1
-greg y x1 x2, absorb(g1 g2 g3) mata(greg)
-timer off 1
+timer on 9
+givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) mata(greg)
+timer off 9
 mata greg.b', greg.se'
-timer on 2
-reghdfe y x1 x2, absorb(g1 g2 g3)
-timer off 2
+timer on 10
+ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3)
+timer off 10
 
-timer on 3
-greg y x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
-timer off 3
+timer on 11
+givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4) mata(greg)
+timer off 11
 mata greg.b', greg.se'
-timer on 4
-reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)
-timer off 4
-
-timer on 5
-greg y x1 x2, by(g4) prefix(b(_b_))
-timer off 5
-drop _*
-timer on 6
-asreg y x1 x2, by(g4)
-timer off 6
-drop _*
+timer on 12
+ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4)
+timer off 12
 
 timer list
 
-   1:      1.21 /        1 =       1.2100
-   2:     13.76 /        1 =      13.7610
-   3:      1.26 /        1 =       1.2640
-   4:     17.67 /        1 =      17.6680
-   5:      0.35 /        1 =       0.3550
-   6:      2.41 /        1 =       2.4140
+   1:      3.49 /        1 =       3.4890
+   2:     20.84 /        1 =      20.8410
+   3:      2.02 /        1 =       2.0250
+   4:     30.15 /        1 =      30.1500
 ```

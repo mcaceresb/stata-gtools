@@ -73,6 +73,18 @@ ST_retcode gf_regress_absorb_iter(
     ST_double hdfetol
 );
 
+ST_retcode gf_regress_iv_notidentified (
+    GT_size nj,
+    GT_size kabs,
+    GT_size ivkendog,
+    GT_size ivkexog,
+    GT_size ivkz,
+    GT_size kmodel,
+    char *buf1,
+    char *buf2,
+    char *buf3
+);
+
 ST_retcode gf_regress_notidentified (
     GT_size nj,
     GT_size kabs,
@@ -114,6 +126,7 @@ ST_double gf_regress_vceadj_mle_cluster_fw (GT_size N, GT_size kmodel, GT_size J
 void gf_regress_linalg_dgemm_colmajor      (ST_double *A, ST_double *B, ST_double *C, GT_size k1, GT_size k2, GT_size k3);
 void gf_regress_linalg_dsymm_colmajor      (ST_double *A, ST_double *B, ST_double *C, GT_size N, GT_size K);
 void gf_regress_linalg_dgemTv_colmajor     (ST_double *A, ST_double *b, ST_double *c, GT_size N, GT_size K);
+void gf_regress_linalg_dgemTm_colmajor     (ST_double *A, ST_double *B, ST_double *C, GT_size N, GT_size k1, GT_size k2);
 void gf_regress_linalg_dgemv_colmajor      (ST_double *A, ST_double *b, ST_double *c, GT_size N, GT_size K);
 void gf_regress_linalg_error_colmajor      (ST_double *y, ST_double *A, ST_double *b, ST_double *c, GT_size N, GT_size K);
 
@@ -122,6 +135,7 @@ void gf_regress_linalg_dsymm_w2colmajor    (ST_double *A, ST_double *B, ST_doubl
 void gf_regress_linalg_dsymm_we2colmajor   (ST_double *A, ST_double *B, ST_double *C, ST_double *e, ST_double *w, GT_size N, GT_size K);
 void gf_regress_linalg_dsymm_fwe2colmajor  (ST_double *A, ST_double *B, ST_double *C, ST_double *e, ST_double *w, GT_size N, GT_size K);
 void gf_regress_linalg_dgemTv_wcolmajor    (ST_double *A, ST_double *b, ST_double *c, ST_double *w, GT_size N, GT_size K);
+void gf_regress_linalg_dgemTm_wcolmajor    (ST_double *A, ST_double *B, ST_double *C, ST_double *w, GT_size N, GT_size k1, GT_size k2);
 void gf_regress_linalg_error_wcolmajor     (ST_double *y, ST_double *A, ST_double *b, ST_double *w, ST_double *c, GT_size N, GT_size K);
 
 void gf_regress_linalg_dsymm_ixcolmajor    (ST_double *A, ST_double *B, ST_double *C, GT_size *ix, GT_size nix, GT_size N, GT_size K);
@@ -337,6 +351,70 @@ void (*gf_regress_ols_cluster) (
     GT_size,
     GT_size,
     gf_regress_vceadj
+);
+
+// IV regression
+
+void (*gf_regress_iv) (
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    ST_double *,
+    GT_size,
+    GT_size,
+    GT_size,
+    GT_size
+);
+
+void gf_regress_iv_unw(
+    ST_double *Xendog,
+    ST_double *Xexog,
+    ST_double *Z,
+    ST_double *y,
+    ST_double *w,
+    ST_double *XX,
+    ST_double *XZ,
+    ST_double *BZ,
+    ST_double *e,
+    ST_double *b,
+    GT_size N,
+    GT_size kendog,
+    GT_size kexog,
+    GT_size kz
+);
+
+void gf_regress_iv_w(
+    ST_double *Xendog,
+    ST_double *Xexog,
+    ST_double *Z,
+    ST_double *y,
+    ST_double *w,
+    ST_double *XX,
+    ST_double *XZ,
+    ST_double *BZ,
+    ST_double *e,
+    ST_double *b,
+    GT_size N,
+    GT_size kendog,
+    GT_size kexog,
+    GT_size kz
+);
+
+void gf_regress_linalg_iverror(
+    ST_double *y,
+    ST_double *A1,
+    ST_double *A2,
+    ST_double *b,
+    ST_double *c,
+    GT_size N,
+    GT_size k1,
+    GT_size k2
 );
 
 #endif

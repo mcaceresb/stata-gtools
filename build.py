@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Wed Aug 21 18:39:07 EDT 2019
+# Updated: Sun Aug 25 12:39:07 EDT 2019
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -116,8 +116,9 @@ gtools_ssc = [
     "gtoplevelsof.ado",
     "gisid.ado",
     "greshape.ado",
-    "gregress.ado",
     "greg.ado",
+    "gregress.ado",
+    "givregress.ado",
     "gpoisson.ado",
     "gstats.ado",
     "gduplicates.ado",
@@ -135,9 +136,10 @@ gtools_ssc = [
     "gtoplevelsof.sthlp",
     "gisid.sthlp",
     "greshape.sthlp",
-    "gpoisson.sthlp",
     "greg.sthlp",
     "gregress.sthlp",
+    "givregress.sthlp",
+    "gpoisson.sthlp",
     "gstats.sthlp",
     "gstats_transform.sthlp",
     "gstats_range.sthlp",
@@ -341,11 +343,6 @@ copy2(
 )
 
 copy2(
-    path.join("docs", "stata", "gregress.sthlp"),
-    path.join("docs", "stata", "gpoisson.sthlp")
-)
-
-copy2(
     path.join("docs", "stata", "gstats_summarize.sthlp"),
     path.join("docs", "stata", "gstats_sum.sthlp")
 )
@@ -378,6 +375,8 @@ copy2(path.join("docs", "stata", "greshape.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gpoisson.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "greg.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gregress.sthlp"),         gdir)
+copy2(path.join("docs", "stata", "givregress.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gpoisson.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
 copy2(path.join("docs", "stata", "gstats_transform.sthlp"), gdir)
 copy2(path.join("docs", "stata", "gstats_range.sthlp"),     gdir)
@@ -404,9 +403,10 @@ copy2(path.join("src", "ado", "gtop.ado"),              gdir)
 copy2(path.join("src", "ado", "gtoplevelsof.ado"),      gdir)
 copy2(path.join("src", "ado", "gisid.ado"),             gdir)
 copy2(path.join("src", "ado", "greshape.ado"),          gdir)
-copy2(path.join("src", "ado", "gpoisson.ado"),          gdir)
 copy2(path.join("src", "ado", "greg.ado"),              gdir)
 copy2(path.join("src", "ado", "gregress.ado"),          gdir)
+copy2(path.join("src", "ado", "givregress.ado"),        gdir)
+copy2(path.join("src", "ado", "gpoisson.ado"),          gdir)
 copy2(path.join("src", "ado", "gstats.ado"),            gdir)
 copy2(path.join("src", "ado", "gduplicates.ado"),       gdir)
 copy2(path.join("src", "ado", "gquantiles.ado"),        gdir)

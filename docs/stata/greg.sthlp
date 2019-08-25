@@ -8,7 +8,7 @@
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:gregress} {hline 2}} OLS, WLS, and IRLS regressions by group with clustering and HDFE{p_end}
+{p2col :{cmd:gregress} {hline 2}} OLS linear regressions by group with weights, clustering, and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -16,22 +16,14 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gregress} and {opt gpoisson} are in beta; use with
-caution (e.g. there are no colinearity or singularity checks).
+{it:Warning}: {opt gregress} is in beta; use with caution (e.g. there
+are no colinearity or singularity checks).
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 17 2}
 {opt gregress}
-{depvar}
-{indepvars}
-{ifin}
-[{it:{help gregress##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gregress##table_options:options}}]
-
-{p 8 17 2}
-{opt gpoisson}
 {depvar}
 {indepvars}
 {ifin}
@@ -83,12 +75,6 @@ is, this assumes that the weight refers to the number of available
 {synopt:{opt noc:onstant}}Whether to add a constant (cannot be combined with {opt absorb()}).
 {p_end}
 
-{syntab :Poisson Options}
-{synopt:{opth poistol(real)}}Tolerance level for poisson IRLS algoritm (default 1e-8).
-{p_end}
-{synopt:{opth poisiter(int)}}Maximum number of iterations for poisson IRLS (default 1000).
-{p_end}
-
 {syntab:Gtools}
 {synopt:{opt compress}}Try to compress strL to str#.
 {p_end}
@@ -116,18 +102,17 @@ is, this assumes that the weight refers to the number of available
 {title:Description}
 
 {pstd}
-{cmd:gregress} runs a simple OLS regression, optionally by group, with
-cluster SE, and/or with multi-way high-dimensional fixed effects.
-{cmd:gpoisson} runs a poisson regression via IRLS, with the same
-options available. The results are by default saved into a mata object
-(default {opt GtoolsRegress}).  Run {opt mata GtoolsRegress.desc()} for
-details; the following data is stored:
+{cmd:gregress} estimates a linear regression model via OLS,
+optionally weighted, by group, with cluster SE, and/or with multi-way
+high-dimensional fixed effects.  The results are by default saved
+into a mata object (default {opt GtoolsRegress}).  Run {opt mata
+GtoolsRegress.desc()} for details; the following data is stored:
 
         regression info
         ---------------
 
             string scalar caller
-                whether the results are from gregress or gpoisson
+                model used; should be "gregress"
 
             real scalar kx
                 number of (non-absorbed) covariates
@@ -259,4 +244,3 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {pstd}
 help for
 {help gtools}
-

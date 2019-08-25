@@ -79,3 +79,75 @@ void GtoolsGroupByHDFEWeighted (
         }
     }
 }
+
+// void GtoolsGroupByHDFEWeighted (
+//     struct GtoolsHash *GtoolsHashInfo,
+//     GT_size   khashes,
+//     ST_double *sources,
+//     ST_double *weights,
+//     ST_double *targets,
+//     GT_size   ktargets,
+//     ST_double tol)
+// {
+//     GT_size i, j, k, l, start, nj, *ixptr;
+//     ST_double diff, *trgptr, *wptr;
+//     struct GtoolsHash *ghptr;
+//     memcpy(targets, sources, GtoolsHashInfo->nobs * ktargets * sizeof(ST_double));
+// 
+//     ST_double *wmeans = calloc(GtoolsHashInfo->nobs, sizeof *wmeans);
+//     ST_double *wsums  = calloc(GtoolsHashInfo->nobs, sizeof *wmeans);
+//     GT_size   *wx     = calloc(GtoolsHashInfo->nobs, sizeof *wx);
+// 
+//     diff = 1;
+//     while ( diff > tol ) {
+//         ghptr = GtoolsHashInfo;
+//         for (l = 0; l < khashes; l++, ghptr++) {
+//             diff = 0;
+//             for (j = 0; j < ghptr->nlevels; j++) {
+//                 start  = ghptr->info[j];
+//                 nj     = ghptr->info[j + 1] - start;
+//                 ixptr  = ghptr->index + start;
+//                 for (i = 0; i < nj; i++) {
+//                     wx[ixptr[i]] = j;
+//                 }
+//             }
+//             for (k = 0; k < ktargets; k++) {
+//                 wptr   = weights;
+//                 trgptr = targets + k * ghptr->nobs;
+//                 memset(wsums, '\0', ghptr->nlevels * sizeof(ST_double));
+//                 memset(wx,    '\0', ghptr->nlevels * sizeof(ST_double));
+//                 for (i = 0; i < ghptr->nobs; i++, wptr++, trgptr++) {
+//                     wmeans[wx[i]] += (*wptr) * (*trgptr);
+//                     wsums[wx[i]]  += (*wptr);
+//                 }
+//                 for (j = 0; j < ghptr->nlevels; j++) {
+//                     wmeans[j] /= wsums[j];
+//                 }
+//                 trgptr = targets + k * ghptr->nobs;
+//                 for (i = 0; i < ghptr->nobs; i++, trgptr++) {
+//                     diff = GTOOLS_PWMAX(diff, fabs(wmeans[wx[i]]));
+//                     *trgptr -= wmeans[wx[i]];
+//                 }
+//             }
+//             if ( diff < tol ) break;
+//         }
+//     }
+// 
+//     free (wmeans);
+//     free (wsums);
+//     free (wx);
+// }
+//
+// Maybe the compiler optimizes something in the regular loop that it doesn't here?
+// use /tmp/tmp
+// set rmsg on
+// gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
+// mata greg.print()
+//
+// greg y x1 x2, absorb(g1 g2 g3) mata(greg)
+// mata greg.print()
+// reghdfe y x1 x2, absorb(g1 g2 g3)
+//
+// greg y x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
+// mata greg.print()
+// reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)

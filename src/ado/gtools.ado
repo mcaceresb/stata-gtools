@@ -102,6 +102,7 @@ program gtools
     }
 
     display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"
+    * mata mata mlib index
     which gtools
     cap noi _gtools_internal _check
     if ( _rc ) {

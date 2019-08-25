@@ -13,6 +13,22 @@ ST_double GtoolsStatsWeighted (
     }
 }
 
+ST_double GtoolsStatsSumWeighted (
+    ST_double *source,
+    ST_double *weights,
+    GT_size   *index,
+    GT_size   N)
+{
+    GT_size i;
+    ST_double w;
+    ST_double z = 0;
+    for (i = 0; i < N; i++) {
+        w  = weights[index[i]];
+        z += source[index[i]] * w;
+    }
+    return (z);
+}
+
 ST_double GtoolsStatsMeanWeighted (
     ST_double *source,
     ST_double *weights,

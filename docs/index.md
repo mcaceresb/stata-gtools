@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.5.11%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.6.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.6.1 21Aug2019`
+`version 1.6.2 25Aug2019`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -67,7 +67,6 @@ __*Extra commands*__
 
 | Function            | Similar (SSC/SJ)         | Speedup (IC / MP)       | Notes                         |
 | ------------------- | ------------------------ | ----------------------- | ----------------------------- |
-| gregress, gpoisson  | asreg, reghdfe, ppmlhdfe | (.)                     | Beta release; allows `by()`   |
 | fasterxtile         | fastxtile                | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
 |                     | egenmisc (SSC) (-)       | 8 to 25 / 2.5 to 6      |                               |
 |                     | astile (SSC) (-)         | 8 to 12 / 3.5 to 6      |                               |
@@ -77,12 +76,6 @@ __*Extra commands*__
 | gtop (gtoplevelsof) | groups, select()         | (+)                     | See table notes (+)           |
 | gstats range        | rangestat                | 10 to 20 / 10 to 20     | Allows weights; no flex stats |
 | gstats transform    |                          |                         | Various statistical functions |
-
-<small>(.) `gregress` and `gpoisson` do not aim to mimic all the
-functionality of any given command; they computes a linear or poisson
-regression by group, optionally with weights, one-way or nested
-clusters, and/or high-dimensional fixed effects. Rolling regressions
-and multi-way cluster SE are planned for the next point release.</small>
 
 <small>(-) `fastxtile` from egenmisc and `astile` were benchmarked against
 `gquantiles, xtile` (`fasterxtile`) using `by()`.</small>
@@ -94,6 +87,31 @@ with the goal of gleaning the most common levels of a varlist. Rather, it
 has a plethora of features and that one is somewhat incidental. As such, the
 benchmark is not equivalent and `gtoplevelsof` does not attempt to implement
 the features of 'groups'</small>
+
+__*Regression models*__
+
+Regression models are in beta. The following are available:
+
+| Function            | Model   | Similar                       |
+| ------------------- | ------- | ----------------------------- |
+| gregress            | OLS     | `regress`, `reghdfe`          |
+| givregress          | 2SLS    | `ivregress 2sls`, `ivreghdfe` |
+| gpoisson            | IRLS    | `poisson`, `ppmlhdfe`         |
+
+All commands allow the user to optionally add:
+
+- `absorb()` for high-dimensional fixed effects absorptions.
+- `cluster()` for clustering (multiple covariates assume clusters are nested).
+- `by()` for regressions by group.
+- `weights` for weighted versions. Unlike other weights, `fweights` are assumed to refer to the _number_ of observations.
+
+Currently only coefficients and standard errors are computed.  These
+models do not aim to mimic all the functionality of any given
+command. Linear regression is computed via OLS (or WLS), IV regression
+is computed via two-stage least squares (2SLS), and poisson regression
+is computed via iteratively reweighted least squares (IRLS).  Rolling
+regressions and multi-way cluster SE are planned for the next point
+release.
 
 __*Extra features*__
 
@@ -110,7 +128,9 @@ details and examples, see each command's help page:
 - [gegen](usage/gegen#examples)
 - [glevelsof](usage/glevelsof#examples)
 - [gdistinct](usage/gdistinct#examples)
-- [gregress and gpoisson](usage/gregress#examples)
+- [gregress](usage/gregress#examples)
+- [givregress](usage/givregress#examples)
+- [gpoisson](usage/gpoisson#examples)
 
 In addition, several commands take gsort-style input, that is
 
@@ -225,6 +245,10 @@ sysuse auto, clear
 * gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
 gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
 gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
+givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
 gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
@@ -408,9 +432,10 @@ gtools functions (`stat` is any stat available to `gcollapse`, except
 | winsor       | gstats winsor    |
 | winsorize    | gstats winsor    |
 
-Last, when `gegen` calls a function that is not implemented internally by
-`gtools`, it will hash the by variables and call `egen` with `by` set to an
-id based on the hash. That is, if `fcn` is not one of the functions above,
+Last, when `gegen` calls a function that is not implemented internally
+by `gtools`, it will hash the by variables and call `egen` with `by`
+set to an id based on the hash. That is, if `fcn` is not one of the
+functions above,
 
 ```stata
 gegen outvar = fcn(varlist) [if] [in], by(byvars)
@@ -432,12 +457,12 @@ Differences from `collapse`
 
 - String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- `nunique` is supported.
-- `nmissing` is supported.
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
 - `rawstat` allows selectively applying weights.
+- `rawselect` ignores weights for `select` (analogously to `rawsum`).
+- Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse (nansum)` and `gcollapse (rawnansum)` outputs a missing
   value for sums if all inputs are missing (instead of 0).
-- Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
 - `gcollapse, merge` merges the collapsed data set back into memory. This is
   much faster than collapsing a dataset, saving, and merging after. However,
   Stata's `merge ..., update` functionality is not implemented, only replace.
@@ -468,16 +493,19 @@ Differences from `reshape`
 - `dropmiss` allows dropping missing observations when reshaping from
   wide to long (via `long` or `gather`).
 
-Differences from `regress`, `poisson`, `reghdfe`, and `ppmlhdfe`
+Differences from regression models
 
-- `gregress` and `gpoisson` do not aim to replicate the entire table of
-  estimation results, nor the entire suite of post-estimation results
-  and tests, that `regress` (`reghdfe`) and `poisson` (`ppmlhdfe`) make
-  available. At the moment, they are considered beta software and only
-  coefficients and standard errors are computed.
-- `by()` and `absorb()` are allowed.
-- Results are saved either to mata or copied to variables in the dataset
-  in memory.
+`gregress`, `givregress`, and `gpoisson` do not aim to replicate
+the entire table of estimation results, nor the entire suite of
+post-estimation results and tests, that `regress` (`reghdfe`),
+`ivregress 2sls` (`ivreghdfe`), or `poisson` (`ppmlhdfe`) make
+available. At the moment, they are considered beta software and only
+coefficients and standard errors are computed.
+
+- Results are saved either to mata (default) or copied to variables in the dataset in memory.
+- `by()` and `absorb()` are allowed and can be combined.
+- `givregress` does a small sample adjustment (`small`) automatically.
+- `gpoisson` runs with option `robust` automatically.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -515,13 +543,13 @@ Differences from `egen`
 
 Differences from `tabstat`
 
+- Multiple groups are allowed.
 - Saving the output is done via `mata` instead of `r()`. No matrices
   are saved in `r()` and option `save` is not allowed. However, option
   `matasave` saves the output and `by()` info in `GstatsOutput` (the object
   can be named via `matasave(name)`). See `mata GstatsOutput.desc()` after
   `gstats tab, matasave` for details.
 - `GstatsOutput` provides helpers for extracting rows, columns, and levels.
-- Multiple groups are allowed.
 - Options `casewise`, `longstub` are not supported.
 - Option `nototal` is on by default; `total` is planned for a future release.
 - Option `pooled` pools the source variables into one.
@@ -581,7 +609,7 @@ Differences from `rangestat`
   not intended to be a replacement of `rangestat` but it can replicate some
   of its functionality.
 
-- `flex_stat`s (reg, corr, cov) are not allowed.
+- `flex_stat`s (reg, corr, cov) are not allowed (see `gregress`).
 
 - Intervals are of the form `interval(low high [keyvar])`; if `keyvar`
   is missing then it is taken to be the source variable.
@@ -657,10 +685,11 @@ Planned features for `gtools-1.7.0`:
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
     - `predict()`, including `xb` and `e`.
 - Singularity check
-- Remove colinear by group in `gregress`
+- Redundant categories check
+- Remove colinear variables by group in `gregress`
 - Non-nested multi-way clustering for `gregress`.
-- Rolling (interval) and moving options for `gregress`.
 - Accelerate HDFE corner cases in `gregress`
+- Rolling (interval) and moving options for `gregress`.
 - `cumsum` for `gstats transform` (normal cumsum)
 - `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
 

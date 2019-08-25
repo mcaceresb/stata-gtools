@@ -1,4 +1,4 @@
-*! version 1.6.1 21Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.6.2 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -376,6 +376,10 @@ program gtools_showcase
     gtools_head gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
     gtools_cmd  gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
     gtools_cmd  gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+    gtools_head givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
+    gtools_cmd  givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+    gtools_cmd  givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
     gtools_head gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
     gtools_cmd  gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace

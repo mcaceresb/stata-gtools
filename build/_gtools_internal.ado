@@ -1,4 +1,4 @@
-*! version 1.6.1 21Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.6.2 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1663,7 +1663,8 @@ program _gtools_internal, rclass
         else if ( inlist("`gfunction'",  "regress") ) {
             local gcall `gfunction' `"${GTOOLS_GREG_FILE}"'
             local 0: copy local gregress
-            syntax varlist(numeric ts fv), [ /// TODO: ts fv not yet supported!
+            // syntax varlist(numeric ts fv), [ /// TODO: ts fv not yet supported!
+            syntax varlist(numeric), [       /// TODO: ts fv not yet supported!
                 Robust                       /// Robust SE
                 cluster(str)                 /// Cluster by varlist
                 absorb(str)                  /// Absorb each var in varlist as FE
@@ -1674,6 +1675,10 @@ program _gtools_internal, rclass
                 rowmajor                     /// Read matrix in row major order
                 colmajor                     /// Read matrix in column major order
                                              ///
+                ivkendog(int 0)              /// IV endogenous
+                ivkexog(int 0)               /// IV exogenous
+                ivkz(int 0)                  /// IV instruments
+                                             ///
                 poistol(real 1e-8)           /// Tolerance for poisson convergence
                 poisiter(int 1000)           /// Max iterations for poisson convergence
                 poisson                      /// Poisson regression
@@ -1683,6 +1688,25 @@ program _gtools_internal, rclass
                 prefix(str)                  /// save prepending prefix
                 replace                      /// Replace targets, if they exist
             ]
+
+            local ivregress
+            if ( `ivkendog' > 0 ) {
+                if ( `ivkz' >= `ivkendog' ) {
+                    local ivregress ivregress
+                }
+                else {
+                    disp as error "Need at least as many instruments as endogenous variables (received `ivkz' < `ivkendog')"
+                    local rc = 198
+                    clean_all `rc'
+                    exit `rc'
+                }
+            }
+            else if ( `ivkz' > 0 ) {
+                disp as error "Detected instruments but no endogenous variables for IV regresssion"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
 
             if ( (`"`window'"' != "") & (`"`interval'"' != "") ) {
                 disp as err "moving() and window() are mutually exclusive options"
@@ -1781,19 +1805,55 @@ program _gtools_internal, rclass
                 disp as txt "{bf:note:} robust SE will be computed with pweights"
             }
 
+            if ( (`"`cluster'"' == "") & (`"`robust'"' == "") & (`"`poisson'"' != "") ) {
+                disp as txt "{bf:note:} robust SE will be computed with gpoisson"
+            }
+
+            if ( (`wcode' == 4) | (`"`poisson'"' != "") ) {
+                local robust robust
+            }
+
             local regressvars `varlist' `cluster' `absorb' `intervalvar'
 
             scalar __gtools_gregress_kvars    = `:list sizeof varlist'
             scalar __gtools_gregress_cons     = `"`constant'"' != "noconstant"
             scalar __gtools_gregress_rowmajor = `"`rowmajor'"' != ""
             scalar __gtools_gregress_colmajor = `"`colmajor'"' != ""
-            scalar __gtools_gregress_robust   = `"`robust'"'   != "" | `wcode' == 4
+            scalar __gtools_gregress_robust   = `"`robust'"'   != ""
             scalar __gtools_gregress_cluster  = `:list sizeof cluster'
             scalar __gtools_gregress_absorb   = `:list sizeof absorb'
             scalar __gtools_gregress_hdfetol  = `hdfetol'
             scalar __gtools_gregress_poisson  = `"`poisson'"' != ""
             scalar __gtools_gregress_poisiter = `poisiter'
             scalar __gtools_gregress_poistol  = `poistol'
+            scalar __gtools_gregress_ivreg    = `"`ivregress'"' != ""
+            scalar __gtools_gregress_ivkendog = `ivkendog'
+            scalar __gtools_gregress_ivkexog  = `ivkexog'
+            scalar __gtools_gregress_ivkz     = `ivkz'
+
+            if ( scalar(__gtools_gregress_poisson) ) {
+                local Caller Poisson
+            }
+            else if ( scalar(__gtools_gregress_ivreg) ) {
+                local Caller IV
+            }
+            else {
+                local Caller Regress
+            }
+
+            if ( scalar(__gtools_gregress_rowmajor) & scalar(__gtools_gregress_ivreg) ) {
+                disp as err "Option -rowmajor- not allowed with IV regression"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
+
+            if ( scalar(__gtools_gregress_poisson) & scalar(__gtools_gregress_ivreg) ) {
+                disp as err "Parsing error: gpoisson and givregress cannot be run at the same time"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
 
             if ( scalar(__gtools_gregress_cluster) > 1 ) {
                 disp as txt "({bf:warning}: cluster() with multiple variables is assumed to be nested)"
@@ -1813,15 +1873,28 @@ program _gtools_internal, rclass
                 exit `rc'
             }
 
+            local zvarlist
             local yxvarlist: copy local varlist
             gettoken yvarlist xvarlist: yxvarlist
-            scalar __gtools_gregress_kv = __gtools_gregress_kvars - 1 + __gtools_gregress_cons * (__gtools_gregress_absorb == 0)
+            scalar __gtools_gregress_kv = __gtools_gregress_kvars - 1 - __gtools_gregress_ivkz
+            if ( scalar(__gtools_gregress_ivreg) ) {
+                 local _xvarlist
+                 forvalues i = 1 / `=scalar(__gtools_gregress_kv)' {
+                     local _xvarlist `_xvarlist' `:word `i' of `xvarlist''
+                 }
+                 local zvarlist
+                 forvalues i = `=scalar(__gtools_gregress_kv) + 1' / `=scalar(__gtools_gregress_kvars) - 1' {
+                     local zvarlist `zvarlist' `:word `i' of `xvarlist''
+                 }
+                 local xvarlist: copy local _xvarlist
+            }
+            scalar __gtools_gregress_kv = __gtools_gregress_kv + __gtools_gregress_cons * (__gtools_gregress_absorb == 0)
 
             if ( `"`mata'`generate'`prefix'"' == "" ) {
                 scalar __gtools_gregress_savemata = 1
                 scalar __gtools_gregress_savemb   = 1
                 scalar __gtools_gregress_savemse  = 1
-                local saveGregressMata GtoolsRegress
+                local saveGregressMata Gtools`Caller'
                 mata: `saveGregressMata' = GtoolsRegressOutput()
                 mata: `saveGregressMata'.whoami = `"`saveGregressMata'"'
             }
@@ -1829,7 +1902,7 @@ program _gtools_internal, rclass
                 if ( `"`mata'"' != "" ) {
                     local 0 `mata'
                     cap noi syntax [namelist(max = 1)], [noB noSE]
-                    if ( `"`namelist'"' == "" ) local namelist GtoolsRegress
+                    if ( `"`namelist'"' == "" ) local namelist Gtools`Caller'
 
                     scalar __gtools_gregress_savemata = 1
                     scalar __gtools_gregress_savemb   = `"`b'"'  != "nob"
@@ -1999,6 +2072,19 @@ program _gtools_internal, rclass
                             cap confirm name `hdfe'`xvar'
                             if ( _rc ) {
                                 disp as err "prefix(hdfe()) results in invalid variable name, `hdfe'`xvar'"
+                                local rc = 198
+                                clean_all `rc'
+                                exit `rc'
+                            }
+                        }
+                    }
+
+                    foreach zvar in `zvarlist' {
+                        if ( `"`hdfe'"' != "" ) {
+                            local hdfevars  `hdfevars' `hdfe'`zvar'
+                            cap confirm name `hdfe'`zvar'
+                            if ( _rc ) {
+                                disp as err "prefix(hdfe()) results in invalid variable name, `hdfe'`zvar'"
                                 local rc = 198
                                 clean_all `rc'
                                 exit `rc'
@@ -3006,7 +3092,15 @@ program _gtools_internal, rclass
     * regress results
     if ( inlist("`gfunction'", "regress") ) {
         if ( scalar(__gtools_gregress_savemata) ) {
-            local caller = cond(scalar(__gtools_gregress_poisson), "gpoisson", "gregress")
+            if ( scalar(__gtools_gregress_poisson) ) {
+                local caller gpoisson
+            }
+            else if ( scalar(__gtools_gregress_ivreg) ) {
+                local caller givregress
+            }
+            else {
+                local caller gregress
+            }
             mata: `saveGregressMata'.readMatrices()
             mata: `saveGregressMata'.ByLevels = GtoolsByLevels()
             mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
@@ -4554,6 +4648,10 @@ program gregress_scalars
         scalar __gtools_gregress_poisson   = 0
         scalar __gtools_gregress_poisiter  = 0
         scalar __gtools_gregress_poistol   = 0
+        scalar __gtools_gregress_ivreg     = 0
+        scalar __gtools_gregress_ivkendog  = 0
+        scalar __gtools_gregress_ivkexog   = 0
+        scalar __gtools_gregress_ivkz      = 0
         scalar __gtools_gregress_savemata  = 0
         scalar __gtools_gregress_savemb    = 0
         scalar __gtools_gregress_savemse   = 0
@@ -4582,6 +4680,10 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_absorb
         cap scalar drop __gtools_gregress_hdfetol
         cap scalar drop __gtools_gregress_poisson
+        cap scalar drop __gtools_gregress_ivreg
+        cap scalar drop __gtools_gregress_ivkendog
+        cap scalar drop __gtools_gregress_ivkexog
+        cap scalar drop __gtools_gregress_ivkz
         cap scalar drop __gtools_gregress_poisiter
         cap scalar drop __gtools_gregress_poistol
         cap scalar drop __gtools_gregress_savemata

@@ -1,5 +1,5 @@
-*! version 0.1.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Implementation of grouped poisson regressions with HDFE
+*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Estimate poisson regression via IRLS by group and with HDFE
 
 cap program drop gpoisson
 program gpoisson, rclass

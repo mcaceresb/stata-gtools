@@ -1,5 +1,5 @@
-*! version 0.1.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Implementation of grouped regressions with HDFE
+*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Estimate linear regression via OLS by group and with HDFE
 
 cap program drop greg
 program greg, rclass

@@ -1,8 +1,8 @@
-*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Estimate poisson regression via IRLS by group and with HDFE
+*! version 0.1.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Estimate IV regression via 2SLS by group and with HDFE
 
-cap program drop gpoisson
-program gpoisson, rclass
+cap program drop givregress
+program givregress, rclass
     version 13.1
 
     local 00: copy local 0
@@ -12,7 +12,7 @@ program gpoisson, rclass
     else {
         local comma ,
     }
-    gregress `0' `comma' poisson
+    gregress `0' `comma' ivregress
     if ( ${GREG_RC} ) {
         global GREG_RC
         exit 0

@@ -1,13 +1,15 @@
 gtools 
 ======
 
-The gtools command is merely a wrapper for some high-level operations to do
-with package maintenance. See the [introduction](index) for an overview of the
-package and available commands.
+The gtools command is merely a wrapper for some high-level operations to
+do with package maintenance. See any of the commands below for details
+on how to use the programs provided by this package commands, or the
+[introduction](index) for an overview of the package and available
+commands.
 
-Succintly, gtools is a Stata package that provides a fast implementation of
-common group commands like collapse, egen, isid, levelsof, contract, distinct,
-and so on using C plugins for a massive speed improvement.
+Succintly, gtools is a Stata package that provides a fast implementation
+of common group commands like collapse, egen, isid, levelsof, contract,
+distinct, and so on using C plugins for a massive speed improvement.
 
 This program helps the user manage their gtools installation.
 

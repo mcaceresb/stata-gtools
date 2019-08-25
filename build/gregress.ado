@@ -1,5 +1,5 @@
-*! version 0.1.0 18Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Implementation of grouped regressions with HDFE
+*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Estimate linear regression via OLS by group and with HDFE
 
 capture program drop gregress
 program gregress, rclass
@@ -14,8 +14,7 @@ program gregress, rclass
     }
 
     * syntax varlist(numeric ts fv) // a way to support this would be to filter it through mata
-    * syntax anything(equalok)      // iv syntax
-    syntax varlist(numeric)       /// depvar indepvars
+    syntax anything(equalok)      /// depvar indepvars
         [if] [in]                 /// [if condition] [in start / end]
         [aw fw pw iw] ,           /// [weight type = exp]
     [                             ///
@@ -23,8 +22,9 @@ program gregress, rclass
         noMISSing                 /// Exclude groups with any missing values by level
         Robust                    /// Robust SE
         cluster(str)              /// Cluster by varlist
-        absorb(str)               /// Absorb each var in varlist as FE 
-        poisson                   /// Poisson regression
+        absorb(str)               /// Absorb each var in varlist as FE
+        POISson                   /// Poisson regression
+        IVregress                 /// IV regression
         *                         /// Regress options
                                   ///
         compress                  /// Try to compress strL variables
@@ -47,6 +47,79 @@ program gregress, rclass
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
+
+    * Parse IV syntax
+
+    * NOTE(mauricio): IV will only be allowed with input colmajor.
+    
+    * NOTE(mauricio): I put the instruments at the start so I can add a
+    * constant. I will only have one memory alloc to X and then point to
+    * ivz = X, ivendog = X + kz * N, ivexog = X + (kz + kendog) + N
+
+    local ivok 0
+    if regexm(`"`anything'"', ".+\((.+=.+)\)") {
+        local iveq   = regexr(regexs(1), "\(|\)", "")
+        local ivexog = trim(regexr("`anything'", "\(.+=.+\)", ""))
+
+        cap noi confirm var `ivexog'
+        if ( _rc ) {
+            disp as err "Error parsing IV syntax: No dependent variable detected"
+            exit 198
+        }
+
+        gettoken ivendog ivinstruments: iveq, p(=)
+        gettoken _ ivinstruments: ivinstruments
+
+        cap noi confirm var `ivinstruments'
+        if ( _rc ) {
+            disp as err "Instruments required for IV"
+            exit 198
+        }
+
+        cap noi confirm var `ivendog'
+        if ( _rc ) {
+            disp as err "Endogenous covariates required for IV"
+            exit 198
+        }
+
+        unab ivexog:        `ivexog'
+        unab ivendog:       `ivendog'
+        unab ivinstruments: `ivinstruments'
+        gettoken ivdepvar ivexog: ivexog
+
+        local ivkendog: list sizeof ivendog
+        local ivkexog:  list sizeof ivexog
+        local ivkz:     list sizeof ivinstruments
+
+        if ( `ivkz' < `ivkendog' ) {
+            disp as error "Need at least as many instruments as endogenous variables (received `ivkz' < `ivkendog')"
+            exit 198
+        }
+
+        unab  varlist: `ivdepvar' `ivendog' `ivexog' `ivinstruments'
+        local ivopts ivkendog(`ivkendog') ivkexog(`ivkexog') ivkz(`ivkz')
+        local ivregress ivregress
+        local ivok 1
+    }
+    else {
+        unab varlist: `anything'
+    }
+
+    confirm var `varlist'
+    if ( `:list sizeof varlist' == 1 ) {
+        disp as err "constant-only models not allowed; varlist required"
+        exit 198
+    }
+
+    if ( (`ivok' == 0) & ("`ivregress'" != "") ) {
+        disp as err "Could not parse input into IV syntax"
+        exit 198
+    }
+
+    if ( ("`ivregress'" != "") & ("`poisson'" != "") ) {
+        disp as err "Input error: IV and poisson requested at the same time"
+        exit 198
+    }
 
     * NOTE(mauricio): We always make a todo variable because we want to
     * exclude missing values in varlist.
@@ -86,7 +159,7 @@ program gregress, rclass
     local opts    `weights' `compress' `forcestrl' nods unsorted `missing'
     local opts    `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts    `opts' `oncollision' `hashmethod' `debug'
-    local greg    gfunction(regress) gregress(`varlist', `options')
+    local greg    gfunction(regress) gregress(`varlist', `options' `ivopts')
 
     cap noi _gtools_internal `by' `if' `in', `opts' `greg'
     local rc = _rc

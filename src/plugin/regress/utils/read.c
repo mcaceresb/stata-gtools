@@ -24,6 +24,8 @@ ST_retcode sf_regress_read_colmajor (
     GT_size bytesclus = st_info->gregress_cluster_bytes;
     GT_size kv        = st_info->gregress_kvars - 1;
     GT_size kx        = kv + (kabs == 0) * st_info->gregress_cons;
+    GT_bool skip      = (kabs == 0) * st_info->gregress_cons;
+    GT_size kz        = st_info->gregress_ivkz;
 
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
     if ( index_st == NULL ) return(sf_oom_error("sf_regress_read_colmajor", "index_st"));
@@ -70,14 +72,26 @@ ST_retcode sf_regress_read_colmajor (
 
                     kref += 1;
                     offset_buffer = start * kx;
-                    for (k = 0; k < kv; k++) {
+                    for (k = 0; k < kv - kz; k++) {
                         if ( (rc = SF_vdata(kref + k,
                                             i + st_info->in1,
                                             X + offset_buffer + nj[j])) ) goto exit;
                         offset_buffer += nobs;
                     }
 
-                    kref += kv;
+                    // If any IV, read them at the end; blank "middle" col will be _cons
+                    kref += (kv - kz);
+                    if ( skip ) {
+                        offset_buffer += nobs;
+                    }
+                    for (k = 0; k < kz; k++) {
+                        if ( (rc = SF_vdata(kref + k,
+                                            i + st_info->in1,
+                                            X + offset_buffer + nj[j])) ) goto exit;
+                        offset_buffer += nobs;
+                    }
+
+                    kref += kz;
                     offset_buffer = (start + nj[j]) * bytesclus;
                     for (k = 0; k < kclus; k++) {
                         if ( clustyp[k] > 0 ) {
@@ -140,7 +154,19 @@ ST_retcode sf_regress_read_colmajor (
 
                     kref += 1;
                     offset_buffer = start * kx;
-                    for (k = 0; k < kv; k++) {
+                    for (k = 0; k < kv - kz; k++) {
+                        if ( (rc = SF_vdata(kref + k,
+                                            i + st_info->in1,
+                                            X + offset_buffer + nj[j])) ) goto exit;
+                        offset_buffer += nobs;
+                    }
+
+                    // If any IV, read them at the end; blank "middle" col will be _cons
+                    kref += (kv - kz);
+                    if ( skip ) {
+                        offset_buffer += nobs;
+                    }
+                    for (k = 0; k < kz; k++) {
                         if ( (rc = SF_vdata(kref + k,
                                             i + st_info->in1,
                                             X + offset_buffer + nj[j])) ) goto exit;
@@ -172,14 +198,26 @@ ST_retcode sf_regress_read_colmajor (
 
                     kref += 1;
                     offset_buffer = start * kx;
-                    for (k = 0; k < kv; k++) {
+                    for (k = 0; k < kv - kz; k++) {
                         if ( (rc = SF_vdata(kref + k,
                                             i + st_info->in1,
                                             X + offset_buffer + nj[j])) ) goto exit;
                         offset_buffer += nobs;
                     }
 
-                    kref += kv;
+                    // If any IV, read them at the end; blank "middle" col will be _cons
+                    kref += (kv - kz);
+                    if ( skip ) {
+                        offset_buffer += nobs;
+                    }
+                    for (k = 0; k < kz; k++) {
+                        if ( (rc = SF_vdata(kref + k,
+                                            i + st_info->in1,
+                                            X + offset_buffer + nj[j])) ) goto exit;
+                        offset_buffer += nobs;
+                    }
+
+                    kref += kz;
                     offset_buffer = (start + nj[j]) * bytesclus;
                     for (k = 0; k < kclus; k++) {
                         if ( clustyp[k] > 0 ) {
@@ -238,7 +276,19 @@ ST_retcode sf_regress_read_colmajor (
 
                     kref += 1;
                     offset_buffer = start * kx;
-                    for (k = 0; k < kv; k++) {
+                    for (k = 0; k < kv - kz; k++) {
+                        if ( (rc = SF_vdata(kref + k,
+                                            i + st_info->in1,
+                                            X + offset_buffer + nj[j])) ) goto exit;
+                        offset_buffer += nobs;
+                    }
+
+                    // If any IV, read them at the end; blank "middle" col will be _cons
+                    kref += (kv - kz);
+                    if ( skip ) {
+                        offset_buffer += nobs;
+                    }
+                    for (k = 0; k < kz; k++) {
                         if ( (rc = SF_vdata(kref + k,
                                             i + st_info->in1,
                                             X + offset_buffer + nj[j])) ) goto exit;
@@ -250,14 +300,16 @@ ST_retcode sf_regress_read_colmajor (
             }
         }
     }
-
+    // If IV, we copy X = [Xendog Xexog 1 Z]
     if ( st_info->gregress_cons && (kabs == 0) ) {
         xptr = X;
+        offset_buffer = kv - kz;
         for (j = 0; j < st_info->J; j++) {
-            xptr += nj[j] * kv;
+            xptr += nj[j] * offset_buffer;
             for (i = 0; i < nj[j]; i++, xptr++) {
                 *xptr = 1;
             }
+            xptr += nj[j] * kz;
         }
     }
 

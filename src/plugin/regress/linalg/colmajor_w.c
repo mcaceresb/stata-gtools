@@ -306,3 +306,28 @@ void gf_regress_linalg_error_wcolmajor(
         *cptr *= *wptr;
     }
 }
+
+void gf_regress_linalg_dgemTm_wcolmajor(
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    ST_double *w,
+    GT_size N,
+    GT_size k1,
+    GT_size k2)
+{
+    GT_size i, k, l;
+    ST_double *aptr, *bptr, *cptr, *wptr;
+    memset(C, '\0', k1 * k2 * sizeof(ST_double));
+    cptr = C;
+    for (l = 0; l < k2; l++) {
+        aptr = A;
+        for (k = 0; k < k1; k++, cptr++) {
+            bptr  = B + l * N;
+            wptr  = w;
+            for (i = 0; i < N; i++, aptr++, bptr++, wptr++) {
+                *cptr += (*aptr) * (*bptr) * (*wptr);
+            }
+        }
+    }
+}

@@ -78,6 +78,12 @@ ST_double GtoolsStats (
     ST_double statcode
 );
 
+ST_double GtoolsStatsSum (
+    ST_double *source,
+    GT_size   *index,
+    GT_size   N
+);
+
 ST_double GtoolsStatsMean (
     ST_double *source,
     GT_size   *index,
@@ -96,6 +102,13 @@ ST_double GtoolsStatsWeighted (
     GT_size   *index,
     GT_size   N,
     ST_double statcode
+);
+
+ST_double GtoolsStatsSumWeighted (
+    ST_double *source,
+    ST_double *weights,
+    GT_size   *index,
+    GT_size   N
 );
 
 ST_double GtoolsStatsMeanWeighted (

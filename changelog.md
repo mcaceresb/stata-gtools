@@ -1,6 +1,30 @@
 Change Log
 ==========
 
+## gtools-1.6.2 (2019-08-25)
+
+### Features
+
+- Adds `givregress` computed via 2SLS
+
+### Bug fixes
+
+- Fixed bug in `gf_regress_linalg_dgemm_colmajor()`, defined in
+  `src/plugin/regress/linalg/colmajor.c`:  Matrix multiplication
+  now correct when axes are of different size. This bug does not
+  affect previous versions because this function was only used
+  to multiply square, albeit non-symetric (but that was not the issue),
+  matrices.
+
+### Enhancements
+
+- Splits `gregress`, `gpoisson`, and `givregress`. While they
+  are all run by `sf_regress` internally, they are three distinct
+  commands.
+
+- Categorize documentation into "Data manupulation", "Statistics",
+  and "Regression models".
+
 ## gtools-1.6.1 (2019-08-21)
 
 ### Features

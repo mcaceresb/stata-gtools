@@ -467,7 +467,12 @@ program define Long /* reshape long */
     order $ReS_i $ReS_j $ReS_Xij_stubs $ReS_Xi
     if ( `"`dropmissing'"' != "" ) {
         * disp as txt "({bf:warning:} -dropmiss- will remove IDs with all missing values)"
-        qui set obs `=scalar(__gtools_greshape_nrows)'
+        if ( `=scalar(__gtools_greshape_nrows)' <= `=_N' ) {
+            qui keep in 1 / `=scalar(__gtools_greshape_nrows)'
+        }
+        else {
+            qui set obs `=scalar(__gtools_greshape_nrows)'
+        }
     }
     else {
         qui set obs `=_N * scalar(__greshape_klvls)'
@@ -922,7 +927,7 @@ program define Wide /* reshape wide */
     else {
         GreshapeTempFile ReS_Data
     }
-disp "debug 1: $ReS_Xij"
+    * disp "debug 1: $ReS_Xij"
     mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'

@@ -34,22 +34,25 @@ program checks_gcollapse
     sysuse auto, clear
 
     local gcall
-    local gcall `gcall' (mean)      mean      = price
-    local gcall `gcall' (geomean)   geomean   = price
-    local gcall `gcall' (sd)        sd        = price
-    local gcall `gcall' (variance)  variance  = price
-    local gcall `gcall' (cv)        cv        = price
-    local gcall `gcall' (min)       min       = price
-    local gcall `gcall' (max)       max       = price
-    local gcall `gcall' (range)     range     = price
-    local gcall `gcall' (select1)   select1   = price
-    local gcall `gcall' (select2)   select2   = price
-    local gcall `gcall' (select3)   select3   = price
-    local gcall `gcall' (select99)  select99  = price
-    local gcall `gcall' (select-99) select_99 = price
-    local gcall `gcall' (select-3)  select_3  = price
-    local gcall `gcall' (select-2)  select_2  = price
-    local gcall `gcall' (select-1)  select_1  = price
+    local gcall `gcall' (mean)         mean         = price
+    local gcall `gcall' (geomean)      geomean      = price
+    local gcall `gcall' (gini)         gini         = price
+    local gcall `gcall' (gini|dropneg) gini_dropneg = price
+    local gcall `gcall' (gini|keepneg) gini_keepneg = price
+    local gcall `gcall' (sd)           sd           = price
+    local gcall `gcall' (variance)     variance     = price
+    local gcall `gcall' (cv)           cv           = price
+    local gcall `gcall' (min)          min          = price
+    local gcall `gcall' (max)          max          = price
+    local gcall `gcall' (range)        range        = price
+    local gcall `gcall' (select1)      select1      = price
+    local gcall `gcall' (select2)      select2      = price
+    local gcall `gcall' (select3)      select3      = price
+    local gcall `gcall' (select99)     select99     = price
+    local gcall `gcall' (select-99)    select_99    = price
+    local gcall `gcall' (select-3)     select_3     = price
+    local gcall `gcall' (select-2)     select_2     = price
+    local gcall `gcall' (select-1)     select_1     = price
 
     gcollapse `gcall', by(foreign) merge
     assert abs((sd / mean) - cv) < `tol'
@@ -413,14 +416,14 @@ program checks_inner_collapse
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
     local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
-    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt gini gini|dropneg gini|keepneg
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     local collapse_str ""
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+        local collapse_str `collapse_str' (`stat') r1_`:subinstr local stat "|" "_", all' = random1
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
@@ -432,7 +435,7 @@ program checks_inner_collapse
     }
 
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
+        local collapse_str `collapse_str' (`stat') r2_`:subinstr local stat "|" "_", all' = random2
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
@@ -1059,7 +1062,7 @@ program _compare_inner_gcollapse_gegen
     local options  `options_'
 
     local sestats
-    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt gini gini|dropneg gini|keepneg
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd variance cv
         local sestats `sestats' sd variance cv
@@ -1073,35 +1076,44 @@ program _compare_inner_gcollapse_gegen
         local sestats `sestats' sebinomial sepoisson
     }
 
-    gegen id = group(`anything'), missing nods
+    if ( `"`anything'"' == "" ) {
+        gen id = 1
+    }
+    else {
+        gegen id = group(`anything'), missing nods
+    }
 
-    gegen double nmissing = nmissing (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double nunique  = nunique  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double percent  = percent  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double mean     = mean     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double sum      = sum      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double median   = median   (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double min      = min      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double max      = max      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double range    = range    (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double iqr      = iqr      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double first    = first    (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double last     = last     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double firstnm  = firstnm  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double lastnm   = lastnm   (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double skew     = skew     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double kurt     = kurt     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double q10      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(10.5)
-    gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
-    gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
-    gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
+    gegen double nmissing     = nmissing    (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double nunique      = nunique     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double percent      = percent     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double mean         = mean        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double sum          = sum         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double median       = median      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double min          = min         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double max          = max         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double range        = range       (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double iqr          = iqr         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double first        = first       (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double last         = last        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double firstnm      = firstnm     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double lastnm       = lastnm      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double skew         = skew        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double kurt         = kurt        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double geomean      = geomean     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini         = gini        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini_keepneg = gini|keepneg(random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini_dropneg = gini|dropneg(random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double q10          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(10.5)
+    gegen double q30          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
+    gegen double q70          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
+    gegen double q90          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
     if ( !inlist("`weight'", "iweight") ) {
-    gegen double s1       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
-    gegen double s3       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
-    gegen double s999999  = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
-    gegen double s_999999 = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
-    gegen double s_3      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
-    gegen double s_1      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
+    gegen double s1           = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
+    gegen double s3           = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
+    gegen double s999999      = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
+    gegen double s_999999     = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
+    gegen double s_3          = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
+    gegen double s_1          = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
     }
 
     local gextra
@@ -1112,57 +1124,65 @@ program _compare_inner_gcollapse_gegen
 
     if ( inlist("`weight'", "iweight") ) {
         qui `noisily' {
-            gcollapse (nmissing)      g_nmissing   = random1 ///
-                      (nunique)       g_nunique    = random1 ///
-                      (percent)       g_percent    = random1 ///
-                      (mean)          g_mean       = random1 ///
-                      (sum)           g_sum        = random1 ///
-                      (median)        g_median     = random1 ///
-                      (min)           g_min        = random1 ///
-                      (max)           g_max        = random1 ///
-                      (range)         g_range      = random1 ///
-                      (iqr)           g_iqr        = random1 ///
-                      (first)         g_first      = random1 ///
-                      (last)          g_last       = random1 ///
-                      (firstnm)       g_firstnm    = random1 ///
-                      (lastnm)        g_lastnm     = random1 ///
-                      (skew)          g_skew       = random1 ///
-                      (kurt)          g_kurt       = random1 ///
-                      (p10.5)         g_q10        = random1 ///
-                      (p30)           g_q30        = random1 ///
-                      (p70)           g_q70        = random1 ///
-                      (p90.5)         g_q90        = random1 ///
+            gcollapse (nmissing)      g_nmissing     = random1 ///
+                      (nunique)       g_nunique      = random1 ///
+                      (percent)       g_percent      = random1 ///
+                      (mean)          g_mean         = random1 ///
+                      (sum)           g_sum          = random1 ///
+                      (median)        g_median       = random1 ///
+                      (min)           g_min          = random1 ///
+                      (max)           g_max          = random1 ///
+                      (range)         g_range        = random1 ///
+                      (iqr)           g_iqr          = random1 ///
+                      (first)         g_first        = random1 ///
+                      (last)          g_last         = random1 ///
+                      (firstnm)       g_firstnm      = random1 ///
+                      (lastnm)        g_lastnm       = random1 ///
+                      (skew)          g_skew         = random1 ///
+                      (kurt)          g_kurt         = random1 ///
+                      (geomean)       g_geomean      = random1 ///
+                      (gini)          g_gini         = random1 ///
+                      (gini|dropneg)  g_gini_dropneg = random1 ///
+                      (gini|keepneg)  g_gini_keepneg = random1 ///
+                      (p10.5)         g_q10          = random1 ///
+                      (p30)           g_q30          = random1 ///
+                      (p70)           g_q70          = random1 ///
+                      (p90.5)         g_q90          = random1 ///
                       `gextra'                               ///
                   `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
          }
     else {
         qui `noisily' {
-            gcollapse (nmissing)      g_nmissing   = random1 ///
-                      (nunique)       g_nunique    = random1 ///
-                      (percent)       g_percent    = random1 ///
-                      (mean)          g_mean       = random1 ///
-                      (sum)           g_sum        = random1 ///
-                      (median)        g_median     = random1 ///
-                      (min)           g_min        = random1 ///
-                      (max)           g_max        = random1 ///
-                      (range)         g_range      = random1 ///
-                      (iqr)           g_iqr        = random1 ///
-                      (first)         g_first      = random1 ///
-                      (last)          g_last       = random1 ///
-                      (firstnm)       g_firstnm    = random1 ///
-                      (lastnm)        g_lastnm     = random1 ///
-                      (skew)          g_skew       = random1 ///
-                      (kurt)          g_kurt       = random1 ///
-                      (p10.5)         g_q10        = random1 ///
-                      (p30)           g_q30        = random1 ///
-                      (p70)           g_q70        = random1 ///
-                      (p90.5)         g_q90        = random1 ///
-                      (select1)       g_s1         = random1 ///
-                      (select3)       g_s3         = random1 ///
-                      (select999999)  g_s999999    = random1 ///
-                      (select-999999) g_s_999999   = random1 ///
-                      (select-3)      g_s_3        = random1 ///
-                      (select-1)      g_s_1        = random1 ///
+            gcollapse (nmissing)      g_nmissing     = random1 ///
+                      (nunique)       g_nunique      = random1 ///
+                      (percent)       g_percent      = random1 ///
+                      (mean)          g_mean         = random1 ///
+                      (sum)           g_sum          = random1 ///
+                      (median)        g_median       = random1 ///
+                      (min)           g_min          = random1 ///
+                      (max)           g_max          = random1 ///
+                      (range)         g_range        = random1 ///
+                      (iqr)           g_iqr          = random1 ///
+                      (first)         g_first        = random1 ///
+                      (last)          g_last         = random1 ///
+                      (firstnm)       g_firstnm      = random1 ///
+                      (lastnm)        g_lastnm       = random1 ///
+                      (skew)          g_skew         = random1 ///
+                      (kurt)          g_kurt         = random1 ///
+                      (geomean)       g_geomean      = random1 ///
+                      (gini)          g_gini         = random1 ///
+                      (gini|dropneg)  g_gini_dropneg = random1 ///
+                      (gini|keepneg)  g_gini_keepneg = random1 ///
+                      (p10.5)         g_q10          = random1 ///
+                      (p30)           g_q30          = random1 ///
+                      (p70)           g_q70          = random1 ///
+                      (p90.5)         g_q90          = random1 ///
+                      (select1)       g_s1           = random1 ///
+                      (select3)       g_s3           = random1 ///
+                      (select999999)  g_s999999      = random1 ///
+                      (select-999999) g_s_999999     = random1 ///
+                      (select-3)      g_s_3          = random1 ///
+                      (select-1)      g_s_1          = random1 ///
                       `gextra'                               ///
                   `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
         }
@@ -1175,7 +1195,8 @@ program _compare_inner_gcollapse_gegen
         di _n(1) "Checking [`ifin']`wtxt' range: `anything'"
     }
 
-    foreach fun in `stats' q10 q30 q70 q90 {
+    foreach _fun in `stats' q10 q30 q70 q90 {
+        local fun: subinstr local _fun "|" "_", all
         cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
         if ( _rc ) {
             if inlist("`fun'", "skew", "kurt") {
@@ -1590,7 +1611,13 @@ program _compare_inner_gcollapse_skew
     local anything `anything_'
     local options  `options_'
 
-    qui gegen id = group(`anything') `ifin', missing nods
+    if ( `"`anything'"' == "" ) {
+        qui gen id = 1 `ifin'
+    }
+    else {
+        qui gegen id = group(`anything') `ifin', missing nods
+    }
+
     qui gunique id `ifin', missing
     local J = `r(J)'
     qui sum id
@@ -1704,7 +1731,7 @@ program compare_inner_gcollapse_select
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 47 + length("`anything'") + length("`N'")
-    di _n(2) "Checking select and 1.4 funcs. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+    di _n(2) "Checking select and 1.4+ funcs. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
 
     preserve
         if ( `"`wfoo'"' == "mix" ) {
@@ -1770,29 +1797,54 @@ program _compare_inner_gcollapse_select
     local ifin `in' `if'
 
     local gcall
-    local gcall `gcall' (count)       nj          = random1
-    local gcall `gcall' (mean)        mean        = random1
-    local gcall `gcall' (geomean)     geomean     = random1
+    local gcall `gcall' (count)        nj           = random1
+    local gcall `gcall' (mean)         mean         = random1
+    local gcall `gcall' (geomean)      geomean      = random1
+    local gcall `gcall' (gini)         gini         = random1
+    local gcall `gcall' (gini|dropneg) gini_dropneg = random1
+    local gcall `gcall' (gini|keepneg) gini_keepneg = random1
     if !regexm("pw", `"`wgt'"') {
-    local gcall `gcall' (sd)          sd          = random1
-    local gcall `gcall' (variance)    variance    = random1
-    local gcall `gcall' (cv)          cv          = random1
-    }
-    local gcall `gcall' (min)         min         = random1
-    local gcall `gcall' (max)         max         = random1
-    local gcall `gcall' (range)       range       = random1
-    local gcall `gcall' (select1)     select1     = random1
-    local gcall `gcall' (select2)     select2     = random1
-    local gcall `gcall' (select3)     select3     = random1
-    local gcall `gcall' (select9999)  select9999  = random1
-    local gcall `gcall' (select-9999) select_9999 = random1
-    local gcall `gcall' (select-3)    select_3    = random1
-    local gcall `gcall' (select-2)    select_2    = random1
-    local gcall `gcall' (select-1)    select_1    = random1
+    local gcall `gcall' (sd)           sd           = random1
+    local gcall `gcall' (variance)     variance     = random1
+    local gcall `gcall' (cv)           cv           = random1
+    }                                               
+    local gcall `gcall' (min)          min          = random1
+    local gcall `gcall' (max)          max          = random1
+    local gcall `gcall' (range)        range        = random1
+    local gcall `gcall' (select1)      select1      = random1
+    local gcall `gcall' (select2)      select2      = random1
+    local gcall `gcall' (select3)      select3      = random1
+    local gcall `gcall' (select9999)   select9999   = random1
+    local gcall `gcall' (select-9999)  select_9999  = random1
+    local gcall `gcall' (select-3)     select_3     = random1
+    local gcall `gcall' (select-2)     select_2     = random1
+    local gcall `gcall' (select-1)     select_1     = random1
 
     qui gcollapse `gcall' `ifin' `wgt_gc', by(`anything') `options' double merge replace
-    qui gegen id = group(`anything') `ifin', missing nods
+    if ( `"`anything'"' == "" ) {
+        qui gen id = 1 `ifin'
+    }
+    else {
+        qui gegen id = group(`anything') `ifin', missing nods
+    }
     * save /tmp/aa, replace
+
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini)
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini_dropneg) dropneg
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini_keepneg) keepneg
+    foreach gini in " " _keepneg _dropneg {
+        local gini `gini'
+        cap assert reldif(_gini`gini', gini`gini') < `tol'
+        local rc = _rc
+        local gini: subinstr local gini "_" "|", all
+        if ( `rc' ) {
+            di as txt "    compare_gini`gini'_gcollapse (fail): gini`gini' yielded different results (tol = `tol')"
+            exit 198
+        }
+        else {
+            di as txt "    compare_gini`gini'_gcollapse (passed): gini`gini' yielded consistent results (tol = `tol')"
+        }
+    }
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"

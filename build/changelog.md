@@ -1,6 +1,26 @@
 Change Log
 ==========
 
+## gtools-1.6.3 (2019-09-08)
+
+### Features
+
+- Adds `gini`, `gini dropneg`, `gini keepneg` to `gcollapse`, `gegen`,
+  and `gstats tab`.
+
+- Adds `cumsum`, `cumsum +/-`, and `cumsum +/- varname` to `gstats transform`;
+  options can also be passed to `cumsum` globally via `cumby()`
+
+### Bug fixes
+
+- Fixes bug in `greshape, dropmiss` where if the number of remaining
+  observations is lower than the observations in memory, `set obs` would
+  be run, resulting in an error. Now `keep in` is run for that case.
+
+### Enhancements
+
+- Removed rowmajor option from `gregress`
+
 ## gtools-1.6.2 (2019-08-25)
 
 ### Features

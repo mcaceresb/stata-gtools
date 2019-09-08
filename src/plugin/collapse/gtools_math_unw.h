@@ -80,4 +80,22 @@ ST_double gf_array_dskew_unweighted (
     GT_size N
 );
 
+ST_double gf_array_dgini_unweighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dginidrop_unweighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dginikeep_unweighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *p_buffer
+);
+
 #endif

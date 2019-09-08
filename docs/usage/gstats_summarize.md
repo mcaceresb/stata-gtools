@@ -23,47 +23,50 @@ Statistics
 
 The following are available via `gstats tab`
 
-| Stat        | Description
-| ----------- | -----------
-| mean        | means (default)
-| geomean     | geometric means
-| count       | number of nonmissing observations
-| nmissing    | number of missing observations
-| nunique     | counts unique elements
-| median      | medians
-| p#.#        | arbitrary quantiles (#.# must be strictly between 0, 100)
-| p1          | 1st percentile
-| p2          | 2nd percentile
-| ...         | 3rd-49th percentiles
-| p50         | 50th percentile (same as median)
-| ...         | 51st-97th percentiles
-| p98         | 98th percentile
-| p99         | 99th percentile
-| iqr         | interquartile range
-| sum         | sums
-| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
-| nansum      | sum; returns . instead of 0 if all entries are missing
-| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
-| sd          | standard deviation
-| variance    | variance
-| cv          | coefficient of variation (`sd/mean`)
-| semean      | standard error of the mean (sd/sqrt(n))
-| sebinomial  | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
-| sepoisson   | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
-| skewness    | Skewness
-| kurtosis    | Kurtosis
-| percent     | percentage of nonmissing observations
-| max         | maximums
-| min         | minimums
-| select#     | `#`th smallest non-missing
-| select-#    | `#`th largest non-missing
-| rawselect#  | `#`th smallest non-missing, ignoring weights
-| rawselect-# | `#`th largest non-missing, ignoring weights
-| range       | range (`max` - `min`)
-| first       | first value
-| last        | last value
-| firstnm     | first nonmissing value
-| lastnm      | last nonmissing value
+| Stat          | Description
+| ------------- | -----------
+| mean          | means (default)
+| geomean       | geometric means
+| count         | number of nonmissing observations
+| nmissing      | number of missing observations
+| nunique       | counts unique elements
+| median        | medians
+| p#.#          | arbitrary quantiles (#.# must be strictly between 0, 100)
+| p1            | 1st percentile
+| p2            | 2nd percentile
+| ...           | 3rd-49th percentiles
+| p50           | 50th percentile (same as median)
+| ...           | 51st-97th percentiles
+| p98           | 98th percentile
+| p99           | 99th percentile
+| iqr           | interquartile range
+| sum           | sums
+| rawsum        | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
+| nansum        | sum; returns . instead of 0 if all entries are missing
+| rawnansum     | rawsum; returns . instead of 0 if all entries are missing
+| sd            | standard deviation
+| variance      | variance
+| cv            | coefficient of variation (`sd/mean`)
+| semean        | standard error of the mean (sd/sqrt(n))
+| sebinomial    | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
+| sepoisson     | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness      | Skewness
+| kurtosis      | Kurtosis
+| percent       | percentage of nonmissing observations
+| max           | maximums
+| min           | minimums
+| select#       | `#`th smallest non-missing
+| select-#      | `#`th largest non-missing
+| rawselect#    | `#`th smallest non-missing, ignoring weights
+| rawselect-#   | `#`th largest non-missing, ignoring weights
+| range         | range (`max` - `min`)
+| first         | first value
+| last          | last value
+| firstnm       | first nonmissing value
+| lastnm        | last nonmissing value
+| gini          | computes the Gini coefficient (negative values are truncated to 0)
+| gini\|dropneg | computes the Gini coefficient (negative values are dropped)
+| gini\|keepneg | computes the Gini coefficient (negative values are Kept; the user is responsible for the interpretation of the gini coefficient in this case)
 
 Options
 -------
@@ -296,9 +299,9 @@ gstats tab price, by(foreign rep78)
 Custom printing
 
 ```stata
-gstats tab price mpg, s(p5 q p95 select7 select-3) pretty
-gstats tab price mpg, s(p5 q p95 select7 select-3) col(var)
-gstats tab price mpg, s(p5 q p95 select7 select-3) col(stat)
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) pretty
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) col(var)
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) col(stat)
 ```
 
 Mata API

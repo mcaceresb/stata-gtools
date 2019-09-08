@@ -986,7 +986,8 @@ program versus_gstats_transform, rclass
     local tcall1 (demean)    _out2 = random2 (demedian) _out3 = random3 (normalize) _out4 = random4 _out5 = random5
     local tcall2 (demean)    _out* = random*
     local tcall3 (normalize) _out* = random*
-    local tcall4 (rank)      _out* = random*
+    local tcall4 (cumsum)    _out1 = random1 _out2 = random2 (cumsum +) _out3 = random3 (cumsum -) _out4 = random4 (cumsum + random3) _out5 = random5
+    local tcall5 (rank)      _out* = random*
 
     local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
               */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
@@ -994,9 +995,9 @@ program versus_gstats_transform, rclass
     local gcall2 (mean) _gout*  = random*
     local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
 
-    local I = cond(`"`wgt'"' == "", 4, 3)
+    local I = cond(`"`wgt'"' == "", 5, 4)
     forvalues i = 1 / `I' {
-        local opts = cond(`i' != 4, "", "ties(. track . field .)")
+        local opts = cond(`i' != 5, "", "ties(. track . field .)")
 
         timer clear
         timer on 42
@@ -1005,6 +1006,8 @@ program versus_gstats_transform, rclass
         qui timer list
         local time_gtransform = r(t42)
 
+        preserve
+        gen long _sort = _n
         timer clear
         timer on 43
         if ( `i' == 1 ) {
@@ -1033,6 +1036,46 @@ program versus_gstats_transform, rclass
             }
         }
         else if ( `i' == 4 ) {
+            qui {
+                local start = 1
+                if ( `"`if'`in'"' != "" ) keep `if' `in'
+                if ( `"`wgt'"' != "" ) {
+                    local 0 `wgt'
+                    syntax [aw fw pw iw]
+                    tempvar w
+                    gen double `w' `exp'
+                    local w1 * `w'
+                    local w2 & !mi(`w')
+                }
+                else {
+                    local w1
+                    local w2
+                }
+
+                if ( `"`anything'"' != "" ) {
+                    sort `anything', stable
+                    by `anything': gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
+                    by `anything': gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
+                    sort `anything' random3, stable                                   
+                    by `anything': gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
+                    sort `anything' random3 random5, stable                      
+                    by `anything': gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
+                    gsort `anything' -random4 _sort
+                    by `anything': gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
+                }
+                else {
+                    gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
+                    gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
+                    sort random3, stable                                   
+                    gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
+                    sort random3 random5, stable                      
+                    gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
+                    gsort -random4 _sort
+                    gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
+                }
+            }
+        }
+        else if ( `i' == 5 ) {
             local start = 1
             egen double _gout1 = rank(random1) `if' `in', by(`anything')
             egen double _gout2 = rank(random2) `if' `in', by(`anything') track
@@ -1044,6 +1087,7 @@ program versus_gstats_transform, rclass
         qui timer list
         local time_manual = r(t43)
 
+        sort _sort
         forvalues j = `start' / 5 {
             cap assert (abs((_gout`j' - _out`j') / max(abs(_gout`j'), 1)) < `tol' | _gout`j' == _out`j')
             if ( _rc ) {
@@ -1051,6 +1095,7 @@ program versus_gstats_transform, rclass
                 exit _rc
             }
         }
+        restore
 
         cap drop _*
         local rs = `time_manual'  / `time_gtransform'
@@ -1072,13 +1117,13 @@ program versus_gstats_transform_range, rclass
     local rcall1 `rcall1'  (firstnm)  _out13 = random2
     local rcall1 `rcall1'  (min)      _out9  = random2
     local rcall1 `rcall1'  (mean)     _out3  = random2
-                        
+
     local rcall2 `rcall2'  (missing)  _out2  = random2
     local rcall2 `rcall2'  (last)     _out14 = random2
     local rcall2 `rcall2'  (lastnm)   _out15 = random2
     local rcall2 `rcall2'  (max)      _out11 = random2
     local rcall2 `rcall2'  (sum)      _out4  = random2
-                        
+
     local rcall3 `rcall3'  (sd)       _out5  = random2
     local rcall3 `rcall3'  (variance) _out6  = random2
 
@@ -1162,13 +1207,13 @@ program versus_gstats_transform_moving, rclass
     local rcall1 `rcall1'  (firstnm)  _out13 = random2
     local rcall1 `rcall1'  (min)      _out9  = random2
     local rcall1 `rcall1'  (mean)     _out3  = random2
-                        
+
     local rcall2 `rcall2'  (missing)  _out2  = random2
     local rcall2 `rcall2'  (last)     _out14 = random2
     local rcall2 `rcall2'  (lastnm)   _out15 = random2
     local rcall2 `rcall2'  (max)      _out11 = random2
     local rcall2 `rcall2'  (sum)      _out4  = random2
-                        
+
     local rcall3 `rcall3'  (sd)       _out5  = random2
     local rcall3 `rcall3'  (variance) _out6  = random2
     local rcall3 `rcall3'  (skewness) _out7  = random2

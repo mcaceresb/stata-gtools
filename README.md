@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, and unique/distinct.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.6.2-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.6.3-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -368,41 +368,44 @@ as in `tabstat`.
 
 The following are implemented internally in C:
 
-| Function    | gcollapse | gegen   | gstats tab |
-| ----------- | --------- | ------- | ---------- |
-| tag         |           |   X     |            |
-| group       |           |   X     |            |
-| total       |           |   X     |            |
-| count       |     X     |   X     |      X     |
-| nunique     |     X     |   X     |      X     |
-| nmissing    |     X     |   X (+) |      X     |
-| sum         |     X     |   X     |      X     |
-| nansum      |     X     |   X     |      X     |
-| rawsum      |     X     |         |      X     |
-| rawnansum   |     X     |         |      X     |
-| mean        |     X     |   X     |      X     |
-| geomean     |     X     |   X     |      X     |
-| median      |     X     |   X     |      X     |
-| percentiles |     X     |   X     |      X     |
-| iqr         |     X     |   X     |      X     |
-| sd          |     X     |   X     |      X     |
-| variance    |     X     |   X (+) |      X     |
-| cv          |     X     |   X     |      X     |
-| max         |     X     |   X     |      X     |
-| min         |     X     |   X     |      X     |
-| range       |     X     |   X     |      X     |
-| select      |     X     |   X     |      X     |
-| rawselect   |     X     |         |      X     |
-| percent     |     X     |   X     |      X     |
-| first       |     X     |   X (+) |      X     |
-| last        |     X     |   X (+) |      X     |
-| firstnm     |     X     |   X (+) |      X     |
-| lastnm      |     X     |   X (+) |      X     |
-| semean      |     X     |   X (+) |      X     |
-| sebinomial  |     X     |   X     |      X     |
-| sepoisson   |     X     |   X     |      X     |
-| skewness    |     X     |   X     |      X     |
-| kurtosis    |     X     |   X     |      X     |
+| Function     | gcollapse | gegen   | gstats tab |
+| ------------ | --------- | ------- | ---------- |
+| tag          |           |   X     |            |
+| group        |           |   X     |            |
+| total        |           |   X     |            |
+| count        |     X     |   X     |      X     |
+| nunique      |     X     |   X     |      X     |
+| nmissing     |     X     |   X (+) |      X     |
+| sum          |     X     |   X     |      X     |
+| nansum       |     X     |   X     |      X     |
+| rawsum       |     X     |         |      X     |
+| rawnansum    |     X     |         |      X     |
+| mean         |     X     |   X     |      X     |
+| geomean      |     X     |   X     |      X     |
+| median       |     X     |   X     |      X     |
+| percentiles  |     X     |   X     |      X     |
+| iqr          |     X     |   X     |      X     |
+| sd           |     X     |   X     |      X     |
+| variance     |     X     |   X (+) |      X     |
+| cv           |     X     |   X     |      X     |
+| max          |     X     |   X     |      X     |
+| min          |     X     |   X     |      X     |
+| range        |     X     |   X     |      X     |
+| select       |     X     |   X     |      X     |
+| rawselect    |     X     |         |      X     |
+| percent      |     X     |   X     |      X     |
+| first        |     X     |   X (+) |      X     |
+| last         |     X     |   X (+) |      X     |
+| firstnm      |     X     |   X (+) |      X     |
+| lastnm       |     X     |   X (+) |      X     |
+| semean       |     X     |   X (+) |      X     |
+| sebinomial   |     X     |   X     |      X     |
+| sepoisson    |     X     |   X     |      X     |
+| skewness     |     X     |   X     |      X     |
+| kurtosis     |     X     |   X     |      X     |
+| gini         |     X     |   X     |      X     |
+| gini dropneg |     X     |   X     |      X     |
+| gini keepneg |     X     |   X     |      X     |
 
 <small>(+) indicates the function has the same or a very similar
 name to a function in the "egenmore" packge, but the function was
@@ -467,7 +470,7 @@ Differences from `collapse`
 
 - String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`, `gini`
 - `rawstat` allows selectively applying weights.
 - `rawselect` ignores weights for `select` (analogously to `rawsum`).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
@@ -690,6 +693,7 @@ TODO
 
 Planned features for `gtools-1.7.0`:
 
+- [ ] Document formulas when they are not obvious (e.g. `gini`, least squares, etc.)
 - [ ] Flexible save options for regress
     - Choose which coefs/se to save
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
@@ -700,6 +704,7 @@ Planned features for `gtools-1.7.0`:
 - [ ] Non-nested multi-way clustering for `gregress`.
 - [ ] Accelerate HDFE corner cases in `gregress`
 - [ ] Rolling (interval) and moving options for `gregress`.
+- [ ] `shift #` for lags and leads
 - [ ] `cumsum` for `gstats transform` (normal cumsum)
 - [ ] `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
 

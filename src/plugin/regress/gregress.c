@@ -7,8 +7,6 @@
 #include "linalg/colmajor_w.c"
 #include "linalg/colmajor_ix.c"
 #include "linalg/rowmajor.c"
-#include "linalg/rowmajor_w.c"
-#include "linalg/rowmajor_ix.c"
 
 ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 {
@@ -160,38 +158,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         }
     }
 
-    if ( st_info->gregress_rowmajor ) {
-        sf_regress_read = sf_regress_read_rowmajor;
-        if ( st_info->wcode > 0 || poisson ) {
-            gf_regress_ols         = gf_regress_ols_wrowmajor;
-            gf_regress_ols_cluster = gf_regress_ols_cluster_wrowmajor;
-            if ( st_info->wcode == 2 ) {
-                gf_regress_ols_robust  = gf_regress_ols_robust_fwrowmajor;
-                gf_regress_ols_se      = gf_regress_ols_sefw;
-            }
-            else {
-                gf_regress_ols_robust  = gf_regress_ols_robust_wrowmajor;
-                gf_regress_ols_se      = gf_regress_ols_sew;
-            }
-        }
-        else {
-            gf_regress_ols         = gf_regress_ols_rowmajor;
-            gf_regress_ols_se      = gf_regress_ols_seunw;
-            gf_regress_ols_robust  = gf_regress_ols_robust_rowmajor;
-            gf_regress_ols_cluster = gf_regress_ols_cluster_rowmajor;
-        }
-        if ( kabs || st_info->gregress_saveghdfe ) {
-            sf_errprintf("neither absorb() nor hdfe() are not allowed with option -rowmajor-");
-            rc = 198;
-            goto exit;
-        }
-        if ( ivreg ) {
-            sf_errprintf("IV is not allowed with option -rowmajor-");
-            rc = 198;
-            goto exit;
-        }
-    }
-    else {
+    // assign correct functions to run based on weights/models
+    {
         sf_regress_read = sf_regress_read_colmajor;
         if ( st_info->wcode > 0 || poisson ) {
             gf_regress_ols         = gf_regress_ols_wcolmajor;

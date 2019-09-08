@@ -231,7 +231,6 @@ gen x4 = runiform()
 gen x1 = x3 + runiform()
 gen x2 = x4 + runiform()
 gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal()
-gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
 timer clear
 timer on 1

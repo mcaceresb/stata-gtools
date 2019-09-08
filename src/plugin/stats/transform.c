@@ -49,6 +49,19 @@ void gf_stats_transform_moving(
     ST_double upper
 );
 
+void gf_stats_transform_cumsum(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    ST_double *cbuffer,
+    GT_size   nj,
+    GT_size   sign,
+    GT_size   start,
+    GT_size   end,
+    GT_bool   aweights,
+    ST_double *sbuffer,
+    ST_double *output
+);
+
 void gf_stats_transform_rank(
     ST_double *buffer,
     ST_double *wbuffer,
@@ -104,7 +117,8 @@ ST_retcode sf_read_transform (
     struct StataInfo *st_info,
     ST_double *transform,
     ST_double *weights,
-    ST_double *intvars
+    ST_double *intvars,
+    ST_double *cumvars
 );
 
 ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
@@ -120,14 +134,15 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
      *********************************************************************/
 
     ST_retcode rc = 0;
-    GT_size i, j, k, l, nj, spos, start, end;
-    ST_double scode, tcode, *dblptr, *wgtptr, *intptr;
+    GT_size i, j, k, l, m, nj, spos, start, end, cstart, cend, ck;
+    ST_double scode, tcode, *dblptr, *wgtptr, *intptr, *cumptr;
 
     GT_size kvars     = st_info->kvars_by;
     GT_size ksources  = st_info->transform_kvars;
     GT_size ktargets  = st_info->transform_ktargets;
     GT_size kgstats   = st_info->transform_kgstats;
     GT_size krange    = st_info->transform_range_k;
+    GT_size kcumby    = st_info->transform_cumk;
     GT_size koffset   = kvars + ksources + ktargets;
     GT_size wpos      = st_info->wpos;
     GT_size nj_max    = st_info->info[1] - st_info->info[0];
@@ -139,12 +154,14 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
     GT_bool weights  = st_info->wcode > 0;
     GT_bool aweights = (st_info->wcode == 1);
     GT_bool range    = (krange > 0);
+    GT_bool cumby    = (kcumby > 0);
 
     for (j = 1; j < J; j++) {
         if (nj_max < (st_info->info[j + 1] - st_info->info[j]))
             nj_max = (st_info->info[j + 1] - st_info->info[j]);
     }
 
+    ST_double *gsrc_cumvars = calloc(cumby? (greedy? (kcumby * Nread): nj_max): 1, sizeof *gsrc_cumvars);
     ST_double *gsrc_intvars = calloc(range? (greedy? (krange * Nread): nj_max): 1, sizeof *gsrc_intvars);
     GT_int    *gsrc_indeces = calloc(range? 2 * nj_max: 1,         sizeof *gsrc_indeces);
     ST_double *gsrc_vars    = calloc(greedy?  (ksources  * Nread): 1, sizeof *gsrc_vars);
@@ -157,6 +174,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
     ST_double *gsrc_stats   = calloc(kgstats,  sizeof *gsrc_stats);
     GT_size   *gsrc_kstats  = calloc(ktargets, sizeof *gsrc_kstats);
 
+    if ( gsrc_cumvars == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_cumvars"));
     if ( gsrc_intvars == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_intvars"));
     if ( gsrc_indeces == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_indeces"));
     if ( gsrc_vars    == NULL ) return(sf_oom_error("sf_stats_transform", "gsrc_vars"));
@@ -188,7 +206,11 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
         if ( greedy ) {
 
             // read stuff from stata in order; way faster
-            if ( (rc = sf_read_transform (st_info, gsrc_vars, gsrc_weight, gsrc_intvars)) ) goto exit;
+            if ( (rc = sf_read_transform (st_info,
+                                          gsrc_vars,
+                                          gsrc_weight,
+                                          gsrc_intvars,
+                                          gsrc_cumvars)) ) goto exit;
 
             if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\ttransform step 2: copied sources in order");
@@ -197,13 +219,28 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
             dblptr = gsrc_vars;
             wgtptr = gsrc_weight;
             intptr = gsrc_intvars;
+            cumptr = gsrc_cumvars;
             for (j = 0; j < J; j++) {
                 start  = st_info->info[j];
                 end    = st_info->info[j + 1];
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    if ( tcode == -6 ) {
+                    if ( tcode == -7 ) {
+                        gf_stats_transform_cumsum(
+                            dblptr,
+                            wgtptr,
+                            cumptr + nj * st_info->transform_cumvars[k],
+                            nj,
+                            st_info->transform_cumsign[k],
+                            st_info->transform_cumvars[k],
+                            st_info->transform_cumvars[k + 1],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -6 ) {
                         gf_stats_transform_rank(
                             dblptr,
                             wgtptr,
@@ -266,6 +303,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                 }
                 wgtptr += nj;
                 if ( range ) intptr += nj * krange;
+                if ( cumby ) cumptr += nj * kcumby;
             }
 
             if ( st_info->benchmark > 1 )
@@ -296,6 +334,9 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 
             // but the rest are read by group in not a particularly efficient fashion
             for (k = 0; k < ktargets; k++) {
+                cstart = st_info->transform_cumvars[k] + krange;
+                cend   = st_info->transform_cumvars[k + 1] + krange;
+                ck     = cend - cstart;
                 l      = st_info->transform_range_pos[k];
                 tcode  = st_info->transform_varfuns[k];
                 wgtptr = gsrc_weight;
@@ -305,10 +346,22 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     nj     = end - start;
                     dblptr = gsrc_buffer;
                     intptr = gsrc_intvars;
+                    cumptr = gsrc_cumvars;
                     if ( range ) {
                         for (i = start; i < end; i++, dblptr++, intptr++) {
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                             if ( (rc = SF_vdata(koffset + l,   st_info->index[i] + st_info->in1, intptr)) ) goto exit;
+                            for (m = cstart; m < cend; m++, cumptr++) {
+                                if ( (rc = SF_vdata(koffset + m + 1, st_info->index[i] + st_info->in1, cumptr)) ) goto exit;
+                            }
+                        }
+                    }
+                    else if ( ck ) {
+                        for (i = start; i < end; i++, dblptr++) {
+                            if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                            for (m = cstart; m < cend; m++, cumptr++) {
+                                if ( (rc = SF_vdata(koffset + m + 1, st_info->index[i] + st_info->in1, cumptr)) ) goto exit;
+                            }
                         }
                     }
                     else {
@@ -316,7 +369,21 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                         }
                     }
-                    if ( tcode == -6 ) {
+                    if ( tcode == -7 ) {
+                        gf_stats_transform_cumsum(
+                            gsrc_buffer,
+                            wgtptr,
+                            gsrc_cumvars,
+                            nj,
+                            st_info->transform_cumsign[k],
+                            st_info->transform_cumvars[k],
+                            st_info->transform_cumvars[k + 1],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -6 ) {
                         gf_stats_transform_rank(
                             gsrc_buffer,
                             wgtptr,
@@ -393,7 +460,11 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
         if ( greedy ) {
 
             // read stuff from stata in order; way faster
-            if ( (rc = sf_read_transform (st_info, gsrc_vars, NULL, gsrc_intvars)) ) goto exit;
+            if ( (rc = sf_read_transform (st_info,
+                                          gsrc_vars,
+                                          NULL,
+                                          gsrc_intvars,
+                                          gsrc_cumvars)) ) goto exit;
 
             if ( st_info->benchmark > 1 )
                 sf_running_timer (&timer, "\ttransform step 2: copied sources in order");
@@ -401,13 +472,28 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
             // apply the transforms
             dblptr = gsrc_vars;
             intptr = gsrc_intvars;
+            cumptr = gsrc_cumvars;
             for (j = 0; j < J; j++) {
                 start  = st_info->info[j];
                 end    = st_info->info[j + 1];
                 nj     = end - start;
                 for (k = 0; k < ktargets; k++) {
                     tcode  = st_info->transform_varfuns[k];
-                    if ( tcode == -6 ) {
+                    if ( tcode == -7 ) {
+                        gf_stats_transform_cumsum(
+                            dblptr,
+                            NULL,
+                            cumptr + nj * st_info->transform_cumvars[k],
+                            nj,
+                            st_info->transform_cumsign[k],
+                            st_info->transform_cumvars[k],
+                            st_info->transform_cumvars[k + 1],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -6 ) {
                         gf_stats_transform_rank(
                             dblptr,
                             NULL,
@@ -462,6 +548,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     dblptr += nj;
                 }
                 if ( range ) intptr += nj * krange;
+                if ( cumby ) cumptr += nj * kcumby;
             }
 
             if ( st_info->benchmark > 1 )
@@ -478,18 +565,33 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 
             // all at once! lean memory use
             for (k = 0; k < ktargets; k++) {
-                l     = st_info->transform_range_pos[k];
-                tcode = st_info->transform_varfuns[k];
+                cstart = st_info->transform_cumvars[k] + krange;
+                cend   = st_info->transform_cumvars[k + 1] + krange;
+                ck     = cend - cstart;
+                l      = st_info->transform_range_pos[k];
+                tcode  = st_info->transform_varfuns[k];
                 for (j = 0; j < J; j++) {
                     start  = st_info->info[j];
                     end    = st_info->info[j + 1];
                     nj     = end - start;
                     dblptr = gsrc_buffer;
                     intptr = gsrc_intvars;
+                    cumptr = gsrc_cumvars;
                     if ( range ) {
                         for (i = start; i < end; i++, dblptr++, intptr++) {
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                             if ( (rc = SF_vdata(koffset + l,   st_info->index[i] + st_info->in1, intptr)) ) goto exit;
+                            for (m = cstart; m < cend; m++, cumptr++) {
+                                if ( (rc = SF_vdata(koffset + m + 1, st_info->index[i] + st_info->in1, cumptr)) ) goto exit;
+                            }
+                        }
+                    }
+                    else if ( ck ){
+                        for (i = start; i < end; i++, dblptr++) {
+                            if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
+                            for (m = cstart; m < cend; m++, cumptr++) {
+                                if ( (rc = SF_vdata(koffset + m + 1, st_info->index[i] + st_info->in1, cumptr)) ) goto exit;
+                            }
                         }
                     }
                     else {
@@ -497,7 +599,21 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(kvars + k + 1, st_info->index[i] + st_info->in1, dblptr)) ) goto exit;
                         }
                     }
-                    if ( tcode == -6 ) {
+                    if ( tcode == -7 ) {
+                        gf_stats_transform_cumsum(
+                            gsrc_buffer,
+                            NULL,
+                            gsrc_cumvars,
+                            nj,
+                            st_info->transform_cumsign[k],
+                            st_info->transform_cumvars[k],
+                            st_info->transform_cumvars[k + 1],
+                            aweights,
+                            gsrc_sbuffer,
+                            gsrc_output
+                        );
+                    }
+                    else if ( tcode == -6 ) {
                         gf_stats_transform_rank(
                             gsrc_buffer,
                             NULL,
@@ -566,6 +682,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 
 exit:
 
+    free (gsrc_cumvars);
     free (gsrc_intvars);
     free (gsrc_indeces);
     free (gsrc_vars);
@@ -595,6 +712,7 @@ ST_retcode gf_stats_transform_check (
     if ( (tcode == -4) & (kstats != 0) ) return(18301);
     if ( (tcode == -5) & (kstats != 0) ) return(18301);
     if ( (tcode == -6) & (kstats != 0) ) return(18301);
+    if ( (tcode == -7) & (kstats != 0) ) return(18301);
     return (0);
 }
 
@@ -650,6 +768,7 @@ void gf_stats_transform_apply (
     // moving stat implemented sepparately in gf_stats_transform_moving
     // range stat implemented sepparately in gf_stats_transform_range
     // rank stat implemented sepparately in gf_stats_transform_rank
+    // cumsum stat implemented sepparately in gf_stats_transform_cumsum
 }
 
 /*********************************************************************
@@ -1756,6 +1875,234 @@ void gf_stats_transform_range_sort(
 }
 
 /*********************************************************************
+ *                          Cummulative Sum                          *
+ *********************************************************************/
+
+void gf_stats_transform_cumsum(
+    ST_double *buffer,
+    ST_double *wbuffer,
+    ST_double *cbuffer,
+    GT_size   nj,
+    GT_size   sign,
+    GT_size   start,
+    GT_size   end,
+    GT_bool   aweights,
+    ST_double *sbuffer,
+    ST_double *output)
+{
+    GT_size i, j, nonmiss, ksort;
+    ST_double *dblptr, *wgtptr, *ixptr;
+    GT_size invert[3]; invert[0] = 0; invert[1] = 0; invert[2] = 0;
+
+    // NOTE: sbuffer is 4 or 3, which fits cbuffer but only if it's a
+    // single var. Here we copy cum vars to sbuffer.
+
+    if ( sign == 0 ) {
+        // not sorted (which also means no vars to sort by)
+        if ( wbuffer != NULL ) {
+            i = 0;
+            while ( !(buffer[i] < SV_missval && wbuffer[i] < SV_missval) && (i < nj) ) {
+                buffer[i] = SV_missval;
+                i++;
+            }
+            j = i;
+            if ( i < nj ) {
+                buffer[i] *= wbuffer[i];
+            }
+
+            while ( ++i < nj ) {
+                if ( buffer[i] < SV_missval && wbuffer[i] < SV_missval ) {
+                    buffer[i] *= wbuffer[i];
+                    buffer[i] += buffer[j];
+                    j = i;
+                }
+                else {
+                    buffer[i] = SV_missval;
+                }
+            }
+        }
+        else {
+            i = 0;
+            while ( !(buffer[i] < SV_missval) && (i < nj) ) {
+                i++;
+            }
+            j = i;
+
+            while ( ++i < nj ) {
+                if ( buffer[i] < SV_missval ) {
+                    buffer[i] += buffer[j];
+                    j = i;
+                }
+            }
+        }
+    }
+    else {
+        // if sign == 1 or sign == 2, must sort in ascending or descending order
+        nonmiss = 0;
+        if ( start == end ) {
+            // sort by variable itself
+            if ( wbuffer != NULL ) {
+                ksort = 3;
+                for (i = 0; i < nj; i++) {
+                    if ( buffer[i] < SV_missval && wbuffer[i] < SV_missval ) {
+                        sbuffer[nonmiss * 3 + 0] = buffer[i];
+                        sbuffer[nonmiss * 3 + 1] = i;
+                        sbuffer[nonmiss * 3 + 2] = wbuffer[i];
+                        nonmiss++;
+                    }
+                    else {
+                        buffer[i] = SV_missval;
+                    }
+                }
+            }
+            else {
+                ksort = 2;
+                for (i = 0; i < nj; i++) {
+                    if ( buffer[i] < SV_missval ) {
+                        sbuffer[nonmiss * 2 + 0] = buffer[i];
+                        sbuffer[nonmiss * 2 + 1] = i;
+                        nonmiss++;
+                    }
+                    else {
+                        buffer[i] = SV_missval;
+                    }
+                }
+            }
+        }
+        else {
+            // sort by another variable (stored in cbuffer)
+            if ( wbuffer != NULL ) {
+                ksort = 4;
+                for (i = 0; i < nj; i++) {
+                    if ( buffer[i] < SV_missval && cbuffer[i] < SV_missval && wbuffer[i] < SV_missval ) {
+                        sbuffer[nonmiss * 4 + 0] = cbuffer[i];
+                        sbuffer[nonmiss * 4 + 1] = buffer[i];
+                        sbuffer[nonmiss * 4 + 2] = i;
+                        sbuffer[nonmiss * 4 + 3] = wbuffer[i];
+                        nonmiss++;
+                    }
+                    else {
+                        buffer[i] = SV_missval;
+                    }
+                }
+            }
+            else {
+                ksort = 3;
+                for (i = 0; i < nj; i++) {
+                    if ( buffer[i] < SV_missval && cbuffer[i] < SV_missval ) {
+                        sbuffer[nonmiss * 3 + 0] = cbuffer[i];
+                        sbuffer[nonmiss * 3 + 1] = buffer[i];
+                        sbuffer[nonmiss * 3 + 2] = i;
+                        nonmiss++;
+                    }
+                    else {
+                        buffer[i] = SV_missval;
+                    }
+                }
+            }
+        }
+
+        // these sorts are stable; you can do quicksort for the first
+        // set, and sort only from 0 to 1 in the second set, to do the
+        // non-stable (and presumably faster) version
+
+        if ( start == end ) {
+            // // sort by variable itself
+            // if ( sign == 1 ) {
+            //     // in ascending order
+            //     quicksort_bsd (
+            //         sbuffer,
+            //         nonmiss,
+            //         ksort * (sizeof *sbuffer),
+            //         xtileCompare,
+            //         NULL
+            //     );
+            // }
+            // else if ( sign == 2 ) {
+            //     // in descending order
+            //     quicksort_bsd (
+            //         sbuffer,
+            //         nonmiss,
+            //         ksort * (sizeof *sbuffer),
+            //         xtileCompareInvert,
+            //         NULL
+            //     );
+            // }
+            if ( sign == 2 ) {
+                invert[0] = 1;
+            }
+            MultiQuicksortDbl(
+                sbuffer,
+                nonmiss,
+                0,
+                1,
+                ksort * (sizeof *sbuffer),
+                invert
+            );
+        }
+        else {
+            // sort by another variable first
+            if ( sign == 2 ) {
+                invert[0] = invert[1] = 1;
+            }
+            MultiQuicksortDbl(
+                sbuffer,
+                nonmiss,
+                0,
+                2,
+                ksort * (sizeof *sbuffer),
+                invert
+            );
+        }
+
+        // now compute cumsum; note that we have dropped any case-wise
+        // missing values, so we don't need to check for that
+        if ( wbuffer != NULL ) {
+            if ( start == end ) {
+                dblptr = sbuffer;
+                wgtptr = sbuffer + 2;
+            }
+            else {
+                dblptr = sbuffer + 1;
+                wgtptr = sbuffer + 3;
+            }
+            if ( nonmiss > 0 ) {
+                *dblptr *= *wgtptr;
+                dblptr  += ksort;
+                wgtptr  += ksort;
+            }
+            for (i = 1; i < nonmiss; i++, dblptr += ksort, wgtptr += ksort) {
+                *dblptr *= *wgtptr;
+                *dblptr += *(dblptr - ksort);
+            }
+        }
+        else {
+            if ( start == end ) {
+                dblptr = sbuffer + ksort;
+            }
+            else {
+                dblptr = sbuffer + ksort + 1;
+            }
+            for (i = 1; i < nonmiss; i++, dblptr += ksort) {
+                *dblptr += *(dblptr - ksort);
+            }
+        }
+
+        // copy cumsum back in data order
+        if ( start == end ) {
+            dblptr = sbuffer;
+        }
+        else {
+            dblptr = sbuffer + 1;
+        }
+        ixptr = dblptr + 1;
+        for (i = 0; i < nonmiss; i++, dblptr += ksort, ixptr += ksort) {
+            buffer[(GT_size) *ixptr] = *dblptr;
+        }
+    }
+}
+
+/*********************************************************************
  *                            Rank values                            *
  *********************************************************************/
 
@@ -2408,13 +2755,15 @@ ST_retcode sf_read_transform (
     struct StataInfo *st_info,
     ST_double *transform,
     ST_double *weights,
-    ST_double *intvars)
+    ST_double *intvars,
+    ST_double *cumvars)
 {
 
     ST_retcode rc = 0;
     GT_size i, j, k, start, end, nj, sel;
     GT_bool wgt  = (weights != NULL);
     GT_size koff = st_info->kvars_by + st_info->transform_kvars + st_info->transform_ktargets;
+    GT_size kcum = koff + st_info->transform_range_k;
 
     GT_size *pos      = calloc(st_info->J,     sizeof *pos);
     GT_size *index_st = calloc(st_info->Nread, sizeof *index_st);
@@ -2451,6 +2800,13 @@ ST_retcode sf_read_transform (
             if ( (rc = SF_vdata(koff + k + 1,
                                 i + st_info->in1,
                                 intvars + sel + pos[j])) ) goto exit;
+        }
+        // NOTE: This assumes single-variable input, really
+        for (k = 0; k < st_info->transform_cumk; k++) {
+            sel = start * st_info->transform_cumk + nj * k;
+            if ( (rc = SF_vdata(kcum + k + 1,
+                                i + st_info->in1,
+                                cumvars + sel + pos[j])) ) goto exit;
         }
         if ( wgt ) {
             if ( (rc = SF_vdata(st_info->wpos,

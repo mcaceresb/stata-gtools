@@ -59,16 +59,18 @@ program define gegen, byable(onecall) rclass
     confirm name `name'
     gettoken fcn  0: 0, parse(" =(")
     gettoken args 0: 0, parse(" ,") match(par)
+    local fcn `fcn'
 
-    if ( "`fcn'"   == "total" ) local fcn sum
-    if ( "`fcn'"   == "var"   ) local fcn variance
-    if ( "`fcn'"   == "sem"   ) local fcn semean
-    if ( "`fcn'"   == "seb"   ) local fcn sebinomial
-    if ( "`fcn'"   == "sep"   ) local fcn sepoisson
-    if ( "`fcn'"   == "kurt"  ) local fcn kurtosis
-    if ( "`fcn'"   == "skew"  ) local fcn skewness
     if ( `"`par'"' != "("     ) exit 198
-    if ( "`fcn'"   == "sum"   ) local type `btype'
+    if ( `"`fcn'"'   == "total" ) local fcn sum
+    if ( `"`fcn'"'   == "var"   ) local fcn variance
+    if ( `"`fcn'"'   == "sem"   ) local fcn semean
+    if ( `"`fcn'"'   == "seb"   ) local fcn sebinomial
+    if ( `"`fcn'"'   == "sep"   ) local fcn sepoisson
+    if ( `"`fcn'"'   == "kurt"  ) local fcn kurtosis
+    if ( `"`fcn'"'   == "skew"  ) local fcn skewness
+    if ( `"`fcn'"'   == "sum"   ) local type `btype'
+    if ( regexm(`"`fcn'"', " ") ) local fcn: subinstr local fcn " " "|", all
 
     * Parse by call
     * -------------
@@ -78,35 +80,38 @@ program define gegen, byable(onecall) rclass
     * Pre-compiled functions
     * ----------------------
 
-    local funcs tag        ///
-                group      ///
-                total      ///
-                sum        ///
-                nansum     ///
-                mean       ///
-                geomean    ///
-                sd         ///
-                variance   ///
-                cv         ///
-                max        ///
-                min        ///
-                range      ///
-                count      ///
-                median     ///
-                iqr        ///
-                percent    ///
-                first      ///
-                last       ///
-                firstnm    ///
-                lastnm     ///
-                semean     ///
-                sebinomial ///
-                sepoisson  ///
-                nunique    ///
-                pctile     ///
-                select     ///
-                nmissing   ///
-                skewness   ///
+    local funcs tag          ///
+                group        ///
+                total        ///
+                sum          ///
+                nansum       ///
+                mean         ///
+                geomean      ///
+                sd           ///
+                variance     ///
+                cv           ///
+                max          ///
+                min          ///
+                range        ///
+                count        ///
+                median       ///
+                iqr          ///
+                percent      ///
+                first        ///
+                last         ///
+                firstnm      ///
+                lastnm       ///
+                semean       ///
+                sebinomial   ///
+                sepoisson    ///
+                nunique      ///
+                pctile       ///
+                select       ///
+                nmissing     ///
+                skewness     ///
+                gini         ///
+                gini|dropneg ///
+                gini|keepneg ///
                 kurtosis
 
     * gegen aliases for other gtools functions
@@ -135,9 +140,10 @@ program define gegen, byable(onecall) rclass
         exit _rc
     }
 
-    local moving = regexm(`"`fcn'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$")
-    local range  = regexm(`"`fcn'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$")
-    if ( `:list fcn in transforms' | `moving' | `range' ) {
+    local cumsum = regexm(`"`fcn'"', "^cumsum(.*)$")
+    local moving = regexm(`"`fcn'"', "^moving[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?$")
+    local range  = regexm(`"`fcn'"', "^range[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?[ |]*([^ ]+)?$")
+    if ( `:list fcn in transforms' | `moving' | `range' | `cumsum' ) {
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
@@ -889,36 +895,39 @@ program parse_target_type, rclass
         local retype_D double
     }
 
-    if ( "`fcn'" == "tag"        ) return local retype = "byte"
-    if ( "`fcn'" == "group"      ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "total"      ) return local retype = "double"
-    if ( "`fcn'" == "sum"        ) return local retype = "double"
-    if ( "`fcn'" == "nansum"     ) return local retype = "double"
-    if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "geomean"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "variance"   ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "cv"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "max"        ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "min"        ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "range"      ) return local retype = "`retype_D'"
-    if ( "`fcn'" == "select"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "count"      ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "median"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "iqr"        ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "percent"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "first"      ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "last"       ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "firstnm"    ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "lastnm"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "semean"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sebinomial" ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "nunique"    ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "nmissing"   ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "skewness"   ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "kurtosis"   ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "tag"          ) return local retype = "byte"
+    if ( "`fcn'" == "group"        ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "total"        ) return local retype = "double"
+    if ( "`fcn'" == "sum"          ) return local retype = "double"
+    if ( "`fcn'" == "nansum"       ) return local retype = "double"
+    if ( "`fcn'" == "mean"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "geomean"      ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sd"           ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "variance"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "cv"           ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "max"          ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "min"          ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "range"        ) return local retype = "`retype_D'"
+    if ( "`fcn'" == "select"       ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "count"        ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "median"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "iqr"          ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "percent"      ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "first"        ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "last"         ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "firstnm"      ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "lastnm"       ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "semean"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sebinomial"   ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sepoisson"    ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "pctile"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "nunique"      ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "nmissing"     ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "skewness"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "kurtosis"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini|dropneg" ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini|keepneg" ) return local retype = "`retype_B'"
 end
 
 capture program drop encode_vartype

@@ -49,6 +49,7 @@ the latest stable version.
 {p2col :{opt rank}}rank observations; use option {opt ties()} to specify how ties are handled{p_end}
 {p2col :{opt moving stat [# #]}}moving statistic {it:stat}; # specify the relative bounds ({help gstats transform##moving_format:see below}){p_end}
 {p2col :{opt range stat ...}}range statistic {it:stat} for observations within specified interval ({help gstats transform##interval_format:see below}){p_end}
+{p2col :{opt cumsum [+/- [varname]]}}cummulative sum, optionally ascending (+) or descending (-) (optionally +/- by varname){p_end}
 {p2colreset}{...}
 
 {p 4 4 2} {cmd:gstats moving} and {cmd:gstats range} are aliases for
@@ -94,6 +95,9 @@ assumed to be moving or range statistics, respectively. {cmd:moving} and
 {p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
 {p2col :{opt skewness}}Skewness{p_end}
 {p2col :{opt kurtosis}}Kurtosis{p_end}
+{p2col :{opt gini}}Gini coefficient (negative truncated to 0){p_end}
+{p2col :{opt gini dropneg}}Gini coefficient (negative values dropped){p_end}
+{p2col :{opt gini keepneg}}Gini coefficient (negative values kept; the user is responsible for the interpretation of the Gini in this case){p_end}
 {p2colreset}{...}
 
 {marker interval_format}{...}
@@ -179,6 +183,8 @@ is used.
 {synopt:{opt window(lower upper)}}Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
 {p_end}
 {synopt:{opt interval(#[stat] #[stat] [var])}}Interval for range statistics that don't specify their own interval.
+{p_end}
+{synopt:{opt cumby([+/- [varname]])}}Sort options for cumsum variables that don't specify their own.
 {p_end}
 {synopt:{opt ties(str)}}How to break ties for {opt rank}. {opt d:efault} assigns the average rank; {opt u:nique} breaks ties arbitrarily; {opt stableunique} breaks ties using the order values appear in the data; {opt f:ield} counts the number of values greater than; {opt t:rack} counts the number of values less than.
 {p_end}

@@ -89,3 +89,34 @@ gegen x1 = moving_mean(x) [fw = w], window(-2 2) by(g)
 gstats transform (moving mean -1 3) x2 = x [aw = w], by(g)
 gstats moving (sd -4 .) x3 = x (p75) x4 = x [pw = w / 7], by(g) window(-3 3)
 l
+
+* Cummulative sum
+* ---------------
+
+* Note that when no cumsum order is specified, the variable is summed in
+* the order it appears in the data. Further, the user can specify a sort
+* variable. In our examples below, the cummulative sum of x is computed
+* variously by the ascending or descending order of w and then x, or of
+* r and then x.
+
+clear
+set obs 20
+gen g = _n > 10
+gen x = mod(_n, 17)
+gen w = mod(_n, 7)
+gen r = mod(_n, 5)
+
+local c1 (cumsum -) x2 = x
+local c2 (cumsum +) x3 = x
+local c3 (cumsum - w) x4 = x
+local c4 (cumsum + w) x5 = x
+local c5 (cumsum) x6 = x
+
+gegen x1 = cumsum(x), by(g)
+gstats transform `c1' `c2' `c3' `c4' `c5', by(g) cumby(- r)
+l, sepby(g)
+
+* Naturally, if no sort variable is specified the cummulative sum is
+* computed in ascending or descending order of x. Last, note that in all
+* these examples, the cummulative sums were merged back correctly; that
+* is, the data sort order was preserved.

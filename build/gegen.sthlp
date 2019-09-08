@@ -76,6 +76,7 @@ to {cmd:gcollapse} except percent, nunique):
             {opth moving_stat(varname)} -> {help gstats transform}
             {opth range_stat(varname)}  -> {help gstats transform}
             {opth rank(varname)}        -> {help gstats transform}
+            {opth cumsum(varname)}      -> {help gstats transform}
             {opth winsor(varname)}      -> {help gstats winsor}
             {opth winsorize(varname)}   -> {help gstats winsor}
 
@@ -253,6 +254,15 @@ creates a constant (within {it:varlist}) containing the sum of {it:exp}
 treating missing as 0.  If {opt missing} is specified and all values in
 {it:exp} are missing, {it:newvar} is set to missing.  Also see
 {help gegen##mean():{bf:mean()}}.
+
+        {opth gini(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+        {opth gini|dropneg(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+        {opth gini|keepneg(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
+{pmore2}
+creates a constant (within varlist) containing the Gini coefficient of
+exp, truncating negative values to 0. {opt gini|dropneg} drops negative
+values, and {opt gini|keepneg} keeps negative values as is (the user
+is responsible for the interpretation of the Gini coefficient in this case).
 
 {marker description}{...}
 {title:Description}

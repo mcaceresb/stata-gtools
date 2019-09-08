@@ -169,6 +169,27 @@ ST_double gf_array_dnmissing_weighted (
     ST_double *w
 );
 
+ST_double gf_array_dgini_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dginidrop_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer
+);
+
+ST_double gf_array_dginikeep_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer
+);
+
 GT_bool gf_array_dsame_weighted (ST_double *v, ST_double *w, GT_size N);
 
 GT_bool gf_array_dsame_unweighted (ST_double *v, GT_size N);

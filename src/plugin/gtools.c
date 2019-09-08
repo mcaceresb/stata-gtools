@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sun Aug 25 12:38:58 EDT 2019
+ * Updated: Sun Sep  8 18:47:47 EDT 2019 
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.6.2
+ * Version: 1.6.3
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 25 Aug 2019
+ * @date 08 Sep 2019
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -514,10 +514,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             transform_range_k,
             transform_range_xs,
             transform_range_xb,
+            transform_cumk,
             gregress_kvars,
             gregress_cons,
-            gregress_rowmajor,
-            gregress_colmajor,
             gregress_robust,
             gregress_cluster,
             gregress_absorb,
@@ -716,11 +715,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_transform_range_k",     &transform_range_k)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_range_xs",    &transform_range_xs)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_transform_range_xb",    &transform_range_xb)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_transform_cumsum_k",    &transform_cumk)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_gregress_kvars",        &gregress_kvars)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_cons",         &gregress_cons)         )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gregress_rowmajor",     &gregress_rowmajor)     )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gregress_colmajor",     &gregress_colmajor)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_robust",       &gregress_robust)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_cluster",      &gregress_cluster)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_absorb",       &gregress_absorb)       )) goto exit;
@@ -843,6 +841,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sizeof st_info->transform_statmap
     );
 
+    st_info->transform_cumtypes = calloc(GTOOLS_PWMAX(transform_cumk,     1),     sizeof st_info->transform_cumtypes);
+    st_info->transform_cumsum   = calloc(GTOOLS_PWMAX(transform_ktargets, 1),     sizeof st_info->transform_cumsum);
+    st_info->transform_cumsign  = calloc(GTOOLS_PWMAX(transform_ktargets, 1),     sizeof st_info->transform_cumsign);
+    st_info->transform_cumvars  = calloc(GTOOLS_PWMAX(transform_ktargets, 1) + 1, sizeof st_info->transform_cumvars);
+
     st_info->transform_moving   = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving);
     st_info->transform_moving_l = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving_l);
     st_info->transform_moving_u = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving_u);
@@ -885,6 +888,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->transform_moving         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving"));
     if ( st_info->transform_moving_l       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_l"));
     if ( st_info->transform_moving_u       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_moving_u"));
+    if ( st_info->transform_cumtypes       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumtypes"));
+    if ( st_info->transform_cumsum         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumsum"));
+    if ( st_info->transform_cumsign        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumsign"));
+    if ( st_info->transform_cumvars        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumvars"));
 
     if ( st_info->transform_range          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
     if ( st_info->transform_range_pos      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
@@ -929,6 +936,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->transform_range_u")
     GTOOLS_GC_ALLOCATED("st_info->transform_range_ls")
     GTOOLS_GC_ALLOCATED("st_info->transform_range_us")
+    GTOOLS_GC_ALLOCATED("st_info->transform_cumtypes")
+    GTOOLS_GC_ALLOCATED("st_info->transform_cumsum")
+    GTOOLS_GC_ALLOCATED("st_info->transform_cumsign")
+    GTOOLS_GC_ALLOCATED("st_info->transform_cumvars")
 
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
@@ -1001,6 +1012,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_get_vector      ("__gtools_transform_range_u",   st_info->transform_range_u))   ) goto exit;
     if ( (rc = sf_get_vector      ("__gtools_transform_range_ls",  st_info->transform_range_ls))  ) goto exit;
     if ( (rc = sf_get_vector      ("__gtools_transform_range_us",  st_info->transform_range_us))  ) goto exit;
+
+    if ( (rc = sf_get_vector_int  ("__gtools_transform_cumtypes",  st_info->transform_cumtypes))  ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_transform_cumsum",    st_info->transform_cumsum))    ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_transform_cumsign",   st_info->transform_cumsign))   ) goto exit;
+    if ( (rc = sf_get_vector_size ("__gtools_transform_cumvars",   st_info->transform_cumvars))   ) goto exit;
 
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_clustyp", st_info->gregress_cluster_types)) ) goto exit;
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_abstyp",  st_info->gregress_absorb_types))  ) goto exit;
@@ -1147,11 +1163,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->transform_range_k     = transform_range_k;
     st_info->transform_range_xs    = transform_range_xs;
     st_info->transform_range_xb    = transform_range_xb;
+    st_info->transform_cumk        = transform_cumk;
 
     st_info->gregress_kvars        = gregress_kvars;
     st_info->gregress_cons         = gregress_cons;
-    st_info->gregress_rowmajor     = gregress_rowmajor;
-    st_info->gregress_colmajor     = gregress_colmajor;
     st_info->gregress_robust       = gregress_robust;
     st_info->gregress_cluster      = gregress_cluster;
     st_info->gregress_absorb       = gregress_absorb;
@@ -1287,8 +1302,6 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\n");
         sf_printf_debug("\tgregress_kvars:        "GT_size_cfmt"\n",  gregress_kvars       );
         sf_printf_debug("\tgregress_cons:         "GT_size_cfmt"\n",  gregress_cons        );
-        sf_printf_debug("\tgregress_rowmajor:     "GT_size_cfmt"\n",  gregress_rowmajor    );
-        sf_printf_debug("\tgregress_colmajor:     "GT_size_cfmt"\n",  gregress_colmajor    );
         sf_printf_debug("\tgregress_robust:       "GT_size_cfmt"\n",  gregress_robust      );
         sf_printf_debug("\tgregress_cluster:      "GT_size_cfmt"\n",  gregress_cluster     );
         sf_printf_debug("\tgregress_absorb:       "GT_size_cfmt"\n",  gregress_absorb      );
@@ -2429,6 +2442,10 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->transform_range_u);
         free (st_info->transform_range_ls);
         free (st_info->transform_range_us);
+        free (st_info->transform_cumtypes);
+        free (st_info->transform_cumsum);
+        free (st_info->transform_cumsign);
+        free (st_info->transform_cumvars);
         free (st_info->gregress_cluster_types);
         free (st_info->gregress_cluster_offsets);
         free (st_info->gregress_absorb_types);
@@ -2470,6 +2487,10 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->gregress_cluster_offsets")
         GTOOLS_GC_FREED("st_info->gregress_absorb_types")
         GTOOLS_GC_FREED("st_info->gregress_absorb_offsets")
+        GTOOLS_GC_FREED("st_info->transform_cumtypes")
+        GTOOLS_GC_FREED("st_info->transform_cumsum")
+        GTOOLS_GC_FREED("st_info->transform_cumsign")
+        GTOOLS_GC_FREED("st_info->transform_cumvars")
 
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")

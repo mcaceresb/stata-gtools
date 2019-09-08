@@ -32,26 +32,29 @@ ST_double gf_switch_fun_code_w (
     GT_bool   aw,
     ST_double *p_buffer)
 {
-         if ( fcode == -1   ) return (aw? vsum * vcount / wsum: vsum);                                // sum
-    else if ( fcode == -101 ) return (aw? vsum * vcount / wsum: vsum);                                // sum (keepmissing)
-    else if ( fcode == -2   ) return (wsum == 0? SV_missval: vsum / wsum);                            // mean
-    else if ( fcode == -3   ) return (gf_array_dsd_weighted       (v, N, w, vsum, wsum, vcount, aw)); // sd)
-    else if ( fcode == -4   ) return (gf_array_dmax_weighted      (v, N));                            // max
-    else if ( fcode == -5   ) return (gf_array_dmin_range         (v, 0, N));                         // min
-    else if ( fcode == -9   ) return (gf_array_diqr_weighted      (v, N, w, wsum, vcount, p_buffer)); // iqr
-    else if ( fcode == -15  ) return (gf_array_dsemean_weighted   (v, N, w, vsum, wsum, vcount, aw)); // semean
-    else if ( fcode == -16  ) return (gf_array_dsebinom_weighted  (v, N, w, vsum, wsum, vcount));     // sebinomial
-    else if ( fcode == -17  ) return (gf_array_dsepois_weighted   (v, N, w, vsum, wsum, vcount));     // sepoisson
-    else if ( fcode == -19  ) return (gf_array_dskew_weighted     (v, N, w, vsum, wsum, vcount));     // skewness
-    else if ( fcode == -20  ) return (gf_array_dkurt_weighted     (v, N, w, vsum, wsum, vcount));     // kurtosis
-    else if ( fcode == -21  ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum
-    else if ( fcode == -121 ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum (keepmissing)
-    else if ( fcode == -23  ) return (gf_array_dvar_weighted      (v, N, w, vsum, wsum, vcount, aw)); // variance
-    else if ( fcode == -24  ) return (gf_array_dcv_weighted       (v, N, w, vsum, wsum, vcount, aw)); // cv
-    else if ( fcode == -25  ) return (gf_array_drange_weighted    (v, N));                            // range
-    else if ( fcode == -26  ) return (gf_array_dgeomean_weighted  (v, N, w));                         // geomean
+         if ( fcode == -1    ) return (aw? vsum * vcount / wsum: vsum);                                // sum
+    else if ( fcode == -101  ) return (aw? vsum * vcount / wsum: vsum);                                // sum (keepmissing)
+    else if ( fcode == -2    ) return (wsum == 0? SV_missval: vsum / wsum);                            // mean
+    else if ( fcode == -3    ) return (gf_array_dsd_weighted       (v, N, w, vsum, wsum, vcount, aw)); // sd)
+    else if ( fcode == -4    ) return (gf_array_dmax_weighted      (v, N));                            // max
+    else if ( fcode == -5    ) return (gf_array_dmin_range         (v, 0, N));                         // min
+    else if ( fcode == -9    ) return (gf_array_diqr_weighted      (v, N, w, wsum, vcount, p_buffer)); // iqr
+    else if ( fcode == -15   ) return (gf_array_dsemean_weighted   (v, N, w, vsum, wsum, vcount, aw)); // semean
+    else if ( fcode == -16   ) return (gf_array_dsebinom_weighted  (v, N, w, vsum, wsum, vcount));     // sebinomial
+    else if ( fcode == -17   ) return (gf_array_dsepois_weighted   (v, N, w, vsum, wsum, vcount));     // sepoisson
+    else if ( fcode == -19   ) return (gf_array_dskew_weighted     (v, N, w, vsum, wsum, vcount));     // skewness
+    else if ( fcode == -20   ) return (gf_array_dkurt_weighted     (v, N, w, vsum, wsum, vcount));     // kurtosis
+    else if ( fcode == -21   ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum
+    else if ( fcode == -121  ) return (gf_array_drawsum_weighted   (v, N));                            // rawsum (keepmissing)
+    else if ( fcode == -23   ) return (gf_array_dvar_weighted      (v, N, w, vsum, wsum, vcount, aw)); // variance
+    else if ( fcode == -24   ) return (gf_array_dcv_weighted       (v, N, w, vsum, wsum, vcount, aw)); // cv
+    else if ( fcode == -25   ) return (gf_array_drange_weighted    (v, N));                            // range
+    else if ( fcode == -26   ) return (gf_array_dgeomean_weighted  (v, N, w));                         // geomean
+    else if ( fcode == -27   ) return (gf_array_dgini_weighted     (v, N, w, p_buffer));               // gini
+    else if ( fcode == -27.1 ) return (gf_array_dginidrop_weighted (v, N, w, p_buffer));               // gini dropneg
+    else if ( fcode == -27.2 ) return (gf_array_dginikeep_weighted (v, N, w, p_buffer));               // gini keepneg
     else {
-        return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                 // percentiles
+        return (gf_array_dquantile_weighted(v, N, w, fcode, wsum, vcount, p_buffer));                  // percentiles
     }
 }
 
@@ -893,6 +896,179 @@ ST_double gf_array_dnmissing_weighted (
     }
 
     return (_msum);
+}
+
+/**
+ * @brief Gini coefficient of enries in range of array
+ *
+ * See ./gtools_math.c:gf_array_dgini_range for notes on the Gini
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param N number of elements
+ * @param w vector of weights
+ * @param p_buffer
+ * @return Gini coefficient of the elements of @v from @start to @end
+ */
+ST_double gf_array_dgini_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer)
+{
+    GT_size i;
+    ST_double *vptr = v;
+    ST_double *wptr = w;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+    GT_size   nobs  = 0;
+
+    p_buffer[0] = p_buffer[1] = 0;
+    for (i = 1; i < N + 1; i++, vptr++, wptr++) {
+        p_buffer[2 * i]     = *vptr;
+        p_buffer[2 * i + 1] = *wptr;
+    }
+
+    quicksort_bsd(
+        p_buffer + 2,
+        N,
+        2 * (sizeof *p_buffer),
+        xtileCompare,
+        NULL
+    );
+
+    // truncate negative income to 0
+    vptr = p_buffer + 2;
+    wptr = p_buffer + 3;
+    while ( (*vptr < 0) && (nobs < N) ) {
+        ++nobs;
+        *wptr += *(wptr - 2);
+        vptr  += 2;
+        wptr  += 2;
+    }
+
+    // sum over non-negative income with the correct offset
+    // weight -> cum sum weights then differences of cum sum squared
+    while ( (*vptr < SV_missval) && (nobs < N) ) {
+        ++nobs;
+        vsum  += (*vptr) * (*wptr);
+        *wptr += *(wptr - 2);
+        ivsum += (*vptr) * ((*wptr) * (*wptr) - (*(wptr - 2)) * (*(wptr - 2)));
+        vptr  += 2;
+        wptr  += 2;
+    }
+
+    if ( nobs == 0 || vsum == 0 || (*(wptr - 2)) == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        return (((ivsum) / ((*(wptr - 2)) * vsum)) - 1);
+    }
+}
+
+ST_double gf_array_dginidrop_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer)
+{
+    GT_size i;
+    ST_double *vptr = v;
+    ST_double *wptr = w;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+    GT_size   nobs  = 0;
+
+    p_buffer[0] = p_buffer[1] = 0;
+    for (i = 1; i < N + 1; i++, vptr++, wptr++) {
+        p_buffer[2 * i]     = *vptr;
+        p_buffer[2 * i + 1] = *wptr;
+    }
+
+    quicksort_bsd(
+        p_buffer + 2,
+        N,
+        2 * (sizeof *p_buffer),
+        xtileCompare,
+        NULL
+    );
+
+    // drop negative income
+    vptr = p_buffer + 2;
+    wptr = p_buffer + 3;
+    while ( (*vptr < 0) && (nobs < N) ) {
+        ++nobs;
+        vptr  += 2;
+        wptr  += 2;
+    }
+
+    // initialize w_0 = 0
+    *(wptr - 2) = 0;
+
+    // sum over non-negative income with the correct offset
+    // weight -> cum sum weights then differences of cum sum squared
+    while ( (*vptr < SV_missval) && (nobs < N) ) {
+        ++nobs;
+        vsum  += (*vptr) * (*wptr);
+        *wptr += *(wptr - 2);
+        ivsum += (*vptr) * ((*wptr) * (*wptr) - (*(wptr - 2)) * (*(wptr - 2)));
+        vptr  += 2;
+        wptr  += 2;
+    }
+
+    if ( nobs == 0 || vsum == 0 || (*(wptr - 2)) == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        return (((ivsum) / ((*(wptr - 2)) * vsum)) - 1);
+    }
+}
+
+ST_double gf_array_dginikeep_weighted (
+    ST_double *v,
+    GT_size N,
+    ST_double *w,
+    ST_double *p_buffer)
+{
+    GT_size i;
+    ST_double *vptr = v;
+    ST_double *wptr = w;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+    GT_size   nobs  = 0;
+
+    p_buffer[0] = p_buffer[1] = 0;
+    for (i = 1; i < N + 1; i++, vptr++, wptr++) {
+        p_buffer[2 * i]     = *vptr;
+        p_buffer[2 * i + 1] = *wptr;
+    }
+
+    quicksort_bsd(
+        p_buffer + 2,
+        N,
+        2 * (sizeof *p_buffer),
+        xtileCompare,
+        NULL
+    );
+
+    // sum over all income with the correct offset
+    // weight -> cum sum weights then differences of cum sum squared
+    vptr = p_buffer + 2;
+    wptr = p_buffer + 3;
+    while ( (*vptr < SV_missval) && (nobs < N) ) {
+        ++nobs;
+        vsum  += (*vptr) * (*wptr);
+        *wptr += *(wptr - 2);
+        ivsum += (*vptr) * ((*wptr) * (*wptr) - (*(wptr - 2)) * (*(wptr - 2)));
+        vptr  += 2;
+        wptr  += 2;
+    }
+
+    if ( nobs == 0 || vsum == 0 || (*(wptr - 2)) == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        return (((ivsum) / ((*(wptr - 2)) * vsum)) - 1);
+    }
 }
 
 /**

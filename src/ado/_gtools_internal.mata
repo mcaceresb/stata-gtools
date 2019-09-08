@@ -90,7 +90,7 @@ void function GtoolsByLevels::read(string scalar numfmt, real scalar valuelabels
             kchar    = 0
             lens     = .
             map      = .
-            charpos  = . 
+            charpos  = .
         }
         fclose(fbycol)
 
@@ -1254,36 +1254,39 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
 {
     real scalar sth
     if ( pretty ) {
-        if ( scode ==  -1   )  return("Sum")                  // sum
-        if ( scode ==  -2   )  return("Mean")                 // mean
-        if ( scode ==  -26  )  return("Geometric mean")       // geomean
-        if ( scode ==  -3   )  return("St Dev.")              // sd
-        if ( scode ==  -4   )  return("Max")                  // max
-        if ( scode ==  -5   )  return("Min")                  // min
-        if ( scode ==  -6   )  return("Count")                // n
-        if ( scode ==  -7   )  return("Percent")              // percent
-        if ( scode ==  50   )  return("Median")               // median
-        if ( scode ==  -9   )  return("IQR")                  // iqr
-        if ( scode ==  -10  )  return("First")                // first
-        if ( scode ==  -11  )  return("First Non-Miss.")      // firstnm
-        if ( scode ==  -12  )  return("Last")                 // last
-        if ( scode ==  -13  )  return("Last Non-Miss.")       // lastnm
-        if ( scode ==  -14  )  return("Group size")           // freq
-        if ( scode ==  -15  )  return("SE Mean")              // semean
-        if ( scode ==  -16  )  return("SE Mean (Binom)")      // sebinomial
-        if ( scode ==  -17  )  return("SE Mean (Pois)")       // sepoisson
-        if ( scode ==  -18  )  return("N Unique")             // nunique
-        if ( scode ==  -19  )  return("Skewness")             // skewness
-        if ( scode ==  -20  )  return("Kurtosis")             // kurtosis
-        if ( scode ==  -21  )  return("Unweighted sum")       // rawsum
-        if ( scode ==  -22  )  return("N Missing")            // nmissing
-        if ( scode ==  -23  )  return("Variance")             // variance
-        if ( scode ==  -24  )  return("Coef. of variation")   // cv
-        if ( scode ==  -25  )  return("Range")                // range
-        if ( scode ==  -101 )  return("Sum")                  // nansum
-        if ( scode ==  -121 )  return("Unweighted sum")       // rawnansum
-        if ( scode ==  -206 )  return("Sum Wgt.")             // sum_w
-        if ( scode ==  -203 )  return("Variance")             // variance
+        if ( scode ==  -1    ) return("Sum")                         // sum
+        if ( scode ==  -2    ) return("Mean")                        // mean
+        if ( scode ==  -26   ) return("Geometric mean")              // geomean
+        if ( scode ==  -3    ) return("St Dev.")                     // sd
+        if ( scode ==  -4    ) return("Max")                         // max
+        if ( scode ==  -5    ) return("Min")                         // min
+        if ( scode ==  -6    ) return("Count")                       // n
+        if ( scode ==  -7    ) return("Percent")                     // percent
+        if ( scode ==  50    ) return("Median")                      // median
+        if ( scode ==  -9    ) return("IQR")                         // iqr
+        if ( scode ==  -10   ) return("First")                       // first
+        if ( scode ==  -11   ) return("First Non-Miss.")             // firstnm
+        if ( scode ==  -12   ) return("Last")                        // last
+        if ( scode ==  -13   ) return("Last Non-Miss.")              // lastnm
+        if ( scode ==  -14   ) return("Group size")                  // freq
+        if ( scode ==  -15   ) return("SE Mean")                     // semean
+        if ( scode ==  -16   ) return("SE Mean (Binom)")             // sebinomial
+        if ( scode ==  -17   ) return("SE Mean (Pois)")              // sepoisson
+        if ( scode ==  -18   ) return("N Unique")                    // nunique
+        if ( scode ==  -19   ) return("Skewness")                    // skewness
+        if ( scode ==  -20   ) return("Kurtosis")                    // kurtosis
+        if ( scode ==  -21   ) return("Unweighted sum")              // rawsum
+        if ( scode ==  -22   ) return("N Missing")                   // nmissing
+        if ( scode ==  -23   ) return("Variance")                    // variance
+        if ( scode ==  -24   ) return("Coef. of variation")          // cv
+        if ( scode ==  -25   ) return("Range")                       // range
+        if ( scode ==  -101  ) return("Sum")                         // nansum
+        if ( scode ==  -121  ) return("Unweighted sum")              // rawnansum
+        if ( scode ==  -206  ) return("Sum Wgt.")                    // sum_w
+        if ( scode ==  -203  ) return("Variance")                    // variance
+        if ( scode ==  -27   ) return("Gini Coefficient")            // gini
+        if ( scode ==  -27.1 ) return("Gini Coefficient (drop neg)") // gini|dropneg
+        if ( scode ==  -27.2 ) return("Gini Coefficient (keep neg)") // gini|keepneg
 
         if ( scode > 1000 ) {
             sth = floor(scode) - 1000
@@ -1311,36 +1314,39 @@ string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
         }
     }
     else {
-        if ( scode ==  -1   ) return("sum")
-        if ( scode ==  -2   ) return("mean")
-        if ( scode ==  -26  ) return("geomean")
-        if ( scode ==  -3   ) return("sd")
-        if ( scode ==  -4   ) return("max")
-        if ( scode ==  -5   ) return("min")
-        if ( scode ==  -6   ) return("n")
-        if ( scode ==  -7   ) return("percent")
-        if ( scode ==  50   ) return("median")
-        if ( scode ==  -9   ) return("iqr")
-        if ( scode ==  -10  ) return("first")
-        if ( scode ==  -11  ) return("firstnm")
-        if ( scode ==  -12  ) return("last")
-        if ( scode ==  -13  ) return("lastnm")
-        if ( scode ==  -14  ) return("freq")
-        if ( scode ==  -15  ) return("semean")
-        if ( scode ==  -16  ) return("sebinomial")
-        if ( scode ==  -17  ) return("sepoisson")
-        if ( scode ==  -18  ) return("nunique")
-        if ( scode ==  -19  ) return("skewness")
-        if ( scode ==  -20  ) return("kurtosis")
-        if ( scode ==  -21  ) return("rawsum")
-        if ( scode ==  -22  ) return("nmissing")
-        if ( scode ==  -23  ) return("variance")
-        if ( scode ==  -24  ) return("cv")
-        if ( scode ==  -25  ) return("range")
-        if ( scode ==  -101 ) return("nansum")
-        if ( scode ==  -121 ) return("rawnansum")
-        if ( scode ==  -206 ) return("sum_w")
-        if ( scode ==  -203 ) return("variance")
+        if ( scode ==  -1    ) return("sum")
+        if ( scode ==  -2    ) return("mean")
+        if ( scode ==  -26   ) return("geomean")
+        if ( scode ==  -3    ) return("sd")
+        if ( scode ==  -4    ) return("max")
+        if ( scode ==  -5    ) return("min")
+        if ( scode ==  -6    ) return("n")
+        if ( scode ==  -7    ) return("percent")
+        if ( scode ==  50    ) return("median")
+        if ( scode ==  -9    ) return("iqr")
+        if ( scode ==  -10   ) return("first")
+        if ( scode ==  -11   ) return("firstnm")
+        if ( scode ==  -12   ) return("last")
+        if ( scode ==  -13   ) return("lastnm")
+        if ( scode ==  -14   ) return("freq")
+        if ( scode ==  -15   ) return("semean")
+        if ( scode ==  -16   ) return("sebinomial")
+        if ( scode ==  -17   ) return("sepoisson")
+        if ( scode ==  -18   ) return("nunique")
+        if ( scode ==  -19   ) return("skewness")
+        if ( scode ==  -20   ) return("kurtosis")
+        if ( scode ==  -21   ) return("rawsum")
+        if ( scode ==  -22   ) return("nmissing")
+        if ( scode ==  -23   ) return("variance")
+        if ( scode ==  -24   ) return("cv")
+        if ( scode ==  -25   ) return("range")
+        if ( scode ==  -101  ) return("nansum")
+        if ( scode ==  -121  ) return("rawnansum")
+        if ( scode ==  -206  ) return("sum_w")
+        if ( scode ==  -203  ) return("variance")
+        if ( scode ==  -27   ) return("gini")
+        if ( scode ==  -27.1 ) return("gini|dropneg")
+        if ( scode ==  -27.2 ) return("gini|keepneg")
         if ( scode > 1000 ) {
             sth = floor(scode) - 1000
             if ( floor(scode) == ceil(scode) ) {

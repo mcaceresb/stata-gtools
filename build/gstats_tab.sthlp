@@ -318,6 +318,9 @@ The following data is stored {opt GstatsOutput}:
 {synopt:{space 4}{opt sep:oisson}} standard error of the mean, Poisson ({cmd:sqrt(mean)}){p_end}
 {synopt:{space 4}{opt sk:ewness}} skewness{p_end}
 {synopt:{space 4}{opt k:urtosis}} kurtosis{p_end}
+{synopt:{space 4}{opt gini}}Gini coefficient (negative truncated to 0){p_end}
+{synopt:{space 4}{opt gini|dropneg}}Gini coefficient (negative values dropped){p_end}
+{synopt:{space 4}{opt gini|keepneg}}Gini coefficient (negative values kept; the user is responsible for the interpretation of the Gini in this case){p_end}
 {space 4}{synoptline}
 {p2colreset}{...}
 

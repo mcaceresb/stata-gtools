@@ -90,7 +90,7 @@ Options
 Remarks
 -------
 
-`gregress` estimates a linear IV model via 2SLS, optionally weighted,
+`givregress` estimates a linear IV model via 2SLS, optionally weighted,
 by group, with cluster SE, and/or with multi-way high-dimensional fixed
 effects.  The results are by default saved into a mata object (default
 `GtoolsIV`).  Run `mata GtoolsIV.desc()` for details; the following data
@@ -189,7 +189,7 @@ Examples
 --------
 
 You can download the raw code for the examples below
-[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gregress.do)
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/givregress.do)
 
 ### Showcase
 
@@ -222,23 +222,22 @@ gen x4 = runiform()
 gen x1 = x3 + runiform()
 gen x2 = x4 + runiform()
 gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal()
-gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
-timer on 9
+timer on 1
 givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) mata(greg)
-timer off 9
+timer off 1
 mata greg.b', greg.se'
-timer on 10
+timer on 2
 ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3)
-timer off 10
+timer off 2
 
-timer on 11
+timer on 3
 givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4) mata(greg)
-timer off 11
+timer off 3
 mata greg.b', greg.se'
-timer on 12
+timer on 4
 ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4)
-timer off 12
+timer off 4
 
 timer list
 

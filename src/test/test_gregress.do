@@ -6,18 +6,13 @@ program checks_gregress
     gen w = _n
     gegen headcode = group(headroom)
 
-    foreach v in v1 v2 v3 v4 v5 v6 v7 v8 {
+    foreach v in v1 v2 vv5 v7 {
         disp "greg checks `v'"
         local w
         local r
 
         if ( "`v'" == "v2" ) local w [fw = w]
         if ( "`v'" == "v4" ) local w [fw = w]
-
-        if ( "`v'" == "v3" ) local r rowmajor
-        if ( "`v'" == "v4" ) local r rowmajor
-        if ( "`v'" == "v6" ) local r rowmajor
-        if ( "`v'" == "v8" ) local r rowmajor
 
         if ( "`v'" == "v5" ) local w [aw = w]
         if ( "`v'" == "v6" ) local w [aw = w]
@@ -46,11 +41,6 @@ program checks_gregress
             qui reg price mpg if foreign == 1 `w', cluster(headcode)
             mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[2, .]) :< `tol'))
             mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[2, .]) :< `tol'))
-
-        if ( "`v'" == "v3" ) continue
-        if ( "`v'" == "v4" ) continue
-        if ( "`v'" == "v6" ) continue
-        if ( "`v'" == "v8" ) continue
 
         qui greg price mpg `w', absorb(rep78)
             qui areg price mpg `w', absorb(rep78)
@@ -308,17 +298,13 @@ disp _skip(8) "check 9"
     expand 2
     gen by = 1.5 - (_n < _N / 2)
     gen w = _n
-    foreach v in v1 v2 v3 v4 v5 v6 {
+    foreach v in v1 v2 v5 {
         disp "poisson checks `v'"
         local w
         local r
 
         if ( "`v'" == "v2" ) local w [fw = w]
         if ( "`v'" == "v4" ) local w [fw = w]
-
-        if ( "`v'" == "v3" ) local r rowmajor
-        if ( "`v'" == "v4" ) local r rowmajor
-        if ( "`v'" == "v6" ) local r rowmajor
 
         if ( "`v'" == "v5" ) local w [pw = w]
         if ( "`v'" == "v6" ) local w [pw = w]
@@ -366,10 +352,6 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4], t[2, cols(t)]
             mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
-
-        if ( "`v'" == "v3" ) continue
-        if ( "`v'" == "v4" ) continue
-        if ( "`v'" == "v6" ) continue
 
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) r
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', r
@@ -476,32 +458,14 @@ disp _skip(8) "check 9"
     gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
     gen w = int(50 * runiform())
 
-    greg y x1 x2 x3 x4, colmajor mata(r1)
-    greg y x1 x2 x3 x4, rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4, r colmajor mata(r1)
-    greg y x1 x2 x3 x4, r rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4, cluster(g) colmajor mata(r1)
-    greg y x1 x2 x3 x4, cluster(g) rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4, mata(r1)
+    greg y x1 x2 x3 x4, r mata(r1)
+    greg y x1 x2 x3 x4, cluster(g) mata(r1)
     greg y x1 x2 x3 x4, absorb(g)
 
-    greg y x1 x2 x3 x4 [fw = w], colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4 [fw = w], r colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], r rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4 [fw = w], cluster(g) colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], cluster(g) rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+    greg y x1 x2 x3 x4 [fw = w], mata(r1)
+    greg y x1 x2 x3 x4 [fw = w], r mata(r1)
+    greg y x1 x2 x3 x4 [fw = w], cluster(g) mata(r1)
     greg y x1 x2 x3 x4 [fw = w], absorb(g)
 
     * ------------------------------------------------------------------------
@@ -520,16 +484,10 @@ disp _skip(8) "check 9"
         }
         gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
 
-        greg y x*, colmajor mata(r1)
-        greg y x*, rowmajor mata(r2)
-            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+        greg y x*, mata(r1)
 
         * Fairly slow...
-        greg y x*, colmajor cluster(g) mata(r1)
-        greg y x*, rowmajor cluster(g) mata(r2)
-            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
+        greg y x*, cluster(g) mata(r1)
     }
 
     * ------------------------------------------------------------------------

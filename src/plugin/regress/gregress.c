@@ -81,16 +81,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             nj_max = (st_info->info[j + 1] - st_info->info[j]);
     }
 
-    ST_double *y  = calloc(N,       sizeof *y);
-    ST_double *X  = calloc(N * kx,  sizeof *X);
-    ST_double *e  = calloc(nj_max,  sizeof *e);
-    ST_double *Xy = calloc(kx,      sizeof *Xy);
-    ST_double *b  = calloc(J * kx,  sizeof *b);
-    ST_double *se = calloc(J * kx,  sizeof *se);
-    ST_double *XX = calloc(kx * kx, sizeof *XX);
-    ST_double *V  = calloc(kx * kx, sizeof *V);
-    ST_double *VV = calloc(kx * kx, sizeof *VV);
-    GT_size   *nj = calloc(J,       sizeof *nj);
+    ST_double *y  = calloc(N,           sizeof *y);
+    ST_double *X  = calloc(N * kx,      sizeof *X);
+    ST_double *e  = calloc(nj_max,      sizeof *e);
+    ST_double *Xy = calloc(kx,          sizeof *Xy);
+    ST_double *b  = calloc(J * kx,      sizeof *b);
+    ST_double *se = calloc(J * kx,      sizeof *se);
+    ST_double *XX = calloc(4 * kx * kx, sizeof *XX);
+    ST_double *V  = calloc(kx * kx,     sizeof *V);
+    ST_double *VV = calloc(kx * kx,     sizeof *VV);
+    GT_size   *nj = calloc(J,           sizeof *nj);
 
     ST_double *BZ = calloc(ivreg? (ivkz + ivkexog) * ivkendog: 1, sizeof *BZ);
     ST_double *PZ = calloc(ivreg? nj_max * ivkendog: 1, sizeof *PZ);

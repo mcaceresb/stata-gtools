@@ -40,6 +40,9 @@
 // Largest 64-bit signed integer
 #define GTOOLS_BIJECTION_LIMIT 9223372036854775807LL
 
+// Machine epsilon
+#define GTOOLS_64BIT_EPSILON 2.22e-16
+
 // Libraries
 #include <math.h>
 #include <time.h>

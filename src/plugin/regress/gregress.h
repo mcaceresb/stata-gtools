@@ -90,6 +90,12 @@ ST_retcode gf_regress_notidentified (
 
 ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K);
 
+void gf_regress_linalg_dsyqr (ST_double *A, GT_size N, ST_double *QR);
+void gf_regress_linalg_dsyhh (ST_double *a, GT_size N, GT_size offset, ST_double *H);
+
+ST_double gf_regress_linalg_ddot  (ST_double *a, GT_size N);
+ST_double gf_regress_linalg_dnorm (ST_double *a, GT_size N);
+
 // Finite sample adjustment
 // ------------------------
 

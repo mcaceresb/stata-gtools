@@ -23,6 +23,7 @@ void gf_regress_iv_unw(
     // Run the first stage; note that in memory, [Xendog Xexog Z]
 
     gf_regress_linalg_dsymm_colmajor  (Xexog, Xexog, XX, N, kx_fs);          // [Xexog Z]' [Xexog Z] -> XX
+    gf_regress_linalg_dsyqr           (XX, kx_fs, XX + kx_fs * kx_fs);       // collinearity check
     gf_regress_linalg_dsysv           (XX, kx_fs);                           // XX -> XX^-1
     gf_regress_linalg_dgemTm_colmajor (Xexog, Xendog, PZ, N, kx_fs, kendog); // [Xexog Z]' X -> PZ
     gf_regress_linalg_dgemTm_colmajor (XX, PZ, BZ, kx_fs, kx_fs, kendog);    // XX PZ -> BZ
@@ -36,6 +37,7 @@ void gf_regress_iv_unw(
     // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
 
     gf_regress_linalg_dsymm_colmajor  (Xendog, Xendog, XX, N, kx_ss);
+    gf_regress_linalg_dsyqr           (XX, kx_ss, XX + kx_ss * kx_ss);
     gf_regress_linalg_dsysv           (XX, kx_ss);
     gf_regress_linalg_dgemTv_colmajor (Xendog, y, BZ, N, kx_ss);
     gf_regress_linalg_dgemTv_colmajor (XX, BZ, b, kx_ss, kx_ss);
@@ -68,6 +70,7 @@ void gf_regress_iv_w(
     // Run the first stage; note that in memory, [Xendog Xexog Z]
 
     gf_regress_linalg_dsymm_wcolmajor  (Xexog, Xexog, XX, w, N, kx_fs);          // [Xexog Z]' W [Xexog Z] -> XX
+    gf_regress_linalg_dsyqr            (XX, kx_fs, XX + kx_fs * kx_fs);          // collinearity check
     gf_regress_linalg_dsysv            (XX, kx_fs);                              // XX -> XX^-1
     gf_regress_linalg_dgemTm_wcolmajor (Xexog, Xendog, PZ, w, N, kx_fs, kendog); // [Xexog Z]' W X -> PZ
     gf_regress_linalg_dgemTm_colmajor  (XX, PZ, BZ, kx_fs, kx_fs, kendog);       // XX PZ -> BZ
@@ -81,6 +84,7 @@ void gf_regress_iv_w(
     // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
 
     gf_regress_linalg_dsymm_wcolmajor  (Xendog, Xendog, XX, w, N, kx_ss);
+    gf_regress_linalg_dsyqr            (XX, kx_ss, XX + kx_ss * kx_ss);
     gf_regress_linalg_dsysv            (XX, kx_ss);
     gf_regress_linalg_dgemTv_wcolmajor (Xendog, y, BZ, w, N, kx_ss);
     gf_regress_linalg_dgemTv_colmajor  (XX, BZ, b, kx_ss, kx_ss);
@@ -129,7 +133,7 @@ void gf_regress_linalg_iverror(
 //     }
 //         printf("\n");
 // }
-// 
+//
 //         printf("\n");
 // for (i = 0; i < kx_fs; i++) {
 //     for (j = 0; j < kendog; j++) {
@@ -137,7 +141,7 @@ void gf_regress_linalg_iverror(
 //     }
 //         printf("\n");
 // }
-// 
+//
 //         printf("\n");
 // for (i = 0; i < kx_fs; i++) {
 //     for (j = 0; j < kendog; j++) {
@@ -145,7 +149,7 @@ void gf_regress_linalg_iverror(
 //     }
 //         printf("\n");
 // }
-// 
+//
 //         printf("\n");
 // for (i = 0; i < N; i++) {
 //     for (j = 0; j < kendog; j++) {

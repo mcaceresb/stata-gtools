@@ -129,6 +129,9 @@ ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K)
     return (D);
 }
 
+// NOTE: You _could_ compute the inverse here and then set stuff to
+// 0...no, better do colix, though it will be annoying...
+
 /**
  * @brief Find the collinear rows of a matrix via QR decomposition
  *
@@ -140,72 +143,68 @@ ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K)
  */
 void gf_regress_linalg_dsyqr (ST_double *A, GT_size N, ST_double *QR)
 {
+    GT_size collinear;
     GT_size i, j;
     ST_double *rptr, rmax;
 
     // We don't need Q if we only care about collinearity
-    // ST_double *Q = QR;
-    // ST_double *qptr = Q + N * N;
     ST_double *R = QR;
     ST_double *H = QR + 2 * N * N;
 
     // Initialize R = A and Q = I
     memcpy(R, A, N * N * sizeof(ST_double));
-    // memset(Q, '\0', N * N * sizeof(ST_double));
-    // for (i = 0; i < N; i++) {
-    //     Q[i * N + i] = 1;
-    // }
-
-    // Rescale R by column so that numerical precision is not an
-    // issue. Note that rescaling columns individually does not impact
-    // collinearity.
-
-    // for (i = 0; i < N; i++) {
-    //     rptr = R + i * N;
-    //     rmax = rptr[0];
-    //     for (j = 1; j < N; j++) {
-    //         if ( rmax < rptr[j] ) rmax = rptr[j];
-    //     }
-    //     for (j = 0; j < N; j++) {
-    //         rptr[j] /= rmax;
-    //     }
-    // }
 
     // QR decomposition via Householder projections
     rptr = R + N * N;
     for (i = 0; i < N - 1; i++) {
+
+        // H = I
         memset(H, '\0', N * N * sizeof(ST_double));
         for (j = 0; j < i; j++) {
             H[j * N + j] = 1;
         }
 
+        // H[i::N, i::N] <- Householder using R[i::N, i]
         memcpy(rptr, R + i * N + i, (N - i) * sizeof(ST_double));
         gf_regress_linalg_dsyhh (rptr, N - i, i, H + i * N + i);
 
+        // R <- H * R
         gf_regress_linalg_dgemm_colmajor (H, R, rptr, N, N, N);
         memcpy(R, rptr, N * N * sizeof(ST_double));
-        // gf_regress_linalg_dsymm_colmajor (Q, H, qptr, N, N);
-        // memcpy(Q, qptr, N * N * sizeof(ST_double));
     }
 
-    // NOTE: How much should I worry about false positives?
+    // NOTE: How much should I worry about false positives? False
+    // negatives?  Should I try to compute the rank first? I mean, I
+    // will have to have _some_ tolerance either way _somewhere_...
 
-    // NOTE: Compute rank first? You will have _some_ tolerance either
-    // way... I worry this will miss sometimes
-
+    collinear = 0;
     for (i = 0; i < N; i++) {
+
+        // For each column a_i, we use tolerance = max(|a_i|) * N * eps,
+        // where eps is the 64-bit machine epsilon, 2^-52
+
         rptr = A + i * N;
         rmax = fabs(rptr[0]);
         for (j = 1; j < N; j++) {
             if ( rmax < fabs(rptr[j]) ) rmax = fabs(rptr[j]);
         }
         rmax *= N;
+
+        // If the i, i entry of R is numerically 0, then that column is
+        // linearly dependent
+
         if ( (fabs(R[i * N + i]) / rmax) < GTOOLS_64BIT_EPSILON ) {
-            // printf("%ld: bad, %.9g\n", i, fabs(R[i * N + i]) / rmax);
+            collinear++;
+            // Collinear
         }
         else {
-            // printf("%ld: ok, %.9g\n", i, fabs(R[i * N + i]) / rmax);
+            // OK
         }
+    }
+
+    // For now, just print a warning to the console
+    if ( collinear ) {
+        sf_errprintf("collinearity warning: "GT_size_cfmt" collinear columns detected\n", collinear);
     }
 }
 

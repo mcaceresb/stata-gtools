@@ -22,127 +22,6 @@ set type double
 * Main program wrapper
 * --------------------
 
-sysuse auto, clear
-expand 3
-gen y  = _n
-gen x  = abs(rnormal() * 10000)
-gen xe = x + rnormal() / 3
-gen s  = 1 / x / x / x / x
-gen se = s + runiform() / 100000
-drop make
-* foreach var of varlist * {
-*     replace `var' = `var' * 100000
-* }
-* regress y price mpg price x x xe s s se mpg foreign
-gregress y price mpg price x x xe s s se mpg foreign
-gregress y price price price price
-gregress y x x xe s s se
-exit 1234
-
-mata 
-known = (0, 0, 1, 0, 1, 0.5, 0, 1, 0.5, 1, 0)'
-X     = st_data(., "price mpg price x x xe s s se mpg foreign")
-XX    = X' * X
-maxxx = colmax(XX)
-minxx = colmin(XX)
-// XX    = XX :/ maxxx
-my_qr(XX, rows(XX), Q = ., H = .)
-zz = abs(diagonal(XX))
-zz, known, zz :< (maxxx' * 1e-12), (maxxx' * 1e-12)
-end
-_rmcoll price mpg price x x xe s s se mpg foreign
-
-mata
-A = (12, -51, 4 \ 6, 167, -68 \ -4, 24, -41)
-my_qr(A, 3, Q = ., H = .)
-A
-H
-Q
-
-qrd(XX, Q = ., R = .)
-R
-Q
-my_qr(XX, 3, Q = ., H = .)
-XX
-Q
-end
-
-cap mata mata drop my_qr()
-cap mata mata drop my_householder()
-cap mata mata drop my_dot()
-cap mata mata drop my_norm()
-
-mata
-void function my_qr (real matrix A, real scalar N, real matrix Q, real matrix H)
-{
-    real scalar i
-
-    Q = diag(J(1, N, 1))
-    for (i = 1; i < N; i++) {
-        H = diag(J(1, N, 1))
-        H[i::N, i::N] = my_householder(A[i::N, i], N - i + 1, H[i::N, i::N])
-        H
-        A
-        Q = Q * H
-        A = H * A
-    }
-}
-
-real matrix function my_householder (real vector a, real scalar N, real matrix H)
-{
-    real scalar i, j
-    real scalar anorm, adot
-
-    if ( a[1] < 0 ) {
-        anorm = -my_norm(a, N)
-    }
-    else {
-        anorm = my_norm(a, N)
-    }
-
-    adot = 1;
-    for (i = N; i > 1; i--) {
-        a[i] = a[i] / (a[1] + anorm)
-        adot = adot + a[i] * a[i];
-    }
-
-    a[1] = 1
-    adot = 2 / adot
-    for (i = 1; i <= N; i++) {
-        H[i, i] = 1 - adot * a[i] * a[i]
-        for (j = i + 1; j <= N; j++) {
-            H[i, j] = -adot * a[i] * a[j]
-        }
-    }
-
-    for (i = 1; i <= N; i++) {
-        for (j = 1; j < i; j++) {
-            H[i, j] = H[j, i]
-        }
-    }
-
-    return(H)
-}
-
-real scalar function my_dot (real vector a, real scalar N)
-{
-    real scalar i
-    real scalar dot
-    dot = 0
-    for (i = 1; i <= N; i++) {
-        dot = dot + a[i] * a[i]
-    }
-    return (dot)
-}
-
-real scalar function my_norm (real vector a, real scalar N)
-{
-    return (sqrt(my_dot(a, N)))
-}
-end
-
-exit 1234
-
 program main
     syntax, [NOIsily *]
 
@@ -9749,6 +9628,132 @@ end
 *
 *     reg `dmy' `dmx', noc
 * end
+
+* Collinearity foo
+* ----------------
+
+* sysuse auto, clear
+* expand 3
+* gen y  = _n
+* gen x  = abs(rnormal() * 10000)
+* gen xe = x + rnormal() / 3
+* gen s  = 1 / x / x / x / x
+* gen se = s + runiform() / 100000
+* drop make
+* * foreach var of varlist * {
+* *     replace `var' = `var' * 100000
+* * }
+* * regress y price mpg price x x xe s s se mpg foreign
+* gregress y price mpg price x x xe s s se mpg foreign
+* mata GtoolsRegress.print()
+* gregress y price price price price
+* gregress y x x xe s s se
+* exit 1234
+* 
+* mata 
+* known = (0, 0, 1, 0, 1, 0.5, 0, 1, 0.5, 1, 0)'
+* X     = st_data(., "price mpg price x x xe s s se mpg foreign")
+* XX    = X' * X
+* maxxx = colmax(XX)
+* minxx = colmin(XX)
+* // XX    = XX :/ maxxx
+* my_qr(XX, rows(XX), Q = ., H = .)
+* zz = abs(diagonal(XX))
+* zz, known, zz :< (maxxx' * 1e-12), (maxxx' * 1e-12)
+* end
+* _rmcoll price mpg price x x xe s s se mpg foreign
+* 
+* mata
+* A = (12, -51, 4 \ 6, 167, -68 \ -4, 24, -41)
+* my_qr(A, 3, Q = ., H = .)
+* A
+* H
+* Q
+* 
+* qrd(XX, Q = ., R = .)
+* R
+* Q
+* my_qr(XX, 3, Q = ., H = .)
+* XX
+* Q
+* end
+* 
+* cap mata mata drop my_qr()
+* cap mata mata drop my_householder()
+* cap mata mata drop my_dot()
+* cap mata mata drop my_norm()
+* 
+* mata
+* void function my_qr (real matrix A, real scalar N, real matrix Q, real matrix H)
+* {
+*     real scalar i
+* 
+*     Q = diag(J(1, N, 1))
+*     for (i = 1; i < N; i++) {
+*         H = diag(J(1, N, 1))
+*         H[i::N, i::N] = my_householder(A[i::N, i], N - i + 1, H[i::N, i::N])
+*         H
+*         A
+*         Q = Q * H
+*         A = H * A
+*     }
+* }
+* 
+* real matrix function my_householder (real vector a, real scalar N, real matrix H)
+* {
+*     real scalar i, j
+*     real scalar anorm, adot
+* 
+*     if ( a[1] < 0 ) {
+*         anorm = -my_norm(a, N)
+*     }
+*     else {
+*         anorm = my_norm(a, N)
+*     }
+* 
+*     adot = 1;
+*     for (i = N; i > 1; i--) {
+*         a[i] = a[i] / (a[1] + anorm)
+*         adot = adot + a[i] * a[i];
+*     }
+* 
+*     a[1] = 1
+*     adot = 2 / adot
+*     for (i = 1; i <= N; i++) {
+*         H[i, i] = 1 - adot * a[i] * a[i]
+*         for (j = i + 1; j <= N; j++) {
+*             H[i, j] = -adot * a[i] * a[j]
+*         }
+*     }
+* 
+*     for (i = 1; i <= N; i++) {
+*         for (j = 1; j < i; j++) {
+*             H[i, j] = H[j, i]
+*         }
+*     }
+* 
+*     return(H)
+* }
+* 
+* real scalar function my_dot (real vector a, real scalar N)
+* {
+*     real scalar i
+*     real scalar dot
+*     dot = 0
+*     for (i = 1; i <= N; i++) {
+*         dot = dot + a[i] * a[i]
+*     }
+*     return (dot)
+* }
+* 
+* real scalar function my_norm (real vector a, real scalar N)
+* {
+*     return (sqrt(my_dot(a, N)))
+* }
+* end
+* 
+* exit 1234
+* 
 capture program drop checks_gstats
 program checks_gstats
     checks_gstats_winsor

@@ -18,6 +18,7 @@ void gf_regress_ols_ixcolmajor(
     GT_size kx)
 {
     gf_regress_linalg_dsymm_ixcolmajor  (X, X, XX, ix, nix, N, kx);
+    gf_regress_linalg_dsyqr             (XX, kx, XX + kx * kx);
     gf_regress_linalg_dsysv             (XX, kx);
     gf_regress_linalg_dgemTv_ixcolmajor (X, y, Xy, ix, nix, N, kx);
     gf_regress_linalg_dgemTv_colmajor   (XX, Xy, b, kx, kx);
@@ -153,6 +154,7 @@ void gf_regress_ols_wixcolmajor(
     GT_size kx)
 {
     gf_regress_linalg_dsymm_wixcolmajor  (X, X, XX, w, ix, nix, N, kx);
+    gf_regress_linalg_dsyqr              (XX, kx, XX + kx * kx);
     gf_regress_linalg_dsysv              (XX, kx);
     gf_regress_linalg_dgemTv_wixcolmajor (X, y, Xy, w, ix, nix, N, kx);
     gf_regress_linalg_dgemTv_colmajor    (XX, Xy, b, kx, kx);

@@ -22,7 +22,7 @@ void gf_regress_ols_colmajor(
     GT_size kx)
 {
     gf_regress_linalg_dsymm_colmajor  (X, X, XX, N, kx);
-    // gf_regress_linalg_dsyqr           (XX, kx, XX + kx * kx);
+    gf_regress_linalg_dsyqr           (XX, kx, XX + kx * kx);
     gf_regress_linalg_dsysv           (XX, kx);
     gf_regress_linalg_dgemTv_colmajor (X, y, Xy, N, kx);
     gf_regress_linalg_dgemTv_colmajor (XX, Xy, b, kx, kx);

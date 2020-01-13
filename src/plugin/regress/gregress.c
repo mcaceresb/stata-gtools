@@ -1,12 +1,24 @@
 #include "gregress.h"
+#include "models/models.h"
+#include "vce/vce.h"
+#include "linalg/linalg.h"
+
+#include "models/ols.c"
 #include "models/poisson.c"
 #include "models/ivregress.c"
-#include "utils/read.c"
+#include "models/models.h"
+
+#include "vce/vceadj.c"
+#include "vce/homoskedastic.c"
+#include "vce/heteroskedastic.c"
+#include "vce/cluster.c"
+
 #include "linalg/common.c"
 #include "linalg/colmajor.c"
 #include "linalg/colmajor_w.c"
-#include "linalg/colmajor_ix.c"
 #include "linalg/rowmajor.c"
+
+#include "utils/read.c"
 
 ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 {
@@ -35,31 +47,34 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GTOOLS_CHAR(buf2, 32);
     GTOOLS_CHAR(buf3, 32);
 
-    ST_double poistol  = st_info->gregress_poistol;
-    ST_double hdfetol  = st_info->gregress_hdfetol;
-    GT_size nj_max     = st_info->info[1] - st_info->info[0];
-    GT_size kclus      = st_info->gregress_cluster;
-    GT_size kabs       = st_info->gregress_absorb;
-    GT_size bytesclus  = st_info->gregress_cluster_bytes;
-    GT_size bytesabs   = st_info->gregress_absorb_bytes;
-    // GT_size *clusoff  = st_info->gregress_cluster_offsets;
-    GT_size *absoff    = st_info->gregress_absorb_offsets;
-    GT_size kx         = st_info->gregress_kvars - 1 + (kabs == 0) * st_info->gregress_cons;
-    GT_size kmodel     = kx;
-    GT_size N          = st_info->N;
-    GT_size J          = st_info->J;
-    GT_bool ivreg      = st_info->gregress_ivreg;
-    GT_size ivkendog   = st_info->gregress_ivkendog;
-    GT_size ivkexog    = st_info->gregress_ivkexog + (kabs == 0) * st_info->gregress_cons;
-    GT_size ivkz       = st_info->gregress_ivkz;
-    GT_size kv         = ivreg? ivkexog + ivkendog: kx;
-    GT_bool poisson    = st_info->gregress_poisson;
-    GT_size poisiter   = st_info->gregress_poisiter;
-    GT_bool runols     = st_info->gregress_savemse || st_info->gregress_savegse
-                      || st_info->gregress_savemb  || st_info->gregress_savegb;
-    GT_bool runse      = st_info->gregress_savemse || st_info->gregress_savegse;
-    GT_bool interval   = st_info->gregress_range;
-    GT_bool panelsetup = 1;
+    ST_double poistol     = st_info->gregress_poistol;
+    ST_double hdfetol     = st_info->gregress_hdfetol;
+    GT_size nj_max        = st_info->info[1] - st_info->info[0];
+    GT_size kclus         = st_info->gregress_cluster;
+    GT_size kabs          = st_info->gregress_absorb;
+    GT_size bytesclus     = st_info->gregress_cluster_bytes;
+    GT_size bytesabs      = st_info->gregress_absorb_bytes;
+    GT_size *absoff       = st_info->gregress_absorb_offsets;
+    GT_size kx            = st_info->gregress_kvars - 1 + (kabs == 0) * st_info->gregress_cons;
+    GT_size kmodel        = kx;
+    GT_size N             = st_info->N;
+    GT_size J             = st_info->J;
+    GT_bool ivreg         = st_info->gregress_ivreg;
+    GT_size ivkendog      = st_info->gregress_ivkendog;
+    GT_size ivkexog       = st_info->gregress_ivkexog + (kabs == 0) * st_info->gregress_cons;
+    GT_size ivkz          = st_info->gregress_ivkz;
+    GT_size kv            = ivreg? ivkexog + ivkendog: kx;
+    GT_bool poisson       = st_info->gregress_poisson;
+    GT_size poisiter      = st_info->gregress_poisiter;
+    GT_bool runols        = st_info->gregress_savemse || st_info->gregress_savegse
+                         || st_info->gregress_savemb  || st_info->gregress_savegb;
+    GT_bool runse         = st_info->gregress_savemse || st_info->gregress_savegse;
+    GT_bool interval      = st_info->gregress_range;
+    GT_bool panelsetup    = 1;
+    GT_size warncollinear = 0;
+    GT_size warnsingular  = 0;
+    GT_bool nonsingular   = 0;
+
     // ST_double intlower = st_info->gregress_range_l;
     // ST_double intupper = st_info->gregress_range_u;
     // ST_double intlcode = st_info->gregress_range_ls;
@@ -67,6 +82,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // GT_int moving      = st_info->gregress_moving;
     // GT_int movlower    = st_info->gregress_moving_l;
     // GT_int movupper    = st_info->gregress_moving_u;
+
     clock_t timer      = clock();
 
     GtoolsGroupByTransform GtoolsGroupByTransform;
@@ -87,7 +103,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     ST_double *Xy = calloc(kx,          sizeof *Xy);
     ST_double *b  = calloc(J * kx,      sizeof *b);
     ST_double *se = calloc(J * kx,      sizeof *se);
-    ST_double *XX = calloc(4 * kx * kx, sizeof *XX);
+    ST_double *XX = calloc(6 * kx * kx, sizeof *XX);
     ST_double *V  = calloc(kx * kx,     sizeof *V);
     ST_double *VV = calloc(kx * kx,     sizeof *VV);
     GT_size   *nj = calloc(J,           sizeof *nj);
@@ -109,6 +125,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GT_size   *maps    = calloc(kabs?  kx:       1, sizeof *maps);
     GT_bool   *clusinv = calloc(kclus? kclus:    1, sizeof *clusinv);
     GT_bool   *absinv  = calloc(kabs?  kabs:     1, sizeof *absinv);
+    GT_size   *colix   = calloc(kv + ivkz + 2,   sizeof *colix);
     GT_int    *clustyp = st_info->gregress_cluster_types;
     GT_int    *abstyp  = st_info->gregress_absorb_types;
 
@@ -140,6 +157,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     if ( maps    == NULL ) return(sf_oom_error("sf_regress", "maps"));
     if ( clusinv == NULL ) return(sf_oom_error("sf_regress", "clusinv"));
     if ( absinv  == NULL ) return(sf_oom_error("sf_regress", "absinv"));
+    if ( colix   == NULL ) return(sf_oom_error("sf_regress", "colix"));
 
     ST_double *mu    = poisaux + 0 * nj_max;
     ST_double *eta   = poisaux + 1 * nj_max;
@@ -148,8 +166,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     ST_double *dev   = poisaux + 4 * nj_max;
     ST_double *lhsdm = kabs? poisaux + 5 * nj_max: lhs;
 
-    memset(G,  '\0', (kclus? N: 1) * (bytesclus? bytesclus: 1));
-    memset(FE, '\0', (kabs?  N: 1) * (bytesabs?  bytesabs:  1));
+    memset(colix, '\0', (kv + ivkz + 2) * (sizeof *colix));
+    memset(G,     '\0', (kclus? N: 1) * (bytesclus? bytesclus: 1));
+    memset(FE,    '\0', (kabs?  N: 1) * (bytesabs?  bytesabs:  1));
 
     if ( kabs ) {
         for (k = 0; k < kx; k++) {
@@ -304,6 +323,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     njclusptr = njclus;
     njabsptr  = njabs;
 
+    // TODO: Option for identification check to be soft?
     if ( runols && ivreg ) {
         if ( runse ) {
             if ( kclus ) {
@@ -341,7 +361,24 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
+
+                    nonsingular = gf_regress_iv(
+                        ivendog,
+                        ivexog,
+                        ivzptr,
+                        yptr,
+                        wptr,
+                        XX,
+                        PZ,
+                        BZ,
+                        e,
+                        bptr,
+                        colix,
+                        njobs,
+                        ivkendog,
+                        ivkexog,
+                        ivkz
+                    );
 
                     ClusterHash->nobs = njobs;
                     if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
@@ -352,26 +389,40 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             goto exit;
                         }
                     }
-
                     *njclusptr = ClusterHash->nlevels;
-                    gf_regress_ols_cluster(
-                        e,
-                        wptr,
-                        ClusterHash->info,
-                        ClusterHash->index,
-                        ClusterHash->nlevels,
-                        U,
-                        ux,
-                        V,
-                        VV,
-                        ivendog,
-                        XX,
-                        septr,
-                        njobs,
-                        ivkendog + ivkexog,
-                        kmodel,
-                        vceadj
-                    );
+
+                    // check if not singular; nonsingular = 2 means some
+                    // (but not all) columns were collinear
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_cluster(
+                            e,
+                            wptr,
+                            ClusterHash->info,
+                            ClusterHash->index,
+                            ClusterHash->nlevels,
+                            U,
+                            ux,
+                            V,
+                            VV,
+                            ivendog,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            ivkendog + ivkexog,
+                            kmodel,
+                            vceadj
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kv; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
@@ -424,8 +475,53 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
-                    gf_regress_ols_robust (e, wptr, V, VV, ivendog, XX, septr, njobs, ivkendog + ivkexog, kmodel, vceadj);
+
+                    nonsingular = gf_regress_iv(
+                        ivendog,
+                        ivexog,
+                        ivzptr,
+                        yptr,
+                        wptr,
+                        XX,
+                        PZ,
+                        BZ,
+                        e,
+                        bptr,
+                        colix,
+                        njobs,
+                        ivkendog,
+                        ivkexog,
+                        ivkz
+                    );
+
+                    // check if not singular; nonsingular = 2 means some
+                    // (but not all) columns were collinear
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_robust(
+                            e,
+                            wptr,
+                            V,
+                            VV,
+                            ivendog,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            ivkendog + ivkexog,
+                            kmodel,
+                            vceadj
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kv; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -473,8 +569,49 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
-                    gf_regress_ols_se (e, wptr, XX, septr, njobs, ivkendog + ivkexog, kmodel);
+
+                    nonsingular = gf_regress_iv(
+                        ivendog,
+                        ivexog,
+                        ivzptr,
+                        yptr,
+                        wptr,
+                        XX,
+                        PZ,
+                        BZ,
+                        e,
+                        bptr,
+                        colix,
+                        njobs,
+                        ivkendog,
+                        ivkexog,
+                        ivkz
+                    );
+
+                    // check if not singular; nonsingular = 2 means some
+                    // (but not all) columns were collinear
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_se(
+                            e,
+                            wptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            ivkendog + ivkexog,
+                            kmodel
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kv; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -519,7 +656,35 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 if ( (rc = gf_regress_iv_notidentified(njobs, kabs, ivkendog, ivkexog, ivkz, kmodel, buf1, buf2, buf3)) ) {
                     goto exit;
                 }
-                gf_regress_iv(ivendog, ivexog, ivzptr, yptr, wptr, XX, PZ, BZ, e, bptr, njobs, ivkendog, ivkexog, ivkz);
+
+                nonsingular = gf_regress_iv(
+                    ivendog,
+                    ivexog,
+                    ivzptr,
+                    yptr,
+                    wptr,
+                    XX,
+                    PZ,
+                    BZ,
+                    e,
+                    bptr,
+                    colix,
+                    njobs,
+                    ivkendog,
+                    ivkexog,
+                    ivkz
+                );
+
+                if ( nonsingular ) {
+                    warncollinear += (nonsingular == 2);
+                }
+                else {
+                    warnsingular++;
+                    for (k = 0; k < kv; k++) {
+                        bptr[k] = SV_missval;
+                    }
+                }
+
                 xptr  += njobs * kx;
                 yptr  += njobs;
                 wptr  += njobs;
@@ -571,12 +736,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
-                        panelsetup = 0;
-                    }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
+                        nonsingular = gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, colix, njobs, kx);
+                        diff        = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
+                        panelsetup  = 0;
+                        if ( nonsingular == 0 ) {
+                            break;
+                        }
                     }
 
                     ClusterHash->nobs = njobs;
@@ -588,26 +753,40 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             goto exit;
                         }
                     }
-
                     *njclusptr = ClusterHash->nlevels;
-                    gf_regress_ols_cluster(
-                        e,
-                        mu,
-                        ClusterHash->info,
-                        ClusterHash->index,
-                        ClusterHash->nlevels,
-                        U,
-                        ux,
-                        V,
-                        VV,
-                        xdmptr,
-                        XX,
-                        septr,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+
+                    if ( nonsingular ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_cluster(
+                            e,
+                            mu,
+                            ClusterHash->info,
+                            ClusterHash->index,
+                            ClusterHash->nlevels,
+                            U,
+                            ux,
+                            V,
+                            VV,
+                            xdmptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
@@ -661,14 +840,42 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
-                        panelsetup = 0;
+                        nonsingular = gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, colix, njobs, kx);
+                        diff        = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
+                        panelsetup  = 0;
+                        if ( nonsingular == 0 ) {
+                            break;
+                        }
                     }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
+
+                    if ( nonsingular ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_robust(
+                            e,
+                            mu,
+                            V,
+                            VV,
+                            xdmptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
                     }
-                    gf_regress_ols_robust (e, mu, V, VV, xdmptr, XX, septr, njobs, kx, kmodel, vceadj);
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -717,14 +924,38 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
-                        diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
-                        panelsetup = 0;
+                        nonsingular = gf_regress_ols(xdmptr, lhsdm, mu, XX, Xy, e, bptr, colix, njobs, kx);
+                        diff        = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
+                        panelsetup  = 0;
+                        if ( nonsingular == 0 ) {
+                            break;
+                        }
                     }
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
+
+                    if ( nonsingular ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_se(
+                            e,
+                            mu,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel
+                        );
                     }
-                    gf_regress_ols_se (e, mu, XX, septr, njobs, kx, kmodel);
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -770,13 +1001,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, njobs, kx);
-                    diff = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
-                    panelsetup = 0;
+                    nonsingular = gf_regress_ols (xdmptr, lhsdm, mu, XX, Xy, e, bptr, colix, njobs, kx);
+                    diff        = gf_regress_poisson_iter(yptr, wptr, e, mu, eta, dev, dev0, lhs, njobs);
+                    panelsetup  = 0;
+                    if ( nonsingular == 0 ) {
+                        break;
+                    }
                 }
-                if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                    goto exit;
+
+                if ( nonsingular ) {
+                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                        goto exit;
+                    }
+                    warncollinear += (nonsingular == 2);
                 }
+                else {
+                    warnsingular++;
+                    for (k = 0; k < kx; k++) {
+                        bptr[k] = SV_missval;
+                    }
+                }
+
                 xptr  += njobs * kx;
                 yptr  += njobs;
                 wptr  += njobs;
@@ -788,6 +1033,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 }
             }
         }
+
         if ( kabs && st_info->gregress_saveghdfe ) {
             xptr  = X;
             yptr  = y;
@@ -839,11 +1085,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
+
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
+                    nonsingular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
 
-                    gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
                     ClusterHash->nobs = njobs;
                     if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
                         if ( rc == 17902 ) {
@@ -853,26 +1100,40 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             goto exit;
                         }
                     }
-
                     *njclusptr = ClusterHash->nlevels;
-                    gf_regress_ols_cluster(
-                        e,
-                        wptr,
-                        ClusterHash->info,
-                        ClusterHash->index,
-                        ClusterHash->nlevels,
-                        U,
-                        ux,
-                        V,
-                        VV,
-                        xptr,
-                        XX,
-                        septr,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+
+                    // check if not singular; nonsingular = 2 means some
+                    // (but not all) columns were collinear
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_cluster(
+                            e,
+                            wptr,
+                            ClusterHash->info,
+                            ClusterHash->index,
+                            ClusterHash->nlevels,
+                            U,
+                            ux,
+                            V,
+                            VV,
+                            xptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
@@ -917,11 +1178,37 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
+
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
-                    gf_regress_ols_robust (e, wptr, V, VV, xptr, XX, septr, njobs, kx, kmodel, vceadj);
+                    nonsingular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_robust(
+                            e,
+                            wptr,
+                            V,
+                            VV,
+                            xptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -961,11 +1248,36 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          hdfetol)) ) {
                         goto exit;
                     }
+
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
-                    gf_regress_ols_se (e, wptr, XX, septr, njobs, kx, kmodel);
+                    nonsingular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+
+                    // check if not singular; nonsingular = 2 means some
+                    // (but not all) columns were collinear
+
+                    if ( nonsingular ) {
+                        warncollinear += (nonsingular == 2);
+                        gf_regress_ols_se(
+                            e,
+                            wptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel
+                        );
+                    }
+                    else {
+                        warnsingular++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k]  = SV_missval;
+                            septr[k] = SV_missval;
+                        }
+                    }
+
                     xptr  += njobs * kx;
                     yptr  += njobs;
                     wptr  += njobs;
@@ -1002,10 +1314,22 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                      hdfetol)) ) {
                     goto exit;
                 }
+
                 if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                     goto exit;
                 }
-                gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, njobs, kx);
+                nonsingular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+
+                if ( nonsingular ) {
+                    warncollinear += (nonsingular == 2);
+                }
+                else {
+                    warnsingular++;
+                    for (k = 0; k < kx; k++) {
+                        bptr[k] = SV_missval;
+                    }
+                }
+
                 xptr  += njobs * kx;
                 yptr  += njobs;
                 wptr  += njobs;
@@ -1039,6 +1363,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             hdfetol
         );
     }
+
+    gf_regress_warnings(J, warncollinear, warnsingular, buf1, buf2);
 
     /******************
      *  Interval Foo  *
@@ -1231,6 +1557,7 @@ exit:
     free(njabs);
     free(clusinv);
     free(absinv);
+    free(colix);
 
     return (rc);
 }
@@ -1462,5 +1789,35 @@ ST_retcode gf_regress_notidentified (
                          buf1, buf2);
         }
         return(18401);
+    }
+}
+
+void gf_regress_warnings (
+    GT_size J,
+    GT_size warncollinear,
+    GT_size warnsingular,
+    char *buf1,
+    char *buf2)
+{
+    if ( warncollinear ) {
+        if ( J > 1 ) {
+            sf_format_size(warncollinear, buf1);
+            sf_errprintf("collinearity warning: collinear columns dropped in %s groups\n", buf1);
+        }
+        else {
+            sf_errprintf("collinearity warning: collinear columns automatically dropped.\n");
+        }
+    }
+
+    if ( warnsingular ) {
+        if ( J > 1 ) {
+            sf_format_size(warnsingular, buf2);
+            sf_errprintf("singularity warning: matrix determinant < %.8g for %s groups\n",
+                         GTOOLS_64BIT_EPSILON, buf2);
+        }
+        else {
+            sf_errprintf("singularity warning: matrix determinant < %.8g\n",
+                         GTOOLS_64BIT_EPSILON);
+        }
     }
 }

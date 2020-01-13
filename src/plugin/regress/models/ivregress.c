@@ -1,6 +1,6 @@
 // NOTE(mauricio): The double memory swap seems inefficient...
 // NOTE(mauricio): This leaves Xendog _projected_!!!
-void gf_regress_iv_unw(
+GT_bool gf_regress_iv_unw(
     ST_double *Xendog,
     ST_double *Xexog,
     ST_double *Z,
@@ -11,43 +11,61 @@ void gf_regress_iv_unw(
     ST_double *BZ,
     ST_double *e,
     ST_double *b,
+    GT_size *colix,
     GT_size N,
     GT_size kendog,
     GT_size kexog,
     GT_size kz)
 {
     // GT_size i, j;
+    GT_bool nonsingular = 1;
     GT_size kx_fs = kexog + kz;
     GT_size kx_ss = kendog + kexog;
 
     // Run the first stage; note that in memory, [Xendog Xexog Z]
 
-    gf_regress_linalg_dsymm_colmajor  (Xexog, Xexog, XX, N, kx_fs);          // [Xexog Z]' [Xexog Z] -> XX
-    gf_regress_linalg_dsyqr           (XX, kx_fs, XX + kx_fs * kx_fs);       // collinearity check
-    gf_regress_linalg_dsysv           (XX, kx_fs);                           // XX -> XX^-1
-    gf_regress_linalg_dgemTm_colmajor (Xexog, Xendog, PZ, N, kx_fs, kendog); // [Xexog Z]' X -> PZ
-    gf_regress_linalg_dgemTm_colmajor (XX, PZ, BZ, kx_fs, kx_fs, kendog);    // XX PZ -> BZ
+    // [Xexog Z]' [Xexog Z] -> XX
+    gf_regress_linalg_dsymm_colmajor  (Xexog, Xexog, XX, N, kx_fs);
 
-    memcpy(PZ, Xendog, sizeof(ST_double) * N * kendog);
+    gf_regress_linalg_dsyqr (XX, kx_fs, XX + kx_fs * kx_fs, colix, &nonsingular); // collinearity check
+    gf_regress_linalg_dsysv (XX, kx_fs, &nonsingular);                            // XX -> XX^-1
 
-    gf_regress_linalg_dgemm_colmajor  (Xexog, BZ, Xendog, N, kx_fs, kendog); // [Xexog Z] BZ -> Xendog
+    if ( nonsingular ) {
+        gf_regress_linalg_dgemTm_colmajor (Xexog, Xendog, PZ, N, kx_fs, kendog); // [Xexog Z]' X -> PZ
+        gf_regress_linalg_dgemTm_colmajor (XX, PZ, BZ, kx_fs, kx_fs, kendog);    // XX PZ -> BZ
 
-    // Run the second stage; OLS with X = [PZ (Xendog projected onto
-    // Z) Xexog], which are contiguous in memory. Also note KZ = (kz +
-    // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
+        memcpy(PZ, Xendog, sizeof(ST_double) * N * kendog);
 
-    gf_regress_linalg_dsymm_colmajor  (Xendog, Xendog, XX, N, kx_ss);
-    gf_regress_linalg_dsyqr           (XX, kx_ss, XX + kx_ss * kx_ss);
-    gf_regress_linalg_dsysv           (XX, kx_ss);
-    gf_regress_linalg_dgemTv_colmajor (Xendog, y, BZ, N, kx_ss);
-    gf_regress_linalg_dgemTv_colmajor (XX, BZ, b, kx_ss, kx_ss);
+        gf_regress_linalg_dgemm_colmajor  (Xexog, BZ, Xendog, N, kx_fs, kendog); // [Xexog Z] BZ -> Xendog
 
-    // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
-    gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
+        // Run the second stage; OLS with X = [PZ (Xendog projected onto
+        // Z) Xexog], which are contiguous in memory. Also note KZ = (kz +
+        // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
 
+        gf_regress_linalg_dsymm_colmajor  (Xendog, Xendog, XX, N, kx_ss);
+
+        gf_regress_linalg_dsyqr (XX, kx_ss, XX + kx_ss * kx_ss, colix, &nonsingular);
+        gf_regress_linalg_dsysv (XX, kx_ss, &nonsingular);
+
+        if ( nonsingular ) {
+            gf_regress_linalg_dgemTv_colmajor (Xendog, y, BZ, N, kx_ss);
+            gf_regress_linalg_dgemTv_colmajor (XX, BZ, b, kx_ss, kx_ss);
+
+            // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
+            gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
+        }
+        else {
+            memset(b, '\0', kx_ss * (sizeof *b));
+        }
+    }
+    else {
+        memset(b, '\0', kx_ss * (sizeof *b));
+    }
+
+    return (nonsingular);
 }
 
-void gf_regress_iv_w(
+GT_bool gf_regress_iv_w(
     ST_double *Xendog,
     ST_double *Xexog,
     ST_double *Z,
@@ -58,40 +76,57 @@ void gf_regress_iv_w(
     ST_double *BZ,
     ST_double *e,
     ST_double *b,
+    GT_size *colix,
     GT_size N,
     GT_size kendog,
     GT_size kexog,
     GT_size kz)
 {
-
+    GT_bool nonsingular = 1;
     GT_size kx_fs = kexog + kz;
     GT_size kx_ss = kendog + kexog;
 
     // Run the first stage; note that in memory, [Xendog Xexog Z]
 
-    gf_regress_linalg_dsymm_wcolmajor  (Xexog, Xexog, XX, w, N, kx_fs);          // [Xexog Z]' W [Xexog Z] -> XX
-    gf_regress_linalg_dsyqr            (XX, kx_fs, XX + kx_fs * kx_fs);          // collinearity check
-    gf_regress_linalg_dsysv            (XX, kx_fs);                              // XX -> XX^-1
-    gf_regress_linalg_dgemTm_wcolmajor (Xexog, Xendog, PZ, w, N, kx_fs, kendog); // [Xexog Z]' W X -> PZ
-    gf_regress_linalg_dgemTm_colmajor  (XX, PZ, BZ, kx_fs, kx_fs, kendog);       // XX PZ -> BZ
+    // [Xexog Z]' W [Xexog Z] -> XX
+    gf_regress_linalg_dsymm_wcolmajor (Xexog, Xexog, XX, w, N, kx_fs);          
 
-    memcpy(PZ, Xendog, sizeof(ST_double) * N * kendog);
+    gf_regress_linalg_dsyqr (XX, kx_fs, XX + kx_fs * kx_fs, colix, &nonsingular); // collinearity check
+    gf_regress_linalg_dsysv (XX, kx_fs, &nonsingular);                            // XX -> XX^-1
 
-    gf_regress_linalg_dgemm_colmajor   (Xexog, BZ, Xendog, N, kx_fs, kendog);    // [Xexog Z] BZ -> Xendog
+    if ( nonsingular ) {
+        gf_regress_linalg_dgemTm_wcolmajor (Xexog, Xendog, PZ, w, N, kx_fs, kendog); // [Xexog Z]' W X -> PZ
+        gf_regress_linalg_dgemTm_colmajor  (XX, PZ, BZ, kx_fs, kx_fs, kendog);       // XX PZ -> BZ
 
-    // Run the second stage; WLS with X = [PZ (Xendog projected onto
-    // Z) Xexog], which are contiguous in memory. Also note KZ = (kz +
-    // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
+        memcpy(PZ, Xendog, sizeof(ST_double) * N * kendog);
 
-    gf_regress_linalg_dsymm_wcolmajor  (Xendog, Xendog, XX, w, N, kx_ss);
-    gf_regress_linalg_dsyqr            (XX, kx_ss, XX + kx_ss * kx_ss);
-    gf_regress_linalg_dsysv            (XX, kx_ss);
-    gf_regress_linalg_dgemTv_wcolmajor (Xendog, y, BZ, w, N, kx_ss);
-    gf_regress_linalg_dgemTv_colmajor  (XX, BZ, b, kx_ss, kx_ss);
+        gf_regress_linalg_dgemm_colmajor   (Xexog, BZ, Xendog, N, kx_fs, kendog);    // [Xexog Z] BZ -> Xendog
 
-    // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
-    gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
+        // Run the second stage; WLS with X = [PZ (Xendog projected onto
+        // Z) Xexog], which are contiguous in memory. Also note KZ = (kz +
+        // kexog) * kendog >= kendog + kexog, so we can use ot for X' y
 
+        gf_regress_linalg_dsymm_wcolmajor (Xendog, Xendog, XX, w, N, kx_ss);
+
+        gf_regress_linalg_dsyqr (XX, kx_ss, XX + kx_ss * kx_ss, colix, &nonsingular);
+        gf_regress_linalg_dsysv (XX, kx_ss, &nonsingular);
+
+        if ( nonsingular ) {
+            gf_regress_linalg_dgemTv_wcolmajor (Xendog, y, BZ, w, N, kx_ss);
+            gf_regress_linalg_dgemTv_colmajor  (XX, BZ, b, kx_ss, kx_ss);
+
+            // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
+            gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
+        }
+        else {
+            memset(b, '\0', kx_ss * (sizeof *b));
+        }
+    }
+    else {
+        memset(b, '\0', kx_ss * (sizeof *b));
+    }
+
+    return (nonsingular);
 }
 
 void gf_regress_linalg_iverror(

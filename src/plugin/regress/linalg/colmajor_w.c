@@ -1,121 +1,3 @@
-void gf_regress_ols_wcolmajor(
-    ST_double *X,
-    ST_double *y,
-    ST_double *w,
-    ST_double *XX,
-    ST_double *Xy,
-    ST_double *e,
-    ST_double *b,
-    GT_size N,
-    GT_size kx)
-{
-    gf_regress_linalg_dsymm_wcolmajor  (X, X, XX, w, N, kx);
-    gf_regress_linalg_dsyqr            (XX, kx, XX + kx * kx);
-    gf_regress_linalg_dsysv            (XX, kx);
-    gf_regress_linalg_dgemTv_wcolmajor (X, y, Xy, w, N, kx);
-    gf_regress_linalg_dgemTv_colmajor  (XX, Xy, b, kx, kx);
-    gf_regress_linalg_error_colmajor   (y, X, b, e, N, kx);
-}
-
-void gf_regress_ols_robust_wcolmajor(
-    ST_double *e,
-    ST_double *w,
-    ST_double *V,
-    ST_double *VV,
-    ST_double *X,
-    ST_double *XX,
-    ST_double *se,
-    GT_size N,
-    GT_size kx,
-    GT_size kmodel,
-    gf_regress_vceadj vceadj)
-{
-    GT_size i;
-    ST_double qc = vceadj(N, kmodel, 0, w);
-
-    gf_regress_linalg_dsymm_we2colmajor (X,  X,  V, e, w, N, kx);
-    gf_regress_linalg_dgemm_colmajor    (V,  XX, VV, kx, kx, kx);
-    gf_regress_linalg_dgemm_colmajor    (XX, VV, V,  kx, kx, kx);
-
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * qc);
-    }
-}
-
-void gf_regress_ols_robust_fwcolmajor(
-    ST_double *e,
-    ST_double *w,
-    ST_double *V,
-    ST_double *VV,
-    ST_double *X,
-    ST_double *XX,
-    ST_double *se,
-    GT_size N,
-    GT_size kx,
-    GT_size kmodel,
-    gf_regress_vceadj vceadj)
-{
-    GT_size i;
-    ST_double qc = vceadj(N, kmodel, 0, w);
-
-    gf_regress_linalg_dsymm_fwe2colmajor(X,  X,  V, e, w, N, kx);
-    gf_regress_linalg_dgemm_colmajor    (V,  XX, VV, kx, kx, kx);
-    gf_regress_linalg_dgemm_colmajor    (XX, VV, V,  kx, kx, kx);
-
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * qc);
-    }
-}
-
-void gf_regress_ols_cluster_wcolmajor(
-    ST_double *e,
-    ST_double *w,
-    GT_size   *info,
-    GT_size   *index,
-    GT_size   J,
-    ST_double *U,
-    GT_size   *ux,
-    ST_double *V,
-    ST_double *VV,
-    ST_double *X,
-    ST_double *XX,
-    ST_double *se,
-    GT_size N,
-    GT_size kx,
-    GT_size kmodel,
-    gf_regress_vceadj vceadj)
-{
-    GT_size i, j, k, start, end;
-    ST_double qc, *aptr, *bptr, *wptr;
-    qc = vceadj(N, kmodel, J, w);
-
-    memset(U, '\0', J * kx * sizeof(ST_double));
-    for (j = 0; j < J; j++) {
-        start = info[j];
-        end   = info[j + 1];
-        for (i = start; i < end; i++) {
-            ux[index[i]] = j;
-        }
-    }
-
-    aptr = X;
-    for (k = 0; k < kx; k++) {
-        bptr = e;
-        wptr = w;
-        for (i = 0; i < N; i++, aptr++, bptr++, wptr++) {
-            U[ux[i] * kx + k] += (*aptr) * (*bptr) * (*wptr);
-        }
-    }
-
-    gf_regress_linalg_dsymm_rowmajor (U, U, V, J, kx);
-    gf_regress_linalg_dgemm_colmajor (V,  XX, VV, kx, kx, kx);
-    gf_regress_linalg_dgemm_colmajor (XX, VV, V,  kx, kx, kx);
-
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * qc);
-    }
-}
-
 void gf_regress_linalg_dsymm_wcolmajor(
     ST_double *A,
     ST_double *B,
@@ -305,6 +187,31 @@ void gf_regress_linalg_error_wcolmajor(
     wptr = w;
     for (i = 0; i < N; i++, cptr++, wptr++) {
         *cptr *= *wptr;
+    }
+}
+
+void gf_regress_linalg_dgemm_wcolmajor(
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    ST_double *w,
+    GT_size k1,
+    GT_size k2,
+    GT_size k3)
+{
+    GT_size i, j, l;
+    ST_double *aptr, *bptr, *cptr, *wptr;
+    memset(C, '\0', k1 * k3 * sizeof(ST_double));
+    bptr = B;
+    for (i = 0; i < k3; i++) {
+        aptr = A;
+        for (j = 0; j < k2; j++, bptr++) {
+            cptr = C + i * k1;
+            wptr = w + j;
+            for (l = 0; l < k1; l++, aptr++, cptr++) {
+                *cptr += (*aptr) * (*bptr) * (*wptr);
+            }
+        }
     }
 }
 

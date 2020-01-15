@@ -22,32 +22,26 @@ GT_bool gf_regress_ols_colmajor(
     GT_size N,
     GT_size kx)
 {
-    GT_bool nonsingular = 1;
-clock_t timer = clock();
+    GT_bool singular = 0;
+
     gf_regress_linalg_dsymm_colmajor (X, X, XX, N, kx);
-sf_running_timer (&timer, "\tdebug 1: XX");
+    gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &singular);
 
-    // gf_regress_linalg_dsyqr  (XX, kx, XX + kx * kx, colix, &nonsingular);
-    // gf_regress_linalg_dsylu  (XX, kx, XX + kx * kx, colix, &nonsingular);
-    // gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &nonsingular);
-    // gf_regress_linalg_dsysv  (XX, kx, &nonsingular);
+    // gf_regress_linalg_dsysv (XX, kx, &singular);
+    // gf_regress_printf_colmajor (XX, colix[kx], colix[kx], "A^-1");
 
-    gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &nonsingular);
-sf_running_timer (&timer, "\tdebug 3: LDU");
-    gf_regress_linalg_dsysv  (XX, kx, &nonsingular);
-sf_running_timer (&timer, "\tdebug 4: SV");
-gf_regress_printf_colmajor (XX, kx, kx, "A^-1 legit");
-
-    if ( nonsingular ) {
+    if ( colix[kx] < kx ) {
+        gf_regress_linalg_dgemTv_colmajor_ix1 (X, y, Xy, colix, N, kx);
+        gf_regress_linalg_dgemTv_colmajor_ix2 (XX, Xy, b, colix, colix[kx], kx);
+        gf_regress_linalg_error_colmajor_ix   (y, X, b, e, colix, N, kx);
+    }
+    else {
         gf_regress_linalg_dgemTv_colmajor (X, y, Xy, N, kx);
         gf_regress_linalg_dgemTv_colmajor (XX, Xy, b, kx, kx);
         gf_regress_linalg_error_colmajor  (y, X, b, e, N, kx);
     }
-    else {
-        memset(b, '\0', kx * (sizeof *b));
-    }
 
-    return(nonsingular);
+    return(singular);
 }
 
 GT_bool gf_regress_ols_wcolmajor(
@@ -62,20 +56,23 @@ GT_bool gf_regress_ols_wcolmajor(
     GT_size N,
     GT_size kx)
 {
-    GT_bool nonsingular = 1;
+    GT_bool singular = 0;
     gf_regress_linalg_dsymm_wcolmajor (X, X, XX, w, N, kx);
+    gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &singular);
 
-    gf_regress_linalg_dsyqr (XX, kx, XX + kx * kx, colix, &nonsingular);
-    gf_regress_linalg_dsysv (XX, kx, &nonsingular);
+    // gf_regress_linalg_dsysv (XX, kx, &singular);
+    // gf_regress_printf_colmajor (XX, kx, kx, "A A^-1");
 
-    if ( nonsingular ) {
+    if ( colix[kx] < kx ) {
+        gf_regress_linalg_dgemTv_wcolmajor_ix1 (X, y, Xy, w, colix, N, kx);
+        gf_regress_linalg_dgemTv_colmajor_ix2  (XX, Xy, b, colix, colix[kx], kx);
+        gf_regress_linalg_error_colmajor_ix    (y, X, b, e, colix, N, kx);
+    }
+    else {
         gf_regress_linalg_dgemTv_wcolmajor (X, y, Xy, w, N, kx);
         gf_regress_linalg_dgemTv_colmajor  (XX, Xy, b, kx, kx);
         gf_regress_linalg_error_colmajor   (y, X, b, e, N, kx);
     }
-    else {
-        memset(b, '\0', kx * (sizeof *b));
-    }
 
-    return (nonsingular);
+    return (singular);
 }

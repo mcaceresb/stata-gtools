@@ -1,10 +1,10 @@
 #ifndef GREGRESS_LINALG
 #define GREGRESS_LINALG
 
-// Common Functions
+// Various Inverses
 // ----------------
 
-ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K, GT_bool *nonsingular);
+ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K, GT_bool *singular);
 
 void gf_regress_linalg_dtrsv_colmajor       (ST_double *A, ST_double *B, GT_size N);
 void gf_regress_linalg_dtrsvT_colmajor      (ST_double *A, ST_double *B, GT_size N);
@@ -12,10 +12,13 @@ void gf_regress_linalg_dtrsv_norm_colmajor  (ST_double *A, ST_double *B, GT_size
 void gf_regress_linalg_dtrsvT_norm_colmajor (ST_double *A, ST_double *B, GT_size N);
 void gf_regress_linalg_dtrans_colmajor      (ST_double *A, ST_double *B, GT_size k1, GT_size k2);
 
+// Decompositions
+// --------------
+
 void gf_regress_printf_colmajor (ST_double *matrix, GT_size k1, GT_size k2, char *name);
-void gf_regress_linalg_dsyqr    (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *nonsingular);
-void gf_regress_linalg_dsylu    (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *nonsingular);
-void gf_regress_linalg_dsyldu   (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *nonsingular);
+void gf_regress_linalg_dsyqr    (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *singular);
+void gf_regress_linalg_dsylu    (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *singular);
+void gf_regress_linalg_dsyldu   (ST_double *A, GT_size N, ST_double *QR, GT_size *colix, GT_bool *singular);
 void gf_regress_linalg_dsyhh    (ST_double *a, GT_size N, GT_size offset, ST_double *H);
 
 ST_double gf_regress_linalg_ddot  (ST_double *a, GT_size N);
@@ -43,6 +46,22 @@ void gf_regress_linalg_dsymm_fwe2colmajor (ST_double *A, ST_double *B, ST_double
 void gf_regress_linalg_dgemTv_wcolmajor   (ST_double *A, ST_double *b, ST_double *c, ST_double *w, GT_size N,    GT_size K);
 void gf_regress_linalg_dgemTm_wcolmajor   (ST_double *A, ST_double *B, ST_double *C, ST_double *w, GT_size N,    GT_size k1, GT_size k2);
 void gf_regress_linalg_error_wcolmajor    (ST_double *y, ST_double *A, ST_double *b, ST_double *w, ST_double *c, GT_size N,  GT_size K);
+
+// Column-major order with index!
+// ------------------------------
+
+void gf_regress_linalg_dsymm_w2colmajor_ix   (ST_double *A, ST_double *B, ST_double *C,               ST_double *w, GT_size *colix, GT_size N, GT_size K);
+void gf_regress_linalg_dsymm_we2colmajor_ix  (ST_double *A, ST_double *B, ST_double *C, ST_double *e, ST_double *w, GT_size *colix, GT_size N, GT_size K);
+void gf_regress_linalg_dsymm_fwe2colmajor_ix (ST_double *A, ST_double *B, ST_double *C, ST_double *e, ST_double *w, GT_size *colix, GT_size N, GT_size K);
+
+void gf_regress_linalg_dgemTv_colmajor_ix1   (ST_double *A, ST_double *b, ST_double *c, GT_size *colix, GT_size N, GT_size K);
+void gf_regress_linalg_dgemTv_colmajor_ix2   (ST_double *A, ST_double *b, ST_double *c, GT_size *colix, GT_size N, GT_size K);
+                                             
+void gf_regress_linalg_dgemTv_wcolmajor_ix1  (ST_double *A, ST_double *b, ST_double *c, ST_double *w, GT_size *colix, GT_size N, GT_size K);
+void gf_regress_linalg_dgemTv_wcolmajor_ix2  (ST_double *A, ST_double *b, ST_double *c, ST_double *w, GT_size *colix, GT_size N, GT_size K);
+                                             
+void gf_regress_linalg_error_colmajor_ix     (ST_double *y, ST_double *A, ST_double *b,               ST_double *c, GT_size *colix, GT_size N, GT_size K);
+void gf_regress_linalg_error_wcolmajor_ix    (ST_double *y, ST_double *A, ST_double *b, ST_double *w, ST_double *c, GT_size *colix, GT_size N, GT_size K);
 
 // Row-major order!
 // ----------------

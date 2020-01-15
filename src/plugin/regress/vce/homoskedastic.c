@@ -20,6 +20,7 @@ void gf_regress_ols_seunw (
 {
     GT_size i;
     ST_double z, *eptr;
+    GT_size kindep = colix[kx];
 
     z = 0;
     for (eptr = e; eptr < e + N; eptr++) {
@@ -27,8 +28,18 @@ void gf_regress_ols_seunw (
     }
     z /= ((ST_double) (N - kmodel));
 
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * z);
+    if ( kindep < kx ) {
+        for (i = 0; i < kx; i++) {
+            se[i] = SV_missval;
+        }
+        for (i = 0; i < kindep; i++) {
+            se[colix[i]] = sqrt(V[i * kindep + i] * z);
+        }
+    }
+    else {
+        for (i = 0; i < kindep; i++) {
+            se[i] = sqrt(V[i * kindep + i] * z);
+        }
     }
 }
 
@@ -46,14 +57,25 @@ void gf_regress_ols_sew (
     ST_double *eptr;
     ST_double z = 0;
     ST_double *wptr = w;
+    GT_size kindep = colix[kx];
 
     for (eptr = e; eptr < e + N; eptr++, wptr++) {
         z += (*eptr) * (*eptr) * (*wptr);
     }
     z /= ((ST_double) (N - kmodel));
 
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * z);
+    if ( kindep < kx ) {
+        for (i = 0; i < kx; i++) {
+            se[i] = SV_missval;
+        }
+        for (i = 0; i < kindep; i++) {
+            se[colix[i]] = sqrt(V[i * kindep + i] * z);
+        }
+    }
+    else {
+        for (i = 0; i < kindep; i++) {
+            se[i] = sqrt(V[i * kindep + i] * z);
+        }
     }
 }
 
@@ -72,6 +94,7 @@ void gf_regress_ols_sefw (
     ST_double z = 0;
     ST_double Ndbl = 0;
     ST_double *wptr = w;
+    GT_size kindep = colix[kx];
 
     for (eptr = e; eptr < e + N; eptr++, wptr++) {
         z += (*eptr) * (*eptr) * (*wptr);
@@ -79,7 +102,17 @@ void gf_regress_ols_sefw (
     }
     z /= (Ndbl - kmodel);
 
-    for (i = 0; i < kx; i++) {
-        se[i] = sqrt(V[i * kx + i] * z);
+    if ( kindep < kx ) {
+        for (i = 0; i < kx; i++) {
+            se[i] = SV_missval;
+        }
+        for (i = 0; i < kindep; i++) {
+            se[colix[i]] = sqrt(V[i * kindep + i] * z);
+        }
+    }
+    else {
+        for (i = 0; i < kindep; i++) {
+            se[i] = sqrt(V[i * kindep + i] * z);
+        }
     }
 }

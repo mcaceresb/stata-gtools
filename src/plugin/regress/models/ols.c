@@ -28,7 +28,7 @@ GT_bool gf_regress_ols_colmajor(
     gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &singular);
 
     // gf_regress_linalg_dsysv (XX, kx, &singular);
-    // gf_regress_printf_colmajor (XX, colix[kx], colix[kx], "A^-1");
+    // gf_regress_printf_colmajor (XX, colix[kx], colix[kx], "XX^-1");
 
     if ( colix[kx] < kx ) {
         gf_regress_linalg_dgemTv_colmajor_ix1 (X, y, Xy, colix, N, kx);

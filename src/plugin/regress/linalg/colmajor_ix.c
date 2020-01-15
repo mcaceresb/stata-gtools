@@ -1,3 +1,7 @@
+/*********************************************************************
+ *                                ...                                *
+ *********************************************************************/
+
 void gf_regress_linalg_dgemTv_colmajor_ix1 (
     ST_double *A,
     ST_double *b,
@@ -255,6 +259,90 @@ void gf_regress_linalg_dsymm_fwe2colmajor_ix (
     }
 }
 
+/*********************************************************************
+ *                                ...                                *
+ *********************************************************************/
+
+void gf_regress_linalg_dgemm_colmajor_ix1 (
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    GT_size *colix,
+    GT_size k1,
+    GT_size k2,
+    GT_size k3)
+{
+    GT_size i, j, l;
+    GT_size kindep = colix[k2];
+    ST_double *aptr, *bptr, *cptr;
+    memset(C, '\0', k1 * k3 * sizeof(ST_double));
+
+    bptr = B;
+    for (i = 0; i < k3; i++) {
+        for (j = 0; j < kindep; j++, bptr++) {
+            aptr = A + colix[j] * k1;
+            cptr = C + i * k1;
+            for (l = 0; l < k1; l++, aptr++, cptr++) {
+                *cptr += (*aptr) * (*bptr);
+            }
+        }
+    }
+}
+
+void gf_regress_linalg_dgemTm_colmajor_ix1 (
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    GT_size *colix,
+    GT_size N,
+    GT_size k1,
+    GT_size k2)
+{
+    GT_size i, k, l;
+    GT_size kindep = colix[k1];
+    ST_double *aptr, *bptr, *cptr;
+    memset(C, '\0', kindep * k2 * sizeof(ST_double));
+
+    cptr = C;
+    for (l = 0; l < k2; l++) {
+        for (k = 0; k < kindep; k++, cptr++) {
+            aptr = A + colix[k] * N;
+            bptr = B + l * N;
+            for (i = 0; i < N; i++, aptr++, bptr++) {
+                *cptr += (*aptr) * (*bptr);
+            }
+        }
+    }
+}
+
+void gf_regress_linalg_dgemTm_wcolmajor_ix1 (
+    ST_double *A,
+    ST_double *B,
+    ST_double *C,
+    ST_double *w,
+    GT_size *colix,
+    GT_size N,
+    GT_size k1,
+    GT_size k2)
+{
+    GT_size i, k, l;
+    GT_size kindep = colix[k1];
+    ST_double *aptr, *bptr, *cptr, *wptr;
+    memset(C, '\0', kindep * k2 * sizeof(ST_double));
+
+    cptr = C;
+    for (l = 0; l < k2; l++) {
+        for (k = 0; k < kindep; k++, cptr++) {
+            aptr = A + colix[k] * N;
+            bptr = B + l * N;
+            wptr = w;
+            for (i = 0; i < N; i++, aptr++, bptr++, wptr++) {
+                *cptr += (*aptr) * (*bptr) * (*wptr);
+            }
+        }
+    }
+}
+
 // void gf_regress_linalg_dsymm_wcolmajor(
 //     ST_double *A,
 //     ST_double *B,
@@ -285,56 +373,6 @@ void gf_regress_linalg_dsymm_fwe2colmajor_ix (
 //     for (i = 0; i < K; i++) {
 //         for (j = i + 1; j < K; j++) {
 //             C[i * K + j] = C[j * K + i];
-//         }
-//     }
-// }
-//
-// void gf_regress_linalg_dgemm_wcolmajor_ix (
-//     ST_double *A,
-//     ST_double *B,
-//     ST_double *C,
-//     ST_double *w,
-//     GT_size k1,
-//     GT_size k2,
-//     GT_size k3)
-// {
-//     GT_size i, j, l;
-//     ST_double *aptr, *bptr, *cptr, *wptr;
-//     memset(C, '\0', k1 * k3 * sizeof(ST_double));
-//     bptr = B;
-//     for (i = 0; i < k3; i++) {
-//         aptr = A;
-//         for (j = 0; j < k2; j++, bptr++) {
-//             cptr = C + i * k1;
-//             wptr = w + j;
-//             for (l = 0; l < k1; l++, aptr++, cptr++) {
-//                 *cptr += (*aptr) * (*bptr) * (*wptr);
-//             }
-//         }
-//     }
-// }
-//
-// void gf_regress_linalg_dgemTm_wcolmajor(
-//     ST_double *A,
-//     ST_double *B,
-//     ST_double *C,
-//     ST_double *w,
-//     GT_size N,
-//     GT_size k1,
-//     GT_size k2)
-// {
-//     GT_size i, k, l;
-//     ST_double *aptr, *bptr, *cptr, *wptr;
-//     memset(C, '\0', k1 * k2 * sizeof(ST_double));
-//     cptr = C;
-//     for (l = 0; l < k2; l++) {
-//         aptr = A;
-//         for (k = 0; k < k1; k++, cptr++) {
-//             bptr  = B + l * N;
-//             wptr  = w;
-//             for (i = 0; i < N; i++, aptr++, bptr++, wptr++) {
-//                 *cptr += (*aptr) * (*bptr) * (*wptr);
-//             }
 //         }
 //     }
 // }

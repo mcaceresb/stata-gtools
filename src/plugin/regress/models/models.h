@@ -192,4 +192,16 @@ void gf_regress_linalg_iverror(
     GT_size k2
 );
 
+void gf_regress_linalg_iverror_ix(
+    ST_double *y,
+    ST_double *A1,
+    ST_double *A2,
+    ST_double *b,
+    ST_double *c,
+    GT_size *colix,
+    GT_size N,
+    GT_size k1,
+    GT_size k2
+);
+
 #endif

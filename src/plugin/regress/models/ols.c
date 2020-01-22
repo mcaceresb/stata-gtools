@@ -22,18 +22,20 @@ GT_bool gf_regress_ols_colmajor(
     GT_size N,
     GT_size kx)
 {
+    GT_size kindep;
     GT_bool singular = 0;
 
     gf_regress_linalg_dsymm_colmajor (X, X, XX, N, kx);
     gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &singular);
 
     // gf_regress_linalg_dsysv (XX, kx, &singular);
-    // gf_regress_printf_colmajor (XX, colix[kx], colix[kx], "XX^-1");
+    // gf_regress_dprintf_colmajor (XX, kindep, kindep, "XX^-1");
 
-    if ( colix[kx] < kx ) {
-        gf_regress_linalg_dgemTv_colmajor_ix1 (X, y, Xy, colix, N, kx);
-        gf_regress_linalg_dgemTv_colmajor_ix2 (XX, Xy, b, colix, colix[kx], kx);
-        gf_regress_linalg_error_colmajor_ix   (y, X, b, e, colix, N, kx);
+    kindep = colix[kx];
+    if ( kindep < kx ) {
+        gf_regress_linalg_dgemTv_colmajor_ix1 (X, y, Xy, colix, N, kindep);
+        gf_regress_linalg_dgemTv_colmajor     (XX, Xy, b, kindep, kindep);
+        gf_regress_linalg_error_colmajor_ix1  (y, X, b, e, colix, N, kindep);
     }
     else {
         gf_regress_linalg_dgemTv_colmajor (X, y, Xy, N, kx);
@@ -56,17 +58,19 @@ GT_bool gf_regress_ols_wcolmajor(
     GT_size N,
     GT_size kx)
 {
+    GT_size kindep;
     GT_bool singular = 0;
     gf_regress_linalg_dsymm_wcolmajor (X, X, XX, w, N, kx);
     gf_regress_linalg_dsyldu (XX, kx, XX + kx * kx, colix, &singular);
 
     // gf_regress_linalg_dsysv (XX, kx, &singular);
-    // gf_regress_printf_colmajor (XX, kx, kx, "A A^-1");
+    // gf_regress_dprintf_colmajor (XX, kindep, kindep, "XX^-1");
 
-    if ( colix[kx] < kx ) {
-        gf_regress_linalg_dgemTv_wcolmajor_ix1 (X, y, Xy, w, colix, N, kx);
-        gf_regress_linalg_dgemTv_colmajor_ix2  (XX, Xy, b, colix, colix[kx], kx);
-        gf_regress_linalg_error_colmajor_ix    (y, X, b, e, colix, N, kx);
+    kindep = colix[kx];
+    if ( kindep < kx ) {
+        gf_regress_linalg_dgemTv_wcolmajor_ix1 (X, y, Xy, w, colix, N, kindep);
+        gf_regress_linalg_dgemTv_colmajor      (XX, Xy, b, kindep, kindep);
+        gf_regress_linalg_error_colmajor_ix1   (y, X, b, e, colix, N, kindep);
     }
     else {
         gf_regress_linalg_dgemTv_wcolmajor (X, y, Xy, w, N, kx);

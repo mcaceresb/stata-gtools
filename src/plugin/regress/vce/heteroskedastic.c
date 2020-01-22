@@ -18,7 +18,7 @@ void gf_regress_ols_robust_colmajor(
 
     // Compute D = X' diag(e) X
     if ( kindep < kx ) {
-        gf_regress_linalg_dsymm_w2colmajor_ix (X, X, V, e, colix, N, kx);
+        gf_regress_linalg_dsymm_w2colmajor_ix (X, X, V, e, colix, N, kindep);
     }
     else {
         gf_regress_linalg_dsymm_w2colmajor (X, X, V, e, N, kx);
@@ -29,18 +29,8 @@ void gf_regress_ols_robust_colmajor(
     gf_regress_linalg_dgemm_colmajor (VV, XX, V,  kindep, kindep, kindep);
 
     // Extract standard errors from diag(V)
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * qc);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * qc);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * qc);
     }
 }
 
@@ -62,8 +52,14 @@ void gf_regress_ols_robust_wcolmajor(
     ST_double qc = vceadj(N, kmodel, 0, w);
     GT_size kindep = colix[kx];
 
+// gf_regress_lprintf_colmajor (colix, 1, kindep, "colix_ss r1");
+// gf_regress_dprintf_colmajor (X, N, kx, "X r");
+// gf_regress_dprintf_colmajor (XX, kindep, kindep, "XX1");
+// gf_regress_dprintf_colmajor (V,  kindep, kindep, "VV1");
+// gf_regress_dprintf_colmajor (V,  kindep, kindep, "V1");
+
     if ( kindep < kx ) {
-        gf_regress_linalg_dsymm_we2colmajor_ix (X, X, V, e, w, colix, N, kx);
+        gf_regress_linalg_dsymm_we2colmajor_ix (X, X, V, e, w, colix, N, kindep);
     }
     else {
         gf_regress_linalg_dsymm_we2colmajor (X, X, V, e, w, N, kx);
@@ -72,18 +68,8 @@ void gf_regress_ols_robust_wcolmajor(
     gf_regress_linalg_dgemm_colmajor (XX, V,  VV, kindep, kindep, kindep);
     gf_regress_linalg_dgemm_colmajor (VV, XX, V,  kindep, kindep, kindep);
 
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * qc);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * qc);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * qc);
     }
 }
 
@@ -105,8 +91,14 @@ void gf_regress_ols_robust_fwcolmajor(
     ST_double qc = vceadj(N, kmodel, 0, w);
     GT_size kindep = colix[kx];
 
+// gf_regress_lprintf_colmajor (colix, 1, kindep, "colix_ss r2");
+// gf_regress_dprintf_colmajor (X, N, kx, "X r");
+// gf_regress_dprintf_colmajor (XX, kindep, kindep, "XX2");
+// gf_regress_dprintf_colmajor (V,  kindep, kindep, "VV2");
+// gf_regress_dprintf_colmajor (V,  kindep, kindep, "V2");
+
     if ( kindep < kx ) {
-        gf_regress_linalg_dsymm_fwe2colmajor_ix (X, X, V, e, w, colix, N, kx);
+        gf_regress_linalg_dsymm_fwe2colmajor_ix (X, X, V, e, w, colix, N, kindep);
     }
     else {
         gf_regress_linalg_dsymm_fwe2colmajor (X, X, V, e, w, N, kx);
@@ -115,18 +107,7 @@ void gf_regress_ols_robust_fwcolmajor(
     gf_regress_linalg_dgemm_colmajor (XX, V,  VV, kindep, kindep, kindep);
     gf_regress_linalg_dgemm_colmajor (VV, XX, V,  kindep, kindep, kindep);
 
-    qc = vceadj(N, kmodel, 0, w);
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * qc);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * qc);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * qc);
     }
 }

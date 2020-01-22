@@ -6,7 +6,7 @@
  * @K Number of rows and columns in A
  * @return Store A^-1 in @A and return the determinant |A|
  */
-ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K, GT_bool *nonsingular)
+ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K, GT_bool *singular)
 {
     ST_double z, D = 1;
     GT_size i, j, p;
@@ -37,7 +37,7 @@ ST_double gf_regress_linalg_dsysv (ST_double *A, GT_size K, GT_bool *nonsingular
     }
 
     if ( fabs(D) < GTOOLS_64BIT_EPSILON ) {
-        *nonsingular = 0;
+        *singular = 2;
     }
 
     return (D);

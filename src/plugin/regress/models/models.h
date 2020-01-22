@@ -200,8 +200,16 @@ void gf_regress_linalg_iverror_ix(
     ST_double *c,
     GT_size *colix,
     GT_size N,
+    GT_size koffset,
     GT_size k1,
     GT_size k2
+);
+
+void gf_regress_linalg_ivcollinear_ix(
+    GT_size *colix,
+    GT_size kendog,
+    GT_size kexog,
+    GT_size kz
 );
 
 #endif

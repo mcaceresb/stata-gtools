@@ -9,6 +9,63 @@
  * @N Number of rows and columns in A
  * @QR Helper vector where to store L, D, L', etc.
  * @colix Indeces for non-collinear columns
+ * @return
+ */
+void gf_regress_linalg_dcollinear (
+    ST_double *A,
+    GT_size N,
+    ST_double *LDU,
+    GT_size *colix)
+{
+
+    GT_size i, j, k;
+
+    ST_double *U1 = LDU;             // L
+    ST_double *D  = LDU + 1 * N * N; // D
+
+    memset(U1, '\0', N * N * sizeof(ST_double));
+    memset(D,  '\0',     N * sizeof(ST_double));
+
+    colix[N] = 0;
+    for (i = 0; i < N; i++) {
+        U1[i * N + i] = 1;
+    }
+
+    for (i = 0; i < N; i++) {
+        D[i] = A[i * N + i];
+        for (j = 0; j < i; j++) {
+            D[i] -= U1[j * N + i] * U1[j * N + i] * D[j];
+        }
+
+        // TODO: This check potentially fails due to the multi-way fixed
+        // effects algoritm not being precise enough ): It is possible
+        // to get a matrix with zeros that show up as 1e-15 and such
+        // numbers, which _should_ just be zero but are not quite small
+        // enough to be _numerically_ zero.
+
+        if ( fabs(D[i]) < N * GTOOLS_64BIT_EPSILON ) {
+            D[i] = 0;
+            continue;
+        }
+
+        colix[colix[N]++] = i;
+        for (j = i + 1; j < N; j++) {
+            U1[i * N + j] = A[i * N + j];
+            for (k = 0; k < i; k++) {
+                U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+            }
+            U1[i * N + j] /= D[i];
+        }
+    }
+}
+
+/**
+ * @brief Find the collinear rows of a matrix via LDU decomposition
+ *
+ * @A N x N symmetric matrix
+ * @N Number of rows and columns in A
+ * @QR Helper vector where to store L, D, L', etc.
+ * @colix Indeces for non-collinear columns
  * @singular
  * @return
  */
@@ -43,7 +100,13 @@ void gf_regress_linalg_dsyldu (
             D[i] -= U1[j * N + i] * U1[j * N + i] * D[j];
         }
 
-        if ( fabs(D[i]) < GTOOLS_64BIT_EPSILON ) {
+        // TODO: This check potentially fails due to the multi-way fixed
+        // effects algoritm not being precise enough ): It is possible
+        // to get a matrix with zeros that show up as 1e-15 and such
+        // numbers, which _should_ just be zero but are not quite small
+        // enough to be _numerically_ zero.
+
+        if ( fabs(D[i]) < N * GTOOLS_64BIT_EPSILON ) {
             D[i] = 0;
             continue;
         }
@@ -111,7 +174,7 @@ void gf_regress_linalg_dsyldu (
 /**
  * @brief Find the collinear rows of a matrix via Cholesky decomposition
  *
- * @A N x N symmetric matrix
+ * @A N x N full-rank symmetric matrix
  * @N Number of rows and columns in A
  * @LU Helper vector where to store L, U, etc.
  * @colix Indeces for non-collinear columns
@@ -122,10 +185,10 @@ void gf_regress_linalg_dsylu (
     ST_double *A,
     GT_size N,
     ST_double *LU,
-    GT_size *colix,
     GT_bool *singular)
 {
 
+    ST_double det = 1;
     GT_size i, j, k;
 
     ST_double *U    = LU;
@@ -141,22 +204,21 @@ void gf_regress_linalg_dsylu (
             }
         }
         U[j * N + j] = sqrt(U[j * N + j]);
-        if ( fabs(U[j * N + j]) < GTOOLS_64BIT_EPSILON ) {
-            U[j * N + j] = 0;
-            continue;
-        }
-        else {
-            for (i = j + 1; i < N; i++) {
-                U[j * N + i] /= U[j * N + j];
-            }
+        for (i = j + 1; i < N; i++) {
+            U[j * N + i] /= U[j * N + j];
         }
     }
 
     for (j = 0; j < N; j++) {
+        det *= U[j * N + j];
         for (i = 0; i < j; i++) {
             U[j * N + i] = U[i * N + j];
             U[i * N + j] = 0;
         }
+    }
+
+    if ( fabs(det) < GTOOLS_64BIT_EPSILON ) {
+        *singular = 2;
     }
 
     gf_regress_linalg_dtrsvT_colmajor (U, Linv, N);

@@ -88,8 +88,27 @@ void gf_regress_warnings (
     GT_size J,
     GT_size warncollinear,
     GT_size warnsingular,
+    GT_size warnivnotiden,
     char *buf1,
-    char *buf2
+    char *buf2,
+    char *buf3
+);
+
+
+void gf_regress_adjust_collinear_b (
+    ST_double *b,
+    ST_double *buffer,
+    GT_size *colix,
+    GT_size k1,
+    GT_size k2
+);
+
+void gf_regress_adjust_collinear_se (
+    ST_double *se,
+    ST_double *buffer,
+    GT_size *colix,
+    GT_size k1,
+    GT_size k2
 );
 
 #endif

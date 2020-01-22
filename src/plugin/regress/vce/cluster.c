@@ -54,25 +54,8 @@ void gf_regress_ols_cluster_colmajor(
     gf_regress_linalg_dgemm_colmajor (VV, XX, V,  kindep, kindep, kindep);
 
     qc = vceadj(N, kmodel, J, w);
-    if ( kindep < kx ) {
-
-        // NOTE(mauricio): Can I assume that kindep is at least 1? Surely
-        // not _every_ column can be independent, so I should be safe here.
-        // In any case, this seems like a rather poor way of doing this.
-        // Think of a cleverer way if you can manage it.
-
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * qc);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * qc);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * qc);
     }
 }
 
@@ -134,18 +117,7 @@ void gf_regress_ols_cluster_wcolmajor(
     gf_regress_linalg_dgemm_colmajor (VV, XX, V,  kindep, kindep, kindep);
 
     qc = vceadj(N, kmodel, J, w);
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * qc);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * qc);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * qc);
     }
 }
-

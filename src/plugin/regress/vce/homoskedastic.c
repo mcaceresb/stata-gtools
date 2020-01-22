@@ -28,18 +28,8 @@ void gf_regress_ols_seunw (
     }
     z /= ((ST_double) (N - kmodel));
 
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * z);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * z);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * z);
     }
 }
 
@@ -64,18 +54,8 @@ void gf_regress_ols_sew (
     }
     z /= ((ST_double) (N - kmodel));
 
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * z);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * z);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * z);
     }
 }
 
@@ -102,17 +82,7 @@ void gf_regress_ols_sefw (
     }
     z /= (Ndbl - kmodel);
 
-    if ( kindep < kx ) {
-        for (i = 0; i < kx; i++) {
-            se[i] = SV_missval;
-        }
-        for (i = 0; i < kindep; i++) {
-            se[colix[i]] = sqrt(V[i * kindep + i] * z);
-        }
-    }
-    else {
-        for (i = 0; i < kindep; i++) {
-            se[i] = sqrt(V[i * kindep + i] * z);
-        }
+    for (i = 0; i < kindep; i++) {
+        se[i] = sqrt(V[i * kindep + i] * z);
     }
 }

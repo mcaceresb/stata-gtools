@@ -7,7 +7,8 @@ void gf_stats_transform_apply (
     ST_double *buffer,
     GT_size   nj,
     ST_double tcode,
-    ST_double *stats
+    ST_double *stats,
+    GT_int aux8_shift
 );
 
 void gf_stats_transform_range(
@@ -297,7 +298,13 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                                 gsrc_pbuffer
                             );
                         }
-                        gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                        gf_stats_transform_apply(
+                            dblptr,
+                            nj,
+                            tcode,
+                            gsrc_stats,
+                            st_info->transform_aux8_shift[k]
+                        );
                     }
                     dblptr += nj;
                 }
@@ -440,7 +447,13 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                                 gsrc_pbuffer
                             );
                         }
-                        gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                        gf_stats_transform_apply(
+                            gsrc_buffer,
+                            nj,
+                            tcode,
+                            gsrc_stats,
+                            st_info->transform_aux8_shift[k]
+                        );
                     }
                     wgtptr += nj;
                     dblptr = gsrc_buffer;
@@ -543,7 +556,13 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             scode = st_info->transform_statcode[spos];
                             gsrc_stats[l] = gf_stats_transform_stat(dblptr, gsrc_pbuffer, nj, scode, 0);
                         }
-                        gf_stats_transform_apply(dblptr, nj, tcode, gsrc_stats);
+                        gf_stats_transform_apply(
+                            dblptr,
+                            nj,
+                            tcode,
+                            gsrc_stats,
+                            st_info->transform_aux8_shift[k]
+                        );
                     }
                     dblptr += nj;
                 }
@@ -663,7 +682,13 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             scode = st_info->transform_statcode[spos];
                             gsrc_stats[l] = gf_stats_transform_stat(gsrc_buffer, gsrc_pbuffer, nj, scode, 0);
                         }
-                        gf_stats_transform_apply(gsrc_buffer, nj, tcode, gsrc_stats);
+                        gf_stats_transform_apply(
+                            gsrc_buffer,
+                            nj,
+                            tcode,
+                            gsrc_stats,
+                            st_info->transform_aux8_shift[k]
+                        );
                     }
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
@@ -713,6 +738,7 @@ ST_retcode gf_stats_transform_check (
     if ( (tcode == -5) & (kstats != 0) ) return(18301);
     if ( (tcode == -6) & (kstats != 0) ) return(18301);
     if ( (tcode == -7) & (kstats != 0) ) return(18301);
+    if ( (tcode == -8) & (kstats != 0) ) return(18301);
     return (0);
 }
 
@@ -720,8 +746,10 @@ void gf_stats_transform_apply (
     ST_double *buffer,
     GT_size   nj,
     ST_double tcode,
-    ST_double *stats)
+    ST_double *stats,
+    GT_int aux8_shift)
 {
+    GT_int n;
     ST_double *dblptr;
     if ( tcode == -1 ) {
         if ( (stats[0] < SV_missval) && (stats[1] < SV_missval) ) {
@@ -761,6 +789,28 @@ void gf_stats_transform_apply (
         }
         else {
             for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+                *dblptr = SV_missval;
+            }
+        }
+    }
+    else if ( tcode == -8 ) {
+        if ( aux8_shift < 0 ) {
+            dblptr = buffer + nj;
+            while ( dblptr > buffer - aux8_shift ) {
+                dblptr--;
+                *dblptr = *(dblptr + aux8_shift);
+            }
+            while ( dblptr > buffer ) {
+                dblptr--;
+                *dblptr = SV_missval;
+            }
+        }
+        else if ( aux8_shift > 0 ) {
+            n = GTOOLS_PWMAX(((GT_int) nj) - aux8_shift, 0);
+            for (dblptr = buffer; dblptr < buffer + n; dblptr++) {
+                *dblptr = *(dblptr + aux8_shift);
+            }
+            for (dblptr = buffer + n; dblptr < buffer + nj; dblptr++) {
                 *dblptr = SV_missval;
             }
         }

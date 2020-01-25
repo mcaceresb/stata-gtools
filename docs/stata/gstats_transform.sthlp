@@ -46,16 +46,31 @@ the latest stable version.
 {p2col :{opt demedian}}subtract the median{p_end}
 {p2col :{opt normalize}}(x - mean) / sd{p_end}
 {p2col :{opt standardize}}same as {opt normalize}{p_end}
-{p2col :{opt rank}}rank observations; use option {opt ties()} to specify how ties are handled{p_end}
 {p2col :{opt moving stat [# #]}}moving statistic {it:stat}; # specify the relative bounds ({help gstats transform##moving_format:see below}){p_end}
-{p2col :{opt range stat ...}}range statistic {it:stat} for observations within specified interval ({help gstats transform##interval_format:see below}){p_end}
-{p2col :{opt cumsum [+/- [varname]]}}cummulative sum, optionally ascending (+) or descending (-) (optionally +/- by varname){p_end}
+{p2col :{opt range stat [...]}}range statistic {it:stat} for observations within specified interval ({help gstats transform##interval_format:see below}){p_end}
+{p2col :{opt cumsum [+/- [varname]]}}cumulative sum, optionally ascending (+) or descending (-) (optionally +/- by varname){p_end}
+{p2col :{opt shift [[+/-]#]}}lags (-#) and leads (+#); unsigned numbers are positive (i.e. leads){p_end}
+{p2col :{opt rank}}rank observations; use option {opt ties()} to specify how ties are handled{p_end}
 {p2colreset}{...}
 
-{p 4 4 2} {cmd:gstats moving} and {cmd:gstats range} are aliases for
-{cmd:gstats transform}. In this case all the requested statistics are
-assumed to be moving or range statistics, respectively. {cmd:moving} and
-{bf:range} may be combined with any one of the folloing:{p_end}
+{p 4 4 2} Some of the above transformations allow specifying various
+options as part of their name. This is done to allow the user to request
+various versions of the same transformation. However, this is not
+required.  The user can specify a global option that will be used for
+all the corresponding transformations:
+
+{p2colset 9 28 30 2}{...}
+{p2col :{opt moving stat}}{opt window()}{p_end}
+{p2col :{opt range stat}}{opt interval()}{p_end}
+{p2col :{opt cumsum}}{opt cumby()}{p_end}
+{p2col :{opt shift}}{opt shiftby()}{p_end}
+{p2colreset}{...}
+
+{p 4 4 2} Note {cmd:gstats moving} and {cmd:gstats range} are aliases
+for {cmd:gstats transform}. In this case all the requested statistics
+are assumed to be moving or range statistics, respectively. Finally,
+{cmd:moving} and {bf:range} may be combined with any one of the
+folloing:{p_end}
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
@@ -163,7 +178,7 @@ is used.
 {marker table_options}{...}
 {synopthdr}
 {synoptline}
-{syntab :Options}
+{syntab :Common Options}
 {synopt:{opth by(varlist)}}Group statistics by variable.
 {p_end}
 {synopt:{opt replace}}Allow replacing existing variables.
@@ -180,13 +195,17 @@ is used.
 {p_end}
 {synopt:{opth type:s(str)}}Override variable types for targets ({bf:use with caution}).
 {p_end}
-{synopt:{opt window(lower upper)}}Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
+
+{syntab :Command Options}
+{synopt:{opt window(lower upper)}}With {it:moving stat}. Relative observation range for moving statistics (if not specified in call). E.g. {opt window(-3 1)} means from 3 lag to 1 lead. {opt window(. #)} and {opt window(# .)} mean from the start and through the end.
 {p_end}
-{synopt:{opt interval(#[stat] #[stat] [var])}}Interval for range statistics that don't specify their own interval.
+{synopt:{opt interval(#[stat] #[stat] [var])}}With {it:range stat}. Interval for range statistics that don't specify their own interval.
 {p_end}
-{synopt:{opt cumby([+/- [varname]])}}Sort options for cumsum variables that don't specify their own.
+{synopt:{opt cumby([+/- [varname]])}}With {it:cumsum}. Sort options for cumsum variables that don't specify their own.
 {p_end}
-{synopt:{opt ties(str)}}How to break ties for {opt rank}. {opt d:efault} assigns the average rank; {opt u:nique} breaks ties arbitrarily; {opt stableunique} breaks ties using the order values appear in the data; {opt f:ield} counts the number of values greater than; {opt t:rack} counts the number of values less than.
+{synopt:{opt shiftby([+/-]#)}}With {it:shift}. Lag or lead when to use {bf:shift} is requested without specifying a number.
+{p_end}
+{synopt:{opt ties(str)}}With {it:rank}. How to break ties for {opt rank}. {opt d:efault} assigns the average rank; {opt u:nique} breaks ties arbitrarily; {opt stableunique} breaks ties using the order values appear in the data; {opt f:ield} counts the number of values greater than; {opt t:rack} counts the number of values less than.
 {p_end}
 
 {syntab:Gtools}
@@ -226,7 +245,11 @@ subtracting the mean.
 
 {pstd}
 Every function available to {cmd:gstats transform} can be called via
-{cmd:gegen}.
+{cmd:gegen}. Further, note that while not every function will use weights
+in their computations (e.g. {it:shift} ignores weights in the actual
+transformation), if weights are specified they will be used to flag
+acceptable observations (i.e. missing, zero, and, except for {opt iweights},
+negative observations get excluded).
 
 {marker example}{...}
 {title:Examples}

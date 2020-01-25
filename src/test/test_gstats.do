@@ -988,6 +988,7 @@ program versus_gstats_transform, rclass
     local tcall3 (normalize) _out* = random*
     local tcall4 (cumsum)    _out1 = random1 _out2 = random2 (cumsum +) _out3 = random3 (cumsum -) _out4 = random4 (cumsum + random3) _out5 = random5
     local tcall5 (rank)      _out* = random*
+    local tcall6 (shift -1)  _out1 = random1 _out2 = random2 (shift +3) _out3 = random3 (shift -4) _out4 = random4 (shift 2) _out5 = random5
 
     local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
               */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
@@ -995,7 +996,7 @@ program versus_gstats_transform, rclass
     local gcall2 (mean) _gout*  = random*
     local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
 
-    local I = cond(`"`wgt'"' == "", 5, 4)
+    local I = cond(`"`wgt'"' == "", 6, 4)
     forvalues i = 1 / `I' {
         local opts = cond(`i' != 5, "", "ties(. track . field .)")
 
@@ -1056,9 +1057,9 @@ program versus_gstats_transform, rclass
                     sort `anything', stable
                     by `anything': gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
                     by `anything': gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
-                    sort `anything' random3, stable                                   
+                    sort `anything' random3, stable
                     by `anything': gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
-                    sort `anything' random3 random5, stable                      
+                    sort `anything' random3 random5, stable
                     by `anything': gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
                     gsort `anything' -random4 _sort
                     by `anything': gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
@@ -1066,9 +1067,9 @@ program versus_gstats_transform, rclass
                 else {
                     gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
                     gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
-                    sort random3, stable                                   
+                    sort random3, stable
                     gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
-                    sort random3 random5, stable                      
+                    sort random3 random5, stable
                     gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
                     gsort -random4 _sort
                     gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
@@ -1076,12 +1077,26 @@ program versus_gstats_transform, rclass
             }
         }
         else if ( `i' == 5 ) {
-            local start = 1
-            egen double _gout1 = rank(random1) `if' `in', by(`anything')
-            egen double _gout2 = rank(random2) `if' `in', by(`anything') track
-            egen double _gout3 = rank(random3) `if' `in', by(`anything')
-            egen double _gout4 = rank(random4) `if' `in', by(`anything') field
-            egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            qui {
+                local start = 1
+                egen double _gout1 = rank(random1) `if' `in', by(`anything')
+                egen double _gout2 = rank(random2) `if' `in', by(`anything') track
+                egen double _gout3 = rank(random3) `if' `in', by(`anything')
+                egen double _gout4 = rank(random4) `if' `in', by(`anything') field
+                egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            }
+        }
+        else if ( `i' == 6 ) {
+            qui {
+                mark _touse `if' `in'
+                sort `anything' _touse, stable
+                local start = 1
+                by `anything' _touse: gen `:type random1' _gout1 = random1[_n - 1] if _touse
+                by `anything' _touse: gen `:type random2' _gout2 = random2[_n - 1] if _touse
+                by `anything' _touse: gen `:type random3' _gout3 = random3[_n + 3] if _touse
+                by `anything' _touse: gen `:type random4' _gout4 = random4[_n - 4] if _touse
+                by `anything' _touse: gen `:type random5' _gout5 = random5[_n + 2] if _touse
+            }
         }
         timer off 43
         qui timer list

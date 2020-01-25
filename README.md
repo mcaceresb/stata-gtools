@@ -11,9 +11,9 @@
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
-winsor, contract, levelsof, duplicates, and unique/distinct.
+winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.6.3-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.7.0-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -100,7 +100,9 @@ the features of 'groups'</small>
 
 __*Regression models*__
 
-Regression models are in beta. The following are available:
+Regression models are in beta and are mainly intended as utilities
+to compute coefficients and standard errors. Various post-estimation
+commands and statistics are _not_ availabe. The following are included:
 
 | Function            | Model   | Similar                       |
 | ------------------- | ------- | ----------------------------- |
@@ -115,13 +117,13 @@ All commands allow the user to optionally add:
 - `by()` for regressions by group.
 - `weights` for weighted versions. Unlike other weights, `fweights` are assumed to refer to the _number_ of observations.
 
-Currently only coefficients and standard errors are computed.  These
-models do not aim to mimic all the functionality of any given
-command. Linear regression is computed via OLS (or WLS), IV regression
-is computed via two-stage least squares (2SLS), and poisson regression
-is computed via iteratively reweighted least squares (IRLS).  Rolling
-regressions and multi-way cluster SE are planned for the next point
-release.
+Linear regression is computed via OLS (or WLS), IV regression is
+computed via two-stage least squares (2SLS), and poisson regression
+is computed via iteratively reweighted least squares (IRLS).  See the
+[TODO](#todo) section for planned features, or the
+[Missing Features](https://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#missing-features)
+section in the documentation for what is missing before the first
+non-beta release.
 
 __*Extra features*__
 
@@ -214,7 +216,7 @@ Acknowledgements
   [ftools](https://github.com/sergiocorreia/ftools) package. Further, several
   improvements and bug fixes have come from to @sergiocorreia's helpful comments.
 
-* With the exception of `greshape`, every gtools command was eventually
+* With the exception of `greshape`, every gtools command has been
   written almost entirely from scratch (and even `greshape` is mostly
   new code). However, gtools commands typically mimic the functionality
   of existing Stata commands, including community-contributed programs,
@@ -441,6 +443,8 @@ gtools functions (`stat` is any stat available to `gcollapse`, except
 | demedian     | gstats transform |
 | moving\_stat | gstats transform |
 | range\_stat  | gstats transform |
+| cumsum       | gstats transform |
+| shift        | gstats transform |
 | rank         | gstats transform |
 | winsor       | gstats winsor    |
 | winsorize    | gstats winsor    |
@@ -515,10 +519,19 @@ post-estimation results and tests, that `regress` (`reghdfe`),
 available. At the moment, they are considered beta software and only
 coefficients and standard errors are computed.
 
-- Results are saved either to mata (default) or copied to variables in the dataset in memory.
+- Results are saved either to mata (default) or copied to variables in
+  the dataset in memory.
 - `by()` and `absorb()` are allowed and can be combined.
 - `givregress` does a small sample adjustment (`small`) automatically.
+- `givregress` does not exit with error if covariates are collinear with
+  the dependent variable.
+- If the `givregress` model is not identified, standard errors and
+  coefficients are set to missing instead of exiting with error.
 - `gpoisson` runs with option `robust` automatically.
+- If the `givregress` model is not identified, standard errors and
+- If there are no non-linear covariates (i.e. all observations are
+  numerically zero) then the coefficients and standard errors are
+  _both_ set to missing.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -691,47 +704,26 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-Planned features for `gtools-1.8.0`:
+Planned features:
 
-- [ ] Add collinearity check before de-meaning (i.e. two checks)?
-- [ ] Non-nested multi-way clustering for `gregress`.
-- [ ] Redundant categories check in `gregress`
-- [ ] Flexible save options for regress
-    - Choose which coefs/se to save
-    - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
-    - `predict()`, including `xb` and `e`.
-- [ ] HDFE detect colinear groups
-- [ ] HDFE drop singletons option
-- [ ] Compare README.md with index.md
-
-Planned features for `gtools-1.7.0`:
-
-- [ ] RUN TESTS!
-- [X] Singularity check
-- [X] Remove colinear variables by group in `gregress`
-- [X] Code tests for collinearity check
-- [ ] Document OLS generally, and commend the code in detail (really involved atm)
-    - [ ] Be very clear about the fact this does not improve `regress`
-          itself, just groupped regressions (including hdfe) bc of the
-          lack of linear algebra packages.
-    - [ ] Be very clear about the lack of collinearity checks for groups.
-- [ ] `cumsum` for `gstats transform` (normal cumsum)
-- [ ] `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
-- [ ] Update index.md with new documentation
-- [ ] Document formulas when they are not obvious (e.g. `gini`, least squares, etc.)
-- [ ] Accelerate HDFE corner cases in `gregress`
-    - [ ] e.g. Acceletate multi-way particularly dense HDFE
-- [ ] `shift #` for lags and leads
-- [ ] Look into implementing something like `gegen, randomchoice()`
-- [ ] IV under-identification after collinearity check (i.e. if enough
-      instruments are dropped then beta and se should return missing).
-- [ ] Note the many differences with IV regression! Collinearity behavior specially
-    - [ ] Decide whether to drop variables perfectly correlated with depvar in `givregress`
-    - [ ] Note the discrepancy: Collinearity with depvar not removed
-    - [ ] Correlated instruments are disposed of BUT only exit w error if not enough post coll check
+- [ ] `gregress` missing features
+    - [ ] Non-nested multi-way clustering.
+    - [ ] HDFE collienar categories check.
+    - [ ] HDFE drop singletons.
+    - [ ] Detect separated observations in `gpoisson`.
+    - [ ] Guard against possible overflows in `X' X`
+    - [ ] Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
+    - [ ] Include quick primers on OLS, IV, and IRLS in docs.
+- [ ] Flexible save options for `gregress`
+    - [ ] `predict()`, including `xb` and `e`.
+    - [ ] `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
+    - [ ] Choose which coefs/se to save.
+- [ ] Improve formula documentation for summary statistics (e.g. `gini`)
 
 These are options/features/improvements I would like to add, but I don't
-have an ETA for them (i.e. they are a wishlist). In order of likelyhood:
+have an ETA for them (i.e. they are a wishlist because I am either not
+sure how to implement them or because writing the code will take a long
+time). Roughly in order of likelihood:
 
 - [ ] Some support for Stata's extended syntax in `gregress`
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.

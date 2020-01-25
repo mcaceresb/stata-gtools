@@ -538,8 +538,8 @@ disp "---------------------------"
 disp ""
         qui {
             clear
+            clear matrix
             set matsize 10000
-            set maxvar 50000
             set obs 50000
             gen g = ceil(runiform()*10)
             gen e = rnormal() * 5

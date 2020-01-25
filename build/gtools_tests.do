@@ -25,17 +25,6 @@ set type double
 program main
     syntax, [NOIsily *]
 
-use /tmp/tmp, clear
-gen ones = 1
-givregress price (mpg = gear_ratio _gear_ratio) weight turn [fw = w], robust
-mata GtoolsIV.print()
-ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight turn [fw = w], robust small
-mata GtoolsPoisson.print()
-* cap drop e
-* predict e, r
-* cl e
-exit 12345
-
     if ( inlist("`c(os)'", "MacOSX") | strpos("`c(machine_type)'", "Mac") ) {
         local c_os_ macosx
     }
@@ -5335,20 +5324,21 @@ program checks_gegen
     * cumsum
     * ------
 
-    * clear
-    * set rmsg on
-    * set obs 10000000
-    * gen g = ceil(runiform() * 10)
-    * gen x = ceil(rnormal() * 10)
-    * gen y = ceil(rnormal() * 10)
-    * gen w = abs(round(rnormal() * 10, 0.1))
-    * gegen cumx = cumsum(x) [aw = w], cumby(+) by(g)
-    * {
-    *     sort g x, stable
-    *     by g: gen sumx = sum(x * w)
-    * }
-    * gen zz = reldif(sumx, cumx)
-    * gstats sum zz
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gegen double cumx = cumsum(x) [aw = w], cumby(+) by(g)
+    qui {
+        sort g x, stable
+        by g: gen double sumx = sum(x * w)
+    }
+    qui gen zz = reldif(sumx, cumx)
+    qui sum zz, meanonly
+    assert r(max) < 1e-8
 
     sysuse auto, clear
     gen ix = _n
@@ -5487,6 +5477,65 @@ program checks_gegen
     gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(- weight)
     assert (cumprice == sumprice)
     drop ???price
+
+    * Shift
+    * -----
+
+    sysuse auto, clear
+    gen ix = _n
+
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(3.8)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-.1)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(wa)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign)
+    assert _rc == 198
+
+    gegen gprice_3 = shift(price), shiftby(-3) by(foreign)
+    qui by foreign: gen price_3 = price[_n - 3]
+    assert gprice_3 == price_3
+
+    gegen gprice3 = shift(price), shiftby(3) by(foreign)
+    qui by foreign: gen price3 = price[_n + 3]
+    assert gprice3 == price3
+
+    gegen gprice_6 = shift-6(price), by(foreign)
+    qui by foreign: gen price_6 = price[_n - 6]
+    assert gprice_6 == price_6
+
+    gegen gprice6 = shift+6(price), by(foreign)
+    qui by foreign: gen price6 = price[_n + 6]
+    assert gprice6 == price6
+
+    gegen gpricea = shift+0(price), by(foreign)
+    gegen gpriceb = shift-0(price), by(foreign)
+    gegen gpricec = shift|0(price), by(foreign)
+    gegen gpriced = shift(price),   by(foreign) shiftby(0)
+
+    assert price == gpricea
+    assert price == gpriceb
+    assert price == gpricec
+    assert price == gpriced
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gen long ix = _n
+    gegen gshiftx = shift(x) [aw = w], shiftby(-2) by(g)
+    qui {
+        gen byte now = mi(w) | w == 0
+        sort g now, stable
+        by g now: gen `:type x' shiftx = x[_n - 2]
+    }
+    assert (gshiftx == shiftx) | now
 
     * Gini
     * ----
@@ -9056,8 +9105,10 @@ disp "----------------------"
 disp ""
 
     sysuse auto, clear
-    gen w = _n
-    gegen headcode = group(headroom)
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
 
     foreach v in v1 v2 v5 v7 {
         local w
@@ -9360,8 +9411,8 @@ disp "--------------------------"
 disp ""
 
     local tol 1e-4
-    * webuse ships, clear
-    use /tmp/ships, clear
+    webuse ships, clear
+    * use /tmp/ships, clear
     qui expand 2
     qui gen by = 1.5 - (_n < _N / 2)
     qui gen w = _n
@@ -9541,37 +9592,29 @@ disp ""
 
         greg y x1 x2 x3 x4, mata(r1)
         reg  y x1 x2 x3 x4
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, r mata(r1)
         reg  y x1 x2 x3 x4, r
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, cluster(g) mata(r1)
         reg  y x1 x2 x3 x4, vce(cluster g)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, absorb(g) mata(r1)
         areg y x1 x2 x3 x4, absorb(g)
-            mata: assert(all(abs(st_matrix("r(table)")[1, 1::4] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2, 1::4] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
 
         greg y x1 x2 x3 x4 [fw = w], mata(r1)
-        reg  y x1 x2 x3 x4 [fw = w], mata(r1)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+        reg  y x1 x2 x3 x4 [fw = w]
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) r
         reg  y x1 x2 x3 x4 [fw = w], r
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) cluster(g)
         reg  y x1 x2 x3 x4 [fw = w], vce(cluster g)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) absorb(g)
         areg y x1 x2 x3 x4 [fw = w], absorb(g)
-            mata: assert(all(abs(st_matrix("r(table)")[1, 1::4] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2, 1::4] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
     }
 
     * ------------------------------------------------------------------------
@@ -9585,8 +9628,8 @@ disp "---------------------------"
 disp ""
         qui {
             clear
+            clear matrix
             set matsize 10000
-            set maxvar 50000
             set obs 50000
             gen g = ceil(runiform()*10)
             gen e = rnormal() * 5
@@ -9598,12 +9641,10 @@ disp ""
             * Slower with all the vars, but no longer unreasonably so
             greg y x*, mata(r1) v bench(3)
             reg  y x*
-                mata: assert(all(abs(st_matrix("r(table)")[1, .] :- r1.b[1, .]) :< `tol'))
-                mata: assert(all(abs(st_matrix("r(table)")[2, .] :- r1.se[1, .]) :< `tol'))
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
             greg y x*, mata(r1) v bench(3) cluster(g)
             reg  y x*, vce(cluster g)
-                mata: assert(all(abs(st_matrix("r(table)")[1, .] :- r1.b[1, .]) :< `tol'))
-                mata: assert(all(abs(st_matrix("r(table)")[2, .] :- r1.se[1, .]) :< `tol'))
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         }
     }
 
@@ -9678,8 +9719,11 @@ disp "------------------------"
 disp ""
 
     sysuse auto, clear
-    gen w = _n
-    gegen headcode = group(headroom)
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
+    qui tab headcode, gen(_h)
 
     foreach v in v1 v2 v5 v7 {
         local w
@@ -9739,32 +9783,40 @@ disp ""
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
 
         cap drop _*
-        qui tab headroom, gen(_)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom)
+        qui tab headroom, gen(_h)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom)
             qui reg price mpg mpg i.rep78 i.headcode `w'
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom) robust
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) robust
             qui reg price mpg mpg i.rep78 i.headcode `w', robust
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom) cluster(headroom)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) cluster(headroom)
             qui reg price mpg mpg i.rep78 i.headcode `w', vce(cluster headcode)
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
 
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w'
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w'
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom) robust
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) robust
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', robust
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', robust
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', cluster(headroom)
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', cluster(headroom)
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+
+        qui greg price z1 z2 `w', `r' noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
+
+        qui greg price _h* `w', `r' absorb(headroom) noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
     }
 
     * ------------------------------------------------------------------------
@@ -9792,6 +9844,8 @@ disp ""
     qui gen _weight       = weight
     qui gen _turn         = turn
     qui gen _displacement = displacement
+    qui gen z1 = 0
+    qui gen z2 = 0
 
     * Colinearity foo
     *
@@ -9826,8 +9880,8 @@ disp ""
 
         foreach av in v1 v2 v3 {
             if ( `"`av'"' == "v1" ) local avars
-            if ( `"`av'"' == "v2" ) local avars i.rep78
-            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
 
             if ( `"`av'"' == "v1" ) local absorb
             if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
@@ -10141,6 +10195,23 @@ disp _skip(8) "check 8"
                     mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
 disp _skip(8) "check 10"
                 }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = z1 z2) weight turn                    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))                           
+                    mata assert(all(GtoolsIV.se :== .))                           
+                qui givregress price (z1 = z2) weight turn                        `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio) z1 z2                     `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2     `avars' `w' , `vce' `small' noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
             }
         }
 
@@ -10153,8 +10224,8 @@ disp _skip(8) "check 10"
         local if2 if foreign == 1
         foreach av in v1 v2 v3 {
             if ( `"`av'"' == "v1" ) local avars
-            if ( `"`av'"' == "v2" ) local avars i.rep78
-            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
 
             if ( `"`av'"' == "v1" ) local absorb
             if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
@@ -10596,6 +10667,25 @@ disp _skip(8) "check 8"
                     mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
 disp _skip(8) "check 10"
                 }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn   `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = z1 z2) weight turn                      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 = z2) weight turn                          `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = gear_ratio) z1 z2                       `w' , `gvce' `absorb' noc `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if1' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if2' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
             }
         }
         qui drop if _expand
@@ -10612,13 +10702,16 @@ disp "----------------------------"
 disp ""
 
     local tol 1e-4
-    * webuse ships, clear
-    use /tmp/ships, clear
+    webuse ships, clear
+    * use /tmp/ships, clear
     qui expand 2
     qui gen by = 1.5 - (_n < _N / 2)
     qui gen w = _n
     qui tab ship, gen(_s)
     unab svars: _s*
+    qui gen z1 = 0
+    qui gen z2 = 0
+
     foreach v in v1 v2 v5 {
         disp "poisson checks `v'"
         local w
@@ -10670,6 +10763,11 @@ disp _skip(8) "check 7"
         qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 1.5, cluster(ship)
             mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
 disp _skip(8) "check 8"
+
+        qui gpoisson accident z1 z2 `w', robust noc
+            mata assert(all(GtoolsPoisson.b  :== .))
+            mata assert(all(GtoolsPoisson.se :== .))
+disp _skip(8) "check 9"
     }
 end
 
@@ -11909,6 +12007,7 @@ program versus_gstats_transform, rclass
     local tcall3 (normalize) _out* = random*
     local tcall4 (cumsum)    _out1 = random1 _out2 = random2 (cumsum +) _out3 = random3 (cumsum -) _out4 = random4 (cumsum + random3) _out5 = random5
     local tcall5 (rank)      _out* = random*
+    local tcall6 (shift -1)  _out1 = random1 _out2 = random2 (shift +3) _out3 = random3 (shift -4) _out4 = random4 (shift 2) _out5 = random5
 
     local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
               */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
@@ -11916,7 +12015,7 @@ program versus_gstats_transform, rclass
     local gcall2 (mean) _gout*  = random*
     local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
 
-    local I = cond(`"`wgt'"' == "", 5, 4)
+    local I = cond(`"`wgt'"' == "", 6, 4)
     forvalues i = 1 / `I' {
         local opts = cond(`i' != 5, "", "ties(. track . field .)")
 
@@ -11977,9 +12076,9 @@ program versus_gstats_transform, rclass
                     sort `anything', stable
                     by `anything': gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
                     by `anything': gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
-                    sort `anything' random3, stable                                   
+                    sort `anything' random3, stable
                     by `anything': gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
-                    sort `anything' random3 random5, stable                      
+                    sort `anything' random3 random5, stable
                     by `anything': gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
                     gsort `anything' -random4 _sort
                     by `anything': gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
@@ -11987,9 +12086,9 @@ program versus_gstats_transform, rclass
                 else {
                     gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
                     gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
-                    sort random3, stable                                   
+                    sort random3, stable
                     gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
-                    sort random3 random5, stable                      
+                    sort random3 random5, stable
                     gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
                     gsort -random4 _sort
                     gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
@@ -11997,12 +12096,26 @@ program versus_gstats_transform, rclass
             }
         }
         else if ( `i' == 5 ) {
-            local start = 1
-            egen double _gout1 = rank(random1) `if' `in', by(`anything')
-            egen double _gout2 = rank(random2) `if' `in', by(`anything') track
-            egen double _gout3 = rank(random3) `if' `in', by(`anything')
-            egen double _gout4 = rank(random4) `if' `in', by(`anything') field
-            egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            qui {
+                local start = 1
+                egen double _gout1 = rank(random1) `if' `in', by(`anything')
+                egen double _gout2 = rank(random2) `if' `in', by(`anything') track
+                egen double _gout3 = rank(random3) `if' `in', by(`anything')
+                egen double _gout4 = rank(random4) `if' `in', by(`anything') field
+                egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            }
+        }
+        else if ( `i' == 6 ) {
+            qui {
+                mark _touse `if' `in'
+                sort `anything' _touse, stable
+                local start = 1
+                by `anything' _touse: gen `:type random1' _gout1 = random1[_n - 1] if _touse
+                by `anything' _touse: gen `:type random2' _gout2 = random2[_n - 1] if _touse
+                by `anything' _touse: gen `:type random3' _gout3 = random3[_n + 3] if _touse
+                by `anything' _touse: gen `:type random4' _gout4 = random4[_n - 4] if _touse
+                by `anything' _touse: gen `:type random5' _gout5 = random5[_n + 2] if _touse
+            }
         }
         timer off 43
         qui timer list

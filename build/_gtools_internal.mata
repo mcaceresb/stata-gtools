@@ -1915,7 +1915,7 @@ void function GtoolsRegressOutput::print(|real scalar trans)
     }
 
     if ( trans ) {
-        if ( savese ) {
+        if ( saveb & savese ) {
             for (j = 1; j <= J; j++) {
                 for (k = 1; k <= kx; k++) {
                     printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
@@ -1927,13 +1927,21 @@ void function GtoolsRegressOutput::print(|real scalar trans)
             for (j = 1; j <= J; j++) {
                 for (k = 1; k <= kx; k++) {
                     printf("\t%9.6g", b[j, k])
+                }
+                    printf("\n")
+            }
+        }
+        else if ( savese ) {
+            for (j = 1; j <= J; j++) {
+                for (k = 1; k <= kx; k++) {
+                    printf("\t%(9.6g)", se[j, k])
                 }
                     printf("\n")
             }
         }
     }
     else {
-        if ( savese ) {
+        if ( saveb & savese ) {
             for (k = 1; k <= kx; k++) {
                 for (j = 1; j <= J; j++) {
                     printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
@@ -1945,6 +1953,14 @@ void function GtoolsRegressOutput::print(|real scalar trans)
             for (k = 1; k <= kx; k++) {
                 for (j = 1; j <= J; j++) {
                     printf("\t%9.6g", b[j, k])
+                }
+                    printf("\n")
+            }
+        }
+        else if ( savese ) {
+            for (k = 1; k <= kx; k++) {
+                for (j = 1; j <= J; j++) {
+                    printf("\t(%9.6g)", se[j, k])
                 }
                     printf("\n")
             }

@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sun Sep  8 18:47:47 EDT 2019 
+ * Updated: Sat Jan 25 16:06:16 EST 2020 
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.6.3
+ * Version: 24Jan2020
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 08 Sep 2019
+ * @date 24 Jan 2020
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -846,6 +846,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->transform_cumsign  = calloc(GTOOLS_PWMAX(transform_ktargets, 1),     sizeof st_info->transform_cumsign);
     st_info->transform_cumvars  = calloc(GTOOLS_PWMAX(transform_ktargets, 1) + 1, sizeof st_info->transform_cumvars);
 
+    st_info->transform_aux8_shift = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_aux8_shift);
+
     st_info->transform_moving   = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving);
     st_info->transform_moving_l = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving_l);
     st_info->transform_moving_u = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_moving_u);
@@ -892,6 +894,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->transform_cumsum         == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumsum"));
     if ( st_info->transform_cumsign        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumsign"));
     if ( st_info->transform_cumvars        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_cumvars"));
+    if ( st_info->transform_aux8_shift     == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_aux8_shift"));
 
     if ( st_info->transform_range          == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range"));
     if ( st_info->transform_range_pos      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_pos"));
@@ -940,6 +943,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->transform_cumsum")
     GTOOLS_GC_ALLOCATED("st_info->transform_cumsign")
     GTOOLS_GC_ALLOCATED("st_info->transform_cumvars")
+    GTOOLS_GC_ALLOCATED("st_info->transform_aux8_shfit")
 
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")
@@ -1017,6 +1021,8 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_get_vector_size ("__gtools_transform_cumsum",    st_info->transform_cumsum))    ) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_transform_cumsign",   st_info->transform_cumsign))   ) goto exit;
     if ( (rc = sf_get_vector_size ("__gtools_transform_cumvars",   st_info->transform_cumvars))   ) goto exit;
+
+    if ( (rc = sf_get_vector_int  ("__gtools_transform_aux8_shift", st_info->transform_aux8_shift)) ) goto exit;
 
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_clustyp", st_info->gregress_cluster_types)) ) goto exit;
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_abstyp",  st_info->gregress_absorb_types))  ) goto exit;
@@ -2446,6 +2452,7 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->transform_cumsum);
         free (st_info->transform_cumsign);
         free (st_info->transform_cumvars);
+        free (st_info->transform_aux8_shift);
         free (st_info->gregress_cluster_types);
         free (st_info->gregress_cluster_offsets);
         free (st_info->gregress_absorb_types);
@@ -2491,6 +2498,7 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->transform_cumsum")
         GTOOLS_GC_FREED("st_info->transform_cumsign")
         GTOOLS_GC_FREED("st_info->transform_cumvars")
+        GTOOLS_GC_FREED("st_info->transform_aux8_shift")
 
         GTOOLS_GC_FREED("st_info->pos_num_byvars")
         GTOOLS_GC_FREED("st_info->pos_str_byvars")

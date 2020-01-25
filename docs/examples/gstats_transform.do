@@ -5,16 +5,19 @@
 
 sysuse auto, clear
 
-gegen norm_price = normalize(price),   by(foreign)
-gegen std_price  = standardize(price), by(foreign)
-gegen dm_price   = demean(price),      by(foreign)
-gegen rank_price = rank(price),        by(foreign)
+gegen norm_price  = normalize(price),   by(foreign)
+gegen std_price   = standardize(price), by(foreign)
+gegen dm_price    = demean(price),      by(foreign)
+gegen rank_price  = rank(price),        by(foreign)
+gegen lag1_price  = shift(price),       by(foreign) shiftby(-1)
+gegen lead2_price = shift(price),       by(foreign) shiftby(2)
 
 local opts by(foreign) replace
 gstats transform (standardize) std_price = price (demean) dm_mpg = mpg, `opts'
 gstats transform (normalize) norm_mpg = mpg (rank) rank_price = price, `opts'
 gstats transform (demean) mpg (normalize) price [w = rep78], `opts'
 gstats transform (demean) mpg (normalize) xx = price, `opts' auto(#stat#_#source#)
+gstats transform (shift -3) l3_mpg = mpg (shift 5) f5_price = price, `opts'
 
 * Range statistics
 * ----------------

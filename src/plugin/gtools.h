@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.6.3"
+#define GTOOLS_VERSION "1.7.0"
 
 /*
  * Style
@@ -168,6 +168,7 @@ struct StataInfo {
     GT_size   *transform_cumsum;
     GT_size   *transform_cumsign;
     GT_size   *transform_cumvars;
+    GT_int    *transform_aux8_shift;
     //
     GT_size   gregress_kvars;
     GT_bool   gregress_cons;

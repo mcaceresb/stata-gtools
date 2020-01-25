@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.2.0 09Jun2019}{...}
+{* *! version 1.3.0 24Jan2020}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -61,10 +61,15 @@ with {opt semean}, {opt sebinomial}, or {opt sepoisson}. {opt aweight}s
 may not be used with {opt sebinomial} or {opt sepoisson}.{p_end}
 
 {pstd}
-The following are simply wrappers for other {it:gtools} functions.
-They all allow {opth by(varlist)} as an option. Consult each command's
-corresponding help files for details ({it:stat} is any stat available
-to {cmd:gcollapse} except percent, nunique):
+The following are simply wrappers for other {it:gtools} functions.  They
+all allow {opth by(varlist)} as an option.  Consult each command's
+corresponding help files for details.  (Note that {cmd:gstats transform}
+in particular allows embedding options in the statistic call rather
+than program arguments; while this is technically also possible to do
+through {cmd:gegen}, I do not recommend it. Instead, use {opt window()}
+with {it:moving_stat}, {opt interval()} with {it:range_stat}, {opt cumby()}
+with {it:cumsum}, and so on.) In the table, {it:stat} can be replaced
+with any stat available to {cmd:gcollapse} except percent, {it:nunique}:
 
             {opt function}              -> {opt calls}
             {hline 40}                  
@@ -75,8 +80,9 @@ to {cmd:gcollapse} except percent, nunique):
             {opth demedian(varname)}    -> {help gstats transform}
             {opth moving_stat(varname)} -> {help gstats transform}
             {opth range_stat(varname)}  -> {help gstats transform}
-            {opth rank(varname)}        -> {help gstats transform}
             {opth cumsum(varname)}      -> {help gstats transform}
+            {opth shift(varname)}       -> {help gstats transform}
+            {opth rank(varname)}        -> {help gstats transform}
             {opth winsor(varname)}      -> {help gstats winsor}
             {opth winsorize(varname)}   -> {help gstats winsor}
 

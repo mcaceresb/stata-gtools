@@ -57,9 +57,14 @@ may not be used with sebinomial or sepoisson.
 Compiled functions
 ------------------
 
-The following are simply wrappers for other _gtools_ functions.
-Consult each command's corresponding help files (`stat` is any
-stat available to `gcollapse` except percent, nunique):
+The following are simply wrappers for other _gtools_ functions.  Consult
+each command's corresponding help files for details. (Note that `gstats
+transform` in particular allows embedding options in the statistic call
+rather than program arguments; while this is technically also possible
+to do through `gegen`, I do not recommend it. Instead, use `window()` with
+`moving_stat`, `interval()` with `range_stat`, `cumby()` with `cumsum`, and
+so on.) In the table, `stat` can be replaced with any stat available to
+`gcollapse` except percent, `nunique`:
 
     function              -> calls
     -----------------------------------------
@@ -70,8 +75,9 @@ stat available to `gcollapse` except percent, nunique):
     demedian(varname)     -> gstats transform
     moving_stat(varname)  -> gstats transform
     range_stat(varname)   -> gstats transform
-    rank(varname)         -> gstats transform
     cumsum(varname)       -> gstats transform
+    shift(varname)        -> gstats transform
+    rank(varname)         -> gstats transform
     winsor(varname)       -> gstats winsor
     winsorize(varname)    -> gstats winsor
 

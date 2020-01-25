@@ -1,4 +1,4 @@
-*! version 1.6.3 08Sep2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.7.0 24Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -4622,6 +4622,43 @@ program encode_cumsum, rclass
     return local cumother = `"`cumvars'"' != ""
 end
 
+capture program drop encode_shift
+program encode_shift, rclass
+    syntax anything, [shiftby(str)]
+
+    local anything `anything'
+    local stat: copy local anything
+    local match 0
+    local shift 0
+
+    if regexm(`"`anything'"', "^shift[ |]*([+-]?[0-9]+)[ |]*$") {
+        local shift = `=regexs(1)'
+        local match 1
+        local stat shift|`shift'
+    }
+    else if regexm(`"`anything'"', "^shift[ |]*$") {
+        if ( `"`shiftby'"' == "" ) {
+            disp as err "shift: shiftby() required if no individual shift is specified"
+            exit 198
+        }
+        else {
+            cap confirm integer number `shiftby'
+            if ( _rc ) {
+                disp as err "shift: shiftby() misspecified; expected integer but got '`shiftby''"
+                exit 7
+            }
+            local shift = `=`shiftby''
+            local match 1
+            local stat shift|`shift'
+        }
+    }
+
+    c_local stat: copy local stat
+    return local stat:  copy local stat
+    return local match: copy local match
+    return local shift: copy local shift
+end
+
 ***********************************************************************
 *                              greshape                               *
 ***********************************************************************
@@ -4829,10 +4866,12 @@ program gstats_scalars
         matrix __gtools_transform_cumsum       = 0
         matrix __gtools_transform_cumsign      = 0
         matrix __gtools_transform_cumvars      = 0
+        matrix __gtools_transform_aux8_shift   = 0
 
         mata: __gtools_transform_cumsum        = .
         mata: __gtools_transform_cumsign       = .
         mata: __gtools_transform_cumvars       = .
+        mata: __gtools_transform_aux8_shift    = .
         mata: __gtools_summarize_codes         = .
     }
     else {
@@ -4918,10 +4957,12 @@ program gstats_scalars
         cap matrix drop __gtools_transform_cumsum
         cap matrix drop __gtools_transform_cumsign
         cap matrix drop __gtools_transform_cumvars
+        cap matrix drop __gtools_transform_aux8_shift
 
         cap mata: mata drop __gtools_transform_cumsum
         cap mata: mata drop __gtools_transform_cumsign
         cap mata: mata drop __gtools_transform_cumvars
+        cap mata: mata drop __gtools_transform_aux8_shift
 
         cap mata: mata drop __gtools_transform_rank_ties
         cap mata: mata drop __gtools_summarize_codes
@@ -4966,6 +5007,7 @@ program gstats_transform
         window(passthru)            /// moving window if not specified in the stat
         interval(passthru)          /// interval if not specified in the stat
         cumby(passthru)             /// Cummulative sum by +/- and varlst
+        shiftby(passthru)           /// Shift by +/-#
         excludeself                 /// exclude current obs from statistic
         excludebounds               /// interval is strict (do not include bounds)
     ]
@@ -4979,7 +5021,7 @@ program gstats_transform
         `labelprogram'                 ///
         `autorename'                   ///
         `autorenameformat'             ///
-        `window' `interval' `cumby' `statprefix'
+        `window' `interval' `cumby' `shiftby' `statprefix'
 
     local transforms rank        ///
                      standardize ///
@@ -4995,6 +5037,8 @@ program gstats_transform
             encode_range `stat'
             local rmatch = `r(match)' | `rmatch'
             encode_cumsum `stat'
+            local rmatch = `r(match)' | `rmatch'
+            encode_shift  `stat'
             local rmatch = `r(match)' | `rmatch'
             if ( `rmatch' == 0 ) {
                 local unknown `unknown' `stat'
@@ -5225,6 +5269,17 @@ program gstats_transform
     *             //     in ascending/descending order. if varlist then
     *             //     cumsum happens in ascending or descending order
     *             //     or varlist.
+    * -8          // shift
+    *             //     syntax via stata call
+    *             //
+    *             //         (shift) for use with shift()
+    *             //         (shift -#)  for lags
+    *             //         (shift #) for leads
+    *             //
+    *             //     where shiftby() is an integer
+    *             //
+    *             //         shiftby(-#) for lags
+    *             //         shiftby(#) for leads
 
     * moving stats
     * ------------
@@ -5358,6 +5413,13 @@ program gstats_transform
     *
     *     start and end position of cumvars for each target
 
+    * Shift (lads and leads)
+    * ----------------------
+
+    * __gtools_transform_aux8_shift
+    *
+    *     number (positive or negative) to shift kth target by
+
     * Transform mappings
     * ------------------
 
@@ -5390,7 +5452,7 @@ program gstats_transform
     * Generate matrices for plugin internals
     * --------------------------------------
 
-    local gs_nostats_codes -4 -5 -6 -7
+    local gs_nostats_codes -4 -5 -6 -7 -8
 
     local gs_standardize mean sd
     local gs_normalize   mean sd
@@ -5400,6 +5462,7 @@ program gstats_transform
     local gs_range
     local gs_rank
     local gs_cumsum
+    local gs_shift
 
     local gs
     local rangevars
@@ -5413,24 +5476,26 @@ program gstats_transform
     local gs: list uniq gs
     local rangevars: list uniq rangevars
 
-    mata: __gtools_transform_varfuns   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_statcode  = J(1, max((`:list sizeof gs', 1)), 0)
-    mata: __gtools_transform_statmap   = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
+    mata: __gtools_transform_varfuns    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_statcode   = J(1, max((`:list sizeof gs', 1)), 0)
+    mata: __gtools_transform_statmap    = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
 
-    mata: __gtools_transform_moving    = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_moving_l  = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_moving_u  = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_moving     = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_moving_l   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_moving_u   = J(1, `:list sizeof __gtools_gst_stats', .)
 
-    mata: __gtools_transform_range     = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_pos = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_l   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_range_u   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_range_ls  = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_us  = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range      = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_pos  = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_l    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_u    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_ls   = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_us   = J(1, `:list sizeof __gtools_gst_stats', 0)
 
-    mata: __gtools_transform_cumsum    = J(1, `:list sizeof __gtools_gst_stats',     0)
-    mata: __gtools_transform_cumsign   = J(1, `:list sizeof __gtools_gst_stats',     0)
-    mata: __gtools_transform_cumvars   = J(1, `:list sizeof __gtools_gst_stats' + 1, 0)
+    mata: __gtools_transform_cumsum     = J(1, `:list sizeof __gtools_gst_stats',     0)
+    mata: __gtools_transform_cumsign    = J(1, `:list sizeof __gtools_gst_stats',     0)
+    mata: __gtools_transform_cumvars    = J(1, `:list sizeof __gtools_gst_stats' + 1, 0)
+
+    mata: __gtools_transform_aux8_shift = J(1, `:list sizeof __gtools_gst_stats', 0)
 
     forvalues l = 1 / `:list sizeof gs' {
         local gstat: word `l' of `gs'
@@ -5500,6 +5565,13 @@ program gstats_transform
             mata: __gtools_transform_cumsum[`k']  = 1
             mata: __gtools_transform_cumsign[`k'] = `r(cumsign)'
             mata: __gtools_transform_cumvars[`=`k'+1'] = `:list sizeof cumvars'
+        }
+
+        * shift matrices
+        encode_shift `stat'
+        if ( `r(match)' ) {
+            local statcode -8
+            mata: __gtools_transform_aux8_shift[`k'] = `r(shift)'
         }
 
         * other matrices
@@ -5572,24 +5644,26 @@ program gstats_transform
     scalar __gtools_transform_range_xb  = (`"`excludebounds'"' != "")
 
     mata: st_matrix("__gtools_transform_rank_ties", strtoreal(tokens(st_local("__gtools_gst_tcodes"))))
-    mata: st_matrix("__gtools_transform_varfuns",   __gtools_transform_varfuns)
-    mata: st_matrix("__gtools_transform_statmap",   __gtools_transform_statmap)
-    mata: st_matrix("__gtools_transform_statcode",  __gtools_transform_statcode)
+    mata: st_matrix("__gtools_transform_varfuns",    __gtools_transform_varfuns)
+    mata: st_matrix("__gtools_transform_statmap",    __gtools_transform_statmap)
+    mata: st_matrix("__gtools_transform_statcode",   __gtools_transform_statcode)
 
-    mata: st_matrix("__gtools_transform_moving",    __gtools_transform_moving)
-    mata: st_matrix("__gtools_transform_moving_l",  __gtools_transform_moving_l)
-    mata: st_matrix("__gtools_transform_moving_u",  __gtools_transform_moving_u)
+    mata: st_matrix("__gtools_transform_moving",     __gtools_transform_moving)
+    mata: st_matrix("__gtools_transform_moving_l",   __gtools_transform_moving_l)
+    mata: st_matrix("__gtools_transform_moving_u",   __gtools_transform_moving_u)
 
-    mata: st_matrix("__gtools_transform_range",     __gtools_transform_range)
-    mata: st_matrix("__gtools_transform_range_pos", __gtools_transform_range_pos)
-    mata: st_matrix("__gtools_transform_range_l",   __gtools_transform_range_l)
-    mata: st_matrix("__gtools_transform_range_u",   __gtools_transform_range_u)
-    mata: st_matrix("__gtools_transform_range_ls",  __gtools_transform_range_ls)
-    mata: st_matrix("__gtools_transform_range_us",  __gtools_transform_range_us)
+    mata: st_matrix("__gtools_transform_range",      __gtools_transform_range)
+    mata: st_matrix("__gtools_transform_range_pos",  __gtools_transform_range_pos)
+    mata: st_matrix("__gtools_transform_range_l",    __gtools_transform_range_l)
+    mata: st_matrix("__gtools_transform_range_u",    __gtools_transform_range_u)
+    mata: st_matrix("__gtools_transform_range_ls",   __gtools_transform_range_ls)
+    mata: st_matrix("__gtools_transform_range_us",   __gtools_transform_range_us)
 
-    mata: st_matrix("__gtools_transform_cumsum",    __gtools_transform_cumsum)
-    mata: st_matrix("__gtools_transform_cumsign",   __gtools_transform_cumsign)
-    mata: st_matrix("__gtools_transform_cumvars",   __gtools_transform_cumvars)
+    mata: st_matrix("__gtools_transform_cumsum",     __gtools_transform_cumsum)
+    mata: st_matrix("__gtools_transform_cumsign",    __gtools_transform_cumsign)
+    mata: st_matrix("__gtools_transform_cumvars",    __gtools_transform_cumvars)
+
+    mata: st_matrix("__gtools_transform_aux8_shift", __gtools_transform_aux8_shift)
 
     c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars' `cumvars'
 end
@@ -5606,6 +5680,7 @@ program gstats_transform_parse
         window(passthru)      /// moving window if not specified in the stat
         interval(passthru)    /// interval if not specified in the stat
         cumby(passthru)       /// cummulative sum by +/- and varlst if not specified in the stat
+        shiftby(passthru)     /// Shift by +/-#
         statprefix(passthru)  /// add prefix to every stat
         labelformat(str)      /// label prefix
         labelprogram(str)     /// label program
@@ -5615,7 +5690,7 @@ program gstats_transform_parse
     * -----------------------------------------------
 
     local opts     prefix(__gtools_gst) default(demean)
-    local passthru `window' `interval' `cumby' `statprefix'
+    local passthru `window' `interval' `cumby' `shiftby' `statprefix'
     if ( "`wildparse'" != "" ) {
         local rc = 0
 
@@ -5945,6 +6020,15 @@ program gstats_transform_types
             if ( `r(match)' ) {
                 local types  `types'  double
                 local retype `retype' `=!inlist("`ttype'", "double")'
+            }
+
+            * shift follows the same retype logic as min, max, first, last, etc.
+            encode_shift `stat'
+            local rmatch = `r(match)' | `rmatch'
+            if ( `r(match)' ) {
+                encode_stat_types first `type' `ttype'
+                local types  `types'  `type'
+                local retype `retype' `r(retype)'
             }
 
             if ( `"`stat'"' == "rank" ) {
@@ -7036,12 +7120,25 @@ program GtoolsPrettyStat, rclass
         }
     }
 
+    encode_shift `0'
+    if ( `r(match)' ) {
+        if ( `r(shift)' == 0 ) {
+            local prettystat ""
+        }
+        else if ( `r(shift)' > 0 ) {
+            local prettystat "Lead (`r(shift)')"
+        }
+        else if ( `r(shift)' < 0 ) {
+            local prettystat "Lag (`=abs(`r(shift)')')"
+        }
+    }
+
     return local prettystat = `"`prettystat'"'
 end
 
 capture program drop ParseListWild
 program ParseListWild
-    local opts window(passthru) interval(passthru) cumby(passthru) statprefix(str)
+    local opts window(passthru) interval(passthru) cumby(passthru) shiftby(passthru) statprefix(str)
     syntax anything(equalok), LOCal(str) PREfix(str) default(str) [`opts']
     local stat `default'
 
@@ -7100,6 +7197,8 @@ program ParseListWild
 
                 encode_range  `stat', `interval' var(`svar')
                 encode_cumsum `stat', `cumby'    var(`svar')
+                encode_shift  `stat', `shiftby'
+
                 local call `call' (`stat') `tvar' = `svar'
                 local full_stats  `full_stats' `stat'
             }
@@ -7111,6 +7210,8 @@ program ParseListWild
             foreach svar of varlist `usources' {
                 encode_range  `stat', `interval' var(`svar')
                 encode_cumsum `stat', `cumby'    var(`svar')
+                encode_shift  `stat', `shiftby'
+
                 local call `call' (`stat') `svar'
                 local full_stats `full_stats' `stat'
             }
@@ -7138,7 +7239,7 @@ end
 
 capture program drop ParseList
 program define ParseList
-    local opts window(passthru) interval(passthru) cumby(passthru) statprefix(str)
+    local opts window(passthru) interval(passthru) cumby(passthru) shiftby(passthru) statprefix(str)
     syntax anything(equalok), PREfix(str) default(str) [`opts']
     local stat `default'
 
@@ -7179,6 +7280,7 @@ program define ParseList
 
             encode_range  `stat', `interval' var(`var')
             encode_cumsum `stat', `cumby'    var(`var')
+            encode_shift  `stat', `shiftby'
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'

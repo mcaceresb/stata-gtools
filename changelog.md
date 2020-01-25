@@ -1,6 +1,21 @@
 Change Log
 ==========
 
+## gtools-1.7.0 (2020-01-24)
+
+### Enhancements
+
+- In `givgregress` 
+    - Values to missing if model is not identified (not enough instruments).
+    - `hdfe` no longer saves projected vars.
+
+### Features
+
+- In `gregress` (including `givregress` and `gpoisson`) collinear
+  columns are now dropped (LDL' decomposition).
+- `gegen shift, shiftby(#)` and `gstats transform (shift #)` are available
+  to compute lags (negative `#`) and leds (positive `#`).
+
 ## gtools-1.6.4 (2019-09-14)
 
 ### Enhancements

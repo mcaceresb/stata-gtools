@@ -1,4 +1,4 @@
-* version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+* version 1.4.0 24Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -75,7 +75,11 @@ program define gegen, byable(onecall) rclass
     * Parse by call
     * -------------
 
-    if ( _by() ) local byvars `_byvars'
+    local warnby = 0
+    if ( _by() ) {
+        local byvars `_byvars'
+        local warnby = 1
+    }
 
     * Pre-compiled functions
     * ----------------------
@@ -128,8 +132,19 @@ program define gegen, byable(onecall) rclass
     local direct winsorize ///
                  winsor     //
 
+    * NOTE(mauricio): Though you would want to allow by as prefix, it's
+    * difficult because the user can try to pass inputs assuming by:
+    * will produce a particular result, and it might not e.g.
+    *
+    *     by var: gegen x = fcn(y[_n - 2])
+    *
+    * fails with these (in this example, for non-transforms y[_n - 2],
+    * or whichever expression is passed, is generated into a variable
+    * with the correct by: predix.
+
     if ( `"`fcn'"' == "xtile" ) {
         if ( _by() ) {
+            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
@@ -140,16 +155,18 @@ program define gegen, byable(onecall) rclass
         exit _rc
     }
 
+    local shift  = regexm(`"`fcn'"', "^shift[ |]*([+-]?[0-9]+)?[ |]*$")
     local cumsum = regexm(`"`fcn'"', "^cumsum(.*)$")
     local moving = regexm(`"`fcn'"', "^moving[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?$")
     local range  = regexm(`"`fcn'"', "^range[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?[ |]*([^ ]+)?$")
-    if ( `:list fcn in transforms' | `moving' | `range' | `cumsum' ) {
+    if ( `:list fcn in transforms' | `moving' | `range' | `cumsum' | `shift' ) {
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
         if ( _by() ) {
+            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
@@ -167,6 +184,7 @@ program define gegen, byable(onecall) rclass
             exit _rc
         }
         if ( _by() ) {
+            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
@@ -246,6 +264,10 @@ program define gegen, byable(onecall) rclass
     local t97: copy local FreeTimer
     gtools_timer on `t97'
     global GTOOLS_CALLER gegen
+
+    if ( `warnby' ) {
+        disp as txt "performance warning: -by- prefix may be slower than -by()-"
+    }
 
     * Parse syntax call if function is known
     * --------------------------------------
@@ -630,7 +652,7 @@ program define gegen, byable(onecall) rclass
             }
 
             * See notes in lines 294-310
-            * if ( "`:list sources & dummy'" != "" ) { 
+            * if ( "`:list sources & dummy'" != "" ) {
             *     if ( "`replace'" != "" ) local extra " even with -replace-"
             *     di as error "Variable `dummy' canot be a source and a target`extra'"
             *     exit 198

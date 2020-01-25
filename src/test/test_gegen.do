@@ -289,20 +289,21 @@ program checks_gegen
     * cumsum
     * ------
 
-    * clear
-    * set rmsg on
-    * set obs 10000000
-    * gen g = ceil(runiform() * 10)
-    * gen x = ceil(rnormal() * 10)
-    * gen y = ceil(rnormal() * 10)
-    * gen w = abs(round(rnormal() * 10, 0.1))
-    * gegen cumx = cumsum(x) [aw = w], cumby(+) by(g)
-    * {
-    *     sort g x, stable
-    *     by g: gen sumx = sum(x * w)
-    * }
-    * gen zz = reldif(sumx, cumx)
-    * gstats sum zz
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gegen double cumx = cumsum(x) [aw = w], cumby(+) by(g)
+    qui {
+        sort g x, stable
+        by g: gen double sumx = sum(x * w)
+    }
+    qui gen zz = reldif(sumx, cumx)
+    qui sum zz, meanonly
+    assert r(max) < 1e-8
 
     sysuse auto, clear
     gen ix = _n
@@ -441,6 +442,65 @@ program checks_gegen
     gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(- weight)
     assert (cumprice == sumprice)
     drop ???price
+
+    * Shift
+    * -----
+
+    sysuse auto, clear
+    gen ix = _n
+
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(3.8)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-.1)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(wa)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign)
+    assert _rc == 198
+
+    gegen gprice_3 = shift(price), shiftby(-3) by(foreign)
+    qui by foreign: gen price_3 = price[_n - 3]
+    assert gprice_3 == price_3
+
+    gegen gprice3 = shift(price), shiftby(3) by(foreign)
+    qui by foreign: gen price3 = price[_n + 3]
+    assert gprice3 == price3
+
+    gegen gprice_6 = shift-6(price), by(foreign)
+    qui by foreign: gen price_6 = price[_n - 6]
+    assert gprice_6 == price_6
+
+    gegen gprice6 = shift+6(price), by(foreign)
+    qui by foreign: gen price6 = price[_n + 6]
+    assert gprice6 == price6
+
+    gegen gpricea = shift+0(price), by(foreign)
+    gegen gpriceb = shift-0(price), by(foreign)
+    gegen gpricec = shift|0(price), by(foreign)
+    gegen gpriced = shift(price),   by(foreign) shiftby(0)
+
+    assert price == gpricea
+    assert price == gpriceb
+    assert price == gpricec
+    assert price == gpriced
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gen long ix = _n
+    gegen gshiftx = shift(x) [aw = w], shiftby(-2) by(g)
+    qui {
+        gen byte now = mi(w) | w == 0
+        sort g now, stable
+        by g now: gen `:type x' shiftx = x[_n - 2]
+    }
+    assert (gshiftx == shiftx) | now
 
     * Gini
     * ----

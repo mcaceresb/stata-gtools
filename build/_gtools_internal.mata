@@ -1906,21 +1906,47 @@ void function GtoolsRegressOutput::readMatrices()
     }
 }
 
-void function GtoolsRegressOutput::print()
+void function GtoolsRegressOutput::print(|real scalar trans)
 {
+
     real scalar j, k
-    if ( savese ) {
-        for (j = 1; j <= J; j++) {
-            for (k = 1; k <= kx; k++) {
-                printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
+    if ( args() == 0 ) {
+        trans = 0
+    }
+
+    if ( trans ) {
+        if ( savese ) {
+            for (j = 1; j <= J; j++) {
+                for (k = 1; k <= kx; k++) {
+                    printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
+                }
+                    printf("\n")
             }
-                printf("\n")
+        }
+        else if ( saveb ) {
+            for (j = 1; j <= J; j++) {
+                for (k = 1; k <= kx; k++) {
+                    printf("\t%9.6g", b[j, k])
+                }
+                    printf("\n")
+            }
         }
     }
-    else if ( saveb ) {
-        for (j = 1; j <= J; j++) {
+    else {
+        if ( savese ) {
             for (k = 1; k <= kx; k++) {
-                printf("\t%9.6g\n", b[j, k])
+                for (j = 1; j <= J; j++) {
+                    printf("\t%9.6g (%9.6g)", b[j, k], se[j, k])
+                }
+                    printf("\n")
+            }
+        }
+        else if ( saveb ) {
+            for (k = 1; k <= kx; k++) {
+                for (j = 1; j <= J; j++) {
+                    printf("\t%9.6g", b[j, k])
+                }
+                    printf("\n")
             }
         }
     }

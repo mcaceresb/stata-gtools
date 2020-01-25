@@ -2,17 +2,29 @@
 * --------
 
 sysuse auto, clear
+gen _mpg  = mpg
+qui tab headroom, gen(_h)
 
 givregress price (mpg = gear_ratio) weight turn
-givregress price (mpg = gear_ratio), cluster(headroom)
-givregress price (mpg weight = gear_ratio turn displacement), absorb(rep78 headroom)
+givregress price (mpg = gear_ratio) _mpg, cluster(headroom)
+mata GtoolsIV.print()
+
+givregress price (mpg weight = gear_ratio turn displacement) _h*, absorb(rep78 headroom)
+mata GtoolsIV.print()
 
 givregress price (mpg = gear_ratio) weight [fw = rep78], absorb(headroom)
+mata GtoolsIV.print()
+
 givregress price (mpg = gear_ratio turn displacement) weight [aw = rep78], by(foreign)
+mata GtoolsIV.print()
 
 givregress price (mpg = gear_ratio turn) weight, by(foreign) mata(coefsOnly, nose) prefix(b(_b_) se(_se_))
 givregress price (mpg weight = gear_ratio turn), mata(seOnly, nob) prefix(hdfe(_hdfe_))
 givregress price (mpg weight = gear_ratio turn) displacement, mata(nothing, nob nose)
+
+mata coefsOnly.print()
+mata seOnly.print()
+mata nothing.print()
 
 * Basic Benchmark
 * ---------------
@@ -35,7 +47,7 @@ timer clear
 timer on 1
 givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) mata(greg)
 timer off 1
-mata greg.b', greg.se'
+mata greg.print()
 timer on 2
 ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3)
 timer off 2
@@ -43,14 +55,14 @@ timer off 2
 timer on 3
 givregress y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4) mata(greg)
 timer off 3
-mata greg.b', greg.se'
+mata greg.print()
 timer on 4
 ivreghdfe y (x1 x2 = x3 x4), absorb(g1 g2 g3) cluster(g4)
 timer off 4
 
 timer list
 
-*    1:      3.49 /        1 =       3.4890
-*    2:     20.84 /        1 =      20.8410
-*    3:      2.02 /        1 =       2.0250
-*    4:     30.15 /        1 =      30.1500
+*    1:      2.44 /        1 =       2.4430
+*    2:     18.39 /        1 =      18.3870
+*    3:      2.44 /        1 =       2.4370
+*    4:     25.51 /        1 =      25.5070

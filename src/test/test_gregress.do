@@ -15,8 +15,10 @@ disp "----------------------"
 disp ""
 
     sysuse auto, clear
-    gen w = _n
-    gegen headcode = group(headroom)
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
 
     foreach v in v1 v2 v5 v7 {
         local w
@@ -319,8 +321,8 @@ disp "--------------------------"
 disp ""
 
     local tol 1e-4
-    * webuse ships, clear
-    use /tmp/ships, clear
+    webuse ships, clear
+    * use /tmp/ships, clear
     qui expand 2
     qui gen by = 1.5 - (_n < _N / 2)
     qui gen w = _n
@@ -500,37 +502,29 @@ disp ""
 
         greg y x1 x2 x3 x4, mata(r1)
         reg  y x1 x2 x3 x4
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, r mata(r1)
         reg  y x1 x2 x3 x4, r
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, cluster(g) mata(r1)
         reg  y x1 x2 x3 x4, vce(cluster g)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4, absorb(g) mata(r1)
         areg y x1 x2 x3 x4, absorb(g)
-            mata: assert(all(abs(st_matrix("r(table)")[1, 1::4] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2, 1::4] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
 
         greg y x1 x2 x3 x4 [fw = w], mata(r1)
-        reg  y x1 x2 x3 x4 [fw = w], mata(r1)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+        reg  y x1 x2 x3 x4 [fw = w]
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) r
         reg  y x1 x2 x3 x4 [fw = w], r
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) cluster(g)
         reg  y x1 x2 x3 x4 [fw = w], vce(cluster g)
-            mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         greg y x1 x2 x3 x4 [fw = w], mata(r1) absorb(g)
         areg y x1 x2 x3 x4 [fw = w], absorb(g)
-            mata: assert(all(abs(st_matrix("r(table)")[1, 1::4] :- r1.b[1, .]) :< `tol'))
-            mata: assert(all(abs(st_matrix("r(table)")[2, 1::4] :- r1.se[1, .]) :< `tol'))
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
     }
 
     * ------------------------------------------------------------------------
@@ -557,12 +551,10 @@ disp ""
             * Slower with all the vars, but no longer unreasonably so
             greg y x*, mata(r1) v bench(3)
             reg  y x*
-                mata: assert(all(abs(st_matrix("r(table)")[1, .] :- r1.b[1, .]) :< `tol'))
-                mata: assert(all(abs(st_matrix("r(table)")[2, .] :- r1.se[1, .]) :< `tol'))
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
             greg y x*, mata(r1) v bench(3) cluster(g)
             reg  y x*, vce(cluster g)
-                mata: assert(all(abs(st_matrix("r(table)")[1, .] :- r1.b[1, .]) :< `tol'))
-                mata: assert(all(abs(st_matrix("r(table)")[2, .] :- r1.se[1, .]) :< `tol'))
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         }
     }
 
@@ -637,8 +629,11 @@ disp "------------------------"
 disp ""
 
     sysuse auto, clear
-    gen w = _n
-    gegen headcode = group(headroom)
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
+    qui tab headcode, gen(_h)
 
     foreach v in v1 v2 v5 v7 {
         local w
@@ -698,32 +693,40 @@ disp ""
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
 
         cap drop _*
-        qui tab headroom, gen(_)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom)
+        qui tab headroom, gen(_h)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom)
             qui reg price mpg mpg i.rep78 i.headcode `w'
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom) robust
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) robust
             qui reg price mpg mpg i.rep78 i.headcode `w', robust
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', absorb(rep78 headroom) cluster(headroom)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) cluster(headroom)
             qui reg price mpg mpg i.rep78 i.headcode `w', vce(cluster headcode)
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
 
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w'
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w'
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom) robust
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) robust
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', robust
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', robust
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
-        qui greg price mpg mpg _* `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', cluster(headroom)
             mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
             qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', cluster(headroom)
             mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+
+        qui greg price z1 z2 `w', `r' noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
+
+        qui greg price _h* `w', `r' absorb(headroom) noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
     }
 
     * ------------------------------------------------------------------------
@@ -751,6 +754,8 @@ disp ""
     qui gen _weight       = weight
     qui gen _turn         = turn
     qui gen _displacement = displacement
+    qui gen z1 = 0
+    qui gen z2 = 0
 
     * Colinearity foo
     *
@@ -785,8 +790,8 @@ disp ""
 
         foreach av in v1 v2 v3 {
             if ( `"`av'"' == "v1" ) local avars
-            if ( `"`av'"' == "v2" ) local avars i.rep78
-            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
 
             if ( `"`av'"' == "v1" ) local absorb
             if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
@@ -1100,6 +1105,23 @@ disp _skip(8) "check 8"
                     mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
 disp _skip(8) "check 10"
                 }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = z1 z2) weight turn                    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))                           
+                    mata assert(all(GtoolsIV.se :== .))                           
+                qui givregress price (z1 = z2) weight turn                        `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio) z1 z2                     `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2     `avars' `w' , `vce' `small' noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
             }
         }
 
@@ -1112,8 +1134,8 @@ disp _skip(8) "check 10"
         local if2 if foreign == 1
         foreach av in v1 v2 v3 {
             if ( `"`av'"' == "v1" ) local avars
-            if ( `"`av'"' == "v2" ) local avars i.rep78
-            if ( `"`av'"' == "v3" ) local avars i.rep78 i.headcode
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
 
             if ( `"`av'"' == "v1" ) local absorb
             if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
@@ -1555,6 +1577,25 @@ disp _skip(8) "check 8"
                     mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
 disp _skip(8) "check 10"
                 }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn   `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = z1 z2) weight turn                      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 = z2) weight turn                          `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = gear_ratio) z1 z2                       `w' , `gvce' `absorb' noc `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if1' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if2' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
             }
         }
         qui drop if _expand
@@ -1571,13 +1612,16 @@ disp "----------------------------"
 disp ""
 
     local tol 1e-4
-    * webuse ships, clear
-    use /tmp/ships, clear
+    webuse ships, clear
+    * use /tmp/ships, clear
     qui expand 2
     qui gen by = 1.5 - (_n < _N / 2)
     qui gen w = _n
     qui tab ship, gen(_s)
     unab svars: _s*
+    qui gen z1 = 0
+    qui gen z2 = 0
+
     foreach v in v1 v2 v5 {
         disp "poisson checks `v'"
         local w
@@ -1629,6 +1673,11 @@ disp _skip(8) "check 7"
         qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 1.5, cluster(ship)
             mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
 disp _skip(8) "check 8"
+
+        qui gpoisson accident z1 z2 `w', robust noc
+            mata assert(all(GtoolsPoisson.b  :== .))
+            mata assert(all(GtoolsPoisson.se :== .))
+disp _skip(8) "check 9"
     }
 end
 

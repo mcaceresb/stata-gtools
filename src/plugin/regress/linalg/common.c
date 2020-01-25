@@ -35,7 +35,7 @@ void gf_regress_dprintf_colmajor (
     sf_printf_debug("%s\n", name);
     for (i = 0; i < k1; i++) {
         for (j = 0; j < k2; j++) {
-            sf_printf_debug("%.3f\t", matrix[i + k1 * j]);
+            sf_printf_debug("%.8g\t", matrix[i + k1 * j]);
         }
             sf_printf_debug("\n");
     }

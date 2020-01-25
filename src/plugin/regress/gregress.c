@@ -50,6 +50,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GTOOLS_CHAR(buf1, 32);
     GTOOLS_CHAR(buf2, 32);
     GTOOLS_CHAR(buf3, 32);
+    GTOOLS_CHAR(buf4, 32);
 
     ST_double poistol     = st_info->gregress_poistol;
     ST_double hdfetol     = st_info->gregress_hdfetol;
@@ -82,6 +83,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GT_size warncollinear = 0;
     GT_size warnsingular  = 0;
     GT_size warnivnotiden = 0;
+    GT_size warnnocols    = 0;
     GT_bool singular      = 0;
 
     // TODO: Comment what each is. You are atm struggling to remember
@@ -448,6 +450,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
                     // 3 | under-identified after collinearity check
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -463,9 +466,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 septr[k] = SV_missval;
                             }
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < ivkss; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    if ( singular != 3 ) {
+                    if ( singular != 3 && singular != 4 ) {
                         ixptr    = colix + 2 * ktot;
                         kmodel  -= (ivkss - ixptr[ivkss]);
                         ivkmixed = ixptr[ivkss + 1];
@@ -500,6 +510,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( singular == 1 ) {
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, ixptr[ivkss], ivkss);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, ixptr[ivkss], ivkss);
+                        }
+
+                        // Need to copy back for two reasons:  Get back this
+                        // _unprojected_ de-meaned endogenous variables _and_ if
+                        // there were any collinear variables, leave them in their
+                        // original position. Note that you need the projected
+                        // non-collinar endogeous variables for the SE, so the
+                        // memcpy has to go here, at the end.
+
+                        if ( kabs && st_info->gregress_saveghdfe ) {
+                            memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
                     }
 
@@ -581,6 +602,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
                     // 3 | under-identified after collinearity check
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -596,9 +618,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 septr[k] = SV_missval;
                             }
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < ivkss; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    if ( singular != 3 ) {
+                    if ( singular != 3 && singular != 4 ) {
                         ixptr    = colix + 2 * ktot;
                         kmodel  -= (ivkss - ixptr[ivkss]);
                         ivkmixed = ixptr[ivkss + 1];
@@ -628,6 +657,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( singular == 1 ) {
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, ixptr[ivkss], ivkss);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, ixptr[ivkss], ivkss);
+                        }
+
+                        // Need to copy back for two reasons:  Get back this
+                        // _unprojected_ de-meaned endogenous variables _and_ if
+                        // there were any collinear variables, leave them in their
+                        // original position. Note that you need the projected
+                        // non-collinar endogeous variables for the SE, so the
+                        // memcpy has to go here, at the end.
+
+                        if ( kabs && st_info->gregress_saveghdfe ) {
+                            memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
                     }
 
@@ -705,6 +745,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
                     // 3 | under-identified after collinearity check
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -720,9 +761,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 septr[k] = SV_missval;
                             }
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < ivkss; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    if ( singular != 3 ) {
+                    if ( singular != 3 && singular != 4 ) {
                         ixptr    = colix + 2 * ktot;
                         kmodel  -= (ivkss - ixptr[ivkss]);
                         ivkmixed = ixptr[ivkss + 1];
@@ -743,6 +791,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( singular == 1 ) {
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, ixptr[ivkss], ivkss);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, ixptr[ivkss], ivkss);
+                        }
+
+                        // Need to copy back for two reasons:  Get back this
+                        // _unprojected_ de-meaned endogenous variables _and_ if
+                        // there were any collinear variables, leave them in their
+                        // original position. Note that you need the projected
+                        // non-collinar endogeous variables for the SE, so the
+                        // memcpy has to go here, at the end.
+
+                        if ( kabs && st_info->gregress_saveghdfe ) {
+                            memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
                     }
 
@@ -816,6 +875,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // 1 | collinear columns removed
                 // 2 | numerically zero determinant; no collinearity detected
                 // 3 | under-identified after collinearity check
+                // 4 | no usable columns (all numerically 0)
 
                 switch ( singular ) {
                     case 1:
@@ -828,15 +888,31 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         warnivnotiden++;
                         for (k = 0; k < ivkss; k++) {
                             bptr[k]  = SV_missval;
-                            septr[k] = SV_missval;
+                        }
+                        break;
+                    case 4:
+                        warnnocols++;
+                        for (k = 0; k < ivkss; k++) {
+                            bptr[k]  = SV_missval;
                         }
                         break;
                 }
 
-                // NOTE: To save some memory I use Xy as a buffer
-                if ( singular == 1 ) {
-                    ixptr = colix + 2 * ktot;
-                    gf_regress_adjust_collinear_b (bptr, Xy, colix, ixptr[ivkss], ivkss);
+                if ( singular != 3 && singular != 4 ) {
+                    // NOTE: To save some memory I use Xy as a buffer
+                    if ( singular == 1 ) {
+                        ixptr = colix + 2 * ktot;
+                        gf_regress_adjust_collinear_b (bptr, Xy, colix, ixptr[ivkss], ivkss);
+                    }
+
+                    // Need to copy back for two reasons:  Get back this
+                    // _unprojected_ de-meaned endogenous variables _and_ if
+                    // there were any collinear variables, leave them in their
+                    // original position.
+
+                    if ( kabs && st_info->gregress_saveghdfe ) {
+                        memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
+                    }
                 }
 
                 xptr  += njobs * kx;
@@ -859,14 +935,15 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------
 
                 for (j = 0; j < J; j++) {
-                    njobs = nj[j];
-                    iter  = 0;
-                    diff  = 1;
+                    singular   = 0;
+                    njobs      = nj[j];
+                    iter       = 0;
+                    diff       = 1;
                     panelsetup = 1;
-                    xdmptr = kabs? xdm: xptr;
+                    xdmptr     = kabs? xdm: xptr;
                     gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
 
-                    while ( (++iter < poisiter) && fabs(diff) > poistol ) {
+                    while ( (++iter < poisiter) && (fabs(diff) > poistol) && (singular != 4) ) {
                         kmodel = kx;
                         if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                              GtoolsGroupByTransform,
@@ -911,6 +988,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -920,36 +998,45 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
-                    }
+                    if ( singular != 4 ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
 
-                    gf_regress_ols_cluster(
-                        e,
-                        mu,
-                        ClusterHash->info,
-                        ClusterHash->index,
-                        ClusterHash->nlevels,
-                        U,
-                        ux,
-                        V,
-                        VV,
-                        xdmptr,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+                        gf_regress_ols_cluster(
+                            e,
+                            mu,
+                            ClusterHash->info,
+                            ClusterHash->index,
+                            ClusterHash->nlevels,
+                            U,
+                            ux,
+                            V,
+                            VV,
+                            xdmptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     GtoolsHashFreePartial(ClusterHash);
@@ -974,13 +1061,14 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // -------------
 
                 for (j = 0; j < J; j++) {
-                    njobs = nj[j];
-                    iter  = 0;
-                    diff  = 1;
+                    singular   = 0;
+                    njobs      = nj[j];
+                    iter       = 0;
+                    diff       = 1;
                     panelsetup = 1;
-                    xdmptr = kabs? xdm: xptr;
+                    xdmptr     = kabs? xdm: xptr;
                     gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
-                    while ( (++iter < poisiter) && fabs(diff) > poistol ) {
+                    while ( (++iter < poisiter) && (fabs(diff) > poistol) && (singular != 4) ) {
                         kmodel = kx;
                         if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                              GtoolsGroupByTransform,
@@ -1009,15 +1097,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         panelsetup = 0;
                     }
 
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
-                    }
-
                     // singular =
                     //
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -1027,27 +1112,40 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    gf_regress_ols_robust(
-                        e,
-                        mu,
-                        V,
-                        VV,
-                        xdmptr,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+                    if ( singular != 4 ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        gf_regress_ols_robust(
+                            e,
+                            mu,
+                            V,
+                            VV,
+                            xdmptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
+
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     xptr  += njobs * kx;
@@ -1068,13 +1166,15 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // --------------------
 
                 for (j = 0; j < J; j++) {
-                    njobs = nj[j];
-                    iter  = 0;
-                    diff  = 1;
+                    singular   = 0;
+                    njobs      = nj[j];
+                    iter       = 0;
+                    diff       = 1;
                     panelsetup = 1;
-                    xdmptr = kabs? xdm: xptr;
+                    xdmptr     = kabs? xdm: xptr;
                     gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
-                    while ( (++iter < poisiter) && fabs(diff) > poistol ) {
+
+                    while ( (++iter < poisiter) && (fabs(diff) > poistol) && (singular != 4) ) {
                         kmodel = kx;
                         if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                              GtoolsGroupByTransform,
@@ -1108,6 +1208,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -1117,27 +1218,36 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                        goto exit;
-                    }
+                    if ( singular != 4 ) {
+                        if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                            goto exit;
+                        }
 
-                    gf_regress_ols_se(
-                        e,
-                        mu,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel
-                    );
+                        gf_regress_ols_se(
+                            e,
+                            mu,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel
+                        );
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     xptr  += njobs * kx;
@@ -1155,13 +1265,15 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         }
         else {
             for (j = 0; j < J; j++) {
-                njobs = nj[j];
-                iter  = 0;
-                diff  = 1;
+                singular   = 0;
+                njobs      = nj[j];
+                iter       = 0;
+                diff       = 1;
                 panelsetup = 1;
-                xdmptr = kabs? xdm: xptr;
+                xdmptr     = kabs? xdm: xptr;
                 gf_regress_poisson_init(yptr, wptr, mu, eta, dev, lhs, njobs);
-                while ( (++iter < poisiter) && fabs(diff) > poistol ) {
+
+                while ( (++iter < poisiter) && (fabs(diff) > poistol) && (singular != 4) ) {
                     kmodel = kx;
                     if ( kabs && (rc = gf_regress_absorb(AbsorbHashes,
                                                          GtoolsGroupByTransform,
@@ -1195,6 +1307,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // 0 | no issues detected
                 // 1 | collinear columns removed
                 // 2 | numerically zero determinant; no collinearity detected
+                // 4 | no usable columns (all numerically 0)
 
                 switch ( singular ) {
                     case 1:
@@ -1204,15 +1317,23 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     case 2:
                         warnsingular++;
                         break;
+                    case 4:
+                        warnnocols++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k] = SV_missval;
+                        }
+                        break;
                 }
 
-                // NOTE: To save some memory I use Xy as a buffer
-                if ( singular == 1 ) {
-                    gf_regress_adjust_collinear_b (bptr, Xy, colix, colix[kx], kx);
-                }
+                if ( singular != 4 ) {
+                    if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
+                        goto exit;
+                    }
 
-                if ( (rc = gf_regress_poisson_post(st_info->wcode, wptr, e, mu, njobs, diff, poistol, poisiter, buf1)) ) {
-                    goto exit;
+                    // NOTE: To save some memory I use Xy as a buffer
+                    if ( singular == 1 ) {
+                        gf_regress_adjust_collinear_b (bptr, Xy, colix, colix[kx], kx);
+                    }
                 }
 
                 xptr  += njobs * kx;
@@ -1300,6 +1421,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -1309,32 +1431,41 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    gf_regress_ols_cluster(
-                        e,
-                        wptr,
-                        ClusterHash->info,
-                        ClusterHash->index,
-                        ClusterHash->nlevels,
-                        U,
-                        ux,
-                        V,
-                        VV,
-                        xptr,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+                    if ( singular != 4 ) {
+                        gf_regress_ols_cluster(
+                            e,
+                            wptr,
+                            ClusterHash->info,
+                            ClusterHash->index,
+                            ClusterHash->nlevels,
+                            U,
+                            ux,
+                            V,
+                            VV,
+                            xptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     GtoolsHashFreePartial(ClusterHash);
@@ -1391,6 +1522,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -1400,27 +1532,36 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    gf_regress_ols_robust(
-                        e,
-                        wptr,
-                        V,
-                        VV,
-                        xptr,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel,
-                        vceadj
-                    );
+                    if ( singular != 4 ) {
+                        gf_regress_ols_robust(
+                            e,
+                            wptr,
+                            V,
+                            VV,
+                            xptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel,
+                            vceadj
+                        );
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     xptr  += njobs * kx;
@@ -1474,6 +1615,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     // 0 | no issues detected
                     // 1 | collinear columns removed
                     // 2 | numerically zero determinant; no collinearity detected
+                    // 4 | no usable columns (all numerically 0)
 
                     switch ( singular ) {
                         case 1:
@@ -1483,23 +1625,32 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         case 2:
                             warnsingular++;
                             break;
+                        case 4:
+                            warnnocols++;
+                            for (k = 0; k < kx; k++) {
+                                bptr[k]  = SV_missval;
+                                septr[k] = SV_missval;
+                            }
+                            break;
                     }
 
-                    gf_regress_ols_se(
-                        e,
-                        wptr,
-                        XX,
-                        septr,
-                        colix,
-                        njobs,
-                        kx,
-                        kmodel
-                    );
+                    if ( singular != 4 ) {
+                        gf_regress_ols_se(
+                            e,
+                            wptr,
+                            XX,
+                            septr,
+                            colix,
+                            njobs,
+                            kx,
+                            kmodel
+                        );
 
-                    // NOTE: To save some memory I use Xy as a buffer
-                    if ( singular == 1 ) {
-                        gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
-                        gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        // NOTE: To save some memory I use Xy as a buffer
+                        if ( singular == 1 ) {
+                            gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
+                            gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
+                        }
                     }
 
                     xptr  += njobs * kx;
@@ -1549,6 +1700,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 // 0 | no issues detected
                 // 1 | collinear columns removed
                 // 2 | numerically zero determinant; no collinearity detected
+                // 4 | no usable columns (all numerically 0)
 
                 switch ( singular ) {
                     case 1:
@@ -1558,7 +1710,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     case 2:
                         warnsingular++;
                         break;
+                    case 4:
+                        warnnocols++;
+                        for (k = 0; k < kx; k++) {
+                            bptr[k] = SV_missval;
+                        }
+                        break;
                 }
+
+                // if ( singular != 4 ) {
+                // }
 
                 // NOTE: To save some memory I use Xy as a buffer
                 if ( singular == 1 ) {
@@ -1599,7 +1760,17 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         );
     }
 
-    gf_regress_warnings(J, warncollinear, warnsingular, warnivnotiden, buf1, buf2, buf3);
+    gf_regress_warnings(
+        J,
+        warncollinear,
+        warnsingular,
+        warnivnotiden,
+        warnnocols,
+        buf1,
+        buf2,
+        buf3,
+        buf4
+    );
 
     /******************
      *  Interval Foo  *
@@ -2031,9 +2202,11 @@ void gf_regress_warnings (
     GT_size warncollinear,
     GT_size warnsingular,
     GT_size warnivnotiden,
+    GT_size warnnocols,
     char *buf1,
     char *buf2,
-    char *buf3)
+    char *buf3,
+    char *buf4)
 {
     if ( warncollinear ) {
         if ( J > 1 ) {
@@ -2078,10 +2251,26 @@ void gf_regress_warnings (
             else {
                 sf_printf("identification warning: In %s group, model not identified after\n", buf3);
             }
-            sf_printf("removing collinear columns\n (# of endogenous > # instruments)\n");
+            sf_printf("removing collinear columns (# of endogenous > # instruments)\n");
         }
         else {
             sf_printf("identification warning: # of endogenous > # instruments after collinearity check\n");
+        }
+    }
+
+    if ( warnnocols ) {
+        if ( J > 1 ) {
+            sf_format_size(warnnocols, buf4);
+            if ( warnnocols > 1 ) {
+                sf_printf("identification warning: Unable to compute estimates in %s groups; all", buf4);
+            }
+            else {
+                sf_printf("identification warning: Unable to compute estimates in %s group; all\n", buf4);
+            }
+            sf_printf("covariates were numerically zero\n");
+        }
+        else {
+            sf_printf("identification warning: Unable to compute estimates; all covariates numerically zero\n");
         }
     }
 }

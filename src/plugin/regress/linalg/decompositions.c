@@ -2,12 +2,15 @@
  *                                LDU                                *
  *********************************************************************/
 
+// See https://reader.elsevier.com/reader/sd/pii/0377042787901993 for the
+// LDU and Cholesky algorithms.
+
 /**
  * @brief Find the collinear rows of a matrix via LDU decomposition
  *
- * @A N x N symmetric matrix
+ * @A N x N positive semi-definite symmetric matrix
  * @N Number of rows and columns in A
- * @QR Helper vector where to store L, D, L', etc.
+ * @LDU Helper vector where to store L, D, L', etc.
  * @colix Indeces for non-collinear columns
  * @return
  */
@@ -18,6 +21,10 @@ void gf_regress_linalg_dcollinear (
     GT_size *colix)
 {
 
+    // TODO: This check potentially fails due to numeric imprecision.  I
+    // hope to be able to implement similarly fast stable methods later.
+
+    ST_double max;
     GT_size i, j, k;
 
     ST_double *U1 = LDU;             // L
@@ -31,30 +38,45 @@ void gf_regress_linalg_dcollinear (
         U1[i * N + i] = 1;
     }
 
+    // Scale A by largest element
+    max = 0;
+    for (j = 0; j < N; j++) {
+        for (i = 0; i < N - j; i++) {
+            if ( fabs(A[j * N + i]) > max ) max = fabs(A[j * N + i]);
+        }
+    }
+
+    // If all entries are numerically zero, set b, se to missing
+    if ( max < N * GTOOLS_64BIT_EPSILON ) {
+        return;
+    }
+
+    // LDL' decomposition
     for (i = 0; i < N; i++) {
-        D[i] = A[i * N + i];
+        D[i] = A[i * N + i] / max;
         for (j = 0; j < i; j++) {
             D[i] -= U1[j * N + i] * U1[j * N + i] * D[j];
         }
 
-        // TODO: This check potentially fails due to the multi-way fixed
-        // effects algoritm not being precise enough ): It is possible
-        // to get a matrix with zeros that show up as 1e-15 and such
-        // numbers, which _should_ just be zero but are not quite small
-        // enough to be _numerically_ zero.
-
-        if ( fabs(D[i]) < N * GTOOLS_64BIT_EPSILON ) {
+        // Note A is PSD; if D[i] is negative something went wrong.
+        if ( D[i] < N * GTOOLS_64BIT_EPSILON ) {
             D[i] = 0;
-            continue;
-        }
-
-        colix[colix[N]++] = i;
-        for (j = i + 1; j < N; j++) {
-            U1[i * N + j] = A[i * N + j];
-            for (k = 0; k < i; k++) {
-                U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+            for (j = i + 1; j < N; j++) {
+                U1[i * N + j] = A[i * N + j] / max;
+                for (k = 0; k < i; k++) {
+                    U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+                }
             }
-            U1[i * N + j] /= D[i];
+        }
+        else {
+            for (j = i + 1; j < N; j++) {
+                U1[i * N + j] = A[i * N + j] / max;
+                for (k = 0; k < i; k++) {
+                    U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+                }
+                U1[i * N + j] /= D[i];
+            }
+            colix[colix[N]++] = i;
         }
     }
 }
@@ -62,9 +84,9 @@ void gf_regress_linalg_dcollinear (
 /**
  * @brief Find the collinear rows of a matrix via LDU decomposition
  *
- * @A N x N symmetric matrix
+ * @A N x N positive semi-definite symmetric matrix
  * @N Number of rows and columns in A
- * @QR Helper vector where to store L, D, L', etc.
+ * @LDU Helper vector where to store L, D, L', etc.
  * @colix Indeces for non-collinear columns
  * @singular
  * @return
@@ -77,7 +99,10 @@ void gf_regress_linalg_dsyldu (
     GT_bool *singular)
 {
 
-    ST_double det;
+    // TODO: This check potentially fails due to numeric imprecision.  I
+    // hope to be able to implement similarly fast stable methods later.
+
+    ST_double det, max;
     GT_size i, j, k;
     GT_size kindep;
 
@@ -94,72 +119,122 @@ void gf_regress_linalg_dsyldu (
         U1[i * N + i] = 1;
     }
 
+    // Scale A by largest element
+    max = 0;
+    for (j = 0; j < N; j++) {
+        for (i = 0; i < N - j; i++) {
+            if ( fabs(A[j * N + i]) > max ) max = fabs(A[j * N + i]);
+        }
+    }
+
+    // If all entries are numerically zero, set b, se to missing
+    if ( max < N * GTOOLS_64BIT_EPSILON ) {
+        *singular = 4;
+        return;
+    }
+
+    // LDL' decomposition
     for (i = 0; i < N; i++) {
-        D[i] = A[i * N + i];
+        D[i] = A[i * N + i] / max;
         for (j = 0; j < i; j++) {
             D[i] -= U1[j * N + i] * U1[j * N + i] * D[j];
         }
 
-        // TODO: This check potentially fails due to the multi-way fixed
-        // effects algoritm not being precise enough ): It is possible
-        // to get a matrix with zeros that show up as 1e-15 and such
-        // numbers, which _should_ just be zero but are not quite small
-        // enough to be _numerically_ zero.
-
-        if ( fabs(D[i]) < N * GTOOLS_64BIT_EPSILON ) {
+        // Note A is PSD; if D[i] is negative something went wrong.
+        if ( D[i] < N * GTOOLS_64BIT_EPSILON ) {
             D[i] = 0;
-            continue;
-        }
-
-        colix[colix[N]++] = i;
-        for (j = i + 1; j < N; j++) {
-            U1[i * N + j] = A[i * N + j];
-            for (k = 0; k < i; k++) {
-                U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+            for (j = i + 1; j < N; j++) {
+                U1[i * N + j] = A[i * N + j] / max;
+                for (k = 0; k < i; k++) {
+                    U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+                }
             }
-            U1[i * N + j] /= D[i];
+        }
+        else {
+            for (j = i + 1; j < N; j++) {
+                U1[i * N + j] = A[i * N + j] / max;
+                for (k = 0; k < i; k++) {
+                    U1[i * N + j] -= U1[k * N + i] * U1[k * N + j] * D[k];
+                }
+                U1[i * N + j] /= D[i];
+            }
+            colix[colix[N]++] = i;
         }
     }
 
+// /***********
+//  *  debug  *
+//  ***********/
+// for (j = 0; j < N; j++) {
+//     U2[j * N + j] = 1;
+//     for (i = 0; i < j; i++) {
+//         U2[j * N + i] = U1[i * N + j];
+//     }
+//     printf ("\tdebug %lu: %.9g\n", j, D[j]);
+// }
+// gf_regress_dprintf_colmajor (U2, N, N, "U2");
+// gf_regress_linalg_dgemTm_wcolmajor (U2, U2, U1, D, N, N, N);
+// gf_regress_dprintf_colmajor (A,  N, N, "XX A");
+// gf_regress_dprintf_colmajor (U1, N, N, "U1");
+// gf_regress_dprintf_colmajor (U2, N, N, "U2");
+// gf_regress_lprintf_colmajor (colix, 1, N, "colix");
+// det = 0;
+// for (j = 0; j < N; j++) {
+//     for (i = 0; i < N; i++) {
+//         det = GTOOLS_PWMAX(fabs(A[j * N + i] - U1[j * N + i]), det);
+//     }
+// }
+// printf("debug ||A - U1||_1 %.9g\n", det);
+// /***********
+//  *  debug  *
+//  ***********/
+
+    // Use max to scale back the matrix
     kindep = colix[N];
-    if ( kindep < N ) {
-        det = 0;
-        for (i = 0; i < kindep; i++) {
-            D[i] = 1 / D[colix[i]];
-        }
-
-        for (j = 0; j < kindep; j++) {
-            U2[j * kindep + j] = 1;
-            for (i = 0; i < j; i++) {
-                U2[j * kindep + i] = U1[colix[i] * N + colix[j]];
+    if ( kindep > 0 ) {
+        if ( kindep < N ) {
+            det = 0;
+            for (i = 0; i < kindep; i++) {
+                D[i] = 1 / D[colix[i]] / max;
             }
-        }
 
-        gf_regress_linalg_dtrsvT_norm_colmajor (U2, U1, kindep);
-        gf_regress_linalg_dgemTm_wcolmajor (U1, U1, A, D, kindep, kindep, kindep);
-    }
-    else {
-        det = 1;
-        for (i = 0; i < N; i++) {
-            det *= D[i];
-            D[i] = 1 / D[i];
-        }
-
-        for (j = 0; j < N; j++) {
-            U2[j * kindep + j] = 1;
-            for (i = 0; i < j; i++) {
-                U2[j * N + i] = U1[i * N + j];
+            for (j = 0; j < kindep; j++) {
+                U2[j * kindep + j] = 1;
+                for (i = 0; i < j; i++) {
+                    U2[j * kindep + i] = U1[colix[i] * N + colix[j]];
+                }
             }
-        }
 
-        gf_regress_linalg_dtrsvT_norm_colmajor (U2, U1, N);
-        gf_regress_linalg_dgemTm_wcolmajor (U1, U1, A, D, N, N, N);
+            gf_regress_linalg_dtrsvT_norm_colmajor (U2, U1, kindep);
+            gf_regress_linalg_dgemTm_wcolmajor (U1, U1, A, D, kindep, kindep, kindep);
+        }
+        else {
+            det = 1;
+            for (i = 0; i < N; i++) {
+                det *= max * D[i];
+                D[i] = 1 / D[i] / max;
+            }
+
+            for (j = 0; j < N; j++) {
+                U2[j * N + j] = 1;
+                for (i = 0; i < j; i++) {
+                    U2[j * N + i] = U1[i * N + j];
+                }
+            }
+
+            gf_regress_linalg_dtrsvT_norm_colmajor (U2, U1, N);
+            gf_regress_linalg_dgemTm_wcolmajor (U1, U1, A, D, N, N, N);
+        }
     }
 
-    if ( colix[N] < N ) {
+    // Return singularity code
+    if ( kindep == 0 ) {
+        *singular = 4;
+    }
+    else if ( kindep < N ) {
         *singular = 1;
     }
-    else if ( fabs(det) < GTOOLS_64BIT_EPSILON ) {
+    else if ( det < GTOOLS_64BIT_EPSILON ) {
         *singular = 2;
     }
     else {

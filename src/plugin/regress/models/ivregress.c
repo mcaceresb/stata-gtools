@@ -20,7 +20,7 @@ GT_bool gf_regress_iv_unw(
 {
     ST_double *aptr, *bptr, *xptr, *XXinv;
 
-    GT_size i, j, *colix_fs, *colix_ss, *ixptr;
+    GT_size i, j, *ixptr;
     GT_size kindep_endog;
     GT_size kindep_exog;
     GT_size kindep_z;
@@ -30,10 +30,12 @@ GT_bool gf_regress_iv_unw(
     GT_size kindep_iv;
     GT_size kindep_diff;
 
-    GT_bool singular = 0;
-    GT_size kx_fs = kexog + kz;
-    GT_size kx_ss = kendog + kexog;
-    GT_size kx_iv = kendog + kexog + kz;
+    GT_bool singular  = 0;
+    GT_size kx_fs     = kexog + kz;
+    GT_size kx_ss     = kendog + kexog;
+    GT_size kx_iv     = kendog + kexog + kz;
+    GT_size *colix_fs = colix + 1 * (kx_iv + 1);
+    GT_size *colix_ss = colix + 2 * (kx_iv + 1);
 
     /*********************************************************************
      *                        Colinearity Checks                         *
@@ -44,40 +46,14 @@ GT_bool gf_regress_iv_unw(
 
     gf_regress_linalg_dsymm_colmajor (Xendog, Xendog, XX, N, kx_iv);
     gf_regress_linalg_dcollinear (XX, kx_iv, XX + kx_iv * kx_iv, colix);
-    gf_regress_linalg_ivcollinear_ix (colix, kendog, kexog, kz);
 
-// gf_regress_lprintf_colmajor (colix,             1,         kx_iv,        "colix");
-// gf_regress_lprintf_colmajor (colix + kx_iv + 1, 1,         6,            "kvars");
-// 
-// gf_regress_dprintf_colmajor (Xendog,            N,         kx_ss,        "X");
-// gf_regress_lprintf_colmajor (colix_fs,          1,         kindep_fs,    "colix_fs");
-// gf_regress_dprintf_colmajor (Xendog,            N,         kx_ss,        "X");
-// gf_regress_dprintf_colmajor (xptr,              N,         kmixed_ss,    "PX");
-// gf_regress_dprintf_colmajor (PZ,                kindep_fs, kindep_endog, "PZ");
-// gf_regress_dprintf_colmajor (XXinv,             kindep_fs, kindep_fs,    "ZZ");
-// gf_regress_dprintf_colmajor (BZ,                kindep_fs, kindep_endog, "BZ");
-// 
-// printf("debug 1 * (kx_iv + 1) = %lu\n", 1 * (kx_iv + 1));
-// printf("debug 2 * (kx_iv + 1) = %lu\n", 2 * (kx_iv + 1));
-// printf("debug (kendog -> kindep) = (%lu -> %lu)\n", kendog, kindep_endog);
-// printf("debug (Xendog -> xptr)   = +%lu\n", N * kindep_diff);
-// 
-// gf_regress_lprintf_colmajor (colix_ss, 1,         kindep_ss, "colix_ss");
-// gf_regress_dprintf_colmajor (xptr,     N,         kmixed_ss, "PX");
-// gf_regress_dprintf_colmajor (XX,       kindep_ss, kindep_ss, "XX");
-//
-// gf_regress_dprintf_colmajor (BZ,                kindep_ss, 1,           "Xy");
-// gf_regress_dprintf_colmajor (b,                 1,         kindep_ss,    "b");
-//
-// printf("debug (k1, k2) = (%lu, %lu)\n", kindep_endog, kindep_exog);
-// printf("debug (k1, k2) = (%lu, %lu)\n", kendog, kexog);
-// gf_regress_dprintf_colmajor (b, 1, kindep_ss, "b");
-// gf_regress_lprintf_colmajor (colix, 1, kindep_endog, "colix1");
-// gf_regress_lprintf_colmajor (colix + kindep_endog, 1, kindep_exog, "colix2");
-//
-// gf_regress_dprintf_colmajor (PZ, N, kendog, "PZ");
-// gf_regress_dprintf_colmajor (Xexog, N, kexog, "Xexog");
-// gf_regress_dprintf_colmajor (e, N, 1, "e");
+    // If there are no usable columns, exit and set all values to missing
+    if ( colix[kx_iv] == 0 ) {
+        return (4);
+    }
+
+    // Get # of independent variables for various parts of the model
+    gf_regress_linalg_ivcollinear_ix (colix, kendog, kexog, kz);
 
     kindep_endog = colix[kx_iv + 1];
     kindep_exog  = colix[kx_iv + 2];
@@ -93,8 +69,10 @@ GT_bool gf_regress_iv_unw(
         return (3);
     }
 
-    colix_fs = colix + 1 * (kx_iv + 1);
-    colix_ss = colix + 2 * (kx_iv + 1);
+    // If there are no usable columns, exit and set all values to missing
+    if ( kindep_endog == 0 || kindep_z == 0 ) {
+        return (4);
+    }
 
     // Index for first-stage collinar columns (use there were any
     // collinear instruments _or_ exogenous covariates).
@@ -221,12 +199,10 @@ GT_bool gf_regress_iv_unw(
 
     if ( kindep_endog < kendog || kindep_exog < kexog ) {
         // Second stage errors
-        // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
         gf_regress_linalg_iverror_ix (y, PZ, Xexog, b, e, colix, N, kendog, kindep_endog, kindep_exog);
     }
     else {
         // Second stage errors
-        // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
         gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
     }
 
@@ -259,7 +235,7 @@ GT_bool gf_regress_iv_w(
 {
     ST_double *aptr, *bptr, *xptr, *XXinv;
 
-    GT_size i, j, *colix_fs, *colix_ss, *ixptr;
+    GT_size i, j, *ixptr;
     GT_size kindep_endog;
     GT_size kindep_exog;
     GT_size kindep_z;
@@ -269,10 +245,12 @@ GT_bool gf_regress_iv_w(
     GT_size kindep_iv;
     GT_size kindep_diff;
 
-    GT_bool singular = 0;
-    GT_size kx_fs = kexog + kz;
-    GT_size kx_ss = kendog + kexog;
-    GT_size kx_iv = kendog + kexog + kz;
+    GT_bool singular  = 0;
+    GT_size kx_fs     = kexog + kz;
+    GT_size kx_ss     = kendog + kexog;
+    GT_size kx_iv     = kendog + kexog + kz;
+    GT_size *colix_fs = colix + 1 * (kx_iv + 1);
+    GT_size *colix_ss = colix + 2 * (kx_iv + 1);
 
     /*********************************************************************
      *                        Colinearity Checks                         *
@@ -283,6 +261,13 @@ GT_bool gf_regress_iv_w(
 
     gf_regress_linalg_dsymm_wcolmajor (Xendog, Xendog, XX, w, N, kx_iv);
     gf_regress_linalg_dcollinear (XX, kx_iv, XX + kx_iv * kx_iv, colix);
+
+    // If there are no usable columns, exit and set all values to missing
+    if ( colix[kx_iv] == 0 ) {
+        return (4);
+    }
+
+    // Get # of independent variables for various parts of the model
     gf_regress_linalg_ivcollinear_ix (colix, kendog, kexog, kz);
 
     kindep_endog = colix[kx_iv + 1];
@@ -299,8 +284,10 @@ GT_bool gf_regress_iv_w(
         return (3);
     }
 
-    colix_fs = colix + 1 * (kx_iv + 1);
-    colix_ss = colix + 2 * (kx_iv + 1);
+    // If there are no usable columns, exit and set all values to missing
+    if ( kindep_endog == 0 || kindep_z == 0 ) {
+        return (4);
+    }
 
     // Index for first-stage collinar columns (use there were any
     // collinear instruments _or_ exogenous covariates).
@@ -427,12 +414,10 @@ GT_bool gf_regress_iv_w(
 
     if ( kindep_endog < kendog || kindep_exog < kexog ) {
         // Second stage errors
-        // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
         gf_regress_linalg_iverror_ix (y, PZ, Xexog, b, e, colix, N, kendog, kindep_endog, kindep_exog);
     }
     else {
         // Second stage errors
-        // memcpy(Xendog, PZ, sizeof(ST_double) * N * kendog);
         gf_regress_linalg_iverror (y, PZ, Xexog, b, e, N, kendog, kexog);
     }
 

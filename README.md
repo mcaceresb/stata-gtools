@@ -691,26 +691,49 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-Planned features for `gtools-1.7.0`:
+Planned features for `gtools-1.8.0`:
 
-- [ ] Document formulas when they are not obvious (e.g. `gini`, least squares, etc.)
+- [ ] Add collinearity check before de-meaning (i.e. two checks)?
+- [ ] Non-nested multi-way clustering for `gregress`.
+- [ ] Redundant categories check in `gregress`
 - [ ] Flexible save options for regress
     - Choose which coefs/se to save
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
     - `predict()`, including `xb` and `e`.
-- [ ] Singularity check
-- [ ] Redundant categories check
-- [ ] Remove colinear variables by group in `gregress`
-- [ ] Non-nested multi-way clustering for `gregress`.
-- [ ] Accelerate HDFE corner cases in `gregress`
-- [ ] Rolling (interval) and moving options for `gregress`.
-- [ ] `shift #` for lags and leads
+- [ ] HDFE detect colinear groups
+- [ ] HDFE drop singletons option
+- [ ] Compare README.md with index.md
+
+Planned features for `gtools-1.7.0`:
+
+- [ ] RUN TESTS!
+- [X] Singularity check
+- [X] Remove colinear variables by group in `gregress`
+- [X] Code tests for collinearity check
+- [ ] Document OLS generally, and commend the code in detail (really involved atm)
+    - [ ] Be very clear about the fact this does not improve `regress`
+          itself, just groupped regressions (including hdfe) bc of the
+          lack of linear algebra packages.
+    - [ ] Be very clear about the lack of collinearity checks for groups.
 - [ ] `cumsum` for `gstats transform` (normal cumsum)
 - [ ] `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
+- [ ] Update index.md with new documentation
+- [ ] Document formulas when they are not obvious (e.g. `gini`, least squares, etc.)
+- [ ] Accelerate HDFE corner cases in `gregress`
+    - [ ] e.g. Acceletate multi-way particularly dense HDFE
+- [ ] `shift #` for lags and leads
+- [ ] Look into implementing something like `gegen, randomchoice()`
+- [ ] IV under-identification after collinearity check (i.e. if enough
+      instruments are dropped then beta and se should return missing).
+- [ ] Note the many differences with IV regression! Collinearity behavior specially
+    - [ ] Decide whether to drop variables perfectly correlated with depvar in `givregress`
+    - [ ] Note the discrepancy: Collinearity with depvar not removed
+    - [ ] Correlated instruments are disposed of BUT only exit w error if not enough post coll check
 
 These are options/features/improvements I would like to add, but I don't
-have an ETA for them (in order of how likely they are to come):
+have an ETA for them (i.e. they are a wishlist). In order of likelyhood:
 
+- [ ] Some support for Stata's extended syntax in `gregress`
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Dropmissing vs dropmissing but not extended missing values.
 - [ ] Allow keeping both variable names and labels in `greshape spread/gather`
@@ -718,6 +741,7 @@ have an ETA for them (in order of how likely they are to come):
 - [ ] Add totals row for `J > 1` in gstats
 - [ ] Improve debugging info.
 - [ ] Implement `collapse()` option for `greshape`.
+- [ ] Rolling (interval) and moving options for `gregress`.
 - [ ] Add support for binary `strL` variables.
 - [ ] Minimize memory use.
 - [ ] Add memory(greedy|lean) to give user fine-grained control over internals.

@@ -5,10 +5,20 @@ webuse ships, clear
 expand 2
 gen by = 1.5 - (_n < _N / 2)
 gen w = _n
+gen _co_75_79  = co_75_79
+qui tab ship, gen(_s)
+
 gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [pw = w], cluster(ship)
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, absorb(ship) cluster(ship)
+mata GtoolsPoisson.print()
+
+gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship)
+mata GtoolsPoisson.print()
+
+gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship)
+mata GtoolsPoisson.print()
+
 gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust
+mata GtoolsPoisson.print()
 
 * Basic Benchmark
 * ---------------
@@ -31,7 +41,7 @@ timer clear
 timer on 1
 gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
 timer off 1
-mata greg.b', greg.se'
+mata greg.print()
 timer on 2
 ppmlhdfe l x1 x2, absorb(g1 g2 g3)
 timer off 2
@@ -39,14 +49,14 @@ timer off 2
 timer on 3
 gpoisson l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
 timer off 3
-mata greg.b', greg.se'
+mata greg.print()
 timer on 4
 ppmlhdfe l x1 x2, absorb(g1 g2 g3) vce(cluster g4)
 timer off 4
 
 timer list
 
-*    1:      8.66 /        1 =       8.6560
-*    2:     46.38 /        1 =      46.3820
-*    3:      8.75 /        1 =       8.7470
-*    4:     41.51 /        1 =      41.5120
+*    1:      9.10 /        1 =       9.0950
+*    2:     37.58 /        1 =      37.5760
+*    3:      8.68 /        1 =       8.6810
+*    4:     37.16 /        1 =      37.1600

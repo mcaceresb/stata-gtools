@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.6.4 (2019-09-14)
+
+### Enhancements
+
+- Collinearity and singularity checks in regression models
+- `colmajor_ix` and related functions deleted. Go back to this
+  commit if ever implementing rolling regressions.
+
 ## gtools-1.6.3 (2019-09-08)
 
 ### Features

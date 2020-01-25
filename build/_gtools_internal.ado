@@ -1670,7 +1670,7 @@ program _gtools_internal, rclass
                 absorb(str)                  /// Absorb each var in varlist as FE
                 interval(str)                /// Interval for rolling regressions
                 window(str)                  /// Window for moving regressions
-                hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
+                hdfetol(real 1e-10)          /// Tolerance for hdfe convergence
                 noConstant                   /// Whether to add a constant
                                              ///
                 ivkendog(int 0)              /// IV endogenous

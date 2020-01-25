@@ -1,14 +1,23 @@
 Poisson Regression (IRLS)
 =========================
 
-IRLS poisson regressions by group with weights, clustering, and HDFE
+IRLS Poisson regressions by group with weights, clustering, and HDFE
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gpoisson` is in beta; use with caution (e.g. there are no
-    colinearity or singularity checks).
+    `gpoisson` is in beta; use with caution.
+
+`gpoisson` computes fast Poisson regression coefficients and standard
+errors by group. Its basic functionality is similar to that of the
+user-written `rangestat (reg)` or `regressby`, except that it computes
+IRLS for a Poisson regression instead of OLS; in addition, `gpoisson`
+allows weights, clustering, and HDFE by group.  This program is
+_**not**_ intended as a substitute for `poisson`, `ppmlhdfe`, or
+similar commands.  Support for some estimation operations are planned;
+however, `gpoisson` does not compute any significance tests and no
+post-estimation commands are available.
 
 Syntax
 ------
@@ -53,8 +62,8 @@ Options
 - `absorb(varlist)` Multi-way high-dimensional fixed effects.
 - `hdfetol(real)` Tolerance level for HDFE algoritm (default 1e-8).
 - `noconstant` Whether to add a constant (cannot be combined with `absorb()`).
-- `poistol(real)` Tolerance level for poisson IRLS algoritm (default 1e-8).
-- `poisiter(int)` Maximum number of iterations for poisson IRLS (default 1000).
+- `poistol(real)` Tolerance level for Poisson IRLS algoritm (default 1e-8).
+- `poisiter(int)` Maximum number of iterations for Poisson IRLS (default 1000).
 
 ### Gtools options
 
@@ -89,10 +98,10 @@ Options
             commands. The user can specify it throw an error instead by
             passing `oncollision(error)`.
 
-Remarks
+Results
 -------
 
-`gpoisson` estimates a poisson regression model via IRLS, optionally
+`gpoisson` estimates a Poisson regression model via IRLS, optionally
 weighted, by group, with cluster SE, and/or with multi-way
 high-dimensional fixed effects.  The results are by default saved into a
 mata object (default `GtoolsPoisson`).  Run `mata GtoolsPoisson.desc()`
@@ -187,6 +196,325 @@ variable levels (empty if without -by()-)
         map from index to numx and charx
 ```
 
+Methods and Formulas
+--------------------
+
+Poisson regression is computed via IRLS in an iterative process. I
+encountered this implementation in Guimarães (2014). Initialize
+$$
+\begin{align}
+  \mu^{(0)}  & = (Y + \overline{Y}) / 2 \\\\
+  \eta^{(0)} & = \log(\mu^{(0)}) \\\\
+  z^{(0)}    & = \eta^{(0)} + (Y - \mu^{(0)}) / \mu^{(0)}
+\end{align}
+$$
+
+where $Y$ is the dependent variable ($Y$ should be a non-negative count
+variable). Now for $r = 0$ until convergence run WLS of $z^{(r)}$ on
+$X$ with weighting matrix $W^{(r)} = \text{diag}\\{\mu^{(r)}_1, \ldots, \mu^{(r)}_n\\}$
+(where $n$ is the number of observations). That is,
+$$
+\widehat{\beta}^{(r)} = (X^\prime W^{(r)} X)^{-1} X^\prime W^{(r)} z^{(r)}
+$$
+
+where $X$ is a matrix with $n$ rows, one for each set of observations,
+and $k$ columns, one for each covariate.  A column of ones is
+automatically appended to $X$ unless the option `noconstant` is passed
+or `absorb(varlist)` is requested. After each iteration, update $\mu,
+\eta, z$ as follows:
+$$
+\begin{align}
+  \eta^{(r + 1)} & = z^{(r)} - \widehat{\varepsilon}^{(r)} \\\\
+  \mu^{(r + 1)}  & = \exp(\eta^{(r + 1)}) \\\\
+  z^{(r + 1)}    & = \eta^{(r + 1)} + (Y - \mu^{(r + 1)}) / \mu^{(r + 1)}
+\end{align}
+$$
+
+where $\widehat{\varepsilon}^{(r)} = Y - X \widehat{\beta}^{(r)}$ is the
+error of the $r$th WLS estimation. Finally, after each step we compute
+the deviance,
+$$
+\delta^{(r + 1)} = 2 * (\log(Y / \mu^{(r + 1)}) - (Y - \mu^{(r + 1)}))
+$$
+
+(if $Y_i = 0$ then $\delta^{(r + 1)}_i$ is also set to $0$). We stop
+if the largest relative absolute difference between $\delta^{(r)}$ and
+$\delta^{(r + 1)}$, denoted $\Delta^{(r + 1)}$, is within `poistol()`
+$$
+\Delta^{(r + 1)} \equiv \max_i
+\frac{
+  |\delta^{(r + 1)}_i - \delta^{(r)}_i|
+}{
+  |\delta^{(r)}_i + 1|
+}
+$$
+
+Note $\delta^{(0)}$ is set to $0$ and the default tolerance is
+$1\mathrm{e}{-8}$.  If the tolerance criteria is met then each variable
+is set to their value after the $r$th iteration (i.e. $\widehat{\beta}$
+to $\widehat{\beta}^{(r + 1)}$, $W$ to $W^{(r + 1)}$, and so on).
+If convergence is not achieved, however, and the maximum number of
+iterations is reached instead (see `poisiter()`) then the program exits
+with error.
+
+### Collinearity and Inverse
+
+$X^\prime W^{(r)} X$ is is scaled by the inverse of $M = \max_{ij}
+X^\prime W^{(r)} X$ and subsequently decomposed into $L D L^\prime$,
+with $L$ lower triangular and $D$ diagonal (note $X^\prime X$ is a
+symmetric positive semi-definite matrix). If $D_{ii}$ is numerically
+zero then the $i$th column is flagged as collinear and subsequently
+excluded from all computations (specifically if $D_{ii} < k \cdot
+2.22\mathrm{e}{-16}$, where $k$ is the number of columns in $X$ and
+$2.22\mathrm{e}{-16}$ is the machine epsilon in 64-bit systems).
+
+The inverse is then computed as $(L^{-1})^\prime D^{-1} L^{-1} M^{-1}$,
+excluding the columns flagged as collinear. If the determinant of
+$X^\prime W^{(r)} X$ is numerically zero ($< 2.22\mathrm{e}{-16}$)
+despite excluding collinear columns, a singularity warning is printed.
+The coefficients for collinear columns are coded as $0$ and their
+standard errors are coded as missing (`.`).
+
+### Standard Errors
+
+The standard error of the $i$th coefficient is given by
+$$
+SE_i = \sqrt{\frac{n}{n - 1} \widehat{V}_{ii}}
+$$
+
+where $\frac{n}{n - 1}$ is a small-sample adjustment and $n
+\widehat{V}$ is a consistent estimator of the asymptotic variance of
+$\widehat{\beta}$.  Note we compute the small-sample adjustment to match
+the standard errors returned by Stata's `poisson` program.  The standard
+error of collinear columns is coded as missing (`.`).
+
+By default, homoskedasticity-consistent standard errors are computed:
+$$
+\begin{align}
+  \widehat{V}      & = (X^\prime W X)^{-1} \widehat{\sigma} \\\\
+  \widehat{\sigma} & = \widehat{\varepsilon}^\prime \widehat{\varepsilon} / n
+\end{align}
+$$
+
+where
+$$
+\widehat{\varepsilon} = z - X \widehat{\beta}
+$$
+
+is the error of the WLS fit for the $r$th iteration. If `robust` is
+passed then White heteroskedascitity-consistent standard errors are
+computed instead:
+$$
+\begin{align}
+  \widehat{\Sigma} & = \text{diag}\\{\widehat{\varepsilon}_1^2, \ldots, \widehat{\varepsilon}_n^2\\} \\\\
+  \widehat{V}      & = (X^\prime W X)^{-1} X^\prime W \widehat{\Sigma} W X (X^\prime W X)^{-1}
+\end{align}
+$$
+
+### Clustering
+
+If `cluster(varlist)` is passed then nested cluster standard errors are
+computed (i.e. the rows of `varlist` define the groups). Let $j$ denote
+the $j$th group defined by `varlist` and $J$ the number of groups. Then
+$$
+\begin{align}
+  \widehat{V} & =
+  (X^\prime W X)^{-1}
+  \left(
+    \sum_{j = 1}^J \widehat{u}_j \widehat{u}_j^\prime
+  \right)
+  (X^\prime W X)^{-1}
+  \\\\
+  \widehat{u}_j & = X_j^\prime W_j \widehat{\varepsilon}_j
+\end{align}
+$$
+
+with $X_j^\prime$ the matrix of covariates with observations from the
+$j$th group, $\widehat{\varepsilon}_j$ the vector with errors from the
+$j$th group, and $W_j$ the diagonal matrix with entries corresponding to
+the weights for the $j$th group (i.e. $\mu_j$).  (Note another way to
+write the sum in $\widehat{V}$ is as $U^\prime U$, with $U^\prime = [u_1
+~~ \cdots ~~ u_J]$.) Finally, the standard error is given by
+
+$$
+SE_i = \sqrt{\frac{J}{J - 1} \widehat{V}_{ii}}
+$$
+
+Note we compute the small-sample adjustment to match the standard errors
+returned by Stata's `poisson` program.
+
+### Weights
+
+Let $w$ denote the weighting variable and $w_i$ the weight assigned to
+the $i$th observation. $\widehat{\beta}$ is obtained in the same way
+except that at each iteration step, we use
+$$
+\widetilde{W}^{(r)} = \text{diag}\\{\mu^{(r)}_1 w_1, \ldots, \mu^{(r)}_n w_n\\}
+$$
+
+as the weighting matrix instead of $W^{(r)}$. `fweights` runs the regression as if
+there had been $w_i$ copies of the $i$th observation. As such, $n_w =
+\sum_{i = 1}^n w_i$ is used instead of $n$ to compute the small-sample
+adjustment, and
+$$
+\begin{align}
+  \widehat{\Sigma} & = \text{diag}\\{\widehat{\varepsilon}_1^2 w_1, \ldots, \widehat{\varepsilon}_n^2 w_n\\} \\\\
+  \widehat{V} & =
+    (X^\prime \widetilde{W} X)^{-1}
+    X^\prime W \widetilde{\Sigma} W X
+    (X^\prime \widetilde{W} X)^{-1}
+\end{align}
+$$
+
+is used for robust standard errors. There are a few ways to write this,
+but the idea is that this is not the variance of the WLS estimate, but
+the variance if there had been $w_i$ copies of the $i$th observation.
+The IRLS algorithm computes WLS already, so the $i$th weight (after
+convergence) is $\mu_i w_i$. However, we want $w_i$ _copies_ of the $i$th
+observation instead.  Hence the correct _weight_ is $W$ but we
+multiply $\widehat{\varepsilon}_i^2$ with $w_i$ to mimic the scenario
+when we have $w_i$ copies of the $i$th row.
+
+In contrast, for other weights (`aweights` being the default), $n$
+is used to compute the small-sample adjustment, and $n \widehat{V}$
+estimates the asymptotic variance of the WLS estimator. That is,
+$$
+\begin{align}
+  \widehat{V} & =
+    (X^\prime \widetilde{W} X)^{-1}
+    X^\prime \widetilde{W} \widehat{\Sigma} \widetilde{W} X
+    (X^\prime \widetilde{W}  X)^{-1}
+\end{align}
+$$
+
+In other words, we can replace $W$ with $\widetilde{W}$ entirely.  With
+clustering, these two methods of computing $\widehat{V}$ will actually
+coincide, and the only difference between `fweights` and other weights
+will be the way the small-sample adjustment is computed.
+
+Finally, with weights and HDFE, the iterative de-meaning (see below)
+uses the weighted mean.
+
+### HDFE
+
+Multi-way high-dimensional fixed effects can be added to any regression
+via `absorb(varlist)`. That is, coefficients at each iteration are
+computed as if the levels of each variable in `varlist` had been
+added to the regression as fixed effects. It is well-known that with
+one fixed effect $\widehat{\beta}^{(r)}$ can be estimated via the
+within transformation (i.e. de-meaning the dependent variable and each
+covariate by the levels of the fixed effect; this can also be motivated
+via the Frisch-Waugh-Lovell theorem). That is, with one fixed effect we
+have the following algorithm at each iteration:
+
+1. Compute $\overline{z}^{(r)}$ and $\overline{X}$ with the _weighted_
+   mean of $z^{(r)}$ and $X$ by the levels of the fixed effect. The
+   weighting vector is $\mu^{(r)}$.
+
+2. Replace $z^{(r)}$ and $X$ with $z^{(r)} - \overline{z}^{(r)}$ and
+   $X - \overline{X}$, respectively.
+
+3. Compute WLS normally with $z^{(r)}$ and $X$ de-meaned, making sure
+   to include the number of fixed effects in the small-sample adjustment
+   of the standard errors.
+
+With multiple fixed effects, the same can be achieved by continuously
+de-meaning by the levels of each of the fixed effects.  Following
+[Correia (2017, p. 12)](http://scorreia.com/research/hdfe.pdf), we have
+instead:
+
+1. Let $\alpha_m$ denote the $m$th fixed effect, $M$ the number of
+   fixed effects (i.e. the number of variables to include as fixed
+   effects), and $m = 1$.
+
+2. Compute $\overline{z}^{(r)}$ and $\overline{X}$ with the _weighted_
+   mean of $z^{(r)}$ and $X$ by the levels of $\alpha_m$. The weighting
+   vector is $\mu^{(r)}$.
+
+3. Replace $z^{(r)}$ and $X$ with $z^{(r)} - \overline{z}^{(r)}$ and
+   $X - \overline{X}$, respectively.
+
+4. Repeat steps 2 and 3 for $m = 1$ through $M$.
+
+5. Repeat steps 1 through 4 until convergence, that is, until neither
+   $Y$ nor $X$ change across iterations.
+
+6. Compute WLS normally with the iteratively de-meaned $z^{(r)}$ and
+   $X$, making sure to include the number of fixed effects across all
+   fixed effect variables in the small-sample adjustment of the standard
+   errors.
+
+This is known as the Method of Alternating Projections (MAP). Let $A_m$
+be a matrix with dummy variables corresponding to each of the levels
+of $\alpha_m$, the $m$th fixed effect. MAP is so named because at each
+step, $z^{(r)}$ and $X$ are projected into the null space of $A_m$ for $m =
+1$ through $M$. (In particular, with $Q_m = I - A_m (A_m^\prime A_m)^{-1}
+A_m^\prime$ the orthogonal projection matrix, steps 2 and 3 replace $z^{(r)}$
+and $X$ with $Q_m z^{(r)}$ and $Q_m X$, respectively.)
+
+[Correia (2017)](http://scorreia.com/research/hdfe.pdf) actually
+proposes several ways of accelerating the above algorithm; we have
+yet to explore any of his proposed modifications (see Correia's own
+`reghdfe` and `ppmlhdfe` packages for an implementation of the methods
+discussed in his paper).
+
+Finally, we note that in step 5 we detect "convergence" as the
+maximum element-wise absolute difference between $z^{(r)}, X$ and
+$Q_m z^{(r)}, Q_m X$, respectively (i.e. the $l_{\infty}$ norm). This
+is a tighter tolerance criterion than the one in [Correia (2017,
+p. 12)](http://scorreia.com/research/hdfe.pdf), which uses the $l_2$
+norm, but by default we also use a tolerance of $1\mathrm{e}{-8}$. The
+trade-off is precision vs speed.  The tolerance criterion is hard-coded
+but the level can be modified via `hdfetol()`. A smaller tolerance will
+converge faster but the point estimates will be less precise (and the
+collinearity detection algorithm will be more susceptible to failure).
+
+### Technical Notes
+
+Ideally I would have been keen to use a standard linear algebra library
+available for C. However, I was unable to find one that I could include
+as part of the plugin without running into cross-platform compatibility
+or installation issues (specifically I was unable to compile them on
+Windows or OSX; I do not have access to physical hardware running either
+OS, so adding external libraries is challenging). Hence I had to code
+all the linear algebra commands that I wished to use.
+
+As far as I can tell, this is only noticeable when it comes to matrix
+multiplication. I use a [naive algorithm](https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm#Iterative_algorithm)
+with no optimizations. This is the main bottleneck in regression models
+with multiple covariates (and the main reason `regress` is faster without
+groups or clustering). Suggestions on how to improve [this algorithm](https://github.com/mcaceresb/stata-gtools/blob/master/src/plugin/regress/linalg/colmajor.c#L1-L41) are welcome.
+
+Missing Features
+----------------
+
+This software will remain in beta at least until the following are added:
+
+- Option to iteratively remove singleton groups with HDFE (see [Correia (2015)
+  for notes on this issue](http://scorreia.com/research/singletons.pdf))
+
+- Automatically detect and remove collinear groups with multi-way HDFE.
+  (This is specially important for small-sample standard error adjustment.)
+
+- Automatically detect and option to flag separated observations (see [Correia,
+  Guimarães, and Zylkin, 2019](https://arxiv.org/abs/1903.01633v5) and the
+  primer [here](https://github.com/sergiocorreia/ppmlhdfe/blob/master/guides/separation_primer.md)).
+
+In addition, some important features are missing:
+
+- Option to estimate the fixed effects (i.e. the coefficients of each
+  HDFE group) included in the regression.
+
+- Option to estimate standard errors under multi-way clustering.
+
+- Faster HDFE algorithm. At the moment the method of alternating
+  projections (MAP) is used, which has very poor worst-case performance.
+  While `gregress` is fast in our benchmarks, it does not have
+  any safeguards against potential corner cases.  ([See Correia
+  (2017) for notes on this issue](http://scorreia.com/research/hdfe.pdf).)
+
+- Support for Stata's extended `varlist` syntax.
+
 Examples
 --------
 
@@ -200,10 +528,20 @@ webuse ships, clear
 expand 2
 gen by = 1.5 - (_n < _N / 2)
 gen w = _n
+gen _co_75_79  = co_75_79
+qui tab ship, gen(_s)
+
 gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [pw = w], cluster(ship)
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, absorb(ship) cluster(ship)
+mata GtoolsPoisson.print()
+
+gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship)
+mata GtoolsPoisson.print()
+
+gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship)
+mata GtoolsPoisson.print()
+
 gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust
+mata GtoolsPoisson.print()
 ```
 
 ### Basic benchmark
@@ -227,7 +565,7 @@ timer clear
 timer on 1
 gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
 timer off 1
-mata greg.b', greg.se'
+mata greg.print()
 timer on 2
 ppmlhdfe l x1 x2, absorb(g1 g2 g3)
 timer off 2
@@ -235,15 +573,26 @@ timer off 2
 timer on 3
 gpoisson l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
 timer off 3
-mata greg.b', greg.se'
+mata greg.print()
 timer on 4
 ppmlhdfe l x1 x2, absorb(g1 g2 g3) vce(cluster g4)
 timer off 4
 
 timer list
 
-   1:      8.66 /        1 =       8.6560
-   2:     46.38 /        1 =      46.3820
-   3:      8.75 /        1 =       8.7470
-   4:     41.51 /        1 =      41.5120
+   1:      9.10 /        1 =       9.0950
+   2:     37.58 /        1 =      37.5760
+   3:      8.68 /        1 =       8.6810
+   4:     37.16 /        1 =      37.1600
 ```
+
+References
+----------
+
+Correia, Sergio. 2015. "Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/singletons.pdf](http://scorreia.com/research/singletons.pdf)
+
+Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)
+
+Correia, Sergio, Paulo  Guimarães, and Thomas Zylkin. 2019. "Verifying the existence of maximum likelihood estimates for generalized linear models." arXiv:1903.01633v5 [econ.EM]. Accessed January 16th, 2020. Available at [https://arxiv.org/abs/1903.01633v5](https://arxiv.org/abs/1903.01633v5)
+
+Guimarães, Paulo. 2014. "POI2HDFE: Stata module to estimate a Poisson regression with two high-dimensional fixed effects." Statistical Software Components S457777, Boston College Department of Economics, revised 16 Sep 2016. Accessed January 16th, 2020. Available at [https://ideas.repec.org/c/boc/bocode/s457777.html](https://ideas.repec.org/c/boc/bocode/s457777.html)

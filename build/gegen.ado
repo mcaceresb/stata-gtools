@@ -1,4 +1,4 @@
-* version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+* version 1.4.0 24Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*

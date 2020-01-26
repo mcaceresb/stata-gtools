@@ -1,4 +1,10 @@
-use "test.dta", clear
+* use "test.dta", clear
+
+clear
+set obs 5111
+gen group = mod(_n, 26)
+gen w     = abs(round(rnormal() * 13 + 20, 0.1))
+gen inc   = abs(round(rnormal() * 7000 + 1200))
 
 local nq 10
 bysort group (inc): gen w_cum=sum(w)

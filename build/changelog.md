@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.7.1 (2020-01-26)
+
+### Bug Fixes
+
+- In `gquantiles`, data was read incorrectly with `by()` and `weights`
+  if `xtile` was not requested. In particular, the data was copied as if
+  the target had only one column, but since weights need to be included,
+  the target has two columns. This was fixed.
+
 ## gtools-1.7.0 (2020-01-24)
 
 ### Enhancements

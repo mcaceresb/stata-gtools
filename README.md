@@ -719,6 +719,8 @@ Planned features:
     - [ ] `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
     - [ ] Choose which coefs/se to save.
 - [ ] Improve formula documentation for summary statistics (e.g. `gini`)
+- [ ] Internal consistency test for various parts of `gquantiles`. Each
+      function section does cases but they should be consistent!
 
 These are options/features/improvements I would like to add, but I don't
 have an ETA for them (i.e. they are a wishlist because I am either not

@@ -412,7 +412,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
                             if ( SF_is_missing(w) ) continue;
 
-                            sel = start + all_nonmiss[j]++;
+                            sel = kx * start + kx * all_nonmiss[j]++;
                             xsources[sel]     = z;
                             xsources[sel + 1] = w;
                         }
@@ -507,7 +507,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                             if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
                             if ( SF_is_missing(w) ) continue;
 
-                            sel = start + all_nonmiss[j]++;
+                            sel = kx * start + kx * all_nonmiss[j]++;
                             xsources[sel]     = z;
                             xsources[sel + 1] = w;
                         }
@@ -588,7 +588,7 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                         if ( (rc = SF_vdata(wpos, i + in1, &w)) ) goto error;
                         if ( SF_is_missing(w) ) continue;
 
-                        sel = start + all_nonmiss[j]++;
+                        sel = kx * start + kx * all_nonmiss[j]++;
                         xsources[sel]     = z;
                         xsources[sel + 1] = w;
                     }
@@ -1380,9 +1380,9 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 q  = 0;
                 for (jptr = st_info->index + ixstart;
                      jptr < st_info->index + ixstart + nj;
-                     jptr++) {
+                     jptr++, q++) {
                     wcount[*jptr] = 1;
-                    xqout[*jptr]  = qptr2[q++];
+                    xqout[*jptr]  = qptr2[q];
                 }
 
                 q    = 0;
@@ -1445,9 +1445,9 @@ ST_retcode sf_xtile_by (struct StataInfo *st_info, int level)
                 q  = 0;
                 for (jptr = st_info->index + ixstart;
                      jptr < st_info->index + ixstart + nj;
-                     jptr++) {
+                     jptr++, q++) {
                     xcount[*jptr] = 1;
-                    xqout[*jptr]  = qptr2[q++];
+                    xqout[*jptr]  = qptr2[q];
                 }
 
                 q    = 0;

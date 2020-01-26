@@ -1683,7 +1683,7 @@ end
 
 cap mata mata drop check_gregress_consistency()
 mata
-void function check_gregress_consistency (
+void function check_gregress_consistency(
     real scalar tol,
     real scalar row,
     real vector col,

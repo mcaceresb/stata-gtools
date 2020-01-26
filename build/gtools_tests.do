@@ -7,6 +7,8 @@
 * Purpose: Unit tests for gtools
 * Version: 1.7.0
 * Manual:  help gtools
+* Note:    You may need to run `ftools, compile` and `reghdfe, compile`
+*          to test gtools against ftools functions and reghdfe.
 
 * Stata start-up options
 * ----------------------
@@ -90,7 +92,8 @@ program main
             cap ssc install egenmisc
             cap ssc install egenmore
             cap ssc install rangestat
-            ftools, compile
+            * ftools,  compile
+            * reghdfe, compile
         }
 
         if ( `:list posof "basic_checks" in options' ) {
@@ -10773,7 +10776,7 @@ end
 
 cap mata mata drop check_gregress_consistency()
 mata
-void function check_gregress_consistency (
+void function check_gregress_consistency(
     real scalar tol,
     real scalar row,
     real vector col,

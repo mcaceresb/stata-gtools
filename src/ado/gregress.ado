@@ -38,7 +38,7 @@ program gregress, rclass
         debug(passthru)           /// Print debugging info to console
     ]
 
-    disp as txt "{bf:warning} gregress is beta software; use with caution"
+    disp as txt "{bf:warning:} gregress is beta software; use with caution"
 
     if ( `"`missing'"' == "nomissing" ) local missing
     else local missing missing
@@ -49,18 +49,37 @@ program gregress, rclass
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
     * Parse IV syntax
+    * ---------------
 
     * NOTE(mauricio): IV will only be allowed with input colmajor.
-    
+
     * NOTE(mauricio): I put the instruments at the start so I can add a
     * constant. I will only have one memory alloc to X and then point to
     * ivz = X, ivendog = X + kz * N, ivexog = X + (kz + kendog) + N
 
+    * NOTE(mauricio): Confirm var does not apparently allow for
+    * wildcards; expand before confirm var. A consequence of this is
+    * that the first variable listed is assumed to be the dependent
+    * variable. Warn the user this might not be their intended behavior
+    * if the first token passed is a wildcard.
+
     local ivok 0
     if regexm(`"`anything'"', ".+\((.+=.+)\)") {
+
+        * Here I am rather inflexible with the notation. I think the
+        * danger of bugs from unforseen mistakes are greater than the
+        * upside of flexible notation.
+
         local iveq   = regexr(regexs(1), "\(|\)", "")
         local ivexog = trim(regexr("`anything'", "\(.+=.+\)", ""))
 
+        * In keeping with this idea, the syntax _must_ be
+        *
+        *     indep [exog] (endog = instrument) [exog]
+        *
+        * where indep is a single variable and exog is optinal.
+
+        unab ivexog: `ivexog'
         cap noi confirm var `ivexog'
         if ( _rc ) {
             disp as err "Error parsing IV syntax: No dependent variable detected"
@@ -70,31 +89,85 @@ program gregress, rclass
         gettoken ivendog ivinstruments: iveq, p(=)
         gettoken _ ivinstruments: ivinstruments
 
+        unab ivinstruments: `ivinstruments'
         cap noi confirm var `ivinstruments'
         if ( _rc ) {
             disp as err "Instruments required for IV"
             exit 198
         }
 
+        unab ivendog: `ivendog'
         cap noi confirm var `ivendog'
         if ( _rc ) {
             disp as err "Endogenous covariates required for IV"
             exit 198
         }
 
-        unab ivexog:        `ivexog'
-        unab ivendog:       `ivendog'
-        unab ivinstruments: `ivinstruments'
-        gettoken ivdepvar ivexog: ivexog
+        * Note we expanded each set of variables above so this _should_
+        * be an accurate cound of how many variables there are.
 
+        gettoken ivdepvar ivexog: ivexog
         local ivkendog: list sizeof ivendog
         local ivkexog:  list sizeof ivexog
         local ivkz:     list sizeof ivinstruments
+
+        * There is a slight issue here in that there is no colinearity
+        * check implemented _before_ the under-identification check.
+        * However, after the colinarity check if there are not enough
+        * instruments both beta and se are set to missing.
 
         if ( `ivkz' < `ivkendog' ) {
             disp as error "Need at least as many instruments as endogenous variables (received `ivkz' < `ivkendog')"
             exit 198
         }
+
+        * Finally, you can't have a variable that is both
+        *
+        * - dependenet variable _and_ instrumented
+        * - dependenet variable _and_ instrument
+        * - dependenet variable _and_ exogenous
+        * - instrumented _and_ instrument
+        * - instrumented _and_ exogenous
+        * - instrument _and_ exogenous
+
+        local problems: list ivdepvar & ivendog
+        if ( `"`problems'"' != `""' ) {
+            disp as error "`problems' included as both regressand and endogenous variable"
+            exit 198
+        }
+
+        local problems: list ivdepvar & ivexog
+        if ( `"`problems'"' != `""' ) {
+            disp as error "`problems' included as both regressand and exogenous variable"
+            exit 198
+        }
+
+        local problems: list ivdepvar & ivinstruments
+        if ( `"`problems'"' != `""' ) {
+            disp as error "`problems' included as both regressand and instrument"
+            exit 198
+        }
+
+        local problems: list ivendog  & ivexog
+        if ( `"`problems'"' != `""' ) {
+            disp as error "included as both an endogenous and exogenous variable: `problems'"
+            exit 198
+        }
+
+        local problems: list ivendog  & ivinstruments
+        if ( `"`problems'"' != `""' ) {
+            disp as error "included as both an endogenous variable and an instrument: `problems'"
+            exit 198
+        }
+
+        local problems: list ivexog   & ivinstruments
+        if ( `"`problems'"' != `""' ) {
+            disp as error "included as both an exogenous variable and an instrument: `problems'"
+            exit 198
+        }
+
+        * Note that each set of variables is passed, unabbreviated
+        * already, as options so that no further parsing is necessary.
 
         unab  varlist: `ivdepvar' `ivendog' `ivexog' `ivinstruments'
         local ivopts ivkendog(`ivkendog') ivkexog(`ivkexog') ivkz(`ivkz')
@@ -102,8 +175,19 @@ program gregress, rclass
         local ivok 1
     }
     else {
+
+        * Without IV, the only issue is that of unabbreviating the varlist.
         unab varlist: `anything'
     }
+
+    * Parse rest of regression syntax
+    * -------------------------------
+
+    * gegen and gcollapse are better suited for implicit constant-only
+    * models.  The user can also generate a variable of ones and request
+    * that the constant be supressed. However, I will not allow an
+    * implicit constant-only model because it's annoying to code and has
+    * little added value.
 
     confirm var `varlist'
     if ( `:list sizeof varlist' == 1 ) {
@@ -111,18 +195,29 @@ program gregress, rclass
         exit 198
     }
 
+    * If ivregress requested, implicitly or otherwise, then check the
+    * parsing. Again, hard stop because it's probably not good to be
+    * overly flexible.
+
     if ( (`ivok' == 0) & ("`ivregress'" != "") ) {
         disp as err "Could not parse input into IV syntax"
         exit 198
     }
+
+    * NOTE(mauricio): ivpoisson is not as straightforward as adapting
+    * the poisson code, which iterates over OLS. Don't try it.
 
     if ( ("`ivregress'" != "") & ("`poisson'" != "") ) {
         disp as err "Input error: IV and poisson requested at the same time"
         exit 198
     }
 
-    * NOTE(mauricio): We always make a todo variable because we want to
-    * exclude missing values in varlist.
+    * NOTE(mauricio): We always make a todo variable because we want
+    * to exclude missing values in varlist. Furthermore, I think this
+    * is the place where we ought to exclude observations once the
+    * -dropsingletons- option is added (to drop singleton groups)
+    * and the program to automagically detect colinear groups (with
+    * multi-way hdfe).
 
 	if ( `"`weight'"' != "" ) {
 		tempvar touse w
@@ -142,6 +237,12 @@ program gregress, rclass
         local if if `touse'
     }
 
+    * Recall that the poisson model is a count model, so the variable
+    * must be a natural number (i.e. non-negative integer). However, I
+    * think I ought to allow users to have non-count variables if they
+    * deem it necessary---the warning should be enough. The algorithm
+    * fails, however, with negative numbers, so that _is_ a hard stop.
+
     if ( `"`poisson'"' != "" ) {
         gettoken y x: varlist
         qui count if (`y' < 0) & `touse'
@@ -151,9 +252,24 @@ program gregress, rclass
         }
         qui count if (`y' != int(`y')) & `touse'
         if ( `r(N)' > 0 ) {
-            disp as txt "{bf:note} you are responsible for interpretation of noncount dep. variable"
+            disp as txt "{bf:note} you are responsible for interpretation of non-count dep. variable"
         }
     }
+
+    * NOTE(mauricio): I don't think this warning is necessary anymore. The
+    * main issue is no longer the collinearity check taking forever (it's
+    * fairly quick now) but with the X' X matrix multiplication.  It's
+    * _very_ slow and the main bottleneck, but not unreasonably slow given
+    * the other speed gains.
+    *
+    * local kall: list sizeof varlist
+    * local ratio = log(1e10 / _N)^2
+    * if ( `kall' > max(`ratio', 16) ) {
+    *     disp as txt "{bf:beta warning}: 'wide' model (large # of regressors) detected; performance may suffer"
+    * }
+
+    * Standard call to internals
+    * --------------------------
 
     local options `options' `robust' cluster(`cluster') absorb(`absorb') `poisson'
     local opts    `weights' `compress' `forcestrl' nods unsorted `missing'

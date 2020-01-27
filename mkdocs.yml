@@ -14,10 +14,10 @@ pages:
         - gcollapse:        usage/gcollapse.md
         - greshape:         usage/greshape.md
         - gcontract:        usage/gcontract.md
-        - hashsort:         usage/hashsort.md
         - gisid:            usage/gisid.md
         - glevelsof:        usage/glevelsof.md
         - gtop:             usage/gtoplevelsof.md
+        - hashsort:         usage/hashsort.md
     - Statistics:
         - gegen:            usage/gegen.md
         - gquantiles:       usage/gquantiles.md

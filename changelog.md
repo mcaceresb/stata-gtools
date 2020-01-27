@@ -1,6 +1,73 @@
 Change Log
 ==========
 
+## gtools-1.7.2 (2020-01-26)
+
+### Enhancements
+
+- Closes #68. `gegen` now allows `by:` prefix when calling a
+  `gstats transform` function (this is only allowed because these calls
+  already require single-variable input, so the `by:` prefix should not
+  present an issue when calling the function).
+
+- Closes #69. `greshape wide/spread` now allows `labelformat()` for
+  custom variable labels (only when a single variable is passed to
+  `key()/j()`). The default is `#keyvalue# #stublabel#`.  Available
+  placeholders are `#stubname#`, `#stublabel#`, `#keyname#`,
+  `#keylabel#`, `#keyvalue#`, and `#keyvaluelabel#`
+
+## gtools-1.7.1 (2020-01-26)
+
+### Bug Fixes
+
+- In `gquantiles`, data was read incorrectly with `by()` and `weights`
+  if `xtile` was not requested. In particular, the data was copied as if
+  the target had only one column, but since weights need to be included,
+  the target has two columns. This was fixed.
+
+## gtools-1.7.0 (2020-01-24)
+
+### Enhancements
+
+- In `givgregress` 
+    - Values to missing if model is not identified (not enough instruments).
+    - `hdfe` no longer saves projected vars.
+
+### Features
+
+- In `gregress` (including `givregress` and `gpoisson`) collinear
+  columns are now dropped (LDL' decomposition).
+- `gegen shift, shiftby(#)` and `gstats transform (shift #)` are available
+  to compute lags (negative `#`) and leds (positive `#`).
+
+## gtools-1.6.4 (2019-09-14)
+
+### Enhancements
+
+- Collinearity and singularity checks in regression models
+- `colmajor_ix` and related functions deleted. Go back to this
+  commit if ever implementing rolling regressions.
+
+## gtools-1.6.3 (2019-09-08)
+
+### Features
+
+- Adds `gini`, `gini dropneg`, `gini keepneg` to `gcollapse`, `gegen`,
+  and `gstats tab`.
+
+- Adds `cumsum`, `cumsum +/-`, and `cumsum +/- varname` to `gstats transform`;
+  options can also be passed to `cumsum` globally via `cumby()`
+
+### Bug fixes
+
+- Fixes bug in `greshape, dropmiss` where if the number of remaining
+  observations is lower than the observations in memory, `set obs` would
+  be run, resulting in an error. Now `keep in` is run for that case.
+
+### Enhancements
+
+- Removed rowmajor option from `gregress`
+
 ## gtools-1.6.2 (2019-08-25)
 
 ### Features

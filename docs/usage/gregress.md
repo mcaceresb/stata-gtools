@@ -7,8 +7,20 @@ OLS linear regressions by group with weights, clustering, and HDFE
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gregress` is in beta; use with caution (e.g. there are no
-    colinearity or singularity checks).
+    `gregress` is in beta; use with caution.
+
+`gregress` computes fast OLS regression coefficients and standard errors
+by group. Its basic functionality is similar to that of the user-written
+`rangestat (reg)` or `regressby`; in addition, `gregress` allows weights,
+clustering, and HDFE by group.
+
+This program is _**not**_ intended as a substitute for `regress`,
+`reghdfe`, or similar commands.  Support for some estimation operations
+are planned; however, `gregress` does not compute any significance tests
+and no post-estimation commands are available.  For non-grouped OLS, in
+fact, Stata's `regress` is faster (unless clustering). For non-grouped
+OLS with HDFE, `ftools`' `reghdfe` is more stable and offers more
+features.
 
 Syntax
 ------
@@ -23,10 +35,10 @@ and contents can be modified via `mata()`.  The results can also be
 saved into variables via `gen()` or `prefix()` (either can be combined
 with `mata()`, but not each other).
 
-Note that extended varlist syntax is _**not**_ supported. Further,
-`fweights` behave differently than other weighting schemes; that
-is, this assumes that the weight referes to the number of available
-_observations_. Other weights run WLS.
+Extended varlist syntax is _**not**_ supported. Further, `fweights`
+behave differently than other weighting schemes; specifically,
+this assumes that the weight refers to the number of available
+_observations_. Other weights run WLS; default weights are `aweights`.
 
 Options
 -------
@@ -87,7 +99,7 @@ Options
             commands. The user can specify it throw an error instead by
             passing `oncollision(error)`.
 
-Remarks
+Results
 -------
 
 `gregress` estimates a linear regression model via OLS, optionally
@@ -185,6 +197,253 @@ variable levels (empty if without -by()-)
         map from index to numx and charx
 ```
 
+Methods and Formulas
+--------------------
+
+OLS is computed using the standard formla
+$$
+\widehat{\beta} = (X^\prime X)^{-1} X^\prime Y
+$$
+
+where $Y$ is the dependent variable and $X$ is a matrix with $n$
+rows, one for each set of observations, and $k$ columns, one for each
+covariate. A column of ones is automatically appended to $X$ unless the
+option `noconstant` is passed or `absorb(varlist)` is requested.
+
+### Collinearity and Inverse
+
+$X^\prime X$ is scaled by the inverse of $M = \max_{ij} X^\prime
+X$ and subsequently decomposed into $L D L^\prime$, with $L$ lower
+triangular and $D$ diagonal (note $X^\prime X$ is a symmetric positive
+semi-definite matrix). If $D_{ii}$ is numerically zero then the $i$th
+column is flagged as collinear and subsequently excluded from all
+computations (specifically if $D_{ii} < k \cdot 2.22\mathrm{e}{-16}$,
+where $k$ is the number of columns in $X$ and $2.22\mathrm{e}{-16}$ is
+the machine epsilon in 64-bit systems).
+
+The inverse is then computed as $(L^{-1})^\prime D^{-1} L^{-1} M^{-1}$,
+excluding the columns flagged as collinear. If the determinant of
+$X^\prime X$ is numerically zero ($< 2.22\mathrm{e}{-16}$) despite
+excluding collinear columns, a singularity warning is printed.
+The coefficients for collinear columns are coded as $0$ and their
+standard errors are coded as missing (`.`).
+
+### Standard Errors
+
+The standard error of the $i$th coefficient is given by
+$$
+SE_i = \sqrt{\frac{n}{n - k} \widehat{V}_{ii}}
+$$
+
+where $\frac{n}{n - k}$ is a small-sample adjustment and $n \widehat{V}$
+is a consistent estimator of the asymptotic variance of $\widehat{\beta}$.
+The standard error of collinear columns is coded as missing (`.`).
+
+By default, homoskedasticity-consistent standard errors are computed:
+$$
+\begin{align}
+  \widehat{V}      & = (X^\prime X)^{-1} \widehat{\sigma} \\\\
+  \widehat{\sigma} & = \widehat{\varepsilon}^\prime \widehat{\varepsilon} / n
+\end{align}
+$$
+
+where
+$$
+\widehat{\varepsilon} = Y - X \widehat{\beta}
+$$
+
+is the error of the OLS fit. If `robust` is passed then White
+heteroskedascitity-consistent standard errors are computed instead:
+$$
+\begin{align}
+  \widehat{\Sigma} & = \text{diag}\\{\widehat{\varepsilon}_1^2, \ldots, \widehat{\varepsilon}_n^2\\} \\\\
+  \widehat{V}      & = (X^\prime X)^{-1} X^\prime \widehat{\Sigma} X (X^\prime X)^{-1}
+\end{align}
+$$
+
+### Clustering
+
+If `cluster(varlist)` is passed then nested cluster standard errors are
+computed (i.e. the rows of `varlist` define the groups). Let $j$ denote
+the $j$th group defined by `varlist` and $J$ the number of groups. Then
+$$
+\begin{align}
+  \widehat{V} & =
+  (X^\prime X)^{-1}
+  \left(
+    \sum_{j = 1}^J \widehat{u}_j \widehat{u}_j^\prime
+  \right)
+  (X^\prime X)^{-1}
+  \\\\
+    \widehat{u}_j & = X_j^\prime \widehat{\varepsilon}_j
+\end{align}
+$$
+
+with $X_j^\prime$ the matrix of covariates with observations from the
+$j$th group and $\widehat{\varepsilon}_j$ the vector with errors from
+the $j$th group. (Note another way to write the sum in $\widehat{V}$ is
+as $U^\prime U$, with $U^\prime = [u_1 ~~ \cdots ~~ u_J]$.) Finally, the
+standard error is given by
+
+$$
+SE_i = \sqrt{\frac{n - 1}{n - k} \frac{J}{J - 1} \widehat{V}_{ii}}
+$$
+
+### Weights
+
+Let $w$ denote the weighting variable and $w_i$ the weight assigned to
+the $i$th observation. The weighted OLS estimator is
+$$
+\widehat{\beta} = (X^\prime W X)^{-1} X^\prime W Y
+$$
+
+`fweights` runs the regression as if there had been $w_i$ copies of the
+$i$th observation. As such, $n_w = \sum_{i = 1}^n w_i$ is used instead
+of $n$ to compute the small-sample adjustment, for the standard errors,
+and
+$$
+\begin{align}
+  W & = \text{diag}\\{w_1, \ldots, w_n\\} \\\\
+  \widehat{V} & =
+    (X^\prime W X)^{-1}
+    X^\prime W \widehat{\Sigma} X
+    (X^\prime W X)^{-1}
+\end{align}
+$$
+
+is used for robust standard errors. In contrast, for other weights
+(`aweights` being the default), $n$ is used to compute the small-sample
+adjustment, and $n \widehat{V}$ estimates the asymptotic variance of the
+WLS estimator. That is,
+$$
+\begin{align}
+  \widehat{V} & =
+    (X^\prime W X)^{-1}
+    X^\prime W \widehat{\Sigma} W X
+    (X^\prime W X)^{-1}
+\end{align}
+$$
+
+With clustering, these two methods of computing $\widehat{V}$ will
+actually coincide, and the only difference between `fweights` and other
+weights will be the way the small-sample adjustment is computed.
+
+Finally, with weights and HDFE, the iterative de-meaning (see below)
+uses the weighted mean.
+
+### HDFE
+
+Multi-way high-dimensional fixed effects can be added to any regression
+via `absorb(varlist)`. That is, coefficients are computed as if the
+levels of each variable in `varlist` had been added to the regression
+as fixed effects. It is well-known that with one fixed effect
+$\widehat{\beta}$ can be estimated via the within transformation (i.e.
+de-meaning the dependent variable and each covariate by the levels of
+the fixed effect; this can also be motivated via the Frisch-Waugh-Lovell
+theorem). That is, with one fixed effect we have the following algorithm:
+
+1. Compute $\overline{Y}$ and $\overline{X}$, the mean of $Y$ and
+   $X$ by the levels of the fixed effect.
+
+2. Replace $Y$ and $X$ with $Y - \overline{Y}$ and $X - \overline{X}$,
+   respectively.
+
+3. Compute OLS normally with $Y$ and $X$ de-meaned, making sure to
+   include the number of fixed effects in the small-sample adjustment
+   of the standard errors.
+
+With multiple fixed effects, the same can be achieved by continuously
+de-meaning by the levels of each of the fixed effects.  Following
+[Correia (2017, p. 12)](http://scorreia.com/research/hdfe.pdf), we have
+instead:
+
+1. Let $\alpha_m$ denote the $m$th fixed effect, $M$ the number of
+   fixed effects (i.e. the number of variables to include as fixed
+   effects), and $m = 1$.
+
+2. Compute $\overline{Y}$ and $\overline{X}$ with the mean of $Y$ and
+   $X$ by the levels of $\alpha_m$.
+
+3. Replace $Y$ and $X$ with $Y - \overline{Y}$ and $X - \overline{X}$,
+   respectively.
+
+4. Repeat steps 2 and 3 for $m = 1$ through $M$.
+
+5. Repeat steps 1 through 4 until convergence, that is, until neither
+   $Y$ nor $X$ change across iterations.
+
+6. Compute OLS normally with the iteratively de-meaned $Y$ and $X$,
+   making sure to include the number of fixed effects across
+   all fixed effect variables in the small-sample adjustment of the
+   standard errors.
+
+This is known as the Method of Alternating Projections (MAP). Let $A_m$
+be a matrix with dummy variables corresponding to each of the levels
+of $\alpha_m$, the $m$th fixed effect. MAP is so named because at each
+step, $Y$ and $X$ are projected into the null space of $A_m$ for $m =
+1$ through $M$. (In particular, with $Q_m = I - A_m (A_m^\prime A_m)^{-1}
+A_m^\prime$ the orthogonal projection matrix, steps 2 and 3 replace $Y$
+and $X$ with $Q_m Y$ and $Q_m X$, respectively.)
+
+[Correia (2017)](http://scorreia.com/research/hdfe.pdf) actually
+proposes several ways of accelerating the above algorithm; we have
+yet to explore any of his proposed modifications (see Correia's own
+`reghdfe` package for an implementation of the methods discussed in his
+paper).
+
+Finally, we note that in step 5 we detect "convergence" as the
+maximum element-wise absolute difference between $Y, X$ and $Q_m
+Y, Q_m X$, respectively (i.e. the $l_{\infty}$ norm). This is
+a tighter tolerance criterion than the one in [Correia (2017,
+p. 12)](http://scorreia.com/research/hdfe.pdf), which uses the $l_2$
+norm, but by default we also use a tolerance of $1\mathrm{e}{-8}$. The
+trade-off is precision vs speed.  The tolerance criterion is hard-coded
+but the level can be modified via `hdfetol()`. A smaller tolerance will
+converge faster but the point estimates will be less precise (and the
+collinearity detection algorithm will be more susceptible to failure).
+
+### Technical Notes
+
+Ideally I would have been keen to use a standard linear algebra library
+available for C. However, I was unable to find one that I could include
+as part of the plugin without running into cross-platform compatibility
+or installation issues (specifically I was unable to compile them on
+Windows or OSX; I do not have access to physical hardware running either
+OS, so adding external libraries is challenging). Hence I had to code
+all the linear algebra commands that I wished to use.
+
+As far as I can tell, this is only noticeable when it comes to matrix
+multiplication. I use a [naive algorithm](https://en.wikipedia.org/wiki/Matrix_multiplication_algorithm#Iterative_algorithm) 
+with no optimizations. This is the main bottleneck in regression models
+with multiple covariates (and the main reason `regress` is faster without
+groups or clustering). Suggestions on how to improve [this algorithm](https://github.com/mcaceresb/stata-gtools/blob/master/src/plugin/regress/linalg/colmajor.c#L1-L41) are welcome.
+
+Missing Features
+----------------
+
+This software will remain in beta at least until the following are added:
+
+- Option to iteratively remove singleton groups with HDFE (see [Correia (2015)
+  for notes on this issue](http://scorreia.com/research/singletons.pdf))
+
+- Automatically detect and remove collinear groups with multi-way HDFE.
+  (This is specially important for small-sample standard error adjustment.)
+
+In addition, some important features are missing:
+
+- Option to estimate the fixed effects (i.e. the coefficients of each
+  HDFE group) included in the regression.
+
+- Option to estimate standard errors under multi-way clustering.
+
+- Faster HDFE algorithm. At the moment the method of alternating
+  projections (MAP) is used, which has very poor worst-case performance.
+  While `gregress` is fast in our benchmarks, it does not have
+  any safeguards against potential corner cases.  ([See Correia
+  (2017) for notes on this issue](http://scorreia.com/research/hdfe.pdf).)
+
+- Support for Stata's extended `varlist` syntax.
+
 Examples
 --------
 
@@ -195,19 +454,32 @@ You can download the raw code for the examples below
 
 ```stata
 sysuse auto, clear
+gen _mpg  = mpg
+qui tab headroom, gen(_h)
+
 greg price mpg
 greg price mpg, by(foreign) robust
-greg price mpg [fw = rep78], absorb(headroom)
-greg price mpg, cluster(headroom)
-greg price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(headroom)
+
+greg price mpg _h* [fw = rep78]
+mata GtoolsRegress.print()
+
+greg price mpg _h* [fw = rep78], absorb(headroom)
+mata GtoolsRegress.print()
+
+greg price mpg _mpg, cluster(headroom)
+greg price mpg _mpg [aw = rep78], by(foreign) absorb(rep78 headroom) cluster(headroom)
+mata GtoolsRegress.print()
 
 greg price mpg, mata(coefsOnly, nose)
 greg price mpg, mata(seOnly,    nob)
 greg price mpg, mata(nothing,   nob nose)
+mata coefsOnly.print()
+mata seOnly.print()
+mata nothing.print()
 
 greg price mpg, prefix(b(_b_)) replace
 greg price mpg, prefix(se(_se_)) replace
-greg price mpg, absorb(rep78 headroom) prefix(b(_b_) se(_se_) hdfe(_hdfe_)) replace
+greg price mpg _mpg, absorb(rep78 headroom) prefix(b(_b_) se(_se_) hdfe(_hdfe_)) replace
 drop _*
 
 greg price mpg, gen(b(_b_mpg _b_cons))
@@ -231,7 +503,6 @@ gen x4 = runiform()
 gen x1 = x3 + runiform()
 gen x2 = x4 + runiform()
 gen y  = 0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal()
-gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
 timer clear
 timer on 1
@@ -261,10 +532,17 @@ drop _*
 
 timer list
 
-   1:      1.21 /        1 =       1.2100
-   2:     13.76 /        1 =      13.7610
-   3:      1.26 /        1 =       1.2640
-   4:     17.67 /        1 =      17.6680
-   5:      0.35 /        1 =       0.3550
-   6:      2.41 /        1 =       2.4140
+   1:      1.92 /        1 =       1.9210
+   2:     15.95 /        1 =      15.9520
+   3:      1.63 /        1 =       1.6310
+   4:     15.07 /        1 =      15.0730
+   5:      0.37 /        1 =       0.3680
+   6:      2.55 /        1 =       2.5510
 ```
+
+References
+----------
+
+Correia, Sergio. 2015. "Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/singletons.pdf](http://scorreia.com/research/singletons.pdf)
+
+Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)

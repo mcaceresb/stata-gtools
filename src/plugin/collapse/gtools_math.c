@@ -445,6 +445,150 @@ ST_double gf_array_dkurt_range (const ST_double v[], const GT_size start, const 
 }
 
 /**
+ * @brief Gini coefficient of enries in range of array
+ *
+ * The Gini can be expressed as 1 - 2B, where B is the area under the
+ * Lorenz curve. Let y_1 <= y_2 <= ... <= y_n be the incomes of a
+ * population, and w_i the number of people who have income y_i.
+ *
+ * For a discrete population, the Lorenz can be expressed in terms of
+ * the cmf (cummulative mass function) that a given individual has
+ * income y_i, which is given by
+ *
+ *     W_i = sum from j = 0 to i of w_j
+ *     F(y_i) = W_i / W_n
+ *
+ * with y_0, w_0 defined as 0. Let
+ *
+ *     Y_i = sum from j = 0 to i of y_i
+ *
+ * then, noting Y_i - Y_{i - 1} = y_i, we have the trapezoidal
+ * approximation of the area under the Lorenz curve,
+ *
+ *     b_i = w_i y_i (W_i + W_{i - 1})
+ *         = y_i (W_i - W_{i - 1}) (W_i + W_{i - 1})
+ *         = y_i (W_i^2 - W_{i - 1}^2)
+ *     B_i = 0.5 [(1 - W_i / W_n) + (1 - W_{i - 1} / W_n)] (w_i y_i / Y_n)
+ *         = 0.5 [2 w_i y_i - b_i] / W_n Y_n
+ *     B   = sum from i = 1 to n of B_i
+ *         = [(sum from i = 1 to n of b_i) / (W_n Y_n)] - 1
+ *
+ * if w_i = 1, then
+ *
+ *     b_i = y_i (2i - 1) = 2i y_i - y_i
+ *     B   = [(-Y_n + sum from i = 1 to n of 2i y_i) / (n Y_n)] - 1
+ *         = 2 (sum from i = 1 to n of i y_i) / (n Y_n)
+ *         - (n + 1) / n
+ *
+ * @param v vector of doubles containing the current group's variables
+ * @param start summaryze starting at the @start-th entry
+ * @param end summaryze until the (@end - 1)-th entry
+ * @return Gini coefficient of the elements of @v from @start to @end
+ */
+ST_double gf_array_dgini_range (ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double Ndbl  = end - start;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+
+    quicksort_bsd(
+        v + start,
+        end - start,
+        (sizeof *v),
+        xtileCompare,
+        NULL
+    );
+
+    // truncate negative income to 0
+    i = start;
+    while ( v[i] < 0 && i < end ) {
+        i++;
+    }
+
+    // sum over non-negative income but the correct i offset
+    while ( i < end ) {
+        vsum  += v[i];
+        ivsum += (i - start + 1) * v[i];
+        i++;
+    }
+
+    if ( vsum == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        return (((2 * ivsum) / (Ndbl * vsum)) - ((Ndbl + 1) / Ndbl));
+    }
+}
+
+ST_double gf_array_dginidrop_range (ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double Ndbl;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+    GT_size   nobs  = 0;
+
+    quicksort_bsd(
+        v + start,
+        end - start,
+        (sizeof *v),
+        xtileCompare,
+        NULL
+    );
+
+    // drop negative income
+    i = start;
+    while ( v[i] < 0 && i < end ) {
+        i++;
+    }
+
+    // sum over non-negative income but the correct offset
+    while ( i < end ) {
+        ++nobs;
+        vsum  += v[i];
+        ivsum += nobs * v[i];
+        i++;
+    }
+
+    if ( nobs == 0 || vsum == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        Ndbl = (ST_double) nobs;
+        return (((2 * ivsum) / (Ndbl * vsum)) - ((Ndbl + 1) / Ndbl));
+    }
+}
+
+ST_double gf_array_dginikeep_range (ST_double v[], const GT_size start, const GT_size end)
+{
+    GT_size i;
+    ST_double Ndbl  = end - start;
+    ST_double vsum  = 0;
+    ST_double ivsum = 0;
+
+    quicksort_bsd(
+        v + start,
+        end - start,
+        (sizeof *v),
+        xtileCompare,
+        NULL
+    );
+
+    for (i = start; i < end; i++) {
+        vsum  += v[i];
+        ivsum += (i - start + 1) * v[i];
+    }
+
+    if ( vsum == 0 ) {
+        return (SV_missval);
+    }
+    else {
+        return (((2 * ivsum) / (Ndbl * vsum)) - ((Ndbl + 1) / Ndbl));
+    }
+}
+
+/**
  * @brief Wrapper to encode summary function using an integer
  *
  * We use negative numbers so that we can return quantiles as is.
@@ -454,32 +598,35 @@ ST_double gf_array_dkurt_range (const ST_double v[], const GT_size start, const 
  */
 ST_double gf_code_fun (char * fname)
 {
-         if ( strcmp (fname, "sum")        == 0 ) return (-1);   // sum
-    else if ( strcmp (fname, "nansum")     == 0 ) return (-101); // sum (keepmissing)
-    else if ( strcmp (fname, "mean")       == 0 ) return (-2);   // mean
-    else if ( strcmp (fname, "sd")         == 0 ) return (-3);   // sd
-    else if ( strcmp (fname, "max")        == 0 ) return (-4);   // max
-    else if ( strcmp (fname, "min")        == 0 ) return (-5);   // min
-    else if ( strcmp (fname, "count")      == 0 ) return (-6);   // count
-    else if ( strcmp (fname, "percent")    == 0 ) return (-7);   // percent
-    else if ( strcmp (fname, "median")     == 0 ) return (50);   // median
-    else if ( strcmp (fname, "iqr")        == 0 ) return (-9);   // iqr
-    else if ( strcmp (fname, "first")      == 0 ) return (-10);  // first
-    else if ( strcmp (fname, "firstnm")    == 0 ) return (-11);  // firstnm
-    else if ( strcmp (fname, "last")       == 0 ) return (-12);  // last
-    else if ( strcmp (fname, "lastnm")     == 0 ) return (-13);  // lastnm
-    else if ( strcmp (fname, "semean")     == 0 ) return (-15);  // semean
-    else if ( strcmp (fname, "sebinomial") == 0 ) return (-16);  // sebinomial
-    else if ( strcmp (fname, "sepoisson ") == 0 ) return (-17);  // sepoisson
-    else if ( strcmp (fname, "skewness")   == 0 ) return (-19);  // skewness
-    else if ( strcmp (fname, "kurtosis")   == 0 ) return (-20);  // kurtosis
-    else if ( strcmp (fname, "rawsum")     == 0 ) return (-21);  // rawsum
-    else if ( strcmp (fname, "rawnansum")  == 0 ) return (-121); // rawsum (keepmissing)
-    else if ( strcmp (fname, "variance")   == 0 ) return (-23);  // variance
-    else if ( strcmp (fname, "cv")         == 0 ) return (-24);  // cv
-    else if ( strcmp (fname, "range")      == 0 ) return (-25);  // range
-    else if ( strcmp (fname, "geomean")    == 0 ) return (-26);  // geomean
-    else {                                                       
+         if ( strcmp (fname, "sum")          == 0 ) return (-1);    // sum
+    else if ( strcmp (fname, "nansum")       == 0 ) return (-101);  // sum (keepmissing)
+    else if ( strcmp (fname, "mean")         == 0 ) return (-2);    // mean
+    else if ( strcmp (fname, "sd")           == 0 ) return (-3);    // sd
+    else if ( strcmp (fname, "max")          == 0 ) return (-4);    // max
+    else if ( strcmp (fname, "min")          == 0 ) return (-5);    // min
+    else if ( strcmp (fname, "count")        == 0 ) return (-6);    // count
+    else if ( strcmp (fname, "percent")      == 0 ) return (-7);    // percent
+    else if ( strcmp (fname, "median")       == 0 ) return (50);    // median
+    else if ( strcmp (fname, "iqr")          == 0 ) return (-9);    // iqr
+    else if ( strcmp (fname, "first")        == 0 ) return (-10);   // first
+    else if ( strcmp (fname, "firstnm")      == 0 ) return (-11);   // firstnm
+    else if ( strcmp (fname, "last")         == 0 ) return (-12);   // last
+    else if ( strcmp (fname, "lastnm")       == 0 ) return (-13);   // lastnm
+    else if ( strcmp (fname, "semean")       == 0 ) return (-15);   // semean
+    else if ( strcmp (fname, "sebinomial")   == 0 ) return (-16);   // sebinomial
+    else if ( strcmp (fname, "sepoisson ")   == 0 ) return (-17);   // sepoisson
+    else if ( strcmp (fname, "skewness")     == 0 ) return (-19);   // skewness
+    else if ( strcmp (fname, "kurtosis")     == 0 ) return (-20);   // kurtosis
+    else if ( strcmp (fname, "rawsum")       == 0 ) return (-21);   // rawsum
+    else if ( strcmp (fname, "rawnansum")    == 0 ) return (-121);  // rawsum (keepmissing)
+    else if ( strcmp (fname, "variance")     == 0 ) return (-23);   // variance
+    else if ( strcmp (fname, "cv")           == 0 ) return (-24);   // cv
+    else if ( strcmp (fname, "range")        == 0 ) return (-25);   // range
+    else if ( strcmp (fname, "geomean")      == 0 ) return (-26);   // geomean
+    else if ( strcmp (fname, "gini")         == 0 ) return (-27);   // gini
+    else if ( strcmp (fname, "gini|dropneg") == 0 ) return (-27.1); // gini dropneg
+    else if ( strcmp (fname, "gini|keepneg") == 0 ) return (-27.2); // gini keepneg
+    else {
         ST_double q = (ST_double) atof(fname);                   // quantile
         return (q > 0? q: 0);
     }
@@ -498,24 +645,27 @@ ST_double gf_code_fun (char * fname)
  */
 ST_double gf_switch_fun_code (ST_double fcode, ST_double v[], const GT_size start, const GT_size end)
 {
-         if ( fcode == -1   ) return (gf_array_dsum_range     (v, start, end)); // sum
-    else if ( fcode == -101 ) return (gf_array_dsum_range     (v, start, end)); // sum (keepmissing)
-    else if ( fcode == -2   ) return (gf_array_dmean_range    (v, start, end)); // mean
-    else if ( fcode == -3   ) return (gf_array_dsd_range      (v, start, end)); // sd)
-    else if ( fcode == -4   ) return (gf_array_dmax_range     (v, start, end)); // max
-    else if ( fcode == -5   ) return (gf_array_dmin_range     (v, start, end)); // min
-    else if ( fcode == -9   ) return (gf_array_diqr_range     (v, start, end)); // iqr
-    else if ( fcode == -15  ) return (gf_array_dsemean_range  (v, start, end)); // semean
-    else if ( fcode == -16  ) return (gf_array_dsebinom_range (v, start, end)); // sebinomial
-    else if ( fcode == -17  ) return (gf_array_dsepois_range  (v, start, end)); // sepoisson
-    else if ( fcode == -19  ) return (gf_array_dskew_range    (v, start, end)); // skewness
-    else if ( fcode == -20  ) return (gf_array_dkurt_range    (v, start, end)); // kurtosis
-    else if ( fcode == -21  ) return (gf_array_dsum_range     (v, start, end)); // rawsum
-    else if ( fcode == -121 ) return (gf_array_dsum_range     (v, start, end)); // rawsum (keepmissing)
-    else if ( fcode == -23  ) return (gf_array_dvar_range     (v, start, end)); // variance
-    else if ( fcode == -24  ) return (gf_array_dcv_range      (v, start, end)); // cv
-    else if ( fcode == -25  ) return (gf_array_drange_range   (v, start, end)); // range
-    else if ( fcode == -26  ) return (gf_array_dgeomean_range (v, start, end)); // geomean
+         if ( fcode == -1    ) return (gf_array_dsum_range      (v, start, end)); // sum
+    else if ( fcode == -101  ) return (gf_array_dsum_range      (v, start, end)); // sum (keepmissing)
+    else if ( fcode == -2    ) return (gf_array_dmean_range     (v, start, end)); // mean
+    else if ( fcode == -3    ) return (gf_array_dsd_range       (v, start, end)); // sd)
+    else if ( fcode == -4    ) return (gf_array_dmax_range      (v, start, end)); // max
+    else if ( fcode == -5    ) return (gf_array_dmin_range      (v, start, end)); // min
+    else if ( fcode == -9    ) return (gf_array_diqr_range      (v, start, end)); // iqr
+    else if ( fcode == -15   ) return (gf_array_dsemean_range   (v, start, end)); // semean
+    else if ( fcode == -16   ) return (gf_array_dsebinom_range  (v, start, end)); // sebinomial
+    else if ( fcode == -17   ) return (gf_array_dsepois_range   (v, start, end)); // sepoisson
+    else if ( fcode == -19   ) return (gf_array_dskew_range     (v, start, end)); // skewness
+    else if ( fcode == -20   ) return (gf_array_dkurt_range     (v, start, end)); // kurtosis
+    else if ( fcode == -21   ) return (gf_array_dsum_range      (v, start, end)); // rawsum
+    else if ( fcode == -121  ) return (gf_array_dsum_range      (v, start, end)); // rawsum (keepmissing)
+    else if ( fcode == -23   ) return (gf_array_dvar_range      (v, start, end)); // variance
+    else if ( fcode == -24   ) return (gf_array_dcv_range       (v, start, end)); // cv
+    else if ( fcode == -25   ) return (gf_array_drange_range    (v, start, end)); // range
+    else if ( fcode == -26   ) return (gf_array_dgeomean_range  (v, start, end)); // geomean
+    else if ( fcode == -27   ) return (gf_array_dgini_range     (v, start, end)); // gini
+    else if ( fcode == -27.1 ) return (gf_array_dginidrop_range (v, start, end)); // gini dropneg
+    else if ( fcode == -27.2 ) return (gf_array_dginikeep_range (v, start, end)); // gini keepneg
     else {
         return (gf_array_dquantile_range(v, start, end, fcode));                // percentiles
     }

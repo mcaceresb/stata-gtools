@@ -9,9 +9,9 @@ gstats tab price, s(mean sd min max) by(foreign)
 gstats tab price, by(foreign rep78)
 
 * Custom printing
-gstats tab price mpg, s(p5 q p95 select7 select-3) pretty
-gstats tab price mpg, s(p5 q p95 select7 select-3) col(var)
-gstats tab price mpg, s(p5 q p95 select7 select-3) col(stat)
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) pretty
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) col(var)
+gstats tab price mpg, s(p5 q p95 select7 select-3 gini) col(stat)
 
 * Mata API
 gen strvar = "string" + string(rep78)

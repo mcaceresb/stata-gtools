@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0 16Apr2019}{...}
+{* *! version 0.5.0 26Jan2020}{...}
 {viewerdialog greshape "dialog greshape"}{...}
 {vieweralsosee "[R] greshape" "mansection R greshape"}{...}
 {viewerjumpto "Syntax" "greshape##syntax"}{...}
@@ -172,8 +172,11 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 {p_end}
 {synopt :{opt match(str)}} Where to replace levels of {opt keys()} in stub (default {opt @}).
 {p_end}
+{synopt :{opt labelf:ormat(str)}} Custom label format using placeholders (only with single variable input for {opt key()}/{opt j()}). Default {it:#keyvalue# #stublabel#}. Other placeholders are {it:#stubname#}, {it:#keyname#}, {it:#keylabel#}, {it:#keyvaluelabel#}.
+{p_end}
 {synopt :{opt prefix(str)}} Custom renaming of reshaped variables (one rename per stub; {opt @} syntax allowed).
 {p_end}
+
 
 {syntab :Common long and wide options}
 {synopt :{opt fast}} Do not wrap the reshape in preserve/restore pairs.
@@ -202,6 +205,8 @@ are not supported, including: clear, error, query, i, j, xij, and xi.
 
 {syntab :Spread}
 {synopt :* {opth keys(varlist)}} long->wide: {it:varlist}, existing variable with variable names.
+{p_end}
+{synopt :{opt labelf:ormat(str)}} Custom label format using placeholders (only with single variable input for {opt key()}/{opt j()}). Default {it:#keyvalue# #stublabel#}. Other placeholders are {it:#stubname#}, {it:#keyname#}, {it:#keylabel#}, {it:#keyvaluelabel#}.
 {p_end}
 {synopt :{opt prefix(str)}} Custom renaming of reshaped variables (one common rename; {opt @} syntax allowed).
 {p_end}

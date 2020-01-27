@@ -87,6 +87,9 @@ in IC and 4-120 times faster in MP), with several additions.
 {p2col :{opt sep:oisson}}standard error of the mean, Poisson ({cmd:sqrt(mean / n)}) (result rounded to nearest integer){p_end}
 {p2col :{opt skewness}}Skewness{p_end}
 {p2col :{opt kurtosis}}Kurtosis{p_end}
+{p2col :{opt gini}}Gini coefficient (negative truncated to 0){p_end}
+{p2col :{opt gini dropneg}}Gini coefficient (negative values dropped){p_end}
+{p2col :{opt gini keepneg}}Gini coefficient (negative values kept; the user is responsible for the interpretation of the Gini in this case){p_end}
 {p2colreset}{...}
 
 {synoptset 18 tabbed}{...}

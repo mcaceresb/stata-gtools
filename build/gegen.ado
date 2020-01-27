@@ -1,4 +1,4 @@
-* version 1.3.0 11Jun2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+* version 1.4.1 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -59,54 +59,63 @@ program define gegen, byable(onecall) rclass
     confirm name `name'
     gettoken fcn  0: 0, parse(" =(")
     gettoken args 0: 0, parse(" ,") match(par)
+    local fcn `fcn'
 
-    if ( "`fcn'"   == "total" ) local fcn sum
-    if ( "`fcn'"   == "var"   ) local fcn variance
-    if ( "`fcn'"   == "sem"   ) local fcn semean
-    if ( "`fcn'"   == "seb"   ) local fcn sebinomial
-    if ( "`fcn'"   == "sep"   ) local fcn sepoisson
-    if ( "`fcn'"   == "kurt"  ) local fcn kurtosis
-    if ( "`fcn'"   == "skew"  ) local fcn skewness
     if ( `"`par'"' != "("     ) exit 198
-    if ( "`fcn'"   == "sum"   ) local type `btype'
+    if ( `"`fcn'"'   == "total" ) local fcn sum
+    if ( `"`fcn'"'   == "var"   ) local fcn variance
+    if ( `"`fcn'"'   == "sem"   ) local fcn semean
+    if ( `"`fcn'"'   == "seb"   ) local fcn sebinomial
+    if ( `"`fcn'"'   == "sep"   ) local fcn sepoisson
+    if ( `"`fcn'"'   == "kurt"  ) local fcn kurtosis
+    if ( `"`fcn'"'   == "skew"  ) local fcn skewness
+    if ( `"`fcn'"'   == "sum"   ) local type `btype'
+    if ( regexm(`"`fcn'"', " ") ) local fcn: subinstr local fcn " " "|", all
 
     * Parse by call
     * -------------
 
-    if ( _by() ) local byvars `_byvars'
+    local warnby = 0
+    if ( _by() ) {
+        local byvars `_byvars'
+        local warnby = 1
+    }
 
     * Pre-compiled functions
     * ----------------------
 
-    local funcs tag        ///
-                group      ///
-                total      ///
-                sum        ///
-                nansum     ///
-                mean       ///
-                geomean    ///
-                sd         ///
-                variance   ///
-                cv         ///
-                max        ///
-                min        ///
-                range      ///
-                count      ///
-                median     ///
-                iqr        ///
-                percent    ///
-                first      ///
-                last       ///
-                firstnm    ///
-                lastnm     ///
-                semean     ///
-                sebinomial ///
-                sepoisson  ///
-                nunique    ///
-                pctile     ///
-                select     ///
-                nmissing   ///
-                skewness   ///
+    local funcs tag          ///
+                group        ///
+                total        ///
+                sum          ///
+                nansum       ///
+                mean         ///
+                geomean      ///
+                sd           ///
+                variance     ///
+                cv           ///
+                max          ///
+                min          ///
+                range        ///
+                count        ///
+                median       ///
+                iqr          ///
+                percent      ///
+                first        ///
+                last         ///
+                firstnm      ///
+                lastnm       ///
+                semean       ///
+                sebinomial   ///
+                sepoisson    ///
+                nunique      ///
+                pctile       ///
+                select       ///
+                nmissing     ///
+                skewness     ///
+                gini         ///
+                gini|dropneg ///
+                gini|keepneg ///
                 kurtosis
 
     * gegen aliases for other gtools functions
@@ -123,8 +132,20 @@ program define gegen, byable(onecall) rclass
     local direct winsorize ///
                  winsor     //
 
+    * NOTE(mauricio): Though you would want to allow by as prefix, it's
+    * difficult because the user can try to pass inputs assuming by:
+    * will produce a particular result, and it might not e.g.
+    *
+    *     by var: gegen x = fcn(y[_n - 2])
+    *
+    * fails with these (in this example, for non-transforms y[_n - 2],
+    * or whichever expression is passed, is generated into a variable
+    * with the correct by: predix.
+
     if ( `"`fcn'"' == "xtile" ) {
         if ( _by() ) {
+            * Note I leave this here because I want to allow expressions. So
+            * I don't allow by...
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
@@ -135,17 +156,25 @@ program define gegen, byable(onecall) rclass
         exit _rc
     }
 
-    local moving = regexm(`"`fcn'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$")
-    local range  = regexm(`"`fcn'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$")
-    if ( `:list fcn in transforms' | `moving' | `range' ) {
+    local shift  = regexm(`"`fcn'"', "^shift[ |]*([+-]?[0-9]+)?[ |]*$")
+    local cumsum = regexm(`"`fcn'"', "^cumsum(.*)$")
+    local moving = regexm(`"`fcn'"', "^moving[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?$")
+    local range  = regexm(`"`fcn'"', "^range[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?[ |]*([^ ]+)?$")
+    if ( `:list fcn in transforms' | `moving' | `range' | `cumsum' | `shift' ) {
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
-        if ( _by() ) {
-            disp as err "by: prefix not allowed with `fcn'"
+        unab args: `args'
+        if ( `:list sizeof args' != 1 ) {
+            disp as err `"`fcn' requires single variable input"'
             exit 198
+        }
+        if ( _by() ) {
+            disp as txt "performance wrning: -by- prefix may be slower than -by()-"
+            * disp as err "by: prefix not allowed with `fcn'"
+            * exit 198
         }
         if ( `retype' ) local type
         local options types(`type') `options'
@@ -160,9 +189,15 @@ program define gegen, byable(onecall) rclass
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
-        if ( _by() ) {
-            disp as err "by: prefix not allowed with `fcn'"
+        unab args: `args'
+        if ( `:list sizeof args' != 1 ) {
+            disp as err `"`fcn' requires single variable input"'
             exit 198
+        }
+        if ( _by() ) {
+            disp as txt "performance wrning: -by- prefix may be slower than -by()-"
+            * disp as err "by: prefix not allowed with `fcn'"
+            * exit 198
         }
         if ( `retype' ) {
             disp as err "warning: type ignored with gegen function `fcn'"
@@ -240,6 +275,10 @@ program define gegen, byable(onecall) rclass
     local t97: copy local FreeTimer
     gtools_timer on `t97'
     global GTOOLS_CALLER gegen
+
+    if ( `warnby' ) {
+        disp as txt "performance warning: -by- prefix may be slower than -by()-"
+    }
 
     * Parse syntax call if function is known
     * --------------------------------------
@@ -624,7 +663,7 @@ program define gegen, byable(onecall) rclass
             }
 
             * See notes in lines 294-310
-            * if ( "`:list sources & dummy'" != "" ) { 
+            * if ( "`:list sources & dummy'" != "" ) {
             *     if ( "`replace'" != "" ) local extra " even with -replace-"
             *     di as error "Variable `dummy' canot be a source and a target`extra'"
             *     exit 198
@@ -889,36 +928,39 @@ program parse_target_type, rclass
         local retype_D double
     }
 
-    if ( "`fcn'" == "tag"        ) return local retype = "byte"
-    if ( "`fcn'" == "group"      ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "total"      ) return local retype = "double"
-    if ( "`fcn'" == "sum"        ) return local retype = "double"
-    if ( "`fcn'" == "nansum"     ) return local retype = "double"
-    if ( "`fcn'" == "mean"       ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "geomean"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sd"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "variance"   ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "cv"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "max"        ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "min"        ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "range"      ) return local retype = "`retype_D'"
-    if ( "`fcn'" == "select"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "count"      ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "median"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "iqr"        ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "percent"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "first"      ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "last"       ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "firstnm"    ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "lastnm"     ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "semean"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sebinomial" ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sepoisson"  ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "pctile"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "nunique"    ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "nmissing"   ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "skewness"   ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "kurtosis"   ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "tag"          ) return local retype = "byte"
+    if ( "`fcn'" == "group"        ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "total"        ) return local retype = "double"
+    if ( "`fcn'" == "sum"          ) return local retype = "double"
+    if ( "`fcn'" == "nansum"       ) return local retype = "double"
+    if ( "`fcn'" == "mean"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "geomean"      ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sd"           ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "variance"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "cv"           ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "max"          ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "min"          ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "range"        ) return local retype = "`retype_D'"
+    if ( "`fcn'" == "select"       ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "count"        ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "median"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "iqr"          ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "percent"      ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "first"        ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "last"         ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "firstnm"      ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "lastnm"       ) return local retype = "`retype_A'"
+    if ( "`fcn'" == "semean"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sebinomial"   ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "sepoisson"    ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "pctile"       ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "nunique"      ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "nmissing"     ) return local retype = "`retype_C'"
+    if ( "`fcn'" == "skewness"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "kurtosis"     ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini"         ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini|dropneg" ) return local retype = "`retype_B'"
+    if ( "`fcn'" == "gini|keepneg" ) return local retype = "`retype_B'"
 end
 
 capture program drop encode_vartype

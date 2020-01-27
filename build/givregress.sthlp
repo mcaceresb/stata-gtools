@@ -4,11 +4,12 @@
 {vieweralsosee "[R] givregress" "mansection R givregress"}{...}
 {viewerjumpto "Syntax" "givregress##syntax"}{...}
 {viewerjumpto "Description" "givregress##description"}{...}
-{viewerjumpto "Statistics" "givregress##statistics"}{...}
+{viewerjumpto "Methods and Formulas" "givregress##methods_and_formulas"}{...}
+{viewerjumpto "Examples" "givregress##examples"}{...}
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:givregress} {hline 2}} OLS linear regressions by group with weights, clustering, and HDFE{p_end}
+{p2col :{cmd:givregress} {hline 2}} 2SLS linear regressions by group with weights, clustering, and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -16,8 +17,7 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt givregress} is in beta; use with caution (e.g. there
-are no colinearity or singularity checks).
+{it:Warning}: {opt givregress} is in beta; use with caution.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -207,6 +207,13 @@ GtoolsIV.desc()} for details; the following data is stored:
 
             real rowvector ByLevels.map
                 map from index to numx and charx
+
+{marker methods_and_formulas}{...}
+{title:Methods and Formulas}
+
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/givregress/index.html#methods-and-formulas":online documentation}
+for details.
 
 {marker example}{...}
 {title:Examples}

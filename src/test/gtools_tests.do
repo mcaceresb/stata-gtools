@@ -3,10 +3,12 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Aug 25 12:38:30 EDT 2019
+* Updated: Sun Jan 26 16:43:03 EST 2020
 * Purpose: Unit tests for gtools
-* Version: 1.6.2
+* Version: 1.7.2
 * Manual:  help gtools
+* Note:    You may need to run `ftools, compile` and `reghdfe, compile`
+*          to test gtools against ftools functions and reghdfe.
 
 * Stata start-up options
 * ----------------------
@@ -90,7 +92,8 @@ program main
             cap ssc install egenmisc
             cap ssc install egenmore
             cap ssc install rangestat
-            ftools, compile
+            * ftools,  compile
+            * reghdfe, compile
         }
 
         if ( `:list posof "basic_checks" in options' ) {
@@ -518,6 +521,51 @@ program random_draws
         replace random`i' = . if mod(_n, 20) == 0
         if ( `binary' > 0 ) {
             replace random`i' = floor(runiform() * 1.99) if _n <= `=_N / `binary''
+        }
+    }
+end
+
+capture program drop quickGini
+program quickGini, sortpreserve
+    syntax varname [if] [in] [aw fw pw iw], gen(name) [by(varname) keepneg dropneg]
+    tempvar w ysum iysum wsum N
+    local y: copy local varlist
+
+    qui {
+        if ( `"`dropneg'"' != "" ) {
+            tempvar y
+            gen double `y' = `varlist' if `varlist' >= 0
+        }
+        else if ( `"`dropneg'`keepneg'"' == "" ) {
+            tempvar y
+            gen double `y' = 0
+            replace `y' = `varlist' if `varlist' >= 0
+        }
+
+        tempvar touse
+        if ( `"`exp'"' != "" ) {
+            gen double `w' `exp'
+            mark `touse' `if' `in' [`weight'=`w']
+            sort `touse' `by' `y'
+            replace `w' = 0 if mi(`y')
+            if ( `"`dropneg'"' != "" ) {
+                replace `y' = 0 if mi(`y')
+            }
+            by `touse' `by': gen double `ysum'  = sum(`y' * `w') if `touse'
+            by `touse' `by': gen double `wsum'  = sum(`w')       if `touse'
+            by `touse' `by': gen double `iysum' = sum(`y' * `w' * (2 * `wsum' - `w')) if `touse'
+            by `touse' `by': gen double `gen'  = ((`iysum'[_N]) / (`wsum'[_N] * `ysum'[_N])) - 1 if `touse'
+        }
+        else {
+            mark `touse' `if' `in'
+            sort `touse' `by' `y'
+            gegen long `N' = count(`y') if `touse', by(`by')
+            if ( `"`dropneg'"' != "" ) {
+                replace `y' = 0 if mi(`y')
+            }
+            by `touse' `by': gen double `ysum'  = sum(`y')      if `touse'
+            by `touse' `by': gen double `iysum' = sum(`y' * _n) if `touse'
+            by `touse' `by': gen double `gen'  = ((2 * `iysum'[_N]) / (`N' * `ysum'[_N])) - ((`N' + 1) / `N') if `touse'
         }
     }
 end

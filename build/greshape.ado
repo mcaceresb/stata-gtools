@@ -1,4 +1,4 @@
-*! version 0.4.0 16Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.0 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -105,6 +105,7 @@ end
 * X | X | ReS_nomisscheck
 * X | X | ReS_cmd
 *   | X | ReS_prefix
+*   | X | ReS_labelformat
 * X | X | ReS_Xij_stubs
 * X |   | ReS_Xij_regex
 * X |   | ReS_Xij_add
@@ -467,7 +468,12 @@ program define Long /* reshape long */
     order $ReS_i $ReS_j $ReS_Xij_stubs $ReS_Xi
     if ( `"`dropmissing'"' != "" ) {
         * disp as txt "({bf:warning:} -dropmiss- will remove IDs with all missing values)"
-        qui set obs `=scalar(__gtools_greshape_nrows)'
+        if ( `=scalar(__gtools_greshape_nrows)' <= `=_N' ) {
+            qui keep in 1 / `=scalar(__gtools_greshape_nrows)'
+        }
+        else {
+            qui set obs `=scalar(__gtools_greshape_nrows)'
+        }
     }
     else {
         qui set obs `=_N * scalar(__greshape_klvls)'
@@ -601,6 +607,7 @@ program define Wide /* reshape wide */
             CHECKlevel(real 4) /// Check level
             nomisscheck        /// Do not check for missing values or blanks in j
             match(str)         /// a string (e.g. @) to match
+            LABELFormat(str)   /// label format; default is '#keyvalue# #stublabel#'
             prefix(str)        /// a list with the variable prefix format. default
                                ///
                                ///     #stub# [#stub# #blank# ...]
@@ -622,6 +629,7 @@ program define Wide /* reshape wide */
             by(varlist)      /// reshape by groups of -by()-
             i(varlist)       /// reshape by groups of -i()-
             xi(str)          /// Handle extraneous variables
+            LABELFormat(str) /// label format; default is '#keyvalue# #stublabel#'
             prefix(str)      /// a list with the variable prefix format
             fast             /// Do not preserve and restore the original dataset. Saves speed
             ${GTOOLS_PARSE}  ///
@@ -706,11 +714,19 @@ program define Wide /* reshape wide */
 
     if ( `"`match'"' == "" ) local match @
 
+    if ( `"`labelformat'"' == "" ) {
+        local labelformat #keyvalue# #stublabel#
+    }
+    else if ( `:list sizeof j' > 1 ) {
+        disp as txt "(warning: labelformat() ignored with multiple $ReS_jname() variables)"
+    }
+
     global ReS_atwl   `atwl'
     global ReS_match  `match'
     global ReS_Xij    `anything'
     global ReS_Xij_k  `:list sizeof anything'
     global ReS_jsep:  copy local colseparate
+    global ReS_labelformat: copy local labelformat
 
     * This defines $ReS_Xij_stubs and potentially overwrites ReS_Xij
     ParseStubsByMatch wide
@@ -922,7 +938,7 @@ program define Wide /* reshape wide */
     else {
         GreshapeTempFile ReS_Data
     }
-disp "debug 1: $ReS_Xij"
+    * disp "debug 1: $ReS_Xij"
     mata: __greshape_l2w_meta = LongToWideMetaSave(`"$ReS_cmd"' == "spread")
     global GTOOLS_CALLER greshape
     local gopts j($ReS_jcode) xij($rVANS) xi($ReS_Xi) f(`ReS_Data') `string'
@@ -1973,6 +1989,8 @@ program define Macdrop
              ReS_jv            ///
              ReS_jv2           ///
              ReS_jvraw         ///
+             ReS_prefix        ///
+             ReS_labelformat   ///
              ReS_str           ///
              ReS_Xi            ///
              S_1               ///
@@ -2419,24 +2437,35 @@ capture mata: mata drop LongToWideMetaApply()
 capture mata: mata drop WideToLongMetaSave()
 capture mata: mata drop WideToLongMetaApply()
 capture mata: mata drop ApplyDefaultFormat()
+capture mata: mata drop ApplyCustomLabelFormat()
 
 mata:
 transmorphic scalar LongToWideMetaSave(real scalar spread)
 {
     transmorphic scalar LongToWideMeta
     string rowvector rVANS, ReS_Xij,ReS_jv, ReS_jvraw, ReS_prefix
-    string scalar newvar, var, stub, lvl, fmt
+    string scalar ReS_j, ReS_jvlb, ReS_labelformat
+    string scalar newvar, var, stub, lvl, fmt, lbl, fmtlbl
     string matrix chars, _chars
-    real scalar i, j, k, prefix
+    real scalar i, j, k, prefix, njvars
 
-    LongToWideMeta = asarray_create()
-    fmt        = "%s[%s]"
-    rVANS      = tokens(st_global("rVANS"))
-    ReS_Xij    = tokens(st_global("ReS_Xij"))
-    ReS_jv     = tokens(st_global("ReS_jv"))
-    ReS_jvraw  = tokens(st_global("ReS_jvraw"))
-    ReS_prefix = tokens(st_global("ReS_prefix"))
-    prefix     = (length(ReS_prefix) > 0)
+    // Get all the meta info! Note that the label formatting only
+    // happens with single-variable input for keys()/j(), so we
+    // only grab the "first" element (because they get ignored
+    // if there are any other elements).
+
+    LongToWideMeta  = asarray_create()
+    fmt             = "%s[%s]"
+    rVANS           = tokens(st_global("rVANS"))
+    ReS_Xij         = tokens(st_global("ReS_Xij"))
+    ReS_jv          = tokens(st_global("ReS_jv"))
+    ReS_jvraw       = tokens(st_global("ReS_jvraw"))
+    ReS_prefix      = tokens(st_global("ReS_prefix"))
+    ReS_j           = tokens(st_global("ReS_j"))[1]
+    njvars          = cols(tokens(st_global("ReS_j")))
+    ReS_jvlb        = st_varvaluelabel(ReS_j)
+    ReS_labelformat = st_global("ReS_labelformat")
+    prefix          = (length(ReS_prefix) > 0)
 
     asarray(LongToWideMeta, "rVANS",      rVANS)
     asarray(LongToWideMeta, "ReS_Xij",    ReS_Xij)
@@ -2469,7 +2498,22 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
                     st_global(sprintf(fmt, var, _chars[k]))
                 )
             }
-            asarray(LongToWideMeta, newvar + "lbl", lbl + " " + st_varlabel(var))
+            if ( njvars > 1 ) {
+                fmtlbl = lbl + " " + st_varlabel(var)
+            }
+            else {
+                fmtlbl = ApplyCustomLabelFormat(
+                    ReS_labelformat,
+                    var,
+                    st_varlabel(var),
+                    ReS_j,
+                    st_varlabel(ReS_j),
+                    lbl,
+                    ReS_jvlb
+                )
+            }
+            // asarray(LongToWideMeta, newvar + "lbl", lbl + " " + st_varlabel(var))
+            asarray(LongToWideMeta, newvar + "lbl", fmtlbl)
             asarray(LongToWideMeta, newvar + "fmt", st_varformat(var))
             asarray(LongToWideMeta, newvar + "vlb", st_varvaluelabel(var))
             asarray(LongToWideMeta, newvar + "chr", chars)
@@ -2741,6 +2785,50 @@ void function ApplyDefaultFormat(string scalar var)
     if ( f != "" ) {
         st_varformat(var, f)
     }
+}
+
+string scalar function ApplyCustomLabelFormat(
+    string scalar fmt,       // Label format
+    string scalar stbnam,    // stub variable name
+    string scalar stblbl,    // stub variable label
+    string scalar varnam,    // Key variable name
+    string scalar varlbl,    // Key variable label
+    string scalar varval,    // Key variable value
+    string scalar varvlbnam) // Key variable value label name
+{
+    string scalar regstbnam
+    string scalar regstblbl
+    string scalar regvarnam
+    string scalar regvarlbl
+    string scalar regvarval
+    string scalar regvarvlb
+    string scalar varvlb
+    string scalar out
+    real scalar numlbl
+
+    numlbl = st_isnumvar(varnam)? strtoreal(varval): .
+    varvlb = varvlbnam == ""? "": st_vlmap(varvlbnam, numlbl)
+
+    regstbnam = "#stubname#"
+    regstblbl = "#stublabel#"
+    regvarnam = "#keyname#"
+    regvarlbl = "#keylabel#"
+    regvarval = "#keyvalue#"
+    regvarvlb = "#keyvaluelabel#"
+
+    // Fallbacks
+    if ( stblbl == "" ) stblbl = stbnam
+    if ( varlbl == "" ) varlbl = varnam
+    if ( varvlb == "" ) varvlb = varval
+
+    out = subinstr(fmt, regstbnam, stbnam, .)
+    out = subinstr(out, regstblbl, stblbl, .)
+    out = subinstr(out, regvarnam, varnam, .)
+    out = subinstr(out, regvarlbl, varlbl, .)
+    out = subinstr(out, regvarval, varval, .)
+    out = subinstr(out, regvarvlb, varvlb, .)
+
+    return(out)
 }
 end
 

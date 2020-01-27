@@ -4,7 +4,8 @@
 {vieweralsosee "[R] gpoisson" "mansection R gpoisson"}{...}
 {viewerjumpto "Syntax" "gpoisson##syntax"}{...}
 {viewerjumpto "Description" "gpoisson##description"}{...}
-{viewerjumpto "Statistics" "gpoisson##statistics"}{...}
+{viewerjumpto "Methods and Formulas" "gpoisson##methods_and_formulas"}{...}
+{viewerjumpto "Examples" "gpoisson##examples"}{...}
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
@@ -16,8 +17,7 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gpoisson} is in beta; use with caution (e.g. there
-are no colinearity or singularity checks).
+{it:Warning}: {opt gpoisson} is in beta; use with caution.
 
 {marker syntax}{...}
 {title:Syntax}
@@ -210,6 +210,13 @@ GtoolsPoisson.desc()} for details; the following data is stored:
 
             real rowvector ByLevels.map
                 map from index to numx and charx
+
+{marker methods_and_formulas}{...}
+{title:Methods and Formulas}
+
+See the
+{browse "http://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#methods-and-formulas":online documentation}
+for details.
 
 {marker example}{...}
 {title:Examples}

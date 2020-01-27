@@ -51,6 +51,37 @@ program checks_greshape
 
     preserve
         greshape wide price mpg, i(make) j(foreign)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stubname#, #keylabel# == #keyvalue#)
+        desc price* mpg*
+    restore, preserve
+        label drop origin
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr foreign)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(foreign fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore
+
+    preserve
+        greshape wide price mpg, i(make) j(foreign)
         greshape long price mpg, i(make) j(foreign)
 
         greshape wide price mpg, i(make) j(foreign)

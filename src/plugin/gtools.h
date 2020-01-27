@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.6.2"
+#define GTOOLS_VERSION "1.7.2"
 
 /*
  * Style
@@ -39,6 +39,9 @@
 
 // Largest 64-bit signed integer
 #define GTOOLS_BIJECTION_LIMIT 9223372036854775807LL
+
+// Machine epsilon
+#define GTOOLS_64BIT_EPSILON 2.22e-16
 
 // Libraries
 #include <math.h>
@@ -147,6 +150,7 @@ struct StataInfo {
     GT_size   transform_range_k;
     GT_bool   transform_range_xs;
     GT_bool   transform_range_xb;
+    GT_size   transform_cumk;
     GT_size   *transform_rank_ties;
     ST_double *transform_varfuns;
     ST_double *transform_statcode;
@@ -160,11 +164,14 @@ struct StataInfo {
     ST_double *transform_range_u;
     ST_double *transform_range_ls;
     ST_double *transform_range_us;
+    GT_int    *transform_cumtypes;
+    GT_size   *transform_cumsum;
+    GT_size   *transform_cumsign;
+    GT_size   *transform_cumvars;
+    GT_int    *transform_aux8_shift;
     //
     GT_size   gregress_kvars;
     GT_bool   gregress_cons;
-    GT_bool   gregress_rowmajor;
-    GT_bool   gregress_colmajor;
     GT_bool   gregress_robust;
     GT_size   gregress_cluster;
     GT_size   gregress_cluster_bytes;

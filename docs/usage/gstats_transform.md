@@ -20,60 +20,78 @@ where clist is either
 
 or any combination of the `varlist` or `target_var` forms, and stat is one of
 
-| Stat              | Description
-| ----------------- | -----------
-| demean            | subtract the mean (default)
-| demedian          | subtract the median
-| normalize         | (x - mean) / sd
-| standardize       | same as normalize
-| rank              | rank observations; use option ties() to specify how ties are handled
-| moving stat [# #] | moving statistic _stat_; # specify the relative bounds (see below)
-| range stat ...    | range statistic _stat_ for observations within specified interval (see below)
+| Stat                   | Description
+| ---------------------- | -----------
+| demean                 | subtract the mean (default)
+| demedian               | subtract the median
+| normalize              | (x - mean) / sd
+| standardize            | same as normalize
+| moving stat [# #]      | moving statistic _stat_; # specify the relative bounds (see below)
+| range stat [...]       | range statistic _stat_ for observations within specified interval (see below)
+| cumsum [+/- [varname]] | cumulative sum, optionally ascending (+) or descending (-) (optionally +/- by varname)
+| shift [[+/-]#]         | lags (-#) and leads (+#); unsigned numbers are positive (i.e. leads)
+| rank                   | rank observations; use option `ties()` to specify how ties are handled
 
-`gstats moving` and `gstats range` are aliases for `gstats transform`.
-In this case all the requested statistics are assumed to be moving or
-range statistics, respectively. `moving` and `range` may be combined
-with any one of the folloing:
+Some of the above transformations allow specifying various options as
+part of their name. This is done to allow the user to request various
+versions of the same transformation. However, this is not required.
+The user can specify a global option that will be used for all the
+corresponding transformations:
 
-| Stat        | Description
-| ----------- | -----------
-| mean        | means (default)
-| geomean     | geometric means
-| count       | number of nonmissing observations
-| nmissing    | number of missing observations
-| median      | medians
-| p#.#        | arbitrary quantiles (#.# must be strictly between 0, 100)
-| p1          | 1st percentile
-| p2          | 2nd percentile
-| ...         | 3rd-49th percentiles
-| p50         | 50th percentile (same as median)
-| ...         | 51st-97th percentiles
-| p98         | 98th percentile
-| p99         | 99th percentile
-| iqr         | interquartile range
-| sum         | sums
-| rawsum      | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
-| nansum      | sum; returns . instead of 0 if all entries are missing
-| rawnansum   | rawsum; returns . instead of 0 if all entries are missing
-| sd          | standard deviation
-| variance    | variance
-| cv          | coefficient of variation (`sd/mean`)
-| semean      | standard error of the mean (sd/sqrt(n))
-| sebinomial  | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
-| sepoisson   | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
-| skewness    | Skewness
-| kurtosis    | Kurtosis
-| max         | maximums
-| min         | minimums
-| select#     | `#`th smallest non-missing
-| select-#    | `#`th largest non-missing
-| rawselect#  | `#`th smallest non-missing, ignoring weights
-| rawselect-# | `#`th largest non-missing, ignoring weights
-| range       | range (`max` - `min`)
-| first       | first value
-| last        | last value
-| firstnm     | first nonmissing value
-| lastnm      | last nonmissing value
+| Stat         | Option to use
+| ------------ | -------------
+| moving stat  | `window()`
+| range stat   | `interval()`
+| cumsum       | `cumby()`
+| shift        | `shiftby()`
+
+Note `gstats moving` and `gstats range` are aliases for `gstats
+transform`.  In this case all the requested statistics are assumed to be
+moving or range statistics, respectively. Finally, `moving` and `range`
+may be combined with any one of the following:
+
+| Stat         | Description
+| ------------ | -----------
+| mean         | means (default)
+| geomean      | geometric means
+| count        | number of nonmissing observations
+| nmissing     | number of missing observations
+| median       | medians
+| p#.#         | arbitrary quantiles (#.# must be strictly between 0, 100)
+| p1           | 1st percentile
+| p2           | 2nd percentile
+| ...          | 3rd-49th percentiles
+| p50          | 50th percentile (same as median)
+| ...          | 51st-97th percentiles
+| p98          | 98th percentile
+| p99          | 99th percentile
+| iqr          | interquartile range
+| sum          | sums
+| rawsum       | sums, ignoring optionally specified weight except observations with a weight of zero are excluded
+| nansum       | sum; returns . instead of 0 if all entries are missing
+| rawnansum    | rawsum; returns . instead of 0 if all entries are missing
+| sd           | standard deviation
+| variance     | variance
+| cv           | coefficient of variation (`sd/mean`)
+| semean       | standard error of the mean (sd/sqrt(n))
+| sebinomial   | standard error of the mean, binomial (sqrt(p(1-p)/n)) (missing if source not 0, 1)
+| sepoisson    | standard error of the mean, Poisson (sqrt(mean / n)) (missing if negative; result rounded to nearest integer)
+| skewness     | Skewness
+| kurtosis     | Kurtosis
+| max          | maximums
+| min          | minimums
+| select#      | `#`th smallest non-missing
+| select-#     | `#`th largest non-missing
+| rawselect#   | `#`th smallest non-missing, ignoring weights
+| rawselect-#  | `#`th largest non-missing, ignoring weights
+| range        | range (`max` - `min`)
+| first        | first value
+| last         | last value
+| firstnm      | first nonmissing value
+| lastnm       | last nonmissing value
+| gini         | computes the Gini coefficient (negative values are truncated to 0)
+| gini dropneg | computes the Gini coefficient (negative values are dropped)
+| gini keepneg | computes the Gini coefficient (negative values are Kept; the user is responsible for the interpretation of the gini coefficient in this case)
 
 ### Interval format
 
@@ -139,7 +157,7 @@ a range in `(moving stat)` then the range in `window(# #)` is used.
 Options
 -------
 
-### Options
+### Common Options
 
 - `by(varlist)` specifies the groups over which the means, etc., are to be
                 calculated. It can contain any mix of string or numeric variables.
@@ -171,19 +189,37 @@ Options
 
 - `types(str)` Override variable types for targets (**use with caution**).
 
-- `window(lower upper)` Relative observation range for moving statistics
-            (if not specified in call). E.g. `window(-3 1)` means from 3
-            lagged observations to 1 leading observation, inclusive. 0
-            means up to or from the current observation; window(. #)`
-            and `window(# .)` mean from the start and through the end,
-            respectively.
+### Command Options
 
-- `interval(#[stat] #[stat] [var])` The interval for range
-            statistics. Since each range statistic can specify its own
-            interval and variables, this is only used for range statistics
-            that don't specify an interval.
+- `window(lower upper)` With `moving stat`. Relative observation range for
+            moving statistics (if not specified in call). E.g.
+            `window(-3 1)` means from 3 lagged observations to 1 leading
+            observation, inclusive. 0 means up to or from the current
+            observation; window(. #)` and `window(# .)` mean from the
+            start and through the end, respectively.
 
-- `ties(str)` How to break ties for `rank`. With multiple targets, specify
+- `interval(#[stat] #[stat] [var])`  With `range stat`. The interval for
+            range statistics. Since each range statistic can specify
+            its own interval and variables, this is only used for range
+            statistics that don't specify an interval.
+
+- `cumby([+/- [varname]])`  With `cumsum`. Sort options for cumsum variables that don't
+            specify their own. `+/` computes the cummulative sum
+            in ascending or descending order (of the variable to be
+            cummulatively summed). `+/ varname` computes the cummulative
+            sum in ascending or descending order of `varname` first _and
+            then_ in ascending or descending order the variable to be
+            cummulatively summed.  That is, `(cumsum) x (cumsum + z) y, cumby(-)`
+            computes the cummulative sum for `x` in descending order, since
+            `cumsum` was specified by itself, but for `y` in ascending order
+            of `z y`, since that was specified in its individual call.
+
+- `shiftby([+/-]#)` With `shift`. Specify lag or lead if not specified in the command call.
+            That is, if `shift +/-#` is requested, then this is ignored.
+            But if only `shift` is requested, then the lag or lead specified
+            in `shiftby()` is computed.
+
+- `ties(str)` With `rank`.  How to break ties for `rank`. With multiple targets, specify
             one common method for all targets or one method per target, using
             `.` for non-rank targets. (E.g. If requesting 5 statistics, the 2nd
             and 4th being rank, use `ties(. unique . default .)`). By `default`,
@@ -234,11 +270,16 @@ Remarks
 `gstats transform` applies various statistical transformations to
 input data. It is similar to `gcollapse, merge` or `gegen` but for
 individual-level transformations. That is, `gcollapse` takes an input
-variable and procudes a single statistic; `gstats transform` applies a
+variable and procures a single statistic; `gstats transform` applies a
 function to each element of the input variable. For example, subtracting
 the mean.
 
-Every function available to `gstats transform` can be called via `gegen`.
+Every function available to `gstats transform` can be called via
+`gegen`.  Further, note that while not every function will use weights
+in their computations (e.g. `shift` ignores weights in the actual
+transformation), if weights are specified they will be used to flag
+acceptable observations (i.e. missing, zero, and, except for `iweights`,
+negative observations get excluded).
 
 ### `rank` with weights
 
@@ -290,16 +331,19 @@ Syntax is largely analogous to `gcollapse`
 ```stata
 sysuse auto, clear
 
-gegen norm_price = normalize(price),   by(foreign)
-gegen std_price  = standardize(price), by(foreign)
-gegen dm_price   = demean(price),      by(foreign)
-gegen rank_price = rank(price),        by(foreign)
+gegen norm_price  = normalize(price),   by(foreign)
+gegen std_price   = standardize(price), by(foreign)
+gegen dm_price    = demean(price),      by(foreign)
+gegen rank_price  = rank(price),        by(foreign)
+gegen lag1_price  = shift(price),       by(foreign) shiftby(-1)
+gegen lead2_price = shift(price),       by(foreign) shiftby(2)
 
 local opts by(foreign) replace
 gstats transform (standardize) std_price = price (demean) dm_mpg = mpg, `opts'
 gstats transform (normalize) norm_mpg = mpg (rank) rank_price = price, `opts'
 gstats transform (demean) mpg (normalize) price [w = rep78], `opts'
 gstats transform (demean) mpg (normalize) xx = price, `opts' auto(#stat#_#source#)
+gstats transform (shift -3) l3_mpg = mpg (shift 5) f5_price = price, `opts'
 ```
 
 ### Range statistics
@@ -384,3 +428,35 @@ gstats transform (moving mean -1 3) x2 = x [aw = w], by(g)
 gstats moving (sd -4 .) x3 = x (p75) x4 = x [pw = w / 7], by(g) window(-3 3)
 l
 ```
+
+### Cummulative sum
+
+Note that when no cumsum order is specified, the variable is summed in
+the order it appears in the data. Further, the user can specify a sort
+variable. In our examples below, the cummulative sum of x is computed
+variously by the ascending or descending order of w and then x, or of r
+and then x.
+
+```stata
+clear
+set obs 20
+gen g = _n > 10
+gen x = mod(_n, 17)
+gen w = mod(_n, 7)
+gen r = mod(_n, 5)
+
+local c1 (cumsum -) x2 = x
+local c2 (cumsum +) x3 = x
+local c3 (cumsum - w) x4 = x
+local c4 (cumsum + w) x5 = x
+local c5 (cumsum) x6 = x
+
+gegen x1 = cumsum(x), by(g)
+gstats transform `c1' `c2' `c3' `c4' `c5', by(g) cumby(- r)
+l, sepby(g)
+```
+
+Naturally, if no sort variable is specified the cummulative sum is
+computed in ascending or descending order of x. Last, note that in all
+these examples, the cummulative sums were merged back correctly; that
+is, the data sort order was preserved.

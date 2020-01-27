@@ -1,4 +1,4 @@
-*! version 1.6.2 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.7.2 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -102,6 +102,7 @@ program gtools
     }
 
     display "Nothing to do. See {stata help gtools} or {stata gtools, examples} for usage. Version info:"
+    * mata mata mlib index
     which gtools
     cap noi _gtools_internal _check
     if ( _rc ) {

@@ -140,6 +140,14 @@ Options
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with stub suffixes (alias `j()`).
 - `colsepparate(str)` Column separator when multiple variables are passed to `j()`.
 - `match(str)`        Where to replace the levels of `keys()` in stub (default `@`).
+- `labelformat(str)`  Custom label formatting using placeholders; only with one
+                      `key()/j()` variable.  Default is `#keyvalue# #stublabel#`,
+                      replaced with the `key()` variable value corresponding to the
+                      newly created variable, and the `stub` variable label. Other
+                      placeholders available are `#stubname#`, for the source variable
+                      name, `#keyname#` for the `key()` variable name, `#keylabel#`
+                      for the `key()` variable lavel, and `#keyvaluelabel#` to use the
+                      value label, if available, instead of the value itself.
 - `prefix(str)`       Custom renaming of reshaped variables. One rename per stub; {opt @} syntax allowed.
                       For example, with two stubs you can specify `prefix(#stub# foo@bar)` and the first
                       stub's variables will be named normally (`#stub#` is replaced with the stub name)
@@ -170,6 +178,14 @@ Options
 **Spread only**
 
 - `keys(varlist)`     (Required) Long to wide: varlist, existing variable with variable names.
+- `labelformat(str)`  Custom label formatting using placeholders; only with one
+                      `key()/j()` variable.  Default is `#keyvalue# #stublabel#`,
+                      replaced with the `key()` variable value corresponding to the
+                      newly created variable, and the `stub` variable label. Other
+                      placeholders available are `#stubname#`, for the source variable
+                      name, `#keyname#` for the `key()` variable name, `#keylabel#`
+                      for the `key()` variable lavel, and `#keyvaluelabel#` to use the
+                      value label, if available, instead of the value itself.
 - `prefix(str)`       Custom renaming of reshaped variables. One common rename; {opt @} syntax allowed.
                       For example, with two stubs you can specify `prefix(foo@bar)` and the output
                       variables will be named `foo@bar` with `@` replaced by the `key()` variable's
@@ -261,7 +277,7 @@ webuse reshape1, clear
 list
 greshape long inc ue, i(id) j(year)
 list, sepby(id)
-greshape  inc ue, i(id) j(year)
+greshape wide inc ue, i(id) j(year)
 ```
 
 However, the preferred `greshape` parlance is `by` for `i` and `keys`
@@ -272,7 +288,7 @@ webuse reshape1, clear
 list
 greshape long inc ue, by(id) keys(year)
 list, sepby(id)
-greshape  inc ue, by(id) keys(year)
+greshape wide inc ue, by(id) keys(year)
 ```
 
 Allow string values in j; the option `string` is not necessary for
@@ -346,6 +362,40 @@ greshape wide inc@r u?, by(id) keys(year)
 Note for `ustrregex` (Stata 14+ only), Stata does not support matches of
 indeterminate length inside lookarounds (this is a limitation that is
 not uncommon across several regex implementations).
+
+### Custom Labels
+
+This was motivated by the labeling convention of `separate`. To mimic
+its labeling, you can do
+
+```stata
+sysuse auto, clear
+local labelformat labelformat(#stubname#, #keyname# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
+```
+
+However, you can use any combination of placeholders. For instance,
+
+```stata
+sysuse auto, clear
+local labelformat labelf(#stublabel#; #keylabel# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
+```
+
+If no label of value labels are available, the program falls back to
+variable name and values
+
+```stata
+sysuse auto, clear
+label drop origin
+label var mpg ""
+label var foreign ""
+local labelformat labelf(#stublabel#; #keylabel# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
+```
 
 ### Gather and Spread
 

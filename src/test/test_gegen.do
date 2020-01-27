@@ -153,6 +153,9 @@ program checks_gegen
     assert cond(mi(x), mi(s) & mi(f_s) & mi(a_s), !mi(s) & !mi(f_s) & !mi(a_s))
     assert cond(mi(x), (nm == 5) & (a_nm == 5) & (f_nm == 5 * 1314) & (p_nm == 5 * 987654321), (nm == 0) & (a_nm == 0) & (f_nm == 0) & (p_nm == 0))
 
+    * rank
+    * ----
+
     clear
     set obs 10000
     gen x = ceil(runiform() * 10)
@@ -271,17 +274,320 @@ program checks_gegen
     gegen r_field  = rank(x) if !mi(fw), ties(field)
     gegen r_track  = rank(x) if !mi(fw), ties(track)
 
-    assert r_def    == r1_def   
-    assert r_field  == r1_field 
-    assert r_track  == r1_track 
+    assert r_def    == r1_def
+    assert r_field  == r1_field
+    assert r_track  == r1_track
 
     egen e_def    = rank(x) if !mi(fw)
     egen e_field  = rank(x) if !mi(fw), field
     egen e_track  = rank(x) if !mi(fw), track
 
-    assert e_def    == r1_def   
-    assert e_field  == r1_field 
-    assert e_track  == r1_track 
+    assert e_def    == r1_def
+    assert e_field  == r1_field
+    assert e_track  == r1_track
+
+    * cumsum
+    * ------
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gegen double cumx = cumsum(x) [aw = w], cumby(+) by(g)
+    qui {
+        sort g x, stable
+        by g: gen double sumx = sum(x * w)
+    }
+    qui gen zz = reldif(sumx, cumx)
+    qui sum zz, meanonly
+    assert r(max) < 1e-8
+
+    sysuse auto, clear
+    gen ix = _n
+
+    * fails
+    cap noi gegen cumprice = cumsum(price), cumby(+ +) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(- +) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ -) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ _) replace
+    assert _rc == 111
+    cap noi gegen cumprice = cumsum(price), cumby(+ price weight) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ make) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(price) replace
+    assert _rc == 7
+    cap noi gegen cumprice = cumsum(price), cumby(price -) replace
+    assert _rc == 7
+
+    sysuse auto, clear
+    gen ix = _n
+
+    * 1. Basic
+    gegen cumprice = cumsum(price)
+    gen sumprice = sum(price)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 2. by()
+    gegen cumprice = cumsum(price), by(foreign)
+    by foreign (ix), sort: gen sumprice = sum(price)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 3. +
+    sort foreign price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    gegen cumprice = cumsum(rep78), by(foreign) cumby(+)
+    sort foreign rep78 cumprice
+    by foreign: gen sumprice = sum(rep78) if !mi(rep78)
+    sort foreign ix
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 4. -
+    gsort foreign -price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(-)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    gegen cumprice = cumsum(rep78), by(foreign) cumby(-)
+    gsort foreign -rep78 cumprice
+    by foreign: gen sumprice = sum(rep78) if !mi(rep78)
+    sort foreign ix
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 5. + mpg
+    sort foreign weight price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+ weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 6. - mpg
+    gsort foreign -weight -price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(- weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 7. + rep78
+    sort foreign rep78 price
+    by foreign: gen sumprice = sum(price) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+ rep78)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 8. - rep78
+    gsort foreign -rep78 -price
+    by foreign: gen sumprice = sum(price) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(- rep78)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 9. [fw = rep78]
+    sort foreign ix
+    gen sumprice = price * rep78
+    by foreign: replace sumprice = sum(sumprice) if !mi(rep78)
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 10. + [fw = rep78]
+    gsort foreign price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(+)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 11. - [fw = rep78]
+    gsort foreign -price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(-)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 12. + mpg [fw = rep78]
+    sort foreign weight price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(+ weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 13. - mpg [fw = rep78]
+    gsort foreign -weight -price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(- weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * Shift
+    * -----
+
+    sysuse auto, clear
+    gen ix = _n
+
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(3.8)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-.1)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(wa)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign)
+    assert _rc == 198
+
+    gegen gprice_3 = shift(price), shiftby(-3) by(foreign)
+    qui by foreign: gen price_3 = price[_n - 3]
+    assert gprice_3 == price_3
+
+    gegen gprice3 = shift(price), shiftby(3) by(foreign)
+    qui by foreign: gen price3 = price[_n + 3]
+    assert gprice3 == price3
+
+    gegen gprice_6 = shift-6(price), by(foreign)
+    qui by foreign: gen price_6 = price[_n - 6]
+    assert gprice_6 == price_6
+
+    gegen gprice6 = shift+6(price), by(foreign)
+    qui by foreign: gen price6 = price[_n + 6]
+    assert gprice6 == price6
+
+    gegen gpricea = shift+0(price), by(foreign)
+    gegen gpriceb = shift-0(price), by(foreign)
+    gegen gpricec = shift|0(price), by(foreign)
+    gegen gpriced = shift(price),   by(foreign) shiftby(0)
+
+    assert price == gpricea
+    assert price == gpriceb
+    assert price == gpricec
+    assert price == gpriced
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gen long ix = _n
+    gegen gshiftx = shift(x) [aw = w], shiftby(-2) by(g)
+    qui {
+        gen byte now = mi(w) | w == 0
+        sort g now, stable
+        by g now: gen `:type x' shiftx = x[_n - 2]
+    }
+    assert (gshiftx == shiftx) | now
+
+    * Gini
+    * ----
+
+    clear
+    set obs 1000
+    gen g  = int(runiform() * 10)
+    gen y  = exp(int(rnormal()) + g) - exp(g)
+    gen fw = int(runiform() * 5)
+    gen aw = runiform() * 10
+    replace aw = . if mod(_n, 42) == 0
+    replace y  = . if mod(_n, 81) == 0
+    gen long ix = _n
+
+    quickGini y, by(g) gen(_qg1)
+    quickGini y, by(g) gen(_qg2) dropneg
+    quickGini y, by(g) gen(_qg3) keepneg
+
+    quickGini y [fw = 1], by(g) gen(_qg4)
+    quickGini y [fw = 1], by(g) gen(_qg5) dropneg
+    quickGini y [fw = 1], by(g) gen(_qg6) keepneg
+
+    quickGini y [fw = fw], by(g) gen(_qg7)
+    quickGini y [fw = fw], by(g) gen(_qg8) dropneg
+    quickGini y [fw = fw], by(g) gen(_qg9) keepneg
+
+    quickGini y [aw = aw], by(g) gen(_qg10)
+    quickGini y [aw = aw], by(g) gen(_qg11) dropneg
+    quickGini y [aw = aw], by(g) gen(_qg12) keepneg
+
+    gegen _ge1 = gini(y), by(g)
+    gegen _ge2 = gini|dropneg(y),   by(g)
+    gegen _ge3 = gini|keepneg(y),   by(g)
+    gegen _ge4 = gini(y) if y >= 0, by(g)
+    gegen _ge4 = firstnm(_ge4), by(g) replace
+
+    gegen _ge5 = gini(y) [fw = 1], by(g)
+    gegen _ge6 = gini|dropneg(y) [fw = 1], by(g)
+    gegen _ge7 = gini|keepneg(y) [fw = 1], by(g)
+    gegen _ge8 = gini(y) if y >= 0 [fw = 1], by(g)
+    gegen _ge8 = firstnm(_ge8), by(g) replace
+
+    gegen _ge9 = gini(y) [fw = fw], by(g)
+    gegen _ge10 = gini|dropneg(y) [fw = fw], by(g)
+    gegen _ge11 = gini|keepneg(y) [fw = fw], by(g)
+    gegen _ge12 = gini(y) if y >= 0 [fw = fw], by(g)
+    gegen _ge12 = firstnm(_ge12) if fw > 0 & !mi(fw), by(g) replace
+
+    gegen _ge13 = gini(y) [aw = aw], by(g)
+    gegen _ge14 = gini|dropneg(y) [aw = aw], by(g)
+    gegen _ge15 = gini|keepneg(y) [aw = aw], by(g)
+    gegen _ge16 = gini(y) if y >= 0 [aw = aw], by(g)
+    gegen _ge16 = firstnm(_ge16) if aw > 0 & !mi(aw), by(g) replace
+
+    assert reldif(_qg1,  _qg4) < 1e-6 | (mi(_qg1) & mi(_qg4))
+    assert reldif(_qg2,  _qg5) < 1e-6 | (mi(_qg2) & mi(_qg5))
+    assert reldif(_qg3,  _qg6) < 1e-6 | (mi(_qg3) & mi(_qg6))
+
+    assert reldif(_ge1,  _ge5) < 1e-6 | (mi(_ge1) & mi(_ge5))
+    assert reldif(_ge2,  _ge6) < 1e-6 | (mi(_ge2) & mi(_ge6))
+    assert reldif(_ge3,  _ge7) < 1e-6 | (mi(_ge3) & mi(_ge7))
+    assert reldif(_ge4,  _ge8) < 1e-6 | (mi(_ge4) & mi(_ge8))
+
+    assert reldif(_qg1,  _ge1) < 1e-6 | (mi(_qg1) & mi(_ge1))
+    assert reldif(_qg2,  _ge2) < 1e-6 | (mi(_qg2) & mi(_ge2))
+    assert reldif(_qg2,  _ge2) < 1e-6 | (mi(_qg2) & mi(_ge4))
+    assert reldif(_qg3,  _ge3) < 1e-6 | (mi(_qg3) & mi(_ge3))
+    assert reldif(_ge4,  _ge2) < 1e-6 | (mi(_ge4) & mi(_ge2))
+
+    assert reldif(_qg4,  _ge5) < 1e-6 | (mi(_qg4) & mi(_ge5))
+    assert reldif(_qg5,  _ge6) < 1e-6 | (mi(_qg5) & mi(_ge6))
+    assert reldif(_qg5,  _ge6) < 1e-6 | (mi(_qg5) & mi(_ge8))
+    assert reldif(_qg6,  _ge7) < 1e-6 | (mi(_qg6) & mi(_ge7))
+    assert reldif(_ge8,  _ge6) < 1e-6 | (mi(_ge8) & mi(_ge6))
+
+    assert reldif(_qg7,  _ge9)  < 1e-6 | (mi(_qg7)  & mi(_ge9))
+    assert reldif(_qg8,  _ge10) < 1e-6 | (mi(_qg8)  & mi(_ge10))
+    assert reldif(_qg8,  _ge10) < 1e-6 | (mi(_qg8)  & mi(_ge12))
+    assert reldif(_qg9,  _ge11) < 1e-6 | (mi(_qg9)  & mi(_ge11))
+    assert reldif(_ge12, _ge10) < 1e-6 | (mi(_ge12) & mi(_ge10))
+
+    assert reldif(_qg10, _ge13) < 1e-6 | (mi(_qg10) & mi(_ge13))
+    assert reldif(_qg11, _ge14) < 1e-6 | (mi(_qg11) & mi(_ge14))
+    assert reldif(_qg11, _ge14) < 1e-6 | (mi(_qg11) & mi(_ge16))
+    assert reldif(_qg12, _ge15) < 1e-6 | (mi(_qg12) & mi(_ge15))
+    assert reldif(_ge16, _ge14) < 1e-6 | (mi(_ge16) & mi(_ge14))
+
 end
 
 capture program drop checks_inner_egen
@@ -293,7 +599,7 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt gini gini|dropneg gini|keepneg
     local skipbulk
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean

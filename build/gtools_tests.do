@@ -3,10 +3,12 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Aug 25 12:38:30 EDT 2019
+* Updated: Sun Jan 26 16:43:03 EST 2020
 * Purpose: Unit tests for gtools
-* Version: 1.6.2
+* Version: 1.7.2
 * Manual:  help gtools
+* Note:    You may need to run `ftools, compile` and `reghdfe, compile`
+*          to test gtools against ftools functions and reghdfe.
 
 * Stata start-up options
 * ----------------------
@@ -90,7 +92,8 @@ program main
             cap ssc install egenmisc
             cap ssc install egenmore
             cap ssc install rangestat
-            ftools, compile
+            * ftools,  compile
+            * reghdfe, compile
         }
 
         if ( `:list posof "basic_checks" in options' ) {
@@ -522,6 +525,51 @@ program random_draws
     }
 end
 
+capture program drop quickGini
+program quickGini, sortpreserve
+    syntax varname [if] [in] [aw fw pw iw], gen(name) [by(varname) keepneg dropneg]
+    tempvar w ysum iysum wsum N
+    local y: copy local varlist
+
+    qui {
+        if ( `"`dropneg'"' != "" ) {
+            tempvar y
+            gen double `y' = `varlist' if `varlist' >= 0
+        }
+        else if ( `"`dropneg'`keepneg'"' == "" ) {
+            tempvar y
+            gen double `y' = 0
+            replace `y' = `varlist' if `varlist' >= 0
+        }
+
+        tempvar touse
+        if ( `"`exp'"' != "" ) {
+            gen double `w' `exp'
+            mark `touse' `if' `in' [`weight'=`w']
+            sort `touse' `by' `y'
+            replace `w' = 0 if mi(`y')
+            if ( `"`dropneg'"' != "" ) {
+                replace `y' = 0 if mi(`y')
+            }
+            by `touse' `by': gen double `ysum'  = sum(`y' * `w') if `touse'
+            by `touse' `by': gen double `wsum'  = sum(`w')       if `touse'
+            by `touse' `by': gen double `iysum' = sum(`y' * `w' * (2 * `wsum' - `w')) if `touse'
+            by `touse' `by': gen double `gen'  = ((`iysum'[_N]) / (`wsum'[_N] * `ysum'[_N])) - 1 if `touse'
+        }
+        else {
+            mark `touse' `if' `in'
+            sort `touse' `by' `y'
+            gegen long `N' = count(`y') if `touse', by(`by')
+            if ( `"`dropneg'"' != "" ) {
+                replace `y' = 0 if mi(`y')
+            }
+            by `touse' `by': gen double `ysum'  = sum(`y')      if `touse'
+            by `touse' `by': gen double `iysum' = sum(`y' * _n) if `touse'
+            by `touse' `by': gen double `gen'  = ((2 * `iysum'[_N]) / (`N' * `ysum'[_N])) - ((`N' + 1) / `N') if `touse'
+        }
+    }
+end
+
 * ---------------------------------------------------------------------
 capture program drop checks_gcollapse
 program checks_gcollapse
@@ -559,22 +607,25 @@ program checks_gcollapse
     sysuse auto, clear
 
     local gcall
-    local gcall `gcall' (mean)      mean      = price
-    local gcall `gcall' (geomean)   geomean   = price
-    local gcall `gcall' (sd)        sd        = price
-    local gcall `gcall' (variance)  variance  = price
-    local gcall `gcall' (cv)        cv        = price
-    local gcall `gcall' (min)       min       = price
-    local gcall `gcall' (max)       max       = price
-    local gcall `gcall' (range)     range     = price
-    local gcall `gcall' (select1)   select1   = price
-    local gcall `gcall' (select2)   select2   = price
-    local gcall `gcall' (select3)   select3   = price
-    local gcall `gcall' (select99)  select99  = price
-    local gcall `gcall' (select-99) select_99 = price
-    local gcall `gcall' (select-3)  select_3  = price
-    local gcall `gcall' (select-2)  select_2  = price
-    local gcall `gcall' (select-1)  select_1  = price
+    local gcall `gcall' (mean)         mean         = price
+    local gcall `gcall' (geomean)      geomean      = price
+    local gcall `gcall' (gini)         gini         = price
+    local gcall `gcall' (gini|dropneg) gini_dropneg = price
+    local gcall `gcall' (gini|keepneg) gini_keepneg = price
+    local gcall `gcall' (sd)           sd           = price
+    local gcall `gcall' (variance)     variance     = price
+    local gcall `gcall' (cv)           cv           = price
+    local gcall `gcall' (min)          min          = price
+    local gcall `gcall' (max)          max          = price
+    local gcall `gcall' (range)        range        = price
+    local gcall `gcall' (select1)      select1      = price
+    local gcall `gcall' (select2)      select2      = price
+    local gcall `gcall' (select3)      select3      = price
+    local gcall `gcall' (select99)     select99     = price
+    local gcall `gcall' (select-99)    select_99    = price
+    local gcall `gcall' (select-3)     select_3     = price
+    local gcall `gcall' (select-2)     select_2     = price
+    local gcall `gcall' (select-1)     select_1     = price
 
     gcollapse `gcall', by(foreign) merge
     assert abs((sd / mean) - cv) < `tol'
@@ -938,14 +989,14 @@ program checks_inner_collapse
 
     local percentiles p1 p10 p30.5 p50 p70.5 p90 p99
     local selections  select1 select2 select5 select999999 select-999999 select-5 select-2 select-1
-    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range count percent first last firstnm lastnm median iqr skew kurt gini gini|dropneg gini|keepneg
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
     if (  inlist("`weight'", "fweight", "") )        local stats `stats' sebinomial sepoisson
 
     local collapse_str ""
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r1_`stat' = random1
+        local collapse_str `collapse_str' (`stat') r1_`:subinstr local stat "|" "_", all' = random1
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r1_`:subinstr local pct "." "_", all' = random1
@@ -957,7 +1008,7 @@ program checks_inner_collapse
     }
 
     foreach stat of local stats {
-        local collapse_str `collapse_str' (`stat') r2_`stat' = random2
+        local collapse_str `collapse_str' (`stat') r2_`:subinstr local stat "|" "_", all' = random2
     }
     foreach pct of local percentiles {
         local collapse_str `collapse_str' (`pct') r2_`:subinstr local pct "." "_", all' = random2
@@ -1584,7 +1635,7 @@ program _compare_inner_gcollapse_gegen
     local options  `options_'
 
     local sestats
-    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt
+    local stats nunique nmissing sum mean geomean max min range percent first last firstnm lastnm median iqr skew kurt gini gini|dropneg gini|keepneg
     if ( !inlist("`weight'", "pweight") ) {
         local stats   `stats'   sd variance cv
         local sestats `sestats' sd variance cv
@@ -1598,35 +1649,44 @@ program _compare_inner_gcollapse_gegen
         local sestats `sestats' sebinomial sepoisson
     }
 
-    gegen id = group(`anything'), missing nods
+    if ( `"`anything'"' == "" ) {
+        gen id = 1
+    }
+    else {
+        gegen id = group(`anything'), missing nods
+    }
 
-    gegen double nmissing = nmissing (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double nunique  = nunique  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double percent  = percent  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double mean     = mean     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double sum      = sum      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double median   = median   (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double min      = min      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double max      = max      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double range    = range    (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double iqr      = iqr      (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double first    = first    (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double last     = last     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double firstnm  = firstnm  (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double lastnm   = lastnm   (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double skew     = skew     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double kurt     = kurt     (random1) `ifin' `wgt_ge',  by(`anything') nods
-    gegen double q10      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(10.5)
-    gegen double q30      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
-    gegen double q70      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
-    gegen double q90      = pctile   (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
+    gegen double nmissing     = nmissing    (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double nunique      = nunique     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double percent      = percent     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double mean         = mean        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double sum          = sum         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double median       = median      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double min          = min         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double max          = max         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double range        = range       (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double iqr          = iqr         (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double first        = first       (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double last         = last        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double firstnm      = firstnm     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double lastnm       = lastnm      (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double skew         = skew        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double kurt         = kurt        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double geomean      = geomean     (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini         = gini        (random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini_keepneg = gini|keepneg(random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double gini_dropneg = gini|dropneg(random1) `ifin' `wgt_ge',  by(`anything') nods
+    gegen double q10          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(10.5)
+    gegen double q30          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(30)
+    gegen double q70          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(70)
+    gegen double q90          = pctile      (random1) `ifin' `wgt_ge',  by(`anything') nods p(90.5)
     if ( !inlist("`weight'", "iweight") ) {
-    gegen double s1       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
-    gegen double s3       = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
-    gegen double s999999  = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
-    gegen double s_999999 = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
-    gegen double s_3      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
-    gegen double s_1      = select   (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
+    gegen double s1           = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(1)
+    gegen double s3           = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(3)
+    gegen double s999999      = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(999999)
+    gegen double s_999999     = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-999999)
+    gegen double s_3          = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-3)
+    gegen double s_1          = select      (random1) `ifin' `wgt_ge',  by(`anything') nods n(-1)
     }
 
     local gextra
@@ -1637,57 +1697,65 @@ program _compare_inner_gcollapse_gegen
 
     if ( inlist("`weight'", "iweight") ) {
         qui `noisily' {
-            gcollapse (nmissing)      g_nmissing   = random1 ///
-                      (nunique)       g_nunique    = random1 ///
-                      (percent)       g_percent    = random1 ///
-                      (mean)          g_mean       = random1 ///
-                      (sum)           g_sum        = random1 ///
-                      (median)        g_median     = random1 ///
-                      (min)           g_min        = random1 ///
-                      (max)           g_max        = random1 ///
-                      (range)         g_range      = random1 ///
-                      (iqr)           g_iqr        = random1 ///
-                      (first)         g_first      = random1 ///
-                      (last)          g_last       = random1 ///
-                      (firstnm)       g_firstnm    = random1 ///
-                      (lastnm)        g_lastnm     = random1 ///
-                      (skew)          g_skew       = random1 ///
-                      (kurt)          g_kurt       = random1 ///
-                      (p10.5)         g_q10        = random1 ///
-                      (p30)           g_q30        = random1 ///
-                      (p70)           g_q70        = random1 ///
-                      (p90.5)         g_q90        = random1 ///
+            gcollapse (nmissing)      g_nmissing     = random1 ///
+                      (nunique)       g_nunique      = random1 ///
+                      (percent)       g_percent      = random1 ///
+                      (mean)          g_mean         = random1 ///
+                      (sum)           g_sum          = random1 ///
+                      (median)        g_median       = random1 ///
+                      (min)           g_min          = random1 ///
+                      (max)           g_max          = random1 ///
+                      (range)         g_range        = random1 ///
+                      (iqr)           g_iqr          = random1 ///
+                      (first)         g_first        = random1 ///
+                      (last)          g_last         = random1 ///
+                      (firstnm)       g_firstnm      = random1 ///
+                      (lastnm)        g_lastnm       = random1 ///
+                      (skew)          g_skew         = random1 ///
+                      (kurt)          g_kurt         = random1 ///
+                      (geomean)       g_geomean      = random1 ///
+                      (gini)          g_gini         = random1 ///
+                      (gini|dropneg)  g_gini_dropneg = random1 ///
+                      (gini|keepneg)  g_gini_keepneg = random1 ///
+                      (p10.5)         g_q10          = random1 ///
+                      (p30)           g_q30          = random1 ///
+                      (p70)           g_q70          = random1 ///
+                      (p90.5)         g_q90          = random1 ///
                       `gextra'                               ///
                   `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
          }
     else {
         qui `noisily' {
-            gcollapse (nmissing)      g_nmissing   = random1 ///
-                      (nunique)       g_nunique    = random1 ///
-                      (percent)       g_percent    = random1 ///
-                      (mean)          g_mean       = random1 ///
-                      (sum)           g_sum        = random1 ///
-                      (median)        g_median     = random1 ///
-                      (min)           g_min        = random1 ///
-                      (max)           g_max        = random1 ///
-                      (range)         g_range      = random1 ///
-                      (iqr)           g_iqr        = random1 ///
-                      (first)         g_first      = random1 ///
-                      (last)          g_last       = random1 ///
-                      (firstnm)       g_firstnm    = random1 ///
-                      (lastnm)        g_lastnm     = random1 ///
-                      (skew)          g_skew       = random1 ///
-                      (kurt)          g_kurt       = random1 ///
-                      (p10.5)         g_q10        = random1 ///
-                      (p30)           g_q30        = random1 ///
-                      (p70)           g_q70        = random1 ///
-                      (p90.5)         g_q90        = random1 ///
-                      (select1)       g_s1         = random1 ///
-                      (select3)       g_s3         = random1 ///
-                      (select999999)  g_s999999    = random1 ///
-                      (select-999999) g_s_999999   = random1 ///
-                      (select-3)      g_s_3        = random1 ///
-                      (select-1)      g_s_1        = random1 ///
+            gcollapse (nmissing)      g_nmissing     = random1 ///
+                      (nunique)       g_nunique      = random1 ///
+                      (percent)       g_percent      = random1 ///
+                      (mean)          g_mean         = random1 ///
+                      (sum)           g_sum          = random1 ///
+                      (median)        g_median       = random1 ///
+                      (min)           g_min          = random1 ///
+                      (max)           g_max          = random1 ///
+                      (range)         g_range        = random1 ///
+                      (iqr)           g_iqr          = random1 ///
+                      (first)         g_first        = random1 ///
+                      (last)          g_last         = random1 ///
+                      (firstnm)       g_firstnm      = random1 ///
+                      (lastnm)        g_lastnm       = random1 ///
+                      (skew)          g_skew         = random1 ///
+                      (kurt)          g_kurt         = random1 ///
+                      (geomean)       g_geomean      = random1 ///
+                      (gini)          g_gini         = random1 ///
+                      (gini|dropneg)  g_gini_dropneg = random1 ///
+                      (gini|keepneg)  g_gini_keepneg = random1 ///
+                      (p10.5)         g_q10          = random1 ///
+                      (p30)           g_q30          = random1 ///
+                      (p70)           g_q70          = random1 ///
+                      (p90.5)         g_q90          = random1 ///
+                      (select1)       g_s1           = random1 ///
+                      (select3)       g_s3           = random1 ///
+                      (select999999)  g_s999999      = random1 ///
+                      (select-999999) g_s_999999     = random1 ///
+                      (select-3)      g_s_3          = random1 ///
+                      (select-1)      g_s_1          = random1 ///
                       `gextra'                               ///
                   `ifin' `wgt_gc', by(id) benchmark verbose `options' merge double
         }
@@ -1700,7 +1768,8 @@ program _compare_inner_gcollapse_gegen
         di _n(1) "Checking [`ifin']`wtxt' range: `anything'"
     }
 
-    foreach fun in `stats' q10 q30 q70 q90 {
+    foreach _fun in `stats' q10 q30 q70 q90 {
+        local fun: subinstr local _fun "|" "_", all
         cap noi assert (g_`fun' == `fun') | ((abs(g_`fun' - `fun') / min(abs(g_`fun'), abs(`fun'))) < `tol')
         if ( _rc ) {
             if inlist("`fun'", "skew", "kurt") {
@@ -2115,7 +2184,13 @@ program _compare_inner_gcollapse_skew
     local anything `anything_'
     local options  `options_'
 
-    qui gegen id = group(`anything') `ifin', missing nods
+    if ( `"`anything'"' == "" ) {
+        qui gen id = 1 `ifin'
+    }
+    else {
+        qui gegen id = group(`anything') `ifin', missing nods
+    }
+
     qui gunique id `ifin', missing
     local J = `r(J)'
     qui sum id
@@ -2229,7 +2304,7 @@ program compare_inner_gcollapse_select
 
     local N = trim("`: di %15.0gc _N'")
     local hlen = 47 + length("`anything'") + length("`N'")
-    di _n(2) "Checking select and 1.4 funcs. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
+    di _n(2) "Checking select and 1.4+ funcs. N = `N'; varlist = `anything'" _n(1) "{hline `hlen'}"
 
     preserve
         if ( `"`wfoo'"' == "mix" ) {
@@ -2295,29 +2370,54 @@ program _compare_inner_gcollapse_select
     local ifin `in' `if'
 
     local gcall
-    local gcall `gcall' (count)       nj          = random1
-    local gcall `gcall' (mean)        mean        = random1
-    local gcall `gcall' (geomean)     geomean     = random1
+    local gcall `gcall' (count)        nj           = random1
+    local gcall `gcall' (mean)         mean         = random1
+    local gcall `gcall' (geomean)      geomean      = random1
+    local gcall `gcall' (gini)         gini         = random1
+    local gcall `gcall' (gini|dropneg) gini_dropneg = random1
+    local gcall `gcall' (gini|keepneg) gini_keepneg = random1
     if !regexm("pw", `"`wgt'"') {
-    local gcall `gcall' (sd)          sd          = random1
-    local gcall `gcall' (variance)    variance    = random1
-    local gcall `gcall' (cv)          cv          = random1
-    }
-    local gcall `gcall' (min)         min         = random1
-    local gcall `gcall' (max)         max         = random1
-    local gcall `gcall' (range)       range       = random1
-    local gcall `gcall' (select1)     select1     = random1
-    local gcall `gcall' (select2)     select2     = random1
-    local gcall `gcall' (select3)     select3     = random1
-    local gcall `gcall' (select9999)  select9999  = random1
-    local gcall `gcall' (select-9999) select_9999 = random1
-    local gcall `gcall' (select-3)    select_3    = random1
-    local gcall `gcall' (select-2)    select_2    = random1
-    local gcall `gcall' (select-1)    select_1    = random1
+    local gcall `gcall' (sd)           sd           = random1
+    local gcall `gcall' (variance)     variance     = random1
+    local gcall `gcall' (cv)           cv           = random1
+    }                                               
+    local gcall `gcall' (min)          min          = random1
+    local gcall `gcall' (max)          max          = random1
+    local gcall `gcall' (range)        range        = random1
+    local gcall `gcall' (select1)      select1      = random1
+    local gcall `gcall' (select2)      select2      = random1
+    local gcall `gcall' (select3)      select3      = random1
+    local gcall `gcall' (select9999)   select9999   = random1
+    local gcall `gcall' (select-9999)  select_9999  = random1
+    local gcall `gcall' (select-3)     select_3     = random1
+    local gcall `gcall' (select-2)     select_2     = random1
+    local gcall `gcall' (select-1)     select_1     = random1
 
     qui gcollapse `gcall' `ifin' `wgt_gc', by(`anything') `options' double merge replace
-    qui gegen id = group(`anything') `ifin', missing nods
+    if ( `"`anything'"' == "" ) {
+        qui gen id = 1 `ifin'
+    }
+    else {
+        qui gegen id = group(`anything') `ifin', missing nods
+    }
     * save /tmp/aa, replace
+
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini)
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini_dropneg) dropneg
+    qui quickGini random1 `ifin' `wgt_gc', by(id) gen(_gini_keepneg) keepneg
+    foreach gini in " " _keepneg _dropneg {
+        local gini `gini'
+        cap assert reldif(_gini`gini', gini`gini') < `tol'
+        local rc = _rc
+        local gini: subinstr local gini "_" "|", all
+        if ( `rc' ) {
+            di as txt "    compare_gini`gini'_gcollapse (fail): gini`gini' yielded different results (tol = `tol')"
+            exit 198
+        }
+        else {
+            di as txt "    compare_gini`gini'_gcollapse (passed): gini`gini' yielded consistent results (tol = `tol')"
+        }
+    }
 
     if ( "`ifin'" == "" ) {
         di _n(1) "Checking full range`wtxt': `anything'"
@@ -5091,6 +5191,9 @@ program checks_gegen
     assert cond(mi(x), mi(s) & mi(f_s) & mi(a_s), !mi(s) & !mi(f_s) & !mi(a_s))
     assert cond(mi(x), (nm == 5) & (a_nm == 5) & (f_nm == 5 * 1314) & (p_nm == 5 * 987654321), (nm == 0) & (a_nm == 0) & (f_nm == 0) & (p_nm == 0))
 
+    * rank
+    * ----
+
     clear
     set obs 10000
     gen x = ceil(runiform() * 10)
@@ -5209,17 +5312,320 @@ program checks_gegen
     gegen r_field  = rank(x) if !mi(fw), ties(field)
     gegen r_track  = rank(x) if !mi(fw), ties(track)
 
-    assert r_def    == r1_def   
-    assert r_field  == r1_field 
-    assert r_track  == r1_track 
+    assert r_def    == r1_def
+    assert r_field  == r1_field
+    assert r_track  == r1_track
 
     egen e_def    = rank(x) if !mi(fw)
     egen e_field  = rank(x) if !mi(fw), field
     egen e_track  = rank(x) if !mi(fw), track
 
-    assert e_def    == r1_def   
-    assert e_field  == r1_field 
-    assert e_track  == r1_track 
+    assert e_def    == r1_def
+    assert e_field  == r1_field
+    assert e_track  == r1_track
+
+    * cumsum
+    * ------
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gegen double cumx = cumsum(x) [aw = w], cumby(+) by(g)
+    qui {
+        sort g x, stable
+        by g: gen double sumx = sum(x * w)
+    }
+    qui gen zz = reldif(sumx, cumx)
+    qui sum zz, meanonly
+    assert r(max) < 1e-8
+
+    sysuse auto, clear
+    gen ix = _n
+
+    * fails
+    cap noi gegen cumprice = cumsum(price), cumby(+ +) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(- +) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ -) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ _) replace
+    assert _rc == 111
+    cap noi gegen cumprice = cumsum(price), cumby(+ price weight) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(+ make) replace
+    assert _rc == 198
+    cap noi gegen cumprice = cumsum(price), cumby(price) replace
+    assert _rc == 7
+    cap noi gegen cumprice = cumsum(price), cumby(price -) replace
+    assert _rc == 7
+
+    sysuse auto, clear
+    gen ix = _n
+
+    * 1. Basic
+    gegen cumprice = cumsum(price)
+    gen sumprice = sum(price)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 2. by()
+    gegen cumprice = cumsum(price), by(foreign)
+    by foreign (ix), sort: gen sumprice = sum(price)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 3. +
+    sort foreign price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    gegen cumprice = cumsum(rep78), by(foreign) cumby(+)
+    sort foreign rep78 cumprice
+    by foreign: gen sumprice = sum(rep78) if !mi(rep78)
+    sort foreign ix
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 4. -
+    gsort foreign -price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(-)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    gegen cumprice = cumsum(rep78), by(foreign) cumby(-)
+    gsort foreign -rep78 cumprice
+    by foreign: gen sumprice = sum(rep78) if !mi(rep78)
+    sort foreign ix
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 5. + mpg
+    sort foreign weight price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+ weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 6. - mpg
+    gsort foreign -weight -price
+    by foreign: gen sumprice = sum(price)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(- weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 7. + rep78
+    sort foreign rep78 price
+    by foreign: gen sumprice = sum(price) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(+ rep78)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 8. - rep78
+    gsort foreign -rep78 -price
+    by foreign: gen sumprice = sum(price) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price), by(foreign) cumby(- rep78)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 9. [fw = rep78]
+    sort foreign ix
+    gen sumprice = price * rep78
+    by foreign: replace sumprice = sum(sumprice) if !mi(rep78)
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 10. + [fw = rep78]
+    gsort foreign price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(+)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 11. - [fw = rep78]
+    gsort foreign -price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(-)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 12. + mpg [fw = rep78]
+    sort foreign weight price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(+ weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * 13. - mpg [fw = rep78]
+    gsort foreign -weight -price
+    by foreign: gen sumprice = sum(price * rep78) if !mi(rep78)
+    sort foreign ix
+    gegen cumprice = cumsum(price) [fw = rep78], by(foreign) cumby(- weight)
+    assert (cumprice == sumprice)
+    drop ???price
+
+    * Shift
+    * -----
+
+    sysuse auto, clear
+    gen ix = _n
+
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(3.8)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-.1)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(-)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign) shiftby(wa)
+    assert _rc == 7
+    cap noi gegen gprice3 = shift(price), by(foreign)
+    assert _rc == 198
+
+    gegen gprice_3 = shift(price), shiftby(-3) by(foreign)
+    qui by foreign: gen price_3 = price[_n - 3]
+    assert gprice_3 == price_3
+
+    gegen gprice3 = shift(price), shiftby(3) by(foreign)
+    qui by foreign: gen price3 = price[_n + 3]
+    assert gprice3 == price3
+
+    gegen gprice_6 = shift-6(price), by(foreign)
+    qui by foreign: gen price_6 = price[_n - 6]
+    assert gprice_6 == price_6
+
+    gegen gprice6 = shift+6(price), by(foreign)
+    qui by foreign: gen price6 = price[_n + 6]
+    assert gprice6 == price6
+
+    gegen gpricea = shift+0(price), by(foreign)
+    gegen gpriceb = shift-0(price), by(foreign)
+    gegen gpricec = shift|0(price), by(foreign)
+    gegen gpriced = shift(price),   by(foreign) shiftby(0)
+
+    assert price == gpricea
+    assert price == gpriceb
+    assert price == gpricec
+    assert price == gpriced
+
+    clear
+    set rmsg on
+    set obs 1000000
+    gen g = ceil(runiform() * 10)
+    gen x = ceil(rnormal() * 10)
+    gen y = ceil(rnormal() * 10)
+    gen w = abs(round(rnormal() * 10, 0.1))
+    gen long ix = _n
+    gegen gshiftx = shift(x) [aw = w], shiftby(-2) by(g)
+    qui {
+        gen byte now = mi(w) | w == 0
+        sort g now, stable
+        by g now: gen `:type x' shiftx = x[_n - 2]
+    }
+    assert (gshiftx == shiftx) | now
+
+    * Gini
+    * ----
+
+    clear
+    set obs 1000
+    gen g  = int(runiform() * 10)
+    gen y  = exp(int(rnormal()) + g) - exp(g)
+    gen fw = int(runiform() * 5)
+    gen aw = runiform() * 10
+    replace aw = . if mod(_n, 42) == 0
+    replace y  = . if mod(_n, 81) == 0
+    gen long ix = _n
+
+    quickGini y, by(g) gen(_qg1)
+    quickGini y, by(g) gen(_qg2) dropneg
+    quickGini y, by(g) gen(_qg3) keepneg
+
+    quickGini y [fw = 1], by(g) gen(_qg4)
+    quickGini y [fw = 1], by(g) gen(_qg5) dropneg
+    quickGini y [fw = 1], by(g) gen(_qg6) keepneg
+
+    quickGini y [fw = fw], by(g) gen(_qg7)
+    quickGini y [fw = fw], by(g) gen(_qg8) dropneg
+    quickGini y [fw = fw], by(g) gen(_qg9) keepneg
+
+    quickGini y [aw = aw], by(g) gen(_qg10)
+    quickGini y [aw = aw], by(g) gen(_qg11) dropneg
+    quickGini y [aw = aw], by(g) gen(_qg12) keepneg
+
+    gegen _ge1 = gini(y), by(g)
+    gegen _ge2 = gini|dropneg(y),   by(g)
+    gegen _ge3 = gini|keepneg(y),   by(g)
+    gegen _ge4 = gini(y) if y >= 0, by(g)
+    gegen _ge4 = firstnm(_ge4), by(g) replace
+
+    gegen _ge5 = gini(y) [fw = 1], by(g)
+    gegen _ge6 = gini|dropneg(y) [fw = 1], by(g)
+    gegen _ge7 = gini|keepneg(y) [fw = 1], by(g)
+    gegen _ge8 = gini(y) if y >= 0 [fw = 1], by(g)
+    gegen _ge8 = firstnm(_ge8), by(g) replace
+
+    gegen _ge9 = gini(y) [fw = fw], by(g)
+    gegen _ge10 = gini|dropneg(y) [fw = fw], by(g)
+    gegen _ge11 = gini|keepneg(y) [fw = fw], by(g)
+    gegen _ge12 = gini(y) if y >= 0 [fw = fw], by(g)
+    gegen _ge12 = firstnm(_ge12) if fw > 0 & !mi(fw), by(g) replace
+
+    gegen _ge13 = gini(y) [aw = aw], by(g)
+    gegen _ge14 = gini|dropneg(y) [aw = aw], by(g)
+    gegen _ge15 = gini|keepneg(y) [aw = aw], by(g)
+    gegen _ge16 = gini(y) if y >= 0 [aw = aw], by(g)
+    gegen _ge16 = firstnm(_ge16) if aw > 0 & !mi(aw), by(g) replace
+
+    assert reldif(_qg1,  _qg4) < 1e-6 | (mi(_qg1) & mi(_qg4))
+    assert reldif(_qg2,  _qg5) < 1e-6 | (mi(_qg2) & mi(_qg5))
+    assert reldif(_qg3,  _qg6) < 1e-6 | (mi(_qg3) & mi(_qg6))
+
+    assert reldif(_ge1,  _ge5) < 1e-6 | (mi(_ge1) & mi(_ge5))
+    assert reldif(_ge2,  _ge6) < 1e-6 | (mi(_ge2) & mi(_ge6))
+    assert reldif(_ge3,  _ge7) < 1e-6 | (mi(_ge3) & mi(_ge7))
+    assert reldif(_ge4,  _ge8) < 1e-6 | (mi(_ge4) & mi(_ge8))
+
+    assert reldif(_qg1,  _ge1) < 1e-6 | (mi(_qg1) & mi(_ge1))
+    assert reldif(_qg2,  _ge2) < 1e-6 | (mi(_qg2) & mi(_ge2))
+    assert reldif(_qg2,  _ge2) < 1e-6 | (mi(_qg2) & mi(_ge4))
+    assert reldif(_qg3,  _ge3) < 1e-6 | (mi(_qg3) & mi(_ge3))
+    assert reldif(_ge4,  _ge2) < 1e-6 | (mi(_ge4) & mi(_ge2))
+
+    assert reldif(_qg4,  _ge5) < 1e-6 | (mi(_qg4) & mi(_ge5))
+    assert reldif(_qg5,  _ge6) < 1e-6 | (mi(_qg5) & mi(_ge6))
+    assert reldif(_qg5,  _ge6) < 1e-6 | (mi(_qg5) & mi(_ge8))
+    assert reldif(_qg6,  _ge7) < 1e-6 | (mi(_qg6) & mi(_ge7))
+    assert reldif(_ge8,  _ge6) < 1e-6 | (mi(_ge8) & mi(_ge6))
+
+    assert reldif(_qg7,  _ge9)  < 1e-6 | (mi(_qg7)  & mi(_ge9))
+    assert reldif(_qg8,  _ge10) < 1e-6 | (mi(_qg8)  & mi(_ge10))
+    assert reldif(_qg8,  _ge10) < 1e-6 | (mi(_qg8)  & mi(_ge12))
+    assert reldif(_qg9,  _ge11) < 1e-6 | (mi(_qg9)  & mi(_ge11))
+    assert reldif(_ge12, _ge10) < 1e-6 | (mi(_ge12) & mi(_ge10))
+
+    assert reldif(_qg10, _ge13) < 1e-6 | (mi(_qg10) & mi(_ge13))
+    assert reldif(_qg11, _ge14) < 1e-6 | (mi(_qg11) & mi(_ge14))
+    assert reldif(_qg11, _ge14) < 1e-6 | (mi(_qg11) & mi(_ge16))
+    assert reldif(_qg12, _ge15) < 1e-6 | (mi(_qg12) & mi(_ge15))
+    assert reldif(_ge16, _ge14) < 1e-6 | (mi(_ge16) & mi(_ge14))
+
 end
 
 capture program drop checks_inner_egen
@@ -5231,7 +5637,7 @@ program checks_inner_egen
 
     local percentiles 1 10 30.5 50 70.5 90 99
     local selections  1 2 5 999999 -999999 -5 -2 -1
-    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt
+    local stats nunique nmissing total sum mean geomean max min range count median iqr percent first last firstnm lastnm skew kurt gini gini|dropneg gini|keepneg
     local skipbulk
     if ( !inlist("`weight'", "pweight") )            local stats `stats' sd variance cv
     if ( !inlist("`weight'", "pweight", "iweight") ) local stats `stats' semean
@@ -7610,6 +8016,37 @@ program checks_greshape
 
     preserve
         greshape wide price mpg, i(make) j(foreign)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stubname#, #keylabel# == #keyvalue#)
+        desc price* mpg*
+    restore, preserve
+        label drop origin
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr foreign)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(foreign fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore
+
+    preserve
+        greshape wide price mpg, i(make) j(foreign)
         greshape long price mpg, i(make) j(foreign)
 
         greshape wide price mpg, i(make) j(foreign)
@@ -8687,30 +9124,40 @@ end
 ***********************************************************************
 capture program drop checks_gregress
 program checks_gregress
+    basic_gregress
+    coll_gregress
+end
+
+capture program drop basic_gregress
+program basic_gregress
     local tol 1e-8
 
-    sysuse auto, clear
-    gen w = _n
-    gegen headcode = group(headroom)
+disp ""
+disp "----------------------"
+disp "Comparison Test 1: OLS"
+disp "----------------------"
+disp ""
 
-    foreach v in v1 v2 v3 v4 v5 v6 v7 v8 {
-        disp "greg checks `v'"
+    sysuse auto, clear
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
+
+    foreach v in v1 v2 v5 v7 {
         local w
         local r
 
         if ( "`v'" == "v2" ) local w [fw = w]
         if ( "`v'" == "v4" ) local w [fw = w]
 
-        if ( "`v'" == "v3" ) local r rowmajor
-        if ( "`v'" == "v4" ) local r rowmajor
-        if ( "`v'" == "v6" ) local r rowmajor
-        if ( "`v'" == "v8" ) local r rowmajor
-
         if ( "`v'" == "v5" ) local w [aw = w]
         if ( "`v'" == "v6" ) local w [aw = w]
 
         if ( "`v'" == "v7" ) local w [pw = w]
         if ( "`v'" == "v8" ) local w [pw = w]
+
+        disp "greg checks `v': `w'"
 
         qui greg price mpg `w', by(foreign) `r'
             qui reg price mpg if foreign == 0 `w'
@@ -8733,11 +9180,6 @@ program checks_gregress
             qui reg price mpg if foreign == 1 `w', cluster(headcode)
             mata: assert(all(abs(st_matrix("r(table)")[1 ,.] :- GtoolsRegress.b[2, .]) :< `tol'))
             mata: assert(all(abs(st_matrix("r(table)")[2 ,.] :- GtoolsRegress.se[2, .]) :< `tol'))
-
-        if ( "`v'" == "v3" ) continue
-        if ( "`v'" == "v4" ) continue
-        if ( "`v'" == "v6" ) continue
-        if ( "`v'" == "v8" ) continue
 
         qui greg price mpg `w', absorb(rep78)
             qui areg price mpg `w', absorb(rep78)
@@ -8812,6 +9254,12 @@ program checks_gregress
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
+
+disp ""
+disp "---------------------"
+disp "Comparison Test 2: IV"
+disp "---------------------"
+disp ""
 
     local tol 1e-6
     sysuse auto, clear
@@ -8990,22 +9438,25 @@ disp _skip(8) "check 9"
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
+disp ""
+disp "--------------------------"
+disp "Comparison Test 3: Poisson"
+disp "--------------------------"
+disp ""
+
     local tol 1e-4
     webuse ships, clear
-    expand 2
-    gen by = 1.5 - (_n < _N / 2)
-    gen w = _n
-    foreach v in v1 v2 v3 v4 v5 v6 {
+    * use /tmp/ships, clear
+    qui expand 2
+    qui gen by = 1.5 - (_n < _N / 2)
+    qui gen w = _n
+    foreach v in v1 v2 v5 {
         disp "poisson checks `v'"
         local w
         local r
 
         if ( "`v'" == "v2" ) local w [fw = w]
         if ( "`v'" == "v4" ) local w [fw = w]
-
-        if ( "`v'" == "v3" ) local r rowmajor
-        if ( "`v'" == "v4" ) local r rowmajor
-        if ( "`v'" == "v6" ) local r rowmajor
 
         if ( "`v'" == "v5" ) local w [pw = w]
         if ( "`v'" == "v6" ) local w [pw = w]
@@ -9017,7 +9468,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4], t[2, cols(t)]
             mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
-
+disp _skip(8) "check 1"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship) `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', cluster(ship)
             mata t  = st_matrix("r(table)")
@@ -9025,7 +9476,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4], t[2, cols(t)]
             mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
-
+disp _skip(8) "check 2"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) robust `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, r
             mata t  = st_matrix("r(table)")
@@ -9039,7 +9490,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4], t[2, cols(t)]
             mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
-
+disp _skip(8) "check 3"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) cluster(ship) `r'
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w' if by == 0.5, cluster(ship)
             mata t  = st_matrix("r(table)")
@@ -9053,11 +9504,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4], t[2, cols(t)]
             mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
-
-        if ( "`v'" == "v3" ) continue
-        if ( "`v'" == "v4" ) continue
-        if ( "`v'" == "v6" ) continue
-
+disp _skip(8) "check 4"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) r
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', r
             mata t  = st_matrix("r(table)")
@@ -9065,7 +9512,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4]
             mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
-
+disp _skip(8) "check 5"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', absorb(ship) cluster(ship)
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w', cluster(ship)
             mata t  = st_matrix("r(table)")
@@ -9073,7 +9520,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4]
             mata assert(max(reldif(b, GtoolsPoisson.b)) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se)) < `tol')
-
+disp _skip(8) "check 6"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) robust
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, r
             mata t  = st_matrix("r(table)")
@@ -9087,7 +9534,7 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4]
             mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
-
+disp _skip(8) "check 7"
         qui gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 `w', by(by) absorb(ship) cluster(ship)
         qui poisson accident op_75_79 co_65_69 co_70_74 co_75_79 i.ship `w' if by == 0.5, cluster(ship)
             mata t  = st_matrix("r(table)")
@@ -9101,122 +9548,138 @@ disp _skip(8) "check 9"
             mata se = t[2, 1::4]
             mata assert(max(reldif(b, GtoolsPoisson.b[2, .])) < `tol')
             mata assert(max(reldif(se, GtoolsPoisson.se[2, .])) < `tol')
+disp _skip(8) "check 8"
     }
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
-    clear
-    set obs 10000
-    gen e = rnormal() * 50
-    gen g = ceil(runiform()*100)
-    forvalues i = 1 / 4 {
-        gen x`i' = rnormal() * `i' + `i'
-    }
-    gen byte ones = 1
-    gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + g + e
-    gen w = int(50 * runiform())
-    areg y x1 x2 x3 x4, absorb(g)
-    greg y x1 x2 x3 x4, absorb(g) mata(coefs)
-    greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
-    greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) replace
-    greg y x1 x2 x3 x4, absorb(g) prefix(b(_b_))
-    greg y x1 x2 x3 x4, absorb(g) prefix(se(_se_))
-    greg y x1 x2 x3 x4, absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
-    greg y x1 x2 x3 x4, absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
-    greg y x1 x2 x3 x4, absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
-    assert (_hdfe_y == _hy)
-    foreach var in x1 x2 x3 x4 {
-        assert (_hdfe_`var' == _h`var')
-        assert (_b_`var' == _b`var')
-        assert (_se_`var' == _se`var')
-    }
+disp ""
+disp "--------------------------"
+disp "Stress Test 1: Consistency"
+disp "--------------------------"
+disp ""
+    qui {
+        clear
+        set obs 10000
+        gen e = rnormal() * 50
+        gen g = ceil(runiform()*100)
+        forvalues i = 1 / 4 {
+            gen x`i' = rnormal() * `i' + `i'
+        }
+        gen byte ones = 1
+        gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + g + e
+        gen w = int(50 * runiform())
+        areg y x1 x2 x3 x4, absorb(g)
+        greg y x1 x2 x3 x4, absorb(g) mata(coefs)
+        greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
+        greg y x1 x2 x3 x4, absorb(g) prefix(hdfe(_hdfe_)) replace
+        greg y x1 x2 x3 x4, absorb(g) prefix(b(_b_))
+        greg y x1 x2 x3 x4, absorb(g) prefix(se(_se_))
+        greg y x1 x2 x3 x4, absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
+        greg y x1 x2 x3 x4, absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
+        greg y x1 x2 x3 x4, absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
+        assert (_hdfe_y == _hy)
+        foreach var in x1 x2 x3 x4 {
+            assert (_hdfe_`var' == _h`var')
+            assert (_b_`var' == _b`var')
+            assert (_se_`var' == _se`var')
+        }
 
-    drop _*
-    areg y x1 x2 x3 x4 [fw = w], absorb(g)
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) mata(coefs)
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) replace
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(b(_b_))
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(se(_se_))
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
-    greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
-    assert (_hdfe_y == _hy)
-    foreach var in x1 x2 x3 x4 {
-        assert (_hdfe_`var' == _h`var')
-        assert (_b_`var' == _b`var')
-        assert (_se_`var' == _se`var')
+        drop _*
+        areg y x1 x2 x3 x4 [fw = w], absorb(g)
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) mata(coefs)
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) mata(coefs)
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(hdfe(_hdfe_)) replace
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(b(_b_))
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) prefix(se(_se_))
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(b(_bx1 _bx2 _bx3 _bx4))
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(hdfe(_hy _hx1 _hx2 _hx3 _hx4)) mata(levels, nob nose)
+        greg y x1 x2 x3 x4 [fw = w], absorb(g) gen(se(_sex1 _sex2 _sex3 _sex4))
+        assert (_hdfe_y == _hy)
+        foreach var in x1 x2 x3 x4 {
+            assert (_hdfe_`var' == _h`var')
+            assert (_b_`var' == _b`var')
+            assert (_se_`var' == _se`var')
+        }
     }
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
-    clear
-    set obs 10000000
-    gen e = rnormal() * 20
-    gen g = ceil(runiform()*100)
-    forvalues i = 1 / 4 {
-        gen x`i' = rnormal() * `i' + `i'
+disp ""
+disp "-----------------------------------"
+disp "Stress Test 2: 'Large' observations"
+disp "-----------------------------------"
+disp ""
+    qui {
+        clear
+        set obs 10000000
+        gen e = rnormal() * 20
+        gen g = ceil(runiform()*100)
+        forvalues i = 1 / 4 {
+            gen x`i' = rnormal() * `i' + `i'
+        }
+        gen byte ones = 1
+        gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
+        gen w = int(50 * runiform())
+
+        greg y x1 x2 x3 x4, mata(r1)
+        reg  y x1 x2 x3 x4
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4, r mata(r1)
+        reg  y x1 x2 x3 x4, r
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4, cluster(g) mata(r1)
+        reg  y x1 x2 x3 x4, vce(cluster g)
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4, absorb(g) mata(r1)
+        areg y x1 x2 x3 x4, absorb(g)
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+
+        greg y x1 x2 x3 x4 [fw = w], mata(r1)
+        reg  y x1 x2 x3 x4 [fw = w]
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4 [fw = w], mata(r1) r
+        reg  y x1 x2 x3 x4 [fw = w], r
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4 [fw = w], mata(r1) cluster(g)
+        reg  y x1 x2 x3 x4 [fw = w], vce(cluster g)
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+        greg y x1 x2 x3 x4 [fw = w], mata(r1) absorb(g)
+        areg y x1 x2 x3 x4 [fw = w], absorb(g)
+            mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
     }
-    gen byte ones = 1
-    gen y = 5 - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
-    gen w = int(50 * runiform())
-
-    greg y x1 x2 x3 x4, colmajor mata(r1)
-    greg y x1 x2 x3 x4, rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4, r colmajor mata(r1)
-    greg y x1 x2 x3 x4, r rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4, cluster(g) colmajor mata(r1)
-    greg y x1 x2 x3 x4, cluster(g) rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4, absorb(g)
-
-    greg y x1 x2 x3 x4 [fw = w], colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4 [fw = w], r colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], r rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4 [fw = w], cluster(g) colmajor mata(r1)
-    greg y x1 x2 x3 x4 [fw = w], cluster(g) rowmajor mata(r2)
-        mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-        mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-    greg y x1 x2 x3 x4 [fw = w], absorb(g)
 
     * ------------------------------------------------------------------------
     * ------------------------------------------------------------------------
 
     if ( `c(MP)' ) {
-        local tol 1e-8
-        clear all
-        set matsize 10000
-        set maxvar 50000
-        set obs 10000
-        gen g = ceil(runiform()*10)
-        gen e = rnormal() * 5
-        forvalues i = 1 / 1000 {
-            gen x`i' = rnormal() * `i' + `i'
+disp ""
+disp "---------------------------"
+disp "Stress Test 3: 'Wide' model"
+disp "---------------------------"
+disp ""
+        qui {
+            clear
+            clear matrix
+            set matsize 10000
+            set obs 50000
+            gen g = ceil(runiform()*10)
+            gen e = rnormal() * 5
+            forvalues i = 1 / 500 {
+                gen x`i' = rnormal() * `i' + `i'
+            }
+            gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
+
+            * Slower with all the vars, but no longer unreasonably so
+            greg y x*, mata(r1) v bench(3)
+            reg  y x*
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
+            greg y x*, mata(r1) v bench(3) cluster(g)
+            reg  y x*, vce(cluster g)
+                mata: check_gregress_consistency(`tol', 1, 1::r1.kx, r1)
         }
-        gen y = - 4 * x1 + 3 * x2 - 2 * x3 + x4 + e
-
-        greg y x*, colmajor mata(r1)
-        greg y x*, rowmajor mata(r2)
-            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
-
-        * Fairly slow...
-        greg y x*, colmajor cluster(g) mata(r1)
-        greg y x*, rowmajor cluster(g) mata(r2)
-            mata assert(all(reldif(r1.b, r2.b) :< `tol'))
-            mata assert(all(reldif(r1.se, r2.se) :< `tol'))
     }
 
     * ------------------------------------------------------------------------
@@ -9277,8 +9740,1112 @@ disp _skip(8) "check 9"
 
     * Well, there is an issue when the number of absorbed effects are
     * close to the number of observations ):
-
 end
+
+capture program drop coll_gregress
+program coll_gregress
+    local tol 1e-8
+
+disp ""
+disp "------------------------"
+disp "Collinearity Test 1: OLS"
+disp "------------------------"
+disp ""
+
+    sysuse auto, clear
+    qui gen w = _n
+    qui gegen headcode = group(headroom)
+    qui gen z1 = 0
+    qui gen z2 = 0
+    qui tab headcode, gen(_h)
+
+    foreach v in v1 v2 v5 v7 {
+        local w
+        local r
+
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v4" ) local w [fw = w]
+
+        if ( "`v'" == "v5" ) local w [aw = w]
+        if ( "`v'" == "v6" ) local w [aw = w]
+
+        if ( "`v'" == "v7" ) local w [pw = w]
+        if ( "`v'" == "v8" ) local w [pw = w]
+
+        disp "greg checks `v': `w'"
+
+        qui greg price mpg mpg `w', by(foreign) `r'
+            qui reg price mpg mpg if foreign == 0 `w'
+            mata: check_gregress_consistency(`tol', 1, ., GtoolsRegress)
+            qui reg price mpg mpg if foreign == 1 `w'
+            mata: check_gregress_consistency(`tol', 2, ., GtoolsRegress)
+        qui greg price mpg mpg mpg `w', by(foreign) robust `r'
+            qui reg price mpg mpg mpg if foreign == 0 `w', robust
+            mata: check_gregress_consistency(`tol', 1, ., GtoolsRegress)
+            qui reg price mpg mpg mpg if foreign == 1 `w', robust
+            mata: check_gregress_consistency(`tol', 2, ., GtoolsRegress)
+        qui greg price mpg mpg `w', by(foreign) cluster(headroom) `r'
+            qui reg price mpg mpg if foreign == 0 `w', cluster(headcode)
+            mata: check_gregress_consistency(`tol', 1, ., GtoolsRegress)
+            qui reg price mpg mpg if foreign == 1 `w', cluster(headcode)
+            mata: check_gregress_consistency(`tol', 2, ., GtoolsRegress)
+
+        qui greg price mpg mpg `w', absorb(rep78)
+            qui areg price mpg mpg `w', absorb(rep78)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+        qui greg price mpg mpg `w', absorb(rep78) robust
+            qui areg price mpg mpg `w', absorb(rep78) robust
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+        qui greg price mpg mpg `w', absorb(rep78) cluster(headroom)
+            qui areg price mpg mpg `w', absorb(rep78) cluster(headroom)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+
+        qui greg price mpg mpg `w', by(foreign) absorb(rep78)
+            qui areg price mpg mpg if foreign == 0 `w', absorb(rep78)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui areg price mpg mpg if foreign == 1 `w', absorb(rep78)
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+        qui greg price mpg mpg `w', by(foreign) absorb(rep78) robust
+            qui areg price mpg mpg if foreign == 0 `w', absorb(rep78) robust
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui areg price mpg mpg if foreign == 1 `w', absorb(rep78) robust
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+        qui greg price mpg mpg `w', by(foreign) absorb(rep78) cluster(headroom)
+            qui areg price mpg mpg if foreign == 0 `w', absorb(rep78) cluster(headroom)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui areg price mpg mpg if foreign == 1 `w', absorb(rep78) cluster(headroom)
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+
+        cap drop _*
+        qui tab headroom, gen(_h)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom)
+            qui reg price mpg mpg i.rep78 i.headcode `w'
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) robust
+            qui reg price mpg mpg i.rep78 i.headcode `w', robust
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+        qui greg price mpg mpg _h* `w', absorb(rep78 headroom) cluster(headroom)
+            qui reg price mpg mpg i.rep78 i.headcode `w', vce(cluster headcode)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom)
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w'
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w'
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) robust
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', robust
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', robust
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+        qui greg price mpg mpg _h* `w', by(foreign) absorb(rep78 headroom) cluster(headroom)
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 0 `w', cluster(headroom)
+            mata: check_gregress_consistency(`tol', 1, 1::2, GtoolsRegress)
+            qui reg price mpg mpg i.rep78 i.headcode if foreign == 1 `w', cluster(headroom)
+            mata: check_gregress_consistency(`tol', 2, 1::2, GtoolsRegress)
+
+        qui greg price z1 z2 `w', `r' noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
+
+        qui greg price _h* `w', `r' absorb(headroom) noc
+            mata assert(all(GtoolsRegress.b  :== .))
+            mata assert(all(GtoolsRegress.se :== .))
+    }
+
+    * ------------------------------------------------------------------------
+    * ------------------------------------------------------------------------
+
+disp ""
+disp "-----------------------"
+disp "Collinearity Test 2: IV"
+disp "-----------------------"
+disp ""
+
+    local tol 1e-6
+    sysuse auto, clear
+    gen w = _n
+    gegen headcode = group(headroom)
+    cap drop _*
+    qui tab headcode, gen(_h)
+    qui tab rep78,    gen(_r)
+    qui gen _mpg          = mpg
+    qui gen _mpg2         = mpg
+    qui gen _mpg3         = mpg
+    qui gen _price        = price
+    qui gen _price2       = price
+    qui gen _gear_ratio   = gear_ratio
+    qui gen _weight       = weight
+    qui gen _turn         = turn
+    qui gen _displacement = displacement
+    qui gen z1 = 0
+    qui gen z2 = 0
+
+    * Colinearity foo
+    *
+    * 1. Within
+    *     - instrumented
+    *     - instrument
+    *     - exogenous
+    *
+    * 2. Across
+    *     - (!) dependenet variable _and_ instrumented
+    *     - (!) dependenet variable _and_ instrument
+    *     - (!) dependenet variable _and_ exogenous
+    *     - instrumented _and_ instrument
+    *     - instrumented _and_ exogenous
+    *     - instrument _and_ exogenous
+    *
+    * 3. Mixed Across
+    *
+    *     - dependenet _and_ instrumented _and_ instrument
+    *     - dependenet _and_ instrumented _and_ exogenous
+    *     - dependenet _and_ instrument _and_ exogenous
+    *     - instrumented _and_ instrument _and_ exogenous
+
+    local v
+    local w
+    foreach v in v1 v2 v3 v4 {
+        local w
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v3" ) local w [aw = w]
+        if ( "`v'" == "v4" ) local w [pw = w]
+        disp "iv checks `v': `w'"
+
+        foreach av in v1 v2 v3 {
+            if ( `"`av'"' == "v1" ) local avars
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
+
+            if ( `"`av'"' == "v1" ) local absorb
+            if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
+            if ( `"`av'"' == "v3" ) local absorb absorb(rep78 headcode)
+
+            if ( `"`av'"' == "v1" ) local dvars
+            if ( `"`av'"' == "v2" ) unab  dvars: _r*
+            if ( `"`av'"' == "v3" ) unab  dvars: _r* _h*
+
+            foreach vce in small robust cluster(headcode) {
+                local gvce  = cond(`"`vce'"' == "small", "", `"`vce'"')
+                local small = cond(`"`vce'"' == "small", "", `"small"')
+                disp _skip(4) "basic checks: `vce' `small' `absorb'"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight turn                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight turn       `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight turn                 `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight turn `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight turn                           `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight turn           `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight turn                                `w' , `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price) weight turn                           `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight turn            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight turn                            `w' , `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight turn                                         `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight turn                              `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight turn              `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight turn                              `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight turn              `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight turn                       `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight turn                 `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight turn `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight turn       `w' , `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight turn       `w' , `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight turn       `w' , `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight turn                  `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight turn  `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 1"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight                                     `w' , `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price) weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight                                 `w' , `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight                                              `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight                            `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 2"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio)                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio)                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement)                             `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement)             `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio)                                               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio)                               `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio)                                            `w' , `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price)                                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price)                        `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price                                        `w' , `gvce' `absorb'
+                qui givregress price (mpg = _mpg)                                                     `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg)                                          `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg)                          `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg                                          `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg                          `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio                                   `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio                             `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio             `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2)                   `w' , `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2                   `w' , `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2                   `w' , `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3                              `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3              `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 3"
+
+                if ( "`av'" == "v1" ) {
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight                            `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight                      `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight                                `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight                                     `w' , `gvce' `absorb' noc
+                qui givregress price (mpg = gear_ratio  _price) weight                                `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight                                 `w' , `gvce' `absorb' noc
+                qui givregress price (mpg = _mpg) weight                                              `w' , `gvce' `absorb' noc
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight                                   `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight                                   `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight                            `w' , `gvce' `absorb' noc
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight                      `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight            `w' , `gvce' `absorb' noc
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight            `w' , `gvce' `absorb' noc
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight            `w' , `gvce' `absorb' noc
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight                       `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 4"
+                }
+
+                qui givregress price (mpg = gear_ratio turn _gear_ratio length) weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn _gear_ratio length) weight            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio turn length displacement) weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio turn length displacement) weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) weight _weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) weight _weight                `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn length) weight                                     `w' , `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio turn length  _price) weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _price) weight                 `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) _price weight                                 `w' , `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight                                              `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio turn length _mpg) weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _mpg) weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) _mpg weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) _mpg weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn) _turn _gear_ratio weight                             `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio turn length displacement) _gear_ratio weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length displacement) _gear_ratio weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio turn length displacement _price2) weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio turn length displacement) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio turn length displacement) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio turn length) _mpg3 weight                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio turn length) _mpg3 weight       `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 5"
+
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) weight            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) weight _weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) weight _weight                `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn) weight                                     `w' , `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) weight                 `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _price weight                                 `w' , `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) weight                                              `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _mpg weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _mpg weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _gear_ratio weight                            `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio displacement turn) _gear_ratio weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio displacement turn) _gear_ratio weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 7"
+
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) _displacement weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement weight            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) _displacement weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement weight _weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement weight _weight                `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn) weight                                     `w' , `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) _displacement weight                                `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement weight                 `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _price weight                                 `w' , `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) _displacement weight                                              `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) _displacement weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _mpg weight                                   `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement _mpg weight                   `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _gear_ratio weight                            `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio turn displacement trunk) _displacement _gear_ratio weight                      `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement _gear_ratio weight      `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) _displacement weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _displacement _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _displacement _price2 weight            `w' , `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight                       `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 8"
+
+                if ( inlist(`"`av'"', "v2", "v3") ) {
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) _displacement `dvars' weight                        `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement `dvars' weight        `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) _displacement `dvars' weight                  `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement `dvars' weight  `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement `dvars' weight _weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' weight _weight            `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (_price = gear_ratio turn) weight                                                          `w' , `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) _displacement `dvars' weight                            `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement `dvars' weight             `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _price `dvars' weight                         `w' , `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) _displacement weight                                               `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) _displacement `dvars' weight                               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement `dvars' weight               `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _mpg `dvars' weight                               `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' _mpg weight               `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _gear_ratio `dvars' weight                        `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio turn displacement trunk) _displacement `dvars' _gear_ratio weight                 `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement `dvars' _gear_ratio weight `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) _displacement `dvars' weight        `w' , `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _displacement `dvars' _price2 weight        `w' , `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _displacement `dvars' _price2 weight        `w' , `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 `dvars' weight                                 `w' , `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 `dvars' weight                 `avars' `w' , `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+disp _skip(8) "check 10"
+                }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = z1 z2) weight turn                    `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))                           
+                    mata assert(all(GtoolsIV.se :== .))                           
+                qui givregress price (z1 = z2) weight turn                        `w' , `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio) z1 z2                     `w' , `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2     `avars' `w' , `vce' `small' noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
+            }
+        }
+
+        * expand 10
+        * gen _by = mod(_n, 2)
+        * local by by(_by)
+        qui expand 2, gen(_expand)
+        local by by(foreign)
+        local if1 if foreign == 0
+        local if2 if foreign == 1
+        foreach av in v1 v2 v3 {
+            if ( `"`av'"' == "v1" ) local avars
+            if ( `"`av'"' == "v2" ) local avars ibn.rep78
+            if ( `"`av'"' == "v3" ) local avars ibn.rep78 ibn.headcode
+
+            if ( `"`av'"' == "v1" ) local absorb
+            if ( `"`av'"' == "v2" ) local absorb absorb(rep78)
+            if ( `"`av'"' == "v3" ) local absorb absorb(rep78 headcode)
+
+            if ( `"`av'"' == "v1" ) local dvars
+            if ( `"`av'"' == "v2" ) unab  dvars: _r*
+            if ( `"`av'"' == "v3" ) unab  dvars: _r* _h*
+
+            foreach vce in small robust cluster(headcode) {
+                local gvce  = cond(`"`vce'"' == "small", "", `"`vce'"')
+                local small = cond(`"`vce'"' == "small", "", `"small"')
+                disp _skip(4) "`by' checks: `vce' `small' `absorb'"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight turn                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight turn       `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight turn       `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight turn                 `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight turn `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight turn `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight turn                           `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight turn           `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight turn           `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight turn                                `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price) weight turn                           `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight turn            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight turn            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight turn                            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight turn                                         `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight turn                              `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight turn              `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight turn              `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight turn                              `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight turn              `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight turn              `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight turn                       `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight turn                 `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight turn `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight turn `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight turn       `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight turn       `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight turn       `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight turn                  `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight turn  `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight turn  `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 1"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight                                     `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price) weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight                                 `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight                                              `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight                            `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 2"
+
+                qui givregress price (mpg = gear_ratio _gear_ratio)                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio)                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio)                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement)                             `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement)             `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement)             `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio)                                               `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio)                               `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio)                               `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio)                                            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio  _price)                                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _price)                        `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _price)                        `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price                                        `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _mpg)                                                     `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg)                                          `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg)                          `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg)                          `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg                                          `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg                          `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg                          `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio                                   `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio                             `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio             `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio             `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2)                   `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio displacement) _price2                   `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio displacement) _price2                   `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3                              `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3              `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3              `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 3"
+
+                if ( "`av'" == "v1" ) {
+                qui givregress price (mpg = gear_ratio _gear_ratio) weight                            `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _gear_ratio) weight            `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio displacement) weight                      `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio displacement) weight      `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) weight _weight                                `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) weight _weight                `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio) weight                                     `w' , `by' `gvce' `absorb' noc
+                qui givregress price (mpg = gear_ratio  _price) weight                                `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _price) weight                 `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _price weight                                 `w' , `by' `gvce' `absorb' noc
+                qui givregress price (mpg = _mpg) weight                                              `w' , `by' `gvce' `absorb' noc
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio _mpg) weight                                   `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio _mpg) weight                   `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _mpg weight                                   `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) _mpg weight                   `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio) _gear_ratio weight                            `w' , `by' `gvce' `absorb' noc
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio displacement) _gear_ratio weight                      `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio displacement) _gear_ratio weight      `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio displacement _price2) weight            `w' , `by' `gvce' `absorb' noc
+                qui givregress price (mpg _price = gear_ratio displacement) _price2 weight            `w' , `by' `gvce' `absorb' noc
+                qui givregress price (mpg = _price gear_ratio displacement) _price2 weight            `w' , `by' `gvce' `absorb' noc
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight                       `w' , `by' `gvce' `absorb' noc
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' `if1', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio) _mpg3 weight       `avars' `w' `if2', `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 4"
+                }
+
+                qui givregress price (mpg = gear_ratio turn _gear_ratio length) weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn _gear_ratio length) weight            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn _gear_ratio length) weight            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _mpg = gear_ratio turn length displacement) weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio turn length displacement) weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = gear_ratio turn length displacement) weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) weight _weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) weight _weight                `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) weight _weight                `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn length) weight                                     `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = gear_ratio turn length  _price) weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _price) weight                 `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _price) weight                 `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) _price weight                                 `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _mpg) weight                                              `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio turn length _mpg) weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _mpg) weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn length _mpg) weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn length) _mpg weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) _mpg weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn length) _mpg weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg = gear_ratio turn) _turn _gear_ratio weight                             `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg = gear_ratio turn length displacement) _gear_ratio weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg = gear_ratio turn length displacement) _gear_ratio weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio turn length displacement) _gear_ratio weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg _price = gear_ratio turn length displacement _price2) weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _price = gear_ratio turn length displacement) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg = _price gear_ratio turn length displacement) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _mpg = _mpg2 gear_ratio turn length) _mpg3 weight                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio turn length) _mpg3 weight       `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg _mpg = _mpg2 gear_ratio turn length) _mpg3 weight       `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 5"
+
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) weight            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) weight            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) weight _weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) weight _weight                `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) weight _weight                `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn) weight                                     `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) weight                 `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) weight                 `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _price weight                                 `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) weight                                              `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _mpg weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _mpg weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _mpg weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _gear_ratio weight                            `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio displacement turn) _gear_ratio weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio displacement turn) _gear_ratio weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio displacement turn) _gear_ratio weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 7"
+
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) _displacement weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement weight            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement weight            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) _displacement weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement weight _weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement weight _weight                `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement weight _weight                `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (_price = gear_ratio turn) weight                                     `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) _displacement weight                                `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement weight                 `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement weight                 `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _price weight                                 `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) _displacement weight                                              `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) _displacement weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _mpg weight                                   `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement _mpg weight                   `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement _mpg weight                   `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length = gear_ratio turn) _displacement _gear_ratio weight                            `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio turn displacement trunk) _displacement _gear_ratio weight                      `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement _gear_ratio weight      `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement _gear_ratio weight      `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) _displacement weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _displacement _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _displacement _price2 weight            `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight                       `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 weight       `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 8"
+
+                if ( inlist(`"`av'"', "v2", "v3") ) {
+                qui givregress price (mpg length = gear_ratio _gear_ratio turn) _displacement `dvars' weight                        `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement `dvars' weight        `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio _gear_ratio turn) _displacement `dvars' weight        `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length _mpg = gear_ratio displacement turn) _displacement `dvars' weight                  `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement `dvars' weight  `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length _mpg = gear_ratio displacement turn) _displacement `dvars' weight  `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement `dvars' weight _weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' weight _weight            `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' weight _weight            `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (_price = gear_ratio turn) weight                                                          `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = gear_ratio  _price turn) _displacement `dvars' weight                            `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement `dvars' weight             `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio _price turn) _displacement `dvars' weight             `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _price `dvars' weight                         `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg _turn = _mpg turn) _displacement weight                                               `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio _mpg turn) _displacement `dvars' weight                               `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement `dvars' weight               `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio _mpg turn) _displacement `dvars' weight               `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _mpg `dvars' weight                               `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' _mpg weight               `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio turn) _displacement `dvars' _mpg weight               `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length = gear_ratio turn) _displacement _gear_ratio `dvars' weight                        `w' , `by' `gvce' `absorb'
+                    mata assert(all(GtoolsIV.b  :== .))
+                    mata assert(all(GtoolsIV.se :== .))
+                qui givregress price (mpg length = gear_ratio turn displacement trunk) _displacement `dvars' _gear_ratio weight                 `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement `dvars' _gear_ratio weight `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length = gear_ratio turn displacement trunk) _displacement `dvars' _gear_ratio weight `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 4::`=3 + `:list sizeof dvars'')
+                qui givregress price (mpg length _price = gear_ratio displacement _price2 turn) _displacement `dvars' weight        `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _price = gear_ratio displacement turn) _displacement `dvars' _price2 weight        `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length = _price gear_ratio displacement turn) _displacement `dvars' _price2 weight        `w' , `by' `gvce' `absorb'
+                qui givregress price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 `dvars' weight                                 `w' , `by' `gvce' `absorb'
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 `dvars' weight                 `avars' `w' `if1', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+                    qui ivregress 2sls price (mpg length _mpg = _mpg2 gear_ratio turn) _mpg3 `dvars' weight                 `avars' `w' `if2', `vce' `small'
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV, 5::`=4 + `:list sizeof dvars'')
+disp _skip(8) "check 10"
+                }
+
+                qui givregress price (z1 = gear_ratio _gear_ratio) weight turn      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 z2 = gear_ratio _gear_ratio) weight turn   `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = z1 z2) weight turn                      `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (z1 = z2) weight turn                          `w' , `gvce' `absorb' `by'
+                    mata assert(all(GtoolsIV.b  :== .))                             
+                    mata assert(all(GtoolsIV.se :== .))                             
+                qui givregress price (mpg = gear_ratio) z1 z2                       `w' , `gvce' `absorb' noc `by'
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if1' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 1, 1::GtoolsIV.kx, GtoolsIV)
+                    qui ivregress 2sls price (mpg = gear_ratio) z1 z2 `avars' `if2' `w' , `vce' `small'   noc
+                    mata: check_gregress_consistency(`tol', 2, 1::GtoolsIV.kx, GtoolsIV)
+disp _skip(8) "check 11"
+            }
+        }
+        qui drop if _expand
+        qui drop _expand
+    }
+
+    * ------------------------------------------------------------------------
+    * ------------------------------------------------------------------------
+
+disp ""
+disp "----------------------------"
+disp "Collinearity Test 3: Poisson"
+disp "----------------------------"
+disp ""
+
+    local tol 1e-4
+    webuse ships, clear
+    * use /tmp/ships, clear
+    qui expand 2
+    qui gen by = 1.5 - (_n < _N / 2)
+    qui gen w = _n
+    qui tab ship, gen(_s)
+    unab svars: _s*
+    qui gen z1 = 0
+    qui gen z2 = 0
+
+    foreach v in v1 v2 v5 {
+        disp "poisson checks `v'"
+        local w
+        local r
+
+        if ( "`v'" == "v2" ) local w [fw = w]
+        if ( "`v'" == "v4" ) local w [fw = w]
+
+        if ( "`v'" == "v5" ) local w [pw = w]
+        if ( "`v'" == "v6" ) local w [pw = w]
+
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', robust `r'
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', r
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson)
+disp _skip(8) "check 1"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', cluster(ship) `r'
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', cluster(ship)
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson)
+disp _skip(8) "check 2"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', by(by) robust `r'
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w' if by == 0.5, r
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson)
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w' if by == 1.5, r
+            mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson)
+disp _skip(8) "check 3"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w', by(by) cluster(ship) `r'
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w' if by == 0.5, cluster(ship)
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson)
+        qui poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `w' if by == 1.5, cluster(ship)
+            mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson)
+disp _skip(8) "check 4"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars'        `w', absorb(ship) r
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w', r
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+disp _skip(8) "check 5"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars'        `w', absorb(ship) cluster(ship)
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w', cluster(ship)
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+disp _skip(8) "check 6"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars'        `w', by(by) absorb(ship) robust
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 0.5, r
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 1.5, r
+            mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+disp _skip(8) "check 7"
+        qui gpoisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars'        `w', by(by) absorb(ship) cluster(ship)
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 0.5, cluster(ship)
+            mata: check_gregress_consistency(`tol', 1, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+        qui  poisson accident op_75_79 co_75_79 co_65_69 co_70_74 co_75_79 co_70_74 `svars' i.ship `w' if by == 1.5, cluster(ship)
+            mata: check_gregress_consistency(`tol', 2, 1::GtoolsPoisson.kx, GtoolsPoisson, 7::`=6 + `:list sizeof svars'')
+disp _skip(8) "check 8"
+
+        qui gpoisson accident z1 z2 `w', robust noc
+            mata assert(all(GtoolsPoisson.b  :== .))
+            mata assert(all(GtoolsPoisson.se :== .))
+disp _skip(8) "check 9"
+    }
+end
+
+cap mata mata drop check_gregress_consistency()
+mata
+void function check_gregress_consistency(
+    real scalar tol,
+    real scalar row,
+    real vector col,
+    class GtoolsRegressOutput scalar res,
+    | real colvector missok)
+{
+    real scalar missokb, missokse
+    real rowvector b, se, tolb, tolse, sameb, samese
+
+    b  = st_matrix("r(table)")[1, col]
+    se = st_matrix("r(table)")[2, col]
+
+    if ( args() > 4 ) {
+        missokb  = all(res.b[row, missok]  :== 0)
+        missokse = all(res.se[row, missok] :== .)
+
+        b[missok]  = res.b[row, missok]
+        se[missok] = res.se[row, missok]
+    }
+    else {
+        missokb  = 1
+        missokse = 1
+    }
+
+    tolb   = reldif(b,  res.b[row, col])  :< tol
+    tolse  = reldif(se, res.se[row, col]) :< tol
+
+    sameb  = (b  :== res.b[row, col])
+    samese = (se :== res.se[row, col])
+
+    assert(all(colmax(tolb  \ sameb))  & missokb)
+    assert(all(colmax(tolse \ samese)) & missokse)
+}
+end
+
+***********************************************************************
+*                               Testing                               *
+***********************************************************************
 
 * capture program drop simpleHDFE
 * program simpleHDFE
@@ -9327,6 +10894,163 @@ end
 *
 *     reg `dmy' `dmx', noc
 * end
+
+* Collinearity test
+* -----------------
+
+* cap mata mata drop my_lu()
+* cap mata mata drop my_ldu()
+* cap mata mata drop my_qr()
+* cap mata mata drop my_householder()
+* cap mata mata drop my_dot()
+* cap mata mata drop my_norm()
+*
+* mata
+* void function my_ldu (real matrix A, real scalar N, real matrix L, real vector D)
+* {
+*     real scalar i, j, k
+*
+*     L = J(N, N, 0)
+*     for (j = 1; j <= N; j++) {
+*         L[j, j] = 1
+*     }
+*     D = J(N, 1, 0)
+*
+*     for (i = 1; i <= N; i++) {
+*         if ( i > 1 ) {
+*             D[i] = A[i, i] - (L[i, 1::(i - 1)]:^2) * D[1::(i - 1)]
+*         }
+*         else {
+*             D[i] = A[i, i]
+*         }
+*         for (j = i + 1; j <= N; j++) {
+*             if ( i > 1 ) {
+*                 L[j, i] = (A[j, i] - (L[j, 1::(i - 1)] :* L[i, 1::(i - 1)]) * D[1::(i - 1)]) / D[i]
+*             }
+*             else {
+*                 L[j, i] = A[j, i] / D[i]
+*             }
+*         }
+*     }
+* }
+*
+* void function my_lu (real matrix A, real scalar N)
+* {
+*     real scalar i, j, k
+*
+*     for (j = 1; j <= N; j++) {
+*         for (k = 1; k <= j - 1; k++) {
+*             for (i = j; i <= N; i++) {
+*                 A[i, j] = A[i, j] - A[i, k] * A[j, k]
+*             }
+*         }
+*         A[j, j] = sqrt(A[j, j])
+*         for (i = j + 1; i <= N; i++) {
+*             A[i, j] = A[i, j] / A[j, j]
+*         }
+*     }
+*
+*     for (j = 1; j <= N; j++) {
+*         for (i = 1; i < j; i++) {
+*             A[i, j] = 0
+*         }
+*     }
+* }
+*
+* void function my_qr (real matrix A, real scalar N, real matrix Q, real matrix H)
+* {
+*     real scalar i
+*
+*     Q = diag(J(1, N, 1))
+*     for (i = 1; i < N; i++) {
+*         H = diag(J(1, N, 1))
+*         H[i::N, i::N] = my_householder(A[i::N, i], N - i + 1, H[i::N, i::N])
+*         Q = Q * H
+*         A = H * A
+*     }
+* }
+*
+* real matrix function my_householder (real vector a, real scalar N, real matrix H)
+* {
+*     real scalar i, j
+*     real scalar anorm, adot
+*
+*     if ( a[1] < 0 ) {
+*         anorm = -my_norm(a, N)
+*     }
+*     else {
+*         anorm = my_norm(a, N)
+*     }
+*
+*     adot = 1;
+*     for (i = N; i > 1; i--) {
+*         a[i] = a[i] / (a[1] + anorm)
+*         adot = adot + a[i] * a[i];
+*     }
+*
+*     a[1] = 1
+*     adot = 2 / adot
+*     for (i = 1; i <= N; i++) {
+*         H[i, i] = 1 - adot * a[i] * a[i]
+*         for (j = i + 1; j <= N; j++) {
+*             H[i, j] = -adot * a[i] * a[j]
+*         }
+*     }
+*
+*     for (i = 1; i <= N; i++) {
+*         for (j = 1; j < i; j++) {
+*             H[i, j] = H[j, i]
+*         }
+*     }
+*
+*     return(H)
+* }
+*
+* real scalar function my_dot (real vector a, real scalar N)
+* {
+*     real scalar i
+*     real scalar dot
+*     dot = 0
+*     for (i = 1; i <= N; i++) {
+*         dot = dot + a[i] * a[i]
+*     }
+*     return (dot)
+* }
+*
+* real scalar function my_norm (real vector a, real scalar N)
+* {
+*     return (sqrt(my_dot(a, N)))
+* }
+* end
+
+* IV via mata
+* -----------
+
+* mata: w  = st_data(., "w")
+* mata: y  = st_data(., "price")
+* mata: X  = st_data(., "mpg")
+* mata: E  = st_data(., "weight turn ones")
+* mata: Z  = st_data(., "gear_ratio")
+* mata: ZZ = (E, Z)' * diag(w) * (E, Z)
+* mata: Zi = invsym(ZZ)
+* mata: PZ = (E, Z)' * diag(w) * X
+* mata: BZ = Zi * PZ
+* mata: PX = (E, Z) * BZ, E
+* mata: XX = PX' * diag(w) * PX
+* mata: Xi = invsym(XX)
+* mata: Xy = PX' * diag(w) * y
+* mata: b  = Xi * Xy
+* mata: e  = y :- (X, E) * b
+* mata: DD = PX' * diag(w :* e:^2) * PX
+* mata: V  = Xi * DD * Xi
+* mata: ZZ
+* mata: PZ
+* mata: BZ
+* mata: XX
+* mata: Xy
+* mata: b
+* mata: V
+
 capture program drop checks_gstats
 program checks_gstats
     checks_gstats_winsor
@@ -10315,7 +12039,9 @@ program versus_gstats_transform, rclass
     local tcall1 (demean)    _out2 = random2 (demedian) _out3 = random3 (normalize) _out4 = random4 _out5 = random5
     local tcall2 (demean)    _out* = random*
     local tcall3 (normalize) _out* = random*
-    local tcall4 (rank)      _out* = random*
+    local tcall4 (cumsum)    _out1 = random1 _out2 = random2 (cumsum +) _out3 = random3 (cumsum -) _out4 = random4 (cumsum + random3) _out5 = random5
+    local tcall5 (rank)      _out* = random*
+    local tcall6 (shift -1)  _out1 = random1 _out2 = random2 (shift +3) _out3 = random3 (shift -4) _out4 = random4 (shift 2) _out5 = random5
 
     local gcall1 (mean)   _goutm2   = random2 _goutm4 = random4 _goutm5 = random5 /*
               */ (sd)                         _gouts4 = random4 _gouts5 = random5 /*
@@ -10323,9 +12049,9 @@ program versus_gstats_transform, rclass
     local gcall2 (mean) _gout*  = random*
     local gcall3 (mean) _goutm* = random* (sd) _gouts* = random*
 
-    local I = cond(`"`wgt'"' == "", 4, 3)
+    local I = cond(`"`wgt'"' == "", 6, 4)
     forvalues i = 1 / `I' {
-        local opts = cond(`i' != 4, "", "ties(. track . field .)")
+        local opts = cond(`i' != 5, "", "ties(. track . field .)")
 
         timer clear
         timer on 42
@@ -10334,6 +12060,8 @@ program versus_gstats_transform, rclass
         qui timer list
         local time_gtransform = r(t42)
 
+        preserve
+        gen long _sort = _n
         timer clear
         timer on 43
         if ( `i' == 1 ) {
@@ -10362,17 +12090,72 @@ program versus_gstats_transform, rclass
             }
         }
         else if ( `i' == 4 ) {
-            local start = 1
-            egen double _gout1 = rank(random1) `if' `in', by(`anything')
-            egen double _gout2 = rank(random2) `if' `in', by(`anything') track
-            egen double _gout3 = rank(random3) `if' `in', by(`anything')
-            egen double _gout4 = rank(random4) `if' `in', by(`anything') field
-            egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            qui {
+                local start = 1
+                if ( `"`if'`in'"' != "" ) keep `if' `in'
+                if ( `"`wgt'"' != "" ) {
+                    local 0 `wgt'
+                    syntax [aw fw pw iw]
+                    tempvar w
+                    gen double `w' `exp'
+                    local w1 * `w'
+                    local w2 & !mi(`w')
+                }
+                else {
+                    local w1
+                    local w2
+                }
+
+                if ( `"`anything'"' != "" ) {
+                    sort `anything', stable
+                    by `anything': gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
+                    by `anything': gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
+                    sort `anything' random3, stable
+                    by `anything': gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
+                    sort `anything' random3 random5, stable
+                    by `anything': gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
+                    gsort `anything' -random4 _sort
+                    by `anything': gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
+                }
+                else {
+                    gen _gout1 = sum(random1 `w1') if !mi(random1) `w2'
+                    gen _gout2 = sum(random2 `w1') if !mi(random2) `w2'
+                    sort random3, stable
+                    gen _gout3 = sum(random3 `w1') if !mi(random3) `w2'
+                    sort random3 random5, stable
+                    gen _gout5 = sum(random5 `w1') if !mi(random5) `w2'
+                    gsort -random4 _sort
+                    gen _gout4 = sum(random4 `w1') if !mi(random4) `w2'
+                }
+            }
+        }
+        else if ( `i' == 5 ) {
+            qui {
+                local start = 1
+                egen double _gout1 = rank(random1) `if' `in', by(`anything')
+                egen double _gout2 = rank(random2) `if' `in', by(`anything') track
+                egen double _gout3 = rank(random3) `if' `in', by(`anything')
+                egen double _gout4 = rank(random4) `if' `in', by(`anything') field
+                egen double _gout5 = rank(random5) `if' `in', by(`anything')
+            }
+        }
+        else if ( `i' == 6 ) {
+            qui {
+                mark _touse `if' `in'
+                sort `anything' _touse, stable
+                local start = 1
+                by `anything' _touse: gen `:type random1' _gout1 = random1[_n - 1] if _touse
+                by `anything' _touse: gen `:type random2' _gout2 = random2[_n - 1] if _touse
+                by `anything' _touse: gen `:type random3' _gout3 = random3[_n + 3] if _touse
+                by `anything' _touse: gen `:type random4' _gout4 = random4[_n - 4] if _touse
+                by `anything' _touse: gen `:type random5' _gout5 = random5[_n + 2] if _touse
+            }
         }
         timer off 43
         qui timer list
         local time_manual = r(t43)
 
+        sort _sort
         forvalues j = `start' / 5 {
             cap assert (abs((_gout`j' - _out`j') / max(abs(_gout`j'), 1)) < `tol' | _gout`j' == _out`j')
             if ( _rc ) {
@@ -10380,6 +12163,7 @@ program versus_gstats_transform, rclass
                 exit _rc
             }
         }
+        restore
 
         cap drop _*
         local rs = `time_manual'  / `time_gtransform'
@@ -10401,13 +12185,13 @@ program versus_gstats_transform_range, rclass
     local rcall1 `rcall1'  (firstnm)  _out13 = random2
     local rcall1 `rcall1'  (min)      _out9  = random2
     local rcall1 `rcall1'  (mean)     _out3  = random2
-                        
+
     local rcall2 `rcall2'  (missing)  _out2  = random2
     local rcall2 `rcall2'  (last)     _out14 = random2
     local rcall2 `rcall2'  (lastnm)   _out15 = random2
     local rcall2 `rcall2'  (max)      _out11 = random2
     local rcall2 `rcall2'  (sum)      _out4  = random2
-                        
+
     local rcall3 `rcall3'  (sd)       _out5  = random2
     local rcall3 `rcall3'  (variance) _out6  = random2
 
@@ -10491,13 +12275,13 @@ program versus_gstats_transform_moving, rclass
     local rcall1 `rcall1'  (firstnm)  _out13 = random2
     local rcall1 `rcall1'  (min)      _out9  = random2
     local rcall1 `rcall1'  (mean)     _out3  = random2
-                        
+
     local rcall2 `rcall2'  (missing)  _out2  = random2
     local rcall2 `rcall2'  (last)     _out14 = random2
     local rcall2 `rcall2'  (lastnm)   _out15 = random2
     local rcall2 `rcall2'  (max)      _out11 = random2
     local rcall2 `rcall2'  (sum)      _out4  = random2
-                        
+
     local rcall3 `rcall3'  (sd)       _out5  = random2
     local rcall3 `rcall3'  (variance) _out6  = random2
     local rcall3 `rcall3'  (skewness) _out7  = random2

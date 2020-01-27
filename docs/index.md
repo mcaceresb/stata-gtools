@@ -3,12 +3,12 @@
 Faster Stata for big data. This packages uses C plugins and hashes
 to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
-winsor, contract, levelsof, duplicates, and unique/distinct.
+winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.6.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.7.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.6.2 25Aug2019`
+`version 1.7.2 26Jan2020`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.org/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.org/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -90,7 +90,9 @@ the features of 'groups'</small>
 
 __*Regression models*__
 
-Regression models are in beta. The following are available:
+Regression models are in beta and are mainly intended as utilities
+to compute coefficients and standard errors. Various post-estimation
+commands and statistics are _not_ availabe. The following are included:
 
 | Function            | Model   | Similar                       |
 | ------------------- | ------- | ----------------------------- |
@@ -105,13 +107,13 @@ All commands allow the user to optionally add:
 - `by()` for regressions by group.
 - `weights` for weighted versions. Unlike other weights, `fweights` are assumed to refer to the _number_ of observations.
 
-Currently only coefficients and standard errors are computed.  These
-models do not aim to mimic all the functionality of any given
-command. Linear regression is computed via OLS (or WLS), IV regression
-is computed via two-stage least squares (2SLS), and poisson regression
-is computed via iteratively reweighted least squares (IRLS).  Rolling
-regressions and multi-way cluster SE are planned for the next point
-release.
+Linear regression is computed via OLS (or WLS), IV regression is
+computed via two-stage least squares (2SLS), and poisson regression
+is computed via iteratively reweighted least squares (IRLS).  See
+the [TODO](#todo) section for planned features, or the
+[Missing Features](usage/gregress#missing-features)
+section in the documentation for what is missing before the first
+non-beta release.
 
 __*Extra features*__
 
@@ -204,7 +206,7 @@ Acknowledgements
   [ftools](https://github.com/sergiocorreia/ftools) package. Further, several
   improvements and bug fixes have come from to @sergiocorreia's helpful comments.
 
-* With the exception of `greshape`, every gtools command was eventually
+* With the exception of `greshape`, every gtools command has been
   written almost entirely from scratch (and even `greshape` is mostly
   new code). However, gtools commands typically mimic the functionality
   of existing Stata commands, including community-contributed programs,
@@ -358,41 +360,44 @@ as in `tabstat`.
 
 The following are implemented internally in C:
 
-| Function    | gcollapse | gegen   | gstats tab |
-| ----------- | --------- | ------- | ---------- |
-| tag         |           |   X     |            |
-| group       |           |   X     |            |
-| total       |           |   X     |            |
-| count       |     X     |   X     |      X     |
-| nunique     |     X     |   X     |      X     |
-| nmissing    |     X     |   X (+) |      X     |
-| sum         |     X     |   X     |      X     |
-| nansum      |     X     |   X     |      X     |
-| rawsum      |     X     |         |      X     |
-| rawnansum   |     X     |         |      X     |
-| mean        |     X     |   X     |      X     |
-| geomean     |     X     |   X     |      X     |
-| median      |     X     |   X     |      X     |
-| percentiles |     X     |   X     |      X     |
-| iqr         |     X     |   X     |      X     |
-| sd          |     X     |   X     |      X     |
-| variance    |     X     |   X (+) |      X     |
-| cv          |     X     |   X     |      X     |
-| max         |     X     |   X     |      X     |
-| min         |     X     |   X     |      X     |
-| range       |     X     |   X     |      X     |
-| select      |     X     |   X     |      X     |
-| rawselect   |     X     |         |      X     |
-| percent     |     X     |   X     |      X     |
-| first       |     X     |   X (+) |      X     |
-| last        |     X     |   X (+) |      X     |
-| firstnm     |     X     |   X (+) |      X     |
-| lastnm      |     X     |   X (+) |      X     |
-| semean      |     X     |   X (+) |      X     |
-| sebinomial  |     X     |   X     |      X     |
-| sepoisson   |     X     |   X     |      X     |
-| skewness    |     X     |   X     |      X     |
-| kurtosis    |     X     |   X     |      X     |
+| Function     | gcollapse | gegen   | gstats tab |
+| ------------ | --------- | ------- | ---------- |
+| tag          |           |   X     |            |
+| group        |           |   X     |            |
+| total        |           |   X     |            |
+| count        |     X     |   X     |      X     |
+| nunique      |     X     |   X     |      X     |
+| nmissing     |     X     |   X (+) |      X     |
+| sum          |     X     |   X     |      X     |
+| nansum       |     X     |   X     |      X     |
+| rawsum       |     X     |         |      X     |
+| rawnansum    |     X     |         |      X     |
+| mean         |     X     |   X     |      X     |
+| geomean      |     X     |   X     |      X     |
+| median       |     X     |   X     |      X     |
+| percentiles  |     X     |   X     |      X     |
+| iqr          |     X     |   X     |      X     |
+| sd           |     X     |   X     |      X     |
+| variance     |     X     |   X (+) |      X     |
+| cv           |     X     |   X     |      X     |
+| max          |     X     |   X     |      X     |
+| min          |     X     |   X     |      X     |
+| range        |     X     |   X     |      X     |
+| select       |     X     |   X     |      X     |
+| rawselect    |     X     |         |      X     |
+| percent      |     X     |   X     |      X     |
+| first        |     X     |   X (+) |      X     |
+| last         |     X     |   X (+) |      X     |
+| firstnm      |     X     |   X (+) |      X     |
+| lastnm       |     X     |   X (+) |      X     |
+| semean       |     X     |   X (+) |      X     |
+| sebinomial   |     X     |   X     |      X     |
+| sepoisson    |     X     |   X     |      X     |
+| skewness     |     X     |   X     |      X     |
+| kurtosis     |     X     |   X     |      X     |
+| gini         |     X     |   X     |      X     |
+| gini dropneg |     X     |   X     |      X     |
+| gini keepneg |     X     |   X     |      X     |
 
 <small>(+) indicates the function has the same or a very similar
 name to a function in the "egenmore" packge, but the function was
@@ -428,6 +433,8 @@ gtools functions (`stat` is any stat available to `gcollapse`, except
 | demedian     | gstats transform |
 | moving\_stat | gstats transform |
 | range\_stat  | gstats transform |
+| cumsum       | gstats transform |
+| shift        | gstats transform |
 | rank         | gstats transform |
 | winsor       | gstats winsor    |
 | winsorize    | gstats winsor    |
@@ -457,7 +464,7 @@ Differences from `collapse`
 
 - String variables are not allowed for `first`, `last`, `min`, `max`, etc.
   (see [issue 25](https://github.com/mcaceresb/stata-gtools/issues/25))
-- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`
+- New functions: `nunique`, `nmissing`, `cv`, `variance`, `select#`, `select-#`, `range`, `gini`
 - `rawstat` allows selectively applying weights.
 - `rawselect` ignores weights for `select` (analogously to `rawsum`).
 - Option `wild` allows bulk-rename. E.g. `gcollapse mean_x* = x*, wild`
@@ -502,10 +509,19 @@ post-estimation results and tests, that `regress` (`reghdfe`),
 available. At the moment, they are considered beta software and only
 coefficients and standard errors are computed.
 
-- Results are saved either to mata (default) or copied to variables in the dataset in memory.
+- Results are saved either to mata (default) or copied to variables in
+  the dataset in memory.
 - `by()` and `absorb()` are allowed and can be combined.
 - `givregress` does a small sample adjustment (`small`) automatically.
+- `givregress` does not exit with error if covariates are collinear with
+  the dependent variable.
+- If the `givregress` model is not identified, standard errors and
+  coefficients are set to missing instead of exiting with error.
 - `gpoisson` runs with option `robust` automatically.
+- If the `givregress` model is not identified, standard errors and
+- If there are no non-linear covariates (i.e. all observations are
+  numerically zero) then the coefficients and standard errors are
+  _both_ set to missing.
 
 Differences from `xtile`, `pctile`, and `_pctile`
 
@@ -678,24 +694,30 @@ This is equivalent, but the overhead makes it slower than `hashsort`.
 TODO
 ----
 
-Planned features for `gtools-1.7.0`:
+Planned features:
 
-- Flexible save options for regress
-    - Choose which coefs/se to save
-    - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
+- `gregress` missing features
+    - Non-nested multi-way clustering.
+    - HDFE collienar categories check.
+    - HDFE drop singletons.
+    - Detect separated observations in `gpoisson`.
+    - Guard against possible overflows in `X' X`
+    - Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
+    - Include quick primers on OLS, IV, and IRLS in docs.
+- Flexible save options for `gregress`
     - `predict()`, including `xb` and `e`.
-- Singularity check
-- Redundant categories check
-- Remove colinear variables by group in `gregress`
-- Non-nested multi-way clustering for `gregress`.
-- Accelerate HDFE corner cases in `gregress`
-- Rolling (interval) and moving options for `gregress`.
-- `cumsum` for `gstats transform` (normal cumsum)
-- `cumsum +- varname` for `gstats transform` (cumsum ordered by `varname`)
+    - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
+    - Choose which coefs/se to save.
+- Improve formula documentation for summary statistics (e.g. `gini`)
+- Internal consistency test for various parts of `gquantiles`. Each
+  function section does cases but they should be consistent!
 
 These are options/features/improvements I would like to add, but I don't
-have an ETA for them (in order of how likely they are to come):
+have an ETA for them (i.e. they are a wishlist because I am either not
+sure how to implement them or because writing the code will take a long
+time). Roughly in order of likelihood:
 
+- Some support for Stata's extended syntax in `gregress`
 - Update benchmarks for all commands. Still on 0.8 benchmarks.
 - Dropmissing vs dropmissing but not extended missing values.
 - Allow keeping both variable names and labels in `greshape spread/gather`
@@ -703,6 +725,7 @@ have an ETA for them (in order of how likely they are to come):
 - Add totals row for `J > 1` in gstats
 - Improve debugging info.
 - Implement `collapse()` option for `greshape`.
+- Rolling (interval) and moving options for `gregress`.
 - Add support for binary `strL` variables.
 - Minimize memory use.
 - Add memory(greedy|lean) to give user fine-grained control over internals.

@@ -1,4 +1,4 @@
-*! version 1.6.2 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.7.2 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1672,8 +1672,6 @@ program _gtools_internal, rclass
                 window(str)                  /// Window for moving regressions
                 hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
                 noConstant                   /// Whether to add a constant
-                rowmajor                     /// Read matrix in row major order
-                colmajor                     /// Read matrix in column major order
                                              ///
                 ivkendog(int 0)              /// IV endogenous
                 ivkexog(int 0)               /// IV exogenous
@@ -1785,13 +1783,6 @@ program _gtools_internal, rclass
                 }
             }
 
-            if ( (`"`rowmajor'"' != "") & (`"`colmajor'"' != "") ) {
-                disp as err "Specify only one of {opt rowmajor} or {opt colmajor}"
-                local rc = 198
-                clean_all `rc'
-                exit `rc'
-            }
-
             * TODO: strL support
             if ( `"`cluster'"' != "" ) {
                 GenericParseTypes `cluster', mat(__gtools_gregress_clustyp)
@@ -1817,8 +1808,6 @@ program _gtools_internal, rclass
 
             scalar __gtools_gregress_kvars    = `:list sizeof varlist'
             scalar __gtools_gregress_cons     = `"`constant'"' != "noconstant"
-            scalar __gtools_gregress_rowmajor = `"`rowmajor'"' != ""
-            scalar __gtools_gregress_colmajor = `"`colmajor'"' != ""
             scalar __gtools_gregress_robust   = `"`robust'"'   != ""
             scalar __gtools_gregress_cluster  = `:list sizeof cluster'
             scalar __gtools_gregress_absorb   = `:list sizeof absorb'
@@ -1841,13 +1830,6 @@ program _gtools_internal, rclass
                 local Caller Regress
             }
 
-            if ( scalar(__gtools_gregress_rowmajor) & scalar(__gtools_gregress_ivreg) ) {
-                disp as err "Option -rowmajor- not allowed with IV regression"
-                local rc = 198
-                clean_all `rc'
-                exit `rc'
-            }
-
             if ( scalar(__gtools_gregress_poisson) & scalar(__gtools_gregress_ivreg) ) {
                 disp as err "Parsing error: gpoisson and givregress cannot be run at the same time"
                 local rc = 198
@@ -1857,13 +1839,6 @@ program _gtools_internal, rclass
 
             if ( scalar(__gtools_gregress_cluster) > 1 ) {
                 disp as txt "({bf:warning}: cluster() with multiple variables is assumed to be nested)"
-            }
-
-            if ( scalar(__gtools_gregress_absorb) > 0 & scalar(__gtools_gregress_rowmajor) ) {
-                disp as err "absorb() is not available with option -rowmajor-"
-                local rc = 198
-                clean_all `rc'
-                exit `rc'
             }
 
             if ( scalar(__gtools_gregress_kvars) < 2 ) {
@@ -3199,6 +3174,8 @@ program clean_all
     cap scalar drop __gtools_gfile_topmat
     cap scalar drop __gtools_gfile_gregb
     cap scalar drop __gtools_gfile_gregse
+    cap scalar drop __gtools_gfile_gregclus
+    cap scalar drop __gtools_gfile_gregabs
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
@@ -3921,33 +3898,36 @@ end
 capture program drop encode_stat_allowed
 program encode_stat_allowed, rclass
     args st keepadd
-    local allowed sum        ///
-                  nansum     ///
-                  mean       ///
-                  geomean    ///
-                  sd         ///
-                  variance   ///
-                  cv         ///
-                  max        ///
-                  min        ///
-                  range      ///
-                  count      ///
-                  median     ///
-                  iqr        ///
-                  percent    ///
-                  first      ///
-                  last       ///
-                  firstnm    ///
-                  lastnm     ///
-                  freq       ///
-                  semean     ///
-                  sebinomial ///
-                  sepoisson  ///
-                  nunique    ///
-                  nmissing   ///
-                  skewness   ///
-                  kurtosis   ///
-                  rawsum     ///
+    local allowed sum          ///
+                  nansum       ///
+                  mean         ///
+                  geomean      ///
+                  sd           ///
+                  variance     ///
+                  cv           ///
+                  max          ///
+                  min          ///
+                  range        ///
+                  count        ///
+                  median       ///
+                  iqr          ///
+                  percent      ///
+                  first        ///
+                  last         ///
+                  firstnm      ///
+                  lastnm       ///
+                  freq         ///
+                  semean       ///
+                  sebinomial   ///
+                  sepoisson    ///
+                  nunique      ///
+                  nmissing     ///
+                  skewness     ///
+                  kurtosis     ///
+                  gini         ///
+                  gini|dropneg ///
+                  gini|keepneg ///
+                  rawsum       ///
                   rawnansum
 
     encode_aliases `st'
@@ -3975,34 +3955,37 @@ capture program drop encode_stat
 program encode_stat, rclass
     args stat keepadd
     local statcode 0
-    if ( "`stat'" == "sum"       ) local statcode = -1 - `keepadd'
-    if ( "`stat'" == "nansum"    ) local statcode = -101
-    if ( "`stat'" == "mean"      ) local statcode = -2
-    if ( "`stat'" == "geomean"   ) local statcode = -26
-    if ( "`stat'" == "sd"        ) local statcode = -3
-    if ( "`stat'" == "variance"  ) local statcode = -23
-    if ( "`stat'" == "cv"        ) local statcode = -24
-    if ( "`stat'" == "max"       ) local statcode = -4
-    if ( "`stat'" == "min"       ) local statcode = -5
-    if ( "`stat'" == "range"     ) local statcode = -25
-    if ( "`stat'" == "count"     ) local statcode = -6
-    if ( "`stat'" == "percent"   ) local statcode = -7
-    if ( "`stat'" == "median"    ) local statcode = 50
-    if ( "`stat'" == "iqr"       ) local statcode = -9
-    if ( "`stat'" == "first"     ) local statcode = -10
-    if ( "`stat'" == "firstnm"   ) local statcode = -11
-    if ( "`stat'" == "last"      ) local statcode = -12
-    if ( "`stat'" == "lastnm"    ) local statcode = -13
-    if ( "`stat'" == "freq"      ) local statcode = -14
-    if ( "`stat'" == "semean"    ) local statcode = -15
-    if ( "`stat'" == "sebinomial") local statcode = -16
-    if ( "`stat'" == "sepoisson" ) local statcode = -17
-    if ( "`stat'" == "nunique"   ) local statcode = -18
-    if ( "`stat'" == "nmissing"  ) local statcode = -22
-    if ( "`stat'" == "skewness"  ) local statcode = -19
-    if ( "`stat'" == "kurtosis"  ) local statcode = -20
-    if ( "`stat'" == "rawsum"    ) local statcode = -21 - `keepadd'
-    if ( "`stat'" == "rawnansum" ) local statcode = -121
+    if ( "`stat'" == "sum"          ) local statcode = -1 - `keepadd'
+    if ( "`stat'" == "nansum"       ) local statcode = -101
+    if ( "`stat'" == "mean"         ) local statcode = -2
+    if ( "`stat'" == "geomean"      ) local statcode = -26
+    if ( "`stat'" == "sd"           ) local statcode = -3
+    if ( "`stat'" == "variance"     ) local statcode = -23
+    if ( "`stat'" == "cv"           ) local statcode = -24
+    if ( "`stat'" == "max"          ) local statcode = -4
+    if ( "`stat'" == "min"          ) local statcode = -5
+    if ( "`stat'" == "range"        ) local statcode = -25
+    if ( "`stat'" == "count"        ) local statcode = -6
+    if ( "`stat'" == "percent"      ) local statcode = -7
+    if ( "`stat'" == "median"       ) local statcode = 50
+    if ( "`stat'" == "iqr"          ) local statcode = -9
+    if ( "`stat'" == "first"        ) local statcode = -10
+    if ( "`stat'" == "firstnm"      ) local statcode = -11
+    if ( "`stat'" == "last"         ) local statcode = -12
+    if ( "`stat'" == "lastnm"       ) local statcode = -13
+    if ( "`stat'" == "freq"         ) local statcode = -14
+    if ( "`stat'" == "semean"       ) local statcode = -15
+    if ( "`stat'" == "sebinomial"   ) local statcode = -16
+    if ( "`stat'" == "sepoisson"    ) local statcode = -17
+    if ( "`stat'" == "nunique"      ) local statcode = -18
+    if ( "`stat'" == "nmissing"     ) local statcode = -22
+    if ( "`stat'" == "skewness"     ) local statcode = -19
+    if ( "`stat'" == "kurtosis"     ) local statcode = -20
+    if ( "`stat'" == "gini"         ) local statcode = -27
+    if ( "`stat'" == "gini|dropneg" ) local statcode = -27.1
+    if ( "`stat'" == "gini|keepneg" ) local statcode = -27.2
+    if ( "`stat'" == "rawsum"       ) local statcode = -21 - `keepadd'
+    if ( "`stat'" == "rawnansum"    ) local statcode = -121
     return scalar statcode = `statcode'
 end
 
@@ -4068,67 +4051,73 @@ end
 capture program drop encode_aliases
 program encode_aliases, rclass
     args st
-    local allowed sum        ///
-                  nansum     ///
-                  mean       ///
-                  geomean    ///
-                  sd         ///
-                  variance   ///
-                  cv         ///
-                  max        ///
-                  min        ///
-                  range      ///
-                  count      ///
-                  median     ///
-                  iqr        ///
-                  percent    ///
-                  first      ///
-                  last       ///
-                  firstnm    ///
-                  lastnm     ///
-                  freq       ///
-                  semean     ///
-                  sebinomial ///
-                  sepoisson  ///
-                  nunique    ///
-                  nmissing   ///
-                  skewness   ///
-                  kurtosis   ///
-                  rawsum     ///
+    local allowed sum          ///
+                  nansum       ///
+                  mean         ///
+                  geomean      ///
+                  sd           ///
+                  variance     ///
+                  cv           ///
+                  max          ///
+                  min          ///
+                  range        ///
+                  count        ///
+                  median       ///
+                  iqr          ///
+                  percent      ///
+                  first        ///
+                  last         ///
+                  firstnm      ///
+                  lastnm       ///
+                  freq         ///
+                  semean       ///
+                  sebinomial   ///
+                  sepoisson    ///
+                  nunique      ///
+                  nmissing     ///
+                  skewness     ///
+                  kurtosis     ///
+                  gini         ///
+                  gini|dropneg ///
+                  gini|keepneg ///
+                  rawsum       ///
                   rawnansum
 
-    local alias_sum        su
-    local alias_nansum     nansu
-    local alias_mean       me         mea
+    local alias_sum          su
+    local alias_nansum       nansu
+    local alias_mean         me         mea
     local alias_geomean
+    local alias_gini
+    local alias_gini_dropneg
+    local alias_gini_keepneg
     local alias_sd
-    local alias_variance   var        vari       varia      varian     varianc
+    local alias_variance     var        vari       varia      varian     varianc
     local alias_cv
-    local alias_max        ma         max
-    local alias_min        mi         min
-    local alias_range      r          ra         ran        rang       range
-    local alias_count      co         cou        coun
-    local alias_median     med        medi       media
+    local alias_max          ma         max
+    local alias_min          mi         min
+    local alias_range        r          ra         ran        rang       range
+    local alias_count        co         cou        coun
+    local alias_median       med        medi       media
     local alias_iqr
-    local alias_percent    perc       perce      percen
+    local alias_percent      perc       perce      percen
     local alias_first
     local alias_last
     local alias_firstnm
     local alias_lastnm
     local alias_freq
-    local alias_semean     sem        seme       semea
-    local alias_sebinomial seb        sebi       sebin      sebino     sebinom    sebinomi   sebinomia
-    local alias_sepoisson  sep        sepo       sepoi      sepois     sepoiss    sepoisso
-    local alias_nunique    nuniq      nuniqu
-    local alias_nmissing   nmiss      nmissi     nmissin
-    local alias_skewness   sk         ske        skew       skewn      skewne     skewnes
-    local alias_kurtosis   k          ku         kur        kurt       kurto      kurtos     kurtosi
-    local alias_rawsum     rawsu
-    local alias_rawnansum  rawnansu
+    local alias_semean       sem        seme       semea
+    local alias_sebinomial   seb        sebi       sebin      sebino     sebinom    sebinomi   sebinomia
+    local alias_sepoisson    sep        sepo       sepoi      sepois     sepoiss    sepoisso
+    local alias_nunique      nuniq      nuniqu
+    local alias_nmissing     nmiss      nmissi     nmissin
+    local alias_skewness     sk         ske        skew       skewn      skewne     skewnes
+    local alias_kurtosis     k          ku         kur        kurt       kurto      kurtos     kurtosi
+    local alias_rawsum       rawsu
+    local alias_rawnansum    rawnansu
 
     if ( !`:list st in allowed' ) {
         foreach stat of local allowed {
-            if ( `:list st in alias_`stat'' ) {
+            if ( `:list st in alias_`:subinstr local stat "|" "_", all'' ) {
                 local st: copy local stat
             }
         }
@@ -4183,37 +4172,40 @@ program encode_stat_types, rclass
     encode_stat_allowed `stat' 0
     local stat `r(statname)'
 
-    if ( "`stat'" == "sum"        ) local type double
-    if ( "`stat'" == "nansum"     ) local type double
-    if ( "`stat'" == "mean"       ) local type `deftype'
-    if ( "`stat'" == "geomean"    ) local type `deftype'
-    if ( "`stat'" == "sd"         ) local type `deftype'
-    if ( "`stat'" == "variance"   ) local type `deftype'
-    if ( "`stat'" == "cv"         ) local type `deftype'
-    if ( "`stat'" == "max"        ) local type `stype'
-    if ( "`stat'" == "min"        ) local type `stype'
-    if ( "`stat'" == "range"      ) local type `nexttype'
-    if ( "`stat'" == "count"      ) local type `mintype_count'
-    if ( "`stat'" == "percent"    ) local type `deftype'
-    if ( "`stat'" == "median"     ) local type `deftype'
-    if ( "`stat'" == "iqr"        ) local type `deftype'
-    if ( "`stat'" == "first"      ) local type `stype'
-    if ( "`stat'" == "firstnm"    ) local type `stype'
-    if ( "`stat'" == "last"       ) local type `stype'
-    if ( "`stat'" == "lastnm"     ) local type `stype'
-    if ( "`stat'" == "freq"       ) local type `mintype_count'
-    if ( "`stat'" == "semean"     ) local type `deftype'
-    if ( "`stat'" == "sebinomial" ) local type `deftype'
-    if ( "`stat'" == "sepoisson"  ) local type `deftype'
-    if ( "`stat'" == "nunique"    ) local type `mintype_count'
-    if ( "`stat'" == "nmissing"   ) local type `mintype_count'
-    if ( "`stat'" == "skewness"   ) local type `deftype'
-    if ( "`stat'" == "kurtosis"   ) local type `deftype'
-    if ( "`stat'" == "rawsum"     ) local type double
-    if ( "`stat'" == "rawnansum"  ) local type double
-    if ( "`stat'" == "pctile"     ) local type `deftype'
-    if ( "`stat'" == "select"     ) local type `stype'
-    if ( "`stat'" == "rawselect"  ) local type `stype'
+    if ( "`stat'" == "sum"          ) local type double
+    if ( "`stat'" == "nansum"       ) local type double
+    if ( "`stat'" == "mean"         ) local type `deftype'
+    if ( "`stat'" == "geomean"      ) local type `deftype'
+    if ( "`stat'" == "sd"           ) local type `deftype'
+    if ( "`stat'" == "variance"     ) local type `deftype'
+    if ( "`stat'" == "cv"           ) local type `deftype'
+    if ( "`stat'" == "max"          ) local type `stype'
+    if ( "`stat'" == "min"          ) local type `stype'
+    if ( "`stat'" == "range"        ) local type `nexttype'
+    if ( "`stat'" == "count"        ) local type `mintype_count'
+    if ( "`stat'" == "percent"      ) local type `deftype'
+    if ( "`stat'" == "median"       ) local type `deftype'
+    if ( "`stat'" == "iqr"          ) local type `deftype'
+    if ( "`stat'" == "first"        ) local type `stype'
+    if ( "`stat'" == "firstnm"      ) local type `stype'
+    if ( "`stat'" == "last"         ) local type `stype'
+    if ( "`stat'" == "lastnm"       ) local type `stype'
+    if ( "`stat'" == "freq"         ) local type `mintype_count'
+    if ( "`stat'" == "semean"       ) local type `deftype'
+    if ( "`stat'" == "sebinomial"   ) local type `deftype'
+    if ( "`stat'" == "sepoisson"    ) local type `deftype'
+    if ( "`stat'" == "nunique"      ) local type `mintype_count'
+    if ( "`stat'" == "nmissing"     ) local type `mintype_count'
+    if ( "`stat'" == "skewness"     ) local type `deftype'
+    if ( "`stat'" == "kurtosis"     ) local type `deftype'
+    if ( "`stat'" == "rawsum"       ) local type double
+    if ( "`stat'" == "rawnansum"    ) local type double
+    if ( "`stat'" == "pctile"       ) local type `deftype'
+    if ( "`stat'" == "select"       ) local type `stype'
+    if ( "`stat'" == "rawselect"    ) local type `stype'
+    if ( "`stat'" == "gini"         ) local type `deftype'
+    if ( "`stat'" == "gini|dropneg" ) local type `deftype'
+    if ( "`stat'" == "gini|keepneg" ) local type `deftype'
 
     if ( `"`ttype'"' == "double" ) {
         local retype = 0
@@ -4331,7 +4323,7 @@ program encode_moving, rclass
     }
 
     local rwarn = 0
-    if ( regexm(`"`anything'"', "^moving[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?$") ) {
+    if ( regexm(`"`anything'"', "^moving[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?$") ) {
         local rmatch = 1
         local rstat  = regexs(1)
         cap local rlower = regexs(2)
@@ -4356,7 +4348,7 @@ program encode_moving, rclass
 
         encode_aliases `rstat'
         local rstat `r(stat)'
-        local stat moving_`rstat'_`rlower'_`rupper'
+        local stat moving|`rstat'|`rlower'|`rupper'
 
         cap encode_stat_allowed `rstat' 0
         local scode = `r(statcode)'
@@ -4409,7 +4401,7 @@ program encode_range, rclass
     if ( `"`variable'"'  == ""  ) local variable  `var'
 
     local iwarn = 0
-    if ( regexm(`"`anything'"', "^range[ _]+([^ _]+)[ _]*([^ _]+)?[ _]*([^ _]+)?[ _]*([^ ]+)?$") ) {
+    if ( regexm(`"`anything'"', "^range[ |]+([^ |]+)[ |]*([^ |]+)?[ |]*([^ |]+)?[ |]*([^ ]+)?$") ) {
         local imatch = 1
         local istat  = regexs(1)
         cap local ilower = regexs(2)
@@ -4461,7 +4453,7 @@ program encode_range, rclass
         if ( `"`ilsign'"' == "-" ) local ilower -`ilower'
         if ( `"`iusign'"' == "-" ) local iupper -`iupper'
 
-        local stat range_`istat'_`ilower'`ilstat'_`iupper'`iustat'_`ivar'
+        local stat range|`istat'|`ilower'`ilstat'|`iupper'`iustat'|`ivar'
     }
     else {
         local irangestr
@@ -4581,6 +4573,92 @@ program encode_range_stat, rclass
     return local istat   : copy local istat
 end
 
+capture program drop encode_cumsum
+program encode_cumsum, rclass
+    syntax anything, [cumby(str) var(str)]
+
+    local var `var'
+    local anything `anything'
+    local stat: copy local anything
+    local match 0
+    local cumsign 0
+    local cumvars
+
+    if ( (`"`anything'"' == "cumsum") & (`"`cumby'"' == "") ) {
+        local match 1
+    }
+    else {
+        local anything: subinstr local anything "|" " ", all
+        local anything `anything'
+        if ( regexm(`"`anything'"', "^cumsum(.*)$") ) {
+            local _cumby = regexs(1)
+            local _cumby `_cumby'
+            if ( `"`_cumby'"' == "" ) local _cumby: copy local cumby
+
+            gettoken cumsign cumvars: _cumby
+            local cumvars `cumvars'
+            local cumsign `cumsign'
+
+            if inlist(`"`cumsign'"', "+", "-") {
+                * if ( `"`cumvars'"' == "" ) local cumvars: copy local var
+
+                local match 1
+                local stat cumsum|`cumsign'|`:subinstr local cumvars " " "|", all'
+                local cumsign = cond(`"`cumsign'"' == "+", 1, 2)
+            }
+            else {
+                disp as err "cumsum: cumby() misspecified; expected '+/- [varlist]' but got '`_cumby''"
+                exit 7
+            }
+        }
+
+        c_local stat: copy local stat
+    }
+
+    return local stat:     copy local stat
+    return local match:    copy local match
+    return local cumsign:  copy local cumsign
+    return local cumvars:  copy local cumvars
+    return local cumother = `"`cumvars'"' != ""
+end
+
+capture program drop encode_shift
+program encode_shift, rclass
+    syntax anything, [shiftby(str)]
+
+    local anything `anything'
+    local stat: copy local anything
+    local match 0
+    local shift 0
+
+    if regexm(`"`anything'"', "^shift[ |]*([+-]?[0-9]+)[ |]*$") {
+        local shift = `=regexs(1)'
+        local match 1
+        local stat shift|`shift'
+    }
+    else if regexm(`"`anything'"', "^shift[ |]*$") {
+        if ( `"`shiftby'"' == "" ) {
+            disp as err "shift: shiftby() required if no individual shift is specified"
+            exit 198
+        }
+        else {
+            cap confirm integer number `shiftby'
+            if ( _rc ) {
+                disp as err "shift: shiftby() misspecified; expected integer but got '`shiftby''"
+                exit 7
+            }
+            local shift = `=`shiftby''
+            local match 1
+            local stat shift|`shift'
+        }
+    }
+
+    c_local stat: copy local stat
+    return local stat:  copy local stat
+    return local match: copy local match
+    return local shift: copy local shift
+end
+
 ***********************************************************************
 *                              greshape                               *
 ***********************************************************************
@@ -4639,8 +4717,6 @@ program gregress_scalars
         scalar __gtools_gregress_kv        = 0
         scalar __gtools_gregress_kvars     = 0
         scalar __gtools_gregress_cons      = 0
-        scalar __gtools_gregress_rowmajor  = 0
-        scalar __gtools_gregress_colmajor  = 0
         scalar __gtools_gregress_robust    = 0
         scalar __gtools_gregress_cluster   = 0
         scalar __gtools_gregress_absorb    = 0
@@ -4673,8 +4749,6 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_kv
         cap scalar drop __gtools_gregress_kvars
         cap scalar drop __gtools_gregress_cons
-        cap scalar drop __gtools_gregress_rowmajor
-        cap scalar drop __gtools_gregress_colmajor
         cap scalar drop __gtools_gregress_robust
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb
@@ -4766,6 +4840,7 @@ program gstats_scalars
         scalar __gtools_transform_kvars        = 1
         scalar __gtools_transform_ktargets     = 1
         scalar __gtools_transform_kgstats      = 1
+        scalar __gtools_transform_cumsum_k     = 0
         scalar __gtools_transform_range_k      = 0
         scalar __gtools_transform_range_xs     = 0
         scalar __gtools_transform_range_xb     = 0
@@ -4787,6 +4862,16 @@ program gstats_scalars
         matrix __gtools_transform_range_ls     = 0
         matrix __gtools_transform_range_us     = 0
 
+        matrix __gtools_transform_cumtypes     = 0
+        matrix __gtools_transform_cumsum       = 0
+        matrix __gtools_transform_cumsign      = 0
+        matrix __gtools_transform_cumvars      = 0
+        matrix __gtools_transform_aux8_shift   = 0
+
+        mata: __gtools_transform_cumsum        = .
+        mata: __gtools_transform_cumsign       = .
+        mata: __gtools_transform_cumvars       = .
+        mata: __gtools_transform_aux8_shift    = .
         mata: __gtools_summarize_codes         = .
     }
     else {
@@ -4844,6 +4929,7 @@ program gstats_scalars
         cap scalar drop __gtools_transform_kvars
         cap scalar drop __gtools_transform_ktargets
         cap scalar drop __gtools_transform_kgstats
+        cap scalar drop __gtools_transform_cumsum_k
         cap scalar drop __gtools_transform_range_k
         cap scalar drop __gtools_transform_range_xs
         cap scalar drop __gtools_transform_range_xb
@@ -4866,6 +4952,17 @@ program gstats_scalars
         cap matrix drop __gtools_transform_range_u
         cap matrix drop __gtools_transform_range_ls
         cap matrix drop __gtools_transform_range_us
+
+        cap matrix drop __gtools_transform_cumtypes
+        cap matrix drop __gtools_transform_cumsum
+        cap matrix drop __gtools_transform_cumsign
+        cap matrix drop __gtools_transform_cumvars
+        cap matrix drop __gtools_transform_aux8_shift
+
+        cap mata: mata drop __gtools_transform_cumsum
+        cap mata: mata drop __gtools_transform_cumsign
+        cap mata: mata drop __gtools_transform_cumvars
+        cap mata: mata drop __gtools_transform_aux8_shift
 
         cap mata: mata drop __gtools_transform_rank_ties
         cap mata: mata drop __gtools_summarize_codes
@@ -4909,6 +5006,8 @@ program gstats_transform
         ties(str)                   /// how to resolve ties (one per target; use . for non-rank targets)
         window(passthru)            /// moving window if not specified in the stat
         interval(passthru)          /// interval if not specified in the stat
+        cumby(passthru)             /// Cummulative sum by +/- and varlst
+        shiftby(passthru)           /// Shift by +/-#
         excludeself                 /// exclude current obs from statistic
         excludebounds               /// interval is strict (do not include bounds)
     ]
@@ -4922,7 +5021,7 @@ program gstats_transform
         `labelprogram'                 ///
         `autorename'                   ///
         `autorenameformat'             ///
-        `window' `interval' `statprefix'
+        `window' `interval' `cumby' `shiftby' `statprefix'
 
     local transforms rank        ///
                      standardize ///
@@ -4936,6 +5035,10 @@ program gstats_transform
             encode_moving `stat'
             local rmatch = `r(match)'
             encode_range `stat'
+            local rmatch = `r(match)' | `rmatch'
+            encode_cumsum `stat'
+            local rmatch = `r(match)' | `rmatch'
+            encode_shift  `stat'
             local rmatch = `r(match)' | `rmatch'
             if ( `rmatch' == 0 ) {
                 local unknown `unknown' `stat'
@@ -5096,6 +5199,9 @@ program gstats_transform
     * -24         // cv
     * -25         // range
     * -26         // geomean
+    * -27         // gini
+    * -27.1       // gini|dropneg
+    * -27.2       // gini|keepneg
     * -101        // nansum
     * -121        // rawnansum
     * -206        // sum weight
@@ -5147,6 +5253,33 @@ program gstats_transform
     *             //     will compute for x[i] the average over j s.t.
     *             //     x[i] - 2 * sd(x) <= x[j] <= x[i] + 0.5 * sd(x)
     * -6          // rank
+    * -7          // cummsum
+    *             //     syntax via stata call
+    *             //
+    *             //         (cumsum)
+    *             //         (cumsum +/-)
+    *             //         (cumsum +/- varlist)
+    *             //
+    *             //     and/or via cumby() option
+    *             //
+    *             //         cumby(+/-)
+    *             //         cumby(+/- varlist)
+    *             //
+    *             //     cumsum happens in the order th data appears or
+    *             //     in ascending/descending order. if varlist then
+    *             //     cumsum happens in ascending or descending order
+    *             //     or varlist.
+    * -8          // shift
+    *             //     syntax via stata call
+    *             //
+    *             //         (shift) for use with shift()
+    *             //         (shift -#)  for lags
+    *             //         (shift #) for leads
+    *             //
+    *             //     where shiftby() is an integer
+    *             //
+    *             //         shiftby(-#) for lags
+    *             //         shiftby(#) for leads
 
     * moving stats
     * ------------
@@ -5256,6 +5389,37 @@ program gstats_transform
     *
     *         ith output obs = mean(sources[j, k]) s.t. lower <= sources[j, k] <= upper
 
+    * Cummulative Sum
+    * ---------------
+
+    * __gtools_transform_cumsum_k
+    *
+    *     number of aux variables for cumsum
+    *
+    * __gtools_transform_cumtypes
+    *
+    *     types for cumvars
+    *
+    * __gtools_transform_cumsum
+    *
+    *     0/1 for whther kth target stat is cumsum
+    *
+    * __gtools_transform_cumsign
+    *
+    *     whether cumsum should be in data (0), ascending (1), or
+    *     descending (2) order
+    *
+    * __gtools_transform_cumvars
+    *
+    *     start and end position of cumvars for each target
+
+    * Shift (lads and leads)
+    * ----------------------
+
+    * __gtools_transform_aux8_shift
+    *
+    *     number (positive or negative) to shift kth target by
+
     * Transform mappings
     * ------------------
 
@@ -5288,7 +5452,8 @@ program gstats_transform
     * Generate matrices for plugin internals
     * --------------------------------------
 
-    local gs_nostats_codes -4 -5 -6
+    local gs_nostats_codes -4 -5 -6 -7 -8
+
     local gs_standardize mean sd
     local gs_normalize   mean sd
     local gs_demean      mean
@@ -5296,31 +5461,41 @@ program gstats_transform
     local gs_moving
     local gs_range
     local gs_rank
+    local gs_cumsum
+    local gs_shift
 
     local gs
     local rangevars
+
     foreach stat of local __gtools_gst_stats {
         local gs `gs' `gs_`stat''
         encode_range `stat'
         local rangevars `rangevars' `r(var)'
     }
+
     local gs: list uniq gs
     local rangevars: list uniq rangevars
 
-    mata: __gtools_transform_varfuns   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_statcode  = J(1, max((`:list sizeof gs', 1)), 0)
-    mata: __gtools_transform_statmap   = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
+    mata: __gtools_transform_varfuns    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_statcode   = J(1, max((`:list sizeof gs', 1)), 0)
+    mata: __gtools_transform_statmap    = J(`:list sizeof __gtools_gst_stats', max((`:list sizeof gs', 1)), 0)
 
-    mata: __gtools_transform_moving    = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_moving_l  = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_moving_u  = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_moving     = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_moving_l   = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_moving_u   = J(1, `:list sizeof __gtools_gst_stats', .)
 
-    mata: __gtools_transform_range     = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_pos = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_l   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_range_u   = J(1, `:list sizeof __gtools_gst_stats', .)
-    mata: __gtools_transform_range_ls  = J(1, `:list sizeof __gtools_gst_stats', 0)
-    mata: __gtools_transform_range_us  = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range      = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_pos  = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_l    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_u    = J(1, `:list sizeof __gtools_gst_stats', .)
+    mata: __gtools_transform_range_ls   = J(1, `:list sizeof __gtools_gst_stats', 0)
+    mata: __gtools_transform_range_us   = J(1, `:list sizeof __gtools_gst_stats', 0)
+
+    mata: __gtools_transform_cumsum     = J(1, `:list sizeof __gtools_gst_stats',     0)
+    mata: __gtools_transform_cumsign    = J(1, `:list sizeof __gtools_gst_stats',     0)
+    mata: __gtools_transform_cumvars    = J(1, `:list sizeof __gtools_gst_stats' + 1, 0)
+
+    mata: __gtools_transform_aux8_shift = J(1, `:list sizeof __gtools_gst_stats', 0)
 
     forvalues l = 1 / `:list sizeof gs' {
         local gstat: word `l' of `gs'
@@ -5330,8 +5505,11 @@ program gstats_transform
 
     local bwarn4 = 0
     local bwarn5 = 0
+
     local rwarn = 0
     local iwarn = 0
+
+    local cumvars
     forvalues k = 1 / `:list sizeof __gtools_gst_stats' {
         local stat:  word `k' of `__gtools_gst_stats'
 
@@ -5373,6 +5551,27 @@ program gstats_transform
             mata: __gtools_transform_range_ls[`k']  = `r(lcode)'
             mata: __gtools_transform_range_us[`k']  = `r(ucode)'
             mata: __gtools_transform_range_pos[`k'] = `:list posof "`r(var)'" in rangevars'
+        }
+
+        * cumsum matrices
+        encode_cumsum `stat'
+        if ( `r(match)' ) {
+            local statcode -7
+            local cumvars `cumvars' `r(cumvars)'
+            if ( !inlist(`:word count `r(cumvars)'', 0, 1) ) {
+                disp as err "gstats_transform: cumby for multiple variables not implemented"
+                exit 198
+            }
+            mata: __gtools_transform_cumsum[`k']  = 1
+            mata: __gtools_transform_cumsign[`k'] = `r(cumsign)'
+            mata: __gtools_transform_cumvars[`=`k'+1'] = `:list sizeof cumvars'
+        }
+
+        * shift matrices
+        encode_shift `stat'
+        if ( `r(match)' ) {
+            local statcode -8
+            mata: __gtools_transform_aux8_shift[`k'] = `r(shift)'
         }
 
         * other matrices
@@ -5419,6 +5618,19 @@ program gstats_transform
     * source gets transformed! So you will need to read each source in
     * unmodified for as many targets as you have.
 
+    * TODO: strL support
+    local cumvars `cumvars'
+    if ( `"`cumvars'"' != "" ) {
+        GenericParseTypes `cumvars', mat(__gtools_transform_cumtypes)
+        forvalues i = 1 / `:list sizeof cumvars' {
+            cap mata assert(st_matrix("__gtools_transform_cumtypes")[`i'] :<= 0)
+            if ( _rc ) {
+                disp as err "gstats_transform: cumby for string types not implemented"
+                exit 198
+            }
+        }
+    }
+
     * Return varlist for plugin internals
 
     scalar __gtools_transform_greedy    = (`"`greedy'"' != "nogreedy")
@@ -5426,27 +5638,34 @@ program gstats_transform
     scalar __gtools_transform_ktargets  = `:list sizeof __gtools_gst_targets'
     scalar __gtools_transform_kgstats   = `:list sizeof gs'
     scalar __gtools_gstats_code         = 3
+    scalar __gtools_transform_cumsum_k  = `:list sizeof cumvars'
     scalar __gtools_transform_range_k   = `:list sizeof rangevars'
     scalar __gtools_transform_range_xs  = (`"`excludeself'"'   != "")
     scalar __gtools_transform_range_xb  = (`"`excludebounds'"' != "")
 
     mata: st_matrix("__gtools_transform_rank_ties", strtoreal(tokens(st_local("__gtools_gst_tcodes"))))
-    mata: st_matrix("__gtools_transform_varfuns",   __gtools_transform_varfuns)
-    mata: st_matrix("__gtools_transform_statmap",   __gtools_transform_statmap)
-    mata: st_matrix("__gtools_transform_statcode",  __gtools_transform_statcode)
+    mata: st_matrix("__gtools_transform_varfuns",    __gtools_transform_varfuns)
+    mata: st_matrix("__gtools_transform_statmap",    __gtools_transform_statmap)
+    mata: st_matrix("__gtools_transform_statcode",   __gtools_transform_statcode)
 
-    mata: st_matrix("__gtools_transform_moving",    __gtools_transform_moving)
-    mata: st_matrix("__gtools_transform_moving_l",  __gtools_transform_moving_l)
-    mata: st_matrix("__gtools_transform_moving_u",  __gtools_transform_moving_u)
+    mata: st_matrix("__gtools_transform_moving",     __gtools_transform_moving)
+    mata: st_matrix("__gtools_transform_moving_l",   __gtools_transform_moving_l)
+    mata: st_matrix("__gtools_transform_moving_u",   __gtools_transform_moving_u)
 
-    mata: st_matrix("__gtools_transform_range",     __gtools_transform_range)
-    mata: st_matrix("__gtools_transform_range_pos", __gtools_transform_range_pos)
-    mata: st_matrix("__gtools_transform_range_l",   __gtools_transform_range_l)
-    mata: st_matrix("__gtools_transform_range_u",   __gtools_transform_range_u)
-    mata: st_matrix("__gtools_transform_range_ls",  __gtools_transform_range_ls)
-    mata: st_matrix("__gtools_transform_range_us",  __gtools_transform_range_us)
+    mata: st_matrix("__gtools_transform_range",      __gtools_transform_range)
+    mata: st_matrix("__gtools_transform_range_pos",  __gtools_transform_range_pos)
+    mata: st_matrix("__gtools_transform_range_l",    __gtools_transform_range_l)
+    mata: st_matrix("__gtools_transform_range_u",    __gtools_transform_range_u)
+    mata: st_matrix("__gtools_transform_range_ls",   __gtools_transform_range_ls)
+    mata: st_matrix("__gtools_transform_range_us",   __gtools_transform_range_us)
 
-    c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars'
+    mata: st_matrix("__gtools_transform_cumsum",     __gtools_transform_cumsum)
+    mata: st_matrix("__gtools_transform_cumsign",    __gtools_transform_cumsign)
+    mata: st_matrix("__gtools_transform_cumvars",    __gtools_transform_cumvars)
+
+    mata: st_matrix("__gtools_transform_aux8_shift", __gtools_transform_aux8_shift)
+
+    c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars' `cumvars'
 end
 
 * NOTE: Copy/paste from gcollapse.ado/parse_vars
@@ -5460,6 +5679,8 @@ program gstats_transform_parse
         autorenameformat(str) ///
         window(passthru)      /// moving window if not specified in the stat
         interval(passthru)    /// interval if not specified in the stat
+        cumby(passthru)       /// cummulative sum by +/- and varlst if not specified in the stat
+        shiftby(passthru)     /// Shift by +/-#
         statprefix(passthru)  /// add prefix to every stat
         labelformat(str)      /// label prefix
         labelprogram(str)     /// label program
@@ -5469,7 +5690,7 @@ program gstats_transform_parse
     * -----------------------------------------------
 
     local opts     prefix(__gtools_gst) default(demean)
-    local passthru `window' `interval' `statprefix'
+    local passthru `window' `interval' `cumby' `shiftby' `statprefix'
     if ( "`wildparse'" != "" ) {
         local rc = 0
 
@@ -5791,6 +6012,22 @@ program gstats_transform_types
             if ( `r(match)' ) {
                 encode_stat_types `r(stat)' `type' `ttype'
                 local types  `types'  `r(type)'
+                local retype `retype' `r(retype)'
+            }
+
+            encode_cumsum `stat'
+            local rmatch = `r(match)' | `rmatch'
+            if ( `r(match)' ) {
+                local types  `types'  double
+                local retype `retype' `=!inlist("`ttype'", "double")'
+            }
+
+            * shift follows the same retype logic as min, max, first, last, etc.
+            encode_shift `stat'
+            local rmatch = `r(match)' | `rmatch'
+            if ( `r(match)' ) {
+                encode_stat_types first `type' `ttype'
+                local types  `types'  `type'
                 local retype `retype' `r(retype)'
             }
 
@@ -6157,6 +6394,9 @@ program gstats_summarize
     * -24         // cv
     * -25         // range
     * -26         // geomean
+    * -27         // gini
+    * -27.1       // gini|dropneg
+    * -27.2       // gini|keepneg
     * -101        // nansum
     * -121        // rawnansum
     * -206        // sum weight
@@ -6764,34 +7004,37 @@ program GtoolsPrettyStat, rclass
     * Group stats
     * -----------
 
-    if ( `"`0'"' == "sum"         ) local prettystat "Sum"
-    if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
-    if ( `"`0'"' == "mean"        ) local prettystat "Mean"
-    if ( `"`0'"' == "geomean"     ) local prettystat "Geometric mean"
-    if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
-    if ( `"`0'"' == "variance"    ) local prettystat "Variance"
-    if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"
-    if ( `"`0'"' == "max"         ) local prettystat "Max"
-    if ( `"`0'"' == "min"         ) local prettystat "Min"
-    if ( `"`0'"' == "range"       ) local prettystat "Range"
-    if ( `"`0'"' == "count"       ) local prettystat "Count"
-    if ( `"`0'"' == "freq"        ) local prettystat "Group size"
-    if ( `"`0'"' == "percent"     ) local prettystat "Percent"
-    if ( `"`0'"' == "median"      ) local prettystat "Median"
-    if ( `"`0'"' == "iqr"         ) local prettystat "IQR"
-    if ( `"`0'"' == "first"       ) local prettystat "First"
-    if ( `"`0'"' == "firstnm"     ) local prettystat "First Non-Miss."
-    if ( `"`0'"' == "last"        ) local prettystat "Last"
-    if ( `"`0'"' == "lastnm"      ) local prettystat "Last Non-Miss."
-    if ( `"`0'"' == "semean"      ) local prettystat "SE Mean"
-    if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
-    if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
-    if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
-    if ( `"`0'"' == "nmissing"    ) local prettystat "N Missing"
-    if ( `"`0'"' == "skewness"    ) local prettystat "Skewness"
-    if ( `"`0'"' == "kurtosis"    ) local prettystat "Kurtosis"
-    if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
-    if ( `"`0'"' == "rawnansum"   ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "sum"          ) local prettystat "Sum"
+    if ( `"`0'"' == "nansum"       ) local prettystat "Sum"
+    if ( `"`0'"' == "mean"         ) local prettystat "Mean"
+    if ( `"`0'"' == "geomean"      ) local prettystat "Geometric mean"
+    if ( `"`0'"' == "sd"           ) local prettystat "St Dev."
+    if ( `"`0'"' == "variance"     ) local prettystat "Variance"
+    if ( `"`0'"' == "cv"           ) local prettystat "Coef. of variation"
+    if ( `"`0'"' == "max"          ) local prettystat "Max"
+    if ( `"`0'"' == "min"          ) local prettystat "Min"
+    if ( `"`0'"' == "range"        ) local prettystat "Range"
+    if ( `"`0'"' == "count"        ) local prettystat "Count"
+    if ( `"`0'"' == "freq"         ) local prettystat "Group size"
+    if ( `"`0'"' == "percent"      ) local prettystat "Percent"
+    if ( `"`0'"' == "median"       ) local prettystat "Median"
+    if ( `"`0'"' == "iqr"          ) local prettystat "IQR"
+    if ( `"`0'"' == "first"        ) local prettystat "First"
+    if ( `"`0'"' == "firstnm"      ) local prettystat "First Non-Miss."
+    if ( `"`0'"' == "last"         ) local prettystat "Last"
+    if ( `"`0'"' == "lastnm"       ) local prettystat "Last Non-Miss."
+    if ( `"`0'"' == "semean"       ) local prettystat "SE Mean"
+    if ( `"`0'"' == "sebinomial"   ) local prettystat "SE Mean (Binom)"
+    if ( `"`0'"' == "sepoisson"    ) local prettystat "SE Mean (Pois)"
+    if ( `"`0'"' == "nunique"      ) local prettystat "N Unique"
+    if ( `"`0'"' == "nmissing"     ) local prettystat "N Missing"
+    if ( `"`0'"' == "skewness"     ) local prettystat "Skewness"
+    if ( `"`0'"' == "kurtosis"     ) local prettystat "Kurtosis"
+    if ( `"`0'"' == "rawsum"       ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "rawnansum"    ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "gini"         ) local prettystat "Gini Coefficient"
+    if ( `"`0'"' == "gini|dropneg" ) local prettystat "Gini Coefficient (drop neg)"
+    if ( `"`0'"' == "gini|keepneg" ) local prettystat "Gini Coefficient (keep neg)"
 
     local match = 0
     if regexm(`"`0'"', "^rawselect(-|)([0-9]+)$") {
@@ -6854,12 +7097,48 @@ program GtoolsPrettyStat, rclass
         local prettystat "`r(prettystat)' for `rangestr'"
     }
 
+    encode_cumsum `0'
+    if ( `r(match)' ) {
+        if ( `r(cumsign)' == 0 ) {
+            local prettystat "Cummulative sum"
+        }
+        else if ( `r(cumsign)' == 1 ) {
+            if ( `r(cumother)' ) {
+                local prettystat "Cummulative sum (ascending by `r(cumvars)')"
+            }
+            else {
+                local prettystat "Cummulative sum (ascending)"
+            }
+        }
+        else if ( `r(cumsign)' == 2 ) {
+            if ( `r(cumother)' ) {
+                local prettystat "Cummulative sum (descending by `r(cumvars)')"
+            }
+            else {
+                local prettystat "Cummulative sum (descending)"
+            }
+        }
+    }
+
+    encode_shift `0'
+    if ( `r(match)' ) {
+        if ( `r(shift)' == 0 ) {
+            local prettystat ""
+        }
+        else if ( `r(shift)' > 0 ) {
+            local prettystat "Lead (`r(shift)')"
+        }
+        else if ( `r(shift)' < 0 ) {
+            local prettystat "Lag (`=abs(`r(shift)')')"
+        }
+    }
+
     return local prettystat = `"`prettystat'"'
 end
 
 capture program drop ParseListWild
 program ParseListWild
-    local opts window(passthru) interval(passthru) statprefix(str)
+    local opts window(passthru) interval(passthru) cumby(passthru) shiftby(passthru) statprefix(str)
     syntax anything(equalok), LOCal(str) PREfix(str) default(str) [`opts']
     local stat `default'
 
@@ -6882,12 +7161,13 @@ program ParseListWild
             exit 198
         }
 
-        if ( "`stat'" == "var"  ) local stat variance
-        if ( "`stat'" == "sem"  ) local stat semean
-        if ( "`stat'" == "seb"  ) local stat sebinomial
-        if ( "`stat'" == "sep"  ) local stat sepoisson
-        if ( "`stat'" == "skew" ) local stat skewness
-        if ( "`stat'" == "kurt" ) local stat kurtosis
+        if ( `"`stat'"' == "var"  ) local stat variance
+        if ( `"`stat'"' == "sem"  ) local stat semean
+        if ( `"`stat'"' == "seb"  ) local stat sebinomial
+        if ( `"`stat'"' == "sep"  ) local stat sepoisson
+        if ( `"`stat'"' == "skew" ) local stat skewness
+        if ( `"`stat'"' == "kurt" ) local stat kurtosis
+        if ( regexm(`"`stat'"', " ") ) local stat: subinstr local stat " " "|", all
 
         if ( substr(`"`stat'"', 1, length(`"`statprefix'"')) != `"`statprefix'"' ) {
             local stat `statprefix'`stat'
@@ -6915,7 +7195,10 @@ program ParseListWild
                 * different reference variable. If no reference variable
                 * is specified then it is assumed to be the source.
 
-                encode_range `stat', `interval' var(`svar')
+                encode_range  `stat', `interval' var(`svar')
+                encode_cumsum `stat', `cumby'    var(`svar')
+                encode_shift  `stat', `shiftby'
+
                 local call `call' (`stat') `tvar' = `svar'
                 local full_stats  `full_stats' `stat'
             }
@@ -6925,7 +7208,10 @@ program ParseListWild
             local full_targets `full_targets' `usources'
 
             foreach svar of varlist `usources' {
-                encode_range `stat', `interval' var(`svar')
+                encode_range  `stat', `interval' var(`svar')
+                encode_cumsum `stat', `cumby'    var(`svar')
+                encode_shift  `stat', `shiftby'
+
                 local call `call' (`stat') `svar'
                 local full_stats `full_stats' `stat'
             }
@@ -6953,7 +7239,7 @@ end
 
 capture program drop ParseList
 program define ParseList
-    local opts window(passthru) interval(passthru) statprefix(str)
+    local opts window(passthru) interval(passthru) cumby(passthru) shiftby(passthru) statprefix(str)
     syntax anything(equalok), PREfix(str) default(str) [`opts']
     local stat `default'
 
@@ -6976,12 +7262,13 @@ program define ParseList
             exit 198
         }
 
-        if ( "`stat'" == "var"  ) local stat variance
-        if ( "`stat'" == "sem"  ) local stat semean
-        if ( "`stat'" == "seb"  ) local stat sebinomial
-        if ( "`stat'" == "sep"  ) local stat sepoisson
-        if ( "`stat'" == "skew" ) local stat skewness
-        if ( "`stat'" == "kurt" ) local stat kurtosis
+        if ( `"`stat'"' == "var"  ) local stat variance
+        if ( `"`stat'"' == "sem"  ) local stat semean
+        if ( `"`stat'"' == "seb"  ) local stat sebinomial
+        if ( `"`stat'"' == "sep"  ) local stat sepoisson
+        if ( `"`stat'"' == "skew" ) local stat skewness
+        if ( `"`stat'"' == "kurt" ) local stat kurtosis
+        if ( regexm(`"`stat'"', " ") ) local stat: subinstr local stat " " "|", all
 
         if ( substr(`"`stat'"', 1, length(`"`statprefix'"')) != `"`statprefix'"' ) {
             local stat `statprefix'`stat'
@@ -6991,7 +7278,9 @@ program define ParseList
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 
-            encode_range `stat', `interval' var(`var')
+            encode_range  `stat', `interval' var(`var')
+            encode_cumsum `stat', `cumby'    var(`var')
+            encode_shift  `stat', `shiftby'
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'

@@ -92,7 +92,8 @@ ST_retcode sf_egen_bulk_w (struct StataInfo *st_info, int level)
     if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h3"));
     if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_xcopy"));
 
-    ST_double *p_buffer = calloc(2 * nj_max, sizeof *p_buffer);
+    // NOTE(mauricio): The ( + 1) because we need to define v_0, w_0 in some functions
+    ST_double *p_buffer = calloc(2 * (nj_max + 1), sizeof *p_buffer);
     ST_double *weights  = calloc(N, sizeof *weights);
     GT_size   *nbuffer  = calloc(J, sizeof *nbuffer);
 

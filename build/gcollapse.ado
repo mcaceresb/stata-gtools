@@ -1101,33 +1101,36 @@ program parse_vars
     * Available Stats
     * ---------------
 
-    local stats sum        ///
-                nansum     /// if every entry is missing, output . instead of 0
-                mean       ///
-                geomean    ///
-                sd         ///
-                variance   ///
-                cv         ///
-                max        ///
-                min        ///
-                range      ///
-                count      ///
-                median     ///
-                iqr        ///
-                percent    ///
-                first      ///
-                last       ///
-                firstnm    ///
-                lastnm     ///
-                semean     ///
-                sebinomial ///
-                sepoisson  ///
-                nunique    ///
-                nmissing   ///
-                skewness   ///
-                kurtosis   ///
-                rawsum     ///
-                rawnansum  //  if every entry is missing, output . instead of 0
+    local stats sum          ///
+                nansum       /// if every entry is missing, output . instead of 0
+                mean         ///
+                geomean      ///
+                sd           ///
+                variance     ///
+                cv           ///
+                max          ///
+                min          ///
+                range        ///
+                count        ///
+                median       ///
+                iqr          ///
+                percent      ///
+                first        ///
+                last         ///
+                firstnm      ///
+                lastnm       ///
+                semean       ///
+                sebinomial   ///
+                sepoisson    ///
+                nunique      ///
+                nmissing     ///
+                skewness     ///
+                kurtosis     ///
+                gini         ///
+                gini|dropneg ///
+                gini|keepneg ///
+                rawsum       ///
+                rawnansum     // if every entry is missing, output . instead of 0
 
     * Parse quantiles
     local anyquant  = 0
@@ -1752,34 +1755,37 @@ end
 
 capture program drop GtoolsPrettyStat
 program GtoolsPrettyStat, rclass
-    if ( `"`0'"' == "sum"         ) local prettystat "Sum"
-    if ( `"`0'"' == "nansum"      ) local prettystat "Sum"
-    if ( `"`0'"' == "mean"        ) local prettystat "Mean"
-    if ( `"`0'"' == "geomean"     ) local prettystat "Geometric mean"
-    if ( `"`0'"' == "sd"          ) local prettystat "St Dev."
-    if ( `"`0'"' == "variance"    ) local prettystat "Variance"
-    if ( `"`0'"' == "cv"          ) local prettystat "Coef. of variation"
-    if ( `"`0'"' == "max"         ) local prettystat "Max"
-    if ( `"`0'"' == "min"         ) local prettystat "Min"
-    if ( `"`0'"' == "range"       ) local prettystat "Range"
-    if ( `"`0'"' == "count"       ) local prettystat "Count"
-    if ( `"`0'"' == "freq"        ) local prettystat "Group size"
-    if ( `"`0'"' == "percent"     ) local prettystat "Percent"
-    if ( `"`0'"' == "median"      ) local prettystat "Median"
-    if ( `"`0'"' == "iqr"         ) local prettystat "IQR"
-    if ( `"`0'"' == "first"       ) local prettystat "First"
-    if ( `"`0'"' == "firstnm"     ) local prettystat "First Non-Miss."
-    if ( `"`0'"' == "last"        ) local prettystat "Last"
-    if ( `"`0'"' == "lastnm"      ) local prettystat "Last Non-Miss."
-    if ( `"`0'"' == "semean"      ) local prettystat "SE Mean"
-    if ( `"`0'"' == "sebinomial"  ) local prettystat "SE Mean (Binom)"
-    if ( `"`0'"' == "sepoisson"   ) local prettystat "SE Mean (Pois)"
-    if ( `"`0'"' == "nunique"     ) local prettystat "N Unique"
-    if ( `"`0'"' == "nmissing"    ) local prettystat "N Missing"
-    if ( `"`0'"' == "skewness"    ) local prettystat "Skewness"
-    if ( `"`0'"' == "kurtosis"    ) local prettystat "Kurtosis"
-    if ( `"`0'"' == "rawsum"      ) local prettystat "Unweighted sum"
-    if ( `"`0'"' == "rawnansum"   ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "sum"          ) local prettystat "Sum"
+    if ( `"`0'"' == "nansum"       ) local prettystat "Sum"
+    if ( `"`0'"' == "mean"         ) local prettystat "Mean"
+    if ( `"`0'"' == "geomean"      ) local prettystat "Geometric mean"
+    if ( `"`0'"' == "sd"           ) local prettystat "St Dev."
+    if ( `"`0'"' == "variance"     ) local prettystat "Variance"
+    if ( `"`0'"' == "cv"           ) local prettystat "Coef. of variation"
+    if ( `"`0'"' == "max"          ) local prettystat "Max"
+    if ( `"`0'"' == "min"          ) local prettystat "Min"
+    if ( `"`0'"' == "range"        ) local prettystat "Range"
+    if ( `"`0'"' == "count"        ) local prettystat "Count"
+    if ( `"`0'"' == "freq"         ) local prettystat "Group size"
+    if ( `"`0'"' == "percent"      ) local prettystat "Percent"
+    if ( `"`0'"' == "median"       ) local prettystat "Median"
+    if ( `"`0'"' == "iqr"          ) local prettystat "IQR"
+    if ( `"`0'"' == "first"        ) local prettystat "First"
+    if ( `"`0'"' == "firstnm"      ) local prettystat "First Non-Miss."
+    if ( `"`0'"' == "last"         ) local prettystat "Last"
+    if ( `"`0'"' == "lastnm"       ) local prettystat "Last Non-Miss."
+    if ( `"`0'"' == "semean"       ) local prettystat "SE Mean"
+    if ( `"`0'"' == "sebinomial"   ) local prettystat "SE Mean (Binom)"
+    if ( `"`0'"' == "sepoisson"    ) local prettystat "SE Mean (Pois)"
+    if ( `"`0'"' == "nunique"      ) local prettystat "N Unique"
+    if ( `"`0'"' == "nmissing"     ) local prettystat "N Missing"
+    if ( `"`0'"' == "skewness"     ) local prettystat "Skewness"
+    if ( `"`0'"' == "kurtosis"     ) local prettystat "Kurtosis"
+    if ( `"`0'"' == "rawsum"       ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "rawnansum"    ) local prettystat "Unweighted sum"
+    if ( `"`0'"' == "gini"         ) local prettystat "Gini Coefficient"
+    if ( `"`0'"' == "gini|dropneg" ) local prettystat "Gini Coefficient (drop neg)"
+    if ( `"`0'"' == "gini|keepneg" ) local prettystat "Gini Coefficient (keep neg)"
 
     local match = 0
     if regexm(`"`0'"', "^rawselect(-|)([0-9]+)$") {
@@ -1853,12 +1859,13 @@ program ParseListWild
             exit 198
         }
 
-        if ( "`stat'" == "var"  ) local stat variance
-        if ( "`stat'" == "sem"  ) local stat semean
-        if ( "`stat'" == "seb"  ) local stat sebinomial
-        if ( "`stat'" == "sep"  ) local stat sepoisson
-        if ( "`stat'" == "skew" ) local stat skewness
-        if ( "`stat'" == "kurt" ) local stat kurtosis
+        if ( `"`stat'"' == "var"  ) local stat variance
+        if ( `"`stat'"' == "sem"  ) local stat semean
+        if ( `"`stat'"' == "seb"  ) local stat sebinomial
+        if ( `"`stat'"' == "sep"  ) local stat sepoisson
+        if ( `"`stat'"' == "skew" ) local stat skewness
+        if ( `"`stat'"' == "kurt" ) local stat kurtosis
+        if ( regexm(`"`stat'"', " ") ) local stat: subinstr local stat " " "|", all
 
         * Parse bulk rename if applicable
         unab usources : `vars'
@@ -1940,12 +1947,13 @@ program define ParseList
         foreach var of local vars {
             if ("`target'" == "") local target `var'
 
-            if ( "`stat'" == "var"  ) local stat variance
-            if ( "`stat'" == "sem"  ) local stat semean
-            if ( "`stat'" == "seb"  ) local stat sebinomial
-            if ( "`stat'" == "sep"  ) local stat sepoisson
-            if ( "`stat'" == "skew" ) local stat skewness
-            if ( "`stat'" == "kurt" ) local stat kurtosis
+            if ( `"`stat'"' == "var"  ) local stat variance
+            if ( `"`stat'"' == "sem"  ) local stat semean
+            if ( `"`stat'"' == "seb"  ) local stat sebinomial
+            if ( `"`stat'"' == "sep"  ) local stat sepoisson
+            if ( `"`stat'"' == "skew" ) local stat skewness
+            if ( `"`stat'"' == "kurt" ) local stat kurtosis
+            if ( regexm(`"`stat'"', " ") ) local stat: subinstr local stat " " "|", all
 
             local full_vars    `full_vars'    `var'
             local full_targets `full_targets' `target'

@@ -141,11 +141,11 @@ The full syntax, however, is
 {syntab:Switches}
 {synopt :{opt method(#)}}(Not with by.) Algorithm to use to compute quantiles.
 {p_end}
-{synopt :{opt dedup}}Drop duplicate values of variables specified via {opth cutpoints} or {opth cutquantiles}
+{synopt :{opt dedup}}Drop duplicate values of variables specified via {opt cutpoints} or {opt cutquantiles}
 {p_end}
-{synopt :{opt cutifin}}Exclude values outside {ifin} of variables specified via {opth cutpoints} or {opth cutquantiles}
+{synopt :{opt cutifin}}Exclude values outside {ifin} of variables specified via {opt cutpoints} or {opt cutquantiles}
 {p_end}
-{synopt :{opt cutby}}Use {opth cutquantiles()} or {opth cutpoints()} by group.
+{synopt :{opt cutby}}Use {opt cutquantiles()} or {opt cutpoints()} by group.
 {p_end}
 {synopt :{opt returnlimit(#)}}Maximum return values that can be set via {opt _pctile}
 {p_end}
@@ -233,21 +233,21 @@ restrictions and {opt dedup} to exclude duplicates.
 
 {phang}
 {opth cutquantiles(numlist)} Calculate percentiles corresponding to the values of
-{it:varname}. This is an alternative to {opth percentiles()}.
+{it:varname}. This is an alternative to {opt percentiles()}.
 
 {phang}
 {opth quantmatrix(matrix)}
 Requests percentiles (quantiles) corresponding to the entries of the
 matrix. This must be a column vector or a row vector. The behavior of
 gquantiles using this option is otherwise equivalent to its behavior
-when passing {opth quantiles()}.
+when passing {opt quantiles()}.
 
 {phang}
 {opth cutmatrix(matrix)}
 Requests cutoffs corresponding to the entries of the matrix. This must
 be a column vector or a row vector. The behavior of gquantiles using
 this option is otherwise equivalent to its behavior when passing
-{opth cutoffs()}.
+{opt cutoffs()}.
 
 {dlgtab:Standard Options}
 
@@ -271,7 +271,7 @@ The alternative formula uses an interpolation method.  See
 Compute quantiles by group. {cmd:pctile[()]} requires option
 {cmd:strict}, which has the effect of ignoring groups where the number
 of quantiles requested is larger than the number of non-missing
-observations within the group. {opth by()} is most useful with option
+observations within the group. {opt by()} is most useful with option
 {opth groupid(varname)}.
 
 {phang}
@@ -314,20 +314,20 @@ should specify {opt method(2)}. By default, {cmd:gquantiles} tries to guess
 which method will run faster.
 
 {phang}
-{opt dedup} Drop duplicate values of variables specified via {opth
-cutpoints()} or {opth cutquantiles()}. For instance, if the user asks for
+{opt dedup} Drop duplicate values of variables specified via {opt cutpoints()}
+or {opt cutquantiles()}. For instance, if the user asks for
 quantiles 1, 90, 10, 10, and 1, then quantiles 1, 1, 10, 10, and 90 are
 used. With this option only 1, 10, and 90 would be used.
 
 {phang}
 {opt cutifin} Exclude values outside {ifin} of variables specified via 
-{opth cutpoints()} or {opth cutquantiles()}. The restriction that all
+{opt cutpoints()} or {opt cutquantiles()}. The restriction that all
 values are used is artificial (the option was originally written to
 allow {cmd:xtile} to use {cmd:pctile} internally).
 
 {phang}
-{opt cutby} By default all values of the variable requested via {opth cutpoints()}
-or {opth cutquantiles()} are used. With this option, each group uses a different
+{opt cutby} By default all values of the variable requested via {opt cutpoints()}
+or {opt cutquantiles()} are used. With this option, each group uses a different
 set of quantiles or cutoffs (note this automatically sets option {cmd:cutifin})
 
 {phang}
@@ -338,9 +338,9 @@ the function allows the user to request an arbitrary number. But setting
 in this case.
 
 {phang}
-{opt strict} Without {opth by()}, exit with error if the number of quantiles
+{opt strict} Without {opt by()}, exit with error if the number of quantiles
 is greater than the number of non-missing observations plus one.  With 
-{opth by()}, skip groups where this  happens. This restriction for {opt pctile}
+{opt by()}, skip groups where this  happens. This restriction for {opt pctile}
 is sensible, but for {opt xtile} it is artificial. It exists because it uses
 {opt pctile} internally, but {cmd:gquantiles} does not have this issue.
 

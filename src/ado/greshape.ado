@@ -1,4 +1,4 @@
-*! version 0.4.0 16Apr2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.5.0 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Fast implementation of reshape using C plugins
 
 capture program drop greshape
@@ -2447,7 +2447,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
     string scalar ReS_j, ReS_jvlb, ReS_labelformat
     string scalar newvar, var, stub, lvl, fmt, lbl, fmtlbl
     string matrix chars, _chars
-    real scalar i, j, k, prefix
+    real scalar i, j, k, prefix, njvars
 
     // Get all the meta info! Note that the label formatting only
     // happens with single-variable input for keys()/j(), so we
@@ -2462,6 +2462,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
     ReS_jvraw       = tokens(st_global("ReS_jvraw"))
     ReS_prefix      = tokens(st_global("ReS_prefix"))
     ReS_j           = tokens(st_global("ReS_j"))[1]
+    njvars          = cols(tokens(st_global("ReS_j")))
     ReS_jvlb        = st_varvaluelabel(ReS_j)
     ReS_labelformat = st_global("ReS_labelformat")
     prefix          = (length(ReS_prefix) > 0)
@@ -2497,7 +2498,7 @@ transmorphic scalar LongToWideMetaSave(real scalar spread)
                     st_global(sprintf(fmt, var, _chars[k]))
                 )
             }
-            if ( cols(ReS_j) > 1 ) {
+            if ( njvars > 1 ) {
                 fmtlbl = lbl + " " + st_varlabel(var)
             }
             else {

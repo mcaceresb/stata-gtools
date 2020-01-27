@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.4.0 16Apr2019}{...}
+{* *! version 0.5.0 26Jan2020}{...}
 {viewerdialog greshape "dialog greshape"}{...}
 {vieweralsosee "[R] greshape" "mansection R greshape"}{...}
 {viewerjumpto "Syntax" "greshape##syntax"}{...}

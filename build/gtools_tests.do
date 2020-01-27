@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Sun Jan 26 16:43:03 EST 2020
 * Purpose: Unit tests for gtools
-* Version: 1.7.1
+* Version: 1.7.2
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -8013,6 +8013,37 @@ program checks_greshape
     label values mpg   mp
     replace price = .a if mod(_n, 2)
     replace mpg   = .b if _n > 50
+
+    preserve
+        greshape wide price mpg, i(make) j(foreign)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        greshape wide price mpg, i(make) j(foreign) labelf(#stubname#, #keylabel# == #keyvalue#)
+        desc price* mpg*
+    restore, preserve
+        label drop origin
+        greshape wide price mpg, i(make) j(foreign) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(fstr foreign)
+        desc price* mpg*
+    restore, preserve
+        decode foreign, gen(fstr)
+        greshape wide price mpg, i(make) j(foreign fstr) labelf(#stublabel#, #keyname# == #keyvaluelabel#)
+        desc price* mpg*
+    restore
 
     preserve
         greshape wide price mpg, i(make) j(foreign)

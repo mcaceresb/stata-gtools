@@ -144,7 +144,8 @@ program define gegen, byable(onecall) rclass
 
     if ( `"`fcn'"' == "xtile" ) {
         if ( _by() ) {
-            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
+            * Note I leave this here because I want to allow expressions. So
+            * I don't allow by...
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
@@ -165,10 +166,15 @@ program define gegen, byable(onecall) rclass
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
-        if ( _by() ) {
-            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
-            disp as err "by: prefix not allowed with `fcn'"
+        unab args: `args'
+        if ( `:list sizeof args' != 1 ) {
+            disp as err `"`fcn' requires single variable input"'
             exit 198
+        }
+        if ( _by() ) {
+            disp as txt "performance wrning: -by- prefix may be slower than -by()-"
+            * disp as err "by: prefix not allowed with `fcn'"
+            * exit 198
         }
         if ( `retype' ) local type
         local options types(`type') `options'
@@ -183,10 +189,15 @@ program define gegen, byable(onecall) rclass
             disp as err `"`fcn' requires single variable input"'
             exit _rc
         }
-        if ( _by() ) {
-            * disp as txt "performance wrning: -by- prefix may be slower than -by()-"
-            disp as err "by: prefix not allowed with `fcn'"
+        unab args: `args'
+        if ( `:list sizeof args' != 1 ) {
+            disp as err `"`fcn' requires single variable input"'
             exit 198
+        }
+        if ( _by() ) {
+            disp as txt "performance wrning: -by- prefix may be slower than -by()-"
+            * disp as err "by: prefix not allowed with `fcn'"
+            * exit 198
         }
         if ( `retype' ) {
             disp as err "warning: type ignored with gegen function `fcn'"

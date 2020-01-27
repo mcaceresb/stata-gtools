@@ -7,7 +7,7 @@ webuse reshape1, clear
 list
 greshape long inc ue, i(id) keys(year)
 list, sepby(id)
-greshape  inc ue, i(id) keys(year)
+greshape wide inc ue, i(id) keys(year)
 
 * However, the preferred `greshape` parlance is `by` for `i` and `keys`
 * for `j`, which I think is clearer.
@@ -16,7 +16,7 @@ webuse reshape1, clear
 list
 greshape long inc ue, by(id) keys(year)
 list, sepby(id)
-greshape  inc ue, by(id) keys(year)
+greshape wide inc ue, by(id) keys(year)
 
 * Allow string values in j; the option `string` is not necessary for
 * long to wide:
@@ -80,6 +80,35 @@ greshape wide inc@r u?, by(id) keys(year)
 * Note for `ustrregex` (Stata 14+ only), Stata does not support matches of
 * indeterminate length inside lookarounds (this is a limitation that is
 * not uncommon across several regex implementations).
+
+* Custom Labels
+* -------------
+
+* This was motivated by the labeling convention of `separate`. To mimic
+* its labeling, you can do
+
+sysuse auto, clear
+local labelformat labelformat(#stubname#, #keyname# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
+
+* However, you can use any combination of placeholders. For instance,
+
+sysuse auto, clear
+local labelformat labelf(#stublabel#; #keylabel# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
+
+* If no label of value labels are available, the program falls back to
+* variable name and values
+
+sysuse auto, clear
+label drop origin
+label var mpg ""
+label var foreign ""
+local labelformat labelf(#stublabel#; #keylabel# == #keyvaluelabel#)
+greshape wide mpg, by(make) key(foreign) `labelformat'
+desc mpg*
 
 * Gather and Spread
 * -----------------

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.4.1 26Jan2020}{...}
+{* *! version 1.4.2 30Jan2020}{...}
 {viewerdialog gegen "dialog gegen"}{...}
 {vieweralsosee "[R] gegen" "mansection R gegen"}{...}
 {viewerjumpto "Syntax" "gegen##syntax"}{...}
@@ -174,7 +174,8 @@ creates a constant (within {it:varlist}) containing the mean of
         {opth geomean(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }
 {pmore2}
 creates a constant (within {it:varlist}) containing the geometric mean of
-{it:exp}.
+{it:exp}. If {it:exp} has negative values, the function returns missing (.).
+If {it:exp} has any zeros, the function returns zero.
 
 {marker median()}{...}
         {opth median(exp)}{right:(allows {help by:{bf:by} {it:varlist}{bf::}})  }

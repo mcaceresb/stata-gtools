@@ -88,9 +88,19 @@ ST_double gf_array_dgeomean_unweighted (ST_double *v, GT_size N)
     ST_double *vptr = v;
     ST_double vsum  = 0;
     GT_size   nobs  = 0;
+
+    // TODO: Truncate numerical zeros to 0?
     for (vptr = v; vptr < v + N; vptr++) {
         if ( *vptr < SV_missval ) {
-            vsum += log(*vptr);
+            if ( *vptr == 0 ) {
+                return (0);
+            }
+            else if ( *vptr < 0 ) {
+                return (SV_missval);
+            }
+            else {
+                vsum += log(*vptr);
+            }
             nobs += 1;
         }
     }

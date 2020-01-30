@@ -13,7 +13,7 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
-![Dev Version](https://img.shields.io/badge/beta-v1.7.2-blue.svg?longCache=true&style=flat-square)
+![Dev Version](https://img.shields.io/badge/beta-v1.7.3-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.org/mcaceresb/stata-gtools)
 [![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.org/mcaceresb/stata-gtools)
@@ -727,6 +727,11 @@ have an ETA for them (i.e. they are a wishlist because I am either not
 sure how to implement them or because writing the code will take a long
 time). Roughly in order of likelihood:
 
+- [ ] Things to add to gcollapse:
+    - [ ] `prod`
+    - [ ] `geomean pos`: exclude negative numbers _and_ zero.
+    - [ ] `geomean abspos`: ibid but take absolute value first.
+    - [ ] Generally should you add an `abs` option to everything?
 - [ ] Some support for Stata's extended syntax in `gregress`
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Dropmissing vs dropmissing but not extended missing values.

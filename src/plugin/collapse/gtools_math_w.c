@@ -361,10 +361,21 @@ ST_double gf_array_dgeomean_weighted (
     //
     // or exp((sum_i w_i log(v_i)) / (sum w_i))
 
+    // TODO: Truncate numerical zeros to 0?
+    // TODO: Check that weights of 0 are already excluded in marksample
+
     for (vptr = v; vptr < v + N; vptr++, wptr++) {
         if ( *vptr < SV_missval ) {
+            if ( *vptr == 0 ) {
+                return (0);
+            }
+            else if ( *vptr < 0 ) {
+                return (SV_missval);
+            }
+            else {
+                vsum += log(*vptr) * (*wptr);
+            }
             wsum += *wptr;
-            vsum += log(*vptr) * (*wptr);
         }
     }
 

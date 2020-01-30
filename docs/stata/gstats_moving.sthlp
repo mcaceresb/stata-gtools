@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.2.0  09Jun2019}{...}
+{* *! version 0.2.1  30Jan2020}{...}
 {viewerdialog gstats_transform "dialog gstats_transform"}{...}
 {vieweralsosee "[R] gstats_transform" "mansection R gstats_transform"}{...}
 {viewerjumpto "Syntax" "gstats_transform##syntax"}{...}
@@ -74,7 +74,7 @@ folloing:{p_end}
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
-{p2col :{opt geomean}}geometric mean{p_end}
+{p2col :{opt geomean}}geometric mean (missing if var has any negative values){p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt nmissing}}number of missing observations{p_end}
 {p2col :{opt sum}}sums{p_end}

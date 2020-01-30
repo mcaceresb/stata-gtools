@@ -1,7 +1,26 @@
 Change Log
 ==========
 
+## gtools-1.7.3 (2020-01-30)
+
+### Bug fixes
+
+- `geomean` in `gcollapse`, `gegen`, and `gstats` now returns missing
+  if source has any negative values (complex numbers not supprted and
+  checking special cases when the function might be defined given
+  possibly negative input was too complicated). Further, if any input
+  is zero the function now returns zero (previous behavior was not
+  well-defined).
+
 ## gtools-1.7.2 (2020-01-26)
+
+### Features
+
+- Closes #69. `greshape wide/spread` now allows `labelformat()` for
+  custom variable labels (only when a single variable is passed to
+  `key()/j()`). The default is `#keyvalue# #stublabel#`.  Available
+  placeholders are `#stubname#`, `#stublabel#`, `#keyname#`,
+  `#keylabel#`, `#keyvalue#`, and `#keyvaluelabel#`
 
 ### Enhancements
 
@@ -9,12 +28,6 @@ Change Log
   `gstats transform` function (this is only allowed because these calls
   already require single-variable input, so the `by:` prefix should not
   present an issue when calling the function).
-
-- Closes #69. `greshape wide/spread` now allows `labelformat()` for
-  custom variable labels (only when a single variable is passed to
-  `key()/j()`). The default is `#keyvalue# #stublabel#`.  Available
-  placeholders are `#stubname#`, `#stublabel#`, `#keyname#`,
-  `#keylabel#`, `#keyvalue#`, and `#keyvaluelabel#`
 
 ## gtools-1.7.1 (2020-01-26)
 

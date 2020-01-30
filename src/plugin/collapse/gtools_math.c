@@ -98,8 +98,19 @@ ST_double gf_array_dmean_range (const ST_double v[], const GT_size start, const 
 ST_double gf_array_dgeomean_range (const ST_double v[], const GT_size start, const GT_size end) {
     GT_size i;
     ST_double vsum = 0;
-    for (i = start; i < end; i++)
-        vsum += log(v[i]);
+
+    // TODO: Truncate numerical zeros to 0?
+    for (i = start; i < end; i++) {
+        if ( v[i] == 0 ) {
+            return (0);
+        }
+        else if ( v[i] < 0 ) {
+            return (SV_missval);
+        }
+        else {
+            vsum += log(v[i]);
+        }
+    }
 
     return (exp(vsum / (end - start)));
 }

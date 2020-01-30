@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Jan 26 16:43:03 EST 2020
+* Updated: Thu Jan 30 15:11:58 EST 2020
 * Purpose: Unit tests for gtools
-* Version: 1.7.2
+* Version: 1.7.3
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -1048,6 +1048,31 @@ capture program drop checks_corners
 program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
+
+    * Negative or zero values for geomean
+    qui {
+        clear
+        set obs 10
+        gen g = mod(_n, 2)
+        gen x = _n - 6
+        gen w = cond(x < 0, 0, _n)
+        preserve
+            gcollapse (geomean) x, by(g)
+            assert mi(x)
+        restore, preserve
+            gcollapse (geomean) x if x > 0, by(g)
+            assert x != 0 & !mi(x)
+        restore, preserve
+            gcollapse (geomean) x if x >= 0, by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore, preserve
+            gcollapse (geomean) x [aw = w], by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore, preserve
+            gcollapse (geomean) x [fw = w], by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore
+    }
 
     * Parsing by: in gegen
     qui {

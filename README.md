@@ -706,6 +706,11 @@ TODO
 
 Planned features:
 
+- [ ] Decide `geomean` behavior:
+    - [ ] Need to iterate over all values anyway to decide whether
+          zero or negative "wins". At the moment it exits as son
+          as either is encountered, meaning `-1 0` has a different
+          geometric mean than `0 -1`.
 - [ ] `gregress` missing features
     - [ ] Non-nested multi-way clustering.
     - [ ] HDFE collienar categories check.

@@ -1,4 +1,4 @@
-*! version 1.7.3 30Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.7.4 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -5047,7 +5047,7 @@ program gstats_transform
     }
 
     if ( `"`unknown'"' != "" ) {
-        disp as err `"Uknown transformations: `unknown'"'
+        disp as err `"Unknown transformations: `unknown'"'
         exit 198
     }
 

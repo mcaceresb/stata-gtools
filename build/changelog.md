@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-1.7.4 (2020-04-14)
+
+### Enhancements
+
+- User must now specify global `GTOOLS_BETA` to use beta features.
+
+### Bug fixes
+
+- Fixed bug where the prefix in `gstats` was `stat_` instead of `stat|`
+
 ## gtools-1.7.3 (2020-01-30)
 
 ### Bug fixes

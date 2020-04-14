@@ -1,4 +1,4 @@
-*! version 0.1.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.1.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate IV regression via 2SLS by group and with HDFE
 
 cap program drop givregress

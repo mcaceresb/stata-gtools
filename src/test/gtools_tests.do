@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Thu Jan 30 15:11:58 EST 2020
 * Purpose: Unit tests for gtools
-* Version: 1.7.3
+* Version: 1.7.4
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -20,6 +20,7 @@ set varabbrev off
 set seed 42
 set linesize 255
 set type double
+global GTOOLS_BETA = 1
 
 * Main program wrapper
 * --------------------

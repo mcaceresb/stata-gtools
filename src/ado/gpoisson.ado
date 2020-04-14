@@ -1,4 +1,4 @@
-*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate poisson regression via IRLS by group and with HDFE
 
 cap program drop gpoisson

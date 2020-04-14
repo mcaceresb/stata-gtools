@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  18Aug2019}{...}
+{* *! version 0.1.1  14Apr2020}{...}
 {viewerdialog gpoisson "dialog gpoisson"}{...}
 {vieweralsosee "[R] gpoisson" "mansection R gpoisson"}{...}
 {viewerjumpto "Syntax" "gpoisson##syntax"}{...}
@@ -17,7 +17,7 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gpoisson} is in beta; use with caution.
+{it:Warning}: {opt gpoisson} is in beta; use with caution. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
 
 {marker syntax}{...}
 {title:Syntax}

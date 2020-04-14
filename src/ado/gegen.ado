@@ -71,6 +71,7 @@ program define gegen, byable(onecall) rclass
     if ( `"`fcn'"'   == "skew"  ) local fcn skewness
     if ( `"`fcn'"'   == "sum"   ) local type `btype'
     if ( regexm(`"`fcn'"', " ") ) local fcn: subinstr local fcn " " "|", all
+    if ( regexm(`"`fcn'"', "_") ) local fcn: subinstr local fcn "_" "|", all
 
     * Parse by call
     * -------------

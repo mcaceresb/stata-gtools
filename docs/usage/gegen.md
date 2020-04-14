@@ -160,6 +160,8 @@ or a list of variables.
 
     geomean(exp)
         creates a constant (within varlist) containing the geometric mean of exp.
+        If exp has any negative values, the function returns missing (`.`). If it
+        has any zeros, the function returns zero.
 
     median(exp)
         creates a constant (within varlist) containing the median of exp.

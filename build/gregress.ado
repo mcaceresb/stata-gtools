@@ -1,8 +1,18 @@
-*! version 0.2.0 25Aug2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 0.2.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate linear regression via OLS by group and with HDFE
 
 capture program drop gregress
 program gregress, rclass
+
+    if ( `"${GTOOLS_BETA}"' != "1" ) {
+        disp as err "This function is in beta; to use, you must enable beta features via"
+        disp as err ""
+        disp as err "    global GTOOLS_BETA = 1"
+        disp as err ""
+        disp as err "gtools functions in beta are subject to change."
+        exit 198
+    }
+
     version 13.1
     global GREG_RC 0
     global GTOOLS_CALLER gregress

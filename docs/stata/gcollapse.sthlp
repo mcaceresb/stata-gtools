@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.2.0 04Apr2019}{...}
+{* *! version 1.2.1 30Jan2020}{...}
 {viewerdialog gcollapse "dialog gcollapse"}{...}
 {vieweralsosee "[R] gcollapse" "mansection R gcollapse"}{...}
 {viewerjumpto "Syntax" "gcollapse##syntax"}{...}
@@ -49,7 +49,7 @@ in IC and 4-120 times faster in MP), with several additions.
 
 {p2colset 9 22 24 2}{...}
 {p2col :{opt mean}}means (default){p_end}
-{p2col :{opt geomean}}geometric mean{p_end}
+{p2col :{opt geomean}}geometric mean (missing if var has any negative values){p_end}
 {p2col :{opt count}}number of nonmissing observations{p_end}
 {p2col :{opt nmissing}}number of missing observations{p_end}
 {p2col :{opt percent}}percentage of nonmissing observations{p_end}

@@ -476,6 +476,31 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    * Negative or zero values for geomean
+    qui {
+        clear
+        set obs 10
+        gen g = mod(_n, 2)
+        gen x = _n - 6
+        gen w = cond(x < 0, 0, _n)
+        preserve
+            gcollapse (geomean) x, by(g)
+            assert mi(x)
+        restore, preserve
+            gcollapse (geomean) x if x > 0, by(g)
+            assert x != 0 & !mi(x)
+        restore, preserve
+            gcollapse (geomean) x if x >= 0, by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore, preserve
+            gcollapse (geomean) x [aw = w], by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore, preserve
+            gcollapse (geomean) x [fw = w], by(g)
+            assert x[1] == 0 & !mi(x[2])
+        restore
+    }
+
     * Parsing by: in gegen
     qui {
         clear

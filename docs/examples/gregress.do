@@ -1,3 +1,7 @@
+* NOTE: gregress is in beta. To enable enable beta features, define
+*
+*     global GTOOLS_BETA = 1
+
 * Showcase
 * --------
 

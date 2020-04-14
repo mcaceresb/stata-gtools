@@ -7,7 +7,7 @@ OLS linear regressions by group with weights, clustering, and HDFE
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gregress` is in beta; use with caution.
+    `gregress` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
 `gregress` computes fast OLS regression coefficients and standard errors
 by group. Its basic functionality is similar to that of the user-written
@@ -446,6 +446,8 @@ In addition, some important features are missing:
 
 Examples
 --------
+
+Note `gregress` is in beta. To enable enable beta features, define `global GTOOLS_BETA = 1`.
 
 You can download the raw code for the examples below
 [here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gregress.do)

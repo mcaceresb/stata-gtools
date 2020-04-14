@@ -33,7 +33,7 @@ program gstats, rclass
                 tabstat   ///
                 summarize
 
-    if ( `:list stat in alias_transform' ) local statprefix statprefix(`stat'_)
+    if ( `:list stat in alias_transform' ) local statprefix statprefix(`stat'|)
 
     local alias
     foreach a of local stats {

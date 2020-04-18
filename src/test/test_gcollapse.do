@@ -476,6 +476,60 @@ program checks_corners
     syntax, [*]
     di _n(1) "{hline 80}" _n(1) "checks_corners `options'" _n(1) "{hline 80}" _n(1)
 
+    qui {
+        mac drop GTOOLS_BETA
+        cap gregress
+        assert _rc == 198
+        cap givregress
+        assert _rc == 198
+        cap gpoisson
+        assert _rc == 198
+        global GTOOLS_BETA = 1
+
+        gregress
+        givregress
+        gpoisson
+    }
+
+    * Select used to not correctly select amonghts missing values
+    qui {
+        clear
+        set obs 3
+        gen value = .
+        replace value = .a in 3
+        replace value = .b in 2
+        gen date = 1
+
+        gstats range (select1 . . date)  x1 = value
+        gstats range (select1)           x2 = value
+        gstats range (select2)           x3 = value
+        gstats range (select3)           x4 = value
+        gstats range (select-1)          x5 = value
+        gstats range (select-2 . . date) x6 = value
+
+        assert x1 == .
+        assert x2 == .
+        assert x3 == .a
+        assert x4 == .b
+        assert x5 == .b
+        assert x6 == .a
+
+        drop x?
+        gstats range (rawselect1 . . date)  x1 = value [fw = 1]
+        gstats range (rawselect1)           x2 = value [fw = 1]
+        gstats range (rawselect2)           x3 = value [fw = 1]
+        gstats range (rawselect3)           x4 = value [fw = 1]
+        gstats range (rawselect-1)          x5 = value [fw = 1]
+        gstats range (rawselect-2 . . date) x6 = value [fw = 1]
+
+        assert x1 == .
+        assert x2 == .
+        assert x3 == .a
+        assert x4 == .b
+        assert x5 == .b
+        assert x6 == .a
+    }
+
     * Negative or zero values for geomean
     qui {
         clear
@@ -1832,7 +1886,7 @@ program _compare_inner_gcollapse_select
     local gcall `gcall' (sd)           sd           = random1
     local gcall `gcall' (variance)     variance     = random1
     local gcall `gcall' (cv)           cv           = random1
-    }                                               
+    }
     local gcall `gcall' (min)          min          = random1
     local gcall `gcall' (max)          max          = random1
     local gcall `gcall' (range)        range        = random1
@@ -1951,7 +2005,7 @@ program _compare_inner_gcollapse_select
         if ( `"`ifin'"' != "" ) qui keep `ifin'
         sort id random1
         foreach sel in 1 2 3 9999 {
-            cap by id (random1): assert (((abs(random1[`sel'] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`sel'])))) 
+            cap by id (random1): assert (((abs(random1[`sel'] - select`sel') < `tol') | (mi(select`sel') & mi(random1[`sel']))))
                 if ( _rc ) {
                     di as txt "    compare_select`sel'_gcollapse (fail): select`wtxt' yielded different results (tol = `tol')"
                     exit 198

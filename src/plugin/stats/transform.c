@@ -2732,18 +2732,40 @@ ST_double gf_stats_transform_stat (
         sdbl = SV_missval;
     }
     else {
+        // If there are no missing values, continue normally
         if ( nomissing ) {
             sint = nj;
             dblptr = buffer;
         }
         else {
+
+            // Group non-missing values sequentially because non-weighted
+            // stats were originaly coded to assume non-missing values were
+            // grouped contiguously in memory.
+
             sint = 0;
             for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
                 if ( *dblptr < SV_missval ) {
                     pbuffer[sint++] = *dblptr;
                 }
             }
-            dblptr = pbuffer;
+
+            // There was a bug in select wherein all missing values
+            // is supposed to select amongst missing values, but if
+            // there are any non-missing values it selects amongst
+            // missing values. Therefore it has special logic that
+            // needs the original buffer when all values are missing.
+
+            if ( sint > 0 ) {
+                dblptr = pbuffer;
+            }
+            else {
+
+                // All the stats in gf_switch_fun_code _should_ know how to
+                // deal with sint = 0; otherwise this'd give bugs already.
+
+                dblptr = buffer;
+            }
         }
 
         if ( scode == -6 ) { // count

@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.7.5 (2020-04-18)
+
+### Bug fixes
+
+- Fixed bug where `gstats range (select)` returned `0` instead of
+  missing when all values in the input vector were missing.
+
 ## gtools-1.7.4 (2020-04-14)
 
 ### Enhancements

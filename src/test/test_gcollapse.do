@@ -486,6 +486,7 @@ program checks_corners
         assert _rc == 198
         global GTOOLS_BETA = 1
 
+        clear
         gregress
         givregress
         gpoisson

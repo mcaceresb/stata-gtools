@@ -189,7 +189,7 @@ is used.
 {p_end}
 {synopt:{opth labelp:rogram(str)}}Program to parse {opt labelformat} (see examples).
 {p_end}
-{synopt :{cmd:auto:rename}[{cmd:(}{str}{cmd:)}]}Automatically name targets based on requested stats. Default is {it:#source#_#stat#}.
+{synopt :{opth auto:rename}[{cmd:(}{str}{cmd:)}]}Automatically name targets based on requested stats. Default is {it:#source#_#stat#}.
 {p_end}
 {synopt:{opt nogreedy}}Use slower but memory-efficient (non-greedy) algorithm.
 {p_end}

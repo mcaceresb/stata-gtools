@@ -199,42 +199,201 @@ variable levels (empty if without -by()-)
 Methods and Formulas
 --------------------
 
-Poisson regression is computed via IRLS in an iterative process. I
-encountered this implementation in Guimarães (2014). Initialize
+### MLE via IRLS
+
+Poisson regression is computed via IRLS in an iterative process. Recall
+the exponential family of distributions, where
 $$
 \begin{align}
-  \mu^{(0)}  & = (Y + \overline{Y}) / 2 \\\\
-  \eta^{(0)} & = \log(\mu^{(0)}) \\\\
-  z^{(0)}    & = \eta^{(0)} + (Y - \mu^{(0)}) / \mu^{(0)}
+  f(y; \theta, \varphi)
+  =
+  \exp \left[
+      \dfrac{y \theta - b(\theta)}{a(\varphi)}
+      +
+      c(y, \varphi)
+  \right]
 \end{align}
 $$
 
-where $Y$ is the dependent variable ($Y$ should be a non-negative count
-variable). Now for $r = 0$ until convergence run WLS of $z^{(r)}$ on
-$X$ with weighting matrix $W^{(r)} = \text{diag}\\{\mu^{(r)}_1, \ldots, \mu^{(r)}_n\\}$
-(where $n$ is the number of observations). That is,
-$$
-\widehat{\beta}^{(r)} = (X^\prime W^{(r)} X)^{-1} X^\prime W^{(r)} z^{(r)}
-$$
-
-where $X$ is a matrix with $n$ rows, one for each set of observations,
-and $k$ columns, one for each covariate.  A column of ones is
-automatically appended to $X$ unless the option `noconstant` is passed
-or `absorb(varlist)` is requested. After each iteration, update $\mu,
-\eta, z$ as follows:
+and consider $y_i | x_i \sim f(y_i; x_i^\prime \beta, \varphi)$, so that
 $$
 \begin{align}
-  \eta^{(r + 1)} & = z^{(r)} - \widehat{\varepsilon}^{(r)} \\\\
-  \mu^{(r + 1)}  & = \exp(\eta^{(r + 1)}) \\\\
-  z^{(r + 1)}    & = \eta^{(r + 1)} + (Y - \mu^{(r + 1)}) / \mu^{(r + 1)}
+    E[y_i | x_i]
+    &
+    =
+    \mu_i
+    =
+    b^\prime(x_i^\prime \beta)
+    % \\\\
+    % V(y_i | x_i)
+    % &
+    % =
+    % b^{\prime\prime}(\theta) a(\varphi)
+    % =
+    % b^{\prime\prime}(x_i^\prime \beta) a(\varphi)
 \end{align}
 $$
 
-where $\widehat{\varepsilon}^{(r)} = Y - X \widehat{\beta}^{(r)}$ is the
-error of the $r$th WLS estimation. Finally, after each step we compute
-the deviance,
+We can estimate this model via MLE, where we maximize the log-likelihood
 $$
-\delta^{(r + 1)} = 2 * (\log(Y / \mu^{(r + 1)}) - (Y - \mu^{(r + 1)}))
+\begin{align}
+  \log L
+  &
+  = \sum_i \log f(y_i; x_i^\prime \beta, \varphi)
+  = \sum_i \left[
+      \dfrac{y_i \cdot (x_i^\prime \beta) - b(x_i^\prime \beta)}{a(\varphi)}
+      +
+      c(y_i, \varphi)
+  \right]
+\end{align}
+$$
+
+with $y_i$ the dependent variable, $x_i$ covariates, and $\beta$
+the vector of parameters to be estimated. The MLE estimator
+$\widehat{\beta}$ is then given by the solving the FOC with respect
+to $\beta$
+$$
+\begin{align}
+  0
+  &
+  =
+  \sum_i \dfrac{y_i - b^{\prime}(x_i^\prime \beta)}{a(\varphi)} x_i
+  =
+  \sum_i \dfrac{y_i - \mu_i}{a(\varphi)} x_i
+\end{align}
+$$
+
+with $x_i$ the vector of covariates. One way to solve the above
+equaiton is to apply Newton's method (Newton-Raphson) as shown by Nelder
+and Wedderburn (1972). To find the zeros of a vector-valued function
+$g(t)$, given an initial guess $t_0$, we can iterate
+$$
+\begin{align}
+  t_{n + 1}
+  &
+  =
+  t_n - [J_g(t_n)]^{-1} g(t_n)
+\end{align}
+$$
+
+with $J_g(\cdot)$ the Jacobian matrix with the derivatives of each of
+the elements of $g$ with respect to each of its arguments. Let $g(\beta)$
+denote the gradient of the log-likelihood and $H(\beta)$ the Hessian,
+so that $H(\beta)$ is the Jacobian matrix of $g(\beta)$. That is,
+$$
+\begin{align}
+  g(\beta)
+  &
+  =
+  \sum_i \dfrac{y_i - b^{\prime}(x_i^\prime \beta)}{a(\varphi)} x_i
+  =
+  a(\varphi)^{-1}
+  X^\prime \left(Y - \mu\right)
+  \\\\
+  H(\beta)
+  &
+  =
+  - \sum_i \dfrac{b^{\prime\prime}(x_i^\prime \beta)}{a(\varphi)} x_i x_i^\prime
+  =
+  -
+  a(\varphi)^{-1}
+  X^\prime W X
+\end{align}
+$$
+
+where $W$ is a diagonal matrix with $w_{ii} = b^{\prime\prime}(x_i^\prime \beta)$
+and $\mu$ is a vector of stacked $\mu_i = b^\prime(x_i^\prime \beta)$. Now given
+an initial guess $\widehat{\beta}^{(0)}$, noting the $a(\varphi)$ cancel,
+$$
+\begin{align}
+  \widehat{\beta}^{(r + 1)}
+  &
+  =
+  \widehat{\beta}^{(r)}
+  -
+  H\big(\widehat{\beta}^{(r)}\big)^{-1}
+  g\big(\widehat{\beta}^{(r)}\big)
+  \\\\
+  &
+  =
+  \widehat{\beta}^{(r)}
+  +
+  \big(X^\prime W^{(r)} X\big)^{-1}
+  X^\prime \left(Y - \mu^{(r)}\right)
+  \\\\
+  &
+  =
+  \big(X^\prime W^{(r)} X\big)^{-1} \left(
+    \big(X^\prime W^{(r)} X\big) \widehat{\beta}^{(r)}
+    +
+    X^\prime \left(Y - \mu^{(r)}\right)
+  \right)
+  \\\\
+  &
+  =
+  \big(X^\prime W^{(r)} X\big)^{-1}
+  X^\prime W^{(r)}
+  \left(
+    X \widehat{\beta}^{(r)}
+    +
+    \big(W^{(r)}\big)^{-1}
+    \left(Y - \mu^{(r)}\right)
+  \right)
+  \\\\
+  &
+  =
+  (X^\prime W^{(r)} X)^{-1} X^\prime W^{(r)} z^{(r)}
+  \\\\
+  z^{(r)}
+  &
+  \equiv
+  \eta^{(r)}
+  +
+  \big(W^{(r)}\big)^{-1}
+  \left(Y - \mu^{(r)}\right)
+  \\\\
+  \eta^{(r)}
+  &
+  \equiv
+  X \widehat{\beta}^{(r)}
+\end{align}
+$$
+
+That is, $\widehat{\beta}^{(r + 1)}$ is the result of WLS with $z^{(r)}$
+as the left-hand variable, $X$ as covariates, and $W^{(r)}$ as the
+weighting matrix. This procedure can estimate MLE whenever the pdf
+is a member of the exponential family of distributions. In the specific
+case of the Poisson,
+$$
+\begin{align}
+  a(\varphi) = 1
+  \quad\quad
+  b(\theta) = e^\theta
+  \quad\quad
+  c(y, \varphi) = - \log(y!)
+\end{align}
+$$
+
+Hence $b^{\prime}(\theta) = e^\theta, b^{\prime\prime}(\theta) = e^\theta$ and
+$$
+\begin{align}
+  \eta^{(r)} & = X \beta^{(r)} \\\\
+  \mu^{(r)}  & = \exp(\eta^{(r)}) \\\\
+  W^{(r)}    & = \text{diag}\\{\mu^{(r)}_1, \ldots, \mu^{(r)}_n\\} \\\\
+  z^{(r)}    & = \eta^{(r)} + (Y - \mu^{(r)}) / \mu^{(r)}
+\end{align}
+$$
+
+In our specific implementation, we follow Guimarães (2014) and implement
+an initial guess $\mu^{(0)} = (Y + \overline{Y}) / 2$ then define
+$\eta^{(0)}, z^{(0)}$, and $W^{(0)}$. In all subsequent iterations, however, the
+variables are defined as in the equations above using $\beta^{(r)}$.
+Note a column of ones is automatically appended to $X$ unless the option
+`noconstant` is passed or `absorb(varlist)` is requested.
+
+We iterate until convergence. At each step, we compute the deviance,
+$$
+\delta^{(r + 1)} = 2 \cdot (\log(Y / \mu^{(r + 1)}) - (Y - \mu^{(r + 1)}))
 $$
 
 (if $Y_i = 0$ then $\delta^{(r + 1)}_i$ is also set to $0$). We stop
@@ -249,7 +408,7 @@ $$
 }
 $$
 
-Note $\delta^{(0)}$ is set to $0$ and the default tolerance is
+$\delta^{(0)}$ is set to $1$ and the default tolerance is
 $1\mathrm{e}{-8}$.  If the tolerance criteria is met then each variable
 is set to their value after the $r$th iteration (i.e. $\widehat{\beta}$
 to $\widehat{\beta}^{(r + 1)}$, $W$ to $W^{(r + 1)}$, and so on).
@@ -598,3 +757,5 @@ Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Ef
 Correia, Sergio, Paulo  Guimarães, and Thomas Zylkin. 2019. "Verifying the existence of maximum likelihood estimates for generalized linear models." arXiv:1903.01633v5 [econ.EM]. Accessed January 16th, 2020. Available at [https://arxiv.org/abs/1903.01633v5](https://arxiv.org/abs/1903.01633v5)
 
 Guimarães, Paulo. 2014. "POI2HDFE: Stata module to estimate a Poisson regression with two high-dimensional fixed effects." Statistical Software Components S457777, Boston College Department of Economics, revised 16 Sep 2016. Accessed January 16th, 2020. Available at [https://ideas.repec.org/c/boc/bocode/s457777.html](https://ideas.repec.org/c/boc/bocode/s457777.html)
+
+Nelder, John A. and Wedderburn, Robert W. 1972. "Generalized Linear Models." Journal of the Royal Statistical Society. Series A (General), 135 (3): 370-384. Accessed September 12th, 2020.

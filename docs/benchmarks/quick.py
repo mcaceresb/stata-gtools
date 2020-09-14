@@ -113,7 +113,7 @@ plt.figtext(
 plt.figtext(
     -0.07875, 0.0125,
     '\nBenchmarks conducted on a machine with Stata for Unix 15.1/MP (8 cores), a Xeon E5 CPU'
-    '\n@ 3.30GHz, and an HDD in RAID0. Source data had 4 observations and was randomly sorted.'
+    '\n@ 3.30GHz, and an HDD in RAID0. Source data had 4 variables and was randomly sorted.'
     '\nThe grouping variable, if applicable, was long.',
     fontsize = fsizes[0],
     ha = 'left'

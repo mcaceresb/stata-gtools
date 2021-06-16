@@ -1,0 +1,59 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  gtools_tests
+       log:  /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build/gtools_tests_unix.log
+  log type:  text
+ opened on:  18 Apr 2020, 19:19:15
+
+
+Start:        19:19:15 18 Apr 2020
+Options:      basic_checks
+OS:           Unix
+Machine Type: PC (64-bit x86-64)
+
+-------------------------------------
+Basic unit-tests 19:19:15 18 Apr 2020
+-------------------------------------
+    test(passed): checks_gcontract, oncollision(error)
+    test(passed): checks_isid, oncollision(error)
+    test(passed): checks_duplicates, oncollision(error)
+    test(passed): checks_toplevelsof, oncollision(error)
+    test(passed): checks_levelsof, oncollision(error)
+    test(passed): checks_unique, oncollision(error)
+    test(passed): checks_hashsort, oncollision(error)
+    test(passed): checks_gregress, oncollision(error)
+    test(passed): checks_greshape, oncollision(error)
+    test(passed): checks_gstats, oncollision(error)
+    test(passed): checks_gquantiles_by, oncollision(error)
+    test(passed): checks_gquantiles_by, oncollision(error) wgt([fw = int1])
+    test(passed): checks_gquantiles_by, oncollision(error) wgt([pw = int1])
+    test(passed): checks_gquantiles_by, oncollision(error) wgt([aw = int1])
+    test(passed): checks_gquantiles, oncollision(error)
+    test(passed): checks_gquantiles, oncollision(error) wgt([fw = int1])
+    test(passed): checks_gquantiles, oncollision(error) wgt([pw = int1])
+    test(passed): checks_gquantiles, oncollision(error) wgt([aw = int1])
+    test(passed): checks_gegen, oncollision(error)
+    test(passed): checks_gegen, oncollision(error) wgt([fw = int1])
+    test(passed): checks_gegen, oncollision(error) wgt([iw = int1])
+    test(passed): checks_gegen, oncollision(error) wgt([pw = int1])
+    test(passed): checks_gegen, oncollision(error) wgt([aw = int1])
+    test(passed): checks_gcollapse, oncollision(error)
+    test(passed): checks_gcollapse, oncollision(error) wgt([fw = int1])
+    test(passed): checks_gcollapse, oncollision(error) wgt([iw = int1])
+    test(passed): checks_gcollapse, oncollision(error) wgt([pw = int1])
+    test(passed): checks_gcollapse, oncollision(error) wgt([aw = int1])
+
+
+    test(failed): checks_corners, oncollision(error)
+
+WARNING: 20:18:54 18 Apr 2020
+tests ran with non-0 exit status
+
+tests ran but Stata gave error code r(100)
+
+Start: 19:19:15 18 Apr 2020
+End: 20:18:54 18 Apr 2020
+      name:  gtools_tests
+       log:  /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build/gtools_tests_unix.log
+  log type:  text
+ closed on:  18 Apr 2020, 20:18:54
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

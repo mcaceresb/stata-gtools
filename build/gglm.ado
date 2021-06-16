@@ -1,8 +1,8 @@
-*! version 0.2.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
-*! Estimate poisson regression via IRLS by group and with HDFE
+*! version 0.2.0 15Jun2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! Estimate GLM via IRLS by group and with HDFE
 
-cap program drop gpoisson
-program gpoisson, rclass
+cap program drop gglm
+program gglm, rclass
     version 13.1
 
     local 00: copy local 0
@@ -12,7 +12,7 @@ program gpoisson, rclass
     else {
         local comma ,
     }
-    gregress `0' `comma' glm family(poisson)
+    gregress `0' `comma' glm
     if ( ${GREG_RC} ) {
         global GREG_RC
         exit 0
@@ -25,3 +25,4 @@ program gpoisson, rclass
     return scalar minJ  = r(minJ)
     return scalar maxJ  = r(maxJ)
 end
+

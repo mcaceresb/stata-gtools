@@ -137,17 +137,3 @@ void GtoolsGroupByHDFEWeighted (
 //     free (wsums);
 //     free (wx);
 // }
-//
-// Maybe the compiler optimizes something in the regular loop that it doesn't here?
-// use /tmp/tmp
-// set rmsg on
-// gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
-// mata greg.print()
-//
-// greg y x1 x2, absorb(g1 g2 g3) mata(greg)
-// mata greg.print()
-// reghdfe y x1 x2, absorb(g1 g2 g3)
-//
-// greg y x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
-// mata greg.print()
-// reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)

@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.8.0 (2021-06-15)
+
+### Features
+
+- Added `gglm` to estimate GLM models, including `logit`.
+
 ## gtools-1.7.5 (2020-04-18)
 
 ### Bug fixes

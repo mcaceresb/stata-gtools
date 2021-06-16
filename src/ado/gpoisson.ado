@@ -12,7 +12,7 @@ program gpoisson, rclass
     else {
         local comma ,
     }
-    gregress `0' `comma' poisson
+    gregress `0' `comma' glm family(poisson)
     if ( ${GREG_RC} ) {
         global GREG_RC
         exit 0

@@ -12,6 +12,13 @@ open:
 	dolphin --split ~/todo/now/stata-gtools \
 					~/todo/now/stata-gtools/src &
 
+# !!! todo xx BUG; nunique should fail with multiple input !!!!
+# !!! todo xx BUG; gunique when no obs and gen!!!! should be all missing!!!
+# test xx src/test/test_gregress.do
+# doc  xx docs/usage/gpoisson.md    (consolidate)
+# doc  xx docs/stata/gpoisson.sthlp (consolidate)
+# ex   xx docs/examples/glogit.do
+
 # Update!
 # -------
 #

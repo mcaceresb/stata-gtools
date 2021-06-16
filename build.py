@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Sun Aug 25 12:39:07 EDT 2019
+# Updated: Tue Jun 15 23:55:13 EDT 2021
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -119,6 +119,7 @@ gtools_ssc = [
     "greg.ado",
     "gregress.ado",
     "givregress.ado",
+    "gglm.ado",
     "gpoisson.ado",
     "gstats.ado",
     "gduplicates.ado",
@@ -139,6 +140,7 @@ gtools_ssc = [
     "greg.sthlp",
     "gregress.sthlp",
     "givregress.sthlp",
+    "gglm.sthlp",
     "gpoisson.sthlp",
     "gstats.sthlp",
     "gstats_transform.sthlp",
@@ -372,10 +374,10 @@ copy2(path.join("docs", "stata", "gtop.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gtoplevelsof.sthlp"),     gdir)
 copy2(path.join("docs", "stata", "gisid.sthlp"),            gdir)
 copy2(path.join("docs", "stata", "greshape.sthlp"),         gdir)
-copy2(path.join("docs", "stata", "gpoisson.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "greg.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gregress.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "givregress.sthlp"),       gdir)
+copy2(path.join("docs", "stata", "gglm.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gpoisson.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gstats.sthlp"),           gdir)
 copy2(path.join("docs", "stata", "gstats_transform.sthlp"), gdir)
@@ -406,6 +408,7 @@ copy2(path.join("src", "ado", "greshape.ado"),          gdir)
 copy2(path.join("src", "ado", "greg.ado"),              gdir)
 copy2(path.join("src", "ado", "gregress.ado"),          gdir)
 copy2(path.join("src", "ado", "givregress.ado"),        gdir)
+copy2(path.join("src", "ado", "gglm.ado"),              gdir)
 copy2(path.join("src", "ado", "gpoisson.ado"),          gdir)
 copy2(path.join("src", "ado", "gstats.ado"),            gdir)
 copy2(path.join("src", "ado", "gduplicates.ado"),       gdir)

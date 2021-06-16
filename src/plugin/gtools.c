@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Sat Apr 18 19:12:43 EDT 2020
+ * Updated: Tue Jun 15 23:56:34 EDT 2021
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 18Apr2020
+ * Version: 15Sep2021
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 18 Apr 2020
+ * @date 15 Sep 2021
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -527,8 +527,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gregress_savegse,
             gregress_saveghdfe,
             gregress_range,
-            gregress_poisson,
-            gregress_poisiter,
+            gregress_glmfam,
+            gregress_glmlogit,
+            gregress_glmpoisson,
+            gregress_glmiter,
             gregress_ivreg,
             gregress_ivkendog,
             gregress_ivkexog,
@@ -729,8 +731,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gregress_savegse",      &gregress_savegse)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_saveghdfe",    &gregress_saveghdfe)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_range",        &gregress_range)        )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gregress_poisson",      &gregress_poisson)      )) goto exit;
-    if ( (rc = sf_scalar_size("__gtools_gregress_poisiter",     &gregress_poisiter)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_glmfam",       &gregress_glmfam)       )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_glmlogit",     &gregress_glmlogit)     )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_glmpoisson",   &gregress_glmpoisson)   )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_glmiter",      &gregress_glmiter)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_ivreg",        &gregress_ivreg)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_ivkendog",     &gregress_ivkendog)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_ivkexog",      &gregress_ivkexog)      )) goto exit;
@@ -775,7 +779,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
 
     // Vars for gregress
     if ( (rc = SF_scal_use("__gtools_gregress_hdfetol",  &(st_info->gregress_hdfetol)  )) ) return (rc);
-    if ( (rc = SF_scal_use("__gtools_gregress_poistol",  &(st_info->gregress_poistol)  )) ) return (rc);
+    if ( (rc = SF_scal_use("__gtools_gregress_glmtol",   &(st_info->gregress_glmtol)   )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_gregress_range_l",  &(st_info->gregress_range_l)  )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_gregress_range_u",  &(st_info->gregress_range_u)  )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_gregress_range_ls", &(st_info->gregress_range_ls) )) ) return (rc);
@@ -1186,8 +1190,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gregress_moving_l     = gregress_moving_l;
     st_info->gregress_moving_u     = gregress_moving_u;
     st_info->gregress_range        = gregress_range;
-    st_info->gregress_poisson      = gregress_poisson;
-    st_info->gregress_poisiter     = gregress_poisiter;
+    st_info->gregress_glmfam       = gregress_glmfam;
+    st_info->gregress_glmlogit     = gregress_glmlogit;
+    st_info->gregress_glmpoisson   = gregress_glmpoisson;
+    st_info->gregress_glmiter      = gregress_glmiter;
     st_info->gregress_ivreg        = gregress_ivreg;
     st_info->gregress_ivkendog     = gregress_ivkendog;
     st_info->gregress_ivkexog      = gregress_ivkexog;
@@ -1321,8 +1327,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgregress_moving_l:     "GT_size_cfmt"\n",  gregress_moving_l    );
         sf_printf_debug("\tgregress_moving_u:     "GT_size_cfmt"\n",  gregress_moving_u    );
         sf_printf_debug("\tgregress_range:        "GT_size_cfmt"\n",  gregress_range       );
-        sf_printf_debug("\tgregress_poisson:      "GT_size_cfmt"\n",  gregress_poisson     );
-        sf_printf_debug("\tgregress_poisiter:     "GT_size_cfmt"\n",  gregress_poisiter    );
+        sf_printf_debug("\tgregress_glmfam:       "GT_size_cfmt"\n",  gregress_glmfam      );
+        sf_printf_debug("\tgregress_glmlogit:     "GT_size_cfmt"\n",  gregress_glmlogit    );
+        sf_printf_debug("\tgregress_glmpoisson:   "GT_size_cfmt"\n",  gregress_glmpoisson  );
+        sf_printf_debug("\tgregress_glmiter:      "GT_size_cfmt"\n",  gregress_glmiter     );
         sf_printf_debug("\tgregress_ivreg:        "GT_size_cfmt"\n",  gregress_ivreg       );
         sf_printf_debug("\tgregress_ivkendog:     "GT_size_cfmt"\n",  gregress_ivkendog    );
         sf_printf_debug("\tgregress_ivkexog:      "GT_size_cfmt"\n",  gregress_ivkexog     );

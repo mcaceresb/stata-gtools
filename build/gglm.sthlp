@@ -1,15 +1,15 @@
 {smcl}
-{* *! version 0.1.2  12Sep2020}{...}
-{viewerdialog gpoisson "dialog gpoisson"}{...}
-{vieweralsosee "[R] gpoisson" "mansection R gpoisson"}{...}
-{viewerjumpto "Syntax" "gpoisson##syntax"}{...}
-{viewerjumpto "Description" "gpoisson##description"}{...}
-{viewerjumpto "Methods and Formulas" "gpoisson##methods_and_formulas"}{...}
-{viewerjumpto "Examples" "gpoisson##examples"}{...}
+{* *! version 0.2.0 15Jun2021}{...}
+{viewerdialog gglm "dialog gglm"}{...}
+{vieweralsosee "[R] gglm" "mansection R gglm"}{...}
+{viewerjumpto "Syntax" "gglm##syntax"}{...}
+{viewerjumpto "Description" "gglm##description"}{...}
+{viewerjumpto "Methods and Formulas" "gglm##methods_and_formulas"}{...}
+{viewerjumpto "Examples" "gglm##examples"}{...}
 {title:Title}
 
 {p2colset 5 18 24 2}{...}
-{p2col :{cmd:gpoisson} {hline 2}} IRLS poisson regressions by group with weights, clustering, and HDFE{p_end}
+{p2col :{cmd:gglm} {hline 2}} GLM (via IRLS) by group with weights, clustering, and HDFE{p_end}
 {p2colreset}{...}
 
 {pstd}
@@ -17,26 +17,38 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gpoisson} is in beta; use with caution. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
+{it:Warning}: {opt gglm} is in beta; use with caution. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 17 2}
-{opt gpoisson}
+{opt gglm}
 {depvar}
 {indepvars}
 {ifin}
-[{it:{help gpoisson##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gpoisson##table_options:options}}]
+[{it:{help gglm##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {opth absorb(varlist)} {it:{help gglm##table_options:options}}]
 
 {pstd}
-By default, results are saved into a mata class object named
-{opt GtoolsPoisson}. Run {opt mata GtoolsPoisson.desc()} for
-details; the name and contents can be modified via {opt mata()}.
-The results can also be saved into variables via {opt gen()}
-or {opt prefix()} (either can be combined with {opt mata()}, but not
-each other).
+Support for different link functions may be added in future releases.
+At the moment only the cannonical link for each `family()` is available.
+
+{pstd}
+By default, results are saved into a mata class object named after the
+model estimated: {opt GtoolsLogit} when the logit link is used (default
+with {opt family(bonimial)}), {opt GtoolsPoisson} when the poisson link
+is used (default with {opt family(poisson)}), etc.  For details, the 
+{opt desc()} method is available, e.g. {opt mata GtoolsLogit.desc()}. 
+The name and contents can be modified via the {opt mata()} option.  The
+results can also be saved into variables via {opt gen()} or {opt prefix()}
+(either can be combined with {opt mata()}, but not each other).
+
+Run
+{opt mata GtoolsLogit.desc()} for details; the name and contents can be
+modified via {opt mata()}. The results can also be saved into variables
+via {opt gen()} or {opt prefix()} (either can be combined with {opt
+mata()}, but not each other).
 
 {pstd}
 Note that extended varlist syntax is {bf:not} supported. Further,
@@ -106,17 +118,17 @@ is, this assumes that the weight refers to the number of available
 {title:Description}
 
 {pstd}
-{cmd:gpoisson} estimates a poisson regression model via IRLS,
-optionally weighted, by group, with cluster SE, and/or with multi-way
-high-dimensional fixed effects.  The results are by default saved
-into a mata object (default {opt GtoolsPoisson}).  Run {opt mata
-GtoolsPoisson.desc()} for details; the following data is stored:
+{cmd:gglm} estimates GLM via IRLS, optionally weighted, by group, with
+cluster SE, and/or with multi-way high-dimensional fixed effects.
+The results are by default saved into a mata object (e.g.  {opt GtoolsLogit},
+{opt GtoolsPoisson}, and so on; run {opt mata GtoolsLogit.desc()}) for details).
+The following data is stored:
 
         regression info
         ---------------
 
             string scalar caller
-                model used; should be "gpoisson"
+                model used; "glogit", "gpoisson", etc.
 
             real scalar kx
                 number of (non-absorbed) covariates
@@ -170,7 +182,7 @@ GtoolsPoisson.desc()} for details; the following data is stored:
                 number of levels defined by grouping variables
 
             class GtoolsByLevels ByLevels
-                grouping variable levels; see GtoolsPoisson.ByLevels.desc() for details
+                grouping variable levels; see GtoolsLogit.ByLevels.desc() for details
 
         variable levels (empty if without -by()-)
         -----------------------------------------
@@ -215,7 +227,7 @@ GtoolsPoisson.desc()} for details; the following data is stored:
 {title:Methods and Formulas}
 
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#methods-and-formulas":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/glogit/index.html#methods-and-formulas":online documentation}
 for details.
 
 {marker example}{...}
@@ -223,7 +235,7 @@ for details.
 
 {pstd}
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#examples":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/glogit/index.html#examples":online documentation}
 for examples.
 
 {marker author}{...}

@@ -1,36 +1,44 @@
-Poisson Regression (IRLS)
-=========================
+Generalized Linear Model (IRLS)
+===============================
 
-IRLS Poisson regressions by group with weights, clustering, and HDFE
+GLM via IRLS by group with weights, clustering, and HDFE
 
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gpoisson` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
+    `gglm` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
-`gpoisson` computes fast Poisson regression coefficients and standard
-errors by group. Its basic functionality is similar to that of the
-user-written `rangestat (reg)` or `regressby`, except that it computes
-IRLS for a Poisson regression instead of OLS; in addition, `gpoisson`
-allows weights, clustering, and HDFE by group.  This program is
-_**not**_ intended as a substitute for `poisson`, `ppmlhdfe`, or
-similar commands.  Support for some estimation operations are planned;
-however, `gpoisson` does not compute any significance tests and no
-post-estimation commands are available.
+`gglm` computes fast GLM regression coefficients and standard errors by
+group. Its basic functionality is similar to that of the user-written
+`rangestat (reg)` or `regressby`, except that it computes GLM via IRLS
+instead of OLS; in addition, `gglm` allows weights, clustering, and
+HDFE by group. This program is _**not**_ intended as a substitute for
+`glm` or similar commands. Support for some estimation operations are
+planned; however, `gglm` does not compute any significance tests and
+no post-estimation commands are available.
 
 Syntax
 ------
 
-<p><span class="codespan"><b>gpoisson</b> depvar indepvars [if] [in]  [weight] [, ///</span>
+<p><span class="codespan"><b>gglm</b> depvar indepvars [if] [in]  [weight] [, ///</span>
 </br>
-<span class="codespan">&emsp;&emsp;&emsp; by() absorb() <span style="font-style:italic;">options</span>] </span></p>
+<span class="codespan">&emsp;&emsp;&emsp; by() absorb() family() <span style="font-style:italic;">options</span>] </span></p>
 
-By default, results are saved into a mata class object named
-`GtoolsPoisson`. Run `mata GtoolsPoisson.desc()` for details; the name
-and contents can be modified via `mata()`.  The results can also be
-saved into variables via `gen()` or `prefix()` (either can be combined
-with `mata()`, but not each other).
+Support for different link functions may be added in future releases.
+At the moment only the cannonical link for each `family()` is available:
+
+| Family   | Link  | Default Output |
+| -------- | ----- | -------------- |
+| binomial | logit | GtoolsLogit    |
+| poisson  | log   | GtoolsPoisson  |
+
+By default, results are saved into a mata class object named after the
+model estimated, as noted above.  For details, the `desc()` method is
+available, e.g. `mata GtoolsLogit.desc()`. The name and contents can be
+modified via the `mata()` option.  The results can also be saved into
+variables via `gen()` or `prefix()` (either can be combined with `mata()`,
+but not each other).
 
 Note that extended varlist syntax is _**not**_ supported. Further,
 `fweights` behave differently than other weighting schemes; that
@@ -56,6 +64,10 @@ Options
 
 ### Options
 
+- `family(str)` Model to compute. Support for different links is
+                planned for a future release. Currently available families
+                (and corresponding link functions): `binomial` (`logit`),
+                `poisson` (`log`).
 - `by(varlist)` Group statistics by variable.
 - `robust` Robust SE.
 - `cluster(varlist)` One-way or nested cluster SE.
@@ -101,18 +113,18 @@ Options
 Results
 -------
 
-`gpoisson` estimates a Poisson regression model via IRLS, optionally
-weighted, by group, with cluster SE, and/or with multi-way
-high-dimensional fixed effects.  The results are by default saved into a
-mata object (default `GtoolsPoisson`).  Run `mata GtoolsPoisson.desc()`
-for details; the following data is stored:
+`gglm` estimates GLM via IRLS, optionally weighted, by group, with
+cluster SE, and/or with multi-way high-dimensional fixed effects.  The
+results are by default saved into a mata object (e.g. `GtoolsLogit`,
+`GtoolsPoisson`, and so on; run `mata GtoolsLogit.desc()` for details).
+The following data is stored:
 
 ```
 regression info
 ---------------
 
     string scalar caller
-        model used; should be "gpoisson"
+        model used; "glogit", "gpoisson", etc.
 
     real scalar kx
         number of (non-absorbed) covariates
@@ -154,7 +166,7 @@ regression info
         number of levels defined by grouping variables
 
     class GtoolsByLevels ByLevels
-        grouping variable levels; see GtoolsPoisson.ByLevels.desc() for details
+        grouping variable levels; see e.g. GtoolsLogit.ByLevels.desc() for details
 
 variable levels (empty if without -by()-)
 -----------------------------------------
@@ -199,23 +211,28 @@ variable levels (empty if without -by()-)
 Methods and Formulas
 --------------------
 
-### MLE via IRLS
+### GLM via IRLS
 
-Poisson regression is computed via IRLS in an iterative process. Recall
-the exponential family of distributions, where
+We aim to model the conditional expectation of some outcome $y_i$ given a set of
+covariates $x_i$. GLM allows us to estimate a class of models of the form
 $$
-\begin{align}
-  f(y; \theta, \varphi)
-  =
-  \exp \left[
-      \dfrac{y \theta - b(\theta)}{a(\varphi)}
-      +
-      c(y, \varphi)
-  \right]
-\end{align}
+  g(E[y_i | x_i]) = x_i \beta
 $$
 
-and consider $y_i | x_i \sim f(y_i; x_i^\prime \beta, \varphi)$, so that
+where $g(\cdot)$ is a so-called link function that allows us to
+model the (linked) conditional expectation as linear. Now recall the
+exponential family of distributions, where
+$$
+f(y; \theta, \varphi)
+=
+\exp \left[
+  \dfrac{y \theta - b(\theta)}{a(\varphi)}
+  +
+  c(y, \varphi)
+\right]
+$$
+
+and suppose $y_i | x_i \sim f(y_i; x_i^\prime \beta, \varphi)$, so that
 $$
 \begin{align}
     E[y_i | x_i]
@@ -224,13 +241,8 @@ $$
     \mu_i
     =
     b^\prime(x_i^\prime \beta)
-    % \\\\
-    % V(y_i | x_i)
-    % &
-    % =
-    % b^{\prime\prime}(\theta) a(\varphi)
-    % =
-    % b^{\prime\prime}(x_i^\prime \beta) a(\varphi)
+    =
+    g^{-1}(x_i^\prime \beta)
 \end{align}
 $$
 
@@ -361,18 +373,45 @@ $$
 
 That is, $\widehat{\beta}^{(r + 1)}$ is the result of WLS with $z^{(r)}$
 as the left-hand variable, $X$ as covariates, and $W^{(r)}$ as the
-weighting matrix. This procedure can estimate MLE whenever the pdf
-is a member of the exponential family of distributions. In the specific
-case of the Poisson,
+weighting matrix. Note that we can start from an initial guess $\eta^{(0)}$,
+$\mu^{(0)}$, or $\beta^{(0)}$; however, at any subsequent iteration all
+the variables are updated based on $\beta^{(r)}$.
+
+We iterate until convergence. At each step, we compute the deviance
+$\delta^{(r + 1)}$ (see below for details). We stop if the largest
+relative absolute difference between $\delta^{(r)}$ and $\delta^{(r + 1)}$,
+denoted $\Delta^{(r + 1)}$, is within `glmtol()`
 $$
-\begin{align}
-  a(\varphi) = 1
-  \quad\quad
-  b(\theta) = e^\theta
-  \quad\quad
-  c(y, \varphi) = - \log(y!)
-\end{align}
+\Delta^{(r + 1)} \equiv \max_i
+\frac{
+  |\delta^{(r + 1)}_i - \delta^{(r)}_i|
+}{
+  |\delta^{(r)}_i + 1|
+}
 $$
+
+$\delta^{(0)}$ is set to $1$ and the default tolerance is
+$1\mathrm{e}{-8}$.  If the tolerance criteria is met then each variable
+is set to their value after the $r$th iteration (i.e. $\widehat{\beta}$
+to $\widehat{\beta}^{(r + 1)}$, $W$ to $W^{(r + 1)}$, and so on).
+If convergence is not achieved, however, and the maximum number of
+iterations is reached instead (see `glmiter()`) then the program exits
+with error.
+
+$$
+\delta^{(r + 1)} = 2 \cdot (\log(Y / \mu^{(r + 1)}) - (Y - \mu^{(r + 1)}))
+$$
+
+(if $Y_i = 0$ then $\delta^{(r + 1)}_i$ is also set to $0$). 
+
+
+The following table summarizes for various families:
+
+| Family   | Link  | $a(\varphi)$  | $b(\theta)$          | $c(y, \varphi)$               |
+| -------- | ----- | ------------- | -------------------- | ----------------------------- |
+| binomial | logit | $1 / \varphi$ | $\log(1 + e^\theta)$ | $\log(C(\varphi, y \varphi))$ |
+| poisson  | log   | $1$           | $e^\theta$           | $- \log(y!)$                  |
+
 
 Hence $b^{\prime}(\theta) = e^\theta, b^{\prime\prime}(\theta) = e^\theta$ and
 $$
@@ -390,31 +429,6 @@ $\eta^{(0)}, z^{(0)}$, and $W^{(0)}$. In all subsequent iterations, however, the
 variables are defined as in the equations above using $\beta^{(r)}$.
 Note a column of ones is automatically appended to $X$ unless the option
 `noconstant` is passed or `absorb(varlist)` is requested.
-
-We iterate until convergence. At each step, we compute the deviance,
-$$
-\delta^{(r + 1)} = 2 \cdot (\log(Y / \mu^{(r + 1)}) - (Y - \mu^{(r + 1)}))
-$$
-
-(if $Y_i = 0$ then $\delta^{(r + 1)}_i$ is also set to $0$). We stop
-if the largest relative absolute difference between $\delta^{(r)}$ and
-$\delta^{(r + 1)}$, denoted $\Delta^{(r + 1)}$, is within `glmtol()`
-$$
-\Delta^{(r + 1)} \equiv \max_i
-\frac{
-  |\delta^{(r + 1)}_i - \delta^{(r)}_i|
-}{
-  |\delta^{(r)}_i + 1|
-}
-$$
-
-$\delta^{(0)}$ is set to $1$ and the default tolerance is
-$1\mathrm{e}{-8}$.  If the tolerance criteria is met then each variable
-is set to their value after the $r$th iteration (i.e. $\widehat{\beta}$
-to $\widehat{\beta}^{(r + 1)}$, $W$ to $W^{(r + 1)}$, and so on).
-If convergence is not achieved, however, and the maximum number of
-iterations is reached instead (see `glmiter()`) then the program exits
-with error.
 
 ### Collinearity and Inverse
 

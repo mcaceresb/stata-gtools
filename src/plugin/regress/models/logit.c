@@ -1,4 +1,4 @@
-void gf_regress_poisson_init_unw(
+void gf_regress_logit_init_unw(
     ST_double *yptr,
     ST_double *wptr,
     ST_double *mu,
@@ -15,16 +15,16 @@ void gf_regress_poisson_init_unw(
     }
     mean /= (ST_double) nj;
 
-    wgt = mu;
     for (i = 0; i < nj; i++) {
         mu[i]  = (yptr[i] + mean) / 2;
-        eta[i] = log(mu[i]);
+        eta[i] = log(mu[i] / (1 - mu[i]));
+        wgt[i] = mu[i] * (1 - mu[i]);
         dev[i] = 0;
         lhs[i] = eta[i] + (yptr[i] - mu[i]) / wgt[i];
     }
 }
 
-void gf_regress_poisson_init_w(
+void gf_regress_logit_init_w(
     ST_double *yptr,
     ST_double *wptr,
     ST_double *mu,
@@ -44,15 +44,15 @@ void gf_regress_poisson_init_w(
     mean /= (ST_double) W;
     for (i = 0; i < nj; i++) {
         mu[i]   = (yptr[i] + mean) / 2;
-        eta[i]  = log(mu[i]);
-        wgt[i]  = mu[i];
+        eta[i]  = log(mu[i] / (1 - mu[i]));
+        wgt[i]  = mu[i] * (1 - mu[i]);
         dev[i]  = 0;
         lhs[i]  = eta[i] + (yptr[i] - mu[i]) / wgt[i];
         wgt[i] *= wptr[i];
     }
 }
 
-ST_double gf_regress_poisson_iter_unw(
+ST_double gf_regress_logit_iter_unw(
     ST_double *yptr,
     ST_double *wptr,
     ST_double *e,
@@ -67,20 +67,19 @@ ST_double gf_regress_poisson_iter_unw(
     GT_size i;
     ST_double diff = 0;
 
-    wgt = mu;
     for (i = 0; i < nj; i++) {
         eta[i]  = lhs[i] - e[i];
-        mu[i]   = exp(eta[i]);
+        mu[i]   = 1 / (1 + exp(-eta[i]));
+        wgt[i]  = mu[i] * (1 - mu[i]);
         lhs[i]  = eta[i] + (yptr[i] - mu[i]) / wgt[i];
         dev0[i] = dev[i];
-        // is dropping these OK?
-        dev[i]  = yptr[i] > 0? 2 * (yptr[i] * log(yptr[i] / mu[i]) - (yptr[i] - mu[i])): 0;
+        dev[i]  = - 2 * (yptr[i] * log(mu[i]) + (1 - yptr[i]) * log(1 - mu[i]));
         diff    = GTOOLS_PWMAX(diff, fabs(dev[i] - dev0[i]) / (fabs(dev0[i]) + 1));
     }
     return (diff);
 }
 
-ST_double gf_regress_poisson_iter_w(
+ST_double gf_regress_logit_iter_w(
     ST_double *yptr,
     ST_double *wptr,
     ST_double *e,
@@ -96,12 +95,11 @@ ST_double gf_regress_poisson_iter_w(
     ST_double diff = 0;
     for (i = 0; i < nj; i++) {
         eta[i]  = lhs[i] - e[i];
-        mu[i]   = exp(eta[i]);
-        wgt[i]  = mu[i];
+        mu[i]   = 1 / (1 + exp(-eta[i]));
+        wgt[i]  = mu[i] * (1 - mu[i]);
         lhs[i]  = eta[i] + (yptr[i] - mu[i]) / wgt[i];
         dev0[i] = dev[i];
-        // is dropping these OK?
-        dev[i]  = yptr[i] > 0? 2 * (yptr[i] * log(yptr[i] / mu[i]) - (yptr[i] - mu[i])): 0;
+        dev[i]  = - 2 * (yptr[i] * log(mu[i]) + (1 - yptr[i]) * log(1 - mu[i]));
         diff    = GTOOLS_PWMAX(diff, fabs(dev[i] - dev0[i]) / (fabs(dev0[i]) + 1));
         wgt[i] *= wptr[i];
     }

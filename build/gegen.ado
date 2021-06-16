@@ -327,7 +327,7 @@ program define gegen, byable(onecall) rclass
 
     foreach opt in label lname truncate {
         if ( `"``opt''"' != "" ) {
-            di as txt ("Option -`opt'- is not implemented."
+            di as txt "Option -`opt'- is not implemented."
             exit 198
         }
     }

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1  14Apr2020}{...}
+{* *! version 0.1.2  12Sep2020}{...}
 {viewerdialog gpoisson "dialog gpoisson"}{...}
 {vieweralsosee "[R] gpoisson" "mansection R gpoisson"}{...}
 {viewerjumpto "Syntax" "gpoisson##syntax"}{...}
@@ -74,9 +74,9 @@ is, this assumes that the weight refers to the number of available
 {p_end}
 {synopt:{opt noc:onstant}}Whether to add a constant (cannot be combined with {opt absorb()}).
 {p_end}
-{synopt:{opth poistol(real)}}Tolerance level for poisson IRLS algoritm (default 1e-8).
+{synopt:{opth glmtol(real)}}Tolerance level for IRLS algoritm (default 1e-8).
 {p_end}
-{synopt:{opth poisiter(int)}}Maximum number of iterations for poisson IRLS (default 1000).
+{synopt:{opth glmiter(int)}}Maximum number of iterations for IRLS (default 1000).
 {p_end}
 
 {syntab:Gtools}

@@ -5,6 +5,7 @@ Change Log
 
 ### Bug Fixes
 
+- Closes #78: if now passed raw/in double-quotes throughout the pipeline
 - Closes #75: gunique returns 0s in r() when there are no obs
 - Closes #74: gstats transform parses abbreviated targets
 - Closes #72: Warning for gegen expressions without by group

@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.8.0"
+#define GTOOLS_VERSION "1.8.1"
 
 /*
  * Style

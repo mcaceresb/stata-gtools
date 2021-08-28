@@ -78,11 +78,11 @@ program gquantiles, rclass
         fill(passthru)                  ///
     ]
 
-    local if0     `if'
-    local in0     `in'
-    local ifin    `if' `in'
-    local weight0 `weight'
-    local exp0    `"`exp'"'
+    local if0:     copy local if
+    local in0:     copy local in
+    local weight0: copy local weight
+    local exp0:    copy local exp
+    mata st_local("ifin", st_local("if") + " " + st_local("in"))
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
@@ -248,7 +248,7 @@ program gquantiles, rclass
             }
             else {
                 local xsources `anything'
-                local ifin `ifin'
+                local ifin: copy local ifin
             }
         }
         else if ( "`replace'" == "" ) {
@@ -276,7 +276,7 @@ program gquantiles, rclass
             }
             else {
                 local xsources `exp'
-                local ifin `ifin'
+                local ifin: copy local ifin
             }
         }
     }
@@ -300,7 +300,7 @@ program gquantiles, rclass
         }
         else {
             local xsources `exp'
-            local ifin `ifin'
+            local ifin: copy local ifin
         }
     }
 

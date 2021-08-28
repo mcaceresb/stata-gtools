@@ -244,8 +244,8 @@ program _gtools_internal, rclass
     * }
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
-    local ifin `if' `in'
-    local gen  `generate'
+    local gen `generate'
+    mata st_local("ifin", st_local("if") + " " + st_local("in"))
 
     local hashmethod `hashmethod'
     if ( `"`hashmethod'"' == "" ) local hashmethod 0
@@ -480,7 +480,7 @@ program _gtools_internal, rclass
     *     - The output cannot be unsorted!
 
     if ( inlist("`gfunction'", "sort") ) {
-        if ( "`if'" != "" ) {
+        if ( `"`if'"' != "" ) {
             di as err "Cannot sort data with if condition"
             clean_all 198
             exit 198
@@ -1516,7 +1516,7 @@ program _gtools_internal, rclass
         scalar __gtools_used_io   = 0
         scalar __gtools_ixfinish  = 0
         scalar __gtools_J         = _N
-        scalar __gtools_init_targ = ("`ifin'" != "") & ("`merge'" != "")
+        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "")
 
         if inlist("`anything'", "forceio", "switch") {
             local extravars `__gtools_sources' `__gtools_sources' `freq'
@@ -1621,7 +1621,7 @@ program _gtools_internal, rclass
 
         if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
-            scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "")
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0: copy local greshape
@@ -3345,7 +3345,7 @@ capture program drop parse_by_types
 program parse_by_types, rclass
     syntax [anything] [if] [in], [clean_anything(str) compress forcestrl glevelsof(str) ds]
 
-    local ifin `if' `in'
+    mata st_local("ifin", st_local("if") + " " + st_local("in"))
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0

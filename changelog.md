@@ -5,6 +5,7 @@ Change Log
 
 ### Bug Fixes
 
+- Closes #75: gunique returns 0s in r() when there are no obs
 - Closes #74: gstats transform parses abbreviated targets
 - Closes #72: Warning for gegen expressions without by group
 - Fixed GLM issues generating de-meaned variables

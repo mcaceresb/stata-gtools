@@ -404,7 +404,7 @@ program define gegen, byable(onecall) rclass
 		local wgt
         local weights
         local anywgt
-        local ifin `if' `in'
+        mata st_local("ifin", st_local("if") + " " + st_local("in"))
     }
 
     * Parse quantiles

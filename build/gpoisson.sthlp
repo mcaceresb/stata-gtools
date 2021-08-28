@@ -17,7 +17,7 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gpoisson} is in beta; use with caution. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
+{it:Warning}: {opt gpoisson} is in beta and meant for testing; use in production {bf:NOT} recommended. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
 
 {marker syntax}{...}
 {title:Syntax}

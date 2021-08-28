@@ -11,6 +11,8 @@ Change Log
 - Closes #72: Warning for gegen expressions without by group
 - Fixed GLM issues generating de-meaned variables
 - Fixed gegen nunique with multiple inputs
+- Fixed bug in `gpoisson` where internal weights not copied correctly in loop.
+- Various fixes to the docs.
 
 ## gtools-1.8.0 (2021-06-15)
 

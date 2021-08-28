@@ -7,7 +7,7 @@ GLM via IRLS by group with weights, clustering, and HDFE
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gglm` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
+    `gglm` is in beta and meant for testing; use in production _**NOT**_ recommended. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
 `gglm` computes fast GLM regression coefficients and standard errors by
 group. Its basic functionality is similar to that of the user-written
@@ -458,8 +458,8 @@ $$
 where $\frac{n}{n - 1}$ is a small-sample adjustment and $n
 \widehat{V}$ is a consistent estimator of the asymptotic variance of
 $\widehat{\beta}$.  Note we compute the small-sample adjustment to match
-the standard errors returned by Stata's `poisson` program.  The standard
-error of collinear columns is coded as missing (`.`).
+the standard errors returned by Stata's `poisson` and `logit` programs. 
+The standard error of collinear columns is coded as missing (`.`).
 
 By default, homoskedasticity-consistent standard errors are computed:
 $$
@@ -514,7 +514,7 @@ SE_i = \sqrt{\frac{J}{J - 1} \widehat{V}_{ii}}
 $$
 
 Note we compute the small-sample adjustment to match the standard errors
-returned by Stata's `poisson` program.
+returned by Stata's `poisson` and `logit` programs.
 
 ### Weights
 
@@ -694,11 +694,19 @@ Examples
 Note `gregress` is in beta. To enable enable beta features, define `global GTOOLS_BETA = 1`.
 
 You can download the raw code for the examples below
-[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/gpoisson.do)
+[here  <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/examples/ggglm.do)
 
 ### Showcase
 
 ```stata
+webuse lbw, clear
+gglm low age lwt smoke ptl ht ui, absorb(race) family(binomial)
+mata GtoolsLogit.print()
+
+gen w = _n
+gglm low age lwt smoke ptl ht ui [fw = w], absorb(race) family(binomial)
+mata GtoolsLogit.print()
+
 webuse ships, clear
 expand 2
 gen by = 1.5 - (_n < _N / 2)
@@ -706,16 +714,16 @@ gen w = _n
 gen _co_75_79  = co_75_79
 qui tab ship, gen(_s)
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship)
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship) family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship)
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship) family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust family(poisson)
 mata GtoolsPoisson.print()
 ```
 
@@ -738,7 +746,7 @@ gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
 timer clear
 timer on 1
-gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
+gglm l x1 x2, absorb(g1 g2 g3) mata(greg) family(poisson)
 timer off 1
 mata greg.print()
 timer on 2
@@ -746,7 +754,7 @@ ppmlhdfe l x1 x2, absorb(g1 g2 g3)
 timer off 2
 
 timer on 3
-gpoisson l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
+gglm l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg) family(poisson)
 timer off 3
 mata greg.print()
 timer on 4

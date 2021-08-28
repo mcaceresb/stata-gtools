@@ -15,10 +15,10 @@ void gf_regress_poisson_init_unw(
     }
     mean /= (ST_double) nj;
 
-    wgt = mu;
     for (i = 0; i < nj; i++) {
         mu[i]  = (yptr[i] + mean) / 2;
         eta[i] = log(mu[i]);
+        wgt[i] = mu[i];
         dev[i] = 0;
         lhs[i] = eta[i] + (yptr[i] - mu[i]) / wgt[i];
     }
@@ -67,10 +67,10 @@ ST_double gf_regress_poisson_iter_unw(
     GT_size i;
     ST_double diff = 0;
 
-    wgt = mu;
     for (i = 0; i < nj; i++) {
         eta[i]  = lhs[i] - e[i];
         mu[i]   = exp(eta[i]);
+        wgt[i]  = mu[i];
         lhs[i]  = eta[i] + (yptr[i] - mu[i]) / wgt[i];
         dev0[i] = dev[i];
         // is dropping these OK?

@@ -30,7 +30,6 @@ pages:
     - Regression models:
         - gregress:         usage/gregress.md
         - givregress:       usage/givregress.md
-        - gpoisson:         usage/gpoisson.md
         - gglm:             usage/gglm.md
 
 theme: readthedocs

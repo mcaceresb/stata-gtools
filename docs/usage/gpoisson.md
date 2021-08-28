@@ -7,7 +7,7 @@ IRLS Poisson regressions by group with weights, clustering, and HDFE
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gpoisson` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
+    `gpoisson` is in beta and meant for testing; use in production _**NOT**_ recommended. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
 `gpoisson` computes fast Poisson regression coefficients and standard
 errors by group. Its basic functionality is similar to that of the

@@ -7,7 +7,7 @@ Instrumental Variables Regression (2SLS)
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `givregress` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
+    `givregress` is in beta and meant for testing; use in production _**NOT**_ recommended. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
 `givregress` computes fast IV regression coefficients and standard
 errors by group. Its basic functionality is similar to that of the

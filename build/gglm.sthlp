@@ -17,7 +17,7 @@
 the latest stable version.
 
 {pstd}
-{it:Warning}: {opt gglm} is in beta; use with caution. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
+{it:Warning}: {opt gglm} is in beta and meant for testing; use in production {bf:NOT} recommended. (To enable beta features, define {cmd:global GTOOLS_BETA = 1}.)
 
 {marker syntax}{...}
 {title:Syntax}
@@ -44,8 +44,8 @@ The name and contents can be modified via the {opt mata()} option.  The
 results can also be saved into variables via {opt gen()} or {opt prefix()}
 (either can be combined with {opt mata()}, but not each other).
 
-Run
-{opt mata GtoolsLogit.desc()} for details; the name and contents can be
+{pstd}
+Run {opt mata GtoolsLogit.desc()} for details; the name and contents can be
 modified via {opt mata()}. The results can also be saved into variables
 via {opt gen()} or {opt prefix()} (either can be combined with {opt
 mata()}, but not each other).
@@ -227,7 +227,7 @@ The following data is stored:
 {title:Methods and Formulas}
 
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/glogit/index.html#methods-and-formulas":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/gglm/index.html#methods-and-formulas":online documentation}
 for details.
 
 {marker example}{...}
@@ -235,7 +235,7 @@ for details.
 
 {pstd}
 See the
-{browse "http://gtools.readthedocs.io/en/latest/usage/glogit/index.html#examples":online documentation}
+{browse "http://gtools.readthedocs.io/en/latest/usage/gglm/index.html#examples":online documentation}
 for examples.
 
 {marker author}{...}

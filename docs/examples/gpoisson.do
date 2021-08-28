@@ -1,9 +1,17 @@
-* NOTE: gpoisson is in beta. To enable enable beta features, define
+* NOTE: gglm is in beta. To enable enable beta features, define
 *
 *     global GTOOLS_BETA = 1
 
 * Showcase
 * --------
+
+webuse lbw, clear
+gglm low age lwt smoke ptl ht ui, absorb(race) family(binomial)
+mata GtoolsLogit.print()
+
+gen w = _n
+gglm low age lwt smoke ptl ht ui [fw = w], absorb(race) family(binomial)
+mata GtoolsLogit.print()
 
 webuse ships, clear
 expand 2
@@ -12,16 +20,16 @@ gen w = _n
 gen _co_75_79  = co_75_79
 qui tab ship, gen(_s)
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 [fw = w], robust family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship)
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 _co_75_79 [pw = w], cluster(ship) family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship)
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79 _s*, absorb(ship) cluster(ship) family(poisson)
 mata GtoolsPoisson.print()
 
-gpoisson accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust
+gglm accident op_75_79 co_65_69 co_70_74 co_75_79, by(by) absorb(ship) robust family(poisson)
 mata GtoolsPoisson.print()
 
 * Basic Benchmark
@@ -43,7 +51,7 @@ gen l  = int(0.25 * x1 - 0.75 * x2 + g1 + g2 + g3 + g4 + 20 * rnormal())
 
 timer clear
 timer on 1
-gpoisson l x1 x2, absorb(g1 g2 g3) mata(greg)
+gglm l x1 x2, absorb(g1 g2 g3) mata(greg) family(poisson)
 timer off 1
 mata greg.print()
 timer on 2
@@ -51,7 +59,7 @@ ppmlhdfe l x1 x2, absorb(g1 g2 g3)
 timer off 2
 
 timer on 3
-gpoisson l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
+gglm l x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg) family(poisson)
 timer off 3
 mata greg.print()
 timer on 4

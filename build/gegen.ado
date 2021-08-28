@@ -642,7 +642,7 @@ program define gegen, byable(onecall) rclass
         }
         else {
             cap gen double `exp' = `args'
-            if ( "`byvars'" != "" )
+            if ( (_rc == 0) & ("`byvars'" != "") ) {
                 di as txt "{bf:warning}: gegen is {bf:NOT} parsing the expression '`args'' by group."
                 di as txt "To parse this expression by group, call gegen using the -by:- prefix."
             }
@@ -678,6 +678,14 @@ program define gegen, byable(onecall) rclass
     else if ( `rc' == 0 ) {
         local sources `exp'
         local sametype 0
+    }
+
+    if ( `"`ofcn'"' == "nunique" ) {
+        if ( `:list sizeof sources' != 1 ) {
+            global GTOOLS_CALLER ""
+            disp as err `"`fcn' requires single variable input"'
+            exit 198
+        }
     }
 
     * cap ds `args'

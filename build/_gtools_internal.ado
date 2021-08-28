@@ -1965,8 +1965,8 @@ program _gtools_internal, rclass
                     local nvar = 0
                     local togen
                     foreach var in `b' `se' `hdfe' {
-                        cap confirm var `var'
-                        if ( _rc ) {
+                        cap confirm new var `var'
+                        if ( _rc == 0 ) {
                             local togen `togen' `var'
                             local ++nvar
                         }
@@ -2093,8 +2093,8 @@ program _gtools_internal, rclass
                     local nvar = 0
                     local togen
                     foreach var in `bvars' `sevars' `hdfevars' {
-                        cap confirm var `var'
-                        if ( _rc ) {
+                        cap confirm new var `var'
+                        if ( _rc == 0 ) {
                             local togen `togen' `var'
                             local ++nvar
                         }
@@ -5117,18 +5117,18 @@ program gstats_transform
         local retype: word `k' of `__gtools_gst_retype'
         local target: word `k' of `__gtools_gst_targets'
 
-        cap confirm variable `target'
-        if ( _rc == 0 ) {
+        cap confirm new variable `target'
+        if ( _rc ) {
             if ( `"`replace'"' == "" ) {
                 disp as err "gstats_transform: target `target' exists without replace"
                 exit 198
             }
 
             if ( `retype' ) {
-                cap confirm variable __gtools_gst`__gtools_gst_i'
-                while ( _rc == 0 ) {
+                cap confirm new variable __gtools_gst`__gtools_gst_i'
+                while ( _rc ) {
                     local ++__gtools_gst_i
-                    cap confirm variable __gtools_gst`__gtools_gst_i'
+                    cap confirm new variable __gtools_gst`__gtools_gst_i'
                 }
                 rename `target' __gtools_gst`__gtools_gst_i'
                 local __gtools_gst_dropvars `__gtools_gst_dropvars' __gtools_gst`__gtools_gst_i'
@@ -5151,8 +5151,8 @@ program gstats_transform
     forvalues k = 1 / `ktargets' {
         local target: word `k' of `__gtools_gst_targets'
         local type:   word `k' of `__gtools_gst_types'
-        cap confirm variable `target'
-        if ( _rc ) {
+        cap confirm new variable `target'
+        if ( _rc == 0 ) {
             local ++kadd
             local __gtools_gst_addvars  `__gtools_gst_addvars'  `target'
             local __gtools_gst_addtypes `__gtools_gst_addtypes' `type'

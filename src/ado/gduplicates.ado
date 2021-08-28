@@ -136,7 +136,7 @@ program gduplicates, rclass
             local ifin if `touse' `in'
         }
         else {
-            local ifin `if' `in'
+            mata st_local("ifin", st_local("if") + " " + st_local("in"))
         }
 
         global GTOOLS_DUPS gduplicates
@@ -232,7 +232,7 @@ end
 
 capture program drop examplesListUnsorted
 program examplesListUnsorted
-    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) noWARNing *]
+    syntax, varlist(str) cmd(str) [ifin(str asis) gtools(str) noWARNing *]
 
     tempvar example Ngroup freq surplus dgroup order
 
@@ -302,7 +302,7 @@ end
 
 capture program drop examplesList
 program examplesList, sortpreserve
-    syntax, varlist(str) cmd(str) [ifin(str) gtools(str) noWARNing *]
+    syntax, varlist(str) cmd(str) [ifin(str asis) gtools(str) noWARNing *]
 
     tempvar example Ngroup freq surplus dgroup order
 

@@ -1829,15 +1829,7 @@ class GtoolsRegressOutput
 
 void function GtoolsRegressOutput::init()
 {
-    if ( st_numscalar("__gtools_gregress_poisson") ) {
-        caller = "gpoisson"
-    }
-    else if ( st_numscalar("__gtools_gregress_ivreg") ) {
-        caller = "givregress"
-    }
-    else {
-        caller = "gregress"
-    }
+    caller = st_local("caller")
     saveb  = st_numscalar("__gtools_gregress_savemb")
     savese = st_numscalar("__gtools_gregress_savemse")
     savenjabsorb  = 0

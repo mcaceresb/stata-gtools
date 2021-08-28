@@ -1,4 +1,4 @@
-*! version 1.7.5 18Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.8.1 27Aug2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -136,8 +136,8 @@ program gtools_licenses
          _n(1) `"LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,"'  ///
          _n(1) `"OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE"'  ///
          _n(1) `"SOFTWARE."'                                                                      ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"{hline 79}"'                                                                     ///
+         _n(1) `""'
+    disp _n(1) `"{hline 79}"'                                                                     ///
          _n(1) `"spookyhash license"'                                                             ///
          _n(1) `""'                                                                               ///
          _n(1) `"Copyright (c) 2015, Guillaume Voirin"'                                           ///
@@ -168,8 +168,8 @@ program gtools_licenses
          _n(1) `"CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,"'  ///
          _n(1) `"OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE"'  ///
          _n(1) `"OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."'           ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"{hline 79}"'                                                                     ///
+         _n(1) `""'
+    disp _n(1) `"{hline 79}"'                                                                     ///
          _n(1) `"quicksort license"'                                                              ///
          _n(1) `""'                                                                               ///
          _n(1) `"Copyright (c) 1992, 1993"'                                                       ///
@@ -198,8 +198,8 @@ program gtools_licenses
          _n(1) `"LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY"'      ///
          _n(1) `"OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF"'         ///
          _n(1) `"SUCH DAMAGE."'                                                                   ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"{hline 79}"'                                                                     ///
+         _n(1) `""'
+    disp _n(1) `"{hline 79}"'                                                                     ///
          _n(1) `"GNU C library license"'                                                          ///
          _n(1) `""'                                                                               ///
          _n(1) `"                   GNU LESSER GENERAL PUBLIC LICENSE"'                           ///
@@ -242,8 +242,8 @@ program gtools_licenses
          _n(1) `"object code and/or source code for the Application, including any data"'         ///
          _n(1) `"and utility programs needed for reproducing the Combined Work from the"'         ///
          _n(1) `"Application, but excluding the System Libraries of the Combined Work."'          ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"  1. Exception to Section 3 of the GNU GPL."'                                    ///
+         _n(1) `""'
+    disp _n(1) `"  1. Exception to Section 3 of the GNU GPL."'                                    ///
          _n(1) `""'                                                                               ///
          _n(1) `"  You may convey a covered work under sections 3 and 4 of this License"'         ///
          _n(1) `"without being bound by section 3 of the GNU GPL."'                               ///
@@ -279,8 +279,8 @@ program gtools_licenses
          _n(1) `""'                                                                               ///
          _n(1) `"   b) Accompany the object code with a copy of the GNU GPL and this license"'    ///
          _n(1) `"   document."'                                                                   ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"  4. Combined Works."'                                                           ///
+         _n(1) `""'
+    disp _n(1) `"  4. Combined Works."'                                                           ///
          _n(1) `""'                                                                               ///
          _n(1) `"  You may convey a Combined Work under terms of your choice that,"'              ///
          _n(1) `"taken together, effectively do not restrict modification of the"'                ///
@@ -328,8 +328,8 @@ program gtools_licenses
          _n(1) `"   Code. If you use option 4d1, you must provide the Installation"'              ///
          _n(1) `"   Information in the manner specified by section 6 of the GNU GPL"'             ///
          _n(1) `"   for conveying Corresponding Source.)"'                                        ///
-         _n(1) `""'                                                                               ///
-         _n(1) `"  5. Combined Libraries."'                                                       ///
+         _n(1) `""'
+    disp _n(1) `"  5. Combined Libraries."'                                                       ///
          _n(1) `""'                                                                               ///
          _n(1) `"  You may place library facilities that are a work based on the"'                ///
          _n(1) `"Library side by side in a single library together with other library"'           ///

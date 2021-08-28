@@ -1,4 +1,4 @@
-sysuse auto
+sysuse auto, clear
 glevelsof rep78
 qui glevelsof rep78, miss local(mylevs)
 display "`mylevs'"

@@ -1,0 +1,29 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  gtools_tests
+       log:  /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build/gtools_tests_unix.log
+  log type:  text
+ opened on:  28 Aug 2021, 00:44:51
+
+
+Start:        00:44:51 28 Aug 2021
+Options:      dependencies basic_checks comparisons switches bench_test
+OS:           Unix
+Machine Type: PC (64-bit x86-64)
+
+-------------------------------------
+Basic unit-tests 00:45:08 28 Aug 2021
+-------------------------------------
+    test(failed): checks_gcontract, oncollision(error)
+
+WARNING: 00:45:10 28 Aug 2021
+tests ran with non-0 exit status
+
+tests ran but Stata gave error code r(1)
+
+Start: 00:44:51 28 Aug 2021
+End: 00:45:10 28 Aug 2021
+      name:  gtools_tests
+       log:  /home/mauricio/Documents/projects/dev/code/archive/2017/stata-gtools/build/gtools_tests_unix.log
+  log type:  text
+ closed on:  28 Aug 2021, 00:45:10
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

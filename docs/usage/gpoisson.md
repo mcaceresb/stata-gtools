@@ -7,7 +7,7 @@ IRLS Poisson regressions by group with weights, clustering, and HDFE
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    `gpoisson` is in beta; use with caution. (To enable beta features, define `global GTOOLS_BETA = 1`.)
+    `gpoisson` is in beta and meant for testing; use in production _**NOT**_ recommended. (To enable beta features, define `global GTOOLS_BETA = 1`.)
 
 `gpoisson` computes fast Poisson regression coefficients and standard
 errors by group. Its basic functionality is similar to that of the
@@ -62,8 +62,8 @@ Options
 - `absorb(varlist)` Multi-way high-dimensional fixed effects.
 - `hdfetol(real)` Tolerance level for HDFE algoritm (default 1e-8).
 - `noconstant` Whether to add a constant (cannot be combined with `absorb()`).
-- `poistol(real)` Tolerance level for Poisson IRLS algoritm (default 1e-8).
-- `poisiter(int)` Maximum number of iterations for Poisson IRLS (default 1000).
+- `glmtol(real)` Tolerance level for IRLS algoritm (default 1e-8).
+- `glmiter(int)` Maximum number of iterations for IRLS (default 1000).
 
 ### Gtools options
 
@@ -398,7 +398,7 @@ $$
 
 (if $Y_i = 0$ then $\delta^{(r + 1)}_i$ is also set to $0$). We stop
 if the largest relative absolute difference between $\delta^{(r)}$ and
-$\delta^{(r + 1)}$, denoted $\Delta^{(r + 1)}$, is within `poistol()`
+$\delta^{(r + 1)}$, denoted $\Delta^{(r + 1)}$, is within `glmtol()`
 $$
 \Delta^{(r + 1)} \equiv \max_i
 \frac{
@@ -413,7 +413,7 @@ $1\mathrm{e}{-8}$.  If the tolerance criteria is met then each variable
 is set to their value after the $r$th iteration (i.e. $\widehat{\beta}$
 to $\widehat{\beta}^{(r + 1)}$, $W$ to $W^{(r + 1)}$, and so on).
 If convergence is not achieved, however, and the maximum number of
-iterations is reached instead (see `poisiter()`) then the program exits
+iterations is reached instead (see `glmiter()`) then the program exits
 with error.
 
 ### Collinearity and Inverse

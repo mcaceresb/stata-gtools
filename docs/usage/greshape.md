@@ -435,7 +435,7 @@ assert y  == -_n
 ### Fine-grain control over error checks
 
 By default, greshape throws an error with problematic observations,
-but this can be ignored.
+but this can be ignored if so desired.
 
 ```stata
 webuse reshape2, clear

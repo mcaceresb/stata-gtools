@@ -33,7 +33,8 @@ program gregress, rclass
         Robust                    /// Robust SE
         cluster(str)              /// Cluster by varlist
         absorb(str)               /// Absorb each var in varlist as FE
-        POISson                   /// Poisson regression
+        glm                       /// estimate glm
+        family(str)               /// glm family
         IVregress                 /// IV regression
         *                         /// Regress options
                                   ///
@@ -48,7 +49,8 @@ program gregress, rclass
         debug(passthru)           /// Print debugging info to console
     ]
 
-    disp as txt "{bf:warning:} gregress is beta software; use with caution"
+    disp as txt "{bf:warning:} gregress is beta software and meant for testing."
+    disp as txt "Use in production is {bf:NOT} recommended; proceed with caution."
 
     if ( `"`missing'"' == "nomissing" ) local missing
     else local missing missing
@@ -217,10 +219,39 @@ program gregress, rclass
     * NOTE(mauricio): ivpoisson is not as straightforward as adapting
     * the poisson code, which iterates over OLS. Don't try it.
 
-    if ( ("`ivregress'" != "") & ("`poisson'" != "") ) {
-        disp as err "Input error: IV and poisson requested at the same time"
+    local glmfamilies binomial poisson
+    local nglm: list sizeof family
+
+    if ( (`"`glm'"' == "") & (`nglm' > 0) ) {
+        disp as err "Input error: GLM family requested without specifying glm"
         exit 198
     }
+
+    if ( (`"`glm'"' != "") & (`nglm' == 0) ) {
+        disp as err "Input error: GLM requires specifying model family()"
+        exit 198
+    }
+
+    if ( `nglm' > 1 ) {
+        disp as err "Input error: Cannot request multiple GLM models: `family'"
+        exit 198
+    }
+
+    if ( (`"`glm'"' != "") & (!`:list family in glmfamilies') ) {
+        disp as err "Input error: GLM family() must be one of: `glmfamilies'"
+        exit 198
+    }
+
+    if ( ("`ivregress'" != "") & `nglm' ) {
+        disp as err "Input error: IV and GLM (`family') requested at the same time"
+        exit 198
+    }
+
+    * TODO: xx the idea is to eventually allow other links even for the
+    * same family, I think
+
+    if ( `"`family'"' == "binomial" ) local glmlink logit
+    if ( `"`family'"' == "poisson" )  local glmlink log
 
     * NOTE(mauricio): We always make a todo variable because we want
     * to exclude missing values in varlist. Furthermore, I think this
@@ -247,13 +278,24 @@ program gregress, rclass
         local if if `touse'
     }
 
+    * binary models require the variable be be 0/1:
+
+    if ( `"`family'"' == "binomial" ) {
+        gettoken y x: varlist
+        qui count if !inlist(`y', 0, 1) & `touse'
+        if ( `r(N)' > 0 ) {
+            disp as err "`y' must be binary (0/1)"
+            exit 198
+        }
+    }
+
     * Recall that the poisson model is a count model, so the variable
     * must be a natural number (i.e. non-negative integer). However, I
     * think I ought to allow users to have non-count variables if they
     * deem it necessary---the warning should be enough. The algorithm
     * fails, however, with negative numbers, so that _is_ a hard stop.
 
-    if ( `"`poisson'"' != "" ) {
+    if ( `"`family'"' == "poisson" ) {
         gettoken y x: varlist
         qui count if (`y' < 0) & `touse'
         if ( `r(N)' > 0 ) {
@@ -281,7 +323,7 @@ program gregress, rclass
     * Standard call to internals
     * --------------------------
 
-    local options `options' `robust' cluster(`cluster') absorb(`absorb') `poisson'
+    local options `options' `robust' cluster(`cluster') absorb(`absorb') glmfam(`family') glmlink(`glmlink')
     local opts    `weights' `compress' `forcestrl' nods unsorted `missing'
     local opts    `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts    `opts' `oncollision' `hashmethod' `debug'

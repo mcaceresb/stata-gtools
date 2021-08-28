@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sat Apr 18 19:13:12 EDT 2020
+* Updated: Fri Aug 27 22:38:53 EDT 2021
 * Purpose: Unit tests for gtools
-* Version: 1.7.5
+* Version: 1.8.1
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -78,7 +78,9 @@ program main
         * qui do docs/examples/gegen.do,     nostop
         * qui do docs/examples/gisid.do,     nostop
         * qui do docs/examples/glevelsof.do, nostop
-        * qui do docs/examples/gstats.do
+        * qui do docs/examples/gstats_summarize.do
+        * qui do docs/examples/gstats_transform.do
+        * qui do docs/examples/gstats_winsor.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 

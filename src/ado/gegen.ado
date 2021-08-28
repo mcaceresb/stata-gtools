@@ -327,7 +327,7 @@ program define gegen, byable(onecall) rclass
 
     foreach opt in label lname truncate {
         if ( `"``opt''"' != "" ) {
-            di as txt ("Option -`opt'- is not implemented."
+            di as txt "Option -`opt'- is not implemented."
             exit 198
         }
     }
@@ -404,7 +404,7 @@ program define gegen, byable(onecall) rclass
 		local wgt
         local weights
         local anywgt
-        local ifin `if' `in'
+        mata st_local("ifin", st_local("if") + " " + st_local("in"))
     }
 
     * Parse quantiles
@@ -642,6 +642,10 @@ program define gegen, byable(onecall) rclass
         }
         else {
             cap gen double `exp' = `args'
+            if ( (_rc == 0) & ("`byvars'" != "") ) {
+                di as txt "{bf:warning}: gegen is {bf:NOT} parsing the expression '`args'' by group."
+                di as txt "To parse this expression by group, call gegen using the -by:- prefix."
+            }
         }
         local rc = _rc
     }
@@ -674,6 +678,14 @@ program define gegen, byable(onecall) rclass
     else if ( `rc' == 0 ) {
         local sources `exp'
         local sametype 0
+    }
+
+    if ( `"`ofcn'"' == "nunique" ) {
+        if ( `:list sizeof sources' != 1 ) {
+            global GTOOLS_CALLER ""
+            disp as err `"`fcn' requires single variable input"'
+            exit 198
+        }
     }
 
     * cap ds `args'

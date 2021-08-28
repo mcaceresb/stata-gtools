@@ -87,6 +87,11 @@ program gunique, rclass
         }
         else if ( `rc' == 17001 ) {
             di as txt "(no observations)"
+            return scalar N      = 0
+            return scalar J      = 0
+            return scalar unique = 0
+            return scalar minJ   = 0
+            return scalar maxJ   = 0
             exit 0
         }
         else if ( `rc' ) exit `rc'
@@ -114,6 +119,11 @@ program gunique, rclass
         }
         else if ( `rc' == 17001 ) {
             di as txt "(no observations)"
+            return scalar N      = 0
+            return scalar J      = 0
+            return scalar unique = 0
+            return scalar minJ   = 0
+            return scalar maxJ   = 0
             exit 0
         }
         else if ( `rc' ) exit `rc'

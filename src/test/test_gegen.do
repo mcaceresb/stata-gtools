@@ -608,7 +608,7 @@ program checks_inner_egen
     tempvar gvar
     foreach fun of local stats {
         `noisily' gegen `gvar' = `fun'(random1) `wgt', by(`anything') replace `options'
-        if ( "`weight'" == "" & !(`:list fun in skipbulk') ) {
+        if ( "`weight'" == "" & !(`:list fun in skipbulk') & ("`fun'" != "nunique") ) {
         `noisily' gegen `gvar' = `fun'(random*) `wgt', by(`anything') replace `options'
         }
     }

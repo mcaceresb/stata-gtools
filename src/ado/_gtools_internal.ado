@@ -1,4 +1,4 @@
-*! version 1.7.5 18Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.8.1 27Aug2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -244,8 +244,8 @@ program _gtools_internal, rclass
     * }
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
-    local ifin `if' `in'
-    local gen  `generate'
+    local gen `generate'
+    mata st_local("ifin", st_local("if") + " " + st_local("in"))
 
     local hashmethod `hashmethod'
     if ( `"`hashmethod'"' == "" ) local hashmethod 0
@@ -480,7 +480,7 @@ program _gtools_internal, rclass
     *     - The output cannot be unsorted!
 
     if ( inlist("`gfunction'", "sort") ) {
-        if ( "`if'" != "" ) {
+        if ( `"`if'"' != "" ) {
             di as err "Cannot sort data with if condition"
             clean_all 198
             exit 198
@@ -1516,7 +1516,7 @@ program _gtools_internal, rclass
         scalar __gtools_used_io   = 0
         scalar __gtools_ixfinish  = 0
         scalar __gtools_J         = _N
-        scalar __gtools_init_targ = ("`ifin'" != "") & ("`merge'" != "")
+        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "")
 
         if inlist("`anything'", "forceio", "switch") {
             local extravars `__gtools_sources' `__gtools_sources' `freq'
@@ -1621,7 +1621,7 @@ program _gtools_internal, rclass
 
         if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
-            scalar __gtools_init_targ = ("`ifin'" != "") & ("`replace'" != "")
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "")
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0: copy local greshape
@@ -1677,9 +1677,10 @@ program _gtools_internal, rclass
                 ivkexog(int 0)               /// IV exogenous
                 ivkz(int 0)                  /// IV instruments
                                              ///
-                poistol(real 1e-8)           /// Tolerance for poisson convergence
-                poisiter(int 1000)           /// Max iterations for poisson convergence
-                poisson                      /// Poisson regression
+                glmtol(real 1e-8)            /// Tolerance for GLM (IRLS) convergence
+                glmiter(int 1000)            /// Max iterations for GLM convergence
+                glmfam(str)                  /// GLM family
+                glmlink(str)                 /// GLM link function
                                              ///
                 mata(str)                    /// save in mata (default)
                 GENerate(str)                /// save in varlist
@@ -1796,42 +1797,51 @@ program _gtools_internal, rclass
                 disp as txt "{bf:note:} robust SE will be computed with pweights"
             }
 
-            if ( (`"`cluster'"' == "") & (`"`robust'"' == "") & (`"`poisson'"' != "") ) {
-                disp as txt "{bf:note:} robust SE will be computed with gpoisson"
+            if ( (`"`cluster'"' == "") & (`"`robust'"' == "") & (`"`glmfam'"' != "") ) {
+                disp as txt "{bf:note:} robust SE will be computed with GLM (`glmfam')"
             }
 
-            if ( (`wcode' == 4) | (`"`poisson'"' != "") ) {
+            if ( (`wcode' == 4) | (`"`glmfam'"' != "") ) {
                 local robust robust
             }
 
             local regressvars `varlist' `cluster' `absorb' `intervalvar'
 
-            scalar __gtools_gregress_kvars    = `:list sizeof varlist'
-            scalar __gtools_gregress_cons     = `"`constant'"' != "noconstant"
-            scalar __gtools_gregress_robust   = `"`robust'"'   != ""
-            scalar __gtools_gregress_cluster  = `:list sizeof cluster'
-            scalar __gtools_gregress_absorb   = `:list sizeof absorb'
-            scalar __gtools_gregress_hdfetol  = `hdfetol'
-            scalar __gtools_gregress_poisson  = `"`poisson'"' != ""
-            scalar __gtools_gregress_poisiter = `poisiter'
-            scalar __gtools_gregress_poistol  = `poistol'
-            scalar __gtools_gregress_ivreg    = `"`ivregress'"' != ""
-            scalar __gtools_gregress_ivkendog = `ivkendog'
-            scalar __gtools_gregress_ivkexog  = `ivkexog'
-            scalar __gtools_gregress_ivkz     = `ivkz'
+            scalar __gtools_gregress_kvars      = `:list sizeof varlist'
+            scalar __gtools_gregress_cons       = `"`constant'"' != "noconstant"
+            scalar __gtools_gregress_robust     = `"`robust'"'   != ""
+            scalar __gtools_gregress_cluster    = `:list sizeof cluster'
+            scalar __gtools_gregress_absorb     = `:list sizeof absorb'
+            scalar __gtools_gregress_hdfetol    = `hdfetol'
+            scalar __gtools_gregress_glmfam     = `"`glmfam'"' != ""
+            scalar __gtools_gregress_glmlogit   = (`"`glmfam'"' == "binomial") & (`"`glmlink'"' == "logit")
+            scalar __gtools_gregress_glmpoisson = (`"`glmfam'"' == "poisson")  & (`"`glmlink'"' == "log")
+            scalar __gtools_gregress_glmiter    = `glmiter'
+            scalar __gtools_gregress_glmtol     = `glmtol'
+            scalar __gtools_gregress_ivreg      = `"`ivregress'"' != ""
+            scalar __gtools_gregress_ivkendog   = `ivkendog'
+            scalar __gtools_gregress_ivkexog    = `ivkexog'
+            scalar __gtools_gregress_ivkz       = `ivkz'
 
-            if ( scalar(__gtools_gregress_poisson) ) {
+            if ( scalar(__gtools_gregress_glmlogit) ) {
+                local Caller Logit
+                local caller glogit
+            }
+            else if ( scalar(__gtools_gregress_glmpoisson) ) {
                 local Caller Poisson
+                local caller gpoisson
             }
             else if ( scalar(__gtools_gregress_ivreg) ) {
                 local Caller IV
+                local caller givregress
             }
             else {
                 local Caller Regress
+                local caller gregress
             }
 
-            if ( scalar(__gtools_gregress_poisson) & scalar(__gtools_gregress_ivreg) ) {
-                disp as err "Parsing error: gpoisson and givregress cannot be run at the same time"
+            if ( scalar(__gtools_gregress_glmfam) & scalar(__gtools_gregress_ivreg) ) {
+                disp as err "Parsing error: GLM (`caller') and givregress cannot be run at the same time"
                 local rc = 198
                 clean_all `rc'
                 exit `rc'
@@ -1955,8 +1965,8 @@ program _gtools_internal, rclass
                     local nvar = 0
                     local togen
                     foreach var in `b' `se' `hdfe' {
-                        cap confirm var `var'
-                        if ( _rc ) {
+                        cap confirm new var `var'
+                        if ( _rc == 0 ) {
                             local togen `togen' `var'
                             local ++nvar
                         }
@@ -2001,6 +2011,10 @@ program _gtools_internal, rclass
                         local rc = 198
                         clean_all `rc'
                         exit `rc'
+                    }
+
+                    if ( (`"`hdfe'"' != "") & (scalar(__gtools_gregress_absorb) == 0) ) {
+                        disp as err "prefix(hdfe()) without absorb() just makes a copy of the variables"
                     }
 
                     local bvars
@@ -2079,8 +2093,8 @@ program _gtools_internal, rclass
                     local nvar = 0
                     local togen
                     foreach var in `bvars' `sevars' `hdfevars' {
-                        cap confirm var `var'
-                        if ( _rc ) {
+                        cap confirm new var `var'
+                        if ( _rc == 0 ) {
                             local togen `togen' `var'
                             local ++nvar
                         }
@@ -3067,15 +3081,6 @@ program _gtools_internal, rclass
     * regress results
     if ( inlist("`gfunction'", "regress") ) {
         if ( scalar(__gtools_gregress_savemata) ) {
-            if ( scalar(__gtools_gregress_poisson) ) {
-                local caller gpoisson
-            }
-            else if ( scalar(__gtools_gregress_ivreg) ) {
-                local caller givregress
-            }
-            else {
-                local caller gregress
-            }
             mata: `saveGregressMata'.readMatrices()
             mata: `saveGregressMata'.ByLevels = GtoolsByLevels()
             mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
@@ -3340,7 +3345,7 @@ capture program drop parse_by_types
 program parse_by_types, rclass
     syntax [anything] [if] [in], [clean_anything(str) compress forcestrl glevelsof(str) ds]
 
-    local ifin `if' `in'
+    mata st_local("ifin", st_local("if") + " " + st_local("in"))
     if ( "`anything'" == "" ) {
         matrix __gtools_invert = 0
         matrix __gtools_bylens = 0
@@ -3715,16 +3720,16 @@ program rc_dispatch
         exit 17001
     }
     else if ( `rc' == 459 ) {
-		local kvars : word count `varlist'
+        local kvars : word count `varlist'
         local s = cond(`kvars' == 1, "", "s")
         di as err "variable`s' `varlist' should never be missing"
         exit 459
     }
     else if ( `rc' == 17459 ) {
-		local kvars : word count `varlist'
-		local var  = cond(`kvars'==1, "variable", "variables")
-		local does = cond(`kvars'==1, "does", "do")
-		di as err "`var' `varlist' `does' not uniquely" ///
+        local kvars : word count `varlist'
+        local var  = cond(`kvars'==1, "variable", "variables")
+        local does = cond(`kvars'==1, "does", "do")
+        di as err "`var' `varlist' `does' not uniquely" ///
                   " identify the observations"
         exit 459
     }
@@ -4714,36 +4719,38 @@ end
 capture program drop gregress_scalars
 program gregress_scalars
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_gregress_kv        = 0
-        scalar __gtools_gregress_kvars     = 0
-        scalar __gtools_gregress_cons      = 0
-        scalar __gtools_gregress_robust    = 0
-        scalar __gtools_gregress_cluster   = 0
-        scalar __gtools_gregress_absorb    = 0
-        scalar __gtools_gregress_hdfetol   = 0
-        scalar __gtools_gregress_poisson   = 0
-        scalar __gtools_gregress_poisiter  = 0
-        scalar __gtools_gregress_poistol   = 0
-        scalar __gtools_gregress_ivreg     = 0
-        scalar __gtools_gregress_ivkendog  = 0
-        scalar __gtools_gregress_ivkexog   = 0
-        scalar __gtools_gregress_ivkz      = 0
-        scalar __gtools_gregress_savemata  = 0
-        scalar __gtools_gregress_savemb    = 0
-        scalar __gtools_gregress_savemse   = 0
-        scalar __gtools_gregress_savegb    = 0
-        scalar __gtools_gregress_savegse   = 0
-        scalar __gtools_gregress_saveghdfe = 0
-        scalar __gtools_gregress_moving    = 0
-        scalar __gtools_gregress_moving_l  = 0
-        scalar __gtools_gregress_moving_u  = 0
-        scalar __gtools_gregress_range     = 0
-        scalar __gtools_gregress_range_l   = 0
-        scalar __gtools_gregress_range_u   = 0
-        scalar __gtools_gregress_range_ls  = 0
-        scalar __gtools_gregress_range_us  = 0
-        matrix __gtools_gregress_clustyp   = .
-        matrix __gtools_gregress_abstyp    = .
+        scalar __gtools_gregress_kv         = 0
+        scalar __gtools_gregress_kvars      = 0
+        scalar __gtools_gregress_cons       = 0
+        scalar __gtools_gregress_robust     = 0
+        scalar __gtools_gregress_cluster    = 0
+        scalar __gtools_gregress_absorb     = 0
+        scalar __gtools_gregress_hdfetol    = 0
+        scalar __gtools_gregress_glmlogit   = 0
+        scalar __gtools_gregress_glmpoisson = 0
+        scalar __gtools_gregress_glmfam     = 0
+        scalar __gtools_gregress_glmiter    = 0
+        scalar __gtools_gregress_glmtol     = 0
+        scalar __gtools_gregress_ivreg      = 0
+        scalar __gtools_gregress_ivkendog   = 0
+        scalar __gtools_gregress_ivkexog    = 0
+        scalar __gtools_gregress_ivkz       = 0
+        scalar __gtools_gregress_savemata   = 0
+        scalar __gtools_gregress_savemb     = 0
+        scalar __gtools_gregress_savemse    = 0
+        scalar __gtools_gregress_savegb     = 0
+        scalar __gtools_gregress_savegse    = 0
+        scalar __gtools_gregress_saveghdfe  = 0
+        scalar __gtools_gregress_moving     = 0
+        scalar __gtools_gregress_moving_l   = 0
+        scalar __gtools_gregress_moving_u   = 0
+        scalar __gtools_gregress_range      = 0
+        scalar __gtools_gregress_range_l    = 0
+        scalar __gtools_gregress_range_u    = 0
+        scalar __gtools_gregress_range_ls   = 0
+        scalar __gtools_gregress_range_us   = 0
+        matrix __gtools_gregress_clustyp    = .
+        matrix __gtools_gregress_abstyp     = .
     }
     else {
         cap scalar drop __gtools_gregress_kv
@@ -4753,13 +4760,15 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb
         cap scalar drop __gtools_gregress_hdfetol
-        cap scalar drop __gtools_gregress_poisson
         cap scalar drop __gtools_gregress_ivreg
         cap scalar drop __gtools_gregress_ivkendog
         cap scalar drop __gtools_gregress_ivkexog
         cap scalar drop __gtools_gregress_ivkz
-        cap scalar drop __gtools_gregress_poisiter
-        cap scalar drop __gtools_gregress_poistol
+        cap scalar drop __gtools_gregress_glmlogit
+        cap scalar drop __gtools_gregress_glmpoisson
+        cap scalar drop __gtools_gregress_glmfam
+        cap scalar drop __gtools_gregress_glmiter
+        cap scalar drop __gtools_gregress_glmtol
         cap scalar drop __gtools_gregress_savemata
         cap scalar drop __gtools_gregress_savemb
         cap scalar drop __gtools_gregress_savemse
@@ -5108,18 +5117,18 @@ program gstats_transform
         local retype: word `k' of `__gtools_gst_retype'
         local target: word `k' of `__gtools_gst_targets'
 
-        cap confirm variable `target'
-        if ( _rc == 0 ) {
+        cap confirm new variable `target'
+        if ( _rc ) {
             if ( `"`replace'"' == "" ) {
                 disp as err "gstats_transform: target `target' exists without replace"
                 exit 198
             }
 
             if ( `retype' ) {
-                cap confirm variable __gtools_gst`__gtools_gst_i'
-                while ( _rc == 0 ) {
+                cap confirm new variable __gtools_gst`__gtools_gst_i'
+                while ( _rc ) {
                     local ++__gtools_gst_i
-                    cap confirm variable __gtools_gst`__gtools_gst_i'
+                    cap confirm new variable __gtools_gst`__gtools_gst_i'
                 }
                 rename `target' __gtools_gst`__gtools_gst_i'
                 local __gtools_gst_dropvars `__gtools_gst_dropvars' __gtools_gst`__gtools_gst_i'
@@ -5142,8 +5151,8 @@ program gstats_transform
     forvalues k = 1 / `ktargets' {
         local target: word `k' of `__gtools_gst_targets'
         local type:   word `k' of `__gtools_gst_types'
-        cap confirm variable `target'
-        if ( _rc ) {
+        cap confirm new variable `target'
+        if ( _rc == 0 ) {
             local ++kadd
             local __gtools_gst_addvars  `__gtools_gst_addvars'  `target'
             local __gtools_gst_addtypes `__gtools_gst_addtypes' `type'
@@ -7329,8 +7338,8 @@ program define GetTarget
     gettoken target rest : rest, parse("= ")
     gettoken eqsign rest : rest
     if ("`eqsign'" == "=") {
-        c_local `lhs' `target'
-        c_local `rhs' `rest'
+        c_local `lhs': copy local target
+        c_local `rhs': copy local rest
         c_local eqsign "="
     }
     else {

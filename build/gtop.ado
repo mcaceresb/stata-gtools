@@ -15,7 +15,7 @@ program gtop, rclass
 
     qui syntax [anything] [if] [in] [aw fw pw], [LOCal(str) MATrix(str) *]
     if ( "`local'"  != "" ) c_local `local' `"`r(levels)'"'
-    if ( "`matrix'" != "" ) matrix  `matrix' = `gmat'
+    if ( "`matrix'" != "" ) matrix  `matrix' = r(toplevels)
     return local levels `"`r(levels)'"'
     return scalar N     = r(N)
     return scalar J     = r(J)

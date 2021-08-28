@@ -1,6 +1,25 @@
 Change Log
 ==========
 
+## gtools-1.8.1 (2021-08-27)
+
+### Bug Fixes
+
+- Closes #78: if now passed raw/in double-quotes throughout the pipeline
+- Closes #75: gunique returns 0s in r() when there are no obs
+- Closes #74: gstats transform parses abbreviated targets
+- Closes #72: Warning for gegen expressions without by group
+- Fixed GLM issues generating de-meaned variables
+- Fixed gegen nunique with multiple inputs
+- Fixed bug in `gpoisson` where internal weights not copied correctly in loop.
+- Various fixes to the docs.
+
+## gtools-1.8.0 (2021-06-15)
+
+### Features
+
+- Added `gglm` to estimate GLM models, including `logit`.
+
 ## gtools-1.7.5 (2020-04-18)
 
 ### Bug fixes

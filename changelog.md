@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.8.1 (2021-08-27)
+
+### Bug Fixes
+
+- Closes #74: gstats transform parses abbreviated targets
+- Closes #72: Warning for gegen expressions without by group
+- Fixed GLM issues generating de-meaned variables
+- Fixed gegen nunique with multiple inputs
+
 ## gtools-1.8.0 (2021-06-15)
 
 ### Features

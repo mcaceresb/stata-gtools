@@ -104,8 +104,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
     clock_t timer      = clock();
 
-    GtoolsGroupByTransform GtoolsGroupByTransform;
-    GtoolsGroupByHDFE GtoolsGroupByHDFE;
+    GtoolsGroupByTransform GtoolsGroupByTransform, SaveGtoolsGroupByTransform;
+    GtoolsGroupByHDFE GtoolsGroupByHDFE, SaveGtoolsGroupByHDFE;
 
     struct GtoolsHash *ghptr;
     struct GtoolsHash *ClusterHash  = malloc(sizeof *ClusterHash);
@@ -148,7 +148,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     ST_double *w    = calloc(st_info->wcode > 0? N: 1, sizeof *w);
 
     ST_double *glmaux  = calloc(glmfam? nj_max * (6 + (kabs > 0)): 1, sizeof *glmaux);
-    ST_double *xdm     = calloc(glmfam && (kabs > 0)? nj_max * kx: 1, sizeof *glmaux);
+    ST_double *xdm     = calloc(glmfam && (kabs > 0)? nj_max * kx: 1, sizeof *xdm);
     ST_double *njclus  = calloc(kclus? J:        1, sizeof *njclus);
     ST_double *njabs   = calloc(kabs?  J * kabs: 1, sizeof *njabs);
     ST_double *stats   = calloc(kabs?  kx:       1, sizeof *stats);
@@ -263,13 +263,23 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     }
 
     // TODO: Mess with this based on aw, fw, pw, iw?
-    if ( st_info->wcode > 0 || glmfam ) {
-        GtoolsGroupByTransform = GtoolsGroupByTransformWeighted;
-        GtoolsGroupByHDFE      = GtoolsGroupByHDFEWeighted;
+    if ( st_info->wcode > 0 ) {
+        GtoolsGroupByTransform     = GtoolsGroupByTransformWeighted;
+        GtoolsGroupByHDFE          = GtoolsGroupByHDFEWeighted;
+        SaveGtoolsGroupByTransform = GtoolsGroupByTransformWeighted;
+        SaveGtoolsGroupByHDFE      = GtoolsGroupByHDFEWeighted;
     }
     else {
-        GtoolsGroupByTransform = GtoolsGroupByTransformUnweighted;
-        GtoolsGroupByHDFE      = GtoolsGroupByHDFEUnweighted;
+        if ( glmfam ) {
+            GtoolsGroupByTransform = GtoolsGroupByTransformWeighted;
+            GtoolsGroupByHDFE      = GtoolsGroupByHDFEWeighted;
+        }
+        else {
+            GtoolsGroupByTransform = GtoolsGroupByTransformUnweighted;
+            GtoolsGroupByHDFE      = GtoolsGroupByHDFEUnweighted;
+        }
+        SaveGtoolsGroupByTransform = GtoolsGroupByTransformUnweighted;
+        SaveGtoolsGroupByHDFE      = GtoolsGroupByHDFEUnweighted;
     }
 
     gf_regress_vceadj vceadj;
@@ -1074,7 +1084,6 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 }
             }
             else if ( st_info->gregress_robust ) {
-
                 // Robust errors
                 // -------------
 
@@ -1366,14 +1375,22 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             }
         }
 
+        // gf_regress_absorb_iter is used here to correctly transform the
+        // variables and save their HDFE version. The transform above is for the
+        // internal GLM loop and not equivalent to the regular transform.
+
         if ( kabs && st_info->gregress_saveghdfe ) {
+            ghptr = AbsorbHashes;
+            for (k = 0; k < kabs; k++, ghptr++) {
+                ghptr->offset = 0;
+            }
             xptr  = X;
             yptr  = y;
             wptr  = w;
             gf_regress_absorb_iter(
                 AbsorbHashes,
-                GtoolsGroupByTransform,
-                GtoolsGroupByHDFE,
+                SaveGtoolsGroupByTransform,
+                SaveGtoolsGroupByHDFE,
                 stats,
                 maps,
                 J,
@@ -1762,8 +1779,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         wptr  = w;
         gf_regress_absorb_iter(
             AbsorbHashes,
-            GtoolsGroupByTransform,
-            GtoolsGroupByHDFE,
+            SaveGtoolsGroupByTransform,
+            SaveGtoolsGroupByHDFE,
             stats,
             maps,
             J,
@@ -1902,7 +1919,6 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         krefb    = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1;
         krefse   = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb;
         krefhdfe = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb + kv * st_info->gregress_savegse;
-
         bptr  = b;
         septr = se;
         yptr  = y;
@@ -1930,6 +1946,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     for (k = 0; k < kx; k++) {
                         if ( (rc = SF_vstore(krefhdfe + 1 + k, out, *(xptr + nj[l] * k))) ) goto exit;
                     }
+                    // Note: Remember you are storing this in column-major order;
+                    // nj is the number of observations.
                     xptr++;
                     yptr++;
                 }

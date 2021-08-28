@@ -2013,6 +2013,10 @@ program _gtools_internal, rclass
                         exit `rc'
                     }
 
+                    if ( (`"`hdfe'"' != "") & (scalar(__gtools_gregress_absorb) == 0) ) {
+                        disp as err "prefix(hdfe()) without absorb() just makes a copy of the variables"
+                    }
+
                     local bvars
                     local sevars
                     if ( `"`hdfe'"' != "" ) {
@@ -3716,16 +3720,16 @@ program rc_dispatch
         exit 17001
     }
     else if ( `rc' == 459 ) {
-		local kvars : word count `varlist'
+        local kvars : word count `varlist'
         local s = cond(`kvars' == 1, "", "s")
         di as err "variable`s' `varlist' should never be missing"
         exit 459
     }
     else if ( `rc' == 17459 ) {
-		local kvars : word count `varlist'
-		local var  = cond(`kvars'==1, "variable", "variables")
-		local does = cond(`kvars'==1, "does", "do")
-		di as err "`var' `varlist' `does' not uniquely" ///
+        local kvars : word count `varlist'
+        local var  = cond(`kvars'==1, "variable", "variables")
+        local does = cond(`kvars'==1, "does", "do")
+        di as err "`var' `varlist' `does' not uniquely" ///
                   " identify the observations"
         exit 459
     }
@@ -4760,11 +4764,11 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_ivkendog
         cap scalar drop __gtools_gregress_ivkexog
         cap scalar drop __gtools_gregress_ivkz
-        cap scalar drop __gtools_gregress_glmlogit  
+        cap scalar drop __gtools_gregress_glmlogit
         cap scalar drop __gtools_gregress_glmpoisson
-        cap scalar drop __gtools_gregress_glmfam   
-        cap scalar drop __gtools_gregress_glmiter   
-        cap scalar drop __gtools_gregress_glmtol    
+        cap scalar drop __gtools_gregress_glmfam
+        cap scalar drop __gtools_gregress_glmiter
+        cap scalar drop __gtools_gregress_glmtol
         cap scalar drop __gtools_gregress_savemata
         cap scalar drop __gtools_gregress_savemb
         cap scalar drop __gtools_gregress_savemse

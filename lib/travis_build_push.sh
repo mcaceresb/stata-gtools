@@ -8,7 +8,7 @@ if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     git config user.email "$COMMIT_AUTHOR_EMAIL"
 
     echo "Adding OSX files."
-    git checkout develop-spooky-builtin
+    git checkout master
     git branch -D osx
     git checkout -B osx
 	cp build/*plugin lib/plugin/

@@ -145,7 +145,7 @@ assert y  == -_n
 * ------------------------------------
 
 * By default, greshape throws an error with problematic observations,
-* but this can be ignored.
+* but this can be ignored if so desired.
 
 webuse reshape2, clear
 list

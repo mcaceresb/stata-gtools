@@ -49,8 +49,8 @@ program gregress, rclass
         debug(passthru)           /// Print debugging info to console
     ]
 
-    disp as err "{bf:warning:} gregress is beta software and meant for testing."
-    disp as err "Use in production is {bf:NOT} recommended; proceed with caution."
+    disp as txt "{bf:warning:} gregress is beta software and meant for testing."
+    disp as txt "Use in production is {bf:NOT} recommended; proceed with caution."
 
     if ( `"`missing'"' == "nomissing" ) local missing
     else local missing missing

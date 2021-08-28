@@ -78,7 +78,9 @@ program main
         * qui do docs/examples/gegen.do,     nostop
         * qui do docs/examples/gisid.do,     nostop
         * qui do docs/examples/glevelsof.do, nostop
-        * qui do docs/examples/gstats.do
+        * qui do docs/examples/gstats_summarize.do
+        * qui do docs/examples/gstats_transform.do
+        * qui do docs/examples/gstats_winsor.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 

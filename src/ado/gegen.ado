@@ -642,6 +642,10 @@ program define gegen, byable(onecall) rclass
         }
         else {
             cap gen double `exp' = `args'
+            if ( "`byvars'" != "" )
+                di as txt "{bf:warning}: gegen is {bf:NOT} parsing the expression '`args'' by group."
+                di as txt "To parse this expression by group, call gegen using the -by:- prefix."
+            }
         }
         local rc = _rc
     }

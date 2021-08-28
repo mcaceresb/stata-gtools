@@ -240,9 +240,6 @@ ST_retcode sf_reshape_flong (struct StataInfo *st_info, int level, char *fname)
                     // Copy the j variable value
                     outdbl[selx + kvars] = jdbl[j];
 
-                    // Copy each of the xij variables
-                    outdbl[selx + kvars + 1] = z;
-
                     // Copy xij buffer to output matrix
                     for (k = 0; k < kout; k++) {
                         outdbl[selx + kvars + k + 1] = xijdbl[k];

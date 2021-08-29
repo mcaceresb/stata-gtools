@@ -8,6 +8,32 @@ capture program drop basic_gregress
 program basic_gregress
     local tol 1e-8
 
+    // Temporary; testing out backing out the FE
+    // -----------------------------------------
+    //
+    // global GTOOLS_BETA = 1
+    //
+    // clear
+    // set obs 30
+    // gen x = rnormal()
+    // gen y = ((x + rnormal()/2) > 0)
+    // gen a = mod(_n, 4)
+    // tab a, gen(_a)
+    // logit y x _a*, r noconstant
+    // gglm y x, absorb(a) pred(_xbd_) family(binomial)
+    // mata GtoolsLogit.print()
+    // gegen _tag_ = tag(a)
+    // mata editmissing(sort((st_data(., "a", "_tag_"), st_data(., "x _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
+    // 
+    // sysuse auto, clear
+    // keep foreign price mpg rep78
+    // tab rep78, gen(_rep78)
+    // logit foreign price mpg _rep78*, r noconstant
+    // gglm foreign price mpg, robust absorb(rep78) pred(_xbd_) family(binomial)
+    // mata GtoolsLogit.print()
+    // gegen _tag_ = tag(rep78)
+    // mata editmissing(sort((st_data(., "rep78", "_tag_"), st_data(., "price mpg _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
+
 disp ""
 disp "----------------------"
 disp "Comparison Test 1: OLS"

@@ -5,10 +5,10 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
-![Stable Version](https://img.shields.io/badge/stable-v1.8.1%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/stable-v1.8.2%20%7C%20linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 
 <!--
-`version 1.8.1 27Aug2021`
+`version 1.8.2 29Aug2021`
 Builds: Linux, OSX [![Travis Build Status](https://travis-ci.com/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.com/mcaceresb/stata-gtools),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
@@ -32,6 +32,12 @@ gtools, upgrade
 ```
 
 Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.do):
+
+!!! info "Note"
+    Stata tours massive speed improvements to [sort and collapse](https://www.stata.com/new-in-stata/faster-stata-speed-improvements/)
+    as of version 17. I do not have access to Stata 17 so I cannot
+    test this myself, but please be aware the benchmarks below 
+    are presumably outdated for `gcollapse`.
 
 ![Gtools quick benchmark](benchmarks/quick.png)
 

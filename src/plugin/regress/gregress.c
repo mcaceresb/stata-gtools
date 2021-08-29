@@ -36,8 +36,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // ST_double z, d;
     ST_retcode rc = 0;
     ST_double *njclusptr, *njabsptr;
-    ST_double diff, *xptr, *yptr, *wptr, *bptr, *septr, *xdmptr, *ivendog, *ivexog, *ivzptr;
-    GT_size i, j, k, l, njobs, offset, krefb, krefse, krefhdfe, start, end, out, iter;
+    ST_double diff, *xptr, *yptr, *wptr, *eptr, *xbdptr, *bptr, *septr, *xdmptr, *ivendog, *ivexog, *ivzptr;
+    GT_size i, j, k, l, njobs, offset, krefb, krefse, krefhdfe, krefresid, krefpred, start, end, out, iter;
     GT_size *ixptr;
 
     FILE *fgregb;
@@ -80,8 +80,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     GT_bool glmlogit      = st_info->gregress_glmlogit;
     GT_bool glmpoisson    = st_info->gregress_glmpoisson;
     GT_size glmiter       = st_info->gregress_glmiter;
+    GT_bool resid         = st_info->gregress_savegresid;
+    GT_bool predict       = st_info->gregress_savegpred;
     GT_bool runols        = st_info->gregress_savemse || st_info->gregress_savegse
-                         || st_info->gregress_savemb  || st_info->gregress_savegb;
+                         || st_info->gregress_savemb  || st_info->gregress_savegb
+                         || predict || resid;
     GT_bool runse         = st_info->gregress_savemse || st_info->gregress_savegse;
     GT_bool interval      = st_info->gregress_range;
     GT_bool panelsetup    = 1;
@@ -128,15 +131,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // decide on the exact behavior of givregress (i.e. whether to add
     // the second collinearity check with the dependent var)
 
-    ST_double *vars = calloc(N * ktot,        sizeof *vars);
-    ST_double *e    = calloc(nj_max,          sizeof *e);
-    ST_double *Xy   = calloc(kx,              sizeof *Xy);
-    ST_double *b    = calloc(J * kx,          sizeof *b);
-    ST_double *se   = calloc(J * kx,          sizeof *se);
-    ST_double *XX   = calloc(4 * ktot * ktot, sizeof *XX);
-    ST_double *V    = calloc(kx * kx,         sizeof *V);
-    ST_double *VV   = calloc(kx * kx,         sizeof *VV);
-    GT_size   *nj   = calloc(J,               sizeof *nj);
+    ST_double *e    = calloc(resid? N: nj_max, sizeof *e);
+    ST_double *xbd  = calloc(predict? N: 1,    sizeof *xbd);
+    ST_double *vars = calloc(N * ktot,         sizeof *vars);
+    ST_double *Xy   = calloc(kx,               sizeof *Xy);
+    ST_double *b    = calloc(J * kx,           sizeof *b);
+    ST_double *se   = calloc(J * kx,           sizeof *se);
+    ST_double *XX   = calloc(4 * ktot * ktot,  sizeof *XX);
+    ST_double *V    = calloc(kx * kx,          sizeof *V);
+    ST_double *VV   = calloc(kx * kx,          sizeof *VV);
+    GT_size   *nj   = calloc(J,                sizeof *nj);
 
     ST_double *BZ   = calloc(ivreg? (ivkz + ivkexog) * ivkendog: 1, sizeof *BZ);
     ST_double *PZ   = calloc(ivreg? nj_max * ivkendog: 1, sizeof *PZ);
@@ -375,11 +379,13 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // memset(b,  '\0', J * kx * (sizeof *b));
     // memset(se, '\0', J * kx * (sizeof *b));
 
-    xptr  = X;
-    yptr  = y;
-    bptr  = b;
-    septr = se;
-    wptr  = w;
+    xptr   = X;
+    yptr   = y;
+    eptr   = e;
+    xbdptr = xbd;
+    bptr   = b;
+    septr  = se;
+    wptr   = w;
 
     njclusptr = njclus;
     njabsptr  = njabs;
@@ -452,7 +458,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         XX,
                         PZ,
                         BZ,
-                        e,
+                        eptr,
                         bptr,
                         colix,
                         njobs,
@@ -515,7 +521,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         // endogenous vars, so we only adjust ivendog in this case.
 
                         gf_regress_ols_cluster(
-                            e,
+                            eptr,
                             wptr,
                             ClusterHash->info,
                             ClusterHash->index,
@@ -550,18 +556,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( kabs && st_info->gregress_saveghdfe ) {
                             memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
 
                     njclusptr++;
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kv;
-                    septr += kv;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kv;
+                    septr  += kv;
+
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -615,7 +630,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         XX,
                         PZ,
                         BZ,
-                        e,
+                        eptr,
                         bptr,
                         colix,
                         njobs,
@@ -667,7 +682,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         // endogenous vars, so we only adjust ivendog in this case.
 
                         gf_regress_ols_robust(
-                            e,
+                            eptr,
                             wptr,
                             V,
                             VV,
@@ -697,14 +712,22 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( kabs && st_info->gregress_saveghdfe ) {
                             memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kv;
-                    septr += kv;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kv;
+                    septr  += kv;
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -758,7 +781,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         XX,
                         PZ,
                         BZ,
-                        e,
+                        eptr,
                         bptr,
                         colix,
                         njobs,
@@ -805,7 +828,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         // ivkdep   = (ivkendog - ixptr[ivkss + 2]);
 
                         gf_regress_ols_se(
-                            e,
+                            eptr,
                             wptr,
                             XX,
                             septr,
@@ -831,14 +854,22 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( kabs && st_info->gregress_saveghdfe ) {
                             memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kv;
-                    septr += kv;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kv;
+                    septr  += kv;
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -888,7 +919,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     XX,
                     PZ,
                     BZ,
-                    e,
+                    eptr,
                     bptr,
                     colix,
                     njobs,
@@ -941,13 +972,22 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( kabs && st_info->gregress_saveghdfe ) {
                         memcpy(ivendog, PZ, sizeof(ST_double) * N * ivkendog);
                     }
+
+                    if ( predict ) {
+                        for (i = 0; i < njobs; i++) {
+                            xbdptr[i] = yptr[i] - eptr[i];
+                        }
+                    }
                 }
 
-                xptr  += njobs * kx;
-                yptr  += njobs;
-                wptr  += njobs;
-                bptr  += kv;
-                ghptr  = AbsorbHashes;
+                xptr   += njobs * kx;
+                yptr   += njobs;
+                wptr   += njobs;
+                eptr   += njobs * resid;
+                xbdptr += njobs * predict;
+                bptr   += kv;
+
+                ghptr = AbsorbHashes;
                 for (k = 0; k < kabs; k++, ghptr++) {
                     GtoolsHashFreePartial(ghptr);
                     ghptr->offset += ghptr->nobs;
@@ -995,8 +1035,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, e, bptr, colix, njobs, kx);
-                        diff     = gf_regress_glm_iter(yptr, wptr, e, mu, wgt, eta, dev, dev0, lhs, njobs);
+                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, eptr, bptr, colix, njobs, kx);
+                        diff     = gf_regress_glm_iter(yptr, wptr, eptr, mu, wgt, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
 
@@ -1036,12 +1076,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     }
 
                     if ( singular != 4 ) {
-                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, e, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
+                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, eptr, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
                             goto exit;
                         }
 
                         gf_regress_ols_cluster(
-                            e,
+                            eptr,
                             wgt,
                             ClusterHash->info,
                             ClusterHash->index,
@@ -1065,18 +1105,44 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        // NOTE: There is an issue in GLM models where if an observation can
+                        // be perfectly predicted then almost surely this is because it is
+                        // collinear with one of the variables (e.g. some combination of the
+                        // absorbed FE).  In that case, those coefficients are not identified
+                        // and those observations should be dropped from the model (it doesn't
+                        // matter for estimating the other coefficients but  it matters here).
+                        //
+                        // TODO: Is there any other scenario where resid = 0 is true?
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                if ( fabs(eptr[i]) < hdfetol ) {
+                                    xbdptr[i] = SV_missval;
+                                }
+                                else {
+                                    xbdptr[i] = lhs[i] - eptr[i];
+                                    // for (k = 0; k < kx; k++) {
+                                    //     xbdptr[i] -= xptr[njobs * k + i] * bptr[k];
+                                    // }
+                                }
+                            }
+                        }
                     }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
 
                     njclusptr++;
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1119,8 +1185,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, e, bptr, colix, njobs, kx);
-                        diff     = gf_regress_glm_iter(yptr, wptr, e, mu, wgt, eta, dev, dev0, lhs, njobs);
+                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, eptr, bptr, colix, njobs, kx);
+                        diff     = gf_regress_glm_iter(yptr, wptr, eptr, mu, wgt, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
 
@@ -1149,12 +1215,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     }
 
                     if ( singular != 4 ) {
-                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, e, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
+                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, eptr, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
                             goto exit;
                         }
 
                         gf_regress_ols_robust(
-                            e,
+                            eptr,
                             wgt,
                             V,
                             VV,
@@ -1173,14 +1239,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                if ( fabs(eptr[i]) < hdfetol ) {
+                                    xbdptr[i] = SV_missval;
+                                }
+                                else {
+                                    xbdptr[i] = lhs[i] - eptr[i];
+                                }
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1225,8 +1304,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                             goto exit;
                         }
-                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, e, bptr, colix, njobs, kx);
-                        diff     = gf_regress_glm_iter(yptr, wptr, e, mu, wgt, eta, dev, dev0, lhs, njobs);
+                        singular = gf_regress_ols(xdmptr, lhsdm, wgt, XX, Xy, eptr, bptr, colix, njobs, kx);
+                        diff     = gf_regress_glm_iter(yptr, wptr, eptr, mu, wgt, eta, dev, dev0, lhs, njobs);
                         panelsetup = 0;
                     }
 
@@ -1255,12 +1334,12 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     }
 
                     if ( singular != 4 ) {
-                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, e, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
+                        if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, eptr, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
                             goto exit;
                         }
 
                         gf_regress_ols_se(
-                            e,
+                            eptr,
                             wgt,
                             XX,
                             septr,
@@ -1275,14 +1354,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                if ( fabs(eptr[i]) < hdfetol ) {
+                                    xbdptr[i] = SV_missval;
+                                }
+                                else {
+                                    xbdptr[i] = lhs[i] - eptr[i];
+                                }
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1324,8 +1416,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    singular = gf_regress_ols (xdmptr, lhsdm, wgt, XX, Xy, e, bptr, colix, njobs, kx);
-                    diff     = gf_regress_glm_iter(yptr, wptr, e, mu, wgt, eta, dev, dev0, lhs, njobs);
+                    singular = gf_regress_ols (xdmptr, lhsdm, wgt, XX, Xy, eptr, bptr, colix, njobs, kx);
+                    diff     = gf_regress_glm_iter(yptr, wptr, eptr, mu, wgt, eta, dev, dev0, lhs, njobs);
                     panelsetup = 0;
                 }
 
@@ -1353,7 +1445,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 }
 
                 if ( singular != 4 ) {
-                    if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, e, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
+                    if ( (rc = gf_regress_glm_post(st_info->wcode, wptr, eptr, wgt, njobs, diff, glmtol, glmiter, buf1)) ) {
                         goto exit;
                     }
 
@@ -1361,13 +1453,26 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( singular == 1 ) {
                         gf_regress_adjust_collinear_b (bptr, Xy, colix, colix[kx], kx);
                     }
+
+                    if ( predict ) {
+                        for (i = 0; i < njobs; i++) {
+                            if ( fabs(eptr[i]) < hdfetol ) {
+                                xbdptr[i] = SV_missval;
+                            }
+                            else {
+                                xbdptr[i] = lhs[i] - eptr[i];
+                            }
+                        }
+                    }
                 }
 
-                xptr  += njobs * kx;
-                yptr  += njobs;
-                wptr  += njobs;
-                bptr  += kx;
-                ghptr  = AbsorbHashes;
+                xptr   += njobs * kx;
+                yptr   += njobs;
+                wptr   += njobs;
+                eptr   += njobs * resid;
+                xbdptr += njobs * predict;
+                bptr   += kx;
+                ghptr = AbsorbHashes;
                 for (k = 0; k < kabs; k++, ghptr++) {
                     GtoolsHashFreePartial(ghptr);
                     ghptr->offset += ghptr->nobs;
@@ -1438,7 +1543,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    singular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+                    singular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, eptr, bptr, colix, njobs, kx);
 
                     ClusterHash->nobs = njobs;
                     if ( (rc = GtoolsHashPanel(ClusterHash)) ) {
@@ -1477,7 +1582,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
                     if ( singular != 4 ) {
                         gf_regress_ols_cluster(
-                            e,
+                            eptr,
                             wptr,
                             ClusterHash->info,
                             ClusterHash->index,
@@ -1501,18 +1606,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
                     GtoolsHashFreePartial(ClusterHash);
                     ClusterHash->offset += ClusterHash->nobs;
 
                     njclusptr++;
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1550,7 +1664,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                         goto exit;
                     }
-                    singular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+                    singular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, eptr, bptr, colix, njobs, kx);
 
                     // singular =
                     //
@@ -1578,7 +1692,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
                     if ( singular != 4 ) {
                         gf_regress_ols_robust(
-                            e,
+                            eptr,
                             wptr,
                             V,
                             VV,
@@ -1597,14 +1711,23 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1643,7 +1766,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         goto exit;
                     }
 
-                    singular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+                    singular = gf_regress_ols(xptr, yptr, wptr, XX, Xy, eptr, bptr, colix, njobs, kx);
 
                     // singular =
                     //
@@ -1671,7 +1794,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 
                     if ( singular != 4 ) {
                         gf_regress_ols_se(
-                            e,
+                            eptr,
                             wptr,
                             XX,
                             septr,
@@ -1686,14 +1809,23 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             gf_regress_adjust_collinear_b  (bptr,  Xy, colix, colix[kx], kx);
                             gf_regress_adjust_collinear_se (septr, Xy, colix, colix[kx], kx);
                         }
+
+                        if ( predict ) {
+                            for (i = 0; i < njobs; i++) {
+                                xbdptr[i] = yptr[i] - eptr[i];
+                            }
+                        }
                     }
 
-                    xptr  += njobs * kx;
-                    yptr  += njobs;
-                    wptr  += njobs;
-                    bptr  += kx;
-                    septr += kx;
-                    ghptr  = AbsorbHashes;
+                    xptr   += njobs * kx;
+                    yptr   += njobs;
+                    wptr   += njobs;
+                    eptr   += njobs * resid;
+                    xbdptr += njobs * predict;
+                    bptr   += kx;
+                    septr  += kx;
+
+                    ghptr = AbsorbHashes;
                     for (k = 0; k < kabs; k++, ghptr++) {
                         GtoolsHashFreePartial(ghptr);
                         ghptr->offset += ghptr->nobs;
@@ -1728,7 +1860,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 if ( (rc = gf_regress_notidentified(njobs, kabs, kx, kmodel, buf1, buf2, buf3)) ) {
                     goto exit;
                 }
-                singular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, e, bptr, colix, njobs, kx);
+                singular = gf_regress_ols (xptr, yptr, wptr, XX, Xy, eptr, bptr, colix, njobs, kx);
 
                 // singular =
                 //
@@ -1753,19 +1885,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         break;
                 }
 
-                // if ( singular != 4 ) {
-                // }
-
                 // NOTE: To save some memory I use Xy as a buffer
                 if ( singular == 1 ) {
                     gf_regress_adjust_collinear_b (bptr, Xy, colix, colix[kx], kx);
                 }
 
-                xptr  += njobs * kx;
-                yptr  += njobs;
-                wptr  += njobs;
-                bptr  += kx;
-                ghptr  = AbsorbHashes;
+                if ( singular != 4 ) {
+                    if ( predict ) {
+                        for (i = 0; i < njobs; i++) {
+                            xbdptr[i] = yptr[i] - eptr[i];
+                        }
+                    }
+                }
+
+                xptr   += njobs * kx;
+                yptr   += njobs;
+                wptr   += njobs;
+                eptr   += njobs * resid;
+                xbdptr += njobs * predict;
+                bptr   += kx;
+
+                ghptr = AbsorbHashes;
                 for (k = 0; k < kabs; k++, ghptr++) {
                     GtoolsHashFreePartial(ghptr);
                     ghptr->offset += ghptr->nobs;
@@ -1915,14 +2055,25 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         if ( (rc = sf_byx_save_top (st_info, 0, NULL)) ) goto exit;
     }
 
-    if ( st_info->gregress_savegb || st_info->gregress_savegse || st_info->gregress_saveghdfe ) {
-        krefb    = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1;
-        krefse   = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb;
-        krefhdfe = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1 + kv * st_info->gregress_savegb + kv * st_info->gregress_savegse;
-        bptr  = b;
-        septr = se;
-        yptr  = y;
-        xptr  = X;
+    // Cannot compute residuals or prediction if no coefficients were estimated
+    if ( warnivnotiden || warnnocols ) {
+        resid   = 0;
+        predict = 0;
+    }
+
+    if ( st_info->gregress_savegb || st_info->gregress_savegse || st_info->gregress_saveghdfe || resid || predict ) {
+        krefb     = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1;
+        krefse    = krefb     + kv * st_info->gregress_savegb;
+        krefhdfe  = krefse    + kv * st_info->gregress_savegse;
+        krefresid = krefhdfe  + (kx + 1) * st_info->gregress_saveghdfe;
+        krefpred  = krefresid + 1 * resid;
+
+        bptr   = b;
+        septr  = se;
+        yptr   = y;
+        xptr   = X;
+        eptr   = e;
+        xbdptr = xbd;
         for (j = 0; j < st_info->J; j++) {
             l     = st_info->ix[j];
             start = st_info->info[l];
@@ -1951,6 +2102,14 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     xptr++;
                     yptr++;
                 }
+                if ( resid ) {
+                    if ( (rc = SF_vstore(krefresid, out, *eptr)) ) goto exit;
+                    eptr++;
+                }
+                if ( predict ) {
+                    if ( (rc = SF_vstore(krefpred, out, *xbdptr)) ) goto exit;
+                    xbdptr++;
+                }
             }
             bptr  += kv;
             septr += kv;
@@ -1973,8 +2132,9 @@ exit:
     }
     free (AbsorbHashes);
 
-    free(vars);
+    free(xbd);
     free(e);
+    free(vars);
     free(Xy);
     free(b);
     free(se);

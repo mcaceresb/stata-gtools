@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Fri Aug 27 22:39:20 EDT 2021
+# Updated: Sun Aug 29 13:38:43 EDT 2021
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 

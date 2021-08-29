@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-1.8.2 (2021-08-29)
+
+### Features
+
+- Add option to save residuals and predict (the behavior of `predict()` is not
+  consistent at the moment; use with extreme caution).
+
+### Bug Fixes
+
+- Closes #79: Adds disclaimer to benchmarks.
+
 ## gtools-1.8.1 (2021-08-27)
 
 ### Bug Fixes

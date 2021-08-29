@@ -1,4 +1,4 @@
-*! version 1.8.1 27Aug2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.8.2 29Aug2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1685,6 +1685,9 @@ program _gtools_internal, rclass
                 mata(str)                    /// save in mata (default)
                 GENerate(str)                /// save in varlist
                 prefix(str)                  /// save prepending prefix
+                PREDict(str)                 /// save fit in `predict'
+                resid                        /// save residuals in _resid_`yvarlist'
+                RESIDuals(str)               /// save residuals in `residuals'
                 replace                      /// Replace targets, if they exist
             ]
 
@@ -1789,10 +1792,6 @@ program _gtools_internal, rclass
                 GenericParseTypes `cluster', mat(__gtools_gregress_clustyp)
             }
 
-            if ( `"`absorb'"' != "" ) {
-                GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
-            }
-
             if ( (`"`cluster'"' == "") & (`"`robust'"' == "") & (`wcode' == 4) ) {
                 disp as txt "{bf:note:} robust SE will be computed with pweights"
             }
@@ -1803,6 +1802,20 @@ program _gtools_internal, rclass
 
             if ( (`wcode' == 4) | (`"`glmfam'"' != "") ) {
                 local robust robust
+            }
+
+            if ( `:list sizeof residuals' > 1 ) {
+                disp as err "resid() must specify a single variable name"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
+            }
+
+            if ( `:list sizeof predict' > 1 ) {
+                disp as err "predict() must specify a single variable name"
+                local rc = 198
+                clean_all `rc'
+                exit `rc'
             }
 
             local regressvars `varlist' `cluster' `absorb' `intervalvar'
@@ -2111,6 +2124,78 @@ program _gtools_internal, rclass
                     local regressvars `regressvars' `bvars' `sevars' `hdfevars'
                 }
             }
+
+            scalar __gtools_gregress_savegresid = `"`resid'`residuals'"' != ""
+            if ( scalar(__gtools_gregress_savegresid) ) {
+                if ( ("`resid'" != "") & ("`residuals'" != "") ) {
+                    disp as txt "warning: option -resid- ignored with option resid()"
+                }
+                if ( "`residuals'" == "" ) {
+                    local residuals _resid_`yvarlist'
+                }
+                if ( "`replace'" == "" ) {
+                    cap noi confirm new var `residuals'
+                    if ( _rc ) {
+                        local rc = _rc
+                        clean_all `rc'
+                        exit `rc'
+                    }
+                }
+                else {
+                    cap confirm new var `residuals'
+                }
+                if ( _rc == 0 ) {
+                    qui mata: (void) st_addvar(`"`:set type'"', `"`residuals'"')
+                }
+                local regressvars `regressvars' `residuals'
+            }
+
+            scalar __gtools_gregress_savegpred = `"`predict'"' != ""
+            if ( scalar(__gtools_gregress_savegpred) ) {
+                disp as txt "{bf:Warning}: The behavior of predict() is different cross functions."
+                disp as txt "Do not use unless you understand the code and know what it does."
+                if ( "`replace'" == "" ) {
+                    cap noi confirm new var `predict'
+                    if ( _rc ) {
+                        local rc = _rc
+                        clean_all `rc'
+                        exit `rc'
+                    }
+                }
+                else {
+                    cap confirm new var `predict'
+                }
+                if ( _rc == 0 ) {
+                    qui mata: (void) st_addvar(`"`:set type'"', `"`predict'"')
+                }
+                local regressvars `regressvars' `predict'
+            }
+
+            * if ( `"`absorb'"' != "" ) {
+            *     local 0: copy local absorb
+            *     syntax varlist, [save(str)]
+            *     local absorb: copy local varlist
+            *     GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
+            *     scalar __gtools_gregress_savegabs = `"`save'"' != ""
+            * }
+            *
+            * if ( scalar(__gtools_gregress_savegabs) ) {
+            *     if ( "`replace'" == "" ) {
+            *         cap noi confirm new var `save'
+            *         if ( _rc ) {
+            *             local rc = _rc
+            *             clean_all `rc'
+            *             exit `rc'
+            *         }
+            *     }
+            *     else {
+            *         cap confirm new var `save'
+            *     }
+            *     if ( _rc == 0 ) {
+            *         qui mata: (void) st_addvar(`"`:set type'"', `"`save'"')
+            *     }
+            *     local regressvars `regressvars' `save'
+            * }
 
             if ( `"`saveGregressMata'"' != "" ) {
                 mata: `saveGregressMata'.init()
@@ -4741,6 +4826,9 @@ program gregress_scalars
         scalar __gtools_gregress_savegb     = 0
         scalar __gtools_gregress_savegse    = 0
         scalar __gtools_gregress_saveghdfe  = 0
+        scalar __gtools_gregress_savegresid = 0
+        scalar __gtools_gregress_savegpred  = 0
+        scalar __gtools_gregress_savegabs   = 0
         scalar __gtools_gregress_moving     = 0
         scalar __gtools_gregress_moving_l   = 0
         scalar __gtools_gregress_moving_u   = 0
@@ -4775,6 +4863,9 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_savegb
         cap scalar drop __gtools_gregress_savegse
         cap scalar drop __gtools_gregress_saveghdfe
+        cap scalar drop __gtools_gregress_savegresid
+        cap scalar drop __gtools_gregress_savegpred
+        cap scalar drop __gtools_gregress_savegabs
         cap scalar drop __gtools_gregress_moving
         cap scalar drop __gtools_gregress_moving_l
         cap scalar drop __gtools_gregress_moving_u

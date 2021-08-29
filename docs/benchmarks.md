@@ -1,6 +1,12 @@
 Benchmarks
 ==========
 
+!!! info "Note"
+    Stata tours massive speed improvements to [sort and collapse](https://www.stata.com/new-in-stata/faster-stata-speed-improvements/)
+    as of version 17. I do not have access to Stata 17 so I cannot
+    test this myself, but please be aware the benchmarks below 
+    are presumably outdated for `gcollapse` and `hashsort`.
+
 Hardware
 --------
 

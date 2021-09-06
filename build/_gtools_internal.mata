@@ -1816,6 +1816,9 @@ class GtoolsRegressOutput
     string rowvector clustervars
     real   colvector njcluster
     real   scalar    savenjcluster
+    string rowvector yvarlist
+    string rowvector xvarlist
+    string rowvector zvarlist
 
     class GtoolsByLevels ByLevels
     string scalar whoami
@@ -1868,6 +1871,18 @@ void function GtoolsRegressOutput::init()
     }
     else {
         by = 0
+    }
+
+    if ( st_local("yvarlist") != "" ) {
+        yvarlist = tokens(st_local("yvarlist"))
+    }
+
+    if ( st_local("xvarlist") != "" ) {
+        xvarlist = tokens(st_local("xvarlist"))
+    }
+
+    if ( st_local("zvarlist") != "" ) {
+        zvarlist = tokens(st_local("zvarlist"))
     }
 }
 

@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Aug 29 13:38:18 EDT 2021
+* Updated: Wed Nov 03 18:32:24 EDT 2021
 * Purpose: Unit tests for gtools
-* Version: 1.8.2
+* Version: 1.8.3
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.

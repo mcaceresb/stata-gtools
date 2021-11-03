@@ -217,7 +217,7 @@ program gcollapse, rclass
 
     gtools_timer on `t97'
     cap noi parse_vars `anything' `if' `in', ///
-        `cw' `labelformat' `labelprogram' `freq' `wildparse'
+        `labelformat' `labelprogram' `freq' `wildparse'
 
     if ( _rc ) {
         local rc = _rc
@@ -343,7 +343,7 @@ program gcollapse, rclass
         tempvar touse
         mark `touse' `if' `in' `wgt'
         if ( "`cw'" != "" ) {
-            markout `touse' `gtools_uniq_vars', strok
+            markout `touse' `__gtools_gc_uniq_vars', strok
         }
         if ( "`merge'" == "" ) {
             qui keep if `touse'
@@ -959,7 +959,6 @@ program parse_vars
     syntax [anything(equalok)] ///
         [if] [in] ,            /// subset
     [                          ///
-        cw                     /// case-wise non-missing
         WILDparse              /// parse assuming wildcard renaming
         freq(str)              /// include number of observations in group
         labelformat(str)       /// label prefix

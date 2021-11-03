@@ -807,8 +807,8 @@ program _gtools_internal, rclass
     * Again, glevelsof is parsed in the open since I defined the options
     * before moving to capturing each caller's options.
 
-    else local sep: copy local separate
     if ( `"`separate'"' == "" ) local sep `" "'
+    else local sep: copy local separate
 
     if ( `"`colseparate'"' == "" ) local colsep `" | "'
     else local colsep: copy local colseparate

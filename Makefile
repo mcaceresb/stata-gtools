@@ -19,6 +19,7 @@ open:
 # doc  xx docs/usage/gpoisson.md    (consolidate)
 # doc  xx docs/stata/gpoisson.sthlp (consolidate)
 # ex   xx docs/examples/glogit.do
+# bug  xx detect collinearity with dep var in glm
 
 # Update!
 # -------
@@ -87,7 +88,7 @@ CFLAGS = -Wall -O3 $(OSFLAGS)
 # OS parsing
 
 ifeq ($(OS),Windows_NT)
-	OSFLAGS = -shared
+	OSFLAGS = -shared -fPIC
 	GCC = x86_64-w64-mingw32-gcc.exe
 	OUT = build/gtools_windows$(LEGACY)_$(SPIVER).plugin
 else

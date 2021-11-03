@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.8.3 (2021-11-03)
+
+### Bug Fixes
+
+- Closes #82: `cw` in `gcollapse` now working.
+
 ## gtools-1.8.2 (2021-08-29)
 
 ### Features

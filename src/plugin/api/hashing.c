@@ -115,6 +115,7 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
         if ( GtoolsHashInfo->bijectOK ) {
             if ( GtoolsHashPanelBijection(GtoolsHashInfo) )
                 return (17902);
+
         }
         else {
             GtoolsHashInfo->hash3 = calloc(GtoolsHashInfo->nobs, sizeof GtoolsHashInfo->hash3);

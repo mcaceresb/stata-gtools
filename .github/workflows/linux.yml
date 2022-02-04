@@ -1,0 +1,23 @@
+# Test compile plugin
+
+name: linux
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    name: Compile Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Plugin
+        run: |
+          # brew install xx
+          git submodule update --init
+          cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
+          make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=gcc
+          make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=gcc

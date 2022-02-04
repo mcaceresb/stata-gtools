@@ -47,6 +47,12 @@ Options
 - `maximum(#)` specifies that numbers of distinct values are to be displayed
         only if they are less than or equal to a specified maximum.
 
+- `sort(order)` specifies the sort order of the output. May be `alpha`
+        (alphabetical by variable name), `distinct` (number of distinct values),
+        or `total` (number of non-missing values, unless option `missing` is
+        specified). Optionally prepend a negative sign to sort in descending order.
+        Tie-breaks are resolved arbitrarily. This is ignored with option `joint`.
+
 ### Gtools options
 
 (Note: These are common to every gtools command.)
@@ -93,7 +99,7 @@ gdistinct stores the following in r():
         r(minJ)         largest group size
         r(maxJ)         smallest group size
 
-    Matrices       
+    Matrices
 
         r(ndistinct)    number of non-missing observations; one row
                           per variable (default) or per varlist (with
@@ -143,7 +149,25 @@ r(distinct)[12,2]
 displacement        74        31
   gear_ratio        74        36
      foreign        74         2
-   
+
+. gdistinct, sort(-distinct)
+
+              |        Observations
+              |      total   distinct
+--------------+----------------------
+        price |         74         74
+         make |         74         74
+       weight |         74         64
+       length |         74         47
+   gear_ratio |         74         36
+ displacement |         74         31
+          mpg |         74         21
+         turn |         74         18
+        trunk |         74         18
+     headroom |         74          8
+        rep78 |         69          5
+      foreign |         74          2
+
 . gdistinct, max(10)
 
               |        Observations

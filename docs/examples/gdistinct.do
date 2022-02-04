@@ -4,6 +4,8 @@ sysuse auto, clear
 gdistinct
 matrix list r(distinct)
 
+gdistinct, sort(-distinct)
+
 gdistinct, max(10)
 
 gdistinct make-headroom

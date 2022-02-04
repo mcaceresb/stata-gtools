@@ -643,8 +643,8 @@ program define gegen, byable(onecall) rclass
         else {
             cap gen double `exp' = `args'
             if ( (_rc == 0) & ("`byvars'" != "") ) {
-                di as txt "{bf:warning}: gegen is {bf:NOT} parsing the expression '`args'' by group."
-                di as txt "To parse this expression by group, call gegen using the -by:- prefix."
+                mata printf("{bf:warning}: gegen is {bf:NOT} parsing the expression '%s' by group.\n", st_local("args"))
+                mata printf("To parse this expression by group, call gegen using the -by:- prefix.\n")
             }
         }
         local rc = _rc

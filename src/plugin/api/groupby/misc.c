@@ -34,7 +34,9 @@ void GtoolsGroupByHDFEUnweighted(
                 }
             }
             update = 1;
-            if ( diff < tol ) break;
+            // TODO: Delete; this was a bug. If you pass multiple
+            // redundant levels it will stop the de-meaning prematurely.
+            // if ( diff < tol ) break;
         }
     }
 }
@@ -75,6 +77,9 @@ void GtoolsGroupByHDFEWeighted (
                 }
             }
             update = 1;
+            // TODO: Delete; this was a bug. If you pass multiple
+            // redundant levels it will stop the de-meaning prematurely.
+            // if ( diff < tol ) break;
             if ( diff < tol ) break;
         }
     }

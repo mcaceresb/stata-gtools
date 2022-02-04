@@ -4,7 +4,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.8.1"
+#define GTOOLS_VERSION "1.8.4"
 
 /*
  * Style
@@ -184,6 +184,8 @@ struct StataInfo {
     GT_bool   gregress_savegb;
     GT_bool   gregress_savegse;
     GT_bool   gregress_saveghdfe;
+    GT_bool   gregress_savegresid;
+    GT_bool   gregress_savegpred;
     GT_bool   gregress_moving;
     GT_int    gregress_moving_l;
     GT_int    gregress_moving_u;

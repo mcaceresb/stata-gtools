@@ -1,4 +1,4 @@
-<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/master/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
+<img src="https://raw.githubusercontent.com/mcaceresb/mcaceresb.github.io/develop/assets/icons/gtools-icon/gtools-icon-text.png" alt="Gtools" width="500px"/>
 
 [Overview](#faster-stata-for-big-data)
 | [Installation](#installation)
@@ -13,11 +13,11 @@ to provide a massive speed improvements to common Stata commands,
 including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
 winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
-![Stable Version](https://img.shields.io/badge/beta-v1.8.1-blue.svg?longCache=true&style=flat-square)
+![Stable Version](https://img.shields.io/badge/beta-v1.8.4-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=linux)](https://travis-ci.com/mcaceresb/stata-gtools)
-[![Travis Build Status](https://img.shields.io/travis/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=osx)](https://travis-ci.com/mcaceresb/stata-gtools)
-[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/master.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
+[![github linux status](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml/badge.svg?branch=develop)](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml)
+[![github osx status](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml/badge.svg?branch=develop)](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml)
+[![Appveyor Build status](https://img.shields.io/appveyor/ci/mcaceresb/stata-gtools/develop.svg?longCache=true&style=flat-square&label=windows-cygwin)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 
 Faster Stata for Big Data
 -------------------------
@@ -37,10 +37,15 @@ ssc install gtools
 gtools, upgrade
 ```
 
-Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.do):
+Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.do):
+
+_**NOTE:**_ Stata tours massive speed improvements to [sort and collapse](https://www.stata.com/new-in-stata/faster-stata-speed-improvements/)
+as of version 17. I do not have access to Stata 17 so I cannot test 
+this myself, but please be aware the benchmarks below are presumably
+outdated for `gcollapse`.
 
 <img
-    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.png"
+    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png"
     alt="Gtools quick benchmark"
     style="display:block;margin-left:auto;margin-right:auto"
     width="80%"/>
@@ -244,7 +249,7 @@ By default this syncs to the master branch, which is stable. To install
 the latest version directly, type:
 ```stata
 local github "https://raw.githubusercontent.com"
-net install gtools, from(`github'/mcaceresb/stata-gtools/master/build/)
+net install gtools, from(`github'/mcaceresb/stata-gtools/develop/build/)
 ```
 
 ### Examples
@@ -786,6 +791,6 @@ Along those lines, here are some other Stata projects I like:
 License
 -------
 
-Gtools is [MIT-licensed](https://github.com/mcaceresb/stata-gtools/blob/master/LICENSE).
+Gtools is [MIT-licensed](https://github.com/mcaceresb/stata-gtools/blob/develop/LICENSE).
 `./lib/spookyhash` and `./src/plugin/common/quicksort.c` belong to their respective
 authors and are BSD-licensed. Also see `gtools, licenses`.

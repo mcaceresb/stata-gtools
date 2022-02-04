@@ -413,7 +413,7 @@ The following table summarizes for various families:
 | poisson  | log   | $1$           | $e^\theta$           | $- \log(y!)$                  |
 
 
-Hence $b^{\prime}(\theta) = e^\theta, b^{\prime\prime}(\theta) = e^\theta$ and
+For `poisson`, $b^{\prime}(\theta) = e^\theta, b^{\prime\prime}(\theta) = e^\theta$ and
 $$
 \begin{align}
   \eta^{(r)} & = X \beta^{(r)} \\\\

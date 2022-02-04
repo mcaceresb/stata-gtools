@@ -1,0 +1,47 @@
+# Compile and pull osx plugin
+
+name: osx
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    name: Compile and Push Plugin
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Plugin
+        run: |
+          # brew install xx
+          git submodule update --init
+          cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
+          make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=gcc
+          make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=gcc
+      - name: Commit OSX Plugin
+        run: |
+          shasum build/gtools_macosx_v3.plugin
+          shasum build/gtools_macosx_v2.plugin
+          #
+          otool -L build/gtools_macosx_v3.plugin
+          otool -L build/gtools_macosx_v2.plugin
+          #
+          cp -f build/gtools_macosx_v3.plugin lib/plugin/gtools_macosx_v3.plugin
+          cp -f build/gtools_macosx_v2.plugin lib/plugin/gtools_macosx_v2.plugin
+          #
+          git config --global user.name 'Mauricio Caceres'
+          git config --global user.email 'mauricio.caceres.bravo@gmail.com'
+          git remote set-url origin https://x-access-token:${{ secrets.COMPILE_TOKEN }}@github.com/${{ github.repository }}
+          #
+          git add build/gtools_macosx_v3.plugin
+          git add build/gtools_macosx_v2.plugin
+          git add lib/plugin/gtools_macosx_v3.plugin
+          git add lib/plugin/gtools_macosx_v2.plugin
+          #
+          echo ${GITHUB_REF##*/}
+          [ -n "$(git status --porcelain)" ] && git commit -m "[Automated Commit] OSX plugin"
+          git fetch
+          git push -f origin HEAD:${GITHUB_REF##*/}

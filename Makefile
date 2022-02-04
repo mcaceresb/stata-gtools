@@ -35,7 +35,6 @@ open:
 # ./src/gtools.pkg
 # ./src/stata.toc
 # ./.appveyor.yml
-# ./.travis.yml
 # ./build.py
 # ./changelog.md
 

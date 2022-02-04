@@ -70,11 +70,11 @@ running" followed by the start and end time.
 
 ### Troubleshooting
 
-I test the builds using Travis and Appveyor; if both builds are passing
-and you can't get them to compile, it is likely because you have not
-installed all the requisite dependencies. For Cygwin in particular, see
-`./src/plugin/gtools.h` for all the include statements and check if you
-have any missing libraries.
+I test the builds using Github Workflows and Appveyor; if both builds
+are passing and you can't get them to compile, it is likely because
+you have not installed all the requisite dependencies. For Cygwin in
+particular, see `./src/plugin/gtools.h` for all the include statements
+and check if you have any missing libraries.
 
 Loading the plugin is a bit trickier. Historically, the plugin has
 failed on some windows systems and some legacy Linux systems.  If this

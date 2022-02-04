@@ -9,7 +9,7 @@ winsor, contract, levelsof, duplicates, unique/distinct, and more.
 
 <!--
 `version 1.8.4 02Feb2022`
-Builds: Linux, OSX [![Travis Build Status](https://travis-ci.com/mcaceresb/stata-gtools.svg?branch=master)](https://travis-ci.com/mcaceresb/stata-gtools),
+Builds: Linux, OSX [![github osx status](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml/badge.svg?branch=master)](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml),
 Windows (Cygwin) [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/2bh1q9bulx3pl81p/branch/master?svg=true)](https://ci.appveyor.com/project/mcaceresb/stata-gtools)
 -->
 

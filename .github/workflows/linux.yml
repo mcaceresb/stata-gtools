@@ -21,4 +21,3 @@ jobs:
           cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
           make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=gcc
           make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=gcc
-      - uses: emibcn/badge-action@v1.2.4

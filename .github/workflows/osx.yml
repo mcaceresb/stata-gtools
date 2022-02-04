@@ -45,4 +45,3 @@ jobs:
           [ -n "$(git status --porcelain)" ] && git commit -m "[Automated Commit] OSX plugin"
           git fetch
           git push -f origin HEAD:${GITHUB_REF##*/}
-      - uses: emibcn/badge-action@v1.2.4

@@ -45,7 +45,13 @@ this myself, but please be aware the benchmarks below are presumably
 outdated for `gcollapse`.
 
 <img
-    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png"
+    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png#gh-light-mode-only"
+    alt="Gtools quick benchmark"
+    style="display:block;margin-left:auto;margin-right:auto"
+    width="80%"/>
+
+<img
+    src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quickdark.png#gh-dark-mode-only"
     alt="Gtools quick benchmark"
     style="display:block;margin-left:auto;margin-right:auto"
     width="80%"/>

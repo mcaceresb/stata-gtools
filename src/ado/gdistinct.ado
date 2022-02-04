@@ -1,6 +1,7 @@
 *! version 1.0.1 23Jan2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! -distinct- implementation using C for faster processing
 
+* TODO: xx make sort take multiple inputs to decide tie-breaks; add 'memory' option
 capture program drop gdistinct
 program gdistinct, rclass
     version 13.1
@@ -18,6 +19,7 @@ program gdistinct, rclass
         MINimum(int 0)            /// Report distinct only for groups with at least min
         MAXimum(int -1)           /// Report distinct only for groups with at most max
         Abbrev(int -1)            /// Abbrev print of var names
+        SORTby(str)               /// Sort output matrix (alpha, distinct, total)
                                   ///
         debug(passthru)           ///
         compress                  /// Try to compress strL variables
@@ -48,6 +50,32 @@ program gdistinct, rclass
     local opts `missing' `compress' `forcestrl' countonly unsorted
     local opts `opts' `verbose' `benchmark' `benchmarklevel' `_ctolerance'
     local opts `opts' `oncollision' `hashmethod' `debug'
+
+    local sortalpha    a al alp alph alpha
+    local sortdistinct d di dis dist disti distin distinc distinct
+    local sorttotal    t to tot tota total
+    if ( `"`sortby'"' != "" ) {
+        local sortby `sortby'
+        local pm = regexm(`"`sortby'"', "([+-]?)(.+)")
+        if ( `pm' ) {
+            local sortby   = regexs(2)
+            local sortdesc = cond(regexs(1) == "-", "-", "")
+        }
+
+        local sortby `sortby'
+        if ( (`:list sortby in sortalpha' + `:list sortby in sortdistinct' + `:list sortby in sorttotal') == 0 ) {
+            disp as err "Option sort() incorrectly specified; must be one of: alpha, distinct, total"
+            exit 198
+        }
+
+        if ( "`joint'" != "" ) {
+            disp as txt "Option sort() ignored with joint"
+        }
+    }
+
+    * ---------------------------------------------------
+    * Joint or individual distinct for all vars requested
+    * ---------------------------------------------------
 
 	if ( "`joint'" != "" ) {
         cap noi _gtools_internal `varlist' `if' `in', `opts' gfunction(unique)
@@ -139,6 +167,31 @@ program gdistinct, rclass
             }
 		}
 
+        * -------------------------------
+        * Custom sort order, if requested
+        * -------------------------------
+
+        if ( `"`sortby'"' == "" ) {
+            mata __gtools_order = 1::`k'
+        }
+        else if ( `:list sortby in sortalpha' ) {
+            mata __gtools_order = order(tokens("`keepvars'")', `sortdesc'1)
+        }
+        else if ( `:list sortby in sortdistinct' ) {
+            mata __gtools_order = order(st_matrix("`ndistinct'")[., 2], `sortdesc'1)
+        }
+        else if ( `:list sortby in sorttotal' ) {
+            mata __gtools_order = order(st_matrix("`ndistinct'")[., 1], `sortdesc'1)
+        }
+
+        mata: st_local("keepvars", invtokens(tokens("`keepvars'")[__gtools_order]))
+        mata: __gtools_distinct = __gtools_distinct[., __gtools_order]
+        mata: st_matrix("`ndistinct'", st_matrix("`ndistinct'")[__gtools_order, .])
+
+        * --------------
+        * Display output
+        * --------------
+
 		di
 		di as txt _col(`abbp3') "{c |}        Observations"
 		di as txt _col(`abbp3') "{c |}      total   distinct"
@@ -150,6 +203,7 @@ program gdistinct, rclass
             `d2'
         }
         cap mata: mata drop __gtools_distinct
+        cap mata: mata drop __gtools_order
     }
 
 	if ( ("`joint'" == "") & ("`keepvars'" != "") ) {

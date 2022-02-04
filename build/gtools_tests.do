@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Nov 03 18:32:24 EDT 2021
+* Updated: Wed Feb 02 11:43:21 EST 2022
 * Purpose: Unit tests for gtools
-* Version: 1.8.3
+* Version: 1.8.4
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -106,14 +106,14 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
-            unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+            * unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
 
@@ -9956,7 +9956,6 @@ disp ""
         qui greg price z1 z2 `w', `r' noc
             mata assert(all(GtoolsRegress.b  :== .))
             mata assert(all(GtoolsRegress.se :== .))
-
         qui greg price _h* `w', `r' absorb(headroom) noc
             mata assert(all(GtoolsRegress.b  :== .))
             mata assert(all(GtoolsRegress.se :== .))

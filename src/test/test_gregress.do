@@ -749,7 +749,6 @@ disp ""
         qui greg price z1 z2 `w', `r' noc
             mata assert(all(GtoolsRegress.b  :== .))
             mata assert(all(GtoolsRegress.se :== .))
-
         qui greg price _h* `w', `r' absorb(headroom) noc
             mata assert(all(GtoolsRegress.b  :== .))
             mata assert(all(GtoolsRegress.se :== .))

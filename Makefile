@@ -14,7 +14,7 @@ open:
 
 # bug  xx replace does not empty out variables; problem with ifin
 # doc  xx add resid[(str)] option to docs
-# doc  xx add absorb(, save(str)) option to docs
+# doc  xx what was absorb(, save(str)) meant to do?
 # test xx src/test/test_gregress.do
 # doc  xx docs/usage/gpoisson.md    (consolidate)
 # doc  xx docs/stata/gpoisson.sthlp (consolidate)

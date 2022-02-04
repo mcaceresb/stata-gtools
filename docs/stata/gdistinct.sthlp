@@ -74,6 +74,12 @@ equal to or greater than a specified minimum.
 {p 4 4 2}{opt maximum(#)} specifies that numbers of distinct values are to be displayed only if they are
 less than or equal to a specified maximum.
 
+{p 4 4 2}{opt sort(order)} sort output. {it:order} may be {opt a:lpha}
+(alphabetical by variable name), {opt d:istinct} (number of distinct values),
+or {opt t:otal} (number of non-missing values, unless option {cmd:missing} is
+specified). Optionally prepend a negative sign to sort in descending order.
+Tie-breaks are resolved arbitrarily. This is ignored with option {cmd:joint}.
+
 {dlgtab:Gtools}
 
 {phang}
@@ -83,7 +89,7 @@ has only limited support for strL variables. In Stata 13 and earlier
 3.0) there is read-only support. The user can try to compress strL
 variables using this option.
 
-{phang} 
+{phang}
 {opt forcestrl} Skip binary variable check and force gtools to read strL
 variables (14 and above only). {opt Gtools gives incorrect results when there is binary data in strL variables}.
 This option was included because on some windows systems Stata detects
@@ -170,7 +176,7 @@ Gary Longton, Fred Hutchinson Cancer Research Center, USA{break}
 glongton@fhcrc.org
 
 {p 8 8 2}
-Nicholas J. Cox, Durham University, UK{break} 
+Nicholas J. Cox, Durham University, UK{break}
 n.j.cox@durham.ac.uk
 
 {p_end}
@@ -189,8 +195,8 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:Also see}
 
 {p 4 13 2}
-help for 
-{help gunique}, 
+help for
+{help gunique},
 {help gtools};
 {help distinct} (if installed)
 

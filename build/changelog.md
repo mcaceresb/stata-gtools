@@ -1,6 +1,22 @@
 Change Log
 ==========
 
+## gtools-1.8.4 (2022-02-02)
+
+### Enhancements
+
+- Move plugin compilation to github rather than travis.
+
+### Bug Fixes
+
+- `gregress` and accompanying commands were not parsing absorb variable types
+  since version 1.8.2! The relevant code had been commented out. In effect
+  all variables were being taken to be integers.
+- `gregress` and accompanying commands with HDFE no longer exit prematurely if
+  there are redundant absorbed FEs next to each other.
+- Closes #85: Bug in `gegen` warning message causes errors in some fun calls.
+- Closes #84, #83, #73: OSX compilation moved to github.
+
 ## gtools-1.8.3 (2021-11-03)
 
 ### Bug Fixes

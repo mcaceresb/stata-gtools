@@ -1,4 +1,4 @@
-*! version 1.8.3 03Nov2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.8.4 04Feb2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -2171,14 +2171,17 @@ program _gtools_internal, rclass
                 local regressvars `regressvars' `predict'
             }
 
-            * if ( `"`absorb'"' != "" ) {
-            *     local 0: copy local absorb
-            *     syntax varlist, [save(str)]
-            *     local absorb: copy local varlist
-            *     GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
-            *     scalar __gtools_gregress_savegabs = `"`save'"' != ""
-            * }
-            *
+            if ( `"`absorb'"' != "" ) {
+                local 0: copy local absorb
+                syntax varlist, [save(str)]
+                local absorb: copy local varlist
+                GenericParseTypes `absorb', mat(__gtools_gregress_abstyp)
+                scalar __gtools_gregress_savegabs = `"`save'"' != ""
+            }
+
+            * ---------------------------
+            * TODO: xx What was this for?
+            * ---------------------------
             * if ( scalar(__gtools_gregress_savegabs) ) {
             *     if ( "`replace'" == "" ) {
             *         cap noi confirm new var `save'

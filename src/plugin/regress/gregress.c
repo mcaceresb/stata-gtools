@@ -209,7 +209,6 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     memset(colix, '\0', (3 * ktot + 6) * (sizeof *colix));
     memset(G,     '\0', (kclus? N: 1) * (bytesclus? bytesclus: 1));
     memset(FE,    '\0', (kabs?  N: 1) * (bytesabs?  bytesabs:  1));
-
     if ( kabs ) {
         for (k = 0; k < kx; k++) {
             stats[k] = -2;

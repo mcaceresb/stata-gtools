@@ -4,10 +4,10 @@ name: osx
 on:
   push:
     branches:
-      - main
+      - master
       - develop
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 jobs:
   build:
     name: Compile and Push Plugin

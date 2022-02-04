@@ -1,6 +1,6 @@
-# Compile plugins and pull osx plugin
+# Compile and pull osx plugin
 
-name: Test compilation and pull OSX plugin
+name: osx
 on:
   push:
     branches:
@@ -10,14 +10,11 @@ on:
     branches: [ main ]
 jobs:
   build:
-    name: Compile and Test Plugins
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, macos-latest ]
+    name: Compile and Push Plugin
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Build Plugin (${{ matrix.os }})
+      - name: Build Plugin
         run: |
           # brew install xx
           git submodule update --init
@@ -25,7 +22,6 @@ jobs:
           make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=gcc
           make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=gcc
       - name: Commit OSX Plugin
-        if: startsWith(matrix.os, 'macos')
         run: |
           shasum build/gtools_macosx_v3.plugin
           shasum build/gtools_macosx_v2.plugin
@@ -49,4 +45,4 @@ jobs:
           [ -n "$(git status --porcelain)" ] && git commit -m "[Automated Commit] OSX plugin"
           git fetch
           git push -f origin HEAD:${GITHUB_REF##*/}
-
+      - uses: emibcn/badge-action@v1.2.4

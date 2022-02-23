@@ -106,14 +106,14 @@ program main
             di "Basic unit-tests $S_TIME $S_DATE"
             di "-------------------------------------"
 
-            * unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
-            * unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gcontract,     `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_isid,          `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_duplicates,    `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_toplevelsof,   `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_levelsof,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_unique,        `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_hashsort,      `noisily' oncollision(error))
+            unit_test, `noisily' test(checks_gregress,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_greshape,      `noisily' oncollision(error))
             unit_test, `noisily' test(checks_gstats,        `noisily' oncollision(error))
 

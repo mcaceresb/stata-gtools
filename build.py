@@ -335,6 +335,11 @@ copy2(path.join("src", "gtools.pkg"),         gdir)
 copy2(path.join("src", "stata.toc"),          gdir)
 
 copy2(
+    path.join("docs", "stata", "gtoplevelsof.sthlp"),
+    path.join("docs", "stata", "gtop.sthlp")
+)
+
+copy2(
     path.join("docs", "stata", "gquantiles.sthlp"),
     path.join("docs", "stata", "fasterxtile.sthlp")
 )

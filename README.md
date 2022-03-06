@@ -8,10 +8,10 @@
 | [Benchmarks <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://gtools.readthedocs.io/en/latest/benchmarks/index.html)
 | [Compiling <img src="https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png" width="13px"/>](https://gtools.readthedocs.io/en/latest/compiling/index.html)
 
-Faster Stata for big data. This packages uses C plugins and hashes
-to provide a massive speed improvements to common Stata commands,
-including: collapse, reshape, xtile, tabstat, isid, egen, pctile,
-winsor, contract, levelsof, duplicates, unique/distinct, and more.
+Faster Stata for big data. This packages uses C plugins and hashes to
+provide a massive speed improvements to common Stata commands, including:
+reshape, collapse, xtile, tabstat, isid, egen, pctile, winsor, contract,
+levelsof, duplicates, unique/distinct, and more.
 
 ![Stable Version](https://img.shields.io/badge/beta-v1.8.4-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
@@ -39,10 +39,11 @@ gtools, upgrade
 
 Some [quick benchmarks](https://raw.githubusercontent.com/mcaceresb/stata-gtools/master/docs/benchmarks/quick.do):
 
-_**NOTE:**_ Stata tours massive speed improvements to [sort and collapse](https://www.stata.com/new-in-stata/faster-stata-speed-improvements/)
-as of version 17. I do not have access to Stata 17 so I cannot test 
-this myself, but please be aware the benchmarks below are presumably
-outdated for `gcollapse`.
+_**NOTE:**_ Stata 17 introduced massive speed improvements to [sort and collapse](https://www.stata.com/new-in-stata/faster-stata-speed-improvements/).
+In the MP version, in particular with many cores available, the native
+`collapse`  can be up to twice as fast. (YMMV; overall native collapses 
+could still be slower in some use cases.)  `gcollapse` remains faster
+in SE and older Stata versions.
 
 <img
     src="https://raw.githubusercontent.com/mcaceresb/stata-gtools/develop/docs/benchmarks/quick.png#gh-light-mode-only"
@@ -58,20 +59,20 @@ outdated for `gcollapse`.
 
 __*Gtools commands with a Stata equivalent*__
 
-| Function     | Replaces    | Speedup (IC / MP)        | Unsupported             | Extras                                  |
-| ------------ | ----------- | ------------------------ | ----------------------- | --------------------------------------- |
-| gcollapse    | collapse    |  9 to 300 / 4 to 120 (+) |                         | Quantiles, merge, labels, nunique, etc. |
-| greshape     | reshape     |  4 to 20  / 4 to 15      | "advanced syntax"       | `fast`, spread/gather (tidyr equiv)     |
-| gegen        | egen        |  9 to 26  / 4 to 9 (+,.) | labels                  | Weights, quantiles, nunique, etc.       |
-| gcontract    | contract    |  5 to 7   / 2.5 to 4     |                         |                                         |
-| gisid        | isid        |  8 to 30  / 4 to 14      | `using`, `sort`         | `if`, `in`                              |
-| glevelsof    | levelsof    |  3 to 13  / 2 to 7       |                         | Multiple variables, arbitrary levels    |
-| gduplicates  | duplicates  |  8 to 16 / 3 to 10       |                         |                                         |
-| gquantiles   | xtile       |  10 to 30 / 13 to 25 (-) |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
-|              | pctile      |  13 to 38 / 3 to 5 (-)   |                         | Ibid.                                   |
-|              | \_pctile    |  25 to 40 / 3 to 5       |                         | Ibid.                                   |
-| gstats tab   | tabstat     |  10 to 50 / 5 to 30      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
-| gstats sum   | sum, detail |  10 to 20 / 5 to 10      | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| Function     | Replaces    | Speedup (IC / MP)              | Unsupported             | Extras                                  |
+| ------------ | ----------- | ------------------------------ | ----------------------- | --------------------------------------- |
+| gcollapse    | collapse    | -0.5 to 2 (Stata 17+); 4 to 100 (Stata 16 and earlier)  || Quantiles, merge, labels, nunique, etc. |
+| greshape     | reshape     |  4 to 20  / 4 to 15            | "advanced syntax"       | `fast`, spread/gather (tidyr equiv)     |
+| gegen        | egen        |  9 to 26  / 4 to 9 (+,.)       | labels                  | Weights, quantiles, nunique, etc.       |
+| gcontract    | contract    |  5 to 7   / 2.5 to 4           |                         |                                         |
+| gisid        | isid        |  8 to 30  / 4 to 14            | `using`, `sort`         | `if`, `in`                              |
+| glevelsof    | levelsof    |  3 to 13  / 2 to 7             |                         | Multiple variables, arbitrary levels    |
+| gduplicates  | duplicates  |  8 to 16 / 3 to 10             |                         |                                         |
+| gquantiles   | xtile       |  10 to 30 / 13 to 25 (-)       |                         | `by()`, various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gquantiles)) |
+|              | pctile      |  13 to 38 / 3 to 5 (-)         |                         | Ibid.                                   |
+|              | \_pctile    |  25 to 40 / 3 to 5             |                         | Ibid.                                   |
+| gstats tab   | tabstat     |  10 to 50 / 5 to 30 (-)        | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
+| gstats sum   | sum, detail |  10 to 20 / 5 to 10            | See [remarks](#remarks) | various (see [usage](https://gtools.readthedocs.io/en/latest/usage/gstats_summarize)) |
 
 <small>(+) The upper end of the speed improvements are for quantiles
 (e.g. median, iqr, p90) and few groups. Weights have not been
@@ -111,9 +112,9 @@ the features of 'groups'</small>
 
 __*Regression models*__
 
-Regression models are in beta and are mainly intended as utilities
-to compute coefficients and standard errors. Various post-estimation
-commands and statistics are _not_ availabe. The following are included:
+_**WARNING:**_ Regression models are in beta and are only intended as utilities
+to compute coefficients and standard errors. I do not recommend their use in
+production; various post-estimation commands and statistics are _not_ availabe.
 
 | Function            | Model   | Similar                       |
 | ------------------- | ------- | ----------------------------- |

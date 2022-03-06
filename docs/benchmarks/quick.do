@@ -1,3 +1,6 @@
+args nobs
+if "`nobs'" == "" local nobs 10000000
+
 capture program drop bench
 program bench
     gettoken timer call: 0,    p(:)
@@ -11,12 +14,13 @@ program bench
 end
 
 clear
-set obs 10000000
+set obs `nobs'
 gen groups = int(runiform() * 1000)
 gen rsort  = rnormal()
 gen rvar   = rnormal()
 gen ix     = _n
 sort rsort
+local nprocessors = c(processors)
 
 timer clear
 

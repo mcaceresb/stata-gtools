@@ -10,6 +10,12 @@ last, firstnm, lastnm for string variables are not supported.
 !!! tip "Important"
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
+!!! info "Note"
+    Stata 17+, MP version, introduced significant speed improvements
+    to the native `collapse` command, specially with many cores. Depending
+    on the collapse, it can be up to twice as fast than `gcollapse`; however,
+    it remained slower for some use cases. YMMV.
+
 Syntax
 ------
 

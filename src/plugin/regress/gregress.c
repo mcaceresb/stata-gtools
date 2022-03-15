@@ -28,7 +28,6 @@
 
 ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
 {
-
     /*********************************************************************
      *                           Step 1: Setup                           *
      *********************************************************************/
@@ -1916,22 +1915,23 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         xptr  = X;
         yptr  = y;
         wptr  = w;
-        gf_regress_absorb_iter(
-            AbsorbHashes,
-            SaveGtoolsGroupByTransform,
-            SaveGtoolsGroupByHDFE,
-            stats,
-            maps,
-            J,
-            nj,
-            kabs,
-            kx,
-            njabsptr,
-            xptr,
-            yptr,
-            wptr,
-            hdfetol
-        );
+        if ( (rc = gf_regress_absorb_iter(
+                        AbsorbHashes,
+                        SaveGtoolsGroupByTransform,
+                        SaveGtoolsGroupByHDFE,
+                        stats,
+                        maps,
+                        J,
+                        nj,
+                        kabs,
+                        kx,
+                        njabsptr,
+                        xptr,
+                        yptr,
+                        wptr,
+                        hdfetol)) ) {
+            goto exit;
+        }
     }
 
     gf_regress_warnings(
@@ -2115,6 +2115,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             // xptr  += end - start;
             // yptr  += end - start;
         }
+
+        if ( st_info->benchmark > 1 )
+            sf_running_timer (&timer, "\tregress step 3: copied results to Stata");
     }
 
 exit:

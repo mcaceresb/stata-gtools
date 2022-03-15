@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Feb 02 11:43:21 EST 2022
+* Updated: Tue Mar 15 00:56:24 EDT 2022
 * Purpose: Unit tests for gtools
 * Version: 1.8.4
 * Manual:  help gtools
@@ -81,10 +81,12 @@ program main
         * qui do docs/examples/gstats_summarize.do
         * qui do docs/examples/gstats_transform.do
         * qui do docs/examples/gstats_winsor.do
+        * qui do docs/examples/gstats_residualize.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 
         if ( `:list posof "dependencies" in options' ) {
+            cap ssc install hdfe
             cap ssc install ralpha
             cap ssc install ftools
             cap ssc install unique
@@ -11161,6 +11163,7 @@ end
 
 capture program drop checks_gstats
 program checks_gstats
+    checks_gstats_hdfe
     checks_gstats_winsor
     checks_gstats_summarize
     checks_gstats_transform
@@ -11169,6 +11172,13 @@ end
 
 capture program drop compare_gstats
 program compare_gstats
+    compare_gstats_hdfe, method(squarem)
+    compare_gstats_hdfe, method(cg)
+    compare_gstats_hdfe, method(map)
+    compare_gstats_hdfe, weights method(squarem)
+    compare_gstats_hdfe, weights method(cg)
+    compare_gstats_hdfe, weights method(map)
+
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
     compare_gstats_winsor, cuts(30 70)
@@ -11177,6 +11187,425 @@ program compare_gstats
     compare_gstats_transform, weights
     compare_gstats_transform, nogreedy
     compare_gstats_transform, nogreedy weights
+end
+
+***********************************************************************
+*                            Compare hdfe                             *
+***********************************************************************
+
+capture program drop checks_gstats_hdfe
+program checks_gstats_hdfe
+    global GTOOLS_BETA = 1
+
+    clear
+    set obs `=2 * 5'
+    gen fedbl1 = _n * 1.5
+    expand `=3 * 5'
+    bys fedbl1: gen fedbl2 = _n * 2.5
+    replace fedbl2 = fedbl2 + ((fedbl1 / 2) - 1) * 7.5
+    expand 5
+    gen double fedbl3 = _n * 5.27
+    gen double fedbl4 = int((_N / 5)  * rnormal()) / 100
+    gen double fedbl5 = int((_N / 10) * rnormal()) / 100
+    gen double w1 = runiform()
+    gen long   w2 = int(_N * runiform())
+
+    gen y    = rnormal()
+    gen x    = rnormal()
+    gen ybak = y
+    gen xbak = x
+    gen g    = mod(_n, 123)
+
+    forvalues i = 1 / 5 {
+        gen feint`i' = int(fedbl`i')
+        gen festr`i' = "festr`i'" + string(fedbl`i')
+    }
+
+    cap mata mata drop GtoolsByLevels
+    gstats hdfe _y = y _x = x, absorb(fedbl1 fedbl2) mata(info)
+        return list
+        cap mata info.desc()
+        assert _rc == 3000
+    gstats hdfe _y = y _x = x, absorb(fedbl1 fedbl2) by(g) replace
+        cap mata GtoolsByLevels.desc()
+        assert _rc == 3000
+    gstats hdfe _y = y _x = x, absorb(fedbl1 fedbl2) by(g) replace mata
+        return list
+        mata GtoolsByLevels.desc()
+    gstats hdfe _y = y _x = x, absorb(fedbl1 fedbl2) by(g) mata(test) replace
+        mata test.desc()
+
+    cap gstats hdfe _y = y _x = x, absorb(fedbl4 fedbl5) maxiter(.) replace
+    assert _rc == 0
+    cap gstats hdfe _y = y _x = x, absorb(fedbl4 fedbl5) maxiter(1) replace
+    assert _rc == 430
+
+    qui gstats hdfe _ghdfe2_y = y _ghdfe2_x = x, absorb(fedbl1 fedbl2)  method(map)
+    qui gstats hdfe y x, absorb(fedbl1 fedbl2) gen(_ghdfe3_y _ghdfe3_x) method(squarem)
+    qui gstats hdfe y x, absorb(fedbl1 fedbl2) gen(_ghdfe4_y _ghdfe4_x) method(cg)
+    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe5_) method(map)
+    qui gstats hdfe _ghdfe6_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe6_) method(squarem)
+    qui gstats hdfe _ghdfe7_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe7_) method(cg)
+    forvalues i = 3 / 7 {
+        assert reldif(_ghdfe2_y, _ghdfe`i'_y) < 1e-6
+        assert reldif(_ghdfe2_x, _ghdfe`i'_x) < 1e-6
+    }
+
+    qui gstats hdfe _ghdfe2_y = y _ghdfe2_x = x, absorb(festr1 festr2)  method(map)     replace
+    qui gstats hdfe y x, absorb(festr1 festr2) gen(_ghdfe3_y _ghdfe3_x) method(squarem) replace
+    qui gstats hdfe y x, absorb(festr1 festr2) gen(_ghdfe4_y _ghdfe4_x) method(cg)      replace
+    qui gstats hdfe _ghdfe4_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe5_) method(map)     replace
+    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe6_) method(squarem) replace
+    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe7_) method(cg)      replace
+    forvalues i = 3 / 7 {
+        assert reldif(_ghdfe2_y, _ghdfe`i'_y) < 1e-6
+        assert reldif(_ghdfe2_x, _ghdfe`i'_x) < 1e-6
+    }
+
+    local fegroups 1          ///
+                 | 2          ///
+                 | 3          ///
+                 | 1 2        /// | 2 1 ///
+                 | 4 5        /// | 5 4 ///
+                 | 1 2 3      ///
+                 | 2 3 1      ///
+                 | 4 5 3      ///
+                 | 4 3 5
+
+    local femixes dbl         ///
+                | str         ///
+                | int         ///
+                | dbl str int ///
+                | str int dbl ///
+                | int dbl str
+
+    local fegroups_bak: copy local fegroups
+    local femixes_bak:  copy local femixes
+
+    local wgt1 "         "
+    local wgt2 [aw = w1]
+    local wgt3 [fw = w2]
+
+    local ifin1
+    local ifin2 if x > 0
+    local ifin3 in `=floor(_N/5)' / `=floor(_N/2)'
+    local ifin4 if x > 0 in `=floor(_N/5)' / `=floor(_N/2)'
+
+    local ifinstr1 "    "
+    local ifinstr2 "  if"
+    local ifinstr3 "  in"
+    local ifinstr4 ifin
+
+    local fegroups: copy local fegroups_bak
+    local femixes:  copy local femixes_bak
+
+    disp "gstats hdfe sanity"
+    while ( trim("`fegroups'") != "" ) {
+        gettoken groups fegroups: fegroups, p(|)
+        gettoken _      fegroups: fegroups, p(|)
+
+        local femixes: copy local femixes_bak
+        while ( trim("`femixes'") != "" ) {
+            gettoken mixes femixes: femixes, p(|)
+            gettoken _     femixes: femixes, p(|)
+
+            if ( `:list sizeof groups' == 1 & `:list sizeof mixes' > 1 ) continue
+
+            local fes
+            forvalues i = 1 / `:list sizeof groups' {
+                local g:   word `i' of `groups'
+                local mix: word `i' of `mixes'
+                if ( `:list sizeof groups' > 1 & `:list sizeof mixes' == 1 ) {
+                    local mix: word 1 of `mixes'
+                }
+                local fes `fes' fe`mix'`g'
+            }
+
+            forvalues ifin = 1 / 4 {
+                forvalues w = 1 / 3 {
+                    forvalues missing = 1 / 4 {
+                        if ( `missing' == 2 ) qui replace x = . if runiform() < 0.2
+                        if ( `missing' == 3 ) qui replace y = . if runiform() < 0.1
+                        if ( `missing' == 4 ) {
+                            qui replace x = . if runiform() < 0.2
+                            qui replace y = . if runiform() < 0.1
+                        }
+
+                        local yeshdfe
+                        local nohdfe
+                        cap drop _*hdfe*_*
+
+                        mata printf("    `missing' `ifinstr`ifin'' `wgt`w'' `fes'")
+                        qui gregress y x `wgt`w'' `ifin`ifin'', absorb(`fes') mata(,nob nose) prefix(hdfe(_ghdfe_)) hdfetol(1e-12)
+                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe1_) method(squarem) tol(1e-12) maxiter(.)
+                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe2_) method(map)     tol(1e-12) maxiter(.)
+                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe3_) method(hybrid)  tol(1e-12) maxiter(.)
+
+                        forvalues i = 1 / 3 {
+                            assert reldif(_ghdfe`i'_y, _ghdfe_y) < 1e-6
+                            assert reldif(_ghdfe`i'_x, _ghdfe_x) < 1e-6
+                            if ( (`missing' > 1) | (`ifin' > 1) ) {
+                                assert mi(_ghdfe`i'_y) if mi(_ghdfe_y)
+                                assert mi(_ghdfe`i'_x) if mi(_ghdfe_x)
+                            }
+                        }
+
+                        if ( `missing' > 1 ) {
+                            if ( "`ifin`ifin''" != "" ) {
+                                cap reghdfe y `wgt`w'' `ifin`ifin'' & !mi(x), absorb(`fes') res(_hdfe_y) tol(1e-12) keepsingletons
+                                cap reghdfe x `wgt`w'' `ifin`ifin'' & !mi(y), absorb(`fes') res(_hdfe_x) tol(1e-12) keepsingletons
+                            }
+                            else {
+                                cap reghdfe y `wgt`w'' if !mi(x), absorb(`fes') res(_hdfe_y) tol(1e-12) keepsingletons
+                                cap reghdfe x `wgt`w'' if !mi(y), absorb(`fes') res(_hdfe_x) tol(1e-12) keepsingletons
+                            }
+                        }
+                        else {
+                            cap reghdfe y `wgt`w'' `ifin`ifin'', absorb(`fes') res(_hdfe_y) tol(1e-12) keepsingletons
+                            cap reghdfe x `wgt`w'' `ifin`ifin'', absorb(`fes') res(_hdfe_x) tol(1e-12) keepsingletons
+                        }
+                        if ( _rc == 0 ) {
+                            assert reldif(_ghdfe1_y, _hdfe_y)  < 1e-6
+                            assert reldif(_ghdfe1_x, _hdfe_x)  < 1e-6
+                            if ( (`missing' > 1) | (`ifin' > 1) ) {
+                                assert mi(_ghdfe1_y) if mi(_hdfe_y)
+                                assert mi(_ghdfe1_x) if mi(_hdfe_x)
+                            }
+                            local yeshdfe `yeshdfe' reghdfe
+                        }
+                        else {
+                            local nohdfe `nohdfe' reghdfe
+                        }
+
+                        * hdfe is a convenient but outdated package (it's the precursor to
+                        * reghdfe). don't use bc it is very slow.
+                        *
+                        * if ( ("`ifin`ifin''" == "") & (strpos("`fes'", "str") == 0) ) {
+                        *     cap hdfe y x `wgt`w'', absorb(`fes') gen(_hdfe2_) tol(1e-12) keepsingletons
+                        *     if ( _rc == 0 ) {
+                        *         assert reldif(_ghdfe1_y, _hdfe2_y) < 1e-6
+                        *         assert reldif(_ghdfe1_x, _hdfe2_x) < 1e-6
+                        *         if ( (`missing' > 1) | (`ifin' > 1) ) {
+                        *             assert mi(_ghdfe1_y) if mi(_hdfe_y)
+                        *             assert mi(_ghdfe1_x) if mi(_hdfe_x)
+                        *         }
+                        *         local yeshdfe `yeshdfe' hdfe
+                        *     }
+                        *     else {
+                        *         local nohdfe `nohdfe' hdfe
+                        *     }
+                        * }
+
+                        mata printf("`nohdfe'" != ""? " (failed: `nohdfe'; run: `yeshdfe')\n": "\n")
+
+                        if ( `missing' == 2 ) qui replace x = xbak
+                        if ( `missing' == 3 ) qui replace y = ybak
+                        if ( `missing' == 4 ) {
+                            qui replace x = xbak
+                            qui replace y = ybak
+                        }
+                    }
+                }
+            }
+        }
+    }
+end
+
+capture program drop compare_gstats_hdfe
+program compare_gstats_hdfe
+    syntax, [weights *]
+
+    qui `noisily' gen_data, n(500)
+    qui expand 100
+    qui `noisily' random_draws, random(2) double
+    gen long   ix  = _n
+    gen double ru  = runiform() * 500
+    qui replace ix = . if mod(_n, 500) == 0
+    qui replace ru = . if mod(_n, 500) == 0
+    qui gen int    special1 = 1
+    qui gen double special2 = 3.1415
+    qui gen str8   special3 = "special3"
+    qui sort random1
+
+    local N = trim("`: di %15.0gc _N'")
+    di _n(1) "{hline 80}" _n(1) "compare_gstats_hdfe, N = `N', `options'" _n(1) "{hline 80}" _n(1)
+
+    if ( `"`weights'"' != "" ) {
+        qui {
+            gen unif_0_100     = 100 * runiform() if mod(_n, 100)
+            gen int_unif_0_100 = int(100 * runiform()) if mod(_n, 100)
+            gen float_unif_0_1 = runiform() if mod(_n, 100)
+            gen rnormal_0_10   = 10 * rnormal() if mod(_n, 100)
+        }
+
+        local wcall_a  wgt([aw = unif_0_100])
+        local wcall_f  wgt([fw = int_unif_0_100])
+        local wcall_a2 wgt([aw = float_unif_0_1])
+        local wcall_i: copy local wcall_a
+        * Note: I'm not allowing iweights
+
+        compare_inner_gstats_hdfe, `options' `wcall_a'
+        disp
+
+        compare_inner_gstats_hdfe in 1 / 5, `options' `wcall_f'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_hdfe in `from' / `to', `options' `wcall_a2'
+        disp
+
+        compare_inner_gstats_hdfe if random2 > 0, `options' `wcall_i'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_hdfe if random2 < 0 in `from' / `to', `options' `wcall_a'
+        disp
+    }
+    else {
+        compare_inner_gstats_hdfe, `options'
+        disp
+
+        compare_inner_gstats_hdfe in 1 / 5, `options'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_hdfe in `from' / `to', `options'
+        disp
+
+        compare_inner_gstats_hdfe if random2 > 0, `options'
+        disp
+
+        local in1 = ceil((0.00 + 0.25 * runiform()) * `=_N')
+        local in2 = ceil((0.75 + 0.25 * runiform()) * `=_N')
+        local from = cond(`in1' < `in2', `in1', `in2')
+        local to   = cond(`in1' > `in2', `in1', `in2')
+        compare_inner_gstats_hdfe if random2 < 0 in `from' / `to', `options'
+        disp
+    }
+end
+
+capture program drop compare_inner_gstats_hdfe
+program compare_inner_gstats_hdfe
+    syntax [if] [in], [wgt(passthru) *]
+
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special2)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special1 special2 special3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_32 str_4)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2 int3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_32 int3 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double? str_* int?)
+
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_12)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_12 str_32 str_4)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)    by(double1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)    by(double1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1 int2)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1 int2 int3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_32 int3 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(int1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(double? str_* int?)
+end
+
+capture program drop compare_fail_gstats_hdfe
+program compare_fail_gstats_hdfe
+    gettoken cmd 0: 0
+    syntax [anything] [if] [in], [tol(real 1e-6) by(str) *]
+    cap `cmd' `0'
+
+    if "`by'" == "" {
+        local compare reghdfe and greg
+    }
+    else {
+        local compare greg
+    }
+
+    if ( _rc ) {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_hdfe (failed): full range, `anything'; `options' `by'"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_hdfe (failed): [`if'`in'], `anything'; `options' `by'"
+        }
+        exit _rc
+    }
+    else {
+        if ( "`if'`in'" == "" ) {
+            di "    compare_gstats_hdfe (passed): full range, gstats results equal to `compare' (tol = `tol'; `anything'; `options' `by')"
+        }
+        else if ( "`if'`in'" != "" ) {
+            di "    compare_gstats_hdfe (passed): [`if'`in'], gstats results equal to `compare' (tol = `tol'; `anything'; `options' `by')"
+        }
+    }
+end
+
+capture program drop versus_gstats_hdfe
+program versus_gstats_hdfe, rclass
+    syntax [if] [in], [tol(real 1e-6) absorb(str) by(str) wgt(str) *]
+
+    timer clear
+    timer on 42
+    qui gstats hdfe random1 random2 `if' `in' `wgt', `options' absorb(`absorb') by(`by') prefix(_hdfe1_) tol(1e-12)
+    timer off 42
+    qui timer list
+    local time_ghdfe = r(t42)
+
+    timer clear
+    timer on 43
+    qui gregress random1 random2 `if' `in' `wgt', absorb(`absorb') by(`by') mata(,nob nose) prefix(hdfe(_hdfe2_)) hdfetol(1e-12)
+    timer off 43
+    qui timer list
+    local time_greg = r(t43)
+
+    if "`by'" == "" {
+        timer clear
+        timer on 44
+        qui reghdfe random2 `if' `in' `wgt', absorb(`absorb') res(_hdfe3_random2) tol(1e-12) keepsingletons
+        timer off 44
+        qui timer list
+        local time_hdfe = r(t44)
+    }
+
+    cap assert ((abs(_hdfe1_random1 - _hdfe2_random1) < `tol') | (_hdfe1_random1 == _hdfe2_random1))
+    if ( _rc ) {
+        exit _rc
+    }
+
+    cap assert ((abs(_hdfe1_random2 - _hdfe2_random2) < `tol') | (_hdfe1_random2 == _hdfe2_random2))
+    if ( _rc ) {
+        exit _rc
+    }
+
+    if "`by'" == "" {
+        cap assert ((abs(_hdfe1_random2 - _hdfe3_random2) < `tol') | (_hdfe1_random2 == _hdfe3_random2))
+        if ( _rc ) {
+            exit _rc
+        }
+    }
+
+    qui drop _hdfe*_*
+
+    if "`by'" == "" {
+        local rs = `time_hdfe'  / `time_ghdfe'
+        di as txt "    `:di %6.3g `time_hdfe'' | `:di %13.3g `time_ghdfe'' | `:di %11.4g `rs'' | `absorb' (`by')"
+    }
 end
 
 ***********************************************************************

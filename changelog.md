@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.9.0 (2022-03-14)
+
+### Features
+
+- Add `gstats hdfe` (alias `gstats residualize`) for residualizing
+  variables (i.e. HDFE transform).
+
 ## gtools-1.8.4 (2022-02-02)
 
 ### Enhancements

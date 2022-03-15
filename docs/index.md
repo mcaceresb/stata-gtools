@@ -77,6 +77,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile                | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
 |                     | egenmisc (SSC) (-)       | 8 to 25 / 2.5 to 6      |                               |
 |                     | astile (SSC) (-)         | 8 to 12 / 3.5 to 6      |                               |
+| gstats hdfe         |                          | (.)                     | Allows weights, `by()`        |
 | gstats winsor       | winsor2                  | 10 to 40 / 10 to 20     | Allows weights                |
 | gunique             | unique                   | 4 to 26 / 4 to 12       |                               |
 | gdistinct           | distinct                 | 4 to 26 / 4 to 12       | Also saves results in matrix  |
@@ -95,12 +96,19 @@ has a plethora of features and that one is somewhat incidental. As such, the
 benchmark is not equivalent and `gtoplevelsof` does not attempt to implement
 the features of 'groups'</small>
 
+<small>(.) Other than the dated 'hdfe' command, I do not know of a stata
+command that residualizes variables from a set of fixed effects. The
+'hdfe' command, as far as I can tell, morphed into the 'reghdfe'
+package; the latter, however, is a fully-functioning regression command,
+while 'gstats hdfe' only residualizes a set of variables.</small>
+
 __*Regression models*__
 
 !!! Warning "Warning"
     Regression models are in beta and are only intended as utilities to compute
     coefficients and standard errors. I do not recommend their use in production;
     various post-estimation commands and statistics are _not_ availabe.
+    (See `gstats hdfe` for residualizing variables net of fixed effects.)
 
 | Function            | Model   | Similar                       |
 | ------------------- | ------- | ----------------------------- |
@@ -252,17 +260,9 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
-* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
-gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
-gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-* givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
-givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-* gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
-gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-gpoisson price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+* gstats {hdfe|residualize} varlist [if] [in] [weight], [absorb(varlist) options]
+gstats hdfe hdfe_price = price, absorb(foreign rep78)
+gstats residualize price mpg, absorb(foreign rep78) prefix(res_)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -305,6 +305,18 @@ glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
 * gtoplevelsof varlist [if] [in] [weight], [options]
 gtoplevelsof foreign rep78
 gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
+
+* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
+gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
+gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
+givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
+gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+gpoisson price mpg [fw = trunk], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
 * gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
 gen h1 = headroom
@@ -704,14 +716,16 @@ TODO
 
 Planned features:
 
-- `gregress` missing features
-    - Non-nested multi-way clustering.
-    - HDFE collienar categories check.
-    - HDFE drop singletons.
-    - Detect separated observations in `gpoisson`.
-    - Guard against possible overflows in `X' X`
-    - Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
-    - Include quick primers on OLS, IV, and IRLS in docs.
+- Decide `geomean` behavior:
+    - Need to iterate over all values anyway to decide whether
+      zero or negative "wins". At the moment it exits as son
+      as either is encountered, meaning `-1 0` has a different
+      geometric mean than `0 -1` (`.` vs `0`).
+- Things to add to gcollapse:
+    - `prod`
+    - `geomean pos`: exclude negative numbers _and_ zero.
+    - `geomean abspos`: ibid but take absolute value first.
+    - Generally should you add an `abs` option to everything?
 - Flexible save options for `gregress`
     - `predict()`, including `xb` and `e`.
     - `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
@@ -725,6 +739,14 @@ have an ETA for them (i.e. they are a wishlist because I am either not
 sure how to implement them or because writing the code will take a long
 time). Roughly in order of likelihood:
 
+- `gregress` missing features
+    - Non-nested multi-way clustering.
+    - HDFE collienar categories check.
+    - HDFE drop singletons.
+    - Detect separated observations in `gpoisson`.
+    - Guard against possible overflows in `X' X`
+    - Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
+    - Include quick primers on OLS, IV, and IRLS in docs.
 - Some support for Stata's extended syntax in `gregress`
 - Update benchmarks for all commands. Still on 0.8 benchmarks.
 - Dropmissing vs dropmissing but not extended missing values.

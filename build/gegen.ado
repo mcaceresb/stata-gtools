@@ -130,8 +130,10 @@ program define gegen, byable(onecall) rclass
                      demean      ///
                      demedian     //
 
-    local direct winsorize ///
-                 winsor     //
+    local direct winsorize   ///
+                 winsor      ///
+                 residualize ///
+                 hdfe         //
 
     * NOTE(mauricio): Though you would want to allow by as prefix, it's
     * difficult because the user can try to pass inputs assuming by:
@@ -184,7 +186,8 @@ program define gegen, byable(onecall) rclass
     }
 
     if ( `:list fcn in direct' ) {
-        if ( `"`fcn'"' == "winsorize" ) local fcn winsor
+        if ( `"`fcn'"' == "winsorize"   ) local fcn winsor
+        if ( `"`fcn'"' == "residualize" ) local fcn hdfe
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'

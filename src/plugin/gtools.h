@@ -83,6 +83,7 @@ struct StataInfo {
     GT_size   gfile_gregse;
     GT_size   gfile_gregclus;
     GT_size   gfile_gregabs;
+    GT_size   gfile_ghdfeabs;
     //
     GT_size   biject;
     GT_size   encode;
@@ -135,6 +136,16 @@ struct StataInfo {
     ST_double winsor_cutl;
     ST_double winsor_cuth;
     GT_size   winsor_kvars;
+    GT_size   hdfe_kvars;
+    GT_size   hdfe_method;
+    GT_size   hdfe_maxiter;
+    GT_size   hdfe_traceiter;
+    ST_double hdfe_hdfetol;
+    GT_size   hdfe_absorb;
+    GT_bool   hdfe_matasave;
+    GT_size   hdfe_absorb_bytes;
+    GT_int    *hdfe_absorb_types;
+    GT_size   *hdfe_absorb_offsets;
     GT_size   summarize_colvar;
     GT_size   summarize_pooled;
     GT_size   summarize_normal;

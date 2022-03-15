@@ -45,6 +45,7 @@ program gcollapse, rclass
         rawstat(passthru)            /// Ignore weights for selected variables
                                      ///
                                      ///
+        recast                       /// Recast source variables to save memory
         WILDparse                    /// parse assuming wildcard renaming
         unsorted                     /// Do not sort the data; faster
         forceio                      /// Use disk temp drive for writing/reading collapsed data

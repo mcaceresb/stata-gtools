@@ -159,4 +159,84 @@ void GtoolsGroupByHDFEWeighted (
     ST_double tol
 );
 
+ST_double GtoolsGroupByHalperinUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol 
+);
+
+ST_double GtoolsGroupByHalperinWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+ST_double GtoolsGroupByHalperinSymmUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol 
+);
+
+ST_double GtoolsGroupByHalperinSymmWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+void GtoolsGroupByCGWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+void GtoolsGroupByCGUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+void GtoolsGroupBySQUAREMWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+void GtoolsGroupBySQUAREMUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
 #endif

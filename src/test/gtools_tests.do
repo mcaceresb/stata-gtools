@@ -3,7 +3,7 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Feb 02 11:43:21 EST 2022
+* Updated: Tue Mar 15 00:56:24 EDT 2022
 * Purpose: Unit tests for gtools
 * Version: 1.8.4
 * Manual:  help gtools
@@ -81,10 +81,12 @@ program main
         * qui do docs/examples/gstats_summarize.do
         * qui do docs/examples/gstats_transform.do
         * qui do docs/examples/gstats_winsor.do
+        * qui do docs/examples/gstats_residualize.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 
         if ( `:list posof "dependencies" in options' ) {
+            cap ssc install hdfe
             cap ssc install ralpha
             cap ssc install ftools
             cap ssc install unique

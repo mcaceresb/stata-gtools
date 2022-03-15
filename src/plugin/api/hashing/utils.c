@@ -16,12 +16,22 @@ void GtoolsHashInit (
     GtoolsHashInfo->allocHash2     = 0;
     GtoolsHashInfo->allocHash3     = 0;
 
-    GtoolsHashInfo->offset = 0;
-    GtoolsHashInfo->x      = x;
-    GtoolsHashInfo->nobs   = nobs;
-    GtoolsHashInfo->kvars  = kvars;
-    GtoolsHashInfo->types  = types;
-    GtoolsHashInfo->invert = invert;
+    GtoolsHashInfo->offset    = 0;
+    GtoolsHashInfo->x         = x;
+    GtoolsHashInfo->nobs      = nobs;
+    GtoolsHashInfo->_nobsinit = nobs;
+    GtoolsHashInfo->kvars     = kvars;
+    GtoolsHashInfo->types     = types;
+    GtoolsHashInfo->invert    = invert;
+
+    // Misc
+    GtoolsHashInfo->hdfeBufferAlloc = 0;
+    GtoolsHashInfo->hdfeFallback    = 0;
+    GtoolsHashInfo->hdfeMaxIter     = 0;
+    GtoolsHashInfo->hdfeIter        = 0;
+    GtoolsHashInfo->hdfeTraceIter   = 0;
+    GtoolsHashInfo->hdfeFeval       = 0;
+    GtoolsHashInfo->hdfeRc          = 0;
 
     GtoolsHashInfo->sizes = calloc(kvars, sizeof *GtoolsHashInfo->sizes);
     // if ( GtoolsHashInfo->sizes == NULL ) return (17902);
@@ -59,6 +69,10 @@ void GtoolsHashFree (struct GtoolsHash *GtoolsHashInfo)
 
     if ( GtoolsHashInfo->allocHash3 ) {
         free (GtoolsHashInfo->hash3);
+    }
+
+    if ( GtoolsHashInfo->hdfeBufferAlloc ) {
+        free (GtoolsHashInfo->hdfeBuffer);
     }
 
     GtoolsHashInfo->x      = NULL;

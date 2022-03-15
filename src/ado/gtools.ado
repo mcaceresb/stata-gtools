@@ -374,17 +374,9 @@ program gtools_showcase
     * preserve
     gtools_cmd  sysuse auto, clear
 
-    gtools_head gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
-    gtools_cmd  gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
-    gtools_cmd  gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-    gtools_head givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
-    gtools_cmd  givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-    gtools_cmd  givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-    gtools_head gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
-    gtools_cmd  gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-    gtools_cmd  gpoisson price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+    gtools_head gstats {hdfe|residualize} varlist [if] [in] [weight], [absorb(varlist) options]
+    gtools_cmd  gstats hdfe hdfe_price = price, absorb(foreign rep78)
+    gtools_cmd  gstats residualize price mpg [w = gear_ratio], absorb(foreign rep78) prefix(res_)
 
     gtools_head gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
     gtools_cmd  gstats sum price [pw = gear_ratio / 4]
@@ -426,6 +418,18 @@ program gtools_showcase
     disp        "gtoplevelsof varlist [if] [in] [weight], [options]" _n(1)
     gtools_cmd  gtoplevelsof foreign rep78
     gtools_cmd  gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
+
+    gtools_head gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
+    gtools_cmd  gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
+    gtools_cmd  gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+    gtools_head givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
+    gtools_cmd  givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+    gtools_cmd  givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+    gtools_head gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
+    gtools_cmd  gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+    gtools_cmd  gpoisson price mpg [fw = trunk], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
     gtools_head gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
     gtools_cmd  gen h1 = headroom

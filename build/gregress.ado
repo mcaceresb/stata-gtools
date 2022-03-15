@@ -26,13 +26,13 @@ program gregress, rclass
     * syntax varlist(numeric ts fv) // a way to support this would be to filter it through mata
     syntax anything(equalok)      /// depvar indepvars
         [if] [in]                 /// [if condition] [in start / end]
-        [aw fw pw iw] ,           /// [weight type = exp]
+        [aw fw pw]    ,           /// [weight type = exp]
     [                             ///
         by(str)                   /// Winsorize options
         noMISSing                 /// Exclude groups with any missing values by level
         Robust                    /// Robust SE
         cluster(str)              /// Cluster by varlist
-        absorb(str)               /// Absorb each var in varlist as FE
+        absorb(varlist)           /// Absorb each var in varlist as FE
         glm                       /// estimate glm
         family(str)               /// glm family
         IVregress                 /// IV regression
@@ -266,7 +266,7 @@ program gregress, rclass
 		local wgt `"[`weight'=`w']"'
         local weights weights(`weight' `w')
         mark `touse' `if' `in' `wgt'
-        markout `touse' `varlist' `cluster' `absorb'
+        markout `touse' `varlist' `cluster' `absorb', strok
         local if if `touse'
 	}
     else {

@@ -84,6 +84,7 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
     GT_size i;
     uint64_t *hptr;
 
+    GtoolsHashInfo->_nobspanel = GtoolsHashInfo->nobs;
     GtoolsHashInfo->h1ptr = GtoolsHashInfo->hash1 + GtoolsHashInfo->offset;
     GtoolsHashInfo->h2ptr = GtoolsHashInfo->hash2 + GtoolsHashInfo->offset;
     GtoolsHashInfo->xptr  = GtoolsHashInfo->x + GtoolsHashInfo->offset * GtoolsHashInfo->rowbytes;

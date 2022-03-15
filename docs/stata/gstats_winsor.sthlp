@@ -25,7 +25,7 @@ additionally accepts weights. {p_end}
 {cmd:gstats winsor}
 {varlist}
 {ifin}
-[{it:{help gstats##weight:weight}}]
+[{it:{help gstats winsor##weight:weight}}]
 [{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
 
 {synoptset 19 tabbed}{...}

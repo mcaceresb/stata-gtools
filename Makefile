@@ -29,14 +29,14 @@ open:
 # ./docs/stata/gtools.sthlp
 # ./src/ado/gtools.ado
 # ./src/ado/_gtools_internal.ado
-# ./src/plugin/gtools.c
 # ./src/plugin/gtools.h
-# ./src/test/gtools_tests.do
+# x ./src/plugin/gtools.c
+# x ./src/test/gtools_tests.do
 # ./src/gtools.pkg
 # ./src/stata.toc
 # ./.appveyor.yml
-# ./build.py
-# ./changelog.md
+# x ./build.py
+# x ./changelog.md
 
 # Add a group stat
 # ----------------
@@ -68,6 +68,15 @@ open:
 # ./src/plugin/collapse/gtools_math_unw.h
 # ./src/plugin/collapse/gtools_math_w.c
 # ./src/plugin/collapse/gtools_math_w.h
+
+# ./src/ado/_gtools_internal.ado gstats_hdfe fun
+	# ./src/plugin/gtools.c
+	# ./src/plugin/gtools.h
+    # gstats_scalars   init
+    # if ( inlist("`gfunction'",  "stats") ) {
+# ./src/ado/gstats.ado gstats_hdfe fun
+# ./docs/stata/gstats_hdfe.sthlp
+# ./docs/usage/gstats_hdfe.md
 
 # Add to gstats
 # -------------

@@ -2,7 +2,7 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Wed Feb 02 11:42:50 EST 2022
+ * Updated: Tue Mar 15 00:56:21 EDT 2022
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
  * Version: 02Feb2022
@@ -46,7 +46,6 @@
 #include "extra/gtop.c"
 #include "extra/greshape.c"
 #include "extra/greshape_fast.c"
-#include "stats/gstats.c"
 
 #include "quantiles/gquantiles_math.c"
 #include "quantiles/gquantiles_math_w.c"
@@ -56,6 +55,7 @@
 #include "api/hashing.c"
 #include "api/groupby.c"
 #include "regress/gregress.c"
+#include "stats/gstats.c"
 
 int main()
 {
@@ -364,11 +364,12 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
 
-        if ( (st_info->gstats_code == 2) & (st_info->kvars_by > 0) ) {
-            if ( (rc = sf_check_hash (st_info,  2)) ) goto exit; // (Note: keeps by copy)
+        // (Note: 22 discards by copy; 2 keeps by copy)
+        if ( (st_info->gstats_code == 2 || st_info->hdfe_matasave) & (st_info->kvars_by > 0) ) {
+            if ( (rc = sf_check_hash (st_info,  2)) ) goto exit;
         }
         else {
-            if ( (rc = sf_check_hash (st_info, 22)) ) goto exit; // (Note: discards by copy)
+            if ( (rc = sf_check_hash (st_info, 22)) ) goto exit; 
         }
 
         if ( (rc = sf_stats (st_info, 0, fname)) ) goto exit;
@@ -465,6 +466,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gfile_gregse,
             gfile_gregclus,
             gfile_gregabs,
+            gfile_ghdfeabs,
             top_miss,
             top_groupmiss,
             top_matasave,
@@ -501,6 +503,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gstats_code,
             winsor_trim,
             winsor_kvars,
+            hdfe_kvars,
+            hdfe_method,
+            hdfe_maxiter,
+            hdfe_traceiter,
+            hdfe_absorb,
+            hdfe_matasave,
             summarize_colvar,
             summarize_pooled,
             summarize_normal,
@@ -651,6 +659,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gfile_gregse",          &gfile_gregse)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregclus",        &gfile_gregclus)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregabs",         &gfile_gregabs)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_ghdfeabs",        &gfile_ghdfeabs)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",              &seecount)              )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_countonly",             &countonly)             )) goto exit;
@@ -706,6 +715,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gstats_code",           &gstats_code)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_trim",           &winsor_trim)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_winsor_kvars",          &winsor_kvars)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_kvars",            &hdfe_kvars)            )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_method",           &hdfe_method)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_maxiter",          &hdfe_maxiter)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_traceiter",        &hdfe_traceiter)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_absorb",           &hdfe_absorb)           )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_matasave",         &hdfe_matasave)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_colvar",      &summarize_colvar)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_pooled",      &summarize_pooled)      )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_normal",      &summarize_normal)      )) goto exit;
@@ -780,6 +795,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     // Vars for winsor
     if ( (rc = SF_scal_use("__gtools_winsor_cutl", &(st_info->winsor_cutl) )) ) return (rc);
     if ( (rc = SF_scal_use("__gtools_winsor_cuth", &(st_info->winsor_cuth) )) ) return (rc);
+
+    // Vars for HDFE
+    if ( (rc = SF_scal_use("__gtools_hdfe_hdfetol", &(st_info->hdfe_hdfetol) )) ) return (rc);
 
     // Vars for gregress
     if ( (rc = SF_scal_use("__gtools_gregress_hdfetol",  &(st_info->gregress_hdfetol)  )) ) return (rc);
@@ -867,6 +885,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->transform_range_ls  = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_range_ls);
     st_info->transform_range_us  = calloc(GTOOLS_PWMAX(transform_ktargets, 1), sizeof st_info->transform_range_us);
 
+    st_info->hdfe_absorb_types   = calloc(GTOOLS_PWMAX(hdfe_absorb, 1), sizeof st_info->hdfe_absorb_types);
+    st_info->hdfe_absorb_offsets = calloc(GTOOLS_PWMAX(hdfe_absorb, 1), sizeof st_info->hdfe_absorb_offsets);
+
     st_info->gregress_cluster_types   = calloc(GTOOLS_PWMAX(gregress_cluster, 1), sizeof st_info->gregress_cluster_types);
     st_info->gregress_cluster_offsets = calloc(GTOOLS_PWMAX(gregress_cluster, 1), sizeof st_info->gregress_cluster_offsets);
     st_info->gregress_absorb_types    = calloc(GTOOLS_PWMAX(gregress_absorb,  1), sizeof st_info->gregress_absorb_types);
@@ -910,6 +931,9 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( st_info->transform_range_u        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_u"));
     if ( st_info->transform_range_ls       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_ls"));
     if ( st_info->transform_range_us       == NULL ) return (sf_oom_error("sf_parse_info", "st_info->transform_range_us"));
+
+    if ( st_info->hdfe_absorb_types        == NULL ) return (sf_oom_error("sf_parse_info", "st_info->hdfe_absorb_types"));
+    if ( st_info->hdfe_absorb_offsets      == NULL ) return (sf_oom_error("sf_parse_info", "st_info->hdfe_absorb_offsets"));
 
     if ( st_info->gregress_cluster_types   == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_cluster_types"));
     if ( st_info->gregress_cluster_offsets == NULL ) return (sf_oom_error("sf_parse_info", "st_info->gregress_cluster_offsets"));
@@ -1031,6 +1055,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_get_vector_size ("__gtools_transform_cumvars",   st_info->transform_cumvars))   ) goto exit;
 
     if ( (rc = sf_get_vector_int  ("__gtools_transform_aux8_shift", st_info->transform_aux8_shift)) ) goto exit;
+    if ( (rc = sf_get_vector_int  ("__gtools_hdfe_abstyp",          st_info->hdfe_absorb_types))    ) goto exit;
 
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_clustyp", st_info->gregress_cluster_types)) ) goto exit;
     if ( (rc = sf_get_vector_int  ("__gtools_gregress_abstyp",  st_info->gregress_absorb_types))  ) goto exit;
@@ -1061,6 +1086,21 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             else {
                 st_info->gregress_absorb_bytes += sizeof(ST_double);
                 st_info->gregress_absorb_offsets[i - 1] = sizeof(ST_double);
+            }
+        }
+    }
+
+    st_info->hdfe_absorb_bytes = 0;
+    if ( hdfe_absorb ) {
+        for (i = 1; i < hdfe_absorb + 1; i++) {
+            vlen = st_info->hdfe_absorb_types[i - 1] * sizeof(char);
+            if ( vlen > 0 ) {
+                st_info->hdfe_absorb_bytes += (vlen + sizeof(char));
+                st_info->hdfe_absorb_offsets[i - 1] = (vlen + sizeof(char));
+            }
+            else {
+                st_info->hdfe_absorb_bytes += sizeof(ST_double);
+                st_info->hdfe_absorb_offsets[i - 1] = sizeof(ST_double);
             }
         }
     }
@@ -1109,6 +1149,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gfile_gregse          = gfile_gregse;
     st_info->gfile_gregclus        = gfile_gregclus;
     st_info->gfile_gregabs         = gfile_gregabs;
+    st_info->gfile_ghdfeabs        = gfile_ghdfeabs;
 
     st_info->unsorted              = unsorted;
     st_info->countonly             = countonly;
@@ -1164,6 +1205,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gstats_code           = gstats_code;
     st_info->winsor_trim           = winsor_trim;
     st_info->winsor_kvars          = winsor_kvars;
+    st_info->hdfe_kvars            = hdfe_kvars;
+    st_info->hdfe_method           = hdfe_method;
+    st_info->hdfe_maxiter          = hdfe_maxiter;
+    st_info->hdfe_traceiter        = hdfe_traceiter;
+    st_info->hdfe_absorb           = hdfe_absorb;
+    st_info->hdfe_matasave         = hdfe_matasave;
     st_info->summarize_colvar      = summarize_colvar;
     st_info->summarize_pooled      = summarize_pooled;
     st_info->summarize_normal      = summarize_normal;
@@ -1304,6 +1351,12 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgstats_code:           "GT_size_cfmt"\n",  gstats_code          );
         sf_printf_debug("\twinsor_trim:           "GT_size_cfmt"\n",  winsor_trim          );
         sf_printf_debug("\twinsor_kvars:          "GT_size_cfmt"\n",  winsor_kvars         );
+        sf_printf_debug("\thdfe_kvars:            "GT_size_cfmt"\n",  hdfe_kvars           );
+        sf_printf_debug("\thdfe_method:           "GT_size_cfmt"\n",  hdfe_method          );
+        sf_printf_debug("\thdfe_maxiter:          "GT_size_cfmt"\n",  hdfe_maxiter         );
+        sf_printf_debug("\thdfe_traceiter:        "GT_size_cfmt"\n",  hdfe_traceiter       );
+        sf_printf_debug("\thdfe_absorb:           "GT_size_cfmt"\n",  hdfe_absorb          );
+        sf_printf_debug("\thdfe_matasave:         "GT_size_cfmt"\n",  hdfe_matasave        );
         sf_printf_debug("\tsummarize_colvar:      "GT_size_cfmt"\n",  summarize_colvar     );
         sf_printf_debug("\tsummarize_pooled:      "GT_size_cfmt"\n",  summarize_pooled     );
         sf_printf_debug("\tsummarize_normal:      "GT_size_cfmt"\n",  summarize_normal     );
@@ -2473,6 +2526,8 @@ void sf_free (struct StataInfo *st_info, int level)
         free (st_info->gregress_cluster_offsets);
         free (st_info->gregress_absorb_types);
         free (st_info->gregress_absorb_offsets);
+        free (st_info->hdfe_absorb_types);
+        free (st_info->hdfe_absorb_offsets);
 
         free (st_info->pos_num_byvars);
         free (st_info->pos_str_byvars);
@@ -2510,6 +2565,8 @@ void sf_free (struct StataInfo *st_info, int level)
         GTOOLS_GC_FREED("st_info->gregress_cluster_offsets")
         GTOOLS_GC_FREED("st_info->gregress_absorb_types")
         GTOOLS_GC_FREED("st_info->gregress_absorb_offsets")
+        GTOOLS_GC_FREED("st_info->hdfe_absorb_types")
+        GTOOLS_GC_FREED("st_info->hdfe_absorb_offsets")
         GTOOLS_GC_FREED("st_info->transform_cumtypes")
         GTOOLS_GC_FREED("st_info->transform_cumsum")
         GTOOLS_GC_FREED("st_info->transform_cumsign")

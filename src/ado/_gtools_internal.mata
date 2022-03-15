@@ -35,6 +35,8 @@ class GtoolsByLevels
     string   scalar      whoami
     string   matrix      printed
     real     matrix      toplevels
+    real     colvector   nj
+    real     matrix      njabsorb
     string   scalar      caller
 
     void read()
@@ -217,6 +219,8 @@ void function GtoolsByLevels::read(string scalar numfmt, real scalar valuelabels
         charpos   = .
         printed   = ""
         toplevels = .
+        nj        = .
+        njabsorb  = .
     }
 }
 
@@ -227,7 +231,7 @@ void function GtoolsByLevels::desc()
     real rowvector printlens
     string rowvector printfmts
 
-    printstr = J((anyvars? (12 + (caller == "gtop")): 1), 3, " ")
+    printstr = J((anyvars? (12 + (caller == "gtop") + 2 * (caller == "gstats hdfe")): 1), 3, " ")
     printstr[1, 1] = "object"
     printstr[1, 2] = "value"
     printstr[1, 3] = "description"
@@ -246,6 +250,10 @@ void function GtoolsByLevels::desc()
         if ( caller == "gtop" ) {
             printstr[13, 1] = "toplevels"
         }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 1] = "nj"
+            printstr[14, 1] = "njabsorb"
+        }
 
         printstr[3,  2] = sprintf("1 x %g", cols(byvars))
         printstr[4,  2] = sprintf("%g", J)
@@ -260,6 +268,10 @@ void function GtoolsByLevels::desc()
         if ( caller == "gtop" ) {
             printstr[13, 2] = sprintf("%g x 5 vector",  rows(toplevels))
         }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 2] = sprintf("%g x 1 vector",  rows(nj))
+            printstr[14, 2] = sprintf("%g x %g matrix", rows(njabsorb), cols(njabsorb))
+        }
 
         printstr[3,  3] = "by variable names"
         printstr[4,  3] = "number of levels"
@@ -273,6 +285,10 @@ void function GtoolsByLevels::desc()
         printstr[12, 3] = "formatted (printf-ed) variable levels"
         if ( caller == "gtop" ) {
             printstr[13, 3] = "frequencies of top levels"
+        }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 3] = "non-missing obs (row-wise) for each by group"
+            printstr[14, 3] = "# FE each absorb variable had for each by group"
         }
 
         printlens      = colmax(strlen(printstr))

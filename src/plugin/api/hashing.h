@@ -7,6 +7,8 @@ struct GtoolsHash {
     void    *xptr;
     GT_size offset;
     GT_size nobs;
+    GT_size _nobspanel;
+    GT_size _nobsinit;
     GT_size kvars;
     GT_int  *types;
     GT_bool *invert;
@@ -37,6 +39,15 @@ struct GtoolsHash {
     GT_bool allocHash1;
     GT_bool allocHash2;
     GT_bool allocHash3;
+    // Misc
+    ST_double *hdfeBuffer;
+    GT_bool   hdfeBufferAlloc;
+    GT_bool   hdfeFallback;
+    GT_bool   hdfeTraceIter;
+    GT_size   hdfeIter;
+    GT_size   hdfeFeval;
+    GT_size   hdfeMaxIter;
+    GT_size   hdfeRc;
 };
 
 void GtoolsHashInit (

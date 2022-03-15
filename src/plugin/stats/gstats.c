@@ -1,4 +1,5 @@
 #include "gstats.h"
+#include "hdfe.c"
 #include "winsor.c"
 #include "summarize.c"
 #include "transform.c"
@@ -14,6 +15,9 @@ ST_retcode sf_stats (struct StataInfo *st_info, int level, char *fname)
     }
     else if ( st_info->gstats_code == 3 ) {
         return (sf_stats_transform(st_info, level));
+    }
+    else if ( st_info->gstats_code == 4 ) {
+        return (sf_stats_hdfe(st_info, level));
     }
     else {
         sf_errprintf("Unknown gstats code; error in sf_stats.");

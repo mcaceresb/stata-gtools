@@ -22,15 +22,20 @@ program gstats, rclass
 
     local alias_transform range moving
 
+    local alias_winsor winsorize
+
+    local alias_hdfe   residualize
+
     local stats_sorted tabstat ///
                        summarize
 
-    local stats dir       ///
-                winsor    ///
-                transform ///
-                range     ///
-                moving    ///
-                tabstat   ///
+    local stats dir         ///
+                winsor      ///
+                hdfe        ///
+                transform   ///
+                range       ///
+                moving      ///
+                tabstat     ///
                 summarize
 
     if ( `:list stat in alias_transform' ) local statprefix statprefix(`stat'|)
@@ -91,6 +96,11 @@ program gstats, rclass
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local benchmarklevel benchmarklevel(`benchmarklevel')
 
+    if ( ("`weight'" == "iweight") & ("`stat'" == "hdfe") ) {
+        disp as err "iweight not allowed"
+        exit 101
+    }
+
 	if ( `"`weight'"' != "" ) {
 		tempvar touse w
 		qui gen double `w' `exp' `if' `in'
@@ -134,6 +144,10 @@ program gstats, rclass
     else if ( `rc' == 18201 ) {
         exit 0
     }
+    else if ( `rc' == 18402 ) {
+        di as txt "gstats_hdfe: maximum number of iterations exceeded; convergence not achieved"
+        exit 430
+    }
     else if ( `rc' == 18301 ) {
         di as txt "gstats_transform: internal parsing error (unexpected number of stats in transform)"
         exit `rc'
@@ -150,6 +164,20 @@ program gstats, rclass
 
     * Extra returns
     * -------------
+
+    if ( `"`stat'"' == "hdfe" ) {
+        tempname hdfe_nabsorb
+        matrix `hdfe_nabsorb' = r(hdfe_nabsorb)
+        return scalar N = `r(hdfe_nonmiss)'
+        if `r(hdfe_saveabs)' {
+            return matrix nabsorb = `hdfe_nabsorb'
+        }
+        if `r(hdfe_saveinfo)' {
+            return scalar iter  = `r(hdfe_iter)'
+            return scalar feval = `r(hdfe_feval)'
+        }
+        return local algorithm = "`r(hdfe_method)'"
+    }
 
     if ( `"`stat'"' == "winsor" ) {
         return scalar cutlow  = r(gstats_winsor_cutlow)

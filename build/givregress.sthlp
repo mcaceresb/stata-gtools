@@ -96,7 +96,7 @@ is, this assumes that the weight refers to the number of available
 
 {marker weight}{...}
 {p 4 6 2}
-{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are allowed.
+{opt aweight}s, {opt fweight}s, and {opt pweight}s are allowed.
 {p_end}
 
 {marker description}{...}

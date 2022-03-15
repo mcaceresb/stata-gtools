@@ -20,6 +20,7 @@ d KW: ivregress
 d KW: glm
 d KW: logit
 d KW: poisson
+d KW: residualize
 d KW: hdfe
 d KW: contract
 d KW: egen
@@ -106,6 +107,8 @@ f givregress.sthlp
 f gglm.sthlp
 f gpoisson.sthlp
 f gstats.sthlp
+f gstats_residualize.sthlp
+f gstats_hdfe.sthlp
 f gstats_winsor.sthlp
 f gstats_tab.sthlp
 f gstats_sum.sthlp

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Tue Mar 15 00:56:24 EDT 2022
 * Purpose: Unit tests for gtools
-* Version: 1.8.4
+* Version: 1.9.0
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.

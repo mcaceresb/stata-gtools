@@ -24,6 +24,7 @@ open:
 # Update!
 # -------
 #
+# ./lib/bumpver.py
 # ./README.md
 # ./docs/index.md
 # ./docs/stata/gtools.sthlp

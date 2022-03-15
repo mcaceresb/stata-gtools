@@ -1,4 +1,4 @@
-*! version 1.8.4 02Feb2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.9.0 15Mar2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000

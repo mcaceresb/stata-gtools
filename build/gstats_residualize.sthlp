@@ -15,6 +15,10 @@
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
 the latest stable version.
 
+{pstd}
+{it:Warning}: {opt gstats hdfe} is in beta; see {help gstats hdfe##missing:missing features}.
+(To enable beta, define {cmd:global GTOOLS_BETA = 1}.)
+
 {marker syntax}{...}
 {title:Syntax}
 
@@ -209,6 +213,17 @@ stored in the mata object:
 
         string matrix printed
             formatted (printf-ed) variable levels (not with option -silent-)
+
+{marker missing}{...}
+{title:Missing Features}
+
+{pstd}
+Check whether it's mathematically OK to apply SQUAREM. In general it's meant
+for contractions but my understanding is that it can be applied to any 
+monotonically convergent algorithm.
+
+{pstd}
+Improve convergence criterion. Current criterion may not be sensible.
 
 {marker author}{...}
 {title:Author}

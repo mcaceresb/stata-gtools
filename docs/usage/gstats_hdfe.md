@@ -7,7 +7,8 @@ Efficiently absorb fixed effects (i.e. residualize variables).
     Run `gtools, upgrade` to update `gtools` to the latest stable version.
 
 !!! Warning "Warning"
-    See [missing features](#missing-features).
+    `gstats hdfe` is in beta; see [missing features](#missing-features).
+    (To enable beta, define `global GTOOLS_BETA = 1`.)
 
 `gstats hdfe` (alias `gstats residualize`) provides a fast way of 
 absorbing high-dimensional fixed effects (HDFE). It saves the number of levels
@@ -212,7 +213,7 @@ Missing Features
   for contractions but my understanding is that it can be applied to any 
   monotonically convergent algorithm.
 
-- Improve convergence criterion.
+- Improve convergence criterion. Current criterion may not be sensible.
 
 Examples
 --------

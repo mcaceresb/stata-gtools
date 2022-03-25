@@ -239,4 +239,24 @@ void GtoolsGroupBySQUAREMUnweighted(
     ST_double tol
 );
 
+void GtoolsGroupByIronsTuckWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
+void GtoolsGroupByIronsTuckUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol
+);
+
 #endif

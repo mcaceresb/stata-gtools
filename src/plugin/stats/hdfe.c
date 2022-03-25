@@ -6,6 +6,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     ST_double *xptr, *wptr;
     ST_retcode rc = 0;
 
+printf("debug15\n");
     GT_size   N         = st_info->N;
     GT_size   J         = st_info->J;
     GT_size   nj_max    = st_info->nj_max;
@@ -20,7 +21,10 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     GT_size   *absoff   = st_info->hdfe_absorb_offsets;
     GT_int    *abstyp   = st_info->hdfe_absorb_types;
 
+printf("debug16\n");
     switch ( method ) {
+        case 5:
+            methodk = nj_max * kx * 5; break;
         case 4:
             methodk = nj_max * kx * 4; break;
         case 3:
@@ -31,6 +35,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
             methodk = 1; break;
     }
 
+printf("debug17\n");
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_stats_hdfe): Starting gstats hdfe.\n");
     }
@@ -43,9 +48,12 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     struct GtoolsHash *ghptr;
     struct GtoolsHash *AbsorbHashes = calloc(kabs, sizeof *AbsorbHashes);
 
+printf("debug18\n");
     if ( st_info->wcode > 0 ) {
         SaveGtoolsGroupByTransform = GtoolsGroupByTransformWeighted;
         switch ( method ) {
+            case 5:
+                SaveGtoolsGroupByHDFE = GtoolsGroupByIronsTuckWeighted; break;
             case 4:
                 SaveGtoolsGroupByHDFE = GtoolsGroupByCGWeighted; break;
             case 3:
@@ -59,6 +67,8 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     else {
         SaveGtoolsGroupByTransform = GtoolsGroupByTransformUnweighted;
         switch ( method ) {
+            case 5:
+                SaveGtoolsGroupByHDFE = GtoolsGroupByIronsTuckUnweighted; break;
             case 4:
                 SaveGtoolsGroupByHDFE = GtoolsGroupByCGUnweighted; break;
             case 3:
@@ -81,6 +91,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     ST_double *w        = calloc(st_info->wcode > 0? N: 1, sizeof *w);
     void      *FE       = calloc(N, bytesabs);
 
+printf("debug19\n");
     if ( X        == NULL ) return(sf_oom_error("sf_stats_hdfe", "X"));
     if ( index_st == NULL ) return(sf_oom_error("sf_stats_hdfe", "index_st"));
     if ( nj       == NULL ) return(sf_oom_error("sf_stats_hdfe", "nj"));
@@ -95,6 +106,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     // 1. Read
     // -------
 
+printf("debug20\n");
     njptr  = nj + J;
     for (j = 0; j < J; j++) {
         nj[j] = 0;
@@ -109,6 +121,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
 
     sf_stats_hdfe_index(st_info, index_st);
 
+printf("debug21\n");
     if ( (rc = sf_stats_hdfe_read (st_info, X, w, FE, nj, index_st)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
@@ -117,6 +130,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     // 2. Absorb
     // ---------
 
+printf("debug22\n");
     offset = 0;
     ghptr  = AbsorbHashes;
     for (k = 0; k < kabs; k++, ghptr++) {
@@ -140,9 +154,11 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\thdfe step 2: Initialized absorb variables");
 
+printf("debug23\n");
     // 3. Transform
     // ------------
 
+printf("debug24\n");
     xptr = X; wptr = w;
     if ( (rc = sf_stats_hdfe_absorb(
                     AbsorbHashes,
@@ -161,8 +177,11 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
         goto exit;
     }
 
+printf("debug25\n");
     if ( st_info->benchmark > 1 ) {
         switch ( method ) {
+            case 5:
+                sf_running_timer (&timer, "\thdfe step 3: Applied transform (Irons and Tuck)"); break;
             case 4:
                 sf_running_timer (&timer, "\thdfe step 3: Applied transform (Hybrid)"); break;
             case 3:
@@ -401,8 +420,10 @@ ST_retcode sf_stats_hdfe_absorb(
     GT_size j, k, njobs;
     struct GtoolsHash *ghptr;
 
+printf("debug26\n");
     // NOTE: nj[j] has obs net of missing values; need ALL obs for offset
     if ( kabs == 1 ) {
+printf("debug27\n");
         for (j = 0; j < J; j++) {
             njobs = *njptr;
             AbsorbHashes->nobs = nj[j];
@@ -428,7 +449,9 @@ ST_retcode sf_stats_hdfe_absorb(
         }
     }
     else if ( kabs > 1 ) {
+printf("debug28\n");
         for (j = 0; j < J; j++) {
+printf("debug29\n");
             njobs = *njptr;
             ghptr = AbsorbHashes;
             for (k = 0; k < kabs; k++, ghptr++) {
@@ -446,6 +469,7 @@ ST_retcode sf_stats_hdfe_absorb(
                 njptr++;
             }
 
+printf("debug30\n");
             GtoolsGroupByHDFE(AbsorbHashes, kabs, xptr, wptr, xptr, kx, hdfetol);
             ghptr = AbsorbHashes;
             for (k = 0; k < kabs; k++, ghptr++) {

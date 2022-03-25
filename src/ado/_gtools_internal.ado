@@ -6321,7 +6321,7 @@ program gstats_hdfe
                               ///
         ABSORBMISSing         /// absorb missing levels
         algorithm(str)        /// alias for method
-        method(str)           /// projection method (map, squarem, conjugate gradient|cg, hybrid)
+        method(str)           /// projection method (map, squarem, conjugate gradient|cg, hybrid, it|irons tuck)
         TRACEiter             /// trace iteration progress
         maxiter(real 100000)  /// maximum number of iterations
         TOLerance(real 1e-8)  /// tolerance for hdfe convergence
@@ -6372,6 +6372,10 @@ program gstats_hdfe
     else if ( inlist(lower(`"`method'"'), "hybrid") ) {
         local method_code 4
         local method hybrid
+    }
+    else if ( inlist(lower(`"`method'"'), "irons and tuck", "irons tuck", "irons_tuck", "it") ) {
+        local method_code 5
+        local method it
     }
     else {
         disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, hybrid"

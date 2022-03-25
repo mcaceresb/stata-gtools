@@ -803,3 +803,171 @@ void GtoolsGroupBySQUAREMUnweighted(
 
     if ( maxiter && iter >= maxiter ) GtoolsHashInfo->hdfeRc = 18402;
 }
+
+/**********************************************************************
+ *                              SQUAREM                               *
+ **********************************************************************/
+
+void GtoolsGroupByIronsTuckWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol)
+{
+    GT_size N = GtoolsHashInfo->nobs;
+    GT_size nonmiss = GtoolsHashInfo->_nobspanel;
+    GT_size maxiter = GtoolsHashInfo->hdfeMaxIter;
+    GT_size verbose = GtoolsHashInfo->hdfeTraceIter;
+
+    ST_double diff, step[ktargets], DgXD2X[ktargets], D2XD2X[ktargets];
+    ST_double *x, *xptr, *gXptr, *ggXptr, *DXptr, *DgXptr, *D2Xptr;
+    GT_size i, k, iter = 0, feval = 0;
+
+    ST_double *gX  = GtoolsHashInfo->hdfeBuffer + ktargets * N * 0;
+    ST_double *ggX = GtoolsHashInfo->hdfeBuffer + ktargets * N * 1;
+    ST_double *DX  = GtoolsHashInfo->hdfeBuffer + ktargets * N * 2;
+    ST_double *DgX = GtoolsHashInfo->hdfeBuffer + ktargets * N * 3;
+    ST_double *D2X = GtoolsHashInfo->hdfeBuffer + ktargets * N * 4;
+
+    diff = GtoolsGroupByHalperinWeighted(GtoolsHashInfo, khashes, sources, weights, targets, ktargets, tol); feval++;
+    x = targets;
+
+    if ( verbose > 0 ) printf("\tIT: |x - x'| = %.9g\n", diff);
+    while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
+        diff = GtoolsGroupByHalperinWeighted(GtoolsHashInfo, khashes, x, weights, gX, ktargets, tol); feval++;
+        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( diff < tol ) {
+            memcpy(x, gX, sizeof(ST_double) * ktargets * N);
+            break;
+        }
+
+        diff = GtoolsGroupByHalperinWeighted(GtoolsHashInfo, khashes, gX, weights, ggX, ktargets, tol); feval++;
+        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( diff < tol ) {
+            memcpy(x, ggX, sizeof(ST_double) * ktargets * N);
+            break;
+        }
+
+        xptr   = x;
+        gXptr  = gX;
+        ggXptr = ggX;
+        DXptr  = DX;
+        DgXptr = DgX;
+        D2Xptr = D2X;
+        for (k = 0; k < ktargets; k++, xptr += N, gXptr += N, ggXptr += N, DXptr += N, DgXptr += N, D2Xptr += N) {
+            step[k]   = 0;
+            DgXD2X[k] = 0;
+            D2XD2X[k] = 0;
+            for (i = 0; i < nonmiss; i++) {
+                DXptr[i]  = gXptr[i]  - xptr[i];
+                DgXptr[i] = ggXptr[i] - gXptr[i];
+                D2Xptr[i] = DgXptr[i] - DXptr[i];
+                DgXD2X[k] += weights[i] * DgXptr[i] * D2Xptr[i];
+                D2XD2X[k] += weights[i] * D2Xptr[i] * D2Xptr[i];
+            }
+            step[k] = DgXD2X[k] / D2XD2X[k];
+        }
+
+        xptr   = x;
+        ggXptr = ggX;
+        DgXptr = DgX;
+        for (k = 0; k < ktargets; k++, xptr += N, ggXptr += N, DgXptr += N) {
+            for (i = 0; i < nonmiss; i++) {
+                xptr[i] = ggXptr[i] - step[k] * DgXptr[i];
+            }
+        }
+    }
+
+    GtoolsHashInfo->hdfeIter  = --iter;
+    GtoolsHashInfo->hdfeFeval = feval;
+
+    if ( verbose > 0 ) printf("IT: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+                              iter, maxiter, feval, diff, tol);
+
+    if ( maxiter && iter >= maxiter ) GtoolsHashInfo->hdfeRc = 18402;
+}
+
+void GtoolsGroupByIronsTuckUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets,
+    ST_double tol)
+{
+    GT_size N = GtoolsHashInfo->nobs;
+    GT_size nonmiss = GtoolsHashInfo->_nobspanel;
+    GT_size maxiter = GtoolsHashInfo->hdfeMaxIter;
+    GT_size verbose = GtoolsHashInfo->hdfeTraceIter;
+
+    ST_double diff, step[ktargets], DgXD2X[ktargets], D2XD2X[ktargets];
+    ST_double *x, *xptr, *gXptr, *ggXptr, *DXptr, *DgXptr, *D2Xptr;
+    GT_size i, k, iter = 0, feval = 0;
+
+    ST_double *gX  = GtoolsHashInfo->hdfeBuffer + ktargets * N * 0;
+    ST_double *ggX = GtoolsHashInfo->hdfeBuffer + ktargets * N * 1;
+    ST_double *DX  = GtoolsHashInfo->hdfeBuffer + ktargets * N * 2;
+    ST_double *DgX = GtoolsHashInfo->hdfeBuffer + ktargets * N * 3;
+    ST_double *D2X = GtoolsHashInfo->hdfeBuffer + ktargets * N * 4;
+
+    diff = GtoolsGroupByHalperinUnweighted(GtoolsHashInfo, khashes, sources, weights, targets, ktargets, tol); feval++;
+    x = targets;
+
+    if ( verbose > 0 ) printf("\tIT: |x - x'| = %.9g\n", diff);
+    while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
+        diff = GtoolsGroupByHalperinUnweighted(GtoolsHashInfo, khashes, x, weights, gX, ktargets, tol); feval++;
+        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( diff < tol ) {
+            memcpy(x, gX, sizeof(ST_double) * ktargets * N);
+            break;
+        }
+
+        diff = GtoolsGroupByHalperinUnweighted(GtoolsHashInfo, khashes, gX, weights, ggX, ktargets, tol); feval++;
+        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( diff < tol ) {
+            memcpy(x, ggX, sizeof(ST_double) * ktargets * N);
+            break;
+        }
+
+        xptr   = x;
+        gXptr  = gX;
+        ggXptr = ggX;
+        DXptr  = DX;
+        DgXptr = DgX;
+        D2Xptr = D2X;
+        for (k = 0; k < ktargets; k++, xptr += N, gXptr += N, ggXptr += N, DXptr += N, DgXptr += N, D2Xptr += N) {
+            step[k]   = 0;
+            DgXD2X[k] = 0;
+            D2XD2X[k] = 0;
+            for (i = 0; i < nonmiss; i++) {
+                DXptr[i]  = gXptr[i]  - xptr[i];
+                DgXptr[i] = ggXptr[i] - gXptr[i];
+                D2Xptr[i] = DgXptr[i] - DXptr[i];
+                DgXD2X[k] += DgXptr[i] * D2Xptr[i];
+                D2XD2X[k] += D2Xptr[i] * D2Xptr[i];
+            }
+            step[k] = DgXD2X[k] / D2XD2X[k];
+        }
+
+        xptr   = x;
+        ggXptr = ggX;
+        DgXptr = DgX;
+        for (k = 0; k < ktargets; k++, xptr += N, ggXptr += N, DgXptr += N) {
+            for (i = 0; i < nonmiss; i++) {
+                xptr[i] = ggXptr[i] - step[k] * DgXptr[i];
+            }
+        }
+    }
+
+    GtoolsHashInfo->hdfeIter  = --iter;
+    GtoolsHashInfo->hdfeFeval = feval;
+
+    if ( verbose > 0 ) printf("IT: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+                              iter, maxiter, feval, diff, tol);
+
+    if ( maxiter && iter >= maxiter ) GtoolsHashInfo->hdfeRc = 18402;
+}

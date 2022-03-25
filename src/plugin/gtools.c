@@ -357,20 +357,34 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_regress     (st_info, 0, fname)) ) goto exit;
     }
     else if ( strcmp(todo, "stats") == 0 ) {
+printf("debug1\n");
         size_t flength = strlen(argv[1]) + 1;
+printf("debug2\n");
         GTOOLS_CHAR (fname, flength);
+printf("debug3\n");
         strcpy (fname, argv[1]);
+printf("debug4\n");
 
+printf("debug5\n");
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
+printf("debug6\n");
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
+printf("debug7\n");
 
+printf("debug8\n");
         // (Note: 22 discards by copy; 2 keeps by copy)
+printf("debug9\n");
         if ( (st_info->gstats_code == 2 || st_info->hdfe_matasave) & (st_info->kvars_by > 0) ) {
+printf("debug10\n");
             if ( (rc = sf_check_hash (st_info,  2)) ) goto exit;
+printf("debug11\n");
         }
         else {
+printf("debug12\n");
             if ( (rc = sf_check_hash (st_info, 22)) ) goto exit; 
+printf("debug13\n");
         }
+printf("debug14\n");
 
         if ( (rc = sf_stats (st_info, 0, fname)) ) goto exit;
     }

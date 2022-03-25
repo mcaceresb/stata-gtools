@@ -67,6 +67,15 @@ program gstats, rclass
         exit 0
     }
 
+    if ( `"`stat'"' == "hdfe" & `"${GTOOLS_BETA}"' != "1" ) {
+        disp as err "This function is in beta; to use, you must enable beta features via"
+        disp as err ""
+        disp as err "    global GTOOLS_BETA = 1"
+        disp as err ""
+        disp as err "gtools functions in beta are subject to change."
+        exit 198
+    }
+
     syntax anything(equalok)   /// Variables/things to check
         [if] [in]              /// [if condition] [in start / end]
         [aw fw pw iw] ,        /// [weight type = exp]

@@ -5,7 +5,7 @@
 * Created: Tue May 16 07:23:02 EDT 2017
 * Updated: Tue Mar 15 00:56:24 EDT 2022
 * Purpose: Unit tests for gtools
-* Version: 1.8.4
+* Version: 1.9.0
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -11175,9 +11175,11 @@ program compare_gstats
     compare_gstats_hdfe, method(squarem)
     compare_gstats_hdfe, method(cg)
     compare_gstats_hdfe, method(map)
+    compare_gstats_hdfe, method(it)
     compare_gstats_hdfe, weights method(squarem)
     compare_gstats_hdfe, weights method(cg)
     compare_gstats_hdfe, weights method(map)
+    compare_gstats_hdfe, weights method(it)
 
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
@@ -11188,6 +11190,110 @@ program compare_gstats
     compare_gstats_transform, nogreedy
     compare_gstats_transform, nogreedy weights
 end
+
+
+
+clear
+set obs 20
+gen fe1 = _n * 1.5
+expand 30
+bys fe1: gen fe2 = _n * 2.5
+replace fe2 = fe2 + ((fe1 / 2) - 1) * 7.5
+expand 50
+gen double fe4 = _n * 5.27
+gen fe3 = string(_n * 5.27)
+gen y = rnormal()
+gen x = rnormal()
+global GTOOLS_BETA = 1
+gregress y x, absorb(fe1 fe2)
+save /tmp/tmp.dta, replace
+
+from time import time
+import pandas as pd
+import pyhdfe
+
+df = pd.read_stata('/tmp/tmp.dta')
+timer = time()
+Algorithm = pyhdfe.create(df[['fe1', 'fe2']].values)
+print(f"{time() - timer:.3f}")
+Algorithm.residualize(df[['y']].values)
+print(f"{time() - timer:.3f}")
+
+timer = time()
+Algorithm = pyhdfe.create(df[['fe1', 'fe2', 'fe4']].values)
+print(f"{time() - timer:.3f}")
+Algorithm.residualize(df[[ 'y']].values)
+print(f"{time() - timer:.3f}")
+
+timer = time()
+Algorithm = pyhdfe.create(df[['fe4']].values)
+print(f"{time() - timer:.3f}")
+xx = Algorithm.residualize(df[['x', 'y']].values)
+print(f"{time() - timer:.3f}")
+
+*   clear
+*   set obs 200
+*   gen fedbl1 = _n * 1.5
+*   expand 30
+*   bys fedbl1: gen fedbl2 = _n * 2.5
+*   replace fedbl2 = fedbl2 + ((fedbl1 / 2) - 1) * 7.5
+*   expand 50
+*   gen double fedbl3 = _n * 5.27
+*   gen double fedbl4 = int((_N / 100)  * rnormal()) / 100
+*   gen double fedbl5 = int((_N / 10000) * rnormal()) / 100
+*   gen double w1 = runiform()
+*   gen long   w2 = int(_N * runiform())
+*   gen y = rnormal()
+*   gen x = rnormal()
+*   save /tmp/tmp.dta, replace
+
+* use /tmp/tmp.dta, clear
+* local fes fedbl1 fedbl2
+* local fes fedbl4 fedbl5
+* set rmsg on
+* gstats hdfe y x, absorb(`fes') prefix(_hdfe1_) bench(3) method(map)
+* return list
+* gstats hdfe y x, absorb(`fes') prefix(_hdfe2_) bench(3) method(squarem)
+* return list
+* gstats hdfe y x, absorb(`fes') prefix(_hdfe3_) bench(3) method(cg) trace
+* return list
+* gstats hdfe y x, absorb(`fes') prefix(_hdfe4_) bench(3) method(it) trace
+* return list
+* gen difx = abs(_hdfe2_x - _hdfe3_x)
+* gen dify = abs(_hdfe2_y - _hdfe3_y)
+* sum difx dify
+* * use this for by compare
+* gregress y x, absorb(`fes') prefix(hdfe(_ghdfe_)) bench(3)
+
+* python
+* from time import time
+* import pyhdfe
+* import pandas as pd
+* df = pd.read_stata('/tmp/tmp.dta')
+* df['zero'] = 0
+*
+* timer = time()
+* Algorithm = pyhdfe.create(df[['fedbl1', 'fedbl2']].values)
+* print(f"{time() - timer:.3f}")
+* _ = Algorithm.residualize(df[['x', 'y']].values)
+* print(f"{time() - timer:.3f}")
+*
+* timer = time()
+* Algorithm = pyhdfe.create(df[['fedbl4', 'fedbl5']].values)
+* print(f"{time() - timer:.3f}")
+* _ = Algorithm.residualize(df[['x', 'y']].values)
+* print(f"{time() - timer:.3f}")
+* end
+
+
+
+
+
+
+
+
+
+
 
 ***********************************************************************
 *                            Compare hdfe                             *
@@ -11243,10 +11349,12 @@ program checks_gstats_hdfe
     qui gstats hdfe _ghdfe2_y = y _ghdfe2_x = x, absorb(fedbl1 fedbl2)  method(map)
     qui gstats hdfe y x, absorb(fedbl1 fedbl2) gen(_ghdfe3_y _ghdfe3_x) method(squarem)
     qui gstats hdfe y x, absorb(fedbl1 fedbl2) gen(_ghdfe4_y _ghdfe4_x) method(cg)
-    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe5_) method(map)
-    qui gstats hdfe _ghdfe6_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe6_) method(squarem)
-    qui gstats hdfe _ghdfe7_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe7_) method(cg)
-    forvalues i = 3 / 7 {
+    qui gstats hdfe y x, absorb(fedbl1 fedbl2) gen(_ghdfe5_y _ghdfe5_x) method(it)
+    qui gstats hdfe _ghdfe6_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe6_) method(map)
+    qui gstats hdfe _ghdfe7_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe7_) method(squarem)
+    qui gstats hdfe _ghdfe8_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe8_) method(cg)
+    qui gstats hdfe _ghdfe9_y = y x `wgt`w'' `ifin`ifin'', absorb(fedbl1 fedbl2) prefix(_ghdfe9_) method(it)
+    forvalues i = 3 / 9 {
         assert reldif(_ghdfe2_y, _ghdfe`i'_y) < 1e-6
         assert reldif(_ghdfe2_x, _ghdfe`i'_x) < 1e-6
     }
@@ -11254,10 +11362,12 @@ program checks_gstats_hdfe
     qui gstats hdfe _ghdfe2_y = y _ghdfe2_x = x, absorb(festr1 festr2)  method(map)     replace
     qui gstats hdfe y x, absorb(festr1 festr2) gen(_ghdfe3_y _ghdfe3_x) method(squarem) replace
     qui gstats hdfe y x, absorb(festr1 festr2) gen(_ghdfe4_y _ghdfe4_x) method(cg)      replace
-    qui gstats hdfe _ghdfe4_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe5_) method(map)     replace
-    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe6_) method(squarem) replace
-    qui gstats hdfe _ghdfe5_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe7_) method(cg)      replace
-    forvalues i = 3 / 7 {
+    qui gstats hdfe y x, absorb(festr1 festr2) gen(_ghdfe5_y _ghdfe5_x) method(it)      replace
+    qui gstats hdfe _ghdfe6_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe6_) method(map)     replace
+    qui gstats hdfe _ghdfe7_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe7_) method(squarem) replace
+    qui gstats hdfe _ghdfe8_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe8_) method(cg)      replace
+    qui gstats hdfe _ghdfe9_y = y x `wgt`w'' `ifin`ifin'', absorb(festr1 festr2) prefix(_ghdfe9_) method(it)      replace
+    forvalues i = 3 / 9 {
         assert reldif(_ghdfe2_y, _ghdfe`i'_y) < 1e-6
         assert reldif(_ghdfe2_x, _ghdfe`i'_x) < 1e-6
     }
@@ -11340,8 +11450,9 @@ program checks_gstats_hdfe
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe1_) method(squarem) tol(1e-12) maxiter(.)
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe2_) method(map)     tol(1e-12) maxiter(.)
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe3_) method(hybrid)  tol(1e-12) maxiter(.)
+                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe4_) method(it)      tol(1e-12) maxiter(.)
 
-                        forvalues i = 1 / 3 {
+                        forvalues i = 1 / 4 {
                             assert reldif(_ghdfe`i'_y, _ghdfe_y) < 1e-6
                             assert reldif(_ghdfe`i'_x, _ghdfe_x) < 1e-6
                             if ( (`missing' > 1) | (`ifin' > 1) ) {

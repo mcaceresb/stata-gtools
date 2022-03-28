@@ -1820,6 +1820,7 @@ class GtoolsRegressOutput
     real   matrix    b
     real   scalar    saveb
     real   matrix    se
+    real   matrix    Vcov
     real   scalar    savese
 
     real   scalar    J
@@ -1904,6 +1905,7 @@ void function GtoolsRegressOutput::init()
 
 void function GtoolsRegressOutput::readMatrices()
 {
+    real matrix qc
     real scalar runols, runse, runhdfe
     J = strtoreal(st_local("r_J"))
     if ( st_numscalar("__gtools_gregress_savemb") ) {
@@ -1911,6 +1913,14 @@ void function GtoolsRegressOutput::readMatrices()
     }
     if ( st_numscalar("__gtools_gregress_savemse") ) {
         se = GtoolsReadMatrix(st_local("gregsefile"), J, kx)
+        if ( by == 0 ) {
+            Vcov = GtoolsReadMatrix(st_local("gregvcovfile"), kx, kx)
+            qc   = diag((se:^2) :/ rowshape(diagonal(Vcov), 1))
+            Vcov = editmissing(makesymmetric(Vcov :* qc), 0)
+        }
+        else {
+            Vcov = .
+        }
     }
 
     runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")

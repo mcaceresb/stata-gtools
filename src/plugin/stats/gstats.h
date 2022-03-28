@@ -29,8 +29,7 @@ ST_retcode sf_stats_hdfe_write (
 
 ST_retcode sf_stats_hdfe_absorb(
     struct GtoolsHash *AbsorbHashes,
-    GtoolsGroupByTransform GtoolsGroupByTransform,
-    GtoolsGroupByHDFE GtoolsGroupByHDFE,
+    GtoolsAlgorithmHDFE AlgorithmHDFE,
     ST_double *stats,
     GT_size *maps,
     GT_size J,
@@ -40,6 +39,7 @@ ST_retcode sf_stats_hdfe_absorb(
     GT_size *njptr,
     ST_double *xptr,
     ST_double *wptr,
-    ST_double hdfetol);
+    ST_double hdfetol,
+    GT_size benchmark);
 
 #endif

@@ -1,4 +1,4 @@
-*! version 1.9.0 15Mar2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.9.1 28Mar2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -46,6 +46,7 @@ program _gtools_internal, rclass
         tempfile gregfile
         tempfile gregbfile
         tempfile gregsefile
+        tempfile gregvcovfile
         tempfile gregclusfile
         tempfile gregabsfile
         tempfile ghdfeabsfile
@@ -60,6 +61,7 @@ program _gtools_internal, rclass
         GtoolsTempFile gregfile
         GtoolsTempFile gregbfile
         GtoolsTempFile gregsefile
+        GtoolsTempFile gregvcovfile
         GtoolsTempFile gregclusfile
         GtoolsTempFile gregabsfile
         GtoolsTempFile ghdfeabsfile
@@ -74,6 +76,7 @@ program _gtools_internal, rclass
     global GTOOLS_GREG_FILE:     copy local gregfile
     global GTOOLS_GREGB_FILE:    copy local gregbfile
     global GTOOLS_GREGSE_FILE:   copy local gregsefile
+    global GTOOLS_GREGVCOV_FILE: copy local gregvcovfile
     global GTOOLS_GREGCLUS_FILE: copy local gregclusfile
     global GTOOLS_GREGABS_FILE:  copy local gregabsfile
     global GTOOLS_GHDFEABS_FILE: copy local ghdfeabsfile
@@ -720,6 +723,7 @@ program _gtools_internal, rclass
 
     mata: st_numscalar("__gtools_gfile_gregb",    strlen(st_local("gregbfile"))    + 1)
     mata: st_numscalar("__gtools_gfile_gregse",   strlen(st_local("gregsefile"))   + 1)
+    mata: st_numscalar("__gtools_gfile_gregvcov", strlen(st_local("gregvcovfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregclus", strlen(st_local("gregclusfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregabs",  strlen(st_local("gregabsfile"))  + 1)
     mata: st_numscalar("__gtools_gfile_ghdfeabs", strlen(st_local("ghdfeabsfile")) + 1)
@@ -1676,6 +1680,15 @@ program _gtools_internal, rclass
                 interval(str)                /// Interval for rolling regressions
                 window(str)                  /// Window for moving regressions
                 hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
+                STANdardize                  /// standardize before applying transform
+                TRACEiter                    /// trace iteration progress (internal hdfe)
+                maxiter(real 100000)         /// maximum number of hdfe iterations
+                algorithm(str)               /// alias for method
+                method(str)                  /// projection method for hdfe
+                                             /// map (method of alternating projections)
+                                             /// squarem
+                                             /// conjugate gradient|cg (default)
+                                             /// it|irons tuck
                 noConstant                   /// Whether to add a constant
                                              ///
                 ivkendog(int 0)              /// IV endogenous
@@ -1695,6 +1708,49 @@ program _gtools_internal, rclass
                 RESIDuals(str)               /// save residuals in `residuals'
                 replace                      /// Replace targets, if they exist
             ]
+
+            if ( ("`algorithm'" != "") & ("`method'" != "") ) {
+                disp as err "gregress: method() is an alias for algorithm(); specify only one"
+                exit 198
+            }
+            if ( `"`algorithm'"' == "" ) local algorithm  cg
+            if ( `"`method'"'    != "" ) local algorithm: copy local method
+            local method: copy local algorithm
+
+            if ( `maxiter' < 1 ) {
+                disp as err "gregress: maxiter() must be >= 1"
+                exit 198
+            }
+
+            if ( missing(`maxiter') ) local maxiter 0
+            local maxiter = floor(`maxiter')
+
+            if ( lower(`"`method'"') == "map" ) {
+                local method_code 1
+                local method map
+            }
+            else if ( lower(`"`method'"') == "squarem" ) {
+                local method_code 2
+                local method squarem
+            }
+            else if ( inlist(lower(`"`method'"'), "conjugate gradient", "conjugate_gradient", "cg") ) {
+                local method_code 3
+                local method cg
+            }
+            else if ( inlist(lower(`"`method'"'), "irons and tuck", "irons tuck", "irons_tuck", "it") ) {
+                local method_code 5
+                local method it
+            }
+            else if ( inlist(lower(`"`method'"'), "bit", "berge_it", "berge it") ) {
+                * TODO: gives segfault on some runs last I checked; debug someday.
+                * Option is undocumented but I leave it here for myself.
+                local method_code 6
+                local method bit
+            }
+            else {
+                disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, it"
+                exit 198
+            }
 
             local ivregress
             if ( `ivkendog' > 0 ) {
@@ -1825,21 +1881,26 @@ program _gtools_internal, rclass
 
             local regressvars `varlist' `cluster' `absorb' `intervalvar'
 
-            scalar __gtools_gregress_kvars      = `:list sizeof varlist'
-            scalar __gtools_gregress_cons       = `"`constant'"' != "noconstant"
-            scalar __gtools_gregress_robust     = `"`robust'"'   != ""
-            scalar __gtools_gregress_cluster    = `:list sizeof cluster'
-            scalar __gtools_gregress_absorb     = `:list sizeof absorb'
-            scalar __gtools_gregress_hdfetol    = `hdfetol'
-            scalar __gtools_gregress_glmfam     = `"`glmfam'"' != ""
-            scalar __gtools_gregress_glmlogit   = (`"`glmfam'"' == "binomial") & (`"`glmlink'"' == "logit")
-            scalar __gtools_gregress_glmpoisson = (`"`glmfam'"' == "poisson")  & (`"`glmlink'"' == "log")
-            scalar __gtools_gregress_glmiter    = `glmiter'
-            scalar __gtools_gregress_glmtol     = `glmtol'
-            scalar __gtools_gregress_ivreg      = `"`ivregress'"' != ""
-            scalar __gtools_gregress_ivkendog   = `ivkendog'
-            scalar __gtools_gregress_ivkexog    = `ivkexog'
-            scalar __gtools_gregress_ivkz       = `ivkz'
+            scalar __gtools_gregress_hdfemethnm    = cond(`:list sizeof absorb' > 1, "`method'", "direct")
+            scalar __gtools_gregress_hdfemethod    = `method_code'
+            scalar __gtools_gregress_kvars         = `:list sizeof varlist'
+            scalar __gtools_gregress_cons          = `"`constant'"' != "noconstant"
+            scalar __gtools_gregress_robust        = `"`robust'"'   != ""
+            scalar __gtools_gregress_cluster       = `:list sizeof cluster'
+            scalar __gtools_gregress_absorb        = `:list sizeof absorb'
+            scalar __gtools_gregress_hdfetol       = `hdfetol'
+            scalar __gtools_gregress_hdfemaxiter   = `maxiter'
+            scalar __gtools_gregress_hdfetraceiter = "`traceiter'" != ""
+            scalar __gtools_gregress_hdfestandard  = "`standardize'" != ""
+            scalar __gtools_gregress_glmfam        = `"`glmfam'"' != ""
+            scalar __gtools_gregress_glmlogit      = (`"`glmfam'"' == "binomial") & (`"`glmlink'"' == "logit")
+            scalar __gtools_gregress_glmpoisson    = (`"`glmfam'"' == "poisson")  & (`"`glmlink'"' == "log")
+            scalar __gtools_gregress_glmiter       = `glmiter'
+            scalar __gtools_gregress_glmtol        = `glmtol'
+            scalar __gtools_gregress_ivreg         = `"`ivregress'"' != ""
+            scalar __gtools_gregress_ivkendog      = `ivkendog'
+            scalar __gtools_gregress_ivkexog       = `ivkexog'
+            scalar __gtools_gregress_ivkz          = `ivkz'
 
             if ( scalar(__gtools_gregress_glmlogit) ) {
                 local Caller Logit
@@ -3232,6 +3293,7 @@ program _gtools_internal, rclass
             mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
             mata: `saveGregressMata'.ByLevels.caller = `"`caller'"'
             mata: `saveGregressMata'.ByLevels.read("%16.0g", 1)
+            c_local saveGregressMata: copy local saveGregressMata
             disp as txt "Results in `saveGregressMata'; see {stata mata `saveGregressMata'.desc()}"
         }
     }
@@ -3310,6 +3372,7 @@ program clean_all
     global GTOOLS_GREG_FILE
     global GTOOLS_GREGB_FILE
     global GTOOLS_GREGSE_FILE
+    global GTOOLS_GREGVCOV_FILE
     global GTOOLS_GHDFEABS_FILE
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
@@ -4867,41 +4930,46 @@ end
 capture program drop gregress_scalars
 program gregress_scalars
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_gregress_kv         = 0
-        scalar __gtools_gregress_kvars      = 0
-        scalar __gtools_gregress_cons       = 0
-        scalar __gtools_gregress_robust     = 0
-        scalar __gtools_gregress_cluster    = 0
-        scalar __gtools_gregress_absorb     = 0
-        scalar __gtools_gregress_hdfetol    = 0
-        scalar __gtools_gregress_glmlogit   = 0
-        scalar __gtools_gregress_glmpoisson = 0
-        scalar __gtools_gregress_glmfam     = 0
-        scalar __gtools_gregress_glmiter    = 0
-        scalar __gtools_gregress_glmtol     = 0
-        scalar __gtools_gregress_ivreg      = 0
-        scalar __gtools_gregress_ivkendog   = 0
-        scalar __gtools_gregress_ivkexog    = 0
-        scalar __gtools_gregress_ivkz       = 0
-        scalar __gtools_gregress_savemata   = 0
-        scalar __gtools_gregress_savemb     = 0
-        scalar __gtools_gregress_savemse    = 0
-        scalar __gtools_gregress_savegb     = 0
-        scalar __gtools_gregress_savegse    = 0
-        scalar __gtools_gregress_saveghdfe  = 0
-        scalar __gtools_gregress_savegresid = 0
-        scalar __gtools_gregress_savegpred  = 0
-        scalar __gtools_gregress_savegabs   = 0
-        scalar __gtools_gregress_moving     = 0
-        scalar __gtools_gregress_moving_l   = 0
-        scalar __gtools_gregress_moving_u   = 0
-        scalar __gtools_gregress_range      = 0
-        scalar __gtools_gregress_range_l    = 0
-        scalar __gtools_gregress_range_u    = 0
-        scalar __gtools_gregress_range_ls   = 0
-        scalar __gtools_gregress_range_us   = 0
-        matrix __gtools_gregress_clustyp    = .
-        matrix __gtools_gregress_abstyp     = .
+        scalar __gtools_gregress_kv            = 0
+        scalar __gtools_gregress_kvars         = 0
+        scalar __gtools_gregress_cons          = 0
+        scalar __gtools_gregress_robust        = 0
+        scalar __gtools_gregress_cluster       = 0
+        scalar __gtools_gregress_absorb        = 0
+        scalar __gtools_gregress_hdfetol       = 0
+        scalar __gtools_gregress_hdfemaxiter   = 0
+        scalar __gtools_gregress_hdfetraceiter = 0
+        scalar __gtools_gregress_hdfestandard  = 0
+        scalar __gtools_gregress_hdfemethnm    = ""
+        scalar __gtools_gregress_hdfemethod    = 0
+        scalar __gtools_gregress_glmlogit      = 0
+        scalar __gtools_gregress_glmpoisson    = 0
+        scalar __gtools_gregress_glmfam        = 0
+        scalar __gtools_gregress_glmiter       = 0
+        scalar __gtools_gregress_glmtol        = 0
+        scalar __gtools_gregress_ivreg         = 0
+        scalar __gtools_gregress_ivkendog      = 0
+        scalar __gtools_gregress_ivkexog       = 0
+        scalar __gtools_gregress_ivkz          = 0
+        scalar __gtools_gregress_savemata      = 0
+        scalar __gtools_gregress_savemb        = 0
+        scalar __gtools_gregress_savemse       = 0
+        scalar __gtools_gregress_savegb        = 0
+        scalar __gtools_gregress_savegse       = 0
+        scalar __gtools_gregress_saveghdfe     = 0
+        scalar __gtools_gregress_savegresid    = 0
+        scalar __gtools_gregress_savegpred     = 0
+        scalar __gtools_gregress_savegabs      = 0
+        scalar __gtools_gregress_moving        = 0
+        scalar __gtools_gregress_moving_l      = 0
+        scalar __gtools_gregress_moving_u      = 0
+        scalar __gtools_gregress_range         = 0
+        scalar __gtools_gregress_range_l       = 0
+        scalar __gtools_gregress_range_u       = 0
+        scalar __gtools_gregress_range_ls      = 0
+        scalar __gtools_gregress_range_us      = 0
+        matrix __gtools_gregress_clustyp       = .
+        matrix __gtools_gregress_abstyp        = .
     }
     else {
         cap scalar drop __gtools_gregress_kv
@@ -4911,6 +4979,11 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb
         cap scalar drop __gtools_gregress_hdfetol
+        cap scalar drop __gtools_gregress_hdfemaxiter
+        cap scalar drop __gtools_gregress_hdfetraceiter
+        cap scalar drop __gtools_gregress_hdfestandard
+        cap scalar drop __gtools_gregress_hdfemethnm
+        cap scalar drop __gtools_gregress_hdfemethod
         cap scalar drop __gtools_gregress_ivreg
         cap scalar drop __gtools_gregress_ivkendog
         cap scalar drop __gtools_gregress_ivkexog
@@ -4961,6 +5034,7 @@ program gstats_scalars
         scalar __gtools_hdfe_method            = 1
         scalar __gtools_hdfe_maxiter           = 0
         scalar __gtools_hdfe_traceiter         = 0
+        scalar __gtools_hdfe_standard          = 0
         scalar __gtools_hdfe_hdfetol           = 0
         scalar __gtools_hdfe_matasave          = 0
         scalar __gtools_hdfe_mataname          = ""
@@ -5065,6 +5139,7 @@ program gstats_scalars
         cap scalar drop __gtools_hdfe_method
         cap scalar drop __gtools_hdfe_maxiter
         cap scalar drop __gtools_hdfe_traceiter
+        cap scalar drop __gtools_hdfe_standard
         cap scalar drop __gtools_hdfe_hdfetol
         cap scalar drop __gtools_hdfe_matasave
         cap scalar drop __gtools_hdfe_mataname
@@ -6321,7 +6396,12 @@ program gstats_hdfe
                               ///
         ABSORBMISSing         /// absorb missing levels
         algorithm(str)        /// alias for method
-        method(str)           /// projection method (map, squarem, conjugate gradient|cg, hybrid, it|irons tuck)
+        method(str)           /// projection method
+                              /// map (method of alternating projections)
+                              /// squarem
+                              /// conjugate gradient|cg
+                              /// it|irons tuck
+        STANdardize           /// standardize before applying transform
         TRACEiter             /// trace iteration progress
         maxiter(real 100000)  /// maximum number of iterations
         TOLerance(real 1e-8)  /// tolerance for hdfe convergence
@@ -6335,7 +6415,7 @@ program gstats_hdfe
         disp as err "gstats_hdfe: method() is an alias for algorithm(); specify only one"
         exit 198
     }
-    if ( `"`algorithm'"' == "" ) local algorithm  squarem
+    if ( `"`algorithm'"' == "" ) local algorithm  cg
     if ( `"`method'"'    != "" ) local algorithm: copy local method
     local method: copy local algorithm
 
@@ -6353,6 +6433,15 @@ program gstats_hdfe
     local maxiter = floor(`maxiter')
 
     local __gtools_byvars: copy global GTOOLS_BYNAMES
+    * NB: This is tested internally against gregress; should be OK?
+    * if ( "${GTOOLS_HDFEBY}" != "1" ) {
+    *     if ( "`__gtools_byvars'" != "" ) {
+    *         disp as err "gstats hdfe with by() has {bf:NOT} been tested. Try it at your own risk via"
+    *         disp as err ""
+    *         disp as err "    global GTOOLS_HDFEBY = 1"
+    *         exit 198
+    *     }
+    * }
 
     if ( `"`matasavename'"' != "" ) local matasave     matasave
     if ( `"`matasavename'"' == "" ) local matasavename GtoolsByLevels
@@ -6369,16 +6458,18 @@ program gstats_hdfe
         local method_code 3
         local method cg
     }
-    else if ( inlist(lower(`"`method'"'), "hybrid") ) {
-        local method_code 4
-        local method hybrid
-    }
     else if ( inlist(lower(`"`method'"'), "irons and tuck", "irons tuck", "irons_tuck", "it") ) {
         local method_code 5
         local method it
     }
+    else if ( inlist(lower(`"`method'"'), "bit", "berge_it", "berge it") ) {
+        * TODO: gives segfault on some runs last I checked; debug someday.
+        * Option is undocumented but I leave it here for myself.
+        local method_code 6
+        local method bit
+    }
     else {
-        disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, hybrid"
+        disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, it"
         exit 198
     }
 
@@ -6614,6 +6705,7 @@ program gstats_hdfe
     scalar __gtools_hdfe_hdfetol    = `tolerance'
     scalar __gtools_hdfe_maxiter    = `maxiter'
     scalar __gtools_hdfe_traceiter  = "`traceiter'" != ""
+    scalar __gtools_hdfe_standard   = "`standardize'" != ""
     scalar __gtools_gstats_code     = 4
     scalar __gtools_hdfe_iter       = cond(`:list sizeof absorb' > 1, 1, 0)
     scalar __gtools_hdfe_feval      = cond(`:list sizeof absorb' > 1, 1, 0)

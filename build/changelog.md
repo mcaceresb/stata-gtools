@@ -1,6 +1,16 @@
 Change Log
 ==========
 
+## gtools-1.9.1 (2022-03-28)
+
+### Features
+
+- Adds various algorithms for projection (cg, squarem, it, map) to
+  `gstats hdfe`, `gregress`, `givregress`, `gglm`.
+- Some ancillary options (`tolerance()`, `traceiter`, `standardize`)
+- Parallel execution of select functions can be enabled at compile
+  time via `GTOOLSOMP`
+
 ## gtools-1.9.0 (2022-03-14)
 
 ### Features

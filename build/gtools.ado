@@ -1,4 +1,4 @@
-*! version 1.9.0 15Mar2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.9.1 28Mar2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools

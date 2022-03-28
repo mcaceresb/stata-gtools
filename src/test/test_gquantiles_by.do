@@ -37,6 +37,8 @@ program checks_gquantiles_by
         _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
         _checks_gquantiles_by strL1 strL2  strL3, `options' `forcestrl'
     }
+
+    exit 0
 end
 
 capture program drop _checks_gquantiles_by

@@ -13,7 +13,8 @@ program greg, rclass
     }
     local 0: copy local 00
 
-    return local levels `"`r(levels)'"'
+    return local cmd    `"`r(cmd)'"'
+    return local mata   `"`r(mata)'"'
     return scalar N     = r(N)
     return scalar J     = r(J)
     return scalar minJ  = r(minJ)

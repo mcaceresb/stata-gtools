@@ -2,16 +2,16 @@
  * Program: gtools.c
  * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
  * Created: Sat May 13 18:12:26 EDT 2017
- * Updated: Tue Mar 15 00:56:21 EDT 2022
+ * Updated: Mon Mar 28 12:04:19 EDT 2022
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 15Mar2022
+ * Version: 28Mar2022
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 15 Mar 2022
+ * @date 28 Mar 2022
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -357,34 +357,20 @@ STDLL stata_call(int argc, char *argv[])
         if ( (rc = sf_regress     (st_info, 0, fname)) ) goto exit;
     }
     else if ( strcmp(todo, "stats") == 0 ) {
-printf("debug1\n");
         size_t flength = strlen(argv[1]) + 1;
-printf("debug2\n");
         GTOOLS_CHAR (fname, flength);
-printf("debug3\n");
         strcpy (fname, argv[1]);
-printf("debug4\n");
 
-printf("debug5\n");
         if ( (rc = sf_parse_info  (st_info, 0)) ) goto exit;
-printf("debug6\n");
         if ( (rc = sf_hash_byvars (st_info, 0)) ) goto exit;
-printf("debug7\n");
 
-printf("debug8\n");
         // (Note: 22 discards by copy; 2 keeps by copy)
-printf("debug9\n");
         if ( (st_info->gstats_code == 2 || st_info->hdfe_matasave) & (st_info->kvars_by > 0) ) {
-printf("debug10\n");
             if ( (rc = sf_check_hash (st_info,  2)) ) goto exit;
-printf("debug11\n");
         }
         else {
-printf("debug12\n");
-            if ( (rc = sf_check_hash (st_info, 22)) ) goto exit; 
-printf("debug13\n");
+            if ( (rc = sf_check_hash (st_info, 22)) ) goto exit;
         }
-printf("debug14\n");
 
         if ( (rc = sf_stats (st_info, 0, fname)) ) goto exit;
     }
@@ -478,6 +464,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gfile_topmat,
             gfile_gregb,
             gfile_gregse,
+            gfile_gregvcov,
             gfile_gregclus,
             gfile_gregabs,
             gfile_ghdfeabs,
@@ -521,6 +508,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             hdfe_method,
             hdfe_maxiter,
             hdfe_traceiter,
+            hdfe_standard,
             hdfe_absorb,
             hdfe_matasave,
             summarize_colvar,
@@ -560,6 +548,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gregress_ivkexog,
             gregress_ivkz,
             gregress_moving,
+            gregress_hdfemaxiter,
+            gregress_hdfetraceiter,
+            gregress_hdfestandard,
+            gregress_hdfemethod,
             greshape_dropmiss,
             greshape_code,
             greshape_kxij,
@@ -671,6 +663,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gfile_topmat",          &gfile_topmat)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregb",           &gfile_gregb)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregse",          &gfile_gregse)          )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_gregvcov",        &gfile_gregvcov)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregclus",        &gfile_gregclus)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregabs",         &gfile_gregabs)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_ghdfeabs",        &gfile_ghdfeabs)        )) goto exit;
@@ -733,6 +726,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_hdfe_method",           &hdfe_method)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hdfe_maxiter",          &hdfe_maxiter)          )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hdfe_traceiter",        &hdfe_traceiter)        )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_hdfe_standard",         &hdfe_standard)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hdfe_absorb",           &hdfe_absorb)           )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_hdfe_matasave",         &hdfe_matasave)         )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_summarize_colvar",      &summarize_colvar)      )) goto exit;
@@ -775,6 +769,11 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gregress_moving",       &gregress_moving)       )) goto exit;
     if ( (rc = sf_scalar_int ("__gtools_gregress_moving_l",     &gregress_moving_l)     )) goto exit;
     if ( (rc = sf_scalar_int ("__gtools_gregress_moving_u",     &gregress_moving_u)     )) goto exit;
+
+    if ( (rc = sf_scalar_size("__gtools_gregress_hdfemaxiter",  &(gregress_hdfemaxiter)   )) ) return (rc);
+    if ( (rc = sf_scalar_size("__gtools_gregress_hdfetraceiter",&(gregress_hdfetraceiter) )) ) return (rc);
+    if ( (rc = sf_scalar_size("__gtools_gregress_hdfestandard", &(gregress_hdfestandard)  )) ) return (rc);
+    if ( (rc = sf_scalar_size("__gtools_gregress_hdfemethod",   &(gregress_hdfemethod)    )) ) return (rc);
 
     if ( (rc = sf_scalar_size("__gtools_greshape_dropmiss",     &greshape_dropmiss)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_greshape_code",         &greshape_code)         )) goto exit;
@@ -1161,6 +1160,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gfile_topmat          = gfile_topmat;
     st_info->gfile_gregb           = gfile_gregb;
     st_info->gfile_gregse          = gfile_gregse;
+    st_info->gfile_gregvcov        = gfile_gregvcov;
     st_info->gfile_gregclus        = gfile_gregclus;
     st_info->gfile_gregabs         = gfile_gregabs;
     st_info->gfile_ghdfeabs        = gfile_ghdfeabs;
@@ -1223,6 +1223,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->hdfe_method           = hdfe_method;
     st_info->hdfe_maxiter          = hdfe_maxiter;
     st_info->hdfe_traceiter        = hdfe_traceiter;
+    st_info->hdfe_standard         = hdfe_standard;
     st_info->hdfe_absorb           = hdfe_absorb;
     st_info->hdfe_matasave         = hdfe_matasave;
     st_info->summarize_colvar      = summarize_colvar;
@@ -1256,6 +1257,10 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gregress_moving       = gregress_moving;
     st_info->gregress_moving_l     = gregress_moving_l;
     st_info->gregress_moving_u     = gregress_moving_u;
+    st_info->gregress_hdfemaxiter  = gregress_hdfemaxiter;
+    st_info->gregress_hdfetraceiter= gregress_hdfetraceiter;
+    st_info->gregress_hdfestandard = gregress_hdfestandard;
+    st_info->gregress_hdfemethod   = gregress_hdfemethod;
     st_info->gregress_range        = gregress_range;
     st_info->gregress_glmfam       = gregress_glmfam;
     st_info->gregress_glmlogit     = gregress_glmlogit;
@@ -1368,7 +1373,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\thdfe_kvars:            "GT_size_cfmt"\n",  hdfe_kvars           );
         sf_printf_debug("\thdfe_method:           "GT_size_cfmt"\n",  hdfe_method          );
         sf_printf_debug("\thdfe_maxiter:          "GT_size_cfmt"\n",  hdfe_maxiter         );
-        sf_printf_debug("\thdfe_traceiter:        "GT_size_cfmt"\n",  hdfe_traceiter       );
+        sf_printf_debug("\thdfe_standard:         "GT_size_cfmt"\n",  hdfe_standard        );
         sf_printf_debug("\thdfe_absorb:           "GT_size_cfmt"\n",  hdfe_absorb          );
         sf_printf_debug("\thdfe_matasave:         "GT_size_cfmt"\n",  hdfe_matasave        );
         sf_printf_debug("\tsummarize_colvar:      "GT_size_cfmt"\n",  summarize_colvar     );
@@ -1460,8 +1465,8 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 {
 
     ST_retcode rc = 0, rc_isid = 0;
-    clock_t timer  = clock();
-    clock_t stimer = clock();
+    struct timespec timer;  clock_gettime(CLOCK_REALTIME, &timer);
+    struct timespec stimer; clock_gettime(CLOCK_REALTIME, &stimer);
 
     GTOOLS_CHAR(buf1, 32);
     GTOOLS_CHAR(buf2, 32);
@@ -1678,10 +1683,11 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         ix = index;
     }
 
-    if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\tPlugin step 1: Read in by variables");
+    if ( st_info->benchmark > 1 ) {
+        sf_running_timespec (&timer, "\tPlugin step 1: Read in by variables");
+        clock_gettime(CLOCK_REALTIME, &stimer);
+    }
 
-    stimer = clock();
 
     if ( st_info->debug ) {
         printf("debug 9: Allocated second index\n");
@@ -2018,8 +2024,9 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     }
     else {
         if ( (rc = gf_bijection_limits (st_info, level)) ) goto exit;
-        if ( st_info->benchmark > 2 )
-            sf_running_timer (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
+        if ( st_info->benchmark > 2 ) {
+            sf_running_timespec (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
+        }
 
         if ( st_info->debug ) {
             printf("debug 32: hash strategy automagically determined\n");
@@ -2081,10 +2088,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     }
     else {
         if ( (rc = gf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
-        if ( st_info->benchmark > 1 )
-            sf_running_timer (&timer, "\tPlugin step 2: Hashed by variables");
-
-        stimer = clock();
+        if ( st_info->benchmark > 1 ) {
+            sf_running_timespec (&timer, "\tPlugin step 2: Hashed by variables");
+            clock_gettime(CLOCK_REALTIME, &stimer);
+        }
 
         if ( st_info->debug ) {
             printf("debug 37: Hashed by variables; spooky or bijection.\n");
@@ -2106,10 +2113,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
             printf("debug 39: Checked id for unsorted data.\n");
         }
 
-        if ( st_info->benchmark > 1 )
-            sf_running_timer (&timer, "\tPlugin step 3: Checked if group is id");
-
-        stimer = clock();
+        if ( st_info->benchmark > 1 ) {
+            sf_running_timespec (&timer, "\tPlugin step 3: Checked if group is id");
+            clock_gettime(CLOCK_REALTIME, &stimer);
+        }
 
         st_info->J = st_info->N;
         st_info->nj_min = nj_min  = 1;
@@ -2154,7 +2161,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->benchmark > 2 )
-            sf_running_timer (&stimer, "\t\tPlugin step 3.1: Created group index");
+            sf_running_timespec (&stimer, "\t\tPlugin step 3.1: Created group index");
 
         st_info->free = 4;
 
@@ -2269,14 +2276,14 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->benchmark > 2 )
-            sf_running_timer (&stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
+            sf_running_timespec (&stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
 
         st_info->free = 5;
 
-        if ( st_info->benchmark > 1 )
-            sf_running_timer (&timer, "\tPlugin step 3: Set up panel");
-
-        stimer = clock();
+        if ( st_info->benchmark > 1 ) {
+            sf_running_timespec (&timer, "\tPlugin step 3: Set up panel");
+            clock_gettime(CLOCK_REALTIME, &stimer);
+        }
     }
 
     if ( st_info->debug ) {
@@ -2347,7 +2354,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
 
     ST_retcode rc = 0;
     GT_size i, j;
-    clock_t timer = clock();
+    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
 
     ST_double st_time;
     if ( (rc = SF_scal_use ("__gtools_st_time", &st_time)) ) goto exit;
@@ -2436,7 +2443,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
     }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\tPlugin step 5: C vs Stata benchmark");
+        sf_running_timespec (&timer, "\tPlugin step 5: C vs Stata benchmark");
 
 exit:
     return (rc);
@@ -2451,7 +2458,7 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     ST_double z;
     ST_retcode rc = 0;
     GT_size i, j;
-    clock_t timer = clock();
+    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
 
     st_info->index = calloc(st_info->N,     sizeof(st_info->index));
     st_info->ix    = calloc(st_info->J,     sizeof(st_info->ix));
@@ -2492,7 +2499,7 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\tPlugin step 4: Read info, index from Stata");
+        sf_running_timespec (&timer, "\tPlugin step 4: Read info, index from Stata");
 
 exit:
     return (rc);

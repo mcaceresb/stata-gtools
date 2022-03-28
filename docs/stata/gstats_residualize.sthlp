@@ -71,11 +71,15 @@ optionally retained via {opt absorbmissing}).
 {p_end}
 {synopt:{opt absorbmi:ssing}}Treat missing absorb levels as a group instead of dropping them.
 {p_end}
-{synopt:{opth algorithm(str)}}Algorithm used to absorb HDFE: SQUAREM (squared extrapolation; default), CG (conjugate gradient), MAP (alternating projections), Hybrid (CG with SQUAREM fallback).
+{synopt:{opth algorithm(str)}}Algorithm used to absorb HDFE: CG (conjugate gradient), MAP (alternating projections), SQUAREM (squared extrapolation), IT (Irons and Tuck).
 {p_end}
 {synopt:{opth maxiter(int)}}Maximum number of algorithm iterations (default 100,000). Pass {it:.} for unlimited iterations.
 {p_end}
 {synopt:{opth tol:erance(real)}}Convergence tolerance (default 1e-8).
+{p_end}
+{synopt:{opth trace:iter}}Trace algorithm iterations.
+{p_end}
+{synopt:{opth stan:dardize}}Standardize variables before algorithm.
 {p_end}
 
 {syntab:Gtools Options}
@@ -255,30 +259,9 @@ see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {title:References}
 
 {pstd}
-The idea for this function is from Correia (2017). The conjugate
-gradient algorithm is from Hernández-Ramos, Escalante, and Raydan
-(2011). The SQUAREM algorithm is from Varadhan and Roland (2008) and
-Varadhan (2016).
-
-{pstd}
-Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed
-Effects: An Efficient and Feasible Estimato." Working Paper. Accessed
-January 16th, 2020. Available at {browse "http://scorreia.com/research/hdfe.pdf"}.
-
-{pstd}
-Hernández-Ramos, Luis M., René Escalante, and Marcos Raydan (2011). "Unconstrained
-Optimization Techniques for the Acceleration of Alternating Projection Methods." Numerical
-Functional Analysis and Optimization, 32(10): 1041–66. 
-
-{pstd}
-Varadhan, Ravi and Roland, Christophe. (2008). "Simple and Globally
-Convergent Methods for Accelerating the Convergence of Any EM
-Algorithm."" Scandinavian Journal of Statistics, 35(2): 335–353.
-
-{pstd}
-Ravi Varadhan (2016). "SQUAREM: Squared Extrapolation Methods for
-Accelerating EM-Like Monotone Algorithms." R package version 2016.8-2.
-https://CRAN.R-project.org/package=SQUAREM
+See
+{browse "http://gtools.readthedocs.io/en/latest/usage/gstats_hdfe/index.html#references":online documentation}
+for the list of references.
 
 {title:Also see}
 

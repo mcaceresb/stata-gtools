@@ -89,9 +89,14 @@ open:
 # ---------------------------------------------------------------------
 # Gtools flags
 
-SPI = 2.0
 SPIVER = v2
-CFLAGS = -Wall -O3 $(OSFLAGS)
+SPI = 2.0
+GTOOLSOMP? = 0
+ifeq ($(GTOOLSOMP),1)
+	CFLAGS = -Wall -O3 $(OSFLAGS) -DGTOOLSOMP=1 -fopenmp
+else
+	CFLAGS = -Wall -O3 $(OSFLAGS)
+endif
 
 # ---------------------------------------------------------------------
 # OS parsing

@@ -11,6 +11,8 @@ void GtoolsHashInit (
     GtoolsHashInfo->allocSizes     = 0;
     GtoolsHashInfo->allocPositions = 0;
     GtoolsHashInfo->allocIndex     = 0;
+    GtoolsHashInfo->allocIndexj    = 0;
+    GtoolsHashInfo->allocNj        = 0;
     GtoolsHashInfo->allocInfo      = 0;
     GtoolsHashInfo->allocHash1     = 0;
     GtoolsHashInfo->allocHash2     = 0;
@@ -23,15 +25,19 @@ void GtoolsHashInit (
     GtoolsHashInfo->kvars     = kvars;
     GtoolsHashInfo->types     = types;
     GtoolsHashInfo->invert    = invert;
+    GtoolsHashInfo->radixOK   = 0;
+    GtoolsHashInfo->bijectOK  = 0;
 
     // Misc
-    GtoolsHashInfo->hdfeBufferAlloc = 0;
-    GtoolsHashInfo->hdfeFallback    = 0;
-    GtoolsHashInfo->hdfeMaxIter     = 0;
-    GtoolsHashInfo->hdfeIter        = 0;
-    GtoolsHashInfo->hdfeTraceIter   = 0;
-    GtoolsHashInfo->hdfeFeval       = 0;
-    GtoolsHashInfo->hdfeRc          = 0;
+    GtoolsHashInfo->hdfeBufferAlloc     = 0;
+    GtoolsHashInfo->hdfeMeanBufferAlloc = 0;
+    GtoolsHashInfo->hdfeFallback        = 0;
+    GtoolsHashInfo->hdfeMaxIter         = 0;
+    GtoolsHashInfo->hdfeIter            = 0;
+    GtoolsHashInfo->hdfeTraceIter       = 0;
+    GtoolsHashInfo->hdfeFeval           = 0;
+    GtoolsHashInfo->hdfeRc              = 0;
+    GtoolsHashInfo->hdfeStandardize     = 0;
 
     GtoolsHashInfo->sizes = calloc(kvars, sizeof *GtoolsHashInfo->sizes);
     // if ( GtoolsHashInfo->sizes == NULL ) return (17902);
@@ -55,6 +61,14 @@ void GtoolsHashFree (struct GtoolsHash *GtoolsHashInfo)
         free (GtoolsHashInfo->index);
     }
 
+    if ( GtoolsHashInfo->allocIndexj ) {
+        free (GtoolsHashInfo->indexj);
+    }
+
+    if ( GtoolsHashInfo->allocNj ) {
+        free (GtoolsHashInfo->nj);
+    }
+
     if ( GtoolsHashInfo->allocInfo ) {
         free (GtoolsHashInfo->info);
     }
@@ -73,6 +87,10 @@ void GtoolsHashFree (struct GtoolsHash *GtoolsHashInfo)
 
     if ( GtoolsHashInfo->hdfeBufferAlloc ) {
         free (GtoolsHashInfo->hdfeBuffer);
+    }
+
+    if ( GtoolsHashInfo->hdfeMeanBufferAlloc ) {
+        free (GtoolsHashInfo->hdfeMeanBuffer);
     }
 
     GtoolsHashInfo->x      = NULL;
@@ -95,6 +113,16 @@ void GtoolsHashFreePartial (struct GtoolsHash *GtoolsHashInfo)
     if ( GtoolsHashInfo->allocHash3 ) {
         free (GtoolsHashInfo->hash3);
         GtoolsHashInfo->allocHash3 = 0;
+    }
+
+    if ( GtoolsHashInfo->allocIndexj ) {
+        free (GtoolsHashInfo->indexj);
+        GtoolsHashInfo->allocIndexj = 0;
+    }
+
+    if ( GtoolsHashInfo->allocNj ) {
+        free (GtoolsHashInfo->nj);
+        GtoolsHashInfo->allocNj = 0;
     }
 }
 

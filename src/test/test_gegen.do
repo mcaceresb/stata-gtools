@@ -588,6 +588,7 @@ program checks_gegen
     assert reldif(_qg12, _ge15) < 1e-6 | (mi(_qg12) & mi(_ge15))
     assert reldif(_ge16, _ge14) < 1e-6 | (mi(_ge16) & mi(_ge14))
 
+    exit 0
 end
 
 capture program drop checks_inner_egen

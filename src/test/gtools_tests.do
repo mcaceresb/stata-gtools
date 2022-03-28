@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Mar 15 00:56:24 EDT 2022
+* Updated: Mon Mar 28 12:04:05 EDT 2022
 * Purpose: Unit tests for gtools
-* Version: 1.9.0
+* Version: 1.9.1
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -52,6 +52,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do gtools_tests.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
         * qui do test_gduplicates.do
@@ -81,7 +82,7 @@ program main
         * qui do docs/examples/gstats_summarize.do
         * qui do docs/examples/gstats_transform.do
         * qui do docs/examples/gstats_winsor.do
-        * qui do docs/examples/gstats_residualize.do
+        * qui do docs/examples/gstats_hdfe.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 
@@ -576,7 +577,5 @@ program quickGini, sortpreserve
 end
 
 * ---------------------------------------------------------------------
-* Run the things
-
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

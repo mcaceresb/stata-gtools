@@ -112,6 +112,8 @@ program checks_toplevelsof
 
     gtop ix, mata(hi) silent
     * gtop ix, mata(hi) silent ntop(.) alpha
+
+    exit 0
 end
 
 capture program drop checks_inner_toplevelsof

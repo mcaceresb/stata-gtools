@@ -10,7 +10,7 @@ Efficiently absorb fixed effects (i.e. residualize variables).
     `gstats hdfe` is in beta; see [missing features](#missing-features).
     (To enable beta, define `global GTOOLS_BETA = 1`.)
 
-`gstats hdfe` (alias `gstats residualize`) provides a fast way of 
+`gstats hdfe` (alias `gstats residualize`) provides a fast way of
 absorbing high-dimensional fixed effects (HDFE). It saves the number of levels
 in each absorbed variable, accepts weights, and optionally takes `by()`
 as an argument (in this case ancillary information is not saved by
@@ -25,7 +25,7 @@ Syntax
 </br>
 <span class="codespan">&emsp;&emsp;&emsp; {gen() | prefix() | replace} <span style="font-style:italic;">options</span>] </span></p>
 
-If none of `gen()`, `prefix()`, or `replace` are specified then `target=source` 
+If none of `gen()`, `prefix()`, or `replace` are specified then `target=source`
 syntax must be supplied instead of `varlist`:
 
 ```stata
@@ -64,9 +64,9 @@ Options
 
 - `absorbmissing` Treat missing absorb levels as a group instead of dropping them.
 
-- `algorithm(str)` Algorithm used to absorb HDFE: SQUAREM (squared extrapolation;
-            default), CG (conjugate gradient),  MAP (alternating
-            projections), Hybrid (CG with SQUAREM fallback).
+- `algorithm(str)` Algorithm used to absorb HDFE: CG (conjugate gradient; default)
+            MAP (alternating projections), SQUAREM (squared extrapolation),
+            IT (Irons and Tuck).
 
 - `maxiter(int)` Maximum number of algorithm iterations (default
             100,000). Pass `.` for unlimited iterations.
@@ -77,6 +77,11 @@ Options
             criteria than the squared norm and setting the tolerance too
             low might negatively impact performance or with some algorithms
             run into numerical precision problems.
+
+- `traceiter` Trace algorithm iterations.
+
+- `standardize` Standardize variables before algorithm (may be faster but
+            is slighty less precise).
 
 ### Gtools options
 
@@ -115,11 +120,11 @@ Stored results
 
 `gstats hdfe` stores the following in r():
 
-    Macros         
+    Macros
 
       r(algorithm)   algorithm used for HDFE absorption
 
-    Scalars        
+    Scalars
 
       r(N)           number of non-missing observations
       r(J)           number of by() groups
@@ -128,7 +133,7 @@ Stored results
       r(iter)        (without by()) iterations of absorption algorithm
       r(feval)       (without by()) function evaluations in absorption algorithm
 
-    Matrices       
+    Matrices
 
       r(nabsorb)     (without by()) vector with number of levels in each absorb variable
 
@@ -210,7 +215,7 @@ Missing Features
 ----------------
 
 - Check whether it's mathematically OK to apply SQUAREM. In general it's meant
-  for contractions but my understanding is that it can be applied to any 
+  for contractions but my understanding is that it can be applied to any
   monotonically convergent algorithm.
 
 - Improve convergence criterion. Current criterion may not be sensible.
@@ -274,41 +279,55 @@ disp r(feval)
 timer off 3
 
 timer on 4
-* equivalent to cg
-qui reghdfe x, absorb(g1 g2 g3) resid(x4) acceleration(cg)
+gstats hdfe x4 = x, absorb(g1 g2 g3) algorithm(it) bench(2)
+disp r(feval)
 timer off 4
 
 timer on 5
-* equivalent to map
-qui reghdfe x, absorb(g1 g2 g3) resid(x5) acceleration(none)
+* equivalent to cg
+qui reghdfe x, absorb(g1 g2 g3) resid(x5) acceleration(cg)
 timer off 5
+
+timer on 6
+* equivalent to map
+qui reghdfe x, absorb(g1 g2 g3) resid(x6) acceleration(none)
+timer off 6
 
 assert reldif(x1, x2) < 1e-6
 assert reldif(x1, x3) < 1e-6
 assert reldif(x1, x4) < 1e-6
 assert reldif(x1, x5) < 1e-6
+assert reldif(x1, x6) < 1e-6
 
 timer list
 
-    1:      5.07 /        1 =       5.0740
-    2:     11.62 /        1 =      11.6160
-    3:      4.81 /        1 =       4.8120
-    4:     64.03 /        1 =      64.0290
-    5:     44.51 /        1 =      44.5050
+   1:      2.73 /        1 =       2.7260
+   2:      2.94 /        1 =       2.9430
+   3:      2.46 /        1 =       2.4620
+   4:      2.90 /        1 =       2.8980
+   5:     41.24 /        1 =      41.2390
+   6:     44.05 /        1 =      44.0450
 ```
 
 References
 ----------
 
-The idea for this function is from Correia (2017). The conjugate
+The idea for this function is from Correia (2017a). The conjugate
 gradient algorithm is from Hernández-Ramos, Escalante, and Raydan
-(2011). The SQUAREM algorithm is from Varadhan and Roland (2008) and
-Varadhan (2016).
+(2011) and implemented following Correia (2017b).  The SQUAREM algorithm
+is from Varadhan and Roland (2008) and Varadhan (2016). Irons and Tuck
+(1969) method implemented following Ramière and Helfer (2015).
 
-- Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)
+- Correia, Sergio (2017a). "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)
+
+- Correia Sergio (2017b). "reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects." Statistical Software Components S457874, Boston College Department of Economics. Accessed March 6th, 2022. Available at [https://ideas.repec.org/c/boc/bocode/s457874.html](https://ideas.repec.org/c/boc/bocode/s457874.html)
 
 - Hernández-Ramos, Luis M., René Escalante, and Marcos Raydan. 2011. "Unconstrained Optimization Techniques for the Acceleration of Alternating Projection Methods." Numerical Functional Analysis and Optimization, 32(10): 1041–66.
 
 - Varadhan, Ravi and Roland, Christophe. 2008. "Simple and Globally Convergent Methods for Accelerating the Convergence of Any EM Algorithm."" Scandinavian Journal of Statistics, 35(2): 335–353.
 
-- Ravi Varadhan (2016). "SQUAREM: Squared Extrapolation Methods for Accelerating EM-Like Monotone Algorithms." R package version 2016.8-2. https://CRAN.R-project.org/package=SQUAREM
+- Varadhan, Ravi (2016). "SQUAREM: Squared Extrapolation Methods for Accelerating EM-Like Monotone Algorithms." R package version 2016.8-2. https://CRAN.R-project.org/package=SQUAREM
+
+- Irons, B. M., Tuck, R. C. (1969). "A version of the Aitken accelerator for computer iteration." International Journal for Numerical Methods in Engineering 1(3): 275–277.
+
+- Ramière, I., Helfer, T. (2015). "Iterative residual-based vector methods to accelerate fixed point iterations." Computers & Mathematics with Applications 70(9): 2210–2226

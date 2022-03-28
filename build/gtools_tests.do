@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Tue Mar 15 00:56:24 EDT 2022
+* Updated: Mon Mar 28 12:04:05 EDT 2022
 * Purpose: Unit tests for gtools
-* Version: 1.9.0
+* Version: 1.9.1
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -52,6 +52,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do gtools_tests.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
         * qui do test_gduplicates.do
@@ -574,8 +575,6 @@ program quickGini, sortpreserve
         }
     }
 end
-
-* ---------------------------------------------------------------------
 capture program drop checks_gcollapse
 program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
@@ -983,6 +982,8 @@ program checks_gcollapse
     assert  mi(ns[2]) &  mi(rns[2])
     assert !mi(ns[1]) & !mi(rns[1])
     assert (nm[1] == 0) & (nm[2] == 5)
+
+    exit 0
 end
 
 capture program drop checks_inner_collapse
@@ -1942,6 +1943,7 @@ program compare_inner_collapse
             `wgen_i'
             local wgt wgt(both `wcall_i')
         }
+save /tmp/tmpd.dta, replace
         _compare_inner_collapse `anything' if random2 > 0, `options' `wgt' tol(`tol')
     restore, preserve
         if ( `"`wfoo'"' == "mix" ) {
@@ -2820,6 +2822,8 @@ program checks_gcontract
     assert _rc == 2000
     cap gcontract x if w == 0
     assert _rc == 2000
+
+    exit 0
 end
 
 capture program drop checks_inner_contract
@@ -3240,6 +3244,8 @@ program checks_gquantiles
     assert _rc == 198
     fasterxtile gx2 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(a) strict nq(100)
     assert gx2 == .
+
+    exit 0
 end
 
 capture program drop checks_inner_gquantiles
@@ -4510,6 +4516,8 @@ program checks_gquantiles_by
         _checks_gquantiles_by strL1 -strL2,       `options' `forcestrl'
         _checks_gquantiles_by strL1 strL2  strL3, `options' `forcestrl'
     }
+
+    exit 0
 end
 
 capture program drop _checks_gquantiles_by
@@ -5711,6 +5719,7 @@ program checks_gegen
     assert reldif(_qg12, _ge15) < 1e-6 | (mi(_qg12) & mi(_ge15))
     assert reldif(_ge16, _ge14) < 1e-6 | (mi(_ge16) & mi(_ge14))
 
+    exit 0
 end
 
 capture program drop checks_inner_egen
@@ -6145,6 +6154,8 @@ program checks_unique
     replace y = 0
     gunique y, by(x) gen(nuniq) replace
     assert nuniq == 1
+
+    exit 0
 end
 
 capture program drop checks_inner_unique
@@ -6727,6 +6738,8 @@ program checks_levelsof
     mata hi.desc()
     mata hi.getPrinted("%16.0g", 1)
     mata hi.desc()
+
+    exit 0
 end
 
 capture program drop checks_inner_levelsof
@@ -7284,6 +7297,8 @@ program checks_toplevelsof
 
     gtop ix, mata(hi) silent
     * gtop ix, mata(hi) silent ntop(.) alpha
+
+    exit 0
 end
 
 capture program drop checks_inner_toplevelsof
@@ -7697,6 +7712,8 @@ program checks_isid
     replace z = 1 in 1/2
     cap noi gisid x y z, v
     assert _rc == 459
+
+    exit 0
 end
 
 capture program drop checks_inner_isid
@@ -8282,6 +8299,7 @@ program checks_greshape
     restore
         greshape long x z, by(i) key(var)
 
+    exit 0
 end
 
 capture program drop compare_greshape
@@ -9211,37 +9229,38 @@ capture program drop checks_gregress
 program checks_gregress
     basic_gregress
     coll_gregress
+    exit 0
 end
 
 capture program drop basic_gregress
 program basic_gregress
     local tol 1e-8
 
-    // Temporary; testing out backing out the FE
-    // -----------------------------------------
-    //
-    // global GTOOLS_BETA = 1
-    //
-    // clear
-    // set obs 30
-    // gen x = rnormal()
-    // gen y = ((x + rnormal()/2) > 0)
-    // gen a = mod(_n, 4)
-    // tab a, gen(_a)
-    // logit y x _a*, r noconstant
-    // gglm y x, absorb(a) pred(_xbd_) family(binomial)
-    // mata GtoolsLogit.print()
-    // gegen _tag_ = tag(a)
-    // mata editmissing(sort((st_data(., "a", "_tag_"), st_data(., "x _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
-    // 
-    // sysuse auto, clear
-    // keep foreign price mpg rep78
-    // tab rep78, gen(_rep78)
-    // logit foreign price mpg _rep78*, r noconstant
-    // gglm foreign price mpg, robust absorb(rep78) pred(_xbd_) family(binomial)
-    // mata GtoolsLogit.print()
-    // gegen _tag_ = tag(rep78)
-    // mata editmissing(sort((st_data(., "rep78", "_tag_"), st_data(., "price mpg _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
+    * Temporary; testing out backing out the FE
+    * -----------------------------------------
+    *
+    * global GTOOLS_BETA = 1
+    *
+    * clear
+    * set obs 30
+    * gen x = rnormal()
+    * gen y = ((x + rnormal()/2) > 0)
+    * gen a = mod(_n, 4)
+    * tab a, gen(_a)
+    * logit y x _a*, r noconstant
+    * gglm y x, absorb(a) pred(_xbd_) family(binomial)
+    * mata GtoolsLogit.print()
+    * gegen _tag_ = tag(a)
+    * mata editmissing(sort((st_data(., "a", "_tag_"), st_data(., "x _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
+    * 
+    * sysuse auto, clear
+    * keep foreign price mpg rep78
+    * tab rep78, gen(_rep78)
+    * logit foreign price mpg _rep78*, r noconstant
+    * gglm foreign price mpg, robust absorb(rep78) pred(_xbd_) family(binomial)
+    * mata GtoolsLogit.print()
+    * gegen _tag_ = tag(rep78)
+    * mata editmissing(sort((st_data(., "rep78", "_tag_"), st_data(., "price mpg _xbd_", "_tag_") * (-GtoolsLogit.b' \ 1)), 1), 0)
 
 disp ""
 disp "----------------------"
@@ -11168,6 +11187,7 @@ program checks_gstats
     checks_gstats_summarize
     checks_gstats_transform
     checks_gstats_transform nogreedy
+    exit 0
 end
 
 capture program drop compare_gstats
@@ -11190,110 +11210,6 @@ program compare_gstats
     compare_gstats_transform, nogreedy
     compare_gstats_transform, nogreedy weights
 end
-
-
-
-clear
-set obs 20
-gen fe1 = _n * 1.5
-expand 30
-bys fe1: gen fe2 = _n * 2.5
-replace fe2 = fe2 + ((fe1 / 2) - 1) * 7.5
-expand 50
-gen double fe4 = _n * 5.27
-gen fe3 = string(_n * 5.27)
-gen y = rnormal()
-gen x = rnormal()
-global GTOOLS_BETA = 1
-gregress y x, absorb(fe1 fe2)
-save /tmp/tmp.dta, replace
-
-from time import time
-import pandas as pd
-import pyhdfe
-
-df = pd.read_stata('/tmp/tmp.dta')
-timer = time()
-Algorithm = pyhdfe.create(df[['fe1', 'fe2']].values)
-print(f"{time() - timer:.3f}")
-Algorithm.residualize(df[['y']].values)
-print(f"{time() - timer:.3f}")
-
-timer = time()
-Algorithm = pyhdfe.create(df[['fe1', 'fe2', 'fe4']].values)
-print(f"{time() - timer:.3f}")
-Algorithm.residualize(df[[ 'y']].values)
-print(f"{time() - timer:.3f}")
-
-timer = time()
-Algorithm = pyhdfe.create(df[['fe4']].values)
-print(f"{time() - timer:.3f}")
-xx = Algorithm.residualize(df[['x', 'y']].values)
-print(f"{time() - timer:.3f}")
-
-*   clear
-*   set obs 200
-*   gen fedbl1 = _n * 1.5
-*   expand 30
-*   bys fedbl1: gen fedbl2 = _n * 2.5
-*   replace fedbl2 = fedbl2 + ((fedbl1 / 2) - 1) * 7.5
-*   expand 50
-*   gen double fedbl3 = _n * 5.27
-*   gen double fedbl4 = int((_N / 100)  * rnormal()) / 100
-*   gen double fedbl5 = int((_N / 10000) * rnormal()) / 100
-*   gen double w1 = runiform()
-*   gen long   w2 = int(_N * runiform())
-*   gen y = rnormal()
-*   gen x = rnormal()
-*   save /tmp/tmp.dta, replace
-
-* use /tmp/tmp.dta, clear
-* local fes fedbl1 fedbl2
-* local fes fedbl4 fedbl5
-* set rmsg on
-* gstats hdfe y x, absorb(`fes') prefix(_hdfe1_) bench(3) method(map)
-* return list
-* gstats hdfe y x, absorb(`fes') prefix(_hdfe2_) bench(3) method(squarem)
-* return list
-* gstats hdfe y x, absorb(`fes') prefix(_hdfe3_) bench(3) method(cg) trace
-* return list
-* gstats hdfe y x, absorb(`fes') prefix(_hdfe4_) bench(3) method(it) trace
-* return list
-* gen difx = abs(_hdfe2_x - _hdfe3_x)
-* gen dify = abs(_hdfe2_y - _hdfe3_y)
-* sum difx dify
-* * use this for by compare
-* gregress y x, absorb(`fes') prefix(hdfe(_ghdfe_)) bench(3)
-
-* python
-* from time import time
-* import pyhdfe
-* import pandas as pd
-* df = pd.read_stata('/tmp/tmp.dta')
-* df['zero'] = 0
-*
-* timer = time()
-* Algorithm = pyhdfe.create(df[['fedbl1', 'fedbl2']].values)
-* print(f"{time() - timer:.3f}")
-* _ = Algorithm.residualize(df[['x', 'y']].values)
-* print(f"{time() - timer:.3f}")
-*
-* timer = time()
-* Algorithm = pyhdfe.create(df[['fedbl4', 'fedbl5']].values)
-* print(f"{time() - timer:.3f}")
-* _ = Algorithm.residualize(df[['x', 'y']].values)
-* print(f"{time() - timer:.3f}")
-* end
-
-
-
-
-
-
-
-
-
-
 
 ***********************************************************************
 *                            Compare hdfe                             *
@@ -11446,10 +11362,10 @@ program checks_gstats_hdfe
                         cap drop _*hdfe*_*
 
                         mata printf("    `missing' `ifinstr`ifin'' `wgt`w'' `fes'")
-                        qui gregress y x `wgt`w'' `ifin`ifin'', absorb(`fes') mata(,nob nose) prefix(hdfe(_ghdfe_)) hdfetol(1e-12)
+                        qui gregress y x `wgt`w'' `ifin`ifin'', absorb(`fes') mata(,nob nose) prefix(hdfe(_ghdfe_)) hdfetol(1e-12) maxiter(.)
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe1_) method(squarem) tol(1e-12) maxiter(.)
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe2_) method(map)     tol(1e-12) maxiter(.)
-                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe3_) method(hybrid)  tol(1e-12) maxiter(.)
+                        qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe3_) method(cg)      tol(1e-12) maxiter(.)
                         qui gstats hdfe y x `wgt`w'' `ifin`ifin'', absorb(`fes') prefix(_ghdfe4_) method(it)      tol(1e-12) maxiter(.)
 
                         forvalues i = 1 / 4 {
@@ -11476,11 +11392,11 @@ program checks_gstats_hdfe
                             cap reghdfe x `wgt`w'' `ifin`ifin'', absorb(`fes') res(_hdfe_x) tol(1e-12) keepsingletons
                         }
                         if ( _rc == 0 ) {
-                            assert reldif(_ghdfe1_y, _hdfe_y)  < 1e-6
-                            assert reldif(_ghdfe1_x, _hdfe_x)  < 1e-6
+                            assert reldif(_ghdfe3_y, _hdfe_y)  < 1e-6
+                            assert reldif(_ghdfe3_x, _hdfe_x)  < 1e-6
                             if ( (`missing' > 1) | (`ifin' > 1) ) {
-                                assert mi(_ghdfe1_y) if mi(_hdfe_y)
-                                assert mi(_ghdfe1_x) if mi(_hdfe_x)
+                                assert mi(_ghdfe3_y) if mi(_hdfe_y)
+                                assert mi(_ghdfe3_x) if mi(_hdfe_x)
                             }
                             local yeshdfe `yeshdfe' reghdfe
                         }
@@ -11529,7 +11445,9 @@ program compare_gstats_hdfe
     qui `noisily' gen_data, n(500)
     qui expand 100
     qui `noisily' random_draws, random(2) double
-    gen long   ix  = _n
+    gen long   ix    = _n
+    gen double ixdbl = _n * 3.14159265
+    gen str    ixstr = "ix" + string(_n)
     gen double ru  = runiform() * 500
     qui replace ix = . if mod(_n, 500) == 0
     qui replace ru = . if mod(_n, 500) == 0
@@ -11612,6 +11530,12 @@ program compare_inner_gstats_hdfe
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special2)
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special3)
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(special1 special2 special3)
+
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ix)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ixdbl)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ixstr)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ix ixdbl ixstr)
+
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12)
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_32 str_4)
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1)
@@ -11623,16 +11547,26 @@ program compare_inner_gstats_hdfe
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 double2 double3)
     compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double? str_* int?)
 
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_12)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_12 str_32 str_4)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)    by(double1)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)    by(double1 double2 double3)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1 int2)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2) by(int1 int2 int3)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(str_32 int3 double3)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(int1 double2 double3)
-    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(double? str_* int?)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(ix)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(ixdbl)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(ixstr)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)       by(ix ixdbl ixstr)
+
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ix)                 by(special1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(ixstr)              by(special2)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)          by(special3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double? str_* int?) by(special1 special2 special3)
+
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)          by(str_12)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)          by(str_12 str_32 str_4)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)       by(double1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(str_12 str_4)       by(double1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2)    by(int1)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2)    by(int1 int2)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double1 double2)    by(int1 int2 int3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)          by(str_32 int3 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(int1 int2)          by(int1 double2 double3)
+    compare_fail_gstats_hdfe versus_gstats_hdfe `if' `in', `options' `wgt' absorb(double? str_* int?) by(double? str_* int?)
 end
 
 capture program drop compare_fail_gstats_hdfe
@@ -11673,7 +11607,7 @@ program versus_gstats_hdfe, rclass
 
     timer clear
     timer on 42
-    qui gstats hdfe random1 random2 `if' `in' `wgt', `options' absorb(`absorb') by(`by') prefix(_hdfe1_) tol(1e-12)
+    qui gstats hdfe random1 random2 `if' `in' `wgt', `options' absorb(`absorb') by(`by') prefix(_hdfe1_) tol(1e-12) maxiter(.)
     timer off 42
     qui timer list
     local time_ghdfe = r(t42)
@@ -13066,6 +13000,8 @@ program checks_duplicates
     qui gduplicates report foreign make,  `options'
     assert r(unique_value) == _N
     qui gduplicates report idx,           `options' gtools(v bench)
+
+    exit 0
 end
 
 capture program drop checks_inner_duplicates
@@ -13384,6 +13320,8 @@ program checks_hashsort
     hashsort x, skipcheck v
     hashsort x, gen(y) replace
     assert "`:sortedby'" == "x"
+
+    exit 0
 end
 
 capture program drop checks_inner_hashsort
@@ -13633,8 +13571,8 @@ program compare_gsort, rclass
     local rs = `time_sort'  / `time_hashsort'
     di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
 end
-* ---------------------------------------------------------------------
-* Run the things
+end
 
+* ---------------------------------------------------------------------
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

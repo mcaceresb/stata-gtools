@@ -47,24 +47,31 @@ disp r(feval)
 timer off 3
 
 timer on 4
-* equivalent to cg
-qui reghdfe x, absorb(g1 g2 g3) resid(x4) acceleration(cg)
+gstats hdfe x4 = x, absorb(g1 g2 g3) algorithm(it) bench(2)
+disp r(feval)
 timer off 4
 
 timer on 5
-* equivalent to map
-qui reghdfe x, absorb(g1 g2 g3) resid(x5) acceleration(none)
+* equivalent to cg
+qui reghdfe x, absorb(g1 g2 g3) resid(x5) acceleration(cg)
 timer off 5
+
+timer on 6
+* equivalent to map
+qui reghdfe x, absorb(g1 g2 g3) resid(x6) acceleration(none)
+timer off 6
 
 assert reldif(x1, x2) < 1e-6
 assert reldif(x1, x3) < 1e-6
 assert reldif(x1, x4) < 1e-6
 assert reldif(x1, x5) < 1e-6
+assert reldif(x1, x6) < 1e-6
 
 timer list
 
-*    1:      5.07 /        1 =       5.0740
-*    2:     11.62 /        1 =      11.6160
-*    3:      4.81 /        1 =       4.8120
-*    4:     64.03 /        1 =      64.0290
-*    5:     44.51 /        1 =      44.5050
+*    1:      2.73 /        1 =       2.7260
+*    2:      2.94 /        1 =       2.9430
+*    3:      2.46 /        1 =       2.4620
+*    4:      2.90 /        1 =       2.8980
+*    5:     41.24 /        1 =      41.2390
+*    6:     44.05 /        1 =      44.0450

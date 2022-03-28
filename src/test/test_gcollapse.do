@@ -405,6 +405,8 @@ program checks_gcollapse
     assert  mi(ns[2]) &  mi(rns[2])
     assert !mi(ns[1]) & !mi(rns[1])
     assert (nm[1] == 0) & (nm[2] == 5)
+
+    exit 0
 end
 
 capture program drop checks_inner_collapse
@@ -1364,6 +1366,7 @@ program compare_inner_collapse
             `wgen_i'
             local wgt wgt(both `wcall_i')
         }
+save /tmp/tmpd.dta, replace
         _compare_inner_collapse `anything' if random2 > 0, `options' `wgt' tol(`tol')
     restore, preserve
         if ( `"`wfoo'"' == "mix" ) {

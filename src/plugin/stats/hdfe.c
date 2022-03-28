@@ -2,11 +2,9 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
 {
     FILE *fghdfeabs;
     char GTOOLS_GHDFEABS_FILE[st_info->gfile_ghdfeabs];
-    GT_size j, k, offset, nonmiss, methodk, *njptr;
+    GT_size j, k, nonmiss, *njptr;
     ST_double *xptr, *wptr;
     ST_retcode rc = 0;
-
-printf("debug15\n");
     GT_size   N         = st_info->N;
     GT_size   J         = st_info->J;
     GT_size   nj_max    = st_info->nj_max;
@@ -14,99 +12,62 @@ printf("debug15\n");
     GT_bool   method    = st_info->hdfe_method;
     ST_double hdfetol   = st_info->hdfe_hdfetol;
     GT_size   maxiter   = st_info->hdfe_maxiter;
-    GT_size   traceiter = st_info->hdfe_traceiter;
+    GT_bool   traceiter = st_info->hdfe_traceiter;
+    GT_bool   standard  = st_info->hdfe_standard;
     GT_size   kabs      = st_info->hdfe_absorb;
     GT_size   kx        = st_info->hdfe_kvars;
     GT_size   bytesabs  = st_info->hdfe_absorb_bytes;
     GT_size   *absoff   = st_info->hdfe_absorb_offsets;
     GT_int    *abstyp   = st_info->hdfe_absorb_types;
 
-printf("debug16\n");
-    switch ( method ) {
-        case 5:
-            methodk = nj_max * kx * 5; break;
-        case 4:
-            methodk = nj_max * kx * 4; break;
-        case 3:
-            methodk = nj_max * kx * 3; break;
-        case 2:
-            methodk = nj_max * kx * 4; break;
-        default:
-            methodk = 1; break;
-    }
-
-printf("debug17\n");
     if ( debug ) {
         sf_printf_debug("debug 1 (sf_stats_hdfe): Starting gstats hdfe.\n");
     }
 
-    clock_t timer = clock();
+    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
 
-    GtoolsGroupByTransform SaveGtoolsGroupByTransform;
-    GtoolsGroupByHDFE SaveGtoolsGroupByHDFE;
-
-    struct GtoolsHash *ghptr;
     struct GtoolsHash *AbsorbHashes = calloc(kabs, sizeof *AbsorbHashes);
 
-printf("debug18\n");
-    if ( st_info->wcode > 0 ) {
-        SaveGtoolsGroupByTransform = GtoolsGroupByTransformWeighted;
-        switch ( method ) {
-            case 5:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByIronsTuckWeighted; break;
-            case 4:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByCGWeighted; break;
-            case 3:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByCGWeighted; break;
-            case 2:
-                SaveGtoolsGroupByHDFE = GtoolsGroupBySQUAREMWeighted; break;
-            default:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByHDFEWeighted;
-        }
-    }
-    else {
-        SaveGtoolsGroupByTransform = GtoolsGroupByTransformUnweighted;
-        switch ( method ) {
-            case 5:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByIronsTuckUnweighted; break;
-            case 4:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByCGUnweighted; break;
-            case 3:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByCGUnweighted; break;
-            case 2:
-                SaveGtoolsGroupByHDFE = GtoolsGroupBySQUAREMUnweighted; break;
-            default:
-                SaveGtoolsGroupByHDFE = GtoolsGroupByHDFEUnweighted;
-        }
+    // NB; All weighted versions fall back to unweighted internals if weight is NULL
+    GtoolsAlgorithmHDFE AlgorithmHDFE;
+    switch ( method ) {
+        case 6:
+            AlgorithmHDFE = GtoolsAlgorithmBergeIronsTuck; break;
+        case 5:
+            AlgorithmHDFE = GtoolsAlgorithmIronsTuck; break;
+        case 3:
+            AlgorithmHDFE = GtoolsAlgorithmCG; break;
+        case 2:
+            AlgorithmHDFE = GtoolsAlgorithmSQUAREM; break;
+        default:
+            AlgorithmHDFE = GtoolsAlgorithmMAP; break;
     }
 
     ST_double *X        = calloc(N * kx,         sizeof *X);
     GT_size   *index_st = calloc(st_info->Nread, sizeof *index_st);
     GT_size   *nj       = calloc(J * (kabs + 1), sizeof *nj);
-    GT_bool   *absinv   = calloc(kabs,           sizeof *absinv);
     ST_double *njabs    = calloc(J * (kabs + 1), sizeof *njabs);
     GT_size   *maps     = calloc(kx,             sizeof *maps);
     ST_double *stats    = calloc(kx,             sizeof *stats);
-    ST_double *sqm_buff = calloc(methodk,        sizeof *sqm_buff);
-    ST_double *w        = calloc(st_info->wcode > 0? N: 1, sizeof *w);
     void      *FE       = calloc(N, bytesabs);
 
-printf("debug19\n");
     if ( X        == NULL ) return(sf_oom_error("sf_stats_hdfe", "X"));
     if ( index_st == NULL ) return(sf_oom_error("sf_stats_hdfe", "index_st"));
     if ( nj       == NULL ) return(sf_oom_error("sf_stats_hdfe", "nj"));
-    if ( absinv   == NULL ) return(sf_oom_error("sf_stats_hdfe", "absinv"));
     if ( njabs    == NULL ) return(sf_oom_error("sf_stats_hdfe", "njabs"));
     if ( stats    == NULL ) return(sf_oom_error("sf_stats_hdfe", "stats"));
     if ( maps     == NULL ) return(sf_oom_error("sf_stats_hdfe", "maps"));
-    if ( sqm_buff == NULL ) return(sf_oom_error("sf_stats_hdfe", "sqm_buff"));
-    if ( w        == NULL ) return(sf_oom_error("sf_stats_hdfe", "w"));
     if ( FE       == NULL ) return(sf_oom_error("sf_stats_hdfe", "FE"));
+
+    ST_double *w = NULL;
+    if ( st_info->wcode > 0 ) {
+        w = calloc(N, sizeof *w);
+        if ( w == NULL ) return(sf_oom_error("sf_stats_hdfe", "w"));
+    }
 
     // 1. Read
     // -------
 
-printf("debug20\n");
     njptr  = nj + J;
     for (j = 0; j < J; j++) {
         nj[j] = 0;
@@ -121,49 +82,37 @@ printf("debug20\n");
 
     sf_stats_hdfe_index(st_info, index_st);
 
-printf("debug21\n");
     if ( (rc = sf_stats_hdfe_read (st_info, X, w, FE, nj, index_st)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\thdfe step 1: Copied variables from Stata");
+        sf_running_timespec (&timer, "\thdfe step 1: Copied variables from Stata");
 
     // 2. Absorb
     // ---------
 
-printf("debug22\n");
-    offset = 0;
-    ghptr  = AbsorbHashes;
-    for (k = 0; k < kabs; k++, ghptr++) {
-        absinv[k] = 0;
-        GtoolsHashInit(ghptr, FE + offset, N, 1, abstyp + k, absinv + k);
-        if ( (rc = GtoolsHashSetup(ghptr)) ) {
-            if ( rc == 17902 ) {
-                return (sf_oom_error("sf_stats_hdfe", "AbsorbHashes"));
-            }
-            else {
-                goto exit;
-            }
-        }
-        offset += N * absoff[k];
+    rc = GtoolsHashSetupAbsorb(FE, AbsorbHashes, N, kabs, abstyp, absoff);
+    if (rc == 17902) return(sf_oom_error("sf_stats_hdfe", "AbsorbHashes")); else if (rc) goto exit;
+
+    AbsorbHashes->hdfeMaxIter     = maxiter;
+    AbsorbHashes->hdfeTraceIter   = traceiter;
+    AbsorbHashes->hdfeStandardize = standard;
+
+    if ( kabs == 1 ) {
+        AbsorbHashes->hdfeMeanBuffer = calloc((w == NULL? 1: 2) * (GTOOLSOMP? kx: 1) * nj_max, sizeof *AbsorbHashes->hdfeMeanBuffer);
+        if ( AbsorbHashes->hdfeMeanBuffer == NULL ) return(sf_oom_error("sf_stats_hdfe", "hdfeMeanBuffer"));
+        AbsorbHashes->hdfeMeanBufferAlloc = 1;
     }
-    AbsorbHashes->hdfeBuffer    = sqm_buff;
-    AbsorbHashes->hdfeMaxIter   = maxiter;
-    AbsorbHashes->hdfeTraceIter = traceiter;
-    AbsorbHashes->hdfeFallback  = (method == 4);
 
     if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\thdfe step 2: Initialized absorb variables");
+        sf_running_timespec (&timer, "\thdfe step 2: Initialized absorb variables");
 
-printf("debug23\n");
     // 3. Transform
     // ------------
 
-printf("debug24\n");
     xptr = X; wptr = w;
     if ( (rc = sf_stats_hdfe_absorb(
                     AbsorbHashes,
-                    SaveGtoolsGroupByTransform,
-                    SaveGtoolsGroupByHDFE,
+                    AlgorithmHDFE,
                     stats,
                     maps,
                     J,
@@ -173,23 +122,25 @@ printf("debug24\n");
                     njptr,
                     xptr,
                     wptr,
-                    hdfetol)) ) {
+                    hdfetol,
+                    st_info->benchmark)) ) {
         goto exit;
     }
 
-printf("debug25\n");
     if ( st_info->benchmark > 1 ) {
         switch ( method ) {
+            case 6:
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Berge with Irons and Tuck)"); break;
             case 5:
-                sf_running_timer (&timer, "\thdfe step 3: Applied transform (Irons and Tuck)"); break;
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Irons and Tuck)"); break;
             case 4:
-                sf_running_timer (&timer, "\thdfe step 3: Applied transform (Hybrid)"); break;
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Hybrid)"); break;
             case 3:
-                sf_running_timer (&timer, "\thdfe step 3: Applied transform (Conjugate Gradient)"); break;
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Conjugate Gradient)"); break;
             case 2:
-                sf_running_timer (&timer, "\thdfe step 3: Applied transform (SQUAREM)"); break;
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (SQUAREM)"); break;
             default:
-                sf_running_timer (&timer, "\thdfe step 3: Applied transform (MAP)");
+                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (MAP)");
         }
     }
 
@@ -238,7 +189,7 @@ printf("debug25\n");
     if ( (rc = sf_stats_hdfe_write (st_info, X, nj, index_st)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
-        sf_running_timer (&timer, "\thdfe step 4: Saved to Stata");
+        sf_running_timespec (&timer, "\thdfe step 4: Saved to Stata");
 
     // 5. Exit
     // -------
@@ -254,12 +205,10 @@ exit:
     free(index_st);
     free(nj);
     free(njabs);
-    free(absinv);
     free(stats);
     free(maps);
-    free(w);
-    free(sqm_buff);
     free(FE);
+    if ( st_info->wcode > 0 ) free(w);
 
     return(rc);
 }
@@ -403,8 +352,7 @@ exit:
 
 ST_retcode sf_stats_hdfe_absorb(
     struct GtoolsHash *AbsorbHashes,
-    GtoolsGroupByTransform GtoolsGroupByTransform,
-    GtoolsGroupByHDFE GtoolsGroupByHDFE,
+    GtoolsAlgorithmHDFE AlgorithmHDFE,
     ST_double *stats,
     GT_size *maps,
     GT_size J,
@@ -414,72 +362,72 @@ ST_retcode sf_stats_hdfe_absorb(
     GT_size *njptr,
     ST_double *xptr,
     ST_double *wptr,
-    ST_double hdfetol)
+    ST_double hdfetol,
+    GT_size benchmark)
 {
     ST_retcode rc = 0;
     GT_size j, k, njobs;
-    struct GtoolsHash *ghptr;
+    struct timespec stimer; clock_gettime(CLOCK_REALTIME, &stimer);
+    ST_double *b = AbsorbHashes->hdfeMeanBuffer;
 
-printf("debug26\n");
-    // NOTE: nj[j] has obs net of missing values; need ALL obs for offset
-    if ( kabs == 1 ) {
-printf("debug27\n");
-        for (j = 0; j < J; j++) {
-            njobs = *njptr;
-            AbsorbHashes->nobs = nj[j];
-            if ( (rc = GtoolsHashPanel(AbsorbHashes)) ) {
-                if ( rc == 17902 ) {
-                    return (sf_oom_error("sf_stats_hdfe", "AbsorbHashes"));
-                }
-                else {
-                    goto exit;
-                }
-            }
-
-            AbsorbHashes->nobs = njobs;
-            *njptr = AbsorbHashes->nlevels;
-            njptr++;
-
-            GtoolsGroupByTransform(AbsorbHashes, stats, maps, xptr, wptr, xptr, kx);
-            GtoolsHashFreePartial(AbsorbHashes);
-            AbsorbHashes->offset += AbsorbHashes->nobs;
-
-            xptr += njobs * kx;
-            wptr += njobs;
+    // for level j
+    //     nj[j] has obs net of missing values; need ALL obs for offset
+    //     njptr has ALL obs in the first entry
+    for (j = 0; j < J; j++) {
+        njobs = *njptr;
+        rc = GtoolsHashPanelAbsorb(AbsorbHashes, kabs, nj[j]);
+        if (rc == 17902) return(sf_oom_error("sf_stats_hdfe", "GtoolsHashPanelAbsorb")); else if (rc) goto exit;
+        for (k = 0; k < kabs; k++, njptr++) {
+            *njptr = (AbsorbHashes + k)->nlevels;
+            (AbsorbHashes + k)->nobs = njobs;
         }
-    }
-    else if ( kabs > 1 ) {
-printf("debug28\n");
-        for (j = 0; j < J; j++) {
-printf("debug29\n");
-            njobs = *njptr;
-            ghptr = AbsorbHashes;
-            for (k = 0; k < kabs; k++, ghptr++) {
-                ghptr->nobs = nj[j];
-                if ( (rc = GtoolsHashPanel(ghptr)) ) {
-                    if ( rc == 17902 ) {
-                        return (sf_oom_error("sf_stats_hdfe", "AbsorbHashes"));
-                    }
-                    else {
-                        goto exit;
-                    }
+
+        if ( benchmark > 2 ) {
+            if ( GTOOLSOMP )
+                sf_running_timespec (&stimer, "\t\thdfe step 3.1: Set up absorb variables in parallel");
+            else
+                sf_running_timespec (&stimer, "\t\thdfe step 3.1: Set up absorb variables");
+        }
+
+        // NB: This could be done fully in parallel over the number of variables
+        if ( kabs == 1 ) {
+            GtoolsAbsorbHalperinBuffer(AbsorbHashes, kabs, xptr, wptr, xptr, kx, hdfetol, b);
+        }
+        else {
+            /**
+            #if GTOOLSOMP
+            #pragma omp parallel for \
+                shared(              \
+                    kabs,            \
+                    xptr,            \
+                    njobs,           \
+                    wptr,            \
+                    hdfetol,         \
+                    AbsorbHashes     \
+                )
+                // NB: number of iterations would be wrong with parallel
+                // execution!  TODO xx: Create a return structure with
+                // rc, iter, feval.  Grab rc here and set iter/feval to
+                // max? Can also ignore it with parallel execution.
+                for (k = 0; k < kx; k++) {
+                    rc = AlgorithmHDFE(AbsorbHashes, kabs, xptr + njobs * k, wptr, xptr + njobs * k, 1, hdfetol);
                 }
-                ghptr->nobs = njobs;
-                *njptr = ghptr->nlevels;
-                njptr++;
-            }
+            #else
+            #endif
+            **/
+            rc = AlgorithmHDFE(AbsorbHashes, kabs, xptr, wptr, xptr, kx, hdfetol);
+            if (rc == 17902) return(sf_oom_error("sf_stats_hdfe", "AlgorithmHDFE")); else if (rc) goto exit;
+        }
 
-printf("debug30\n");
-            GtoolsGroupByHDFE(AbsorbHashes, kabs, xptr, wptr, xptr, kx, hdfetol);
-            ghptr = AbsorbHashes;
-            for (k = 0; k < kabs; k++, ghptr++) {
-                GtoolsHashFreePartial(ghptr);
-                ghptr->offset += ghptr->nobs;
-            }
-            xptr += njobs * kx;
-            wptr += njobs;
+        GtoolsHashAbsorbByLoop(AbsorbHashes, kabs);
+        xptr += njobs * kx;
+        if ( wptr != NULL ) wptr += njobs;
 
-            if ( (rc = AbsorbHashes->hdfeRc) ) goto exit;
+        if ( benchmark > 2 ) {
+            if ( GTOOLSOMP )
+                sf_running_timespec (&stimer, "\t\thdfe step 3.2: Applied transform in parallel");
+            else
+                sf_running_timespec (&stimer, "\t\thdfe step 3.2: Applied transform");
         }
     }
 

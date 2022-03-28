@@ -139,6 +139,8 @@ program checks_levelsof
     mata hi.desc()
     mata hi.getPrinted("%16.0g", 1)
     mata hi.desc()
+
+    exit 0
 end
 
 capture program drop checks_inner_levelsof

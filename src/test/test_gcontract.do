@@ -89,6 +89,8 @@ program checks_gcontract
     assert _rc == 2000
     cap gcontract x if w == 0
     assert _rc == 2000
+
+    exit 0
 end
 
 capture program drop checks_inner_contract

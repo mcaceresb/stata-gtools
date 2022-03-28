@@ -53,6 +53,8 @@ program checks_isid
     replace z = 1 in 1/2
     cap noi gisid x y z, v
     assert _rc == 459
+
+    exit 0
 end
 
 capture program drop checks_inner_isid

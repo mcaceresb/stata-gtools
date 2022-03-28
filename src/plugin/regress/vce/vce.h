@@ -27,6 +27,7 @@ void (*gf_regress_ols_se) (ST_double *,  ST_double *,  ST_double *,  ST_double *
 void gf_regress_ols_seunw (ST_double *e, ST_double *w, ST_double *V, ST_double *se, GT_size *colix, GT_size N, GT_size kx, GT_size kmodel);
 void gf_regress_ols_sew   (ST_double *e, ST_double *w, ST_double *V, ST_double *se, GT_size *colix, GT_size N, GT_size kx, GT_size kmodel);
 void gf_regress_ols_sefw  (ST_double *e, ST_double *w, ST_double *V, ST_double *se, GT_size *colix, GT_size N, GT_size kx, GT_size kmodel);
+void gf_regress_ols_copyvcov (ST_double *V, ST_double *XX, GT_size kx, GT_size *colix);
 
 // Robust SE
 // ---------

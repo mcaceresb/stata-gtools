@@ -78,6 +78,8 @@ program checks_unique
     replace y = 0
     gunique y, by(x) gen(nuniq) replace
     assert nuniq == 1
+
+    exit 0
 end
 
 capture program drop checks_inner_unique

@@ -80,6 +80,8 @@ program checks_hashsort
     hashsort x, skipcheck v
     hashsort x, gen(y) replace
     assert "`:sortedby'" == "x"
+
+    exit 0
 end
 
 capture program drop checks_inner_hashsort

@@ -38,6 +38,8 @@ program checks_duplicates
     qui gduplicates report foreign make,  `options'
     assert r(unique_value) == _N
     qui gduplicates report idx,           `options' gtools(v bench)
+
+    exit 0
 end
 
 capture program drop checks_inner_duplicates

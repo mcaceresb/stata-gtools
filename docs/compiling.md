@@ -3,15 +3,28 @@ Compiling
 
 Compiling the plugin yourself can lead to further speed improvements
 because the optimization flags used by different compilers vary on
-different hardware and operating systems.  However, this is only
-recommended on Linux and OSX systems, where compiling is relatively
-easy.  In the Linux server where I use Stata, a locally compiled plugin
-ran 20-50% faster.
+different hardware and operating systems.  Further, some support for
+parallel processing can be implemented at compile time if the OpenMP
+library is available in your system. See [below](parallel-support) for
+a list of functions with OpenMP support at compile time. (NB: Parallel
+execution has not been optimized; YMMV on how big a difference it makes.)
 
-While compiling the plugin locally might also help with troubleshooting
-if the plugin failed to load, this scenario should be very rare.  Most
-systems should load the pre-compiled plugin; if yours doesn't, please
-file a bug report.
+Compiling is only recommended on Linux and OSX systems, where compiling
+is relatively easy.  In the Linux server where I use Stata, a locally
+compiled plugin ran 20-50% faster. While compiling the plugin locally
+might also help with troubleshooting if the plugin failed to load, this
+scenario should be very rare.  Most systems should load the pre-compiled
+plugin; if yours doesn't, please file a bug report.
+
+### Parallel Support
+
+Portions of these functions internals are executed in parallel if you
+compile `gtools` with OpenMP support (GTOOLSOMP flag):
+
+- `gstats hdfe`
+- `gregress`
+- `givregress`
+- `gglm`
 
 ### Requirements
 
@@ -55,6 +68,9 @@ make all   SPI=2.0 SPIVER=v2
 # Stata 14.1 and later
 make clean SPI=3.0 SPIVER=v3
 make all   SPI=3.0 SPIVER=v3
+
+# Parallel support
+make all   SPI=3.0 SPIVER=v3 GTOOLSOMP=1
 ```
 
 ### Unit tests

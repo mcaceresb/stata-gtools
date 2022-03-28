@@ -13,6 +13,11 @@ program gregress, rclass
         exit 198
     }
 
+    if ( ("${GTOOLS_GREGTABLE}" == "1")  & replay() ) {
+        Replay `0'
+        exit 0
+    }
+
     version 13.1
     global GREG_RC 0
     global GTOOLS_CALLER gregress
@@ -352,8 +357,70 @@ program gregress, rclass
     * Returns
     * -------
 
-    return scalar N      = `r(N)'
-    return scalar J      = `r(J)'
-    return scalar minJ   = `r(minJ)'
-    return scalar maxJ   = `r(maxJ)'
+    return scalar N     = `r(N)'
+    return scalar J     = `r(J)'
+    return scalar minJ  = `r(minJ)'
+    return scalar maxJ  = `r(maxJ)'
+    return local cmd    = "gregress"
+    return local mata: copy local saveGregressMata
+
+    if ( "${GTOOLS_GREGTABLE}" == "1" ) Display `saveGregressMata', touse(`touse')
+end
+
+capture program drop Replay
+program Replay, eclass
+    if ( (`"`r(cmd)'"' != "gregress") | (`"`r(mata)'"' == "") ) error 301
+    Display `r(mata)', repost `options'
+end
+
+capture program drop Display
+program Display, eclass
+    syntax namelist(max = 1), [repost touse(str) *]
+    tempname by
+    mata st_numscalar("`by'", `namelist'.by)
+    if ( `=scalar(`by')' == 0 ) {
+        tempname colnames sel nmiss
+        FreeMatrix b V
+        mata st_local("caller", `namelist'.caller)
+        mata st_local("setype", `namelist'.setype)
+        mata st_matrix("`b'", `namelist'.b[1, .])
+        mata st_matrix("`V'", `namelist'.Vcov)
+        mata `colnames' = `namelist'.xvarlist, J(1, GtoolsRegress.cons, "_cons")
+        mata `nmiss'    = missing(`namelist'.se)
+        mata `sel'      = selectindex(`namelist'.se :>= .)
+        mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']
+        mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
+        mata st_matrixrowstripe("`b'", ("", `namelist'.yvarlist[1]))
+        mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+        mata st_matrixrowstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+        if "`repost'" == "" {
+            if ( "`touse'" != "" ) qui count if `touse'
+            else qui count
+            ereturn post `b' `V', esample(`touse') obs(`r(N)')
+        }
+        else {
+            ereturn repost b = `b' V = `V'
+        }
+        if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
+        if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
+        if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
+        disp _n(1) "`caller' with `setype' SE"
+        _coef_table, `options'
+    }
+    else {
+        disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+    }
+end
+
+capture program drop FreeMatrix
+program FreeMatrix
+    local FreeCounter 0
+    local FreeMatrix
+    foreach FM of local 0 {
+        cap error 0
+        while ( _rc == 0 ) {
+            cap confirm matrix Gtools`++FreeCounter'
+            c_local `FM' Gtools`FreeCounter'
+        }
+    }
 end

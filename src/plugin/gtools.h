@@ -1,10 +1,18 @@
 #ifndef GTOOLS
 #define GTOOLS
 
+#ifndef GTOOLSOMP
+#define GTOOLSOMP 0
+#endif
+
+#if GTOOLSOMP
+#include "omp.h"
+#endif
+
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.9.0"
+#define GTOOLS_VERSION "1.9.1"
 
 /*
  * Style
@@ -81,6 +89,7 @@ struct StataInfo {
     GT_size   gfile_topmat;
     GT_size   gfile_gregb;
     GT_size   gfile_gregse;
+    GT_size   gfile_gregvcov;
     GT_size   gfile_gregclus;
     GT_size   gfile_gregabs;
     GT_size   gfile_ghdfeabs;
@@ -137,9 +146,10 @@ struct StataInfo {
     ST_double winsor_cuth;
     GT_size   winsor_kvars;
     GT_size   hdfe_kvars;
-    GT_size   hdfe_method;
+    GT_bool   hdfe_method;
     GT_size   hdfe_maxiter;
     GT_size   hdfe_traceiter;
+    GT_bool   hdfe_standard;
     ST_double hdfe_hdfetol;
     GT_size   hdfe_absorb;
     GT_bool   hdfe_matasave;
@@ -189,6 +199,10 @@ struct StataInfo {
     GT_size   gregress_absorb;
     GT_size   gregress_absorb_bytes;
     ST_double gregress_hdfetol;
+    GT_size   gregress_hdfemaxiter;
+    GT_bool   gregress_hdfetraceiter;
+    GT_bool   gregress_hdfestandard;
+    GT_bool   gregress_hdfemethod;
     GT_bool   gregress_savemata;
     GT_bool   gregress_savemb;
     GT_bool   gregress_savemse;

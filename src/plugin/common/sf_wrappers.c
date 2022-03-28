@@ -253,27 +253,6 @@ ST_retcode sf_oom_error (char *step_desc, char *obj_desc)
  *********************************************************************/
 
 /**
- * @brief Update a running timer based on gettimeofday()
- *
- * Prints a messasge to Stata that the running timer @timer was last set
- * @diff seconds ago. It then updates the timer to the current time.
- *
- * @param timer clock object containing time since last udpate
- * @param msg message to print before # of seconds
- * @return Print time since last update to Stata console
- */
-void sf_running_timespec (struct timespec *timer, const char *msg)
-{
-    struct timespec update; clock_gettime(CLOCK_REALTIME, &update);
-    double diff  = (double) (update.tv_nsec - timer->tv_nsec) / 1e9 +
-                   (double) (update.tv_sec  - timer->tv_sec);
-
-    sf_printf (msg);
-    sf_printf (" (%.3f seconds).\n", diff);
-    *timer = update;
-}
-
-/**
  * @brief Update a running timer and print a message to satata console
  *
  * Prints a messasge to Stata that the running timer @timer was last set

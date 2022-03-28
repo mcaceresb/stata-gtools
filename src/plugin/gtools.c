@@ -1465,8 +1465,8 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
 {
 
     ST_retcode rc = 0, rc_isid = 0;
-    struct timespec timer;  clock_gettime(CLOCK_REALTIME, &timer);
-    struct timespec stimer; clock_gettime(CLOCK_REALTIME, &stimer);
+    GTOOLS_TIMER(timer);
+    GTOOLS_TIMER(stimer);
 
     GTOOLS_CHAR(buf1, 32);
     GTOOLS_CHAR(buf2, 32);
@@ -1684,8 +1684,8 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     }
 
     if ( st_info->benchmark > 1 ) {
-        sf_running_timespec (&timer, "\tPlugin step 1: Read in by variables");
-        clock_gettime(CLOCK_REALTIME, &stimer);
+        GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 1: Read in by variables");
+        GTOOLS_UPDATE_TIMER(stimer);
     }
 
 
@@ -2025,7 +2025,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
     else {
         if ( (rc = gf_bijection_limits (st_info, level)) ) goto exit;
         if ( st_info->benchmark > 2 ) {
-            sf_running_timespec (&stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
+            GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 2.1: Determined hashing strategy");
         }
 
         if ( st_info->debug ) {
@@ -2087,10 +2087,10 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
     }
     else {
-        if ( (rc = gf_hash (ghash1, ghash2, st_info, ix, stimer)) ) goto error;
+        if ( (rc = gf_hash (ghash1, ghash2, st_info, ix)) ) goto error;
         if ( st_info->benchmark > 1 ) {
-            sf_running_timespec (&timer, "\tPlugin step 2: Hashed by variables");
-            clock_gettime(CLOCK_REALTIME, &stimer);
+            GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 2: Hashed by variables");
+            GTOOLS_UPDATE_TIMER(stimer);
         }
 
         if ( st_info->debug ) {
@@ -2114,8 +2114,8 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->benchmark > 1 ) {
-            sf_running_timespec (&timer, "\tPlugin step 3: Checked if group is id");
-            clock_gettime(CLOCK_REALTIME, &stimer);
+            GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 3: Checked if group is id");
+            GTOOLS_UPDATE_TIMER(stimer);
         }
 
         st_info->J = st_info->N;
@@ -2161,7 +2161,7 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->benchmark > 2 )
-            sf_running_timespec (&stimer, "\t\tPlugin step 3.1: Created group index");
+            GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 3.1: Created group index");
 
         st_info->free = 4;
 
@@ -2276,13 +2276,13 @@ ST_retcode sf_hash_byvars (struct StataInfo *st_info, int level)
         }
 
         if ( st_info->benchmark > 2 )
-            sf_running_timespec (&stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
+            GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 3.2: Normalized group index and Stata index");
 
         st_info->free = 5;
 
         if ( st_info->benchmark > 1 ) {
-            sf_running_timespec (&timer, "\tPlugin step 3: Set up panel");
-            clock_gettime(CLOCK_REALTIME, &stimer);
+            GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 3: Set up panel");
+            GTOOLS_UPDATE_TIMER(stimer);
         }
     }
 
@@ -2354,7 +2354,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
 
     ST_retcode rc = 0;
     GT_size i, j;
-    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
+    GTOOLS_TIMER(timer);
 
     ST_double st_time;
     if ( (rc = SF_scal_use ("__gtools_st_time", &st_time)) ) goto exit;
@@ -2443,7 +2443,7 @@ ST_retcode sf_switch_io (struct StataInfo *st_info, int level, char* fname)
     }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\tPlugin step 5: C vs Stata benchmark");
+        GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 5: C vs Stata benchmark");
 
 exit:
     return (rc);
@@ -2458,7 +2458,7 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     ST_double z;
     ST_retcode rc = 0;
     GT_size i, j;
-    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
+    GTOOLS_TIMER(timer);
 
     st_info->index = calloc(st_info->N,     sizeof(st_info->index));
     st_info->ix    = calloc(st_info->J,     sizeof(st_info->ix));
@@ -2499,7 +2499,7 @@ ST_retcode sf_switch_mem (struct StataInfo *st_info, int level)
     }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\tPlugin step 4: Read info, index from Stata");
+        GTOOLS_RUNNING_TIMER(timer, "\tPlugin step 4: Read info, index from Stata");
 
 exit:
     return (rc);

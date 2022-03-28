@@ -19,6 +19,7 @@ GT_int GtoolsHashPanelAbsorb (struct GtoolsHash *GtoolsHashInfo, GT_size K, GT_s
     GT_size k;
     struct GtoolsHash *ghptr;
     GT_int rcpanel[K], rcmap[K], rc = 0;
+    /**/
     #if GTOOLSOMP
     #pragma omp parallel for \
         private(             \
@@ -31,6 +32,7 @@ GT_int GtoolsHashPanelAbsorb (struct GtoolsHash *GtoolsHashInfo, GT_size K, GT_s
             GtoolsHashInfo   \
         )
     #endif
+    /**/
     for (k = 0; k < K; k++) {
         ghptr       = GtoolsHashInfo + k;
         ghptr->nobs = N;

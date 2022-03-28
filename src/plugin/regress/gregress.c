@@ -109,8 +109,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // GT_int movlower    = st_info->gregress_moving_l;
     // GT_int movupper    = st_info->gregress_moving_u;
 
-    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
-
+    GTOOLS_TIMER(timer);
     struct GtoolsHash *ghptr;
     struct GtoolsHash *ClusterHash  = malloc(sizeof *ClusterHash);
     struct GtoolsHash *AbsorbHashes = calloc(kabs? kabs: 1, sizeof *AbsorbHashes);
@@ -327,7 +326,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     if ( (rc = sf_regress_read (st_info, y, X, w, G, FE, I, nj)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\tregress step 1: Copied variables from Stata");
+        GTOOLS_RUNNING_TIMER(timer, "\tregress step 1: Copied variables from Stata");
 
     /*********************************************************************
      *                        Step 3: Compute OLS                        *
@@ -1941,7 +1940,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\tregress step 2: Computed beta, se");
+        GTOOLS_RUNNING_TIMER(timer, "\tregress step 2: Computed beta, se");
 
     /*********************************************************************
      *                Step 4: Write results back to Stata                *
@@ -2057,7 +2056,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         }
 
         if ( st_info->benchmark > 1 )
-            sf_running_timespec (&timer, "\tregress step 3: copied results to Stata");
+            GTOOLS_RUNNING_TIMER(timer, "\tregress step 3: copied results to Stata");
     }
 
 exit:

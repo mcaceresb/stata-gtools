@@ -24,8 +24,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
         sf_printf_debug("debug 1 (sf_stats_hdfe): Starting gstats hdfe.\n");
     }
 
-    struct timespec timer; clock_gettime(CLOCK_REALTIME, &timer);
-
+    GTOOLS_TIMER(timer);
     struct GtoolsHash *AbsorbHashes = calloc(kabs, sizeof *AbsorbHashes);
 
     // NB; All weighted versions fall back to unweighted internals if weight is NULL
@@ -85,7 +84,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     if ( (rc = sf_stats_hdfe_read (st_info, X, w, FE, nj, index_st)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\thdfe step 1: Copied variables from Stata");
+        GTOOLS_RUNNING_TIMER(timer, "\thdfe step 1: Copied variables from Stata");
 
     // 2. Absorb
     // ---------
@@ -104,7 +103,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     }
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\thdfe step 2: Initialized absorb variables");
+        GTOOLS_RUNNING_TIMER(timer, "\thdfe step 2: Initialized absorb variables");
 
     // 3. Transform
     // ------------
@@ -130,17 +129,17 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     if ( st_info->benchmark > 1 ) {
         switch ( method ) {
             case 6:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Berge with Irons and Tuck)"); break;
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (Berge with Irons and Tuck)"); break;
             case 5:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Irons and Tuck)"); break;
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (Irons and Tuck)"); break;
             case 4:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Hybrid)"); break;
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (Hybrid)"); break;
             case 3:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (Conjugate Gradient)"); break;
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (Conjugate Gradient)"); break;
             case 2:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (SQUAREM)"); break;
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (SQUAREM)"); break;
             default:
-                sf_running_timespec (&timer, "\thdfe step 3: Applied transform (MAP)");
+                GTOOLS_RUNNING_TIMER(timer, "\thdfe step 3: Applied transform (MAP)");
         }
     }
 
@@ -189,7 +188,7 @@ ST_retcode sf_stats_hdfe (struct StataInfo *st_info, int level)
     if ( (rc = sf_stats_hdfe_write (st_info, X, nj, index_st)) ) goto exit;
 
     if ( st_info->benchmark > 1 )
-        sf_running_timespec (&timer, "\thdfe step 4: Saved to Stata");
+        GTOOLS_RUNNING_TIMER(timer, "\thdfe step 4: Saved to Stata");
 
     // 5. Exit
     // -------
@@ -367,7 +366,7 @@ ST_retcode sf_stats_hdfe_absorb(
 {
     ST_retcode rc = 0;
     GT_size j, k, njobs;
-    struct timespec stimer; clock_gettime(CLOCK_REALTIME, &stimer);
+    GTOOLS_TIMER(stimer);
     ST_double *b = AbsorbHashes->hdfeMeanBuffer;
 
     // for level j
@@ -384,9 +383,9 @@ ST_retcode sf_stats_hdfe_absorb(
 
         if ( benchmark > 2 ) {
             if ( GTOOLSOMP )
-                sf_running_timespec (&stimer, "\t\thdfe step 3.1: Set up absorb variables in parallel");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\thdfe step 3.1: Set up absorb variables in parallel");
             else
-                sf_running_timespec (&stimer, "\t\thdfe step 3.1: Set up absorb variables");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\thdfe step 3.1: Set up absorb variables");
         }
 
         // NB: This could be done fully in parallel over the number of variables
@@ -425,9 +424,9 @@ ST_retcode sf_stats_hdfe_absorb(
 
         if ( benchmark > 2 ) {
             if ( GTOOLSOMP )
-                sf_running_timespec (&stimer, "\t\thdfe step 3.2: Applied transform in parallel");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\thdfe step 3.2: Applied transform in parallel");
             else
-                sf_running_timespec (&stimer, "\t\thdfe step 3.2: Applied transform");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\thdfe step 3.2: Applied transform");
         }
     }
 

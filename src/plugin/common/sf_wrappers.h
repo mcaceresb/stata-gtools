@@ -13,7 +13,6 @@
 GT_size sf_anyobs_sel ();
 
 void sf_running_timer (clock_t *timer, const char *msg);
-void sf_running_timespec (struct timespec *timer, const char *msg);
 
 ST_retcode sf_oom_error (char * step_desc, char * obj_desc);
 

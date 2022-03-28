@@ -7,8 +7,7 @@ int gf_hash (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
-    GT_size *ix,
-    struct timespec stimer
+    GT_size *ix
 );
 
 int gf_biject_varlist (uint64_t *h1, struct StataInfo *st_info);

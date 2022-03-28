@@ -577,5 +577,7 @@ program quickGini, sortpreserve
 end
 
 * ---------------------------------------------------------------------
+* Run
+
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

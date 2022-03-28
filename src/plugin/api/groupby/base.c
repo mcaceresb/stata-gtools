@@ -30,13 +30,13 @@ GT_int GtoolsAlgorithmMAP(
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, sources, weights, targets, ktargets, tol, b);
         feval++;
-        if ( verbose > 0 ) printf("\tMAP (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tMAP ("GT_size_cfmt"): |x - x'| = %.9g\n", iter, diff);
     }
 
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("MAP: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+    if ( verbose > 0 ) printf("MAP: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
                               iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
@@ -293,7 +293,7 @@ ST_double GtoolsAbsorbHalperinBufferUnweighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }
 
 ST_double GtoolsAbsorbHalperinBufferWeighted(
@@ -393,7 +393,7 @@ ST_double GtoolsAbsorbHalperinBufferWeighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }
 
 /**********************************************************************
@@ -548,7 +548,7 @@ ST_double GtoolsAbsorbHalperinSymmUnweighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }
 
 ST_double GtoolsAbsorbHalperinSymmWeighted(
@@ -657,5 +657,5 @@ ST_double GtoolsAbsorbHalperinSymmWeighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }

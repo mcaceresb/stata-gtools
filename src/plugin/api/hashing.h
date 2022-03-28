@@ -1,6 +1,10 @@
 #ifndef GTOOLSHASHINGAPI
 #define GTOOLSHASHINGAPI
 
+#ifndef GTOOLS_TYPES
+#include <../common/gttypes.h>
+#endif
+
 #ifndef GTOOLSOMP
 #define GTOOLSOMP 0
 #endif

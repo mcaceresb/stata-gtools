@@ -82,7 +82,7 @@ program main
         * qui do docs/examples/gstats_summarize.do
         * qui do docs/examples/gstats_transform.do
         * qui do docs/examples/gstats_winsor.do
-        * qui do docs/examples/gstats_residualize.do
+        * qui do docs/examples/gstats_hdfe.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
 
@@ -575,6 +575,8 @@ program quickGini, sortpreserve
         }
     }
 end
+
+* ---------------------------------------------------------------------
 capture program drop checks_gcollapse
 program checks_gcollapse
     syntax, [tol(real 1e-6) NOIsily *]
@@ -13571,8 +13573,8 @@ program compare_gsort, rclass
     local rs = `time_sort'  / `time_hashsort'
     di "    `:di %5.3g `time_sort'' | `:di %8.3g `time_hashsort'' | `:di %11.3g `rs'' | `anything'"
 end
-end
-
 * ---------------------------------------------------------------------
+* Run
+
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

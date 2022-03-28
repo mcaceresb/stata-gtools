@@ -10,6 +10,7 @@ Change Log
 - Some ancillary options (`tolerance()`, `traceiter`, `standardize`)
 - Parallel execution of select functions can be enabled at compile
   time via `GTOOLSOMP`
+- Typed (direct/non-hashed) radix sort to API internals
 
 ## gtools-1.9.0 (2022-03-14)
 

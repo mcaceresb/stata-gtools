@@ -62,7 +62,7 @@ GT_int GtoolsAlgorithmBergeIronsTuck(
         memcpy(b, gX, sizeof(b) * ktargets * N);
         diff = GtoolsAbsorbBerge(GtoolsHashInfo, khashes, x, weights, x, ktargets, tol, b); feval++;
         memcpy(ggX, b + ktargets * N * 1, sizeof(b) * ktargets * N);
-        if ( verbose > 0 ) printf("\tBIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tBIT ("GT_size_cfmt"): |x - x'| = %.9g\n", iter, diff);
         if ( diff < tol ) break;
 
         xptr   = g;
@@ -100,14 +100,14 @@ GT_int GtoolsAlgorithmBergeIronsTuck(
         memcpy(b, g, sizeof(b) * ktargets * N);
         diff = GtoolsAbsorbBerge(GtoolsHashInfo, khashes, x, weights, x, ktargets, tol, b); feval++;
         memcpy(gX, b + ktargets * N * 1, sizeof(b) * ktargets * N);
-        if ( verbose > 0 ) printf("\tBIT (%lu): |x - x'| = %.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tBIT ("GT_size_cfmt"): |x - x'| = %.9g\n", iter, diff);
         if ( diff < tol ) break;
     }
 
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("BIT: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+    if ( verbose > 0 ) printf("BIT: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
                               iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
@@ -241,7 +241,7 @@ ST_double GtoolsAbsorbBergeUnweighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }
 
 ST_double GtoolsAbsorbBergeWeighted(
@@ -326,5 +326,5 @@ ST_double GtoolsAbsorbBergeWeighted(
         }
     }
 
-    return (GtoolsStatsMax(diff, ktargets));
+    return (ktargets? GtoolsStatsMax(diff, ktargets): 0);
 }

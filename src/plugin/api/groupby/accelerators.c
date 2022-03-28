@@ -127,7 +127,7 @@ GT_int GtoolsAlgorithmCG(
         }
 
         idiff = sqrt(buff);
-        if ( verbose > 0 ) printf("\tCG (%lu): |improvement| = %12.9g, ||a r|| = %12.9g\n",
+        if ( verbose > 0 ) printf("\tCG ("GT_size_cfmt"): |improvement| = %12.9g, ||a r|| = %12.9g\n",
                                   iter, idiff, GtoolsStatsNorm(r1, ktargets, NULL));
 
         // Avoid numerical precision issues?
@@ -155,7 +155,7 @@ GT_int GtoolsAlgorithmCG(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("CG: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+    if ( verbose > 0 ) printf("CG: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
                               iter, maxiter, feval, idiff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
@@ -227,14 +227,14 @@ GT_int GtoolsAlgorithmSQUAREM(
     if ( verbose > 0 ) printf("\tSQUAREM: |x - x'| = %.9g\n", diff);
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, x1, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM (%lu): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, x1, sizeof(ST_double) * ktargets * N);
             break;
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x1, weights, x2, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM (%lu): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, x2, sizeof(ST_double) * ktargets * N);
             break;
@@ -255,7 +255,7 @@ GT_int GtoolsAlgorithmSQUAREM(
         }
 
         for (k = 0; k < ktargets; k++) {
-            alpha[k] = GTOOLS_PWMAX(stepmin[k], GTOOLS_PWMIN(stepmax[k], pow(sr2[k]/sv2[k], 0.5)));
+            alpha[k] = GTOOLS_PWMAX(stepmin[k], GTOOLS_PWMIN(stepmax[k], pow(fabs(GtoolsStatsDivide(sr2[k], sv2[k])), 0.5)));
         }
 
         xptr   = x;
@@ -268,7 +268,7 @@ GT_int GtoolsAlgorithmSQUAREM(
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, x, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM (%lu): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) break;
 
         for (k = 0; k < ktargets; k++) {
@@ -286,7 +286,7 @@ GT_int GtoolsAlgorithmSQUAREM(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("SQUAREM: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+    if ( verbose > 0 ) printf("SQUAREM: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
                               iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
@@ -353,14 +353,14 @@ GT_int GtoolsAlgorithmIronsTuck(
 
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, gX, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, gX, sizeof(ST_double) * ktargets * N);
             break;
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, gX, weights, ggX, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tIT (%lu): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, ggX, sizeof(ST_double) * ktargets * N);
             break;
@@ -408,7 +408,7 @@ GT_int GtoolsAlgorithmIronsTuck(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("IT: %lu iter (%lu max), %lu feval, %.9g diff (%.9g tol)\n",
+    if ( verbose > 0 ) printf("IT: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
                               iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;

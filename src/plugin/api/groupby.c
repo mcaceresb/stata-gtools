@@ -7,6 +7,7 @@
 #include "groupby/stats_unweighted.c"
 #include "groupby/stats_weights.c"
 #include "groupby/transforms.c"
+#include "groupby/transforms_unweighted.c"
 #include "groupby/transforms_weights.c"
 #include "groupby/base.c"
 #include "groupby/accelerators.c"

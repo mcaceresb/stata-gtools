@@ -12,10 +12,13 @@ ST_double GtoolsStatsDivide(ST_double a, ST_double b)
     }
 }
 
+// NB: This shouldn't ever be called with N = 0, but just in case I
+// return 0 so compiler doesn't yell at me.
 ST_double GtoolsStatsSignedMin (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double min = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {
@@ -28,6 +31,7 @@ ST_double GtoolsStatsSignedMax (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double max = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {
@@ -40,6 +44,7 @@ ST_double GtoolsStatsAbsMin (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double min = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {
@@ -52,6 +57,7 @@ ST_double GtoolsStatsAbsMax (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double max = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {
@@ -64,6 +70,7 @@ ST_double GtoolsStatsMin (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double min = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {
@@ -76,6 +83,7 @@ ST_double GtoolsStatsMax (
     ST_double *source,
     GT_size   N)
 {
+    if ( N < 1 ) return(0);
     GT_size i;
     ST_double max = *source, *x = source + 1;
     for (i = 1; i < N; i++, x++) {

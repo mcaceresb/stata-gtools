@@ -1,6 +1,10 @@
 #ifndef GTOOLSGROUPBYAPI
 #define GTOOLSGROUPBYAPI
 
+#ifndef GTOOLS_TYPES
+#include <../common/gttypes.h>
+#endif
+
 void GtoolsGroupByTransform (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,

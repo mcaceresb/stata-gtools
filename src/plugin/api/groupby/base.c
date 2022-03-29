@@ -30,14 +30,14 @@ GT_int GtoolsAlgorithmMAP(
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, sources, weights, targets, ktargets, tol, b);
         feval++;
-        if ( verbose > 0 ) printf("\tMAP ("GT_size_cfmt"): |x - x'| = %.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tMAP ("GT_size_cfmt"): |x - x'| = %.9g\n", iter, diff);
     }
 
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("MAP: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
-                              iter, maxiter, feval, diff, tol);
+    if ( verbose > 0 ) sf_printf("MAP: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
+                                 iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
 

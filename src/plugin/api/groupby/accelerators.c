@@ -46,7 +46,7 @@ GT_int GtoolsAlgorithmCG(
     }
 
     // x = x0
-    // r  = (I - T) x
+    // r  = - (I - T) x
     // rr = <r, r>
     // u  = r
     xptr = x;
@@ -60,7 +60,7 @@ GT_int GtoolsAlgorithmCG(
     rptr = r;
     for (k = 0; k < ktargets; k++, xptr += N, rptr += N) {
         for (i = 0; i < nonmiss; i++) {
-            rptr[i] = xptr[i] - rptr[i];
+            rptr[i] -= xptr[i];
         }
     }
 
@@ -71,7 +71,7 @@ GT_int GtoolsAlgorithmCG(
 
     memcpy(u, r, sizeof(ST_double) * ktargets * N);
 
-    if ( verbose > 0 ) printf("\tCG: |x - Tx| = %.9g\n", diff);
+    if ( verbose > 0 ) sf_printf("\tCG: |x - Tx| = %.9g\n", diff);
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (idiff > tol) ) {
         // v = (I - T) u
         feval++;
@@ -99,7 +99,7 @@ GT_int GtoolsAlgorithmCG(
             buff     = GTOOLS_PWMAX(buff, GtoolsStatsDivide(r1[k], xx[k]));
         }
 
-        // x  = x - a u
+        // x  = x + a u
         // r  = r - a v
         // rr = <r, r>
         // b  = rr/r0
@@ -109,7 +109,7 @@ GT_int GtoolsAlgorithmCG(
         rptr  = r;
         for (k = 0; k < ktargets; k++, xptr += N, uptr += N, vptr += N, rptr += N) {
             for (i = 0; i < nonmiss; i++) {
-                xptr[i] -= alpha[k] * uptr[i];
+                xptr[i] += alpha[k] * uptr[i];
                 rptr[i] -= alpha[k] * vptr[i];
             }
             r0[k]   = rr[k];
@@ -127,19 +127,17 @@ GT_int GtoolsAlgorithmCG(
         }
 
         idiff = sqrt(buff);
-        if ( verbose > 0 ) printf("\tCG ("GT_size_cfmt"): |improvement| = %12.9g, ||a r|| = %12.9g\n",
-                                  iter, idiff, GtoolsStatsNorm(r1, ktargets, NULL));
+        if ( verbose > 0 ) sf_printf("\tCG ("GT_size_cfmt"): |improvement| = %12.9g, ||a r|| = %12.9g\n",
+                                     iter, idiff, GtoolsStatsNorm(r1, ktargets, NULL));
 
         // Avoid numerical precision issues?
         diff = GtoolsStatsAbsMax(r1, ktargets);
-        // This is the criterion in reghdfe:
-        // if ( diff < GTOOLS_64BIT_EPSILON ) {
-        // This is functionally the same with the default tolerance of
-        // 1e-8 (which is approx. sqrt(GTOOLS_64BIT_EPSILON)). However,
-        // with tighter/looser tolerances it will adapt.
-        if ( sqrt(diff) < tol ) {
-            if ( verbose > 0 ) printf("(note: CG algorithm eps. close to 0 (%.9f); ", diff);
-            if ( verbose > 0 ) printf("assuming convergence to avoid numerical precision errors)\n");
+        // I've played around with the below and it's probably not be better.
+        // if ( sqrt(diff) < tol ) {
+        // I'm using this criterion from reghdfe
+        if ( diff < GTOOLS_64BIT_EPSILON ) {
+            if ( verbose > 0 ) sf_printf("(note: CG algorithm eps. close to 0 (%.9f); ", diff);
+            if ( verbose > 0 ) sf_printf("assuming convergence to avoid numerical precision errors)\n");
             feval++;
             GtoolsAbsorbHalperinSymm(GtoolsHashInfo, khashes, x, weights, x, ktargets, tol, b);
             idiff = 0;
@@ -155,8 +153,8 @@ GT_int GtoolsAlgorithmCG(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("CG: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
-                              iter, maxiter, feval, idiff, tol);
+    if ( verbose > 0 ) sf_printf("CG: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
+                                 iter, maxiter, feval, idiff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
 
@@ -224,17 +222,17 @@ GT_int GtoolsAlgorithmSQUAREM(
         }
     }
 
-    if ( verbose > 0 ) printf("\tSQUAREM: |x - x'| = %.9g\n", diff);
+    if ( verbose > 0 ) sf_printf("\tSQUAREM: |x - x'| = %.9g\n", diff);
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, x1, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, x1, sizeof(ST_double) * ktargets * N);
             break;
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x1, weights, x2, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, x2, sizeof(ST_double) * ktargets * N);
             break;
@@ -268,7 +266,7 @@ GT_int GtoolsAlgorithmSQUAREM(
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, x, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tSQUAREM ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) break;
 
         for (k = 0; k < ktargets; k++) {
@@ -286,8 +284,8 @@ GT_int GtoolsAlgorithmSQUAREM(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("SQUAREM: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
-                              iter, maxiter, feval, diff, tol);
+    if ( verbose > 0 ) sf_printf("SQUAREM: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
+                                 iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
 
@@ -353,14 +351,14 @@ GT_int GtoolsAlgorithmIronsTuck(
 
     while ( ((iter++ < maxiter)? 1: maxiter == 0) && (diff > tol) ) {
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, x, weights, gX, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, gX, sizeof(ST_double) * ktargets * N);
             break;
         }
 
         diff = GtoolsAbsorbHalperinBuffer(GtoolsHashInfo, khashes, gX, weights, ggX, ktargets, tol, b); feval++;
-        if ( verbose > 0 ) printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
+        if ( verbose > 0 ) sf_printf("\tIT ("GT_size_cfmt"): |x - x'| = %12.9g\n", iter, diff);
         if ( diff < tol ) {
             memcpy(x, ggX, sizeof(ST_double) * ktargets * N);
             break;
@@ -408,8 +406,8 @@ GT_int GtoolsAlgorithmIronsTuck(
     GtoolsHashInfo->hdfeIter  = --iter;
     GtoolsHashInfo->hdfeFeval = feval;
 
-    if ( verbose > 0 ) printf("IT: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
-                              iter, maxiter, feval, diff, tol);
+    if ( verbose > 0 ) sf_printf("IT: "GT_size_cfmt" iter ("GT_size_cfmt" max), "GT_size_cfmt" feval, %.9g diff (%.9g tol)\n",
+                                 iter, maxiter, feval, diff, tol);
 
     if ( maxiter && iter >= maxiter ) rc = 18402;
 

@@ -22,8 +22,9 @@ void sf_running_timer (clock_t *timer, const char *msg);
 int main(int argc, char *argv[])
 {
     uint64_t i;
-    uint64_t N = 14863778;
-    // uint64_t N = 10000000;
+    // uint64_t N = 14863778;
+    uint64_t N = 10000000;
+    // uint64_t N = 1000000;
     // uint64_t N = 12;
     clock_t timer = clock();
 

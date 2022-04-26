@@ -18,6 +18,7 @@ program define fasterxtile
         [if] [in] ,                 /// [if condition] [in start / end]
     [                               ///
         by(passthru)                /// By variabes: [+|-]varname [[+|-]varname ...]
+        replace                     /// Replace newvar, if it exists
         Nquantiles(str)             /// Number of quantiles
         Cutpoints(varname numeric)  /// Use cutpoints instead of percentiles
         ALTdef                      /// Alternative definition

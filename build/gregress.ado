@@ -385,7 +385,7 @@ program Display, eclass
         mata st_local("setype", `namelist'.setype)
         mata st_matrix("`b'", `namelist'.b[1, .])
         mata st_matrix("`V'", `namelist'.Vcov)
-        mata `colnames' = `namelist'.xvarlist, J(1, GtoolsRegress.cons, "_cons")
+        mata `colnames' = `namelist'.xvarlist, J(1, `namelist'.cons, "_cons")
         mata `nmiss'    = missing(`namelist'.se)
         mata `sel'      = selectindex(`namelist'.se :>= .)
         mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']

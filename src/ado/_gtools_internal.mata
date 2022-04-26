@@ -1909,7 +1909,7 @@ void function GtoolsRegressOutput::readMatrices()
     real scalar runols, runse, runhdfe
     J = strtoreal(st_local("r_J"))
     if ( st_numscalar("__gtools_gregress_savemb") ) {
-        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, kx)
+        b = editmissing(GtoolsReadMatrix(st_local("gregbfile"),  J, kx), 0)
     }
     if ( st_numscalar("__gtools_gregress_savemse") ) {
         se = GtoolsReadMatrix(st_local("gregsefile"), J, kx)

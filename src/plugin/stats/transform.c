@@ -73,6 +73,14 @@ void gf_stats_transform_rank(
     ST_double *output
 );
 
+void gf_stats_transform_exclude_vector (
+    ST_double *buffer,
+    ST_double *pbuffer,
+    GT_size   nj,
+    ST_double scode,
+    ST_double *output
+);
+
 ST_double gf_stats_transform_stat (
     ST_double *buffer,
     ST_double *pbuffer,
@@ -88,6 +96,14 @@ ST_double gf_stats_transform_stat_exclude (
     ST_double scode,
     GT_bool   nomissing,
     GT_size   i
+);
+
+ST_double *gf_stats_transform_groupmissing (
+    GT_size   *nnm,
+    ST_double *buffer,
+    ST_double *pbuffer,
+    GT_size   nj,
+    GT_bool   nomissing
 );
 
 ST_double gf_stats_transform_stat_weighted (
@@ -878,7 +894,7 @@ void gf_stats_transform_range(
 
     GT_size   nrange;
     GT_int    i, ixl, ixu;
-    GT_bool   wgt = (wbuffer != NULL), nomissing = 0;
+    GT_bool   wgt = (wbuffer != NULL);
     ST_double z, zlow, zhigh, ldbl, udbl;
     ST_double *sptr, *eptr;
     GT_int    *ixlower = indeces;
@@ -1324,6 +1340,7 @@ void gf_stats_transform_range(
              *********************************************************************/
 
             if ( excludeself ) {
+// TODO: xx code weighted exceptions for mean/sum here as wel
                 for (i = 0; i < nj; i++) {
                     output[i] = gf_stats_transform_stat_weighted_exclude(
                         buffer,
@@ -1853,22 +1870,7 @@ void gf_stats_transform_range(
              *********************************************************************/
 
             if ( excludeself ) {
-                nomissing = 1;
-                for (i = 0; i < nj; i++) {
-                    if ( !(buffer[i] < SV_missval) ) {
-                        nomissing = 0;
-                        break;
-                    }
-                }
-
-                for (i = 0; i < nj; i++) {
-                    // output[i] = gf_stats_transform_stat_exclude(buffer, pbuffer, nj, scode, 0, i);
-                    z         = buffer[i];
-                    buffer[i] = buffer[0];
-                    output[i] = gf_stats_transform_stat(buffer + 1, buffer + 1, nj - 1, scode, nomissing);
-                    buffer[0] = z;
-                }
-                memcpy(buffer, output, nj * sizeof(ST_double));
+                gf_stats_transform_exclude_vector(buffer, pbuffer, nj, scode, output);
             }
             else {
                 z = gf_stats_transform_stat(buffer, pbuffer, nj, scode, 0);
@@ -2661,6 +2663,80 @@ ST_double gf_stats_transform_stat_weighted (
 }
 
 // NOTE: This assumes that i is strictly within range
+void gf_stats_transform_exclude_vector(
+    ST_double *buffer,
+    ST_double *pbuffer,
+    GT_size   nj,
+    ST_double scode,
+    ST_double *output)
+{
+    GT_size i, sint;
+    ST_double z, *dblptr;
+    ST_double zerosum = ((scode == -1) || (scode == -21))? 0: SV_missval;
+    GT_bool nomissing = 1;
+
+    for (i = 0; i < nj; i++) {
+        if ( !(buffer[i] < SV_missval) ) {
+            nomissing = 0;
+            break;
+        }
+    }
+
+    // Exception for mean and sum; faster
+    if ( scode == -1 || scode == -101 || scode == -21 || scode == -121 || scode == -2 ) {
+        dblptr = gf_stats_transform_groupmissing(&sint, buffer, pbuffer, nj, nomissing);
+        z = gf_array_dsum_range(dblptr, 0, sint);
+        if ( sint == 0 ) {
+            for (i = 0; i < nj; i++) {
+                buffer[i] = zerosum;
+            }
+        }
+        else if ( sint == 1 ) {
+            for (i = 0; i < nj; i++) {
+                buffer[i] = (buffer[i] < SV_missval)? zerosum: z;
+            }
+        }
+        else {
+            if ( nomissing ) {
+                if ( scode == -2 ) {
+                    for (i = 0; i < nj; i++) {
+                        buffer[i] = (z - buffer[i]) / (sint - 1);
+                    }
+                }
+                else {
+                    for (i = 0; i < nj; i++) {
+                        buffer[i] = z - buffer[i];
+                    }
+                }
+            }
+            else {
+                if ( scode == -2 ) {
+                    for (i = 0; i < nj; i++) {
+                        buffer[i] = (buffer[i] < SV_missval)? (z - buffer[i]) / (sint - 1): z / sint;
+                    }
+                }
+                else {
+                    for (i = 0; i < nj; i++) {
+                        buffer[i] = (buffer[i] < SV_missval)? z - buffer[i]: z;
+                    }
+                }
+            }
+        }
+    }
+    else {
+        // TODO: xx code other exceptions if applicable (NB: input is NOT sorted)
+        for (i = 0; i < nj; i++) {
+            z         = buffer[i];
+            buffer[i] = buffer[0];
+            output[i] = gf_stats_transform_stat(buffer + 1, pbuffer + 1, nj - 1, scode, nomissing);
+            buffer[0] = z;
+        }
+        // Need to copy from input buffer to output buffer but then copy back
+        memcpy(buffer, output, nj * sizeof(ST_double));
+    }
+}
+
+// NOTE: This assumes that i is strictly within range
 ST_double gf_stats_transform_stat_exclude (
     ST_double *buffer,
     ST_double *pbuffer,
@@ -2732,42 +2808,7 @@ ST_double gf_stats_transform_stat (
         sdbl = SV_missval;
     }
     else {
-        // If there are no missing values, continue normally
-        if ( nomissing ) {
-            sint = nj;
-            dblptr = buffer;
-        }
-        else {
-
-            // Group non-missing values sequentially because non-weighted
-            // stats were originaly coded to assume non-missing values were
-            // grouped contiguously in memory.
-
-            sint = 0;
-            for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
-                if ( *dblptr < SV_missval ) {
-                    pbuffer[sint++] = *dblptr;
-                }
-            }
-
-            // There was a bug in select wherein all missing values
-            // is supposed to select amongst missing values, but if
-            // there are any non-missing values it selects amongst
-            // missing values. Therefore it has special logic that
-            // needs the original buffer when all values are missing.
-
-            if ( sint > 0 ) {
-                dblptr = pbuffer;
-            }
-            else {
-
-                // All the stats in gf_switch_fun_code _should_ know how to
-                // deal with sint = 0; otherwise this'd give bugs already.
-
-                dblptr = buffer;
-            }
-        }
-
+        dblptr = gf_stats_transform_groupmissing(&sint, buffer, pbuffer, nj, nomissing);
         if ( scode == -6 ) { // count
             sdbl = (ST_double) sint;
         }
@@ -2817,6 +2858,56 @@ ST_double gf_stats_transform_stat (
     }
 
     return (sdbl);
+}
+
+ST_double *gf_stats_transform_groupmissing(
+    GT_size   *nnm,
+    ST_double *buffer,
+    ST_double *pbuffer,
+    GT_size   nj,
+    GT_bool   nomissing)
+{
+    GT_size sint;
+    ST_double *dblptr;
+
+    // If there are no missing values, continue normally
+    if ( nomissing ) {
+        sint   = nj;
+        dblptr = buffer;
+    }
+    else {
+
+        // Group non-missing values sequentially because non-weighted
+        // stats were originaly coded to assume non-missing values were
+        // grouped contiguously in memory.
+
+        sint = 0;
+        for (dblptr = buffer; dblptr < buffer + nj; dblptr++) {
+            if ( *dblptr < SV_missval ) {
+                pbuffer[sint++] = *dblptr;
+            }
+        }
+
+        // There was a bug in select wherein all missing values
+        // is supposed to select amongst missing values, but if
+        // there are any non-missing values it selects amongst
+        // missing values. Therefore it has special logic that
+        // needs the original buffer when all values are missing.
+
+        if ( sint > 0 ) {
+            dblptr = pbuffer;
+        }
+        else {
+
+            // All the stats in gf_switch_fun_code _should_ know how to
+            // deal with sint = 0; otherwise this'd give bugs already.
+
+            dblptr = buffer;
+        }
+    }
+
+    *nnm = sint;
+    return(dblptr);
 }
 
 /*********************************************************************

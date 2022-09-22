@@ -1,6 +1,17 @@
 Change Log
 ==========
 
+## gtools-1.9.2 (2022-09-22)
+
+### Bug fixes
+
+- Fixed incorrect results with excludeself without specified range in `gstats transform`
+  (if there were missing values the input buffer was not being copied, but replaced).
+
+### Features
+
+- Faster excludeself mean and sum without specified range in `gstats transform`.
+
 ## gtools-1.9.1 (2022-03-28)
 
 ### Features

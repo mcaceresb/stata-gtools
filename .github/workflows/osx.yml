@@ -19,8 +19,8 @@ jobs:
           # brew install xx
           git submodule update --init
           cd lib/spookyhash && git checkout spookyhash-1.0.6 && cd -
-          make clean SPI=2.0 SPIVER=v2 && make all SPI=2.0 SPIVER=v2 GCC=gcc
-          make clean SPI=3.0 SPIVER=v3 && make all SPI=3.0 SPIVER=v3 GCC=gcc
+          make clean SPI=2.0 SPIVER=v2 && make osx SPI=2.0 SPIVER=v2 GCC=gcc
+          make clean SPI=3.0 SPIVER=v3 && make osx SPI=3.0 SPIVER=v3 GCC=gcc
       - name: Commit OSX Plugin
         run: |
           shasum build/gtools_macosx_v3.plugin

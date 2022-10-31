@@ -108,14 +108,15 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
+		GCC = gcc
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix$(LEGACY)_$(SPIVER).plugin
 	endif
 	ifeq ($(UNAME_S),Darwin)
+		GCC = clang
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY)_$(SPIVER).plugin
 	endif
-	GCC = gcc
 endif
 
 ifeq ($(EXECUTION),windows)
@@ -129,6 +130,7 @@ endif
 
 ## Compile directory
 all: clean links gtools
+osx: clean links osx_combine
 
 ## Initialize git and pull sub-modules
 git:
@@ -176,9 +178,17 @@ gtools: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
 	$(GCC) $(CFLAGS) -o $(OUT) $(SPOOKYHASH_INC) $^
 	cp build/*plugin lib/plugin/
 
+## Build OSX-specific plugins
+osx_combine: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
+	mkdir -p ./build
+	$(GCC) $(CFLAGS) -arch arm64  -o $(OUT).arm64  $(SPOOKYHASH_INC) $^
+	$(GCC) $(CFLAGS) -arch x86_64 -o $(OUT).x86_64 $(SPOOKYHASH_INC) $^
+	lipo -create -output $(OUT) $(OUT).x86_64 $(OUT).arm64
+	cp build/*plugin lib/plugin/
+
 .PHONY: clean
 clean:
-	rm -f $(OUT)
+	rm -f $(OUT)*
 
 #######################################################################
 #                                                                     #

@@ -177,7 +177,7 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
             return (17902);
     }
     else if ( GtoolsHashInfo->radixOK ) {
-        for (i = 0; i < GtoolsHashInfo->nobs; i++, hptr++) {
+        for (i = 0; i < GtoolsHashInfo->nobs; i++) {
             GtoolsHashInfo->index[i] = i;
         }
 

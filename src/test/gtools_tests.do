@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Thu Sep 22 13:01:55 EDT 2022
+* Updated: Sun Dec 04 20:52:14 EST 2022
 * Purpose: Unit tests for gtools
-* Version: 1.9.2
+* Version: 1.10.0
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -85,19 +85,21 @@ program main
         * qui do docs/examples/gstats_hdfe.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
+        * qui do docs/examples/givregress.do
+        * qui do docs/examples/gglm.do
 
         if ( `:list posof "dependencies" in options' ) {
-            cap ssc install hdfe
-            cap ssc install ralpha
-            cap ssc install ftools
-            cap ssc install unique
-            cap ssc install winsor2
-            cap ssc install distinct
-            cap ssc install moremata
-            cap ssc install fastxtile
-            cap ssc install egenmisc
-            cap ssc install egenmore
-            cap ssc install rangestat
+            cap ssc install hdfe,      replace
+            cap ssc install ralpha,    replace
+            cap ssc install ftools,    replace
+            cap ssc install unique,    replace
+            cap ssc install winsor2,   replace
+            cap ssc install distinct,  replace
+            cap ssc install moremata,  replace
+            cap ssc install fastxtile, replace
+            cap ssc install egenmisc,  replace
+            cap ssc install egenmore,  replace
+            cap ssc install rangestat, replace
             * ftools,  compile
             * reghdfe, compile
         }

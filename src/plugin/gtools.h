@@ -12,7 +12,7 @@
 #include "spi/stplugin.h"
 #include "common/gttypes.h"
 
-#define GTOOLS_VERSION "1.9.2"
+#define GTOOLS_VERSION "1.10.0"
 
 /*
  * Style

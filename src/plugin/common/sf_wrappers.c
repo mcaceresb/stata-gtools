@@ -23,6 +23,41 @@
 #include "sf_printf.c"
 
 /**
+ * @brief Empty out set of numerical variables
+ *
+ * @param st_scalar name of Stata scalar
+ * @param sval Scalar value
+ * @return Read scalar into GT_int variable
+ */
+ST_retcode sf_empty_varlist(GT_size *pos, GT_size start, GT_size K)
+{
+    GT_size k, i = 0;
+    ST_retcode rc = 0;
+    if ( pos == NULL ) {
+        // while ( (rc == 0) && (++i <= SF_nobs()) ) {
+        //     for (k = 0; k < K; k++) {
+        //         if ( (rc = SF_vstore(start + k, i, SV_missval)) ) break;
+        //     }
+        // }
+        for (i = 1; i <= SF_nobs(); i++) {
+            for (k = 0; k < K; k++) {
+                if ( (rc = SF_vstore(start + k, i, SV_missval)) ) goto exit;
+            }
+        }
+    }
+    else {
+        for (i = 1; i <= SF_nobs(); i++) {
+            for (k = 0; k < K; k++) {
+                if ( (rc = SF_vstore(start + pos[k], i, SV_missval)) ) goto exit;
+            }
+        }
+    }
+
+exit:
+    return(rc);
+}
+
+/**
  * @brief Read scalar into a signed integer
  *
  * @param st_scalar name of Stata scalar

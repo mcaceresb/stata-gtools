@@ -36,6 +36,7 @@ program gcollapse, rclass
                                      ///
         merge                        /// Merge statistics back to original data, replacing if applicable
         replace                      /// Allow replacing existing variables with output with merge
+        noinit                       /// Do not initialize targets with missing values
         freq(passthru)               /// Include frequency count with observations per group
                                      ///
         LABELFormat(passthru)        /// Custom label engine: (#stat#) #sourcelabel# is the default
@@ -85,7 +86,7 @@ program gcollapse, rclass
     }
 
     local replaceby = cond("`debug_replaceby'" == "", "", "replaceby")
-    local gfallbackok = `"`replaceby'`replace'`freq'`merge'`labelformat'`labelprogram'`rawstat'"' == `""'
+    local gfallbackok = `"`replaceby'`replace'`init'`freq'`merge'`labelformat'`labelprogram'`rawstat'"' == `""'
 
     if ( ("`ds'" != "") & ("`nods'" != "") ) {
         di as err "-ds- and -nods- mutually exclusive"
@@ -131,7 +132,7 @@ program gcollapse, rclass
             if ( _rc ) {
                 local notfound
                 foreach var of local clean_by {
-                    cap confirm var `var'
+                    cap ds `var'
                     if ( _rc  ) {
                         local notfound `notfound' `var'
                     }
@@ -585,7 +586,7 @@ program gcollapse, rclass
     local sources  sources(`__gtools_gc_vars')
     local stats    stats(`__gtools_gc_stats')
     local targets  targets(`__gtools_gc_targets')
-    local opts     missing replace `keepmissing' `compress' `forcestrl' `_subtract' `_ctolerance'
+    local opts     missing replace `init' `keepmissing' `compress' `forcestrl' `_subtract' `_ctolerance'
     local opts     `opts' `verbose' `benchmark' `benchmarklevel' `hashmethod' `ds' `nods'
     local opts     `opts' `oncollision' debug(`debug_level') `rawstat'
     local action   `sources' `targets' `stats'
@@ -622,7 +623,7 @@ program gcollapse, rclass
         gtools_timer info `t97' `"`msg'"', prints(`bench')
 
         * Benchmark adding 2 variables to gauge how long it might take to
-        * add __gtools_gc_k_extra variables.
+        * add __gtools_gc_k_extra targets.
         tempvar __gtools_gc_index __gtools_gc_ix __gtools_gc_info
         cap noi benchmark_memvars,     ///
             index(`__gtools_gc_index') ///
@@ -838,13 +839,13 @@ program gcollapse, rclass
 
         forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
             mata: st_varlabel(gtools_targets[`k'], __gtools_gc_labels[`k'])
-            mata: st_varformat(gtools_targets[`k'], __gtools_gc_formats[`k'])
+            mata: GtoolsFormatDefaultFallback(gtools_targets[`k'], __gtools_gc_formats[`k'])
         }
     }
     else {
         forvalues k = 1 / `:list sizeof __gtools_gc_targets' {
             mata: st_varlabel(gtools_targets[`k'], __gtools_gc_labels[`k'])
-            mata: st_varformat(gtools_targets[`k'], __gtools_gc_formats[`k'])
+            mata: GtoolsFormatDefaultFallback(gtools_targets[`k'], __gtools_gc_formats[`k'])
         }
     }
 

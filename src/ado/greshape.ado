@@ -772,6 +772,12 @@ program define Wide /* reshape wide */
     }
     global ReS_prefix: copy local ReS_prefix
 
+    * Cannot have multiple stubs with the same name
+    if ( `"`:list uniq ReS_Xij_stubs'"' != `"`ReS_Xij_stubs'"' ) {
+        disp as err `"repeated variables not allowed"'
+        exit 198
+    }
+
     * Check that the spread call is sane
 
     if ( `"`ReS_cmd'"' == "spread" ) {
@@ -1022,6 +1028,7 @@ program ParseStubsByMatch
             }
             foreach stub of global ReS_Xij {
                 local any 0
+                local rep 0
                 if ( `"`group'"' == "" ) local group 1
                 foreach var of varlist `allvars' {
                     if ustrregexm(`"`var'"', `"`stub'"') {
@@ -1032,18 +1039,28 @@ program ParseStubsByMatch
                             local ReS_Xij_stubs `ReS_Xij_stubs' `=ustrregexrf(`"`var'"', `"`stub'"', "")'
                             local any 1
                         }
+                        else {
+                            local rep 1
+                        }
                         * disp `"`var'"', `"`stub'"', `any'
                     }
                 }
                 if ( `any' == 0 ) {
-                    disp as err "no variables matched stub regex: `stub'"
-                    exit 198
+                    if ( `rep' ) {
+                        disp as err "no new variables matched regex: `stub' (you probably have repeated stubs)"
+                        exit 198
+                    }
+                    else {
+                        disp as err "no variables matched stub regex: `stub'"
+                        exit 198
+                    }
                 }
             }
         }
         else {
             foreach stub of global ReS_Xij {
                 local any 0
+                local rep 0
                 gettoken stub  group: stub,  p(/)
                 gettoken slash group: group, p(/)
                 local group `group'
@@ -1059,13 +1076,22 @@ program ParseStubsByMatch
                                 local ReS_Xij_stubs `ReS_Xij_stubs' `=regexr(`"`var'"', `"`rg'"', "")'
                                 local any 1
                             }
+                            else {
+                                local rep 1
+                            }
                         }
                     }
                     * disp `"`var'"', `"`stub'"', `any'
                 }
                 if ( `any' == 0 ) {
-                    disp as err "no variables matched stub regex: `stub'"
-                    exit 198
+                    if ( `rep' ) {
+                        disp as err "no new variables matched regex: `stub' (you probably have repeated stubs)"
+                        exit 198
+                    }
+                    else {
+                        disp as err "no variables matched stub regex: `stub'"
+                        exit 198
+                    }
                 }
             }
         }
@@ -1246,13 +1272,17 @@ program define FillvalW
         */ (`"$ReS_cmd"' == "gather"))
 
     mata: st_numscalar("__greshape_rc", __greshape_rc)
-    if ( `=scalar(__greshape_rc)' ) exit 198
+    if ( `=scalar(__greshape_rc)' ) {
+        mata: mata drop `jlen'
+        exit 198
+    }
 
     scalar __greshape_nrows = .
     scalar __greshape_ncols = .
 
     mata: st_global("ReS_jv",   invtokens(__greshape_res'))
     mata: st_global("ReS_jlen", strofreal(`jlen' > 0? `jlen': max(strlen(__greshape_res))))
+    mata: mata drop `jlen'
 
     di in gr "(note: $ReS_jname = $ReS_jv)"
     global ReS_jv2: copy global ReS_jv
@@ -1419,7 +1449,12 @@ real scalar function CheckVariableTypes(
             sr = gather? res[j]: GetVariableFromStub(xij[i], res[j])
             ix = selectindex(dsname :== sr)
             t  = highest[i, 1]
-            if ( length(ix) ) {
+            if ( length(ix) > 1 ) {
+                errprintf("stub %s had repeated matches (do you have repeated stubs?)\n",
+                          xij[i])
+                return(198)
+            }
+            else if ( length(ix) ) {
                 v = st_vartype(sr)
                 if ( `regex'm(v, "str([1-9][0-9]*|L)") ) {
                     if ( t > 0 ) {

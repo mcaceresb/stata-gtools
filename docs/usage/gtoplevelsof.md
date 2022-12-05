@@ -87,6 +87,12 @@ Options
             frequency count from groups not in the top levels and not counted as
             missing. This option toggles display of that row.
 
+- `nongroups` By default the number of groups comprising the
+            "Other" and "Missing" rows are printed as part of the "Other" and
+            "Missing" row labels (should they appear; for the missing row this
+            is only printed if more than 1 missing value type is present). This 
+            option toggles display of the number of groups represented.
+
 - `alpha`   Sort the top levels of varlist by variables instead
             of frequencies. Note that the top levels are still extracted; this
             just affects the final sort order. To sort in inverse order, just
@@ -280,180 +286,195 @@ You can download the raw code for the examples below
 
 ```stata
 . sysuse auto, clear
-(1978 Automobile Data)
+. sysuse auto, clear
+(1978 automobile data)
 
+. 
 . gtoplevelsof rep78
 
-   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
-       3 |   30   30        41            41
-       4 |   18   48        24            65
-       5 |   11   59        15            80
-       2 |    8   67        11            91
-       . |    5   72       6.8            97
-       1 |    2   74       2.7           100
+       3 |   30   30      40.5          40.5 
+       4 |   18   48      24.3          64.9 
+       5 |   11   59      14.9          79.7 
+       2 |    8   67      10.8          90.5 
+       . |    5   72       6.8          97.3 
+       1 |    2   74       2.7         100.0 
 
 
+. 
 . gtop rep78 [fw = weight]
 
-   rep78 |       W      Cum   Pct (%)   Cum Pct (%)
+   rep78 |       W      Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------------
-       3 |  98,970   98,970      44.3          44.3
-       4 |  51,660  150,630      23.1          67.4
-       2 |  26,830  177,460      12.0          79.4
-       5 |  25,550  203,010      11.4          90.9
-       . |  14,230  217,240       6.4          97.2
-       1 |   6,200  223,440       2.8         100.0
+       3 |  98,970   98,970      44.3          44.3 
+       4 |  51,660  150,630      23.1          67.4 
+       2 |  26,830  177,460      12.0          79.4 
+       5 |  25,550  203,010      11.4          90.9 
+       . |  14,230  217,240       6.4          97.2 
+       1 |   6,200  223,440       2.8         100.0 
 
 
+. 
 . gtop rep78 [w = gear_ratio]
 (analytic weights assumed)
 
-   rep78 |     W   Cum   Pct (%)   Cum Pct (%)
+   rep78 |     W   Cum   Pct (%)   Cum Pct (%) 
  ----------------------------------------------
-       3 |  86.1  86.1      38.6          38.6
-       4 |  57.2   143      25.6          64.2
-       5 |  36.3   180      16.3          80.5
-       2 |  21.5   201       9.6          90.2
-       . |  16.1   217       7.2          97.4
-       1 |  5.81   223       2.6         100.0
+       3 |  86.1  86.1      38.6          38.6 
+       4 |  57.2   143      25.6          64.2 
+       5 |  36.3   180      16.3          80.5 
+       2 |  21.5   201       9.6          90.2 
+       . |  16.1   217       7.2          97.4 
+       1 |  5.81   223       2.6         100.0 
 
 
+. 
 . gtop rep78,   missrow
 
-    rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+    rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
-        3 |   30   30        41            41
-        4 |   18   48        24            65
-        5 |   11   59        15            80
-        2 |    8   67        11            91
-        1 |    2   69       2.7            93
+        3 |   30   30      40.5          40.5 
+        4 |   18   48      24.3          64.9 
+        5 |   11   59      14.9          79.7 
+        2 |    8   67      10.8          90.5 
+        1 |    2   69       2.7          93.2 
  ---------------------------------------------
-  Missing |    5   74       6.8           100
+  Missing |    5   74       6.8         100.0 
+                                              
 
 
-
+. 
 . gtop rep78,   colsep(", ")
 
-   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
-       3 |   30   30        41            41
-       4 |   18   48        24            65
-       5 |   11   59        15            80
-       2 |    8   67        11            91
-       . |    5   72       6.8            97
-       1 |    2   74       2.7           100
+       3 |   30   30      40.5          40.5 
+       4 |   18   48      24.3          64.9 
+       5 |   11   59      14.9          79.7 
+       2 |    8   67      10.8          90.5 
+       . |    5   72       6.8          97.3 
+       1 |    2   74       2.7         100.0 
 
 
+. 
 . gtop rep78,   pctfmt(%7.3f)
 
-   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  --------------------------------------------
-       3 |   30   30    40.541        40.541
-       4 |   18   48    24.324        64.865
-       5 |   11   59    14.865        79.730
-       2 |    8   67    10.811        90.541
-       . |    5   72     6.757        97.297
-       1 |    2   74     2.703       100.000
+       3 |   30   30    40.541        40.541 
+       4 |   18   48    24.324        64.865 
+       5 |   11   59    14.865        79.730 
+       2 |    8   67    10.811        90.541 
+       . |    5   72     6.757        97.297 
+       1 |    2   74     2.703       100.000 
 
 
+. 
 . gtop mpg,     numfmt(%7.3f)
 
-     mpg |    N  Cum   Pct (%)   Cum Pct (%)
- --------------------------------------------
-  18.000 |    9    9        12            12
-  19.000 |    8   17        11            23
-  14.000 |    6   23       8.1            31
-  21.000 |    5   28       6.8            38
-  22.000 |    5   33       6.8            45
-  25.000 |    5   38       6.8            51
-  16.000 |    4   42       5.4            57
-  17.000 |    4   46       5.4            62
-  24.000 |    4   50       5.4            68
-  20.000 |    3   53       4.1            72
- --------------------------------------------
-   Other |   21   74        28           100
+                mpg |    N  Cum   Pct (%)   Cum Pct (%) 
+ -------------------------------------------------------
+             18.000 |    9    9      12.2          12.2 
+             19.000 |    8   17      10.8          23.0 
+             14.000 |    6   23       8.1          31.1 
+             21.000 |    5   28       6.8          37.8 
+             22.000 |    5   33       6.8          44.6 
+             25.000 |    5   38       6.8          51.4 
+             16.000 |    4   42       5.4          56.8 
+             17.000 |    4   46       5.4          62.2 
+             24.000 |    4   50       5.4          67.6 
+             20.000 |    3   53       4.1          71.6 
+ -------------------------------------------------------
+  Other (11 groups) |   21   74      28.4         100.0 
+                                                        
 
 
-
+. 
 . gtop foreign
 
-   foreign |    N  Cum   Pct (%)   Cum Pct (%)
+   foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ----------------------------------------------
-  Domestic |   52   52        70            70
-   Foreign |   22   74        30           100
+  Domestic |   52   52      70.3          70.3 
+   Foreign |   22   74      29.7         100.0 
 
 
+. 
 . gtop foreign, colmax(3)
 
-  foreign |    N  Cum   Pct (%)   Cum Pct (%)
+  foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
-   Dom... |   52   52        70            70
-   For... |   22   74        30           100
+   Dom... |   52   52      70.3          70.3 
+   For... |   22   74      29.7         100.0 
 
 
+. 
 . gtop foreign, novaluelab
 
-  foreign |    N  Cum   Pct (%)   Cum Pct (%)
+  foreign |    N  Cum   Pct (%)   Cum Pct (%) 
  ---------------------------------------------
-        0 |   52   52        70            70
-        1 |   22   74        30           100
+        0 |   52   52      70.3          70.3 
+        1 |   22   74      29.7         100.0 
 
 
+. 
 . gtop foreign rep78, ntop(4) missrow colstrmax(2)
 
-   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
-  Domestic       3 |   27   27        36            36
-  Domestic       4 |    9   36        12            49
-   Foreign       4 |    9   45        12            61
-   Foreign       5 |    9   54        12            73
+  Domestic       3 |   27   27      36.5          36.5 
+  Domestic       4 |    9   36      12.2          48.6 
+   Foreign       4 |    9   45      12.2          60.8 
+   Foreign       5 |    9   54      12.2          73.0 
  ------------------------------------------------------
-             Other |   20   74        27           100
+  Other (6 groups) |   20   74      27.0         100.0 
+                                                       
 
 
-
+. 
 . gtop foreign rep78, ntop(4) missrow groupmiss
 
-   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
- ------------------------------------------------------
-  Domestic       3 |   27   27        36            36
-  Domestic       4 |    9   36        12            49
-   Foreign       4 |    9   45        12            61
-   Foreign       5 |    9   54        12            73
- ------------------------------------------------------
-     Missing (any) |    5   59       6.8            80
-             Other |   15   74        20           100
+           foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------------------------
+          Domestic       3 |   27   27      36.5          36.5 
+          Domestic       4 |    9   36      12.2          48.6 
+           Foreign       4 |    9   45      12.2          60.8 
+           Foreign       5 |    9   54      12.2          73.0 
+ --------------------------------------------------------------
+  Missing (any) (2 groups) |    5   59       6.8          79.7 
+          Other (4 groups) |   15   74      20.3         100.0 
+                                                               
 
 
-
+. 
 . gtop foreign rep78, ntop(4) missrow groupmiss noother
 
-   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
- ------------------------------------------------------
-  Domestic       3 |    1    1         1             2
-  Domestic       4 |    9    9         9             5
-   Foreign       4 |    9   45        54            59
-   Foreign       5 |    9   54        12           6.8
- ------------------------------------------------------
-     Missing (any) |    5   59       6.8            80
+           foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
+ --------------------------------------------------------------
+          Domestic       3 |   27   27      36.5          36.5 
+          Domestic       4 |    9   36      12.2          48.6 
+           Foreign       4 |    9   45      12.2          60.8 
+           Foreign       5 |    9   54      12.2          73.0 
+ --------------------------------------------------------------
+  Missing (any) (2 groups) |    5   59       6.8          79.7 
+                                                               
 
 
-
+. 
 . gtop foreign rep78, cols(<<) missrow("I am missing") matrix(lvl)
 
-   foreign<< rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   foreign<< rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
-  Domestic<<     3 |   27   27        36            36
-  Domestic<<     4 |    9   36        12            49
-   Foreign<<     4 |    9   45        12            61
-   Foreign<<     5 |    9   54        12            73
-  Domestic<<     2 |    8   62        11            84
-  Domestic<<     . |    4   66       5.4            89
-   Foreign<<     3 |    3   69       4.1            93
-  Domestic<<     1 |    2   71       2.7            96
-  Domestic<<     5 |    2   73       2.7            99
-   Foreign<<     . |    1   74       1.4           100
+  Domestic<<     3 |   27   27      36.5          36.5 
+  Domestic<<     4 |    9   36      12.2          48.6 
+   Foreign<<     4 |    9   45      12.2          60.8 
+   Foreign<<     5 |    9   54      12.2          73.0 
+  Domestic<<     2 |    8   62      10.8          83.8 
+  Domestic<<     . |    4   66       5.4          89.2 
+   Foreign<<     3 |    3   69       4.1          93.2 
+  Domestic<<     1 |    2   71       2.7          95.9 
+  Domestic<<     5 |    2   73       2.7          98.6 
+   Foreign<<     . |    1   74       1.4         100.0 
 
 
 . matrix list lvl
@@ -471,15 +492,17 @@ lvl[10,5]
  r9          1          2         73  2.7027027  98.648649
 r10          1          1         74  1.3513514        100
 
+. 
 . gtop foreign rep78, mata(lvl) ntop(3)
 
-   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%)
+   foreign   rep78 |    N  Cum   Pct (%)   Cum Pct (%) 
  ------------------------------------------------------
-  Domestic       3 |   27   27      36.5          36.5
-  Domestic       4 |    9   36      12.2          48.6
-   Foreign       4 |    9   45      12.2          60.8
+  Domestic       3 |   27   27      36.5          36.5 
+  Domestic       4 |    9   36      12.2          48.6 
+   Foreign       4 |    9   45      12.2          60.8 
  ------------------------------------------------------
-             Other |   29   74      39.2         100.0
+  Other (7 groups) |   29   74      39.2         100.0 
+                                                       
 
 (note: raw levels saved in lvl; see mata lvl.desc())
 
@@ -487,25 +510,26 @@ r10          1          1         74  1.3513514        100
 
     lvl is a class object with group levels
 
-        | object    |        value | description                           |
-        | --------- | ------------ | ------------------------------------- |
-        | byvars    |        1 x 2 | by variable names                     |
-        | J         |            3 | number of levels                      |
-        | knum      |            2 | # numeric by variables                |
-        | numx      | 3 x 2 matrix | numeric by var levels                 |
-        | kchar     |            0 | # of string by variables              |
-        | charx     |      [empty] | character by var levels               |
-        | map       | 1 x 1 vector | map by vars index to numx and charx   |
-        | lens      | 1 x 1 vector | if string, > 0; if numeric, <= 0      |
-        | charpos   | 1 x 1 vector | position of kth character variable    |
-        | printed   | 3 x 2 vector | formatted (printf-ed) variable levels |
-        | toplevels | 4 x 5 vector | frequencies of top levels             |
+        | object    |        value | description                           | 
+        | --------- | ------------ | ------------------------------------- | 
+        | byvars    |        1 x 2 | by variable names                     | 
+        | J         |            3 | number of levels                      | 
+        | knum      |            2 | # numeric by variables                | 
+        | numx      | 3 x 2 matrix | numeric by var levels                 | 
+        | kchar     |            0 | # of string by variables              | 
+        | charx     |      [empty] | character by var levels               | 
+        | map       | 1 x 1 vector | map by vars index to numx and charx   | 
+        | lens      | 1 x 1 vector | if string, > 0; if numeric, <= 0      | 
+        | charpos   | 1 x 1 vector | position of kth character variable    | 
+        | printed   | 3 x 2 vector | formatted (printf-ed) variable levels | 
+        | toplevels | 4 x 5 vector | frequencies of top levels             | 
 
     toplevels value key (column 1):
 
         1 = top level(s) frequency
         2 = missing level(s) frequency
         3 = frequency for all other levels
+
 
 . mata lvl.printed
               1          2

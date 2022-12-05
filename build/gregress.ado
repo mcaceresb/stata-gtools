@@ -4,10 +4,10 @@
 capture program drop gregress
 program gregress, rclass
 
-    if ( `"${GTOOLS_BETA}"' != "1" ) {
+    if !inlist(`"${GTOOLS_BETA}"', "1", "I KNOW WHAT I AM DOING") {
         disp as err "This function is in beta; to use, you must enable beta features via"
         disp as err ""
-        disp as err "    global GTOOLS_BETA = 1"
+        disp as err "    global GTOOLS_BETA I KNOW WHAT I AM DOING"
         disp as err ""
         disp as err "gtools functions in beta are subject to change."
         exit 198
@@ -375,40 +375,45 @@ end
 
 capture program drop Display
 program Display, eclass
-    syntax namelist(max = 1), [repost touse(str) *]
+    syntax [namelist(max = 1)], [repost touse(str) *]
     tempname by
-    mata st_numscalar("`by'", `namelist'.by)
-    if ( `=scalar(`by')' == 0 ) {
-        tempname colnames sel nmiss
-        FreeMatrix b V
-        mata st_local("caller", `namelist'.caller)
-        mata st_local("setype", `namelist'.setype)
-        mata st_matrix("`b'", `namelist'.b[1, .])
-        mata st_matrix("`V'", `namelist'.Vcov)
-        mata `colnames' = `namelist'.xvarlist, J(1, `namelist'.cons, "_cons")
-        mata `nmiss'    = missing(`namelist'.se)
-        mata `sel'      = selectindex(`namelist'.se :>= .)
-        mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']
-        mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
-        mata st_matrixrowstripe("`b'", ("", `namelist'.yvarlist[1]))
-        mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
-        mata st_matrixrowstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
-        if "`repost'" == "" {
-            if ( "`touse'" != "" ) qui count if `touse'
-            else qui count
-            ereturn post `b' `V', esample(`touse') obs(`r(N)')
-        }
-        else {
-            ereturn repost b = `b' V = `V'
-        }
-        if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
-        if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
-        if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
-        disp _n(1) "`caller' with `setype' SE"
-        _coef_table, `options'
+    if ( "`namelist'" == "" ) {
+        disp as txt "Cannot display table without cached results; use option -mata()- to save"
     }
     else {
-        disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+        mata st_numscalar("`by'", `namelist'.by)
+        if ( `=scalar(`by')' == 0)  {
+            tempname colnames sel nmiss
+            FreeMatrix b V
+            mata st_local("caller", `namelist'.caller)
+            mata st_local("setype", `namelist'.setype)
+            mata st_matrix("`b'", `namelist'.b[1, .])
+            mata st_matrix("`V'", `namelist'.Vcov)
+            mata `colnames' = `namelist'.xvarlist, J(1, `namelist'.cons, "_cons")
+            mata `nmiss'    = missing(`namelist'.se)
+            mata `sel'      = selectindex(`namelist'.se :>= .)
+            mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']
+            mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixrowstripe("`b'", ("", `namelist'.yvarlist[1]))
+            mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixrowstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            if "`repost'" == "" {
+                if ( "`touse'" != "" ) qui count if `touse'
+                else qui count
+                ereturn post `b' `V', esample(`touse') obs(`r(N)')
+            }
+            else {
+                ereturn repost b = `b' V = `V'
+            }
+            if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
+            if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
+            if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
+            disp _n(1) "`caller' with `setype' SE"
+            _coef_table, `options'
+        }
+        else {
+            disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+        }
     }
 end
 

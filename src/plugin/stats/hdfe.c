@@ -310,8 +310,13 @@ ST_retcode sf_stats_hdfe_write (
     GT_size   *index_st)
 {
     ST_retcode rc = 0;
-    GT_size i, j, k, start, end, njobs, kref, offset_buffer, *stptr;
-    GT_size kx = st_info->hdfe_kvars;
+    GT_size i, j, k, start, end, njobs, offset_buffer, *stptr;
+    GT_size kx   = st_info->hdfe_kvars;
+    GT_size kref = st_info->kvars_by + 1 + kx;
+
+    if ( st_info->init_targ ) {
+        if ( (rc = sf_empty_varlist(NULL, kref, kx)) ) goto exit;
+    }
 
     i = 0;
     for (stptr = index_st; stptr < index_st + st_info->Nread; stptr++, i++) {
@@ -320,7 +325,6 @@ ST_retcode sf_stats_hdfe_write (
             start = st_info->info[j];
             end   = st_info->info[j + 1];
             njobs = end - start;
-            kref  = st_info->kvars_by + 1 + kx;
 
             offset_buffer = start * kx;
             for (k = 0; k < kx; k++) {

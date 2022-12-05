@@ -143,7 +143,7 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
 
     GT_bool debug = st_info->debug;
     if ( debug ) {
-        sf_printf_debug("debug 1 (sf_stats_transform): Starting gstats winsor.\n");
+        sf_printf_debug("debug 1 (sf_stats_transform): Starting gstats transform.\n");
     }
 
     /*********************************************************************
@@ -473,6 +473,11 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     }
                     wgtptr += nj;
                     dblptr = gsrc_buffer;
+
+                    if ( st_info->init_targ ) {
+                        if ( (rc = sf_empty_varlist(NULL, kvars + k + 1 + ksources, 1)) ) goto exit;
+                    }
+
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vstore(kvars + k + 1 + ksources,
                                              st_info->index[i] + st_info->in1,
@@ -706,6 +711,11 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             st_info->transform_aux8_shift[k]
                         );
                     }
+
+                    if ( st_info->init_targ ) {
+                        if ( (rc = sf_empty_varlist(NULL, kvars + k + 1 + ksources, 1)) ) goto exit;
+                    }
+
                     dblptr = gsrc_buffer;
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vstore(kvars + k + 1 + ksources,
@@ -2997,6 +3007,12 @@ ST_retcode sf_write_transform (
 
     for (j = 0; j < st_info->J; j++) {
         pos[j] = 0;
+    }
+
+    if ( st_info->init_targ ) {
+        if ( (rc = sf_empty_varlist(NULL,
+                                    st_info->kvars_by + 1 + st_info->transform_kvars,
+                                    st_info->transform_ktargets)) ) goto exit;
     }
 
     for (j = 0; j < st_info->J; j++) {

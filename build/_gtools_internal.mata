@@ -7,6 +7,7 @@ cap mata: mata drop GtoolsDecodeStat()
 cap mata: mata drop GtoolsDecodePth()
 cap mata: mata drop GtoolsSmartLevels()
 cap mata: mata drop GtoolsPrintfSwitch()
+cap mata: mata drop GtoolsFormatDefaultFallback()
 
 cap mata: mata drop GtoolsGtopPrintTop()
 cap mata: mata drop GtoolsGtopUnquote()
@@ -1250,6 +1251,41 @@ end
 ***********************************************************************
 
 mata:
+void function GtoolsFormatDefaultFallback(string scalar var,| string scalar fmt)
+{
+    string scalar v, l, f
+    v = st_vartype(var)
+    f = args() >= 2? fmt: ""
+    if ( f == "" ) {
+        if ( regexm(v, "str([1-9][0-9]*|L)") ) {
+            l = regexs(1)
+            if ( l == "L" ) {
+                f = "%9s"
+            }
+            else {
+                f = "%" + regexs(1) + "s"
+            }
+        }
+        else if ( v == "byte" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "int" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "long" ) {
+            f = "%12.0g"
+        }
+        else if ( v == "float" ) {
+            f = "%9.0g"
+        }
+        else if ( v == "double" ) {
+            f = "%10.0g"
+        }
+    }
+    if ( f != "" ) {
+        st_varformat(var, f)
+    }
+}
 
 real matrix function GtoolsReadMatrix(
     string scalar fname,
@@ -1494,7 +1530,7 @@ void function GtoolsGtopPrintTop(
     string matrix printed,
     real scalar matasave)
 {
-    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
+    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, Jmiss, Jother
     real scalar nmap, knum, kstr, valabbrev, weights
     real scalar pctlen, wlen, dlen
     real colvector si_miss, si_other, fmtix
@@ -1510,9 +1546,11 @@ void function GtoolsGtopPrintTop(
     // Done here because if these have embedded characters the parsing
     // gets tripped up...
 
-    levels = st_global("r(levels)")
-    sep    = st_global("r(sep)")
-    colsep = st_global("r(colsep)")
+    Jmiss   = st_numscalar("r(Jmiss)")
+    Jother  = st_numscalar("r(Jother)")
+    levels  = st_global("r(levels)")
+    sep     = st_global("r(sep)")
+    colsep  = st_global("r(colsep)")
 
     weights = st_local("weights") != ""
     pctfmt  = st_local("pctfmt")
@@ -1582,7 +1620,7 @@ void function GtoolsGtopPrintTop(
                             fmtbak = grows[1::ntop, l]
                             grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
                             fmtix  = selectindex(grows[1::ntop, l] :== "")
-                            if ( rows(fmtix) > 0 ) {
+                            if ( length(fmtix) > 0 ) {
                                 grows[fmtix, l] = fmtbak[fmtix]
                             }
                         }
@@ -1699,12 +1737,18 @@ void function GtoolsGtopPrintTop(
         olab = st_local("otherlabel")
         if ( any(si_miss) ) {
             minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( (st_local("ngroups") == "") & (Jmiss > 1) ) {
+                mlab = mlab + sprintf(" (%g groups)", Jmiss)
+            }
             if ( minstrlen < strlen(mlab) ) {
                 gstrmax[1] = strlen(mlab) - minstrlen + gstrmax[1]
             }
         }
         if ( any(si_other) ) {
             minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( (st_local("ngroups") == "") & Jother ) {
+                olab = olab + sprintf(" (%s group%s)", strtrim(sprintf("%21.0gc", Jother)), Jother > 1? "s": "")
+            }
             if ( minstrlen < strlen(olab) ) {
                 gstrmax[1] = strlen(olab) - minstrlen + gstrmax[1]
             }

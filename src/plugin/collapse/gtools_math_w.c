@@ -353,6 +353,7 @@ ST_double gf_array_dgeomean_weighted (
     ST_double *wptr = w;
     ST_double vsum = 0;
     ST_double wsum = 0;
+    GT_bool   zero = 0;
 
     // Note that for the geometric mean, a weight of w_i means that
     // v_i should be multiplied by itself w_i times, hence
@@ -362,15 +363,16 @@ ST_double gf_array_dgeomean_weighted (
     // or exp((sum_i w_i log(v_i)) / (sum w_i))
 
     // TODO: Truncate numerical zeros to 0?
-    // TODO: Check that weights of 0 are already excluded in marksample
-
     for (vptr = v; vptr < v + N; vptr++, wptr++) {
         if ( *vptr < SV_missval ) {
-            if ( *vptr == 0 ) {
-                return (0);
-            }
-            else if ( *vptr < 0 ) {
+            if ( *vptr < 0 ) {
                 return (SV_missval);
+            }
+            else if ( zero ) {
+                continue;
+            }
+            else if ( *vptr == 0 ) {
+                zero = 1;
             }
             else {
                 vsum += log(*vptr) * (*wptr);
@@ -379,7 +381,7 @@ ST_double gf_array_dgeomean_weighted (
         }
     }
 
-    return (wsum == 0? SV_missval: exp(vsum / wsum));
+    return (wsum == 0? SV_missval: (zero? 0: exp(vsum / wsum)));
 }
 
 /**

@@ -1,4 +1,4 @@
-*! version 1.9.2 22Sep2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.10.0 04Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Program for managing the gtools package installation
 
 capture program drop gtools
@@ -427,9 +427,12 @@ program gtools_showcase
     gtools_cmd  givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
     gtools_cmd  givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
 
-    gtools_head gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
-    gtools_cmd  gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-    gtools_cmd  gpoisson price mpg [fw = trunk], by(foreign) absorb(rep78 headroom) cluster(rep78)
+    gtools_head gglm depvar indepvars [if] [in] [weight], family(...) [by(varlist) options]
+    gtools_cmd  gglm price mpg rep78, family(poisson) mata(coefs) prefix(b(_b_) se(_se_)) replace
+    gtools_cmd  gglm price mpg [fw = trunk], family(poisson) by(foreign) absorb(rep78 headroom) cluster(rep78)
+    gtools_cmd
+    gtools_cmd  gglm foreign price rep78 [fw = trunk], family(binomial) absorb(headroom) mata(coefs)
+    gtools_cmd  gglm foreign price if rep78 > 2, family(binomial) by(rep78) prefix(b(_b_) se(_se_)) replace
 
     gtools_head gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
     gtools_cmd  gen h1 = headroom

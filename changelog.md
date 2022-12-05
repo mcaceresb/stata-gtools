@@ -1,6 +1,60 @@
 Change Log
 ==========
 
+## gtools-1.10.0 (2022-12-04)
+
+### Features
+
+- `noinit` option for `gcollapse, merge`, `gegen`, `gstats` (selected),
+  `gregress` (and co.) to prevent targets from being emptied out
+  with `replace`. Prints warning!
+
+### Enhancements
+
+- `gtop` prints the number of levels in Other and Missing rows by
+  default. (With missing it only does it if there's more than
+  one type of missing value.)
+
+- `greshape` tries to detect repeated stubs and suggests this possibility
+  to the user when a stub matches multiple variables.
+
+### Bug fixes
+
+- Closes #87: For OSX, make now compiles x86_64 and arm64 separately 
+  then combines via `lipo`.
+
+- `geomean` (`gcollapse`, `gegen`, `gstats`) no longer exhibits
+  inconsistent behavior with zeros and negative values. A negative value
+  results in a missing value evne if there are zeros present (internally, 
+  if a zero is encountered the loop just checks for negative values and
+  returns 0 if it finds none).
+
+- `gstats winsor`, exits with error if replace and if/in are passed
+  (the way it's set up it'd be a bit of a hassle to allow init/noinit).
+
+- `gstats transform`, `gstats hdfe`, `gregress` (and co.) all now 
+  initialize their targets to be empty (missing values) with
+  if in and replace.
+
+- `gstats transform` now exits with error if excludeself is passed
+  without range, and now prints a warning if it's passed with
+  stats other than range.
+
+- `gtop` no longer incorrectly replaces the display value if the
+  numerical variable has a value label and no missing values. If there
+  was a single value this would result in an error: `gtop` would think
+  there was always at least one missing value to replace.
+
+- `gcollapse` no longer fails when trying to label the collapsed output
+  if the source labels are blank (this can happen for example with data
+  transformed to `.dta` from other formats or programs).
+
+- `gcollapse` no longer gives incorrect missing variables list when
+  part of that list is called with varlist notation (e.g. `x* y`
+  and `x*` exist but `y` does not).
+
+- `gunique` no longer ignores if/in with `gen` and `replace`
+
 ## gtools-1.9.2 (2022-09-22)
 
 ### Bug fixes

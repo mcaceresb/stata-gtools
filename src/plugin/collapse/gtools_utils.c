@@ -146,3 +146,16 @@ ST_double gf_query_free_space (char *fname)
 
     return (mib_free);
 }
+
+ST_double gf_dipow(ST_double base, GT_size exp)
+{
+    ST_double result = 1.0;
+    while ( exp ) {
+        if (exp & 1) {
+            result *= base;
+        }
+        exp >>= 1;
+        base *= base;
+    }
+    return(result);
+}

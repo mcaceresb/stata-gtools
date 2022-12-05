@@ -12,14 +12,9 @@ open:
 	dolphin --split ~/todo/now/stata-gtools \
 					~/todo/now/stata-gtools/src &
 
-# bug  xx replace does not empty out variables; problem with ifin
-# doc  xx add resid[(str)] option to docs
-# doc  xx what was absorb(, save(str)) meant to do?
-# test xx src/test/test_gregress.do
-# doc  xx docs/usage/gpoisson.md    (consolidate)
-# doc  xx docs/stata/gpoisson.sthlp (consolidate)
-# ex   xx docs/examples/glogit.do
-# bug  xx detect collinearity with dep var in glm
+# doc xx add resid[(str)] option to docs
+# doc xx what was absorb(, save(str)) meant to do?
+# bug xx detect collinearity with dep var in glm
 
 # Update!
 # -------

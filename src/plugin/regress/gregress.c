@@ -2004,7 +2004,11 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         krefse    = krefb     + kv * st_info->gregress_savegb;
         krefhdfe  = krefse    + kv * st_info->gregress_savegse;
         krefresid = krefhdfe  + (kx + 1) * st_info->gregress_saveghdfe;
-        krefpred  = krefresid + 1 * resid;
+        krefpred  = krefresid + resid;
+
+        if ( st_info->init_targ ) {
+            if ( (rc = sf_empty_varlist(NULL, krefb, krefpred + predict - krefb)) ) goto exit;
+        }
 
         bptr   = b;
         septr  = se;

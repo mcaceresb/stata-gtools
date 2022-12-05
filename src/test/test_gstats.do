@@ -733,6 +733,8 @@ capture program drop checks_gstats_winsor
 program checks_gstats_winsor
     * TODO: Pending
     sysuse auto, clear
+    cap gstats winsor price if foreign, cuts(10 90) replace
+    assert _rc == 198
 
     cap noi gstats winsor price, by(foreign) cuts(10)
     cap noi gstats winsor price, by(foreign) cuts(90)

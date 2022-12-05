@@ -37,6 +37,7 @@
 {synopt:{opt groupmiss:ing}} Count rows with any variable missing as missing.{p_end}
 {synopt:{opt nomiss:ing}} Case-wise exclude rows with missing values from frequency count.{p_end}
 {synopt:{opt nooth:er}} Do not group rest of levels into "other" row.{p_end}
+{synopt:{opt nong:roups}} Do not specify number of groups in "other" row.{p_end}
 {synopt:{opt alpha}} Sort the top levels of varlist by variables instead of frequencies.{p_end}
 {synopt:{opt silent}} Do not display the top levels of varlist.{p_end}
 
@@ -153,6 +154,12 @@ frequency count.  By default missing values are treated as another level.
 {phang}{opt noother} By default a row is printed after the top levels
 with the frequency count from groups not in the top levels and not
 counted as missing. This option toggles display of that row.
+
+{phang}{opt nongroups} By default the number of groups comprising the
+"Other" and "Missing" rows are printed as part of the "Other" and
+"Missing" row labels (should they appear; for the missing row this
+is only printed if more than 1 missing value type is present). This 
+option toggles display of the number of groups represented.
 
 {phang}{opt alpha} Sort the top levels of varlist by variables instead
 of frequencies. Note that the top levels are still extracted; this just

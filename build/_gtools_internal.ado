@@ -1,4 +1,4 @@
-*! version 1.9.2 22Sep2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.10.0 04Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -169,6 +169,7 @@ program _gtools_internal, rclass
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
+        noinit                    /// Do not initialize targets with missing values
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
                                   ///
@@ -252,7 +253,7 @@ program _gtools_internal, rclass
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local gen `generate'
-    mata st_local("ifin", st_local("if") + " " + st_local("in"))
+    mata st_local("ifin", strtrim(st_local("if") + " " + st_local("in")))
 
     local hashmethod `hashmethod'
     if ( `"`hashmethod'"' == "" ) local hashmethod 0
@@ -767,6 +768,8 @@ program _gtools_internal, rclass
     scalar __gtools_top_other       = 0
     scalar __gtools_top_lmiss       = 0
     scalar __gtools_top_lother      = 0
+    scalar __gtools_top_Jmiss       = 0
+    scalar __gtools_top_Jother      = 0
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
     matrix __gtools_weight_smat     = wselmat
@@ -1118,7 +1121,7 @@ program _gtools_internal, rclass
             if ( _rc ) {
                 local notfound
                 foreach var of local clean_anything {
-                    cap confirm var `var'
+                    cap ds `var'
                     if ( _rc  ) {
                         local notfound `notfound' `var'
                     }
@@ -1525,7 +1528,8 @@ program _gtools_internal, rclass
         scalar __gtools_used_io   = 0
         scalar __gtools_ixfinish  = 0
         scalar __gtools_J         = _N
-        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "")
+        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
 
         if inlist("`anything'", "forceio", "switch") {
             local extravars `__gtools_sources' `__gtools_sources' `freq'
@@ -1630,7 +1634,8 @@ program _gtools_internal, rclass
 
         if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
-            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "")
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0: copy local greshape
@@ -1707,6 +1712,7 @@ program _gtools_internal, rclass
                 resid                        /// save residuals in _resid_`yvarlist'
                 RESIDuals(str)               /// save residuals in `residuals'
                 replace                      /// Replace targets, if they exist
+                noinit                       /// Do not initialize targets with missing values
             ]
 
             if ( ("`algorithm'" != "") & ("`method'" != "") ) {
@@ -2274,6 +2280,9 @@ program _gtools_internal, rclass
             if ( `wcode' == 3 ) {
                 disp as txt "{bf:note:} iweights mimic the behavior of aweights"
             }
+
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction' `"${GTOOLS_GSTATS_FILE}"'
@@ -2287,7 +2296,8 @@ program _gtools_internal, rclass
             local statvars `varlist'
 
             * Note: This seems inefficient; if in ought to be done one
-            * level above in gstats...
+            * level above in gstats... not to mention that it will force
+            * initializing the targets every time.
             if ( "`gstat'" == "hdfe" ) {
                 tempvar touse
                 mark `touse' `ifin'
@@ -2295,6 +2305,15 @@ program _gtools_internal, rclass
                 local if if `touse'
                 mata st_local("ifin", st_local("if") + " " + st_local("in"))
             }
+
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`gstats_replace'" != "") & ("`gstats_init'" == "")
+            if ( ("`gstat'" == "winsor") & `=scalar(__gtools_init_targ)' ) {
+                disp as err "gstats winsor: -replace- not allowed with if/in; try generating a new target"
+                clean_all 198
+                exit 198
+            }
+
+            if ( (`"`ifin'"' != "") & ("`gstats_replace'" != "") & ("`gstats_init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "contract") ) {
             local 0 `gcontract'
@@ -2345,7 +2364,7 @@ program _gtools_internal, rclass
             local k2: list sizeof byvars
 
             // 1. gen(, replace)  -> replaces existing varlist
-            // 2. gen(prefix)     -> generates prefix_*
+            // 2. gen(prefix)     -> generates prefix*
             // 4. gen(newvarlist) -> generates newvarlist
 
             if ( "`gen'" != "" ) {
@@ -2460,6 +2479,8 @@ program _gtools_internal, rclass
             scalar __gtools_top_miss      = ( `"`misslab'"'     != "" )
             scalar __gtools_top_groupmiss = ( `"`groupmiss'"'   != "" )
             scalar __gtools_top_other     = ( `"`otherlab'"'    != "" )
+            scalar __gtools_top_Jmiss     = 0
+            scalar __gtools_top_Jother    = 0
             scalar __gtools_top_lmiss     = length(`"`misslab'"')
             scalar __gtools_top_lother    = length(`"`otherlab'"')
             scalar __gtools_top_nrows     = abs(__gtools_top_ntop) /*
@@ -2946,7 +2967,7 @@ program _gtools_internal, rclass
                         clean_all 198
                         exit 198
                     }
-                    else if ( _rc & ("`replace'" != "") ) {
+                    else if ( _rc & ("`replace'" != "") & ("`init'" == "") ) {
                         qui replace `qvar' = .
                     }
                     else if ( _rc == 0 ) {
@@ -2960,6 +2981,10 @@ program _gtools_internal, rclass
             if ( `toadd' > 0 ) {
                 qui mata: st_addvar(__gtools_xtile_addlab, __gtools_xtile_addnam)
             }
+
+            * This is superseded by the replace qvar above:
+            * scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
 
             local msg "Parsed quantiles and added targets"
             gtools_timer info `t98' `"`msg'"', prints(`benchmark')
@@ -3068,6 +3093,8 @@ program _gtools_internal, rclass
             cap scalar list __gtools_top_other
             cap scalar list __gtools_top_lmiss
             cap scalar list __gtools_top_lother
+            cap scalar list __gtools_top_Jmiss
+            cap scalar list __gtools_top_Jother
 
             cap scalar list __gtools_xtile_xvars
             cap scalar list __gtools_xtile_nq
@@ -3277,9 +3304,11 @@ program _gtools_internal, rclass
                 */ st_numscalar("__gtools_kvars_num"))
         }
 
-        return scalar alpha = __gtools_top_alpha
-        return scalar ntop  = __gtools_top_ntop
-        return scalar nrows = __gtools_top_nrows
+        return scalar alpha  = __gtools_top_alpha
+        return scalar ntop   = __gtools_top_ntop
+        return scalar nrows  = __gtools_top_nrows
+        return scalar Jmiss  = __gtools_top_Jmiss
+        return scalar Jother = __gtools_top_Jother
 
         * return matrix toplevels = __gtools_top_matrix
         * return matrix numlevels = __gtools_top_num
@@ -3373,6 +3402,8 @@ program clean_all
     global GTOOLS_GREGB_FILE
     global GTOOLS_GREGSE_FILE
     global GTOOLS_GREGVCOV_FILE
+    global GTOOLS_GREGCLUS_FILE
+    global GTOOLS_GREGABS_FILE
     global GTOOLS_GHDFEABS_FILE
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
@@ -3433,6 +3464,8 @@ program clean_all
     cap scalar drop __gtools_top_other
     cap scalar drop __gtools_top_lmiss
     cap scalar drop __gtools_top_lother
+    cap scalar drop __gtools_top_Jmiss
+    cap scalar drop __gtools_top_Jother
     cap matrix drop __gtools_contract_which
 
     cap scalar drop __gtools_levels_mataname
@@ -5260,7 +5293,8 @@ program gstats_transform
     syntax anything(equalok),       ///
     [                               ///
                                     /// TODO: Maybe add rawstat at some point...
-        replace                     ///
+        replace                     /// replace variables, if they exist
+        noinit                      /// do not initialize targets with missing values
         nogreedy                    /// use memory-heavy algorithm
         TYPEs(str)                  /// override automatic types
                                     ///
@@ -5416,26 +5450,6 @@ program gstats_transform
             local __gtools_gst_addvars  `__gtools_gst_addvars'  `target'
             local __gtools_gst_addtypes `__gtools_gst_addtypes' `type'
         }
-    }
-
-    if ( `kadd' ) {
-        mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
-    }
-
-    if ( `krecast' ) {
-        scalar __gtools_k_recast = `krecast'
-        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
-        local rc = _rc
-        cap scalar drop __gtools_k_recast
-        if ( `rc' ) {
-            exit `rc'
-        }
-    }
-
-    mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
-    forvalues k = 1 / `ktargets' {
-        mata: st_varlabel( `"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_labels[`k'])
-        mata: st_varformat(`"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_formats[`k'])
     }
 
     * Group stat codes
@@ -5899,8 +5913,20 @@ program gstats_transform
         }
     }
 
-    * Return varlist for plugin internals
+    mata {
+        if ( (`"`excludeself'"'   != "") &  any(__gtools_transform_varfuns :!= -5) ) {
+            if ( all(__gtools_transform_varfuns :!= -5) ) {
+                printf("gstats_transform: option -excludeself- not allowed (only with transform range)\n")
+                _error(198)
+            }
+            else {
+                printf("gstats_transform: excludeself ignored for stats other than range\n")
+            }
+        }
+    }
 
+    * Return varlist for plugin internals
+    * -----------------------------------
     scalar __gtools_transform_greedy    = (`"`greedy'"' != "nogreedy")
     scalar __gtools_transform_kvars     = `:list sizeof __gtools_gst_vars'
     scalar __gtools_transform_ktargets  = `:list sizeof __gtools_gst_targets'
@@ -5934,6 +5960,32 @@ program gstats_transform
     mata: st_matrix("__gtools_transform_aux8_shift", __gtools_transform_aux8_shift)
 
     c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars' `cumvars'
+
+    * Potential intensive operations: Add, recast targets
+    * ---------------------------------------------------
+
+    if ( `kadd' ) {
+        mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
+    }
+
+    if ( `krecast' ) {
+        scalar __gtools_k_recast = `krecast'
+        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
+        local rc = _rc
+        cap scalar drop __gtools_k_recast
+        if ( `rc' ) {
+            exit `rc'
+        }
+    }
+
+    mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
+    forvalues k = 1 / `ktargets' {
+        mata: st_varlabel( `"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_labels[`k'])
+        mata: st_varformat(`"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_formats[`k'])
+    }
+
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
 end
 
 * NOTE: Copy/paste from gcollapse.ado/parse_vars
@@ -6391,7 +6443,8 @@ program gstats_hdfe
     [                         ///
         PREfix(str)           /// generate variables with specified prefix
         GENerate(str)         /// generate specified variables
-        replace               /// replace variables
+        replace               /// replace variables, if they exist
+        noinit                /// do not initialize targets with missing values
         WILDparse             /// parse assuming wildcard renaming
                               ///
         ABSORBMISSing         /// absorb missing levels
@@ -6715,6 +6768,9 @@ program gstats_hdfe
 
     c_local varlist `__gtools_hdfe_vars' `__gtools_hdfe_targets' `absorb'
 
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
+
 * TODO: xx formats and labels for targets?
 * forvalues k = 1 / `ktargets' {
 *     mata: st_varlabel( `"`:word `k' of `__gtools_hdfe_targets''"', __gtools_hdfe_labels[`k'])
@@ -6733,6 +6789,7 @@ program gstats_winsor
         Cuts(str)              ///
         Label                  ///
         replace                ///
+        noinit                 ///
     ]
 
     * Default is winsorize or trim 1st or 99th pctile
@@ -6870,6 +6927,8 @@ program gstats_winsor
     }
 
     c_local varlist `varlist' `targetvars'
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
 end
 
 capture program drop gstats_summarize
@@ -7942,6 +8001,20 @@ program define GetTarget
     }
     else {
         c_local eqsign
+    }
+end
+
+capture program drop NoInitWarning
+program NoInitWarning
+    if !inlist(`"${GTOOLS_NOINIT_WARNING}"', "0") {
+        disp as txt "WARNING: You have chosen to use the undocumented option -noinit-"
+        disp as txt "with -replace- and if/in. Variables that exist and will be replaced"
+        disp as txt "WITHOUT modifying any observations not tagged by if/in. Please make"
+        disp as txt "sure you understand the implications of doing this. To supress this"
+        disp as txt "warning, set"
+        disp as txt ""
+        disp as txt "    global GTOOLS_NOINIT_WARNING = 0"
+        disp as txt ""
     }
 end
 

@@ -5,7 +5,7 @@
 # Program: build.py
 # Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 # Created: Sun Oct 15 10:26:39 EDT 2017
-# Updated: Thu Sep 22 13:01:58 EDT 2022
+# Updated: Sun Dec 04 20:52:27 EST 2022
 # Purpose: Main build file for gtools (copies contents into ./build and
 #          puts a .zip file in ./releases)
 
@@ -141,7 +141,6 @@ gtools_ssc = [
     "gregress.sthlp",
     "givregress.sthlp",
     "gglm.sthlp",
-    "gpoisson.sthlp",
     "gstats.sthlp",
     "gstats_transform.sthlp",
     "gstats_range.sthlp",
@@ -390,7 +389,6 @@ copy2(path.join("docs", "stata", "greg.sthlp"),               gdir)
 copy2(path.join("docs", "stata", "gregress.sthlp"),           gdir)
 copy2(path.join("docs", "stata", "givregress.sthlp"),         gdir)
 copy2(path.join("docs", "stata", "gglm.sthlp"),               gdir)
-copy2(path.join("docs", "stata", "gpoisson.sthlp"),           gdir)
 copy2(path.join("docs", "stata", "gstats.sthlp"),             gdir)
 copy2(path.join("docs", "stata", "gstats_transform.sthlp"),   gdir)
 copy2(path.join("docs", "stata", "gstats_range.sthlp"),       gdir)

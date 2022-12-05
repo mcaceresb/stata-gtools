@@ -16,8 +16,8 @@ assert price == res_price if !mi(rep78)
 assert mpg   == res_mpg   if !mi(rep78)
 
 gstats hdfe price mpg, absorb(foreign make) replace
-assert abs(price) < 1e-8
-assert abs(price) < 1e-8
+assert abs(price) < 1e-8 if !mi(rep78)
+assert abs(price) < 1e-8 if !mi(rep78)
 
 * Basic Benchmark
 * ---------------

@@ -218,7 +218,7 @@ Missing Features
   for contractions but my understanding is that it can be applied to any
   monotonically convergent algorithm.
 
-- Improve convergence criterion. Current criterion may not be sensible.
+- Improve convergence criterion; current criterion may not be sensible.
 
 Examples
 --------

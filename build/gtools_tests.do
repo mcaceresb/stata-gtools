@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Sun Dec 04 20:52:14 EST 2022
+* Updated: Mon Dec 05 09:39:49 EST 2022
 * Purpose: Unit tests for gtools
-* Version: 1.10.0
+* Version: 1.10.1
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -68,25 +68,25 @@ program main
         * qui do test_greshape.do
         * qui do test_gregress.do
 
-        * qui do docs/examples/gcollapse.do
-        * qui do docs/examples/gcontract.do
-        * qui do docs/examples/gdistinct.do
-        * qui do docs/examples/gduplicates.do
-        * qui do docs/examples/gquantiles.do
-        * qui do docs/examples/gtoplevelsof.do
-        * qui do docs/examples/gunique.do
-        * qui do docs/examples/hashsort.do
-        * qui do docs/examples/gegen.do,     nostop
-        * qui do docs/examples/gisid.do,     nostop
-        * qui do docs/examples/glevelsof.do, nostop
-        * qui do docs/examples/gstats_summarize.do
-        * qui do docs/examples/gstats_transform.do
-        * qui do docs/examples/gstats_winsor.do
-        * qui do docs/examples/gstats_hdfe.do
-        * qui do docs/examples/greshape.do
-        * qui do docs/examples/gregress.do
-        * qui do docs/examples/givregress.do
-        * qui do docs/examples/gglm.do
+        qui do docs/examples/gcollapse.do
+        qui do docs/examples/gcontract.do
+        qui do docs/examples/gdistinct.do
+        qui do docs/examples/gduplicates.do
+        qui do docs/examples/gquantiles.do
+        qui do docs/examples/gtoplevelsof.do
+        qui do docs/examples/gunique.do
+        qui do docs/examples/hashsort.do
+        qui do docs/examples/gegen.do,     nostop
+        qui do docs/examples/gisid.do,     nostop
+        qui do docs/examples/glevelsof.do, nostop
+        qui do docs/examples/gstats_summarize.do
+        qui do docs/examples/gstats_transform.do
+        qui do docs/examples/gstats_winsor.do
+        qui do docs/examples/gstats_hdfe.do
+        qui do docs/examples/greshape.do
+        qui do docs/examples/gregress.do
+        qui do docs/examples/givregress.do
+        qui do docs/examples/gglm.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install hdfe,      replace
@@ -12701,6 +12701,7 @@ program versus_gstats_transform, rclass
     local I = cond(`"`wgt'"' == "", 6, 4)
     forvalues i = 1 / `I' {
         local opts = cond(`i' != 5, "", "ties(. track . field .)")
+        cap drop _out*
 
         timer clear
         timer on 42

@@ -7,7 +7,8 @@
 typedef uint8_t   GT_bool ;
 typedef uint64_t  GT_size ;
 typedef int64_t   GT_int ;
-// typedef size_t  GT_size ;
+typedef uint16_t  GT_smallsize ;
+typedef int16_t   GT_smallint ;
 
 // #if defined(_WIN64) || defined(_WIN32)
 // #    define GT_size_cfmt "%lu"

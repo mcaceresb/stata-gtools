@@ -2,12 +2,11 @@
 site_name:        'Gtools'
 site_description: 'Faster Stata for Big Data'
 
-pages:
+nav:
     - Home: index.md
     - FAQs: faqs.md
     - Benchmarks: benchmarks.md
-    - Advanced:
-        - Compiling: compiling.md
+    - Compiling: compiling.md
     - Usage:
         - gtools:             usage/gtools.md
     - Data manipulation:      
@@ -21,7 +20,7 @@ pages:
     - Statistics:             
         - gegen:              usage/gegen.md
         - gquantiles:         usage/gquantiles.md
-        - gstats residualize: usage/gstats_residualize.md
+        - gstats residualize: usage/gstats_hdfe.md
         - gstats winsor:      usage/gstats_winsor.md
         - gstats sum/tab:     usage/gstats_summarize.md
         - gstats transform:   usage/gstats_transform.md

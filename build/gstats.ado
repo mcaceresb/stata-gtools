@@ -68,11 +68,11 @@ program gstats, rclass
     }
 
     if ( `"`stat'"' == "hdfe" & !inlist(`"${GTOOLS_BETA}"', "1", "I KNOW WHAT I AM DOING") ) {
-        disp as err "This function is in beta; to use, you must enable beta features via"
-        disp as err ""
-        disp as err "    global GTOOLS_BETA I KNOW WHAT I AM DOING"
-        disp as err ""
-        disp as err "gtools functions in beta are subject to change."
+        disp as err `"This function is in beta; to use, you must enable beta features via"'
+        disp as err `""'
+        disp as err `"    global GTOOLS_BETA = "I KNOW WHAT I AM DOING""'
+        disp as err `""'
+        disp as err `"gtools functions in beta are subject to change."'
         exit 198
     }
 

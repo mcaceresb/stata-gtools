@@ -217,7 +217,6 @@ program gcollapse, rclass
     * Parse collapse statement to get sources, targets, and stats
     * -----------------------------------------------------------
 
-    gtools_timer on `t97'
     cap noi parse_vars `anything' `if' `in', ///
         `labelformat' `labelprogram' `freq' `wildparse'
 
@@ -719,6 +718,9 @@ program gcollapse, rclass
         disp `"_gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)"'
     }
 
+    local msg `"Ready for plugin execution"'
+    gtools_timer info `t97' `"`msg'"', prints(`bench')
+
     cap noi _gtools_internal `by' `ifin', `opts' `weights' `action' `gcollapse' gfunction(collapse)
     if ( _rc == 17999 ) {
         if ( "`gfallbackok'" != "" ) {
@@ -759,6 +761,7 @@ program gcollapse, rclass
     *                               Finish                                *
     ***********************************************************************
 
+    gtools_timer on `t97'
     if ( "`merge'" == "" ) {
 
         * Keep only the collapsed data
@@ -768,7 +771,7 @@ program gcollapse, rclass
             if ( `=`r_J' > 0' ) keep in 1 / `:di %32.0f `r_J''
             else if ( `=`r_J' == 0' ) {
                 keep in 1
-                drop if 1
+                drop in 1
             }
             else if ( `=`r_J' < 0' ) {
                 di as err "The plugin returned a negative number of groups."
@@ -795,8 +798,6 @@ program gcollapse, rclass
                    & (`=scalar(__gtools_gc_k_extra)' > 0) ///
                    & ( `used_io' | ("`forceio'" == "forceio") )
         if ( `ifcond' ) {
-            gtools_timer on `t97'
-
             qui mata: st_addvar(__gtools_gc_addtypes, __gtools_gc_addvars, 1)
             gtools_timer info `t97' `"Added extra targets after collapse"', prints(`bench')
 
@@ -871,7 +872,6 @@ program gcollapse, rclass
         }
     }
 
-    gtools_timer on `t97'
     if ( "`fast'" == "" ) restore, not
 
     local msg "Program exit executed"

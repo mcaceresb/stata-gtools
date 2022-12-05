@@ -164,6 +164,24 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     void      *FE   = calloc(kabs?  N:  1, bytesabs?  bytesabs:  1);
     ST_double *I    = calloc(interval? N: 1, sizeof *I);
 
+    if ( GTOOLS_PWMAX(kv, kx) > 65535 ) {
+        ST_double GiB = ((ST_double)gf_iipow(GTOOLS_PWMAX(kv, kx), 2)) / 1073741824.0;
+        sf_printf("warning: "GT_size_cfmt" variables detected\n\n", GTOOLS_PWMAX(kv, kx));
+
+        sf_printf("That's a lot of variables! Listen, I'm gonna level with you: I'm not a\n");
+        sf_printf("programmer, and I get a compile-time warning about undefined behavior in\n");
+        sf_printf("my code if the number of variables gets too big. I _think_ the issue is\n");
+        sf_printf("that the array reference can overflow because I allow the size to go\n");
+        sf_printf("up to the integer limit # in C, but the array size is #^2.\n\n");
+
+        sf_printf("However, I'm not 100%%. So if your number of variables is nowhere near\n");
+        sf_printf("the limit of a 32-bit signed integer, _probably_ you're fine, but no\n");
+        sf_printf("promises. Consider making sure you really want to use this many variables\n");
+        sf_printf("(I do have the -absorb()- option if you have a ton of fixed effects)!\n");
+        sf_printf("After all, you're using %.1fGiB of memory PER matrix for EACH matrix\n", GiB);
+        sf_printf("operation, and there's a fair chunk of those.\n\n");
+    }
+
     ST_double *w = NULL;
     if ( st_info->wcode > 0 ) {
         w = calloc(st_info->wcode > 0? N: 1, sizeof *w);

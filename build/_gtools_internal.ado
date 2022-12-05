@@ -1,4 +1,4 @@
-*! version 1.10.0 04Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.10.1 05Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -2307,8 +2307,14 @@ program _gtools_internal, rclass
             }
 
             scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`gstats_replace'" != "") & ("`gstats_init'" == "")
-            if ( ("`gstat'" == "winsor") & `=scalar(__gtools_init_targ)' ) {
-                disp as err "gstats winsor: -replace- not allowed with if/in; try generating a new target"
+            if ( ("`gstat'" == "winsor") & `:list sizeof gstats_replace_anysrc' & `=scalar(__gtools_init_targ)' ) {
+                disp as err "gstats winsor: -replace- with source as target not allowed with if/in"
+                clean_all 198
+                exit 198
+            }
+
+            if ( ("`gstat'" == "transform") & ("`gstats_greedy'" != "") & `:list sizeof gstats_replace_anysrc' & `=scalar(__gtools_init_targ)' ) {
+                disp as err "gstats transform: -replace- source as target not allowed with if/in and -nogreedy-"
                 clean_all 198
                 exit 198
             }
@@ -5961,6 +5967,11 @@ program gstats_transform
 
     c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars' `cumvars'
 
+    * Check if any of the target is any type of source
+    local common: list cumvars | rangevars
+    local common: list common  | __gtools_gst_vars
+    c_local gstats_replace_anysrc: list common & __gtools_gst_targets
+
     * Potential intensive operations: Add, recast targets
     * ---------------------------------------------------
 
@@ -5986,6 +5997,7 @@ program gstats_transform
 
     c_local gstats_replace: copy local replace
     c_local gstats_init:    copy local init
+    c_local gstats_greedy:  copy local greedy
 end
 
 * NOTE: Copy/paste from gcollapse.ado/parse_vars
@@ -6929,6 +6941,7 @@ program gstats_winsor
     c_local varlist `varlist' `targetvars'
     c_local gstats_replace: copy local replace
     c_local gstats_init:    copy local init
+    c_local gstats_replace_anysrc: list varlist & targetvars
 end
 
 capture program drop gstats_summarize

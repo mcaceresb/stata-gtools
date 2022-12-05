@@ -1515,6 +1515,7 @@ program versus_gstats_transform, rclass
     local I = cond(`"`wgt'"' == "", 6, 4)
     forvalues i = 1 / `I' {
         local opts = cond(`i' != 5, "", "ties(. track . field .)")
+        cap drop _out*
 
         timer clear
         timer on 42

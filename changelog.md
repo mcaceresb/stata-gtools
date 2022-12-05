@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.10.1 (2022-12-05)
+
+### Bug fixes
+
+- `gstats transform [if] [in], replace nogreedy` not allowed (since nogreedy
+  reads groups on the fly it can't initialize the entire variable).
+
 ## gtools-1.10.0 (2022-12-04)
 
 ### Features

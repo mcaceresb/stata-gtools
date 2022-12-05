@@ -4,6 +4,7 @@
 ST_double gf_benchmark (char *fname);
 ST_double gf_query_free_space (char *fname);
 ST_double gf_dipow(ST_double base, GT_size exp);
+GT_size gf_iipow(GT_size base, GT_size exp);
 void gf_split_path_file(char** p, char** f, char *pf);
 
 void gf_write_collapsed(

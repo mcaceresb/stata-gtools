@@ -218,6 +218,12 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\ttransform step 1: variable setup");
 
+    // NOTE: with nogreedy, This assumes the source and target are
+    // different; this check is handled at the Stata level
+    if ( st_info->init_targ && !greedy ) {
+        if ( (rc = sf_empty_varlist(NULL, kvars + 1 + ksources, ktargets)) ) goto exit;
+    }
+
     if ( weights ) {
 
         if ( greedy ) {
@@ -474,10 +480,6 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                     wgtptr += nj;
                     dblptr = gsrc_buffer;
 
-                    if ( st_info->init_targ ) {
-                        if ( (rc = sf_empty_varlist(NULL, kvars + k + 1 + ksources, 1)) ) goto exit;
-                    }
-
                     for (i = start; i < end; i++, dblptr++) {
                         if ( (rc = SF_vstore(kvars + k + 1 + ksources,
                                              st_info->index[i] + st_info->in1,
@@ -710,10 +712,6 @@ ST_retcode sf_stats_transform (struct StataInfo *st_info, int level)
                             gsrc_stats,
                             st_info->transform_aux8_shift[k]
                         );
-                    }
-
-                    if ( st_info->init_targ ) {
-                        if ( (rc = sf_empty_varlist(NULL, kvars + k + 1 + ksources, 1)) ) goto exit;
                     }
 
                     dblptr = gsrc_buffer;

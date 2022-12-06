@@ -68,25 +68,25 @@ program main
         * qui do test_greshape.do
         * qui do test_gregress.do
 
-        qui do docs/examples/gcollapse.do
-        qui do docs/examples/gcontract.do
-        qui do docs/examples/gdistinct.do
-        qui do docs/examples/gduplicates.do
-        qui do docs/examples/gquantiles.do
-        qui do docs/examples/gtoplevelsof.do
-        qui do docs/examples/gunique.do
-        qui do docs/examples/hashsort.do
-        qui do docs/examples/gegen.do,     nostop
-        qui do docs/examples/gisid.do,     nostop
-        qui do docs/examples/glevelsof.do, nostop
-        qui do docs/examples/gstats_summarize.do
-        qui do docs/examples/gstats_transform.do
-        qui do docs/examples/gstats_winsor.do
-        qui do docs/examples/gstats_hdfe.do
-        qui do docs/examples/greshape.do
-        qui do docs/examples/gregress.do
-        qui do docs/examples/givregress.do
-        qui do docs/examples/gglm.do
+        * qui do docs/examples/gcollapse.do
+        * qui do docs/examples/gcontract.do
+        * qui do docs/examples/gdistinct.do
+        * qui do docs/examples/gduplicates.do
+        * qui do docs/examples/gquantiles.do
+        * qui do docs/examples/gtoplevelsof.do
+        * qui do docs/examples/gunique.do
+        * qui do docs/examples/hashsort.do
+        * qui do docs/examples/gegen.do,     nostop
+        * qui do docs/examples/gisid.do,     nostop
+        * qui do docs/examples/glevelsof.do, nostop
+        * qui do docs/examples/gstats_summarize.do
+        * qui do docs/examples/gstats_transform.do
+        * qui do docs/examples/gstats_winsor.do
+        * qui do docs/examples/gstats_hdfe.do
+        * qui do docs/examples/greshape.do
+        * qui do docs/examples/gregress.do
+        * qui do docs/examples/givregress.do
+        * qui do docs/examples/gglm.do
 
         if ( `:list posof "dependencies" in options' ) {
             cap ssc install hdfe,      replace

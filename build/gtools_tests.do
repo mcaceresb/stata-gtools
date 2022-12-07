@@ -6837,7 +6837,7 @@ program compare_inner_levelsof
                 gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                 gettoken _      l_gtools: l_gtools, p(" | ")
                 if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                    cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                     if ( _rc ) {
                         di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
                         exit 198
@@ -6865,7 +6865,7 @@ program compare_inner_levelsof
                 gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                 gettoken _      l_gtools: l_gtools, p(" | ")
                 if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                    cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                     if ( _rc ) {
                         di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
                         exit 198
@@ -6896,7 +6896,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
                             exit 198
@@ -6924,7 +6924,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
                             exit 198
@@ -6955,7 +6955,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
                             exit 198
@@ -6983,7 +6983,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
                             exit 198
@@ -7014,7 +7014,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
                             exit 198
@@ -7042,7 +7042,7 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert abs(`l_gcmp' - `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
                             exit 198

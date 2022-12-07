@@ -2,3 +2,7 @@ releases
 testing
 site/
 docs/site/
+build/gtools_macosx_v2.plugin.arm64
+build/gtools_macosx_v2.plugin.x86_64
+build/gtools_macosx_v3.plugin.arm64
+build/gtools_macosx_v3.plugin.x86_64

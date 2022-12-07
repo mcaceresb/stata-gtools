@@ -1947,7 +1947,6 @@ program compare_inner_collapse
             `wgen_i'
             local wgt wgt(both `wcall_i')
         }
-save /tmp/tmpd.dta, replace
         _compare_inner_collapse `anything' if random2 > 0, `options' `wgt' tol(`tol')
     restore, preserve
         if ( `"`wfoo'"' == "mix" ) {

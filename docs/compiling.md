@@ -9,7 +9,7 @@ compile time if the OpenMP library is available in your system. See
 [below](parallel-support) for a list of functions with OpenMP support at
 compile time. (Parallel execution has not been optimized; YMMV.)
 
-Compiling the plugin yourself can lead to further speed improvements
+Compiling the plugin yourself can also lead to further speed improvements
 because the optimization flags used by different compilers vary on
 different hardware and operating systems.  In the Linux server where I
 use Stata, a locally compiled plugin ran 20-50% faster (again, YMMV).
@@ -28,8 +28,8 @@ The requirements are slightly different from system to system:
 
 The following are also required, but copies are provided in the repository:
 
-- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2) (Stata 13 and earlier).
-- v3.0 of the [Stata Plugin Interface](https://stata.com/plugins) (Stata 14 and later).
+- v2.0 of the [Stata Plugin Interface](https://stata.com/plugins/version2) (Stata 14.0 and earlier).
+- v3.0 of the [Stata Plugin Interface](https://stata.com/plugins) (Stata 14.1 and later).
 - [`centaurean`'s implementation of SpookyHash](https://github.com/centaurean/spookyhash)
 
 ### Compiling

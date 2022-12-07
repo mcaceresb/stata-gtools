@@ -2,7 +2,7 @@
 site_name:        'Gtools'
 site_description: 'Faster Stata for Big Data'
 
-nav:
+pages:
     - Home: index.md
     - FAQs: faqs.md
     - Benchmarks: benchmarks.md

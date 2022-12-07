@@ -130,8 +130,10 @@ program define gegen, byable(onecall) rclass
                      demean      ///
                      demedian     //
 
-    local direct winsorize ///
-                 winsor     //
+    local direct winsorize   ///
+                 winsor      ///
+                 residualize ///
+                 hdfe         //
 
     * NOTE(mauricio): Though you would want to allow by as prefix, it's
     * difficult because the user can try to pass inputs assuming by:
@@ -184,7 +186,8 @@ program define gegen, byable(onecall) rclass
     }
 
     if ( `:list fcn in direct' ) {
-        if ( `"`fcn'"' == "winsorize" ) local fcn winsor
+        if ( `"`fcn'"' == "winsorize"   ) local fcn winsor
+        if ( `"`fcn'"' == "residualize" ) local fcn hdfe
         cap confirm var `args'
         if ( _rc ) {
             disp as err `"`fcn' requires single variable input"'
@@ -300,6 +303,7 @@ program define gegen, byable(onecall) rclass
         fill(str)                 /// for group(), tag(); fills rest of group with `fill'
                                   ///
         replace                   /// Replace target variable with output, if target already exists
+        noinit                    /// Do not initialize targets with missing values
                                   ///
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
@@ -482,15 +486,16 @@ program define gegen, byable(onecall) rclass
             local dummy `name'
             local rename ""
             local addvar ""
-            local noobs qui replace `dummy' = .
             local retype = `retype' & 0
+            if "`init'" == "" local noobs qui replace `dummy' = .
+            else local noobs ""
         }
         else {
             tempvar dummy
             local rename rename `dummy' `name'
             local addvar qui mata: st_addvar("`type'", "`dummy'")
-            local noobs  ""
             local retype = `retype' & 1
+            local noobs  ""
         }
     }
 
@@ -583,7 +588,7 @@ program define gegen, byable(onecall) rclass
             local byvars `args'
         }
 
-        cap noi _gtools_internal `byvars' `ifin', `opts' `sopts' `action' `missing' `replace' `fill'
+        cap noi _gtools_internal `byvars' `ifin', `opts' `sopts' `action' `missing' `replace' `init' `fill'
         local rc = _rc
         global GTOOLS_CALLER ""
 
@@ -598,8 +603,8 @@ program define gegen, byable(onecall) rclass
                               `nods' `ds'      ///
                               `benchmark'      ///
                               `benchmarklevel' ///
-                              `gtools_capture'
-            local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
+                              * `gtools_capture'
+            local gtools_opts `counts' fill(`fill') `replace' `init' p(`p') `missing'
             collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
             exit 0
         }
@@ -771,7 +776,7 @@ program define gegen, byable(onecall) rclass
 
     `addvar'
     local action sources(`sources') `targets' `stats' fill(`fill') `counts' countmiss
-    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' `weights' missing `keepmissing' `replace'
+    cap noi _gtools_internal `byvars' `ifin', `unsorted' `opts' `action' `weights' missing `keepmissing' `replace' `init'
     local rc = _rc
     global GTOOLS_CALLER ""
 
@@ -791,7 +796,7 @@ program define gegen, byable(onecall) rclass
                           `benchmark'      ///
                           `benchmarklevel' ///
                           `gtools_capture'
-        local gtools_opts `counts' fill(`fill') `replace' p(`p') `missing'
+        local gtools_opts `counts' fill(`fill') `replace' `init' p(`p') `missing'
         collision_fallback, gtools_call(`"`type' `name' = `fcn'(`args') `ifin'"') `gtools_args' `gtools_opts'
         exit 0
     }

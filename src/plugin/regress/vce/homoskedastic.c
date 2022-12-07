@@ -86,3 +86,17 @@ void gf_regress_ols_sefw (
         se[i] = sqrt(V[i * kindep + i] * z);
     }
 }
+
+void gf_regress_ols_copyvcov (
+    ST_double *V,
+    ST_double *XX,
+    GT_size   kx,
+    GT_size   *colix)
+{
+    GT_size i, j, kindep = colix[kx];
+    for (i = 0; i < kindep; i++) {
+        for (j = 0; j < kindep; j++) {
+            V[i * kindep + j] = XX[i * kindep + j];
+        }
+    }
+}

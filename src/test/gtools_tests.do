@@ -3,9 +3,9 @@
 * Program: gtools_tests.do
 * Author:  Mauricio Caceres Bravo <mauricio.caceres.bravo@gmail.com>
 * Created: Tue May 16 07:23:02 EDT 2017
-* Updated: Wed Feb 02 11:43:21 EST 2022
+* Updated: Mon Dec 05 09:39:49 EST 2022
 * Purpose: Unit tests for gtools
-* Version: 1.8.4
+* Version: 1.10.1
 * Manual:  help gtools
 * Note:    You may need to run `ftools, compile` and `reghdfe, compile`
 *          to test gtools against ftools functions and reghdfe.
@@ -52,6 +52,7 @@ program main
     * --------------
 
     cap noi {
+        * qui do gtools_tests.do
         * qui do test_gcollapse.do
         * qui do test_gcontract.do
         * qui do test_gduplicates.do
@@ -81,20 +82,24 @@ program main
         * qui do docs/examples/gstats_summarize.do
         * qui do docs/examples/gstats_transform.do
         * qui do docs/examples/gstats_winsor.do
+        * qui do docs/examples/gstats_hdfe.do
         * qui do docs/examples/greshape.do
         * qui do docs/examples/gregress.do
+        * qui do docs/examples/givregress.do
+        * qui do docs/examples/gglm.do
 
         if ( `:list posof "dependencies" in options' ) {
-            cap ssc install ralpha
-            cap ssc install ftools
-            cap ssc install unique
-            cap ssc install winsor2
-            cap ssc install distinct
-            cap ssc install moremata
-            cap ssc install fastxtile
-            cap ssc install egenmisc
-            cap ssc install egenmore
-            cap ssc install rangestat
+            cap ssc install hdfe,      replace
+            cap ssc install ralpha,    replace
+            cap ssc install ftools,    replace
+            cap ssc install unique,    replace
+            cap ssc install winsor2,   replace
+            cap ssc install distinct,  replace
+            cap ssc install moremata,  replace
+            cap ssc install fastxtile, replace
+            cap ssc install egenmisc,  replace
+            cap ssc install egenmore,  replace
+            cap ssc install rangestat, replace
             * ftools,  compile
             * reghdfe, compile
         }
@@ -574,7 +579,7 @@ program quickGini, sortpreserve
 end
 
 * ---------------------------------------------------------------------
-* Run the things
+* Run
 
 if ( `"`0'"' == "" ) local 0 dependencies basic_checks comparisons switches bench_test
 main, `0'

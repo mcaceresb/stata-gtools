@@ -33,6 +33,8 @@ ST_retcode sf_top (struct StataInfo *st_info, int level)
     GT_size ntop     = GTOOLS_PWMAX((GT_size) st_info->top_ntop, 1);
     GT_size nrows    = ntop + st_info->top_miss + st_info->top_other;
     GT_size kalloc   = st_info->top_matasave? 1: (knum > 0? knum * ntop: 1);
+    GT_size Jmiss    = 0;
+    GT_size Jother   = 0;
     ST_double Ndbl   = (ST_double) st_info->N;
     GT_bool debug    = st_info->debug;
     clock_t timer    = clock();
@@ -316,7 +318,7 @@ errorw:
                     continue;
 
 countmiss_charw:
-                    totmiss += topwgt[j];
+                    totmiss += topwgt[j]; ++Jmiss;
                 }
             }
             else {
@@ -414,7 +416,7 @@ countmiss_charw:
                     continue;
 
 countmiss_dblw:
-                    totmiss += topwgt[j];
+                    totmiss += topwgt[j]; ++Jmiss;
                 }
             }
             else {
@@ -517,7 +519,7 @@ countmiss_dblw:
                     continue;
 
 countmiss_char:
-                    totmiss += topall[j];
+                    totmiss += topall[j]; ++Jmiss;
                 }
             }
             else {
@@ -615,7 +617,7 @@ countmiss_char:
                     continue;
 
 countmiss_dbl:
-                    totmiss += topall[j];
+                    totmiss += topall[j]; ++Jmiss;
                 }
             }
             else {
@@ -685,6 +687,13 @@ countmiss_dbl:
     if ( st_info->benchmark > 1 )
         sf_running_timer (&timer, "\tPlugin step 5: Wrote top levels to Stata macro");
 
+    // topprint should have number of actually printed levels; Jmiss has
+    // number of missing value levels if missing was requested, which is
+    // not counted in topprint in that case.
+    if ( st_info->J > (Jmiss + topprint) ) {
+        Jother = st_info->J - (Jmiss + topprint);
+    }
+
     if ( weights ) Ndbl = wsum;
     if ( totmiss > 0 ) {
         toptop[topprint * 5 + 0] = 2;
@@ -748,8 +757,10 @@ countmiss_dbl:
         sf_printf_debug("debug 7 (sf_top): Created output matrix with frequency counts and such.\n");
     }
 
-    if ( (rc = SF_scal_save("__gtools_top_nrows", (ST_double) nrows)) ) goto exit;
-    if ( (rc = SF_scal_save("__gtools_top_ntop",  (ST_double) ntop))  ) goto exit;
+    if ( (rc = SF_scal_save("__gtools_top_nrows",  (ST_double) nrows))  ) goto exit;
+    if ( (rc = SF_scal_save("__gtools_top_ntop",   (ST_double) ntop))   ) goto exit;
+    if ( (rc = SF_scal_save("__gtools_top_Jmiss",  (ST_double) Jmiss))  ) goto exit;
+    if ( (rc = SF_scal_save("__gtools_top_Jother", (ST_double) Jother)) ) goto exit;
 
     if ( st_info->top_matasave ) {
         if ( (alpha == 0) | (ntop < st_info->J) ) {

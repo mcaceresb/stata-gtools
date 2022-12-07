@@ -1,8 +1,6 @@
 *! version 1.2.0 23Mar2019 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Calculate the top groups by count of a varlist (jointly).
 
-* TODO: do not replace value if it does not have a label // 2017-11-09 21:43 EST
-
 cap program drop gtoplevelsof
 program gtoplevelsof, rclass
     global GTOP_RC 0
@@ -25,6 +23,7 @@ program gtoplevelsof, rclass
                                ///
         alpha                  /// Sort top levels by level, not by freq
         noOTHer                /// Do not add summary row with "other" group to table
+        noNGroups              /// Do not add number of groups to "Other" row
         missrow                /// Incldue missings as a sepparate row
         GROUPMISSing           /// Count as missing if any variable is missing
         noMISSing              /// Exclude missing values
@@ -290,14 +289,14 @@ program gtoplevelsof, rclass
                  */ matasavename(`matasavename'))
 
 
-	if ( `"`weight'"' != "" ) {
-		tempvar touse w
-		qui gen double `w' `exp' `if' `in'
-		local wgt `"[`weight'=`w']"'
+    if ( `"`weight'"' != "" ) {
+        tempvar touse w
+        qui gen double `w' `exp' `if' `in'
+        local wgt `"[`weight'=`w']"'
         local weights weights(`weight' `w')
         mark `touse' `if` 'in' `wgt'
         local if if `touse'
-	}
+    }
     else local weights
 
     * Call the internals

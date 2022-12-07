@@ -6,11 +6,11 @@ ST_retcode gf_hash (
     uint64_t *h1,
     uint64_t *h2,
     struct StataInfo *st_info,
-    GT_size *ix,
-    clock_t stimer)
+    GT_size *ix)
 {
 
     ST_retcode rc = 0;
+    GTOOLS_TIMER(stimer);
 
     GT_size i;
     uint64_t *h3;
@@ -28,7 +28,7 @@ ST_retcode gf_hash (
         if ( (rc = gf_biject_varlist (h1, st_info)) ) goto exit;
 
         if ( st_info->benchmark > 2 )
-            sf_running_timer (&stimer, "\t\tPlugin step 2.3: Bijected integers to natural numbers");
+            GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 2.3: Bijected integers to natural numbers");
 
         // for (i = 1; i < N; i++) {
         //     if ( h1[i - 1] > h1[i] ) {
@@ -48,7 +48,7 @@ ST_retcode gf_hash (
                                      st_info->ctolerance)) ) goto exit;
 
             if ( st_info->benchmark > 2 )
-                sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
         }
         // else if ( st_info->verbose ) {
         //     sf_printf("(already sorted)\n");
@@ -90,7 +90,7 @@ ST_retcode gf_hash (
         }
 
         if ( st_info->benchmark > 2 )
-            sf_running_timer (&stimer, "\t\tPlugin step 2.3: Hashed variables (128-bit)");
+            GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 2.3: Hashed variables (128-bit)");
 
         // Sort hash with index
         // --------------------
@@ -107,7 +107,7 @@ ST_retcode gf_hash (
             }
 
             if ( st_info->benchmark > 2 )
-                sf_running_timer (&stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
+                GTOOLS_RUNNING_TIMER(stimer, "\t\tPlugin step 2.4: Sorted integer-only hash");
         }
         else {
             // if ( st_info->verbose )

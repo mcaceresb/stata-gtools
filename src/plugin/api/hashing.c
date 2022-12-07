@@ -2,6 +2,78 @@
 #include "hashing/utils.c"
 #include "hashing/bijection.c"
 #include "hashing/panelsetup.c"
+#include "hashing/radix.c"
+
+void GtoolsHashAbsorbByLoop (struct GtoolsHash *GtoolsHashInfo, GT_size K)
+{
+    GT_size k;
+    struct GtoolsHash *ghptr = GtoolsHashInfo;
+    for (k = 0; k < K; k++, ghptr++) {
+        GtoolsHashFreePartial(ghptr);
+        ghptr->offset += ghptr->nobs;
+    }
+}
+
+GT_int GtoolsHashPanelAbsorb (struct GtoolsHash *GtoolsHashInfo, GT_size K, GT_size N)
+{
+    GT_size k;
+    struct GtoolsHash *ghptr;
+    GT_int rcpanel[K], rcmap[K], rc = 0;
+    /**/
+    #if GTOOLSOMP
+    #pragma omp parallel for \
+        private(             \
+            ghptr,           \
+        )                    \
+        shared(              \
+            N,               \
+            rcpanel,         \
+            rcmap,           \
+            GtoolsHashInfo   \
+        )
+    #endif
+    /**/
+    for (k = 0; k < K; k++) {
+        ghptr       = GtoolsHashInfo + k;
+        ghptr->nobs = N;
+        rcpanel[k]  = GtoolsHashPanel(ghptr);
+        rcmap[k]    = rcpanel[k]? rcpanel[k]: GtoolsMapIndex(ghptr);
+    }
+
+    for (k = 0; k < K; k++) {
+        rc = rcpanel[k];
+        if (rc == 17902) return(sf_oom_error("GtoolsAPI", "GtoolsHashPanelAbsorb")); else if (rc) goto exit;
+        rc = rcmap[k];
+        if (rc == 17902) return(sf_oom_error("GtoolsAPI", "GtoolsMapIndexAbsorb")); else if (rc) goto exit;
+    }
+
+exit:
+    return(rc);
+}
+
+GT_int GtoolsHashSetupAbsorb (
+    void *FE,
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size N,
+    GT_size K,
+    GT_int  *types,
+    GT_size *offsets)
+{
+    GT_int rc = 0;
+    GT_size offset = 0, k;
+    GT_bool inverse[K];
+    struct GtoolsHash *ghptr = GtoolsHashInfo;
+    for (k = 0; k < K; k++, ghptr++) {
+        inverse[k] = 0;
+        GtoolsHashInit(ghptr, FE + offset, N, 1, types + k, inverse + k);
+        rc = GtoolsHashSetup(ghptr);
+        if (rc == 17902) return(sf_oom_error("GtoolsAPI", "GtoolsHashSetupAbsorb")); else if (rc) goto exit;
+        offset += N * offsets[k];
+    }
+
+exit:
+    return(rc);
+}
 
 GT_int GtoolsHashSetup (struct GtoolsHash *GtoolsHashInfo)
 {
@@ -49,7 +121,7 @@ GT_int GtoolsHashSetup (struct GtoolsHash *GtoolsHashInfo)
                 anyMiss
             );
         }
-        else {
+        else if ( GtoolsHashInfo->kvars > 1 || GtoolsHashInfo->rowbytes > 16 ) {
             GtoolsHashInfo->hash1 = calloc(GtoolsHashInfo->nobs, sizeof GtoolsHashInfo->hash1);
             GtoolsHashInfo->hash2 = calloc(GtoolsHashInfo->nobs, sizeof GtoolsHashInfo->hash2);
 
@@ -69,6 +141,9 @@ GT_int GtoolsHashSetup (struct GtoolsHash *GtoolsHashInfo)
                 );
             }
         }
+        else {
+            GtoolsHashInfo->radixOK = 1;
+        }
     }
 
     free(allMiss);
@@ -84,6 +159,7 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
     GT_size i;
     uint64_t *hptr;
 
+    GtoolsHashInfo->_nobspanel = GtoolsHashInfo->nobs;
     GtoolsHashInfo->h1ptr = GtoolsHashInfo->hash1 + GtoolsHashInfo->offset;
     GtoolsHashInfo->h2ptr = GtoolsHashInfo->hash2 + GtoolsHashInfo->offset;
     GtoolsHashInfo->xptr  = GtoolsHashInfo->x + GtoolsHashInfo->offset * GtoolsHashInfo->rowbytes;
@@ -98,6 +174,17 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
         }
 
         if ( GtoolsHashPanelSorted(GtoolsHashInfo) )
+            return (17902);
+    }
+    else if ( GtoolsHashInfo->radixOK ) {
+        for (i = 0; i < GtoolsHashInfo->nobs; i++) {
+            GtoolsHashInfo->index[i] = i;
+        }
+
+        if ( GtoolsRadixSort(GtoolsHashInfo) )
+            return (17902);
+
+        if ( GtoolsRadixPanel(GtoolsHashInfo) )
             return (17902);
     }
     else {
@@ -135,6 +222,32 @@ GT_int GtoolsHashPanel (struct GtoolsHash *GtoolsHashInfo)
         }
     }
 
-     return (0);
+    return (0);
 }
 
+GT_int GtoolsMapIndex (struct GtoolsHash *GtoolsHashInfo)
+{
+    GT_size i, j, start, nj, *ixptr;
+
+    GtoolsHashInfo->indexj = calloc(GtoolsHashInfo->nobs,    sizeof GtoolsHashInfo->indexj);
+    GtoolsHashInfo->nj     = calloc(GtoolsHashInfo->nlevels, sizeof GtoolsHashInfo->nj);
+
+    if ( GtoolsHashInfo->indexj == NULL ) return (17902);
+    if ( GtoolsHashInfo->nj     == NULL ) return (17902);
+
+    GtoolsHashInfo->allocIndexj = 1;
+    GtoolsHashInfo->allocNj     = 1;
+
+    for (j = 0; j < GtoolsHashInfo->nlevels; j++) {
+        start  = GtoolsHashInfo->info[j];
+        nj     = GtoolsHashInfo->info[j + 1] - start;
+        ixptr  = GtoolsHashInfo->index + start;
+        for (i = 0; i < nj; i++) {
+            GtoolsHashInfo->indexj[ixptr[i]] = j;
+        }
+
+        GtoolsHashInfo->nj[j] = nj;
+    }
+
+    return (0);
+}

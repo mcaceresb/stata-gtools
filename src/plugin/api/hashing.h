@@ -1,16 +1,27 @@
 #ifndef GTOOLSHASHINGAPI
 #define GTOOLSHASHINGAPI
 
+#ifndef GTOOLS_TYPES
+#include <../common/gttypes.h>
+#endif
+
+#ifndef GTOOLSOMP
+#define GTOOLSOMP 0
+#endif
+
 struct GtoolsHash {
     // Pointers to existing objects
     void    *x;
     void    *xptr;
     GT_size offset;
     GT_size nobs;
+    GT_size _nobspanel;
+    GT_size _nobsinit;
     GT_size kvars;
     GT_int  *types;
     GT_bool *invert;
     // Variables to be computed
+    GT_bool radixOK;
     GT_bool bijectOK;
     GT_bool sorted;
     GT_bool allNumeric;
@@ -25,6 +36,10 @@ struct GtoolsHash {
     GT_bool allocPositions;
     GT_size *index;
     GT_bool allocIndex;
+    GT_size *indexj;
+    GT_bool allocIndexj;
+    GT_size *nj;
+    GT_bool allocNj;
     GT_size *info;
     GT_bool allocInfo;
     // Hash
@@ -37,6 +52,20 @@ struct GtoolsHash {
     GT_bool allocHash1;
     GT_bool allocHash2;
     GT_bool allocHash3;
+    // Misc
+    ST_double *hdfeMeanBuffer;
+    ST_double *hdfeBuffer;
+    ST_double *hdfeGammaSource;
+    ST_double *hdfeGammaTarget;
+    GT_bool   hdfeMeanBufferAlloc;
+    GT_bool   hdfeBufferAlloc;
+    GT_bool   hdfeFallback;
+    GT_bool   hdfeTraceIter;
+    GT_bool   hdfeStandardize;
+    GT_size   hdfeIter;
+    GT_size   hdfeFeval;
+    GT_size   hdfeMaxIter;
+    GT_size   hdfeRc;
 };
 
 void GtoolsHashInit (
@@ -48,6 +77,18 @@ void GtoolsHashInit (
     GT_bool *invert
 );
 
+void   GtoolsHashAbsorbByLoop (struct GtoolsHash *GtoolsHashInfo, GT_size K);
+GT_int GtoolsHashPanelAbsorb  (struct GtoolsHash *GtoolsHashInfo, GT_size K, GT_size N);
+GT_int GtoolsHashSetupAbsorb (
+    void *FE,
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size N,
+    GT_size K,
+    GT_int  *types,
+    GT_size *offsets
+);
+
+GT_int GtoolsMapIndex           (struct GtoolsHash *GtoolsHashInfo);
 GT_int GtoolsHashSetup          (struct GtoolsHash *GtoolsHashInfo);
 GT_int GtoolsHashSort           (struct GtoolsHash *GtoolsHashInfo);
 GT_int GtoolsHashPanel          (struct GtoolsHash *GtoolsHashInfo);

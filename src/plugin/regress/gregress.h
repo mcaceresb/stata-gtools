@@ -27,8 +27,7 @@ ST_retcode (*sf_regress_read)(
 
 ST_retcode gf_regress_absorb (
     struct GtoolsHash *AbsorbHashes,
-    GtoolsGroupByTransform GtoolsGroupByTransform,
-    GtoolsGroupByHDFE GtoolsGroupByHDFE,
+    GtoolsAlgorithmHDFE GtoolsAlgorithmHDFE,
     ST_double *stats,
     GT_size *maps,
     GT_size nj,
@@ -47,8 +46,7 @@ ST_retcode gf_regress_absorb (
 
 ST_retcode gf_regress_absorb_iter(
     struct GtoolsHash *AbsorbHashes,
-    GtoolsGroupByTransform GtoolsGroupByTransform,
-    GtoolsGroupByHDFE GtoolsGroupByHDFE,
+    GtoolsAlgorithmHDFE GtoolsAlgorithmHDFE,
     ST_double *stats,
     GT_size *maps,
     GT_size J,
@@ -107,6 +105,14 @@ void gf_regress_adjust_collinear_b (
 
 void gf_regress_adjust_collinear_se (
     ST_double *se,
+    ST_double *buffer,
+    GT_size *colix,
+    GT_size k1,
+    GT_size k2
+);
+
+void gf_regress_adjust_collinear_V (
+    ST_double *V,
     ST_double *buffer,
     GT_size *colix,
     GT_size k1,

@@ -12,31 +12,27 @@ open:
 	dolphin --split ~/todo/now/stata-gtools \
 					~/todo/now/stata-gtools/src &
 
-# bug  xx replace does not empty out variables; problem with ifin
-# doc  xx add resid[(str)] option to docs
-# doc  xx what was absorb(, save(str)) meant to do?
-# test xx src/test/test_gregress.do
-# doc  xx docs/usage/gpoisson.md    (consolidate)
-# doc  xx docs/stata/gpoisson.sthlp (consolidate)
-# ex   xx docs/examples/glogit.do
-# bug  xx detect collinearity with dep var in glm
+# doc xx add resid[(str)] option to docs
+# doc xx what was absorb(, save(str)) meant to do?
+# bug xx detect collinearity with dep var in glm
 
 # Update!
 # -------
 #
+# ./lib/bumpver.py
 # ./README.md
 # ./docs/index.md
 # ./docs/stata/gtools.sthlp
 # ./src/ado/gtools.ado
 # ./src/ado/_gtools_internal.ado
-# ./src/plugin/gtools.c
 # ./src/plugin/gtools.h
-# ./src/test/gtools_tests.do
+# x ./src/plugin/gtools.c
+# x ./src/test/gtools_tests.do
 # ./src/gtools.pkg
 # ./src/stata.toc
 # ./.appveyor.yml
-# ./build.py
-# ./changelog.md
+# x ./build.py
+# x ./changelog.md
 
 # Add a group stat
 # ----------------
@@ -69,6 +65,15 @@ open:
 # ./src/plugin/collapse/gtools_math_w.c
 # ./src/plugin/collapse/gtools_math_w.h
 
+# ./src/ado/_gtools_internal.ado gstats_hdfe fun
+	# ./src/plugin/gtools.c
+	# ./src/plugin/gtools.h
+    # gstats_scalars   init
+    # if ( inlist("`gfunction'",  "stats") ) {
+# ./src/ado/gstats.ado gstats_hdfe fun
+# ./docs/stata/gstats_hdfe.sthlp
+# ./docs/usage/gstats_hdfe.md
+
 # Add to gstats
 # -------------
 #
@@ -79,9 +84,14 @@ open:
 # ---------------------------------------------------------------------
 # Gtools flags
 
-SPI = 2.0
 SPIVER = v2
-CFLAGS = -Wall -O3 $(OSFLAGS)
+SPI = 2.0
+GTOOLSOMP? = 0
+ifeq ($(GTOOLSOMP),1)
+	CFLAGS = -Wall -O3 $(OSFLAGS) -DGTOOLSOMP=1 -fopenmp
+else
+	CFLAGS = -Wall -O3 $(OSFLAGS)
+endif
 
 # ---------------------------------------------------------------------
 # OS parsing
@@ -93,14 +103,15 @@ ifeq ($(OS),Windows_NT)
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
+		GCC = gcc
 		OSFLAGS = -shared -fPIC -DSYSTEM=OPUNIX
 		OUT = build/gtools_unix$(LEGACY)_$(SPIVER).plugin
 	endif
 	ifeq ($(UNAME_S),Darwin)
+		GCC = clang
 		OSFLAGS = -bundle -DSYSTEM=APPLEMAC
 		OUT = build/gtools_macosx$(LEGACY)_$(SPIVER).plugin
 	endif
-	GCC = gcc
 endif
 
 ifeq ($(EXECUTION),windows)
@@ -114,6 +125,7 @@ endif
 
 ## Compile directory
 all: clean links gtools
+osx: clean links osx_combine
 
 ## Initialize git and pull sub-modules
 git:
@@ -161,9 +173,17 @@ gtools: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
 	$(GCC) $(CFLAGS) -o $(OUT) $(SPOOKYHASH_INC) $^
 	cp build/*plugin lib/plugin/
 
+## Build OSX-specific plugins
+osx_combine: $(GTOOLS_SRC) $(SPOOKYHASH_SRC)
+	mkdir -p ./build
+	$(GCC) $(CFLAGS) -arch arm64  -o $(OUT).arm64  $(SPOOKYHASH_INC) $^
+	$(GCC) $(CFLAGS) -arch x86_64 -o $(OUT).x86_64 $(SPOOKYHASH_INC) $^
+	lipo -create -output $(OUT) $(OUT).x86_64 $(OUT).arm64
+	cp build/*plugin lib/plugin/
+
 .PHONY: clean
 clean:
-	rm -f $(OUT)
+	rm -f $(OUT)*
 
 #######################################################################
 #                                                                     #

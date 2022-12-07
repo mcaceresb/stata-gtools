@@ -22,15 +22,15 @@ the latest stable version.
 {cmd:gstats {ul:sum}marize}
 {varlist}
 {ifin}
-[{it:{help gstats##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
+[{it:{help gstats summarize##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {it:{help gstats summarize##table_options:options}}]
 
 {p 8 17 2}
 {cmd:gstats {ul:tab}stat}
 {varlist}
 {ifin}
-[{it:{help gstats##weight:weight}}]
-[{cmd:,} {opth by(varlist)} {it:{help gstats##table_options:options}}]
+[{it:{help gstats summarize##weight:weight}}]
+[{cmd:,} {opth by(varlist)} {it:{help gstats summarize##table_options:options}}]
 
 {pstd}
 {cmd:gstats {ul:tab}stat} and {cmd:gstats {ul:sum}marize} are fast, by-able
@@ -42,7 +42,7 @@ statistics included by default in {opt summarize, detail}.
 {pstd}
 Note the {it:prefixes} {cmd:by}, {cmd:rolling}, {cmd:statsby} are
 {cmd:{it:not}} supported. To compute a table of statistics by a group
-use the option {opt by()}. With {op by()}, {opt gstats tab} is also
+use the option {opt by()}. With {opt by()}, {opt gstats tab} is also
 faster than {cmd:gcollapse}.
 
 {synoptset 23 tabbed}{...}
@@ -206,6 +206,9 @@ The following data is stored {opt GstatsOutput}:
 
             real scalar anyvars
                 1: any by variables; 0: no by variables
+
+            real scalar anynum
+                1: any numeric by variables; 0: all string by variables
 
             real scalar anychar
                 1: any string by variables; 0: all numeric by variables

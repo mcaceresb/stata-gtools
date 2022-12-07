@@ -17,6 +17,12 @@ make dataset of summary statistics using C.{p_end}
 {it:Important}: Please run {stata gtools, upgrade} to update {cmd:gtools} to
 the latest stable version.
 
+{pstd}
+{it:Note}: Stata 17+, MP version, introduced significant speed improvements
+to the native {cmd:collapse} command, specially with many cores. Depending
+on the collapse, it can be up to twice as fast than {cmd:gcollapse}; however,
+it remained slower for some use cases. YMMV.
+
 {marker syntax}{...}
 {title:Syntax}
 

@@ -1,9 +1,17 @@
+// NB: Look, the flow ehre is OK-ish but the organization of the API is
+// EXTREMELY messed up. You continuously forger where you put functions,
+// and you wrote it!
+
 #include "groupby.h"
 #include "groupby/stats.c"
+#include "groupby/stats_unweighted.c"
 #include "groupby/stats_weights.c"
 #include "groupby/transforms.c"
+#include "groupby/transforms_unweighted.c"
 #include "groupby/transforms_weights.c"
-#include "groupby/misc.c"
+#include "groupby/base.c"
+#include "groupby/accelerators.c"
+#include "groupby/berge.c"
 
 // // basically this is egen bulk
 // void GtoolsGroupByMerge (
@@ -25,6 +33,39 @@
 // {
 // }
 
+void GtoolsGroupByTransform (
+    struct GtoolsHash *GtoolsHashInfo,
+    ST_double *statCodes,
+    GT_size   *statMaps,
+    ST_double *sources,
+    ST_double *weights,
+    ST_double *targets,
+    GT_size   ktargets)
+{
+    if ( weights == NULL ) {
+        GtoolsGroupByTransformUnweighted(
+            GtoolsHashInfo,
+            statCodes,
+            statMaps,
+            sources,
+            weights,
+            targets,
+            ktargets
+        );
+    }
+    else {
+        GtoolsGroupByTransformWeighted(
+            GtoolsHashInfo,
+            statCodes,
+            statMaps,
+            sources,
+            weights,
+            targets,
+            ktargets
+        );
+    }
+}
+
 void GtoolsGroupByTransformUnweighted (
     struct GtoolsHash *GtoolsHashInfo,
     ST_double *statCodes,
@@ -43,7 +84,7 @@ void GtoolsGroupByTransformUnweighted (
         trgptr = targets;
         for (k = 0; k < ktargets; k++, trgptr += GtoolsHashInfo->nobs) {
             srcptr = sources + GtoolsHashInfo->nobs * statMaps[k];
-            GtoolsTransform(
+            GtoolsTransformIndex(
                 srcptr,
                 trgptr,
                 GtoolsHashInfo->index + start,
@@ -72,7 +113,7 @@ void GtoolsGroupByTransformWeighted (
         trgptr = targets;
         for (k = 0; k < ktargets; k++, trgptr += GtoolsHashInfo->nobs) {
             srcptr = sources + GtoolsHashInfo->nobs * statMaps[k];
-            GtoolsTransformWeighted(
+            GtoolsTransformIndexWeighted(
                 srcptr,
                 weights,
                 trgptr,

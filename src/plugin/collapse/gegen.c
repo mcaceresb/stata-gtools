@@ -98,11 +98,11 @@ ST_retcode sf_egen_bulk (struct StataInfo *st_info, int level)
     uint64_t  *nuniq_h3    = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_h3);
     uint64_t  *nuniq_xcopy = calloc(st_info->nunique? nj_max: 1, sizeof *nuniq_xcopy);
 
-    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_ix"));
-    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h1"));
-    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h2"));
-    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_h3"));
-    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk_w", "nuniq_xcopy"));
+    if ( nuniq_ix    == NULL ) return(sf_oom_error("sf_egen_bulk", "nuniq_ix"));
+    if ( nuniq_h1    == NULL ) return(sf_oom_error("sf_egen_bulk", "nuniq_h1"));
+    if ( nuniq_h2    == NULL ) return(sf_oom_error("sf_egen_bulk", "nuniq_h2"));
+    if ( nuniq_h3    == NULL ) return(sf_oom_error("sf_egen_bulk", "nuniq_h3"));
+    if ( nuniq_xcopy == NULL ) return(sf_oom_error("sf_egen_bulk", "nuniq_xcopy"));
 
     ST_double *all_buffer     = calloc(N * ksources, sizeof *all_buffer);
     GT_bool   *all_firstmiss  = calloc(J * ksources, sizeof *all_firstmiss);
@@ -769,11 +769,7 @@ ST_retcode sf_write_output (struct StataInfo *st_info, int level, GT_size wtarge
         pos_targets[k] = start_targets + k;
 
     if ( st_info->init_targ ) {
-        for (i = 1; i <= SF_nobs(); i++) {
-            for (k = 0; k < wtargets; k++) {
-                if ( (rc = SF_vstore(pos_targets[k], i, SV_missval)) ) goto exit;
-            }
-        }
+        if ( (rc = sf_empty_varlist(pos_targets, 0, ktargets)) ) goto exit;
     }
 
     within   = (st_info->group_data == 0);

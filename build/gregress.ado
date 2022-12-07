@@ -4,13 +4,18 @@
 capture program drop gregress
 program gregress, rclass
 
-    if ( `"${GTOOLS_BETA}"' != "1" ) {
-        disp as err "This function is in beta; to use, you must enable beta features via"
-        disp as err ""
-        disp as err "    global GTOOLS_BETA = 1"
-        disp as err ""
-        disp as err "gtools functions in beta are subject to change."
+    if !inlist(`"${GTOOLS_BETA}"', "1", "I KNOW WHAT I AM DOING") {
+        disp as err `"This function is in beta; to use, you must enable beta features via"'
+        disp as err `""'
+        disp as err `"    global GTOOLS_BETA = "I KNOW WHAT I AM DOING""'
+        disp as err `""'
+        disp as err `"gtools functions in beta are subject to change."'
         exit 198
+    }
+
+    if ( ("${GTOOLS_GREGTABLE}" == "1")  & replay() ) {
+        Replay `0'
+        exit 0
     }
 
     version 13.1
@@ -26,13 +31,13 @@ program gregress, rclass
     * syntax varlist(numeric ts fv) // a way to support this would be to filter it through mata
     syntax anything(equalok)      /// depvar indepvars
         [if] [in]                 /// [if condition] [in start / end]
-        [aw fw pw iw] ,           /// [weight type = exp]
+        [aw fw pw]    ,           /// [weight type = exp]
     [                             ///
         by(str)                   /// Winsorize options
         noMISSing                 /// Exclude groups with any missing values by level
         Robust                    /// Robust SE
         cluster(str)              /// Cluster by varlist
-        absorb(str)               /// Absorb each var in varlist as FE
+        absorb(varlist)           /// Absorb each var in varlist as FE
         glm                       /// estimate glm
         family(str)               /// glm family
         IVregress                 /// IV regression
@@ -266,7 +271,7 @@ program gregress, rclass
 		local wgt `"[`weight'=`w']"'
         local weights weights(`weight' `w')
         mark `touse' `if' `in' `wgt'
-        markout `touse' `varlist' `cluster' `absorb'
+        markout `touse' `varlist' `cluster' `absorb', strok
         local if if `touse'
 	}
     else {
@@ -352,8 +357,75 @@ program gregress, rclass
     * Returns
     * -------
 
-    return scalar N      = `r(N)'
-    return scalar J      = `r(J)'
-    return scalar minJ   = `r(minJ)'
-    return scalar maxJ   = `r(maxJ)'
+    return scalar N     = `r(N)'
+    return scalar J     = `r(J)'
+    return scalar minJ  = `r(minJ)'
+    return scalar maxJ  = `r(maxJ)'
+    return local cmd    = "gregress"
+    return local mata: copy local saveGregressMata
+
+    if ( "${GTOOLS_GREGTABLE}" == "1" ) Display `saveGregressMata', touse(`touse')
+end
+
+capture program drop Replay
+program Replay, eclass
+    if ( (`"`r(cmd)'"' != "gregress") | (`"`r(mata)'"' == "") ) error 301
+    Display `r(mata)', repost `options'
+end
+
+capture program drop Display
+program Display, eclass
+    syntax [namelist(max = 1)], [repost touse(str) *]
+    tempname by
+    if ( "`namelist'" == "" ) {
+        disp as txt "Cannot display table without cached results; use option -mata()- to save"
+    }
+    else {
+        mata st_numscalar("`by'", `namelist'.by)
+        if ( `=scalar(`by')' == 0)  {
+            tempname colnames sel nmiss
+            FreeMatrix b V
+            mata st_local("caller", `namelist'.caller)
+            mata st_local("setype", `namelist'.setype)
+            mata st_matrix("`b'", `namelist'.b[1, .])
+            mata st_matrix("`V'", `namelist'.Vcov)
+            mata `colnames' = `namelist'.xvarlist, J(1, `namelist'.cons, "_cons")
+            mata `nmiss'    = missing(`namelist'.se)
+            mata `sel'      = selectindex(`namelist'.se :>= .)
+            mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']
+            mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixrowstripe("`b'", ("", `namelist'.yvarlist[1]))
+            mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixrowstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            if "`repost'" == "" {
+                if ( "`touse'" != "" ) qui count if `touse'
+                else qui count
+                ereturn post `b' `V', esample(`touse') obs(`r(N)')
+            }
+            else {
+                ereturn repost b = `b' V = `V'
+            }
+            if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
+            if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
+            if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
+            disp _n(1) "`caller' with `setype' SE"
+            _coef_table, `options'
+        }
+        else {
+            disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+        }
+    }
+end
+
+capture program drop FreeMatrix
+program FreeMatrix
+    local FreeCounter 0
+    local FreeMatrix
+    foreach FM of local 0 {
+        cap error 0
+        while ( _rc == 0 ) {
+            cap confirm matrix Gtools`++FreeCounter'
+            c_local `FM' Gtools`FreeCounter'
+        }
+    }
 end

@@ -10,6 +10,7 @@
 #include "gttypes.h"
 #include "../spi/stplugin.h"
 
+ST_retcode sf_empty_varlist(GT_size *pos, GT_size start, GT_size K);
 GT_size sf_anyobs_sel ();
 
 void sf_running_timer (clock_t *timer, const char *msg);

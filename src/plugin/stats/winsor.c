@@ -307,6 +307,12 @@ ST_retcode sf_stats_winsor (struct StataInfo *st_info, int level)
         sf_printf_debug("debug 5 (sf_stats_winsor): Replace variable, Winsorized or trimmed.\n");
     }
 
+    // NOTE: This assumes the source and target are different; this
+    // check is handled at the Stata level
+    if ( st_info->init_targ ) {
+        if ( (rc = sf_empty_varlist(NULL, kstart, ktargets)) ) goto exit;
+    }
+
     if ( st_info->winsor_trim ) {
         for (j = 0; j < st_info->J; j++) {
             l     = st_info->ix[j];

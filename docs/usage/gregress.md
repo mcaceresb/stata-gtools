@@ -64,6 +64,20 @@ Options
 - `cluster(varlist)` One-way or nested cluster SE.
 - `absorb(varlist)` Multi-way high-dimensional fixed effects.
 - `hdfetol(real)` Tolerance level for HDFE algoritm (default 1e-8).
+- `algorithm(str)` Algorithm used to absorb HDFE: CG (conjugate gradient; default)
+            MAP (alternating projections), SQUAREM (squared extrapolation),
+            IT (Irons and Tuck).
+- `maxiter(int)` Maximum number of algorithm iterations (default
+            100,000). Pass `.` for unlimited iterations.
+- `tolerance(real)` Convergence tolerance (default 1e-8). Note the convergence
+            criterion is `|X(k + 1) - X(k)| < tol` for the `k`th iteration, with
+            `||` the sup norm (i.e. largest element). This is a tighter
+            criteria than the squared norm and setting the tolerance too
+            low might negatively impact performance or with some algorithms
+            run into numerical precision problems.
+- `traceiter` Trace algorithm iterations.
+- `standardize` Standardize variables before algorithm (may be faster but
+            is slighty less precise).
 - `noconstant` Whether to add a constant (cannot be combined with `absorb()`).
 
 ### Gtools options
@@ -354,7 +368,7 @@ theorem). That is, with one fixed effect we have the following algorithm:
 
 With multiple fixed effects, the same can be achieved by continuously
 de-meaning by the levels of each of the fixed effects.  Following
-[Correia (2017, p. 12)](http://scorreia.com/research/hdfe.pdf), we have
+[Correia (2017a, p. 12)](http://scorreia.com/research/hdfe.pdf), we have
 instead:
 
 1. Let $\alpha_m$ denote the $m$th fixed effect, $M$ the number of
@@ -385,7 +399,7 @@ step, $Y$ and $X$ are projected into the null space of $A_m$ for $m =
 A_m^\prime$ the orthogonal projection matrix, steps 2 and 3 replace $Y$
 and $X$ with $Q_m Y$ and $Q_m X$, respectively.)
 
-[Correia (2017)](http://scorreia.com/research/hdfe.pdf) actually
+[Correia (2017a)](http://scorreia.com/research/hdfe.pdf) actually
 proposes several ways of accelerating the above algorithm; we have
 yet to explore any of his proposed modifications (see Correia's own
 `reghdfe` package for an implementation of the methods discussed in his
@@ -394,8 +408,8 @@ paper).
 Finally, we note that in step 5 we detect "convergence" as the
 maximum element-wise absolute difference between $Y, X$ and $Q_m
 Y, Q_m X$, respectively (i.e. the $l_{\infty}$ norm). This is
-a tighter tolerance criterion than the one in [Correia (2017,
-p. 12)](http://scorreia.com/research/hdfe.pdf), which uses the $l_2$
+a tighter tolerance criterion than the one in
+[Correia (2017a, p. 12)](http://scorreia.com/research/hdfe.pdf), which uses the $l_2$
 norm, but by default we also use a tolerance of $1\mathrm{e}{-8}$. The
 trade-off is precision vs speed.  The tolerance criterion is hard-coded
 but the level can be modified via `hdfetol()`. A smaller tolerance will
@@ -423,8 +437,8 @@ Missing Features
 
 This software will remain in beta at least until the following are added:
 
-- Option to iteratively remove singleton groups with HDFE (see [Correia (2015)
-  for notes on this issue](http://scorreia.com/research/singletons.pdf))
+- Option to iteratively remove singleton groups with HDFE (see 
+  [Correia (2015) for notes on this issue](http://scorreia.com/research/singletons.pdf))
 
 - Automatically detect and remove collinear groups with multi-way HDFE.
   (This is specially important for small-sample standard error adjustment.)
@@ -439,8 +453,8 @@ In addition, some important features are missing:
 - Faster HDFE algorithm. At the moment the method of alternating
   projections (MAP) is used, which has very poor worst-case performance.
   While `gregress` is fast in our benchmarks, it does not have
-  any safeguards against potential corner cases.  ([See Correia
-  (2017) for notes on this issue](http://scorreia.com/research/hdfe.pdf).)
+  any safeguards against potential corner cases. 
+  ([See Correia (2017a) for notes on this issue](http://scorreia.com/research/hdfe.pdf).)
 
 - Support for Stata's extended `varlist` syntax.
 
@@ -510,7 +524,7 @@ timer clear
 timer on 1
 greg y x1 x2, absorb(g1 g2 g3) mata(greg)
 timer off 1
-mata greg.b', greg.se'
+mata greg.print()
 timer on 2
 reghdfe y x1 x2, absorb(g1 g2 g3)
 timer off 2
@@ -518,7 +532,7 @@ timer off 2
 timer on 3
 greg y x1 x2, absorb(g1 g2 g3) cluster(g4) mata(greg)
 timer off 3
-mata greg.b', greg.se'
+mata greg.print()
 timer on 4
 reghdfe y x1 x2, absorb(g1 g2 g3) vce(cluster g4)
 timer off 4
@@ -534,17 +548,37 @@ drop _*
 
 timer list
 
-   1:      1.92 /        1 =       1.9210
-   2:     15.95 /        1 =      15.9520
-   3:      1.63 /        1 =       1.6310
-   4:     15.07 /        1 =      15.0730
-   5:      0.37 /        1 =       0.3680
-   6:      2.55 /        1 =       2.5510
+   1:      0.64 /        1 =       0.6380
+   2:     11.77 /        1 =      11.7730
+   3:      0.91 /        1 =       0.9140
+   4:     15.74 /        1 =      15.7370
+   5:      0.46 /        1 =       0.4570
+   6:      2.09 /        1 =       2.0890
 ```
 
 References
 ----------
 
-Correia, Sergio. 2015. "Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/singletons.pdf](http://scorreia.com/research/singletons.pdf)
+The idea for this function is from Correia (2017a). The conjugate
+gradient algorithm is from Hernández-Ramos, Escalante, and Raydan
+(2011) and implemented following Correia (2017b).  The SQUAREM algorithm
+is from Varadhan and Roland (2008) and Varadhan (2016). Irons and Tuck
+(1969) method implemented following Ramière and Helfer (2015).
 
-Correia, Sergio. 2017. "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)
+- Correia, Sergio (2015). "Singletons, Cluster-Robust Standard Errors and Fixed Effects: A Bad Mix" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/singletons.pdf](http://scorreia.com/research/singletons.pdf)
+
+- Correia, Sergio (2017a). "Linear Models with High-Dimensional Fixed Effects: An Efficient and Feasible Estimator" Working Paper. Accessed January 16th, 2020. Available at [http://scorreia.com/research/hdfe.pdf](http://scorreia.com/research/hdfe.pdf)
+
+- Correia Sergio (2017b). "reghdfe: Stata module for linear and instrumental-variable/GMM regression absorbing multiple levels of fixed effects." Statistical Software Components S457874, Boston College Department of Economics. Accessed March 6th, 2022. Available at [https://ideas.repec.org/c/boc/bocode/s457874.html](https://ideas.repec.org/c/boc/bocode/s457874.html)
+
+- Hernández-Ramos, Luis M., René Escalante, and Marcos Raydan. 2011. "Unconstrained Optimization Techniques for the Acceleration of Alternating Projection Methods." Numerical Functional Analysis and Optimization, 32(10): 1041–66.
+
+- Varadhan, Ravi and Roland, Christophe. 2008. "Simple and Globally Convergent Methods for Accelerating the Convergence of Any EM Algorithm."" Scandinavian Journal of Statistics, 35(2): 335–353.
+
+- Varadhan, Ravi (2016). "SQUAREM: Squared Extrapolation Methods for Accelerating EM-Like Monotone Algorithms." R package version 2016.8-2. https://CRAN.R-project.org/package=SQUAREM
+
+- Bergé, Laurent (2016). "Efficient estimation of maximum likelihood models with multiple fixed-effects: the R package FENmlm." CREA Discussion Paper 2018-13. https://wwwen.uni.lu/content/download/110162/1299525/file/2018_13.
+
+- Irons, B. M., Tuck, R. C. (1969). "A version of the Aitken accelerator for computer iteration." International Journal for Numerical Methods in Engineering 1(3): 275–277.
+
+- Ramière, I., Helfer, T. (2015). "Iterative residual-based vector methods to accelerate fixed point iterations." Computers & Mathematics with Applications 70(9): 2210–2226

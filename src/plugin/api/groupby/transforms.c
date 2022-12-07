@@ -1,24 +1,30 @@
-void GtoolsTransform (
+void GtoolsTransformScaleVector (
     ST_double *source,
     ST_double *target,
-    GT_size   *index,
     GT_size   N,
-    ST_double statcode)
+    ST_double scale)
 {
-    if ( statcode == -2 ) {
-        GtoolsTransformDeMean(source, target, index, N);
+    GT_size i;
+    if ( source == target ) {
+        for (i = 0; i < N; i++)
+            target[i] = source[i] * scale;
+    }
+    else {
+        for (i = 0; i < N; i++)
+            target[i] *= scale;
     }
 }
 
-void GtoolsTransformDeMean (
+void GtoolsTransformScaleMatrix (
     ST_double *source,
     ST_double *target,
-    GT_size   *index,
-    GT_size   N)
+    GT_size   K,
+    GT_size   N,
+    ST_double *scale)
 {
-    GT_size i;
-    ST_double z = GtoolsStatsMean(source, index, N);
-    for (i = 0; i < N; i++) {
-        target[index[i]] = source[index[i]] - z;
+    GT_size k;
+    ST_double *src = source, *trg = target;
+    for (k = 0; k < K; k++, src += N, trg += N) {
+        GtoolsTransformScaleVector(src, trg, N, scale[k]);
     }
 }

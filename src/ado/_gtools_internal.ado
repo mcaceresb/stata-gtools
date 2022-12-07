@@ -1,4 +1,4 @@
-*! version 1.8.4 04Feb2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.10.1 05Dec2022 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -16,6 +16,7 @@
 * rc 18201 - gstats all variables are non-numeric (soft exit)
 * rc 18301 - gstats transform; unexpected number of stats passed to transform
 * rc 18401 - gregress k > N (too many vars/absorb levels)
+* rc 18402 - hdfe maximum number of iterations
 * --------
 * rc 17459 - isid special error
 * rc 17900 - multi-threading not available
@@ -45,8 +46,10 @@ program _gtools_internal, rclass
         tempfile gregfile
         tempfile gregbfile
         tempfile gregsefile
+        tempfile gregvcovfile
         tempfile gregclusfile
         tempfile gregabsfile
+        tempfile ghdfeabsfile
         tempfile gstatsfile
         tempfile gbyvarfile
         tempfile gbycolfile
@@ -58,8 +61,10 @@ program _gtools_internal, rclass
         GtoolsTempFile gregfile
         GtoolsTempFile gregbfile
         GtoolsTempFile gregsefile
+        GtoolsTempFile gregvcovfile
         GtoolsTempFile gregclusfile
         GtoolsTempFile gregabsfile
+        GtoolsTempFile ghdfeabsfile
         GtoolsTempFile gstatsfile
         GtoolsTempFile gbyvarfile
         GtoolsTempFile gbycolfile
@@ -71,8 +76,10 @@ program _gtools_internal, rclass
     global GTOOLS_GREG_FILE:     copy local gregfile
     global GTOOLS_GREGB_FILE:    copy local gregbfile
     global GTOOLS_GREGSE_FILE:   copy local gregsefile
+    global GTOOLS_GREGVCOV_FILE: copy local gregvcovfile
     global GTOOLS_GREGCLUS_FILE: copy local gregclusfile
     global GTOOLS_GREGABS_FILE:  copy local gregabsfile
+    global GTOOLS_GHDFEABS_FILE: copy local ghdfeabsfile
     global GTOOLS_GSTATS_FILE:   copy local gstatsfile
     global GTOOLS_BYVAR_FILE:    copy local gbyvarfile
     global GTOOLS_BYCOL_FILE:    copy local gbycolfile
@@ -162,6 +169,7 @@ program _gtools_internal, rclass
         oncollision(str)          /// On collision, fall back or throw error
         gfunction(str)            /// Program to handle collision
         replace                   /// Replace variables, if they exist
+        noinit                    /// Do not initialize targets with missing values
         compress                  /// Try to compress strL variables
         forcestrl                 /// Force reading strL variables (stata 14 and above only)
                                   ///
@@ -245,7 +253,7 @@ program _gtools_internal, rclass
 
     if ( `benchmarklevel' > 0 ) local benchmark benchmark
     local gen `generate'
-    mata st_local("ifin", st_local("if") + " " + st_local("in"))
+    mata st_local("ifin", strtrim(st_local("if") + " " + st_local("in")))
 
     local hashmethod `hashmethod'
     if ( `"`hashmethod'"' == "" ) local hashmethod 0
@@ -716,8 +724,10 @@ program _gtools_internal, rclass
 
     mata: st_numscalar("__gtools_gfile_gregb",    strlen(st_local("gregbfile"))    + 1)
     mata: st_numscalar("__gtools_gfile_gregse",   strlen(st_local("gregsefile"))   + 1)
+    mata: st_numscalar("__gtools_gfile_gregvcov", strlen(st_local("gregvcovfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregclus", strlen(st_local("gregclusfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregabs",  strlen(st_local("gregabsfile"))  + 1)
+    mata: st_numscalar("__gtools_gfile_ghdfeabs", strlen(st_local("ghdfeabsfile")) + 1)
 
     scalar __gtools_init_targ   = 0
     scalar __gtools_any_if      = `any_if'
@@ -758,6 +768,8 @@ program _gtools_internal, rclass
     scalar __gtools_top_other       = 0
     scalar __gtools_top_lmiss       = 0
     scalar __gtools_top_lother      = 0
+    scalar __gtools_top_Jmiss       = 0
+    scalar __gtools_top_Jother      = 0
     matrix __gtools_contract_which  = J(1, 4, 0)
     matrix __gtools_invert          = 0
     matrix __gtools_weight_smat     = wselmat
@@ -1109,7 +1121,7 @@ program _gtools_internal, rclass
             if ( _rc ) {
                 local notfound
                 foreach var of local clean_anything {
-                    cap confirm var `var'
+                    cap ds `var'
                     if ( _rc  ) {
                         local notfound `notfound' `var'
                     }
@@ -1516,7 +1528,8 @@ program _gtools_internal, rclass
         scalar __gtools_used_io   = 0
         scalar __gtools_ixfinish  = 0
         scalar __gtools_J         = _N
-        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "")
+        scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`merge'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
 
         if inlist("`anything'", "forceio", "switch") {
             local extravars `__gtools_sources' `__gtools_sources' `freq'
@@ -1621,7 +1634,8 @@ program _gtools_internal, rclass
 
         if ( inlist("`gfunction'", "unique", "egen", "hash") ) {
             local gcall hash
-            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "")
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "reshape") ) {
             local 0: copy local greshape
@@ -1667,10 +1681,19 @@ program _gtools_internal, rclass
             syntax varlist(numeric), [       /// TODO: ts fv not yet supported!
                 Robust                       /// Robust SE
                 cluster(str)                 /// Cluster by varlist
-                absorb(str)                  /// Absorb each var in varlist as FE
+                absorb(varlist)              /// Absorb each var in varlist as FE
                 interval(str)                /// Interval for rolling regressions
                 window(str)                  /// Window for moving regressions
                 hdfetol(real 1e-8)           /// Tolerance for hdfe convergence
+                STANdardize                  /// standardize before applying transform
+                TRACEiter                    /// trace iteration progress (internal hdfe)
+                maxiter(real 100000)         /// maximum number of hdfe iterations
+                algorithm(str)               /// alias for method
+                method(str)                  /// projection method for hdfe
+                                             /// map (method of alternating projections)
+                                             /// squarem
+                                             /// conjugate gradient|cg (default)
+                                             /// it|irons tuck
                 noConstant                   /// Whether to add a constant
                                              ///
                 ivkendog(int 0)              /// IV endogenous
@@ -1689,7 +1712,51 @@ program _gtools_internal, rclass
                 resid                        /// save residuals in _resid_`yvarlist'
                 RESIDuals(str)               /// save residuals in `residuals'
                 replace                      /// Replace targets, if they exist
+                noinit                       /// Do not initialize targets with missing values
             ]
+
+            if ( ("`algorithm'" != "") & ("`method'" != "") ) {
+                disp as err "gregress: method() is an alias for algorithm(); specify only one"
+                exit 198
+            }
+            if ( `"`algorithm'"' == "" ) local algorithm  cg
+            if ( `"`method'"'    != "" ) local algorithm: copy local method
+            local method: copy local algorithm
+
+            if ( `maxiter' < 1 ) {
+                disp as err "gregress: maxiter() must be >= 1"
+                exit 198
+            }
+
+            if ( missing(`maxiter') ) local maxiter 0
+            local maxiter = floor(`maxiter')
+
+            if ( lower(`"`method'"') == "map" ) {
+                local method_code 1
+                local method map
+            }
+            else if ( lower(`"`method'"') == "squarem" ) {
+                local method_code 2
+                local method squarem
+            }
+            else if ( inlist(lower(`"`method'"'), "conjugate gradient", "conjugate_gradient", "cg") ) {
+                local method_code 3
+                local method cg
+            }
+            else if ( inlist(lower(`"`method'"'), "irons and tuck", "irons tuck", "irons_tuck", "it") ) {
+                local method_code 5
+                local method it
+            }
+            else if ( inlist(lower(`"`method'"'), "bit", "berge_it", "berge it") ) {
+                * TODO: gives segfault on some runs last I checked; debug someday.
+                * Option is undocumented but I leave it here for myself.
+                local method_code 6
+                local method bit
+            }
+            else {
+                disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, it"
+                exit 198
+            }
 
             local ivregress
             if ( `ivkendog' > 0 ) {
@@ -1820,21 +1887,26 @@ program _gtools_internal, rclass
 
             local regressvars `varlist' `cluster' `absorb' `intervalvar'
 
-            scalar __gtools_gregress_kvars      = `:list sizeof varlist'
-            scalar __gtools_gregress_cons       = `"`constant'"' != "noconstant"
-            scalar __gtools_gregress_robust     = `"`robust'"'   != ""
-            scalar __gtools_gregress_cluster    = `:list sizeof cluster'
-            scalar __gtools_gregress_absorb     = `:list sizeof absorb'
-            scalar __gtools_gregress_hdfetol    = `hdfetol'
-            scalar __gtools_gregress_glmfam     = `"`glmfam'"' != ""
-            scalar __gtools_gregress_glmlogit   = (`"`glmfam'"' == "binomial") & (`"`glmlink'"' == "logit")
-            scalar __gtools_gregress_glmpoisson = (`"`glmfam'"' == "poisson")  & (`"`glmlink'"' == "log")
-            scalar __gtools_gregress_glmiter    = `glmiter'
-            scalar __gtools_gregress_glmtol     = `glmtol'
-            scalar __gtools_gregress_ivreg      = `"`ivregress'"' != ""
-            scalar __gtools_gregress_ivkendog   = `ivkendog'
-            scalar __gtools_gregress_ivkexog    = `ivkexog'
-            scalar __gtools_gregress_ivkz       = `ivkz'
+            scalar __gtools_gregress_hdfemethnm    = cond(`:list sizeof absorb' > 1, "`method'", "direct")
+            scalar __gtools_gregress_hdfemethod    = `method_code'
+            scalar __gtools_gregress_kvars         = `:list sizeof varlist'
+            scalar __gtools_gregress_cons          = `"`constant'"' != "noconstant"
+            scalar __gtools_gregress_robust        = `"`robust'"'   != ""
+            scalar __gtools_gregress_cluster       = `:list sizeof cluster'
+            scalar __gtools_gregress_absorb        = `:list sizeof absorb'
+            scalar __gtools_gregress_hdfetol       = `hdfetol'
+            scalar __gtools_gregress_hdfemaxiter   = `maxiter'
+            scalar __gtools_gregress_hdfetraceiter = "`traceiter'" != ""
+            scalar __gtools_gregress_hdfestandard  = "`standardize'" != ""
+            scalar __gtools_gregress_glmfam        = `"`glmfam'"' != ""
+            scalar __gtools_gregress_glmlogit      = (`"`glmfam'"' == "binomial") & (`"`glmlink'"' == "logit")
+            scalar __gtools_gregress_glmpoisson    = (`"`glmfam'"' == "poisson")  & (`"`glmlink'"' == "log")
+            scalar __gtools_gregress_glmiter       = `glmiter'
+            scalar __gtools_gregress_glmtol        = `glmtol'
+            scalar __gtools_gregress_ivreg         = `"`ivregress'"' != ""
+            scalar __gtools_gregress_ivkendog      = `ivkendog'
+            scalar __gtools_gregress_ivkexog       = `ivkexog'
+            scalar __gtools_gregress_ivkz          = `ivkz'
 
             if ( scalar(__gtools_gregress_glmlogit) ) {
                 local Caller Logit
@@ -2171,6 +2243,7 @@ program _gtools_internal, rclass
                 local regressvars `regressvars' `predict'
             }
 
+            * TODO: strL support
             if ( `"`absorb'"' != "" ) {
                 local 0: copy local absorb
                 syntax varlist, [save(str)]
@@ -2207,6 +2280,9 @@ program _gtools_internal, rclass
             if ( `wcode' == 3 ) {
                 disp as txt "{bf:note:} iweights mimic the behavior of aweights"
             }
+
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "stats") ) {
             local gcall `gfunction' `"${GTOOLS_GSTATS_FILE}"'
@@ -2218,6 +2294,32 @@ program _gtools_internal, rclass
                 exit `rc'
             }
             local statvars `varlist'
+
+            * Note: This seems inefficient; if in ought to be done one
+            * level above in gstats... not to mention that it will force
+            * initializing the targets every time.
+            if ( "`gstat'" == "hdfe" ) {
+                tempvar touse
+                mark `touse' `ifin'
+                markout `touse' `__gtools_hdfe_markvars', strok
+                local if if `touse'
+                mata st_local("ifin", st_local("if") + " " + st_local("in"))
+            }
+
+            scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`gstats_replace'" != "") & ("`gstats_init'" == "")
+            if ( ("`gstat'" == "winsor") & `:list sizeof gstats_replace_anysrc' & `=scalar(__gtools_init_targ)' ) {
+                disp as err "gstats winsor: -replace- with source as target not allowed with if/in"
+                clean_all 198
+                exit 198
+            }
+
+            if ( ("`gstat'" == "transform") & ("`gstats_greedy'" != "") & `:list sizeof gstats_replace_anysrc' & `=scalar(__gtools_init_targ)' ) {
+                disp as err "gstats transform: -replace- source as target not allowed with if/in and -nogreedy-"
+                clean_all 198
+                exit 198
+            }
+
+            if ( (`"`ifin'"' != "") & ("`gstats_replace'" != "") & ("`gstats_init'" != "") ) NoInitWarning
         }
         else if ( inlist("`gfunction'",  "contract") ) {
             local 0 `gcontract'
@@ -2268,7 +2370,7 @@ program _gtools_internal, rclass
             local k2: list sizeof byvars
 
             // 1. gen(, replace)  -> replaces existing varlist
-            // 2. gen(prefix)     -> generates prefix_*
+            // 2. gen(prefix)     -> generates prefix*
             // 4. gen(newvarlist) -> generates newvarlist
 
             if ( "`gen'" != "" ) {
@@ -2383,6 +2485,8 @@ program _gtools_internal, rclass
             scalar __gtools_top_miss      = ( `"`misslab'"'     != "" )
             scalar __gtools_top_groupmiss = ( `"`groupmiss'"'   != "" )
             scalar __gtools_top_other     = ( `"`otherlab'"'    != "" )
+            scalar __gtools_top_Jmiss     = 0
+            scalar __gtools_top_Jother    = 0
             scalar __gtools_top_lmiss     = length(`"`misslab'"')
             scalar __gtools_top_lother    = length(`"`otherlab'"')
             scalar __gtools_top_nrows     = abs(__gtools_top_ntop) /*
@@ -2869,7 +2973,7 @@ program _gtools_internal, rclass
                         clean_all 198
                         exit 198
                     }
-                    else if ( _rc & ("`replace'" != "") ) {
+                    else if ( _rc & ("`replace'" != "") & ("`init'" == "") ) {
                         qui replace `qvar' = .
                     }
                     else if ( _rc == 0 ) {
@@ -2883,6 +2987,10 @@ program _gtools_internal, rclass
             if ( `toadd' > 0 ) {
                 qui mata: st_addvar(__gtools_xtile_addlab, __gtools_xtile_addnam)
             }
+
+            * This is superseded by the replace qvar above:
+            * scalar __gtools_init_targ = (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" == "")
+            if ( (`"`ifin'"' != "") & ("`replace'" != "") & ("`init'" != "") ) NoInitWarning
 
             local msg "Parsed quantiles and added targets"
             gtools_timer info `t98' `"`msg'"', prints(`benchmark')
@@ -2991,6 +3099,8 @@ program _gtools_internal, rclass
             cap scalar list __gtools_top_other
             cap scalar list __gtools_top_lmiss
             cap scalar list __gtools_top_lother
+            cap scalar list __gtools_top_Jmiss
+            cap scalar list __gtools_top_Jother
 
             cap scalar list __gtools_xtile_xvars
             cap scalar list __gtools_xtile_nq
@@ -3057,6 +3167,48 @@ program _gtools_internal, rclass
             else {
                 mata: (void) __gstats_summarize_results()
                 cap mata: mata drop `GstatsMataSave'
+            }
+        }
+
+        tempname ghdfeabsmatrix
+        if ( `=scalar(__gtools_gstats_code)' == 4 ) {
+            return scalar hdfe_nonmiss = `=scalar(__gtools_hdfe_nonmiss)'
+            if ( ("`byvars'" != "") & `=scalar(__gtools_hdfe_matasave)' ) {
+
+                mata: `=scalar(__gtools_hdfe_mataname)' = GtoolsByLevels()
+                mata: `=scalar(__gtools_hdfe_mataname)'.whoami = st_strscalar("__gtools_hdfe_mataname")
+                mata: `=scalar(__gtools_hdfe_mataname)'.caller = "gstats hdfe"
+                mata: `=scalar(__gtools_hdfe_mataname)'.read(`""', 0)
+
+                mata: `ghdfeabsmatrix' = GtoolsReadMatrix(st_local("ghdfeabsfile"), /*
+                    */ 1 + st_numscalar("__gtools_hdfe_absorb"), `=scalar(__gtools_hdfe_mataname)'.J)
+                mata: `=scalar(__gtools_hdfe_mataname)'.nj = `ghdfeabsmatrix'[1, .]'
+                mata: `=scalar(__gtools_hdfe_mataname)'.njabsorb = colshape( /*
+                    */ `ghdfeabsmatrix'[2::rows(`ghdfeabsmatrix'), .], st_numscalar("__gtools_hdfe_absorb"))
+
+                disp as txt "(note: by() info saved in `=scalar(__gtools_hdfe_mataname)';" /*
+                    */ " see {stata mata `=scalar(__gtools_hdfe_mataname)'.desc()})"
+            }
+            else if ( ("`byvars'" == "") & `=scalar(__gtools_hdfe_matasave)' ) {
+                disp as txt "(warning: matasave() without by() is ignored)"
+            }
+
+            return local  hdfe_method   = "`=scalar(__gtools_hdfe_methodname)'"
+            return scalar hdfe_saveinfo = 0
+            return scalar hdfe_saveabs  = 0
+            if ( "`byvars'" == "" ) {
+                return scalar hdfe_saveabs = 1
+                return matrix hdfe_nabsorb = __gtools_hdfe_nabsorb
+
+                return scalar hdfe_saveinfo = 1
+                if ( "`=scalar(__gtools_hdfe_methodname)'" == "direct" ) {
+                    return scalar hdfe_iter  = 1
+                    return scalar hdfe_feval = 1
+                }
+                else {
+                    return scalar hdfe_iter  = __gtools_hdfe_iter
+                    return scalar hdfe_feval = __gtools_hdfe_feval
+                }
             }
         }
 
@@ -3158,9 +3310,11 @@ program _gtools_internal, rclass
                 */ st_numscalar("__gtools_kvars_num"))
         }
 
-        return scalar alpha = __gtools_top_alpha
-        return scalar ntop  = __gtools_top_ntop
-        return scalar nrows = __gtools_top_nrows
+        return scalar alpha  = __gtools_top_alpha
+        return scalar ntop   = __gtools_top_ntop
+        return scalar nrows  = __gtools_top_nrows
+        return scalar Jmiss  = __gtools_top_Jmiss
+        return scalar Jother = __gtools_top_Jother
 
         * return matrix toplevels = __gtools_top_matrix
         * return matrix numlevels = __gtools_top_num
@@ -3174,6 +3328,7 @@ program _gtools_internal, rclass
             mata: `saveGregressMata'.ByLevels.whoami = "ByLevels"
             mata: `saveGregressMata'.ByLevels.caller = `"`caller'"'
             mata: `saveGregressMata'.ByLevels.read("%16.0g", 1)
+            c_local saveGregressMata: copy local saveGregressMata
             disp as txt "Results in `saveGregressMata'; see {stata mata `saveGregressMata'.desc()}"
         }
     }
@@ -3252,6 +3407,10 @@ program clean_all
     global GTOOLS_GREG_FILE
     global GTOOLS_GREGB_FILE
     global GTOOLS_GREGSE_FILE
+    global GTOOLS_GREGVCOV_FILE
+    global GTOOLS_GREGCLUS_FILE
+    global GTOOLS_GREGABS_FILE
+    global GTOOLS_GHDFEABS_FILE
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
     global GTOOLS_BYCOL_FILE
@@ -3269,6 +3428,7 @@ program clean_all
     cap scalar drop __gtools_gfile_gregse
     cap scalar drop __gtools_gfile_gregclus
     cap scalar drop __gtools_gfile_gregabs
+    cap scalar drop __gtools_gfile_hdfeabs
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if
     cap scalar drop __gtools_verbose
@@ -3310,6 +3470,8 @@ program clean_all
     cap scalar drop __gtools_top_other
     cap scalar drop __gtools_top_lmiss
     cap scalar drop __gtools_top_lother
+    cap scalar drop __gtools_top_Jmiss
+    cap scalar drop __gtools_top_Jother
     cap matrix drop __gtools_contract_which
 
     cap scalar drop __gtools_levels_mataname
@@ -4807,41 +4969,46 @@ end
 capture program drop gregress_scalars
 program gregress_scalars
     if ( inlist(`"`0'"', "gen", "init", "alloc") ) {
-        scalar __gtools_gregress_kv         = 0
-        scalar __gtools_gregress_kvars      = 0
-        scalar __gtools_gregress_cons       = 0
-        scalar __gtools_gregress_robust     = 0
-        scalar __gtools_gregress_cluster    = 0
-        scalar __gtools_gregress_absorb     = 0
-        scalar __gtools_gregress_hdfetol    = 0
-        scalar __gtools_gregress_glmlogit   = 0
-        scalar __gtools_gregress_glmpoisson = 0
-        scalar __gtools_gregress_glmfam     = 0
-        scalar __gtools_gregress_glmiter    = 0
-        scalar __gtools_gregress_glmtol     = 0
-        scalar __gtools_gregress_ivreg      = 0
-        scalar __gtools_gregress_ivkendog   = 0
-        scalar __gtools_gregress_ivkexog    = 0
-        scalar __gtools_gregress_ivkz       = 0
-        scalar __gtools_gregress_savemata   = 0
-        scalar __gtools_gregress_savemb     = 0
-        scalar __gtools_gregress_savemse    = 0
-        scalar __gtools_gregress_savegb     = 0
-        scalar __gtools_gregress_savegse    = 0
-        scalar __gtools_gregress_saveghdfe  = 0
-        scalar __gtools_gregress_savegresid = 0
-        scalar __gtools_gregress_savegpred  = 0
-        scalar __gtools_gregress_savegabs   = 0
-        scalar __gtools_gregress_moving     = 0
-        scalar __gtools_gregress_moving_l   = 0
-        scalar __gtools_gregress_moving_u   = 0
-        scalar __gtools_gregress_range      = 0
-        scalar __gtools_gregress_range_l    = 0
-        scalar __gtools_gregress_range_u    = 0
-        scalar __gtools_gregress_range_ls   = 0
-        scalar __gtools_gregress_range_us   = 0
-        matrix __gtools_gregress_clustyp    = .
-        matrix __gtools_gregress_abstyp     = .
+        scalar __gtools_gregress_kv            = 0
+        scalar __gtools_gregress_kvars         = 0
+        scalar __gtools_gregress_cons          = 0
+        scalar __gtools_gregress_robust        = 0
+        scalar __gtools_gregress_cluster       = 0
+        scalar __gtools_gregress_absorb        = 0
+        scalar __gtools_gregress_hdfetol       = 0
+        scalar __gtools_gregress_hdfemaxiter   = 0
+        scalar __gtools_gregress_hdfetraceiter = 0
+        scalar __gtools_gregress_hdfestandard  = 0
+        scalar __gtools_gregress_hdfemethnm    = ""
+        scalar __gtools_gregress_hdfemethod    = 0
+        scalar __gtools_gregress_glmlogit      = 0
+        scalar __gtools_gregress_glmpoisson    = 0
+        scalar __gtools_gregress_glmfam        = 0
+        scalar __gtools_gregress_glmiter       = 0
+        scalar __gtools_gregress_glmtol        = 0
+        scalar __gtools_gregress_ivreg         = 0
+        scalar __gtools_gregress_ivkendog      = 0
+        scalar __gtools_gregress_ivkexog       = 0
+        scalar __gtools_gregress_ivkz          = 0
+        scalar __gtools_gregress_savemata      = 0
+        scalar __gtools_gregress_savemb        = 0
+        scalar __gtools_gregress_savemse       = 0
+        scalar __gtools_gregress_savegb        = 0
+        scalar __gtools_gregress_savegse       = 0
+        scalar __gtools_gregress_saveghdfe     = 0
+        scalar __gtools_gregress_savegresid    = 0
+        scalar __gtools_gregress_savegpred     = 0
+        scalar __gtools_gregress_savegabs      = 0
+        scalar __gtools_gregress_moving        = 0
+        scalar __gtools_gregress_moving_l      = 0
+        scalar __gtools_gregress_moving_u      = 0
+        scalar __gtools_gregress_range         = 0
+        scalar __gtools_gregress_range_l       = 0
+        scalar __gtools_gregress_range_u       = 0
+        scalar __gtools_gregress_range_ls      = 0
+        scalar __gtools_gregress_range_us      = 0
+        matrix __gtools_gregress_clustyp       = .
+        matrix __gtools_gregress_abstyp        = .
     }
     else {
         cap scalar drop __gtools_gregress_kv
@@ -4851,6 +5018,11 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb
         cap scalar drop __gtools_gregress_hdfetol
+        cap scalar drop __gtools_gregress_hdfemaxiter
+        cap scalar drop __gtools_gregress_hdfetraceiter
+        cap scalar drop __gtools_gregress_hdfestandard
+        cap scalar drop __gtools_gregress_hdfemethnm
+        cap scalar drop __gtools_gregress_hdfemethod
         cap scalar drop __gtools_gregress_ivreg
         cap scalar drop __gtools_gregress_ivkendog
         cap scalar drop __gtools_gregress_ivkexog
@@ -4894,6 +5066,20 @@ program gstats_scalars
         scalar __gtools_winsor_cutl            = .
         scalar __gtools_winsor_cuth            = .
         scalar __gtools_winsor_kvars           = .
+
+        scalar __gtools_hdfe_nonmiss           = 0
+        scalar __gtools_hdfe_kvars             = 0
+        scalar __gtools_hdfe_absorb            = 0
+        scalar __gtools_hdfe_method            = 1
+        scalar __gtools_hdfe_maxiter           = 0
+        scalar __gtools_hdfe_traceiter         = 0
+        scalar __gtools_hdfe_standard          = 0
+        scalar __gtools_hdfe_hdfetol           = 0
+        scalar __gtools_hdfe_matasave          = 0
+        scalar __gtools_hdfe_mataname          = ""
+        scalar __gtools_hdfe_iter              = 0
+        scalar __gtools_hdfe_feval             = 0
+        scalar __gtools_hdfe_methodname        = ""
 
         scalar __gtools_summarize_matasave     = 0
         scalar __gtools_summarize_pretty       = 0
@@ -4953,6 +5139,8 @@ program gstats_scalars
         matrix __gtools_transform_varfuns      = .
         matrix __gtools_transform_statcode     = .
         matrix __gtools_transform_statmap      = .
+        matrix __gtools_hdfe_abstyp            = .
+        matrix __gtools_hdfe_nabsorb           = .
 
         matrix __gtools_transform_moving       = 0
         matrix __gtools_transform_moving_l     = .
@@ -4983,6 +5171,20 @@ program gstats_scalars
         cap scalar drop __gtools_winsor_cutl
         cap scalar drop __gtools_winsor_cuth
         cap scalar drop __gtools_winsor_kvars
+
+        cap scalar drop __gtools_hdfe_nonmiss
+        cap scalar drop __gtools_hdfe_kvars
+        cap scalar drop __gtools_hdfe_absorb
+        cap scalar drop __gtools_hdfe_method
+        cap scalar drop __gtools_hdfe_maxiter
+        cap scalar drop __gtools_hdfe_traceiter
+        cap scalar drop __gtools_hdfe_standard
+        cap scalar drop __gtools_hdfe_hdfetol
+        cap scalar drop __gtools_hdfe_matasave
+        cap scalar drop __gtools_hdfe_mataname
+        cap scalar drop __gtools_hdfe_iter
+        cap scalar drop __gtools_hdfe_feval
+        cap scalar drop __gtools_hdfe_methodname
 
         cap scalar drop __gtools_summarize_matasave
         cap scalar drop __gtools_summarize_pretty
@@ -5044,6 +5246,8 @@ program gstats_scalars
         cap matrix drop __gtools_transform_varfuns
         cap matrix drop __gtools_transform_statcode
         cap matrix drop __gtools_transform_statmap
+        cap matrix drop __gtools_hdfe_abstyp
+        cap matrix drop __gtools_hdfe_nabsorb
 
         cap matrix drop __gtools_transform_moving
         cap matrix drop __gtools_transform_moving_l
@@ -5095,7 +5299,8 @@ program gstats_transform
     syntax anything(equalok),       ///
     [                               ///
                                     /// TODO: Maybe add rawstat at some point...
-        replace                     ///
+        replace                     /// replace variables, if they exist
+        noinit                      /// do not initialize targets with missing values
         nogreedy                    /// use memory-heavy algorithm
         TYPEs(str)                  /// override automatic types
                                     ///
@@ -5251,26 +5456,6 @@ program gstats_transform
             local __gtools_gst_addvars  `__gtools_gst_addvars'  `target'
             local __gtools_gst_addtypes `__gtools_gst_addtypes' `type'
         }
-    }
-
-    if ( `kadd' ) {
-        mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
-    }
-
-    if ( `krecast' ) {
-        scalar __gtools_k_recast = `krecast'
-        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
-        local rc = _rc
-        cap scalar drop __gtools_k_recast
-        if ( `rc' ) {
-            exit `rc'
-        }
-    }
-
-    mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
-    forvalues k = 1 / `ktargets' {
-        mata: st_varlabel( `"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_labels[`k'])
-        mata: st_varformat(`"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_formats[`k'])
     }
 
     * Group stat codes
@@ -5734,8 +5919,20 @@ program gstats_transform
         }
     }
 
-    * Return varlist for plugin internals
+    mata {
+        if ( (`"`excludeself'"'   != "") &  any(__gtools_transform_varfuns :!= -5) ) {
+            if ( all(__gtools_transform_varfuns :!= -5) ) {
+                printf("gstats_transform: option -excludeself- not allowed (only with transform range)\n")
+                _error(198)
+            }
+            else {
+                printf("gstats_transform: excludeself ignored for stats other than range\n")
+            }
+        }
+    }
 
+    * Return varlist for plugin internals
+    * -----------------------------------
     scalar __gtools_transform_greedy    = (`"`greedy'"' != "nogreedy")
     scalar __gtools_transform_kvars     = `:list sizeof __gtools_gst_vars'
     scalar __gtools_transform_ktargets  = `:list sizeof __gtools_gst_targets'
@@ -5769,6 +5966,38 @@ program gstats_transform
     mata: st_matrix("__gtools_transform_aux8_shift", __gtools_transform_aux8_shift)
 
     c_local varlist `__gtools_gst_vars' `__gtools_gst_targets' `rangevars' `cumvars'
+
+    * Check if any of the target is any type of source
+    local common: list cumvars | rangevars
+    local common: list common  | __gtools_gst_vars
+    c_local gstats_replace_anysrc: list common & __gtools_gst_targets
+
+    * Potential intensive operations: Add, recast targets
+    * ---------------------------------------------------
+
+    if ( `kadd' ) {
+        mata: (void) st_addvar(tokens(`"`__gtools_gst_addtypes'"'), tokens(`"`__gtools_gst_addvars'"'))
+    }
+
+    if ( `krecast' ) {
+        scalar __gtools_k_recast = `krecast'
+        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
+        local rc = _rc
+        cap scalar drop __gtools_k_recast
+        if ( `rc' ) {
+            exit `rc'
+        }
+    }
+
+    mata __gtools_gst_dropvars = tokens(`"`__gtools_gst_dropvars'"')
+    forvalues k = 1 / `ktargets' {
+        mata: st_varlabel( `"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_labels[`k'])
+        mata: st_varformat(`"`:word `k' of `__gtools_gst_targets''"', __gtools_gst_formats[`k'])
+    }
+
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
+    c_local gstats_greedy:  copy local greedy
 end
 
 * NOTE: Copy/paste from gcollapse.ado/parse_vars
@@ -6219,6 +6448,349 @@ program gstats_transform_types
     c_local `prefix'_retype: copy local retype
 end
 
+capture program drop gstats_hdfe
+program gstats_hdfe
+    syntax anything(equalok), ///
+        absorb(varlist)       ///
+    [                         ///
+        PREfix(str)           /// generate variables with specified prefix
+        GENerate(str)         /// generate specified variables
+        replace               /// replace variables, if they exist
+        noinit                /// do not initialize targets with missing values
+        WILDparse             /// parse assuming wildcard renaming
+                              ///
+        ABSORBMISSing         /// absorb missing levels
+        algorithm(str)        /// alias for method
+        method(str)           /// projection method
+                              /// map (method of alternating projections)
+                              /// squarem
+                              /// conjugate gradient|cg
+                              /// it|irons tuck
+        STANdardize           /// standardize before applying transform
+        TRACEiter             /// trace iteration progress
+        maxiter(real 100000)  /// maximum number of iterations
+        TOLerance(real 1e-8)  /// tolerance for hdfe convergence
+        MATAsave              /// save by vars/levels in mata
+        MATAsavename(str)     /// name of mata object
+                              ///
+        individual            /// do not drop missing rows case-wise
+    ]
+
+    if ( ("`algorithm'" != "") & ("`method'" != "") ) {
+        disp as err "gstats_hdfe: method() is an alias for algorithm(); specify only one"
+        exit 198
+    }
+    if ( `"`algorithm'"' == "" ) local algorithm  cg
+    if ( `"`method'"'    != "" ) local algorithm: copy local method
+    local method: copy local algorithm
+
+    if ( "`individual'" != "" ) {
+        disp as err "gstats_hdfe: option -individual- not implemented; values dropped row-wise"
+        exit 198
+    }
+
+    if ( `maxiter' < 1 ) {
+        disp as err "gstats_hdfe: maxiter() must be >= 1"
+        exit 198
+    }
+
+    if ( missing(`maxiter') ) local maxiter 0
+    local maxiter = floor(`maxiter')
+
+    local __gtools_byvars: copy global GTOOLS_BYNAMES
+    * NB: This is tested internally against gregress; should be OK?
+    * if ( "${GTOOLS_HDFEBY}" != "1" ) {
+    *     if ( "`__gtools_byvars'" != "" ) {
+    *         disp as err "gstats hdfe with by() has {bf:NOT} been tested. Try it at your own risk via"
+    *         disp as err ""
+    *         disp as err "    global GTOOLS_HDFEBY = 1"
+    *         exit 198
+    *     }
+    * }
+
+    if ( `"`matasavename'"' != "" ) local matasave     matasave
+    if ( `"`matasavename'"' == "" ) local matasavename GtoolsByLevels
+
+    if ( lower(`"`method'"') == "map" ) {
+        local method_code 1
+        local method map
+    }
+    else if ( lower(`"`method'"') == "squarem" ) {
+        local method_code 2
+        local method squarem
+    }
+    else if ( inlist(lower(`"`method'"'), "conjugate gradient", "conjugate_gradient", "cg") ) {
+        local method_code 3
+        local method cg
+    }
+    else if ( inlist(lower(`"`method'"'), "irons and tuck", "irons tuck", "irons_tuck", "it") ) {
+        local method_code 5
+        local method it
+    }
+    else if ( inlist(lower(`"`method'"'), "bit", "berge_it", "berge it") ) {
+        * TODO: gives segfault on some runs last I checked; debug someday.
+        * Option is undocumented but I leave it here for myself.
+        local method_code 6
+        local method bit
+    }
+    else {
+        disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, it"
+        exit 198
+    }
+
+    * ---------------------------------------------------------------------
+    * Parse absorb
+    * ---------------------------------------------------------------------
+
+    local absorb_uniq: list uniq absorb
+    if ( `:list sizeof absorb_uniq' < `:list sizeof absorb' ) {
+        disp as txt "warning: duplicate variables in absorb()"
+    }
+
+    * TODO: strL support
+    GenericParseTypes `absorb', mat(__gtools_hdfe_abstyp)
+    matrix __gtools_hdfe_nabsorb = J(1, `:list sizeof absorb', .)
+
+    * ---------------------------------------------------------------------
+    * Parse variable targets
+    * ---------------------------------------------------------------------
+
+    local gen_clist   = strpos(`"`anything'"', "=") > 0
+    local gen_prefix  = ("`prefix'"   != "")
+    local gen_direct  = ("`generate'" != "")
+    local gen_replace = ("`replace'"  != "")
+
+    if ( !`gen_clist' & !`gen_direct' & !`gen_prefix' & !`gen_replace' ) {
+        disp as err "gstats_hdfe: No targets specified and no replace."
+        exit 198
+    }
+
+    if ( `gen_clist' & `gen_direct' ) {
+        disp as err "gstats_hdfe: Cannot specify both generate() and target=source syntax"
+        exit 198
+    }
+
+
+    if ( `gen_replace' & ((`gen_clist' + `gen_direct' + `gen_prefix') == 0) ) {
+        confirm numeric var `anything'
+        unab __gtools_hdfe_vars: `anything'
+        local __gtools_hdfe_targets: copy local __gtools_hdfe_vars
+    }
+
+    if ( `gen_direct' ) {
+        confirm numeric var `anything'
+        unab __gtools_hdfe_vars: `anything'
+        local __gtools_hdfe_targets: copy local generate
+    }
+
+    local opts prefix(__gtools_hdfe) default(hdfe)
+    if ( `gen_clist' ) {
+        if ( "`wildparse'" != "" ) {
+            local rc = 0
+
+            ParseListWild `anything', loc(__gtools_hdfe_call) `opts'
+
+            local __gtools_bak_stats      : copy local __gtools_hdfe_stats
+            local __gtools_bak_vars       : copy local __gtools_hdfe_vars
+            local __gtools_bak_targets    : copy local __gtools_hdfe_targets
+            local __gtools_bak_uniq_stats : copy local __gtools_hdfe_uniq_stats
+            local __gtools_bak_uniq_vars  : copy local __gtools_hdfe_uniq_vars
+
+            ParseList `__gtools_hdfe_call',  `opts'
+
+            cap assert ("`__gtools_hdfe_stats'"      == "`__gtools_bak_stats'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_hdfe_vars'"       == "`__gtools_bak_vars'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_hdfe_targets'"    == "`__gtools_bak_targets'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_hdfe_uniq_stats'" == "`__gtools_bak_uniq_stats'")
+            local rc = max(_rc, `rc')
+
+            cap assert ("`__gtools_hdfe_uniq_vars'"  == "`__gtools_bak_uniq_vars'")
+            local rc = max(_rc, `rc')
+
+            if ( `rc' ) {
+                disp as error "gstats_hdfe: Wild parsing inconsistent with standard parsing."
+                exit 198
+            }
+        }
+        else {
+            ParseList `anything', `opts'
+        }
+    }
+
+    if ( `gen_clist' & `gen_prefix' ) {
+        local _targets
+        forvalues k = 1 / `:list sizeof __gtools_hdfe_vars' {
+            local target: word `k' of `__gtools_hdfe_targets'
+            local source: word `k' of `__gtools_hdfe_vars'
+            if ( "`target'" == "`source'" ) {
+                local _targets `_targets' `prefix'`target'
+            }
+            else {
+                local _targets `_targets' `target'
+            }
+        }
+        local __gtools_hdfe_targets: copy local _targets
+    }
+    else if ( `gen_prefix' ) {
+        confirm numeric var `anything'
+        unab __gtools_hdfe_vars: `anything'
+        local __gtools_hdfe_targets
+        foreach var of local __gtools_hdfe_vars {
+            local __gtools_hdfe_targets `__gtools_hdfe_targets' `prefix'`var'
+        }
+    }
+
+    foreach var of local __gtools_hdfe_targets {
+        cap confirm new var `var'
+        if ( _rc & !`gen_replace' ) {
+            di as err "Variable `var' exists with no replace."
+            exit 198
+        }
+    }
+
+    * ---------------------------------------------------------------------
+    * Parse variable types
+    * ---------------------------------------------------------------------
+
+    local __gtools_hdfe_types
+    foreach var of local __gtools_hdfe_vars {
+        if inlist("`:type `var''", "float", "double") {
+            local __gtools_hdfe_types `__gtools_hdfe_types' `:type `var''
+        }
+        else {
+            local __gtools_hdfe_types `__gtools_hdfe_types' `:set type'
+        }
+    }
+
+    local kvars:    list sizeof __gtools_hdfe_vars
+    local ktargets: list sizeof __gtools_hdfe_targets
+    local ktype:    list sizeof __gtools_hdfe_types
+
+    local kbad = 0
+    local kbad = `kbad' | (`kvars' != `ktargets')
+    local kbad = `kbad' | (`kvars' != `ktype')
+
+    if ( `kbad' ) {
+        disp as err "gstats_hdfe: parsing error (inconsistent number of inputs)"
+        exit 198
+    }
+
+    local __gtools_hdfe_uniq: list uniq __gtools_hdfe_vars
+    if ( `:list sizeof __gtools_hdfe_uniq' != `kvars' ) {
+        disp as err "gstats_hdfe: Repeat sources not allowed"
+        exit 198
+    }
+
+    * ---------------------------------------------------------------------
+    * Recast or drop
+    * ---------------------------------------------------------------------
+
+    local krecast = 0
+    local recast_sources
+    local recast_targets
+
+    local __gtools_hdfe_i = 0
+    local __gtools_hdfe_dropvars
+
+    forvalues k = 1 / `ktargets' {
+        local typek:   word `k' of `__gtools_hdfe_types'
+        local targetk: word `k' of `__gtools_hdfe_targets'
+        local sourcek: word `k' of `__gtools_hdfe_vars'
+
+        cap confirm new variable `targetk'
+        if ( _rc ) {
+            if !inlist("`:type `targetk''", "float", "double") {
+                cap confirm new variable __gtools_hdfe`__gtools_hdfe_i'
+                while ( _rc ) {
+                    local ++__gtools_hdfe_i
+                    cap confirm new variable __gtools_hdfe`__gtools_hdfe_i'
+                }
+                rename `targetk' __gtools_hdfe`__gtools_hdfe_i'
+                local __gtools_hdfe_dropvars `__gtools_hdfe_dropvars' __gtools_hdfe`__gtools_hdfe_i'
+
+                if ( "`targetk'" == "`sourcek'" ) {
+                    local recast_sources `recast_sources' __gtools_hdfe`__gtools_hdfe_i'
+                    local recast_targets `recast_targets' `targetk'
+                    local ++krecast
+                }
+            }
+        }
+    }
+
+    * ---------------------------------------------------------------------
+    * Add target variables
+    * ---------------------------------------------------------------------
+
+    local kadd = 0
+    local __gtools_hdfe_addvars
+    local __gtools_hdfe_addtypes
+    forvalues k = 1 / `ktargets' {
+        local target: word `k' of `__gtools_hdfe_targets'
+        local type:   word `k' of `__gtools_hdfe_types'
+        cap confirm new variable `target'
+        if ( _rc == 0 ) {
+            local ++kadd
+            local __gtools_hdfe_addvars  `__gtools_hdfe_addvars'  `target'
+            local __gtools_hdfe_addtypes `__gtools_hdfe_addtypes' `type'
+        }
+    }
+
+    if ( `kadd' ) {
+        mata: (void) st_addvar(tokens(`"`__gtools_hdfe_addtypes'"'), tokens(`"`__gtools_hdfe_addvars'"'))
+    }
+
+    if ( `krecast' ) {
+        scalar __gtools_k_recast = `krecast'
+        cap noi plugin call gtools_plugin `recast_targets' `recast_sources', recast
+        local rc = _rc
+        cap scalar drop __gtools_k_recast
+        if ( `rc' ) {
+            exit `rc'
+        }
+    }
+
+    mata st_dropvar(tokens(`"`__gtools_hdfe_dropvars'"'))
+
+    * ---------------------------------------------------------------------
+    * Scalars and locals for C internals
+    * ---------------------------------------------------------------------
+
+    scalar __gtools_hdfe_methodname = cond(`:list sizeof absorb' > 1, "`method'", "direct")
+    scalar __gtools_hdfe_method     = `method_code'
+    scalar __gtools_hdfe_mataname   = `"`matasavename'"'
+    scalar __gtools_hdfe_matasave   = `"`matasave'"' != ""
+    scalar __gtools_hdfe_kvars      = `kvars'
+    scalar __gtools_hdfe_absorb     = `:list sizeof absorb'
+    scalar __gtools_hdfe_hdfetol    = `tolerance'
+    scalar __gtools_hdfe_maxiter    = `maxiter'
+    scalar __gtools_hdfe_traceiter  = "`traceiter'" != ""
+    scalar __gtools_hdfe_standard   = "`standardize'" != ""
+    scalar __gtools_gstats_code     = 4
+    scalar __gtools_hdfe_iter       = cond(`:list sizeof absorb' > 1, 1, 0)
+    scalar __gtools_hdfe_feval      = cond(`:list sizeof absorb' > 1, 1, 0)
+
+    if "`absorbmissing'" != "" c_local __gtools_hdfe_markvars `__gtools_hdfe_vars'
+    else c_local __gtools_hdfe_markvars `__gtools_hdfe_vars' `absorb'
+
+    c_local varlist `__gtools_hdfe_vars' `__gtools_hdfe_targets' `absorb'
+
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
+
+* TODO: xx formats and labels for targets?
+* forvalues k = 1 / `ktargets' {
+*     mata: st_varlabel( `"`:word `k' of `__gtools_hdfe_targets''"', __gtools_hdfe_labels[`k'])
+*     mata: st_varformat(`"`:word `k' of `__gtools_hdfe_targets''"', __gtools_hdfe_formats[`k'])
+* }
+
+end
+
 capture program drop gstats_winsor
 program gstats_winsor
     syntax varlist(numeric), [ ///
@@ -6229,6 +6801,7 @@ program gstats_winsor
         Cuts(str)              ///
         Label                  ///
         replace                ///
+        noinit                 ///
     ]
 
     * Default is winsorize or trim 1st or 99th pctile
@@ -6366,6 +6939,9 @@ program gstats_winsor
     }
 
     c_local varlist `varlist' `targetvars'
+    c_local gstats_replace: copy local replace
+    c_local gstats_init:    copy local init
+    c_local gstats_replace_anysrc: list varlist & targetvars
 end
 
 capture program drop gstats_summarize
@@ -7438,6 +8014,20 @@ program define GetTarget
     }
     else {
         c_local eqsign
+    }
+end
+
+capture program drop NoInitWarning
+program NoInitWarning
+    if !inlist(`"${GTOOLS_NOINIT_WARNING}"', "0") {
+        disp as txt "WARNING: You have chosen to use the undocumented option -noinit-"
+        disp as txt "with -replace- and if/in. Variables that exist and will be replaced"
+        disp as txt "WITHOUT modifying any observations not tagged by if/in. Please make"
+        disp as txt "sure you understand the implications of doing this. To supress this"
+        disp as txt "warning, set"
+        disp as txt ""
+        disp as txt "    global GTOOLS_NOINIT_WARNING = 0"
+        disp as txt ""
     }
 end
 

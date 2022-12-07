@@ -73,6 +73,16 @@ is, this assumes that the weight refers to the number of available
 {p_end}
 {synopt:{opth hdfetol(real)}}Tolerance level for HDFE algoritm (default 1e-8).
 {p_end}
+{synopt:{opth algorithm(str)}}Algorithm used to absorb HDFE: CG (conjugate gradient), MAP (alternating projections), SQUAREM (squared extrapolation), IT (Irons and Tuck).
+{p_end}
+{synopt:{opth maxiter(int)}}Maximum number of algorithm iterations (default 100,000). Pass {it:.} for unlimited iterations.
+{p_end}
+{synopt:{opth tol:erance(real)}}Convergence tolerance (default 1e-8).
+{p_end}
+{synopt:{opth trace:iter}}Trace algorithm iterations.
+{p_end}
+{synopt:{opth stan:dardize}}Standardize variables before algorithm.
+{p_end}
 {synopt:{opt noc:onstant}}Whether to add a constant (cannot be combined with {opt absorb()}).
 {p_end}
 
@@ -96,7 +106,7 @@ is, this assumes that the weight refers to the number of available
 
 {marker weight}{...}
 {p 4 6 2}
-{opt aweight}s, {opt fweight}s, {opt iweight}s, and {opt pweight}s are allowed.
+{opt aweight}s, {opt fweight}s, and {opt pweight}s are allowed.
 {p_end}
 
 {marker description}{...}
@@ -246,6 +256,14 @@ for examples.
 The OSX version of gtools was implemented with invaluable help from @fbelotti;
 see {browse "https://github.com/mcaceresb/stata-gtools/issues/11"}.
 {p_end}
+
+{marker references}{...}
+{title:References}
+
+{pstd}
+See
+{browse "http://gtools.readthedocs.io/en/latest/usage/givregress/index.html#references":online documentation}
+for the list of references.
 
 {title:Also see}
 

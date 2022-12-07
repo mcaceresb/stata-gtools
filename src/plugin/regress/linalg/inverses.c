@@ -1,3 +1,5 @@
+// Note: This code has an issue
+
 /**
  * @brief Replaces a symmetric matrix A with its inverse, A^-1; returns the determinant |A|
  * @source http://www.irma-international.org/viewtitle/41011/

@@ -7,6 +7,7 @@ cap mata: mata drop GtoolsDecodeStat()
 cap mata: mata drop GtoolsDecodePth()
 cap mata: mata drop GtoolsSmartLevels()
 cap mata: mata drop GtoolsPrintfSwitch()
+cap mata: mata drop GtoolsFormatDefaultFallback()
 
 cap mata: mata drop GtoolsGtopPrintTop()
 cap mata: mata drop GtoolsGtopUnquote()
@@ -35,6 +36,8 @@ class GtoolsByLevels
     string   scalar      whoami
     string   matrix      printed
     real     matrix      toplevels
+    real     colvector   nj
+    real     matrix      njabsorb
     string   scalar      caller
 
     void read()
@@ -217,6 +220,8 @@ void function GtoolsByLevels::read(string scalar numfmt, real scalar valuelabels
         charpos   = .
         printed   = ""
         toplevels = .
+        nj        = .
+        njabsorb  = .
     }
 }
 
@@ -227,7 +232,7 @@ void function GtoolsByLevels::desc()
     real rowvector printlens
     string rowvector printfmts
 
-    printstr = J((anyvars? (12 + (caller == "gtop")): 1), 3, " ")
+    printstr = J((anyvars? (12 + (caller == "gtop") + 2 * (caller == "gstats hdfe")): 1), 3, " ")
     printstr[1, 1] = "object"
     printstr[1, 2] = "value"
     printstr[1, 3] = "description"
@@ -246,6 +251,10 @@ void function GtoolsByLevels::desc()
         if ( caller == "gtop" ) {
             printstr[13, 1] = "toplevels"
         }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 1] = "nj"
+            printstr[14, 1] = "njabsorb"
+        }
 
         printstr[3,  2] = sprintf("1 x %g", cols(byvars))
         printstr[4,  2] = sprintf("%g", J)
@@ -260,6 +269,10 @@ void function GtoolsByLevels::desc()
         if ( caller == "gtop" ) {
             printstr[13, 2] = sprintf("%g x 5 vector",  rows(toplevels))
         }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 2] = sprintf("%g x 1 vector",  rows(nj))
+            printstr[14, 2] = sprintf("%g x %g matrix", rows(njabsorb), cols(njabsorb))
+        }
 
         printstr[3,  3] = "by variable names"
         printstr[4,  3] = "number of levels"
@@ -273,6 +286,10 @@ void function GtoolsByLevels::desc()
         printstr[12, 3] = "formatted (printf-ed) variable levels"
         if ( caller == "gtop" ) {
             printstr[13, 3] = "frequencies of top levels"
+        }
+        if ( caller == "gstats hdfe" ) {
+            printstr[13, 3] = "non-missing obs (row-wise) for each by group"
+            printstr[14, 3] = "# FE each absorb variable had for each by group"
         }
 
         printlens      = colmax(strlen(printstr))
@@ -1234,6 +1251,41 @@ end
 ***********************************************************************
 
 mata:
+void function GtoolsFormatDefaultFallback(string scalar var,| string scalar fmt)
+{
+    string scalar v, l, f
+    v = st_vartype(var)
+    f = args() >= 2? fmt: ""
+    if ( f == "" ) {
+        if ( regexm(v, "str([1-9][0-9]*|L)") ) {
+            l = regexs(1)
+            if ( l == "L" ) {
+                f = "%9s"
+            }
+            else {
+                f = "%" + regexs(1) + "s"
+            }
+        }
+        else if ( v == "byte" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "int" ) {
+            f = "%8.0g"
+        }
+        else if ( v == "long" ) {
+            f = "%12.0g"
+        }
+        else if ( v == "float" ) {
+            f = "%9.0g"
+        }
+        else if ( v == "double" ) {
+            f = "%10.0g"
+        }
+    }
+    if ( f != "" ) {
+        st_varformat(var, f)
+    }
+}
 
 real matrix function GtoolsReadMatrix(
     string scalar fname,
@@ -1478,7 +1530,7 @@ void function GtoolsGtopPrintTop(
     string matrix printed,
     real scalar matasave)
 {
-    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen
+    real scalar i, k, l, len, ntop, nrows, gallcomp, minstrlen, Jmiss, Jother
     real scalar nmap, knum, kstr, valabbrev, weights
     real scalar pctlen, wlen, dlen
     real colvector si_miss, si_other, fmtix
@@ -1494,9 +1546,11 @@ void function GtoolsGtopPrintTop(
     // Done here because if these have embedded characters the parsing
     // gets tripped up...
 
-    levels = st_global("r(levels)")
-    sep    = st_global("r(sep)")
-    colsep = st_global("r(colsep)")
+    Jmiss   = st_numscalar("r(Jmiss)")
+    Jother  = st_numscalar("r(Jother)")
+    levels  = st_global("r(levels)")
+    sep     = st_global("r(sep)")
+    colsep  = st_global("r(colsep)")
 
     weights = st_local("weights") != ""
     pctfmt  = st_local("pctfmt")
@@ -1566,7 +1620,7 @@ void function GtoolsGtopPrintTop(
                             fmtbak = grows[1::ntop, l]
                             grows[1::ntop, l] = st_vlmap(st_varvaluelabel(numvar), nmat[., k])
                             fmtix  = selectindex(grows[1::ntop, l] :== "")
-                            if ( rows(fmtix) > 0 ) {
+                            if ( length(fmtix) > 0 ) {
                                 grows[fmtix, l] = fmtbak[fmtix]
                             }
                         }
@@ -1683,12 +1737,18 @@ void function GtoolsGtopPrintTop(
         olab = st_local("otherlabel")
         if ( any(si_miss) ) {
             minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( (st_local("ngroups") == "") & (Jmiss > 1) ) {
+                mlab = mlab + sprintf(" (%g groups)", Jmiss)
+            }
             if ( minstrlen < strlen(mlab) ) {
                 gstrmax[1] = strlen(mlab) - minstrlen + gstrmax[1]
             }
         }
         if ( any(si_other) ) {
             minstrlen = sum(gstrmax) + (kvars - 1) + (kvars - 1) * strlen(colsep);
+            if ( (st_local("ngroups") == "") & Jother ) {
+                olab = olab + sprintf(" (%s group%s)", strtrim(sprintf("%21.0gc", Jother)), Jother > 1? "s": "")
+            }
             if ( minstrlen < strlen(olab) ) {
                 gstrmax[1] = strlen(olab) - minstrlen + gstrmax[1]
             }
@@ -1804,6 +1864,7 @@ class GtoolsRegressOutput
     real   matrix    b
     real   scalar    saveb
     real   matrix    se
+    real   matrix    Vcov
     real   scalar    savese
 
     real   scalar    J
@@ -1888,13 +1949,22 @@ void function GtoolsRegressOutput::init()
 
 void function GtoolsRegressOutput::readMatrices()
 {
+    real matrix qc
     real scalar runols, runse, runhdfe
     J = strtoreal(st_local("r_J"))
     if ( st_numscalar("__gtools_gregress_savemb") ) {
-        b  = GtoolsReadMatrix(st_local("gregbfile"),  J, kx)
+        b = editmissing(GtoolsReadMatrix(st_local("gregbfile"),  J, kx), 0)
     }
     if ( st_numscalar("__gtools_gregress_savemse") ) {
         se = GtoolsReadMatrix(st_local("gregsefile"), J, kx)
+        if ( by == 0 ) {
+            Vcov = GtoolsReadMatrix(st_local("gregvcovfile"), kx, kx)
+            qc   = diag((se:^2) :/ rowshape(diagonal(Vcov), 1))
+            Vcov = editmissing(makesymmetric(Vcov :* qc), 0)
+        }
+        else {
+            Vcov = .
+        }
     }
 
     runols  = st_numscalar("__gtools_gregress_savemse") | st_numscalar("__gtools_gregress_savegse")

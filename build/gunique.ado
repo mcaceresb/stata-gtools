@@ -140,8 +140,11 @@ program gunique, rclass
     }
 
     if ( "`by'" != "" ) {
+        * NB: `id' should be the group ID for varlist, which should be
+        * correctly missing for non-if in observations. Hence ifid gives
+        * the right answer here.
         gegen `type' `generate' = tag(`by' `id') `ifid', missing `replace'
-        gegen `generate' = sum(`generate'), by(`by') replace
+        gegen `generate' = sum(`generate') `ifid', by(`by') replace
 
         di as txt ""
         di as txt "'`varlist'' had `r_Jdisp' unique values in `r_Ndisp' observations."

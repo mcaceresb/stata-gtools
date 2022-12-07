@@ -232,6 +232,7 @@ program checks_greshape
     restore
         greshape long x z, by(i) key(var)
 
+    exit 0
 end
 
 capture program drop compare_greshape

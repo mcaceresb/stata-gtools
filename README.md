@@ -13,7 +13,7 @@ provide a massive speed improvements to common Stata commands, including:
 reshape, collapse, xtile, tabstat, isid, egen, pctile, winsor, contract,
 levelsof, duplicates, unique/distinct, and more.
 
-![Stable Version](https://img.shields.io/badge/beta-v1.8.4-blue.svg?longCache=true&style=flat-square)
+![Beta Version](https://img.shields.io/badge/beta-v1.10.1-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![github linux status](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml)
 [![github osx status](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml/badge.svg?branch=master)](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml)
@@ -92,6 +92,7 @@ __*Extra commands*__
 | fasterxtile         | fastxtile                | 20 to 30 / 2.5 to 3.5   | Allows `by()`                 |
 |                     | egenmisc (SSC) (-)       | 8 to 25 / 2.5 to 6      |                               |
 |                     | astile (SSC) (-)         | 8 to 12 / 3.5 to 6      |                               |
+| gstats hdfe         |                          | (.)                     | Allows weights, `by()`        |
 | gstats winsor       | winsor2                  | 10 to 40 / 10 to 20     | Allows weights                |
 | gunique             | unique                   | 4 to 26 / 4 to 12       |                               |
 | gdistinct           | distinct                 | 4 to 26 / 4 to 12       | Also saves results in matrix  |
@@ -110,17 +111,24 @@ has a plethora of features and that one is somewhat incidental. As such, the
 benchmark is not equivalent and `gtoplevelsof` does not attempt to implement
 the features of 'groups'</small>
 
+<small>(.) Other than the dated 'hdfe' command, I do not know of a stata
+command that residualizes variables from a set of fixed effects. The
+'hdfe' command, as far as I can tell, morphed into the 'reghdfe'
+package; the latter, however, is a fully-functioning regression command,
+while 'gstats hdfe' only residualizes a set of variables.</small>
+
 __*Regression models*__
 
 _**WARNING:**_ Regression models are in beta and are only intended as utilities
 to compute coefficients and standard errors. I do not recommend their use in
 production; various post-estimation commands and statistics are _not_ availabe.
+(See `gstats hdfe` for residualizing variables net of fixed effects.)
 
-| Function            | Model   | Similar                       |
-| ------------------- | ------- | ----------------------------- |
-| gregress            | OLS     | `regress`, `reghdfe`          |
-| givregress          | 2SLS    | `ivregress 2sls`, `ivreghdfe` |
-| gpoisson            | IRLS    | `poisson`, `ppmlhdfe`         |
+| Function            | Model   | Similar                        |
+| ------------------- | ------- | -----------------------------  |
+| gregress            | OLS     | `regress`, `reghdfe`           |
+| givregress          | 2SLS    | `ivregress 2sls`, `ivreghdfe`  |
+| gglm                | IRLS    | `logit`, `poisson`, `ppmlhdfe` |
 
 All commands allow the user to optionally add:
 
@@ -130,10 +138,10 @@ All commands allow the user to optionally add:
 - `weights` for weighted versions. Unlike other weights, `fweights` are assumed to refer to the _number_ of observations.
 
 Linear regression is computed via OLS (or WLS), IV regression is
-computed via two-stage least squares (2SLS), and poisson regression
-is computed via iteratively reweighted least squares (IRLS).  See the
-[TODO](#todo) section for planned features, or the
-[Missing Features](https://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#missing-features)
+computed via two-stage least squares (2SLS), and GLM (poisson or logit)
+regression is computed via iteratively reweighted least squares (IRLS). 
+See the [TODO](#todo) section for planned features, or the
+[Missing Features](https://gtools.readthedocs.io/en/latest/usage/gregress/index.html#missing-features)
 section in the documentation for what is missing before the first
 non-beta release.
 
@@ -154,7 +162,7 @@ details and examples, see each command's help page:
 - [gdistinct](https://gtools.readthedocs.io/en/latest/usage/gdistinct/index.html#examples)
 - [gregress](https://gtools.readthedocs.io/en/latest/usage/gregress/index.html#examples)
 - [givregress](https://gtools.readthedocs.io/en/latest/usage/givregress/index.html#examples)
-- [gpoisson](https://gtools.readthedocs.io/en/latest/usage/gpoisson/index.html#examples)
+- [gglm](https://gtools.readthedocs.io/en/latest/usage/gglm/index.html#examples) (poisson and logit)
 
 In addition, several commands take gsort-style input, that is
 
@@ -266,17 +274,9 @@ help files for full syntax and options):
 ```stata
 sysuse auto, clear
 
-* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
-gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
-gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-* givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
-givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
-
-* gpoisson depvar indepvars [if] [in] [weight], [by(varlist) options]
-gpoisson price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
-gpoisson price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+* gstats {hdfe|residualize} varlist [if] [in] [weight], [absorb(varlist) options]
+gstats hdfe hdfe_price = price, absorb(foreign rep78)
+gstats residualize price mpg, absorb(foreign rep78) prefix(res_)
 
 * gstats {sum|tab} varlist [if] [in] [weight], [by(varlist) options]
 gstats sum price [pw = gear_ratio / 4]
@@ -319,6 +319,21 @@ glevelsof foreign mpg in 10 / 70, gen(uniq_) nolocal
 * gtoplevelsof varlist [if] [in] [weight], [options]
 gtoplevelsof foreign rep78
 gtop foreign rep78 [w = weight], ntop(5) missrow groupmiss pctfmt(%6.4g) colmax(3)
+
+* gregress depvar indepvars [if] [in] [weight], [by(varlist) options]
+gregress price mpg rep78, mata(coefs) prefix(b(_b_) se(_se_))
+gregress price mpg [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* givregress depvar (endog = instruments) exog [if] [in] [weight], [by(varlist) options]
+givregress price (mpg = gear_ratio) rep78, mata(coefs) prefix(b(_b_) se(_se_)) replace
+givregress price (mpg = gear_ratio) [fw = rep78], by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+* gglm depvar indepvars [if] [in] [weight], family(...) [by(varlist) options]
+gglm price mpg rep78, family(poisson) mata(coefs) prefix(b(_b_) se(_se_)) replace
+gglm price mpg [fw = trunk], family(poisson) by(foreign) absorb(rep78 headroom) cluster(rep78)
+
+gglm foreign price rep78 [fw = trunk], family(binomial) absorb(headroom) mata(coefs)
+gglm foreign price if rep78 > 2, family(binomial) by(rep78) prefix(b(_b_) se(_se_)) replace
 
 * gcollapse (stat) out = src [(stat) out = src ...] [if] [if] [weight], by(varlist) [options]
 gen h1 = headroom
@@ -524,10 +539,10 @@ Differences from `reshape`
 
 Differences from regression models
 
-`gregress`, `givregress`, and `gpoisson` do not aim to replicate
+`gregress`, `givregress`, and `gglm` do not aim to replicate
 the entire table of estimation results, nor the entire suite of
 post-estimation results and tests, that `regress` (`reghdfe`),
-`ivregress 2sls` (`ivreghdfe`), or `poisson` (`ppmlhdfe`) make
+`ivregress 2sls` (`ivreghdfe`), `poisson` (`ppmlhdfe`), or `logit` make
 available. At the moment, they are considered beta software and only
 coefficients and standard errors are computed.
 
@@ -539,7 +554,7 @@ coefficients and standard errors are computed.
   the dependent variable.
 - If the `givregress` model is not identified, standard errors and
   coefficients are set to missing instead of exiting with error.
-- `gpoisson` runs with option `robust` automatically.
+- `gglm` runs with option `robust` automatically.
 - If the `givregress` model is not identified, standard errors and
 - If there are no non-linear covariates (i.e. all observations are
   numerically zero) then the coefficients and standard errors are
@@ -718,19 +733,11 @@ TODO
 
 Planned features:
 
-- [ ] Decide `geomean` behavior:
-    - [ ] Need to iterate over all values anyway to decide whether
-          zero or negative "wins". At the moment it exits as son
-          as either is encountered, meaning `-1 0` has a different
-          geometric mean than `0 -1` (`.` vs `0`).
-- [ ] `gregress` missing features
-    - [ ] Non-nested multi-way clustering.
-    - [ ] HDFE collienar categories check.
-    - [ ] HDFE drop singletons.
-    - [ ] Detect separated observations in `gpoisson`.
-    - [ ] Guard against possible overflows in `X' X`
-    - [ ] Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
-    - [ ] Include quick primers on OLS, IV, and IRLS in docs.
+- [ ] Things to add to gcollapse:
+    - [ ] `prod`
+    - [ ] `geomean pos`: exclude negative numbers _and_ zero.
+    - [ ] `geomean abspos`: ibid but take absolute value first.
+    - [ ] Generally should you add an `abs` option to everything?
 - [ ] Flexible save options for `gregress`
     - [ ] `predict()`, including `xb` and `e`.
     - [ ] `absorb(fe1=group1 fe2=group2 ...)` syntax to save the FE.
@@ -744,11 +751,14 @@ have an ETA for them (i.e. they are a wishlist because I am either not
 sure how to implement them or because writing the code will take a long
 time). Roughly in order of likelihood:
 
-- [ ] Things to add to gcollapse:
-    - [ ] `prod`
-    - [ ] `geomean pos`: exclude negative numbers _and_ zero.
-    - [ ] `geomean abspos`: ibid but take absolute value first.
-    - [ ] Generally should you add an `abs` option to everything?
+- [ ] `gregress` missing features
+    - [ ] Non-nested multi-way clustering.
+    - [ ] HDFE collienar categories check.
+    - [ ] HDFE drop singletons.
+    - [ ] Detect separated observations in `gglm, family(poisson)`.
+    - [ ] Guard against possible overflows in `X' X`
+    - [ ] Accelerate HDFE corner cases (e.g. very dense multi-way HDFE)
+    - [ ] Include quick primers on OLS, IV, and IRLS in docs.
 - [ ] Some support for Stata's extended syntax in `gregress`
 - [ ] Update benchmarks for all commands. Still on 0.8 benchmarks.
 - [ ] Dropmissing vs dropmissing but not extended missing values.

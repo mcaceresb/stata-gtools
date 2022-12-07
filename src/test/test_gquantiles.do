@@ -189,6 +189,8 @@ program checks_gquantiles
     assert _rc == 198
     fasterxtile gx2 = log(x) + 1 if mod(_n, 10) in 20 / 80, by(a) strict nq(100)
     assert gx2 == .
+
+    exit 0
 end
 
 capture program drop checks_inner_gquantiles

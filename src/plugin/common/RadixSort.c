@@ -47,6 +47,9 @@ void RadixSortFloat(float *array, uint64_t N) {
     // RadixSortInternal(acast, N, 8, 32, acopy, -1, array, 32, 0);
     // RadixSortInternal32(acast, N, 8, 32, acopy, -1, array);
     RadixSortInternalGeneric(acast, N, 8, 32, acopy, -1, array);
+
+    free(acast);
+    free(acopy);
 }
 
 void RadixSortDouble(double *array, uint64_t N) {
@@ -62,6 +65,9 @@ void RadixSortDouble(double *array, uint64_t N) {
     // RadixSortInternal(acast, N, 8, 64, acopy, -1, array, 64, 0);
     // RadixSortInternal64(acast, N, 8, 64, acopy, -1, array);
     RadixSortInternalGeneric(acast, N, 8, 64, acopy, -1, array);
+
+    free(acast);
+    free(acopy);
 }
 
 void RadixSortInteger8(int8_t *array, uint64_t N)

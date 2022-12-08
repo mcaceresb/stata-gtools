@@ -47,6 +47,7 @@ program main
     di "Options:      `options'"
     di "OS:           `c(os)'"
     di "Machine Type: `c(machine_type)'"
+    di "Stata v:      `c(stata_version)'"
 
     * Run the things
     * --------------

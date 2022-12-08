@@ -1717,6 +1717,7 @@ program _gtools_internal, rclass
 
             if ( ("`algorithm'" != "") & ("`method'" != "") ) {
                 disp as err "gregress: method() is an alias for algorithm(); specify only one"
+                clean_all 198
                 exit 198
             }
             if ( `"`algorithm'"' == "" ) local algorithm  cg
@@ -1725,6 +1726,7 @@ program _gtools_internal, rclass
 
             if ( `maxiter' < 1 ) {
                 disp as err "gregress: maxiter() must be >= 1"
+                clean_all 198
                 exit 198
             }
 
@@ -1755,6 +1757,7 @@ program _gtools_internal, rclass
             }
             else {
                 disp as err "gstats_hdfe: method() must be one of: map, squarem, cg, it"
+                clean_all 198
                 exit 198
             }
 

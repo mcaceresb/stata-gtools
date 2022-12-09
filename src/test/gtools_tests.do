@@ -95,13 +95,13 @@ program main
             set trace on
             set tracedepth 4
             cap noi compare_gstats_hdfe, method(cg)
-            * cap noi compare_gstats_hdfe, method(map)
-            * cap noi compare_gstats_hdfe, method(it)
-            * cap noi compare_gstats_hdfe, method(squarem)
+            cap noi compare_gstats_hdfe, method(map)
+            cap noi compare_gstats_hdfe, method(it)
+            cap noi compare_gstats_hdfe, method(squarem)
             cap noi compare_gstats_hdfe, weights method(cg)
-            * cap noi compare_gstats_hdfe, weights method(map)
-            * cap noi compare_gstats_hdfe, weights method(it)
-            * cap noi compare_gstats_hdfe, weights method(squarem)
+            cap noi compare_gstats_hdfe, weights method(map)
+            cap noi compare_gstats_hdfe, weights method(it)
+            cap noi compare_gstats_hdfe, weights method(squarem)
         }
 
         if ( `:list posof "dependencies" in options' ) {

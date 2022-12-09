@@ -47,6 +47,7 @@ program main
     di "Options:      `options'"
     di "OS:           `c(os)'"
     di "Machine Type: `c(machine_type)'"
+    di "Stata v:      `c(stata_version)'"
 
     * Run the things
     * --------------
@@ -100,6 +101,7 @@ program main
             cap ssc install egenmisc,  replace
             cap ssc install egenmore,  replace
             cap ssc install rangestat, replace
+            cap ssc install reghdfe,   replace
             * ftools,  compile
             * reghdfe, compile
         }

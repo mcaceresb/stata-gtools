@@ -10,15 +10,6 @@ end
 
 capture program drop compare_gstats
 program compare_gstats
-    compare_gstats_hdfe, method(squarem)
-    compare_gstats_hdfe, method(cg)
-    compare_gstats_hdfe, method(map)
-    compare_gstats_hdfe, method(it)
-    compare_gstats_hdfe, weights method(squarem)
-    compare_gstats_hdfe, weights method(cg)
-    compare_gstats_hdfe, weights method(map)
-    compare_gstats_hdfe, weights method(it)
-
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
     compare_gstats_winsor, cuts(30 70)
@@ -27,6 +18,15 @@ program compare_gstats
     compare_gstats_transform, weights
     compare_gstats_transform, nogreedy
     compare_gstats_transform, nogreedy weights
+
+    compare_gstats_hdfe, method(cg)
+    compare_gstats_hdfe, method(map)
+    compare_gstats_hdfe, method(it)
+    compare_gstats_hdfe, method(squarem)
+    compare_gstats_hdfe, weights method(cg)
+    compare_gstats_hdfe, weights method(map)
+    compare_gstats_hdfe, weights method(it)
+    compare_gstats_hdfe, weights method(squarem)
 end
 
 ***********************************************************************

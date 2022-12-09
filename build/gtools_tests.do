@@ -47,6 +47,7 @@ program main
     di "Options:      `options'"
     di "OS:           `c(os)'"
     di "Machine Type: `c(machine_type)'"
+    di "Stata v:      `c(stata_version)'"
 
     * Run the things
     * --------------
@@ -100,6 +101,7 @@ program main
             cap ssc install egenmisc,  replace
             cap ssc install egenmore,  replace
             cap ssc install rangestat, replace
+            cap ssc install reghdfe,   replace
             * ftools,  compile
             * reghdfe, compile
         }
@@ -6836,14 +6838,14 @@ program compare_inner_levelsof
                 gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                 gettoken _      l_gtools: l_gtools, p(" | ")
                 if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                     if ( _rc ) {
                         di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
                         exit 198
                     }
                 }
             }
-            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-15)"
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-12)"
         }
         else {
             di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels to levelsof"
@@ -6864,14 +6866,14 @@ program compare_inner_levelsof
                 gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                 gettoken _      l_gtools: l_gtools, p(" | ")
                 if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                    cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                     if ( _rc ) {
                         di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels with rounding"
                         exit 198
                     }
                 }
             }
-            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-15)"
+            di as txt "    compare_levelsof (passed): glevelsof `varlist' returned similar levels as levelsof (tol = 1e-12)"
         }
         else {
             di as err "    compare_levelsof (failed): glevelsof `varlist' returned different levels to levelsof"
@@ -6895,14 +6897,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels to levelsof"
@@ -6923,14 +6925,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [in] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [in] returned different levels to levelsof"
@@ -6954,14 +6956,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels to levelsof"
@@ -6982,14 +6984,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist' [if] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [if] returned different levels to levelsof"
@@ -7013,14 +7015,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels to levelsof"
@@ -7041,14 +7043,14 @@ program compare_inner_levelsof
                     gettoken l_gcmp l_gtools: l_gtools, p(" | ")
                     gettoken _      l_gtools: l_gtools, p(" | ")
                     if ( `"`l_gcmp'"' != `"`l_scmp'"' ) {
-                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-15
+                        cap assert reldif(`l_gcmp', `l_scmp') < 1e-12
                         if ( _rc ) {
                             di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels with rounding"
                             exit 198
                         }
                     }
                 }
-                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-15)"
+                di as txt "    compare_levelsof (passed): glevelsof `varlist'  if] [in] returned similar levels as levelsof (tol = 1e-12)"
             }
             else {
                 di as err "    compare_levelsof (failed): glevelsof `varlist' [if] [in] returned different levels to levelsof"
@@ -11195,15 +11197,6 @@ end
 
 capture program drop compare_gstats
 program compare_gstats
-    compare_gstats_hdfe, method(squarem)
-    compare_gstats_hdfe, method(cg)
-    compare_gstats_hdfe, method(map)
-    compare_gstats_hdfe, method(it)
-    compare_gstats_hdfe, weights method(squarem)
-    compare_gstats_hdfe, weights method(cg)
-    compare_gstats_hdfe, weights method(map)
-    compare_gstats_hdfe, weights method(it)
-
     compare_gstats_winsor
     compare_gstats_winsor, cuts(5 95)
     compare_gstats_winsor, cuts(30 70)
@@ -11212,6 +11205,15 @@ program compare_gstats
     compare_gstats_transform, weights
     compare_gstats_transform, nogreedy
     compare_gstats_transform, nogreedy weights
+
+    compare_gstats_hdfe, method(cg)
+    compare_gstats_hdfe, method(map)
+    compare_gstats_hdfe, method(it)
+    compare_gstats_hdfe, method(squarem)
+    compare_gstats_hdfe, weights method(cg)
+    compare_gstats_hdfe, weights method(map)
+    compare_gstats_hdfe, weights method(it)
+    compare_gstats_hdfe, weights method(squarem)
 end
 
 ***********************************************************************

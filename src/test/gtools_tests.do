@@ -101,6 +101,7 @@ program main
             cap ssc install egenmisc,  replace
             cap ssc install egenmore,  replace
             cap ssc install rangestat, replace
+            cap ssc install reghdfe,   replace
             * ftools,  compile
             * reghdfe, compile
         }

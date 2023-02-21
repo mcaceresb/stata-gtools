@@ -447,6 +447,7 @@ class GtoolsResults
     void                 readDefaults()
     void                 readStatnames()
     void                 printOutput()
+    string matrix        formatOutput()
 
     string   scalar      getf()
     real     matrix      getnum()
@@ -748,6 +749,105 @@ real matrix function GtoolsResults::getOutputVar(string scalar var)
             return(output[sel, .])
         }
     }
+}
+
+string matrix function GtoolsResults::formatOutput(| real scalar commas)
+{
+    string scalar vfmt, fmt, var
+    real scalar nrow, j, k, l, sel, width, widthrow
+    string matrix printstr
+    real colvector extrasep
+
+    if ( args() == 0 ) {
+        commas = 1
+    }
+
+    if ( tabstat == 0 ) {
+        errprintf("Helpers only available with tabstat\n")
+        return
+    }
+
+    if ( colvar ) {
+        nrow     = kstats * J
+        printstr = J(nrow + 1, ksources + 1 + kby, " ")
+        extrasep = J(nrow + 1, 1, 0)
+
+        // First get column widths, format
+        for(l = 1; l <= kby; l++) {
+            printstr[1, l] = byvars[l]
+        }
+            printstr[1, kby + 1] = "statistic"
+        for(l = 1; l <= ksources; l++) {
+            var = pool? "[Pooled Var]": statvars[l]
+            printstr[1, kby + 1 + l] = var
+        }
+
+        for(j = 1; j <= J; j++) {
+            for(k = 1; k <= kstats; k++) {
+                for(l = 1; l <= kby; l++) {
+                    printstr[(j - 1) * kstats + 2 + (k - 1), l] = getf(j, l, maxlbl)
+                }
+            }
+            for(k = 1; k <= kstats; k++) {
+                sel = (j - 1) * kstats + k
+                printstr[sel + 1, kby + 1] = GtoolsDecodeStat(scodes[k], pretty)
+                for(l = 1; l <= ksources; l++) {
+                    vfmt = pool? dfmt: (usevfmt? st_varformat(statvars[l]): dfmt)
+                    printstr[sel + 1, kby + 1 + l] = GtoolsPrintfSwitch( /*
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, l], commas)
+                }
+            }
+        }
+        width    = colmax(strlen(printstr)) :+ 1
+        // widthrow = sum(width) + 3 + 2
+        widthrow = sum(width) + 3 + 2 * ((kstats > 1) | (J == 1)) + ksources
+
+        // Now print!
+        if ( (kby > 1) & (kstats == 1) & (nosep == 0) ) {
+            GtoolsSmartLevels(printstr, 2, nrow + 1, 1, kby, extrasep)
+        }
+    }
+    else {
+        nrow     = ksources * J
+        printstr = J(nrow + 1, kstats + 1 + kby, " ")
+        extrasep = J(nrow + 1, 1, 0)
+
+        // First get column widths, format
+        for(l = 1; l <= kby; l++) {
+            printstr[1, l] = byvars[l]
+        }
+            printstr[1, kby + 1] = "variable"
+        for(k = 1; k <= kstats; k++) {
+            printstr[1, kby + 1 + k] = GtoolsDecodeStat(scodes[k], pretty)
+        }
+
+        for(j = 1; j <= J; j++) {
+            for(k = 1; k <= ksources; k++) {
+                for(l = 1; l <= kby; l++) {
+                    printstr[(j - 1) * ksources + 2 + (k - 1), l] = getf(j, l, maxlbl)
+                }
+            }
+            for(l = 1; l <= ksources; l++) {
+                var  = pool? "[Pooled Var]": statvars[l]
+                vfmt = pool? dfmt: (usevfmt? st_varformat(var): dfmt)
+                sel  = (j - 1) * ksources + l
+                printstr[sel + 1, kby + 1] = var
+                for(k = 1; k <= kstats; k++) {
+                    printstr[sel + 1, kby + 1 + k] = GtoolsPrintfSwitch( /*
+                        */ vfmt, dfmt, maxl, scodes[k], output[sel, k], commas)
+                }
+            }
+        }
+        width    = colmax(strlen(printstr)) :+ 1
+        // widthrow = sum(width) + 3 + 2 * (1 - ((kby > 0) & (ksources == 1)))
+        widthrow = sum(width) + 3 + 2 * ((ksources > 1) | (J == 1)) + kstats
+
+        // Now print!
+        if ( (kby > 1) & (ksources == 1) & (nosep == 0) ) {
+            GtoolsSmartLevels(printstr, 2, nrow + 1, 1, kby, extrasep)
+        }
+    }
+    return(printstr)
 }
 
 void function GtoolsResults::printOutput(| real scalar commas)

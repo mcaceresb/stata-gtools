@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+## gtools-1.10.2 (2023-02-21)
+
+### Features
+
+- `gstats tab` adds `formatOutput()` to get a matrix with outptu formatted.
+
 ## gtools-1.10.1 (2022-12-05)
 
 ### Bug fixes

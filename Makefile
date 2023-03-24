@@ -15,6 +15,7 @@ open:
 # doc xx add resid[(str)] option to docs
 # doc xx what was absorb(, save(str)) meant to do?
 # bug xx detect collinearity with dep var in glm
+# bug xx noconstant without any covariates shouldnt' be allowed
 
 # Update!
 # -------

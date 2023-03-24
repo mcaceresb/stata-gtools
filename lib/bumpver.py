@@ -20,8 +20,8 @@ args = vars(parser.parse_args())
 # ---------------------------------------------------------------------
 # Config
 
-config_version = "1.10.2"
-config_date = date(2023, 2, 21)
+config_version = "1.11.0"
+config_date = date(2023, 3, 24)
 config_files = [
     ('lib/bumpver.py',               'config_version = "{major}.{minor}.{patch}"'),
     ('lib/bumpver.py',               'config_date = date({date:%Y, %-m, %-d})'),

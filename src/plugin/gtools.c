@@ -5,13 +5,13 @@
  * Updated: Mon Dec 05 09:40:10 EST 2022
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 21Feb2023
+ * Version: 24Mar2023
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 21 Feb 2023
+ * @date 24 Mar 2023
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -538,6 +538,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gregress_saveghdfe,
             gregress_savegresid,
             gregress_savegpred,
+            gregress_savegalph,
             gregress_range,
             gregress_glmfam,
             gregress_glmlogit,
@@ -757,6 +758,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gregress_saveghdfe",    &gregress_saveghdfe)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_savegresid",   &gregress_savegresid)   )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_savegpred",    &gregress_savegpred)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savegalph",    &gregress_savegalph)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_range",        &gregress_range)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_glmfam",       &gregress_glmfam)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_glmlogit",     &gregress_glmlogit)     )) goto exit;
@@ -1254,6 +1256,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gregress_saveghdfe    = gregress_saveghdfe;
     st_info->gregress_savegresid   = gregress_savegresid;
     st_info->gregress_savegpred    = gregress_savegpred;
+    st_info->gregress_savegalph    = gregress_savegalph;
     st_info->gregress_moving       = gregress_moving;
     st_info->gregress_moving_l     = gregress_moving_l;
     st_info->gregress_moving_u     = gregress_moving_u;
@@ -1403,6 +1406,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgregress_saveghdfe:    "GT_size_cfmt"\n",  gregress_saveghdfe   );
         sf_printf_debug("\tgregress_savegresid:   "GT_size_cfmt"\n",  gregress_savegresid  );
         sf_printf_debug("\tgregress_savegpred:    "GT_size_cfmt"\n",  gregress_savegpred   );
+        sf_printf_debug("\tgregress_savegalph:    "GT_size_cfmt"\n",  gregress_savegalph   );
         sf_printf_debug("\tgregress_moving:       "GT_size_cfmt"\n",  gregress_moving      );
         sf_printf_debug("\tgregress_moving_l:     "GT_size_cfmt"\n",  gregress_moving_l    );
         sf_printf_debug("\tgregress_moving_u:     "GT_size_cfmt"\n",  gregress_moving_u    );

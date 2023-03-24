@@ -15,13 +15,14 @@ GT_int GtoolsAlgorithmMAP(
     GT_size   ktargets,
     ST_double tol)
 {
+    if ( ktargets == 0 ) return(0);
     GT_int rc = 0;
     GT_size iter = 0, feval = 0;
     ST_double diff  = 1;
     GT_size N       = GtoolsHashInfo->nobs;
     GT_size maxiter = GtoolsHashInfo->hdfeMaxIter;
     GT_bool verbose = GtoolsHashInfo->hdfeTraceIter;
-    GT_size bufferk = (weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N;
+    GT_size bufferk = GTOOLS_PWMAX((weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N,1);
     ST_double *b = calloc(bufferk, sizeof *b); if ( b == NULL ) return(17902);
 
     // NB: It's important to apply every level; else nested levels might
@@ -216,7 +217,7 @@ ST_double GtoolsAbsorbHalperinBufferUnweighted(
     GT_size nonmiss = GtoolsHashInfo->_nobspanel;
     GT_size N = GtoolsHashInfo->nobs;
     ST_double *srcptr, *trgptr, *buffer;
-    ST_double diff[ktargets];
+    ST_double diff[GTOOLS_PWMAX(ktargets,1)];
     struct GtoolsHash *ghptr;
 
     // NB: This criterion is looking for largest deviation in any given
@@ -311,7 +312,7 @@ ST_double GtoolsAbsorbHalperinBufferWeighted(
     GT_size nonmiss = GtoolsHashInfo->_nobspanel;
     GT_size N = GtoolsHashInfo->nobs;
     ST_double *srcptr, *trgptr, *buffer, *wbuffer;
-    ST_double diff[ktargets];
+    ST_double diff[GTOOLS_PWMAX(ktargets,1)];
     struct GtoolsHash *ghptr;
 
     // NB: This criterion is looking for largest deviation in any given
@@ -462,7 +463,7 @@ ST_double GtoolsAbsorbHalperinSymmUnweighted(
     GT_size nonmiss = GtoolsHashInfo->_nobspanel;
     GT_size N = GtoolsHashInfo->nobs;
     ST_double *srcptr, *trgptr, *buffer;
-    ST_double diff[ktargets];
+    ST_double diff[GTOOLS_PWMAX(ktargets,1)];
     struct GtoolsHash *ghptr;
     GT_size order[khashes];
     GtoolsOptimizeOrder(GtoolsHashInfo, khashes, order);
@@ -566,7 +567,7 @@ ST_double GtoolsAbsorbHalperinSymmWeighted(
     GT_size nonmiss = GtoolsHashInfo->_nobspanel;
     GT_size N = GtoolsHashInfo->nobs;
     ST_double *srcptr, *trgptr, *buffer, *wbuffer;
-    ST_double diff[ktargets];
+    ST_double diff[GTOOLS_PWMAX(ktargets,1)];
     struct GtoolsHash *ghptr;
     GT_size order[khashes];
     GtoolsOptimizeOrder(GtoolsHashInfo, khashes, order);

@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.11.0 (2023-03-24)
+
+### Features
+
+- `gregress` adds `alphas()` to save individual fixed effects; `predict()`
+  gives right prediction across functions.
+
 ## gtools-1.10.2 (2023-02-21)
 
 ### Features

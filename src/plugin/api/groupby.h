@@ -321,4 +321,43 @@ ST_double GtoolsAbsorbBergeWeighted(
     ST_double *allbuffer
 );
 
+GT_int GtoolsSaveAlphas(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol
+);
+
+ST_double GtoolsSaveAlphasAbsorb(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
+ST_double GtoolsSaveAlphasAbsorbWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
+ST_double GtoolsSaveAlphasAbsorbUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
 #endif

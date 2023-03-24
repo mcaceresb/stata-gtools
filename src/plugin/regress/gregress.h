@@ -88,10 +88,12 @@ void gf_regress_warnings (
     GT_size warnsingular,
     GT_size warnivnotiden,
     GT_size warnnocols,
+    GT_size warnalpha,
     char *buf1,
     char *buf2,
     char *buf3,
-    char *buf4
+    char *buf4,
+    char *buf5
 );
 
 

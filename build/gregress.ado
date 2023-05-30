@@ -1,4 +1,4 @@
-*! version 0.2.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.1 03Apr2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate linear regression via OLS by group and with HDFE
 
 capture program drop gregress
@@ -408,7 +408,7 @@ program Display, eclass
             if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
             if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
             if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
-            disp _n(1) "`caller' with `setype' SE"
+            _coef_table_header, nomodeltest title(`caller' with `setype' SE)
             _coef_table, `options'
         }
         else {

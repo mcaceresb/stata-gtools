@@ -1,4 +1,4 @@
-*! version 0.2.0 15Jun2021 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.1 03Apr2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate GLM via IRLS by group and with HDFE
 
 cap program drop gglm

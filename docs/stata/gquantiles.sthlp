@@ -223,7 +223,7 @@ percentiles be computed. With {opt _pctile} these are placed into {cmd:r(r1)},
 {opth c:utpoints(varname)} requests that the values of {it:varname}
 be used to define the categories, rather than quantiles. This is natural
 to use with {opt xtile}. With {opt pctile} and {opt _pctile} this is
-redindant unless you also request {cmd:binfreq}[{cmd:(}{newvar}{cmd:)}].
+redundant unless you also request {cmd:binfreq}[{cmd:(}{newvar}{cmd:)}].
 By default, all values of {it:varname} are used, regardless of any {opt if}
 or {opt in} restriction. You can specify {opt cutifin} to obey the
 restrictions and {opt dedup} to exclude duplicates.

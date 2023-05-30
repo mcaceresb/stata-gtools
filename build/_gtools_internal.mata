@@ -2062,7 +2062,7 @@ void function GtoolsRegressOutput::readMatrices()
         if ( by == 0 ) {
             Vcov = GtoolsReadMatrix(st_local("gregvcovfile"), kx, kx)
             qc   = diag((se:^2) :/ rowshape(diagonal(Vcov), 1))
-            Vcov = editmissing(makesymmetric(Vcov :* qc), 0)
+            Vcov = editmissing(makesymmetric(Vcov * qc), 0)
         }
         else {
             Vcov = .

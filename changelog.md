@@ -1,6 +1,15 @@
 Change Log
 ==========
 
+## gtools-1.11.1 (2023-04-03)
+
+### Bug fixes
+
+- `gegen` now accepts quotes in expressions
+- `gregress` no longer forces diagonal vcov matrix (!)
+- `gregress` gets header when displaying results
+- `fasterxtile` now takes init
+
 ## gtools-1.11.0 (2023-03-24)
 
 ### Features

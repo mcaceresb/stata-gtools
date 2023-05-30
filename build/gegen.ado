@@ -510,8 +510,8 @@ program define gegen, byable(onecall) rclass
     local opts  `opts' `oncollision' `hashmethod' `ds' `nods'
     local sopts `counts'
 
-    if ( inlist("`fcn'", "tag", "group") | (("`fcn'" == "count") & ("`args'" == "1")) ) {
-        if ( "`fill'" != "" ) local fill fill(`fill')
+    if ( inlist(`"`fcn'"', "tag", "group") | ((`"`fcn'"' == "count") & (`"`args'"' == "1")) ) {
+        if ( `"`fill'"' != "" ) local fill fill(`fill')
 
         if ( `"`weight'"' != "" ) {
             di as txt "(weights are ignored for egen function {opt `fcn'})"
@@ -519,57 +519,57 @@ program define gegen, byable(onecall) rclass
 
         gtools_timer info `t97' `"Plugin setup"', prints(`bench') off
 
-        if ( "`fcn'" == "tag" ) {
+        if ( `"`fcn'"' == "tag" ) {
             local action tag(`type' `dummy') gfunction(hash) unsorted
             local noobs qui replace `dummy' = 0
         }
 
-        if ( inlist("`fcn'", "group", "count") ) {
+        if ( inlist(`"`fcn'"', "group", "count") ) {
             if ( `=_N' < maxbyte() ) {
                 * All types are OK
             }
             else if ( `=_N' < `=2^24' ) {
-                if inlist("`type'", "byte") {
+                if inlist(`"`type'"', "byte") {
                     * byte is no longer OK; int, float still OK
-                    local upgraded = cond(`retype', "", "`type'")
+                    local upgraded = cond(`retype', "", `"`type'"')
                     local type int
                 }
             }
             else if ( `=_N' < maxint() ) {
-                if inlist("`type'", "byte", "float") {
+                if inlist(`"`type'"', "byte", "float") {
                     * byte and float no longer OK; int still OK
-                    local upgraded = cond(`retype', "", "`type'")
+                    local upgraded = cond(`retype', "", `"`type'"')
                     local type int
                 }
             }
             else if ( `=_N' < maxlong() ) {
-                if inlist("`type'", "byte", "int", "float") {
+                if inlist(`"`type'"', "byte", "int", "float") {
                     * byte, float, int no longer OK; must upgrade to long
                     local upgraded = cond(`retype', "", "`type'")
                     local type long
                 }
             }
             else {
-                if ( "`type'" != "double" ) {
+                if ( `"`type'"' != "double" ) {
                     * Only double can maintain precision
-                    local upgraded = cond(`retype', "", "`type'")
+                    local upgraded = cond(`retype', "", `"`type'"')
                     local type double
                 }
             }
         }
 
-        if ( "`upgraded'" != "" ) {
+        if ( `"`upgraded'"' != "" ) {
             disp "(warning: user-requested type '`upgraded'' upgraded to '`type'')"
         }
 
-        if ( "`fcn'" == "group" ) {
+        if ( `"`fcn'"' == "group" ) {
             local action gen(`type' `dummy') gfunction(hash) countmiss
             if ( `=_N' > 1 ) local s s
             local noobs qui replace `dummy' = .
             local notxt di as txt "(`=_N' missing value`s' generated)"
         }
 
-        if ( "`fcn'" == "count" ) {
+        if ( `"`fcn'"' == "count" ) {
             local missing missing
             local fill fill(group)
             local action counts(`type' `dummy') gfunction(hash) countmiss unsorted
@@ -578,13 +578,13 @@ program define gegen, byable(onecall) rclass
             local notxt di as txt "(`=_N' missing value`s' generated)"
         }
 
-        if ( ("`byvars'" != "") & inlist("`fcn'", "tag", "group") ) {
+        if ( (`"`byvars'"' != "") & inlist(`"`fcn'"', "tag", "group") ) {
             di as err "egen ... `fcn'() may not be combined with with by"
             global GTOOLS_CALLER ""
             exit 190
         }
 
-        if ( ("`byvars'" == "") & inlist("`fcn'", "tag", "group") ) {
+        if ( (`"`byvars'"' == "") & inlist(`"`fcn'"', "tag", "group") ) {
             local byvars `args'
         }
 
@@ -647,7 +647,7 @@ program define gegen, byable(onecall) rclass
         }
         else {
             cap gen double `exp' = `args'
-            if ( (_rc == 0) & ("`byvars'" != "") ) {
+            if ( (_rc == 0) & (`"`byvars'"' != "") ) {
                 mata printf("{bf:warning}: gegen is {bf:NOT} parsing the expression '%s' by group.\n", st_local("args"))
                 mata printf("To parse this expression by group, call gegen using the -by:- prefix.\n")
             }
@@ -673,8 +673,8 @@ program define gegen, byable(onecall) rclass
             }
 
             * See notes in lines 294-310
-            * if ( "`:list sources & dummy'" != "" ) {
-            *     if ( "`replace'" != "" ) local extra " even with -replace-"
+            * if ( `"`:list sources & dummy'"' != "" ) {
+            *     if ( `"`replace'"' != "" ) local extra " even with -replace-"
             *     di as error "Variable `dummy' canot be a source and a target`extra'"
             *     exit 198
             * }
@@ -720,23 +720,23 @@ program define gegen, byable(onecall) rclass
     * Parse target type
     * -----------------
 
-    * if ( ("`addvar'" != "") & `retype' ) {
+    * if ( (`"`addvar'"' != "") & `retype' ) {
     if ( `retype' ) {
         parse_target_type `sources', fcn(`ofcn') sametype(`sametype') `anywgt'
-        local type = "`r(retype)'"
-        local addvar qui mata: st_addvar("`type'", "`dummy'")
+        local type = `"`r(retype)'"'
+        local addvar qui mata: st_addvar(`"`type'"', `"`dummy'"')
     }
 
 
     * Parse counts into freq for gfunction call
     * -----------------------------------------
 
-    if ( "`counts'" != "" ) {
+    if ( `"`counts'"' != "" ) {
         local 0, `counts'
         syntax, [counts(str)]
 
         gettoken ftype fname: counts
-        if ( "`fname'" == "" ) {
+        if ( `"`fname'"' == "" ) {
             local fname `ftype'
             if ( `=_N < maxlong()' ) local ftype long
             else local ftype double
@@ -745,22 +745,22 @@ program define gegen, byable(onecall) rclass
         cap confirm new variable `fname'
         if ( _rc ) {
             local rc = _rc
-            if ( "`replace'" == "" ) {
+            if ( `"`replace'"' == "" ) {
                 global GTOOLS_CALLER ""
                 di as err "Variable `fname' exists; try a different name or run with -replace-"
                 exit `rc'
             }
-            else if ( ("`replace'" != "") & ("`addvar'" != "") ) {
+            else if ( (`"`replace'"' != "") & (`"`addvar'"' != "") ) {
                 qui replace `fname' = .
                 local replace ""
             }
         }
         else {
-            if ( "`addvar'" == "" ) {
-                local addvar qui mata: st_addvar("`ftype'", "`counts'")
+            if ( `"`addvar'"' == "" ) {
+                local addvar qui mata: st_addvar(`"`ftype'"', `"`counts'"')
             }
             else {
-                local addvar qui mata: st_addvar(("`type'", "`ftype'"), ("`name'", "`counts'"))
+                local addvar qui mata: st_addvar((`"`type'"', `"`ftype'"'), (`"`name'"', `"`counts'"'))
                 local replace ""
             }
         }
@@ -771,7 +771,7 @@ program define gegen, byable(onecall) rclass
     * Call the plugin
     * ---------------
 
-    local unsorted = cond("`fill'" == "data", "", "unsorted")
+    local unsorted = cond(`"`fill'"' == "data", "", "unsorted")
     gtools_timer info `t97' `"Plugin setup"', prints(`bench') off
 
     `addvar'
@@ -840,11 +840,11 @@ program egen_fallback, sortpreserve
     global EGEN_SVarname `_sortindex'
 
 	local cvers = _caller()
-    if ( "`_fcn'" == "mode" | "`_fcn'" == "concat" ) {
+    if ( `"`_fcn'"' == "mode" | `"`_fcn'"' == "concat" ) {
         local vv : display "version " string(`cvers') ", missing:"
     }
 
-    if ( "`: sortedby'" == "`_byvars'" ) {
+    if ( `"`: sortedby'"' == `"`_byvars'"' ) {
         local byid `: sortedby'
     }
     else {
@@ -877,16 +877,16 @@ program gtools_timer, rclass
     * If timer is 0, then there were no free timers; skip this benchmark
     if ( `timer' == 0 ) exit 0
 
-    if ( inlist("`what'", "start", "on") ) {
+    if ( inlist(`"`what'"', "start", "on") ) {
         cap timer off `timer'
         cap timer clear `timer'
         timer on `timer'
     }
-    else if ( inlist("`what'", "info") ) {
+    else if ( inlist(`"`what'"', "info") ) {
         timer off `timer'
         qui timer list
         return scalar t`timer' = `r(t`timer')'
-        return local pretty`timer' = trim("`:di %21.4gc r(t`timer')'")
+        return local pretty`timer' = trim(`"`:di %21.4gc r(t`timer')'"')
         if ( `prints' ) {
             di `"`msg'`:di trim("`:di %21.4gc r(t`timer')'")' seconds"'
         }
@@ -895,7 +895,7 @@ program gtools_timer, rclass
         timer on `timer'
     }
 
-    if ( "`end'`off'" != "" ) {
+    if ( `"`end'`off'"' != "" ) {
         timer off `timer'
         timer clear `timer'
     }
@@ -924,10 +924,10 @@ program parse_target_type, rclass
     if ( `sametype' ) local retype_A `maxtype'
     else local retype_A: set type
 
-    if ( "`maxtype'" == "double" ) local retype_B double
+    if ( `"`maxtype'"' == "double" ) local retype_B double
     else local retype_B: set type
 
-    if ( `=_N < maxlong()' & ("`anywgt'" == "") ) local retype_C long
+    if ( `=_N < maxlong()' & (`"`anywgt'"' == "") ) local retype_C long
     else local retype_C double
 
     if ( `"`maxtype'"' == "byte" ) {
@@ -946,49 +946,49 @@ program parse_target_type, rclass
         local retype_D double
     }
 
-    if ( "`fcn'" == "tag"          ) return local retype = "byte"
-    if ( "`fcn'" == "group"        ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "total"        ) return local retype = "double"
-    if ( "`fcn'" == "sum"          ) return local retype = "double"
-    if ( "`fcn'" == "nansum"       ) return local retype = "double"
-    if ( "`fcn'" == "mean"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "geomean"      ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sd"           ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "variance"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "cv"           ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "max"          ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "min"          ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "range"        ) return local retype = "`retype_D'"
-    if ( "`fcn'" == "select"       ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "count"        ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "median"       ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "iqr"          ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "percent"      ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "first"        ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "last"         ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "firstnm"      ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "lastnm"       ) return local retype = "`retype_A'"
-    if ( "`fcn'" == "semean"       ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sebinomial"   ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "sepoisson"    ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "pctile"       ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "nunique"      ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "nmissing"     ) return local retype = "`retype_C'"
-    if ( "`fcn'" == "skewness"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "kurtosis"     ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "gini"         ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "gini|dropneg" ) return local retype = "`retype_B'"
-    if ( "`fcn'" == "gini|keepneg" ) return local retype = "`retype_B'"
+    if ( `"`fcn'"' == "tag"          ) return local retype = "byte"
+    if ( `"`fcn'"' == "group"        ) return local retype = `"`retype_C'"'
+    if ( `"`fcn'"' == "total"        ) return local retype = "double"
+    if ( `"`fcn'"' == "sum"          ) return local retype = "double"
+    if ( `"`fcn'"' == "nansum"       ) return local retype = "double"
+    if ( `"`fcn'"' == "mean"         ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "geomean"      ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "sd"           ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "variance"     ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "cv"           ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "max"          ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "min"          ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "range"        ) return local retype = `"`retype_D'"'
+    if ( `"`fcn'"' == "select"       ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "count"        ) return local retype = `"`retype_C'"'
+    if ( `"`fcn'"' == "median"       ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "iqr"          ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "percent"      ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "first"        ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "last"         ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "firstnm"      ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "lastnm"       ) return local retype = `"`retype_A'"'
+    if ( `"`fcn'"' == "semean"       ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "sebinomial"   ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "sepoisson"    ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "pctile"       ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "nunique"      ) return local retype = `"`retype_C'"'
+    if ( `"`fcn'"' == "nmissing"     ) return local retype = `"`retype_C'"'
+    if ( `"`fcn'"' == "skewness"     ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "kurtosis"     ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "gini"         ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "gini|dropneg" ) return local retype = `"`retype_B'"'
+    if ( `"`fcn'"' == "gini|keepneg" ) return local retype = `"`retype_B'"'
 end
 
 capture program drop encode_vartype
 program encode_vartype, rclass
     args vtype
-         if ( "`vtype'" == "byte"   ) return scalar typecode = 1
-    else if ( "`vtype'" == "int"    ) return scalar typecode = 2
-    else if ( "`vtype'" == "long"   ) return scalar typecode = 3
-    else if ( "`vtype'" == "float"  ) return scalar typecode = 4
-    else if ( "`vtype'" == "double" ) return scalar typecode = 5
+         if ( `"`vtype'"' == "byte"   ) return scalar typecode = 1
+    else if ( `"`vtype'"' == "int"    ) return scalar typecode = 2
+    else if ( `"`vtype'"' == "long"   ) return scalar typecode = 3
+    else if ( `"`vtype'"' == "float"  ) return scalar typecode = 4
+    else if ( `"`vtype'"' == "double" ) return scalar typecode = 5
     else                              return scalar typecode = 0
 end
 
@@ -1021,7 +1021,7 @@ program FreeTimer
     qui {
         timer list
         local i = 99
-        while ( (`i' > 0) & ("`r(t`i')'" != "") ) {
+        while ( (`i' > 0) & (`"`r(t`i')'"' != "") ) {
             local --i
         }
     }

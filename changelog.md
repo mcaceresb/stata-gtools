@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.11.2 (2023-08-27)
+
+### Bug fixes
+
+- Allow replace with `fasterxtile` and `gegen xtile`
+- `greg` `njabsorb` fills correctly with `by` (pointer was not incrementing in fun)
+
 ## gtools-1.11.1 (2023-04-03)
 
 ### Bug fixes

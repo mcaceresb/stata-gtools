@@ -466,7 +466,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -667,7 +667,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -840,7 +840,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -1002,7 +1002,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                      kabs,
                                                      kx,
                                                      &kmodel,
-                                                     njabsptr,
+                                                     &njabsptr,
                                                      xptr,
                                                      yptr,
                                                      wptr,
@@ -1710,7 +1710,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 nj,
                 kabs,
                 kx,
-                njabsptr,
+                &njabsptr,
                 xptr,
                 yptr,
                 wptr,
@@ -1746,7 +1746,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -1891,7 +1891,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -2016,7 +2016,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                          kabs,
                                                          kx,
                                                          &kmodel,
-                                                         njabsptr,
+                                                         &njabsptr,
                                                          xsrc,
                                                          ysrc,
                                                          wptr,
@@ -2135,7 +2135,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                                      kabs,
                                                      kx,
                                                      &kmodel,
-                                                     njabsptr,
+                                                     &njabsptr,
                                                      xsrc,
                                                      ysrc,
                                                      wptr,
@@ -2228,7 +2228,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         nj,
                         kabs,
                         kx,
-                        njabsptr,
+                        &njabsptr,
                         xptr,
                         yptr,
                         wptr,
@@ -2505,7 +2505,7 @@ ST_retcode gf_regress_absorb(
     GT_size kabs,
     GT_size kx,
     GT_size *kmodel,
-    ST_double *njabsptr,
+    ST_double **njabsptr,
     ST_double *xptr,
     ST_double *yptr,
     ST_double *wptr,
@@ -2533,8 +2533,8 @@ ST_retcode gf_regress_absorb(
         ghptr = AbsorbHashes;
         for (k = 0; k < kabs; k++, ghptr++) {
             *kmodel += ghptr->nlevels;
-            if ( njabsptr != NULL ) {
-                *njabsptr = ghptr->nlevels; njabsptr++;
+            if ( *njabsptr != NULL ) {
+                **njabsptr = ghptr->nlevels; (*njabsptr)++;
             }
         }
         *kmodel -= kabs;
@@ -2565,7 +2565,7 @@ ST_retcode gf_regress_absorb_iter(
     GT_size *nj,
     GT_size kabs,
     GT_size kx,
-    ST_double *njabsptr,
+    ST_double **njabsptr,
     ST_double *xptr,
     ST_double *yptr,
     ST_double *wptr,
@@ -2585,9 +2585,9 @@ ST_retcode gf_regress_absorb_iter(
             if (rc == 17902) return(sf_oom_error("sf_regress", "AbsorbHashes")); else if (rc) goto exit;
 
             ghptr = AbsorbHashes;
-            if ( njabsptr != NULL ) {
+            if ( *njabsptr != NULL ) {
                 for (k = 0; k < kabs; k++, ghptr++) {
-                    *njabsptr = ghptr->nlevels; njabsptr++;
+                    **njabsptr = ghptr->nlevels; (*njabsptr)++;
                 }
             }
 

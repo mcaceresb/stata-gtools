@@ -1,4 +1,4 @@
-* version 1.4.1 26Jan2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+* version 1.4.2 27Aug2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! implementation -egen- using C for faster processing
 
 /*
@@ -152,7 +152,7 @@ program define gegen, byable(onecall) rclass
             disp as err "by: prefix not allowed with `fcn'"
             exit 198
         }
-        if ( `retype' ) {
+        if ( `retype' == 0 ) {
             disp as err "warning: type ignored with gegen function xtile"
         }
         cap noi fasterxtile `name' = `args' `if' `in' `wgt', by(`byvars') `options'

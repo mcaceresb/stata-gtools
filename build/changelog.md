@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.11.3 (2023-09-20)
+
+### Bug fixes
+
+- Allow `var`, `sd`, `semean`, `cv` with `aw` and weights that add up to 1
+  (previously if weights added up to 1 the function exited, but with `aw`
+  the bias adjustment is based on the number of observations, not the sum).
+
 ## gtools-1.11.2 (2023-08-27)
 
 ### Bug fixes

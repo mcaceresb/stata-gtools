@@ -76,7 +76,20 @@ ST_double GtoolsStatsSSUnweighted (
     return (ssx);
 }
 
-ST_double GtoolsStatsMeanUnweighted (
+ST_double GtoolsStatsSSDUnweighted (
+    ST_double *source,
+    GT_size   N)
+{
+    GT_size i;
+    ST_double *x = source, ssx = 0, sum = 0;
+    for (i = 0; i < N; i++, x++) {
+        sum += *x;
+        ssx += *x * *x;
+    }
+    return ((ssx - sum * sum / N));
+}
+
+ST_double GtoolsStatsSumUnweighted (
     ST_double *source,
     GT_size   N)
 {
@@ -85,7 +98,14 @@ ST_double GtoolsStatsMeanUnweighted (
     for (i = 0; i < N; i++, x++) {
         sum += *x;
     }
-    return (sum / N);
+    return (sum);
+}
+
+ST_double GtoolsStatsMeanUnweighted (
+    ST_double *source,
+    GT_size   N)
+{
+    return (GtoolsStatsSumUnweighted(source, N) / N);
 }
 
 ST_double GtoolsStatsBiasedStdUnweighted (
@@ -99,14 +119,8 @@ ST_double GtoolsStatsBiasedVarianceUnweighted (
     ST_double *source,
     GT_size   N)
 {
-    GT_size i;
-    ST_double *x = source, ssx = 0, sum = 0;
     if ( N > 1 ) {
-        for (i = 0; i < N; i++, x++) {
-            sum += *x;
-            ssx += *x * *x;
-        }
-        return ((ssx - sum * sum / N) / N);
+        return (GtoolsStatsSSDUnweighted(source, N) / N);
     }
     else {
         return (0);
@@ -124,14 +138,8 @@ ST_double GtoolsStatsVarianceUnweighted (
     ST_double *source,
     GT_size   N)
 {
-    GT_size i;
-    ST_double *x = source, ssx = 0, sum = 0;
     if ( N > 1 ) {
-        for (i = 0; i < N; i++, x++) {
-            sum += *x;
-            ssx += *x * *x;
-        }
-        return ((ssx - sum * sum / N) / (N - 1));
+        return (GtoolsStatsSSDUnweighted(source, N) / (N - 1));
     }
     else {
         return (0);
@@ -142,10 +150,5 @@ ST_double GtoolsStatsNormUnweighted (
     ST_double *source,
     GT_size   N)
 {
-    GT_size i;
-    ST_double *x = source, ssx = 0;
-    for (i = 0; i < N; i++, x++) {
-        ssx += *x * *x;
-    }
-    return (sqrt(ssx));
+    return (sqrt(GtoolsStatsSSUnweighted(source, N)));
 }

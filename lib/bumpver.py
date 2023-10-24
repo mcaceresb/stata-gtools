@@ -20,8 +20,8 @@ args = vars(parser.parse_args())
 # ---------------------------------------------------------------------
 # Config
 
-config_version = "1.11.3"
-config_date = date(2023, 9, 20)
+config_version = "1.11.4"
+config_date = date(2023, 10, 24)
 config_files = [
     ('lib/bumpver.py',               'config_version = "{major}.{minor}.{patch}"'),
     ('lib/bumpver.py',               'config_date = date({date:%Y, %-m, %-d})'),
@@ -31,7 +31,7 @@ config_files = [
     ('docs/stata/gtools.sthlp',      'version {major}.{minor}.{patch} {date:%d%b%Y}'),
     ('src/ado/gtools.ado',           'version {major}.{minor}.{patch} {date:%d%b%Y}'),
     ('src/ado/_gtools_internal.ado', 'version {major}.{minor}.{patch} {date:%d%b%Y}'),
-    ('src/plugin/gtools.c',          'Version: {date:%d%b%Y}'),
+    ('src/plugin/gtools.c',          'Version: {major}.{minor}.{patch}'),
     ('src/plugin/gtools.c',          '@date {date:%d %b %Y}'),
     ('src/plugin/gtools.h',          'define GTOOLS_VERSION "{major}.{minor}.{patch}"'),
     ('src/test/gtools_tests.do',     'Version: {major}.{minor}.{patch}'),

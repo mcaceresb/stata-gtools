@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## gtools-1.11.4 (2023-10-24)
+
+### Features
+
+- `greg` saves `rss`, `tss`, `r2` in mata (not with `by()`)
+- `greg` saves `cons` in mata with absorb (not with `by()`)
+
 ## gtools-1.11.3 (2023-09-20)
 
 ### Bug fixes

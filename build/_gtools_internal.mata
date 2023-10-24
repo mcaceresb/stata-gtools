@@ -1967,6 +1967,9 @@ class GtoolsRegressOutput
     real   matrix    Vcov
     real   scalar    savese
     real   scalar    consest
+    real   scalar    rss
+    real   scalar    tss
+    real   scalar    r2
 
     real   scalar    J
     real   scalar    by
@@ -2054,6 +2057,9 @@ void function GtoolsRegressOutput::readMatrices()
     real scalar runols, runse, runhdfe
     J = strtoreal(st_local("r_J"))
     consest = st_numscalar("__gtools_gregress_consest")
+    rss     = st_numscalar("__gtools_gregress_rss")
+    tss     = st_numscalar("__gtools_gregress_tss")
+    r2      = 1-rss/tss
     if ( st_numscalar("__gtools_gregress_savemb") ) {
         b = editmissing(GtoolsReadMatrix(st_local("gregbfile"),  J, kx), 0)
     }

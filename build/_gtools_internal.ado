@@ -1,4 +1,4 @@
-*! version 1.11.3 20Sep2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.4 24Oct2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -1905,6 +1905,8 @@ program _gtools_internal, rclass
             scalar __gtools_gregress_kvars         = `:list sizeof varlist'
             scalar __gtools_gregress_cons          = `"`constant'"' != "noconstant"
             scalar __gtools_gregress_consest       = .
+            scalar __gtools_gregress_rss           = .
+            scalar __gtools_gregress_tss           = .
             scalar __gtools_gregress_robust        = `"`robust'"'   != ""
             scalar __gtools_gregress_cluster       = `:list sizeof cluster'
             scalar __gtools_gregress_absorb        = `:list sizeof absorb'
@@ -5015,6 +5017,8 @@ program gregress_scalars
         scalar __gtools_gregress_kvars         = 0
         scalar __gtools_gregress_cons          = 0
         scalar __gtools_gregress_consest       = .
+        scalar __gtools_gregress_rss           = .
+        scalar __gtools_gregress_tss           = .
         scalar __gtools_gregress_robust        = 0
         scalar __gtools_gregress_cluster       = 0
         scalar __gtools_gregress_absorb        = 0
@@ -5059,6 +5063,8 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_kvars
         cap scalar drop __gtools_gregress_cons
         cap scalar drop __gtools_gregress_consest
+        cap scalar drop __gtools_gregress_rss
+        cap scalar drop __gtools_gregress_tss
         cap scalar drop __gtools_gregress_robust
         cap scalar drop __gtools_gregress_cluster
         cap scalar drop __gtools_gregress_absorb

@@ -34,7 +34,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // ST_double z, d;
     ST_retcode rc = 0;
     ST_double *njclusptr, *njabsptr;
-    ST_double cons = SV_missval,
+    ST_double wsum,
               diff,
               *xptr,
               *yptr,
@@ -180,6 +180,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     ST_double *V    = calloc(GTOOLS_PWMAX(kx * kx, 1),           sizeof *V);
     ST_double *VV   = calloc(GTOOLS_PWMAX(kx * kx, 1),           sizeof *VV);
     GT_size   *nj   = calloc(J,                                  sizeof *nj);
+    ST_double *rss  = calloc(J,                                  sizeof *rss);
+    ST_double *tss  = calloc(J,                                  sizeof *tss);
+    ST_double *cons = calloc(J,                                  sizeof *cons);
 
     ST_double *BZ   = calloc(ivreg? (ivkz + ivkexog) * ivkendog: 1, sizeof *BZ);
     ST_double *PZ   = calloc(ivreg? nj_max * ivkendog: 1, sizeof *PZ);
@@ -237,6 +240,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     if ( V    == NULL ) return(sf_oom_error("sf_regress", "V"));
     if ( VV   == NULL ) return(sf_oom_error("sf_regress", "VV"));
     if ( nj   == NULL ) return(sf_oom_error("sf_regress", "nj"));
+    if ( rss  == NULL ) return(sf_oom_error("sf_regress", "rss"));
+    if ( tss  == NULL ) return(sf_oom_error("sf_regress", "tss"));
+    if ( cons == NULL ) return(sf_oom_error("sf_regress", "cons"));
 
     if ( BZ   == NULL ) return(sf_oom_error("sf_regress", "BZ"));
     if ( PZ   == NULL ) return(sf_oom_error("sf_regress", "PZ"));
@@ -277,6 +283,10 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
             stats[k] = -2;
             maps[k]  = k;
         }
+    }
+
+    for (j = 0; j < J; j++) {
+        cons[j] = rss[j] = tss[j] = SV_missval;
     }
 
     // assign correct functions to run based on weights/models
@@ -612,9 +622,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -789,9 +799,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -954,9 +964,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -1093,9 +1103,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         for (i = 0; i < njobs; i++) {
                             etptr[i] -= eptr[i];
                         }
-                        cons = GtoolsStatsMean(etptr, njobs, wptr);
+                        cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                         for (i = 0; i < njobs; i++) {
-                            etptr[i] -= cons;
+                            etptr[i] -= cons[j];
                         }
                         if ( kabs > 1 ) {
                             rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -1265,9 +1275,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 else etptr[i] -= eptr[i];
                             }
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons = GtoolsStatsMean(etptr, njobs, wptr);
+                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
-                                    etptr[i] -= cons;
+                                    etptr[i] -= cons[j];
                                 }
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
                                 if (rc == 17902) return(sf_oom_error("sf_regress", "GtoolsSaveAlphas")); else if (rc) goto exit;
@@ -1409,9 +1419,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 else etptr[i] -= eptr[i];
                             }
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons = GtoolsStatsMean(etptr, njobs, wptr);
+                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
-                                    etptr[i] -= cons;
+                                    etptr[i] -= cons[j];
                                 }
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
                                 if (rc == 17902) return(sf_oom_error("sf_regress", "GtoolsSaveAlphas")); else if (rc) goto exit;
@@ -1548,9 +1558,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 else etptr[i] -= eptr[i];
                             }
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons = GtoolsStatsMean(etptr, njobs, wptr);
+                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
-                                    etptr[i] -= cons;
+                                    etptr[i] -= cons[j];
                                 }
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
                                 if (rc == 17902) return(sf_oom_error("sf_regress", "GtoolsSaveAlphas")); else if (rc) goto exit;
@@ -1667,9 +1677,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             else etptr[i] -= eptr[i];
                         }
                         if ( (kabs > 1) && (skipalpha == 0) ) {
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
                             if (rc == 17902) return(sf_oom_error("sf_regress", "GtoolsSaveAlphas")); else if (rc) goto exit;
@@ -1839,9 +1849,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -1968,9 +1978,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -2090,9 +2100,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= eptr[i];
                             }
-                            cons = GtoolsStatsMean(etptr, njobs, wptr);
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
-                                etptr[i] -= cons;
+                                etptr[i] -= cons[j];
                             }
                             if ( kabs > 1 ) {
                                 rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -2192,9 +2202,9 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                         for (i = 0; i < njobs; i++) {
                             etptr[i] -= eptr[i];
                         }
-                        cons = GtoolsStatsMean(etptr, njobs, wptr);
+                        cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                         for (i = 0; i < njobs; i++) {
-                            etptr[i] -= cons;
+                            etptr[i] -= cons[j];
                         }
                         if ( kabs > 1 ) {
                             rc = GtoolsSaveAlphas(AbsorbHashes, kabs, etptr, wptr, feptr, hdfetol);
@@ -2320,10 +2330,27 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
      *                Step 4: Write results back to Stata                *
      *********************************************************************/
 
-    if ( J == 1 ) {
-        if ( (rc = SF_scal_save("__gtools_gregress_consest", cons)) ) goto exit;
+    // Compute TSS, RSS
+    yptr = y;
+    wptr = w;
+    for (j = 0; j < J; j++) {
+        njobs  = nj[j];
+        wsum   = st_info->wcode == 1? GtoolsStatsSumUnweighted(wptr, njobs): 1;
+        tss[j] = GtoolsStatsSSD(yptr, njobs, wptr) / wsum;
+        rss[j] = GtoolsStatsSS(eptr, njobs, wptr)  / wsum;
+        if ( wptr != NULL ) wptr += njobs;
+        yptr += njobs;
+        eptr += njobs;
     }
 
+    // TODO: Save these and nj in a meta mate object! Why not?
+    if ( J == 1 ) {
+        if ( (rc = SF_scal_save("__gtools_gregress_consest", cons[0]))) goto exit;
+        if ( (rc = SF_scal_save("__gtools_gregress_rss",     rss[0])) ) goto exit;
+        if ( (rc = SF_scal_save("__gtools_gregress_tss",     tss[0])) ) goto exit;
+    }
+
+    // Save results for mata
     if ( st_info->gregress_savemata ) {
         if ( st_info->gregress_savemb ) {
             if ( (rc = SF_macro_use("GTOOLS_GREGB_FILE",  GTOOLS_GREGB_FILE,  st_info->gfile_gregb)  )) goto exit;
@@ -2377,6 +2404,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         predict = 0;
     }
 
+    // Save output as requested
     if ( st_info->gregress_savegb || st_info->gregress_savegse || st_info->gregress_saveghdfe || resid || predict || savealphas ) {
         krefb     = st_info->kvars_by + st_info->gregress_kvars + kclus + kabs + 1;
         krefse    = krefb     + kv * st_info->gregress_savegb;
@@ -2396,7 +2424,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
         eptr   = e;
         xbdptr = xbd;
         feptr  = alph;
-        for (j = 0; j < st_info->J; j++) {
+        for (j = 0; j < J; j++) {
             l     = st_info->ix[j];
             start = st_info->info[l];
             end   = st_info->info[l + 1];
@@ -2476,6 +2504,9 @@ exit:
     free(V);
     free(VV);
     free(nj);
+    free(rss);
+    free(tss);
+    free(cons);
 
     free(BZ);
     free(PZ);

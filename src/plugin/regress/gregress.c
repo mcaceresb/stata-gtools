@@ -168,7 +168,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
     // the second collinearity check with the dependent var)
 
     ST_double *vars = calloc(N * ktot,                           sizeof *vars);
-    ST_double *e    = calloc(resid? N: nj_max,                   sizeof *e);
+    ST_double *e    = calloc(N,                                  sizeof *e);
     ST_double *etil = calloc(savealphas & (kabs > 1)? nj_max: 1, sizeof *etil);
     ST_double *xbd  = calloc(predict? N: 1,                      sizeof *xbd);
     ST_double *alph = calloc(savealphas? kabs * N: 1,            sizeof *alph);
@@ -640,7 +640,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kv;
@@ -813,7 +813,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kv;
@@ -978,7 +978,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kv;
@@ -1117,7 +1117,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 if ( wptr != NULL ) wptr += njobs;
                 xptr   += njobs * kx;
                 yptr   += njobs;
-                eptr   += njobs * resid;
+                eptr   += njobs;
                 xbdptr += njobs * predict;
                 feptr  += njobs * savealphas * kabs;
                 bptr   += kv;
@@ -1293,7 +1293,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -1433,7 +1433,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -1572,7 +1572,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -1691,7 +1691,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 if ( wptr != NULL ) wptr += njobs;
                 xptr   += njobs * kx;
                 yptr   += njobs;
-                eptr   += njobs * resid;
+                eptr   += njobs;
                 xbdptr += njobs * predict;
                 feptr  += njobs * savealphas * kabs;
                 bptr   += kx;
@@ -1867,7 +1867,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -1992,7 +1992,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -2114,7 +2114,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                     if ( wptr != NULL ) wptr += njobs;
                     xptr   += njobs * kx;
                     yptr   += njobs;
-                    eptr   += njobs * resid;
+                    eptr   += njobs;
                     xbdptr += njobs * predict;
                     feptr  += njobs * savealphas * kabs;
                     bptr   += kx;
@@ -2216,7 +2216,7 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                 if ( wptr != NULL ) wptr += njobs;
                 xptr   += njobs * kx;
                 yptr   += njobs;
-                eptr   += njobs * resid;
+                eptr   += njobs;
                 xbdptr += njobs * predict;
                 feptr  += njobs * savealphas * kabs;
                 bptr   += kx;
@@ -2330,14 +2330,16 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
      *                Step 4: Write results back to Stata                *
      *********************************************************************/
 
-    // Compute TSS, RSS
+    // Compute TSS, RSS. NB: Before this I used to only save resid internally
+    // when requested by user; now I save always.
     yptr = y;
     wptr = w;
+    eptr = e;
     for (j = 0; j < J; j++) {
         njobs  = nj[j];
         wsum   = st_info->wcode == 1? GtoolsStatsSumUnweighted(wptr, njobs): 1;
         tss[j] = GtoolsStatsSSD(yptr, njobs, wptr) / wsum;
-        rss[j] = GtoolsStatsSS(eptr, njobs, wptr)  / wsum;
+        rss[j] = GtoolsStatsSS(eptr,  njobs, wptr) / wsum;
         if ( wptr != NULL ) wptr += njobs;
         yptr += njobs;
         eptr += njobs;

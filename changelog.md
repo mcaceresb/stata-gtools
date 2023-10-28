@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+## gtools-1.11.5 (2023-10-27)
+
+### Bug fixes
+
+- `greg` computes `rss`, `tss` internally with by (previous version would not
+  work because the error term was not saved by group, it was overwritten; now
+  the full residual vector is saved).
+
 ## gtools-1.11.4 (2023-10-24)
 
 ### Features

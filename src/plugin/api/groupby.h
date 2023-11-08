@@ -101,6 +101,8 @@ ST_double GtoolsStatsSignedMax (ST_double *source, GT_size N);
 
 ST_double GtoolsStatsDot            (ST_double *v1, ST_double *v2, GT_size N, ST_double *weights);
 ST_double GtoolsStatsSS             (ST_double *source, GT_size N, ST_double *weights);
+ST_double GtoolsStatsSSD            (ST_double *source, GT_size N, ST_double *weights);
+ST_double GtoolsStatsSum            (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsMean           (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsNorm           (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsBiasedStd      (ST_double *source, GT_size N, ST_double *weights);
@@ -108,6 +110,8 @@ ST_double GtoolsStatsBiasedVariance (ST_double *source, GT_size N, ST_double *we
 
 ST_double GtoolsStatsDotUnweighted            (ST_double *v1, ST_double *v2, GT_size N);
 ST_double GtoolsStatsSSUnweighted             (ST_double *source, GT_size N);
+ST_double GtoolsStatsSSDUnweighted            (ST_double *source, GT_size N);
+ST_double GtoolsStatsSumUnweighted            (ST_double *source, GT_size N);
 ST_double GtoolsStatsMeanUnweighted           (ST_double *source, GT_size N);
 ST_double GtoolsStatsStdUnweighted            (ST_double *source, GT_size N);
 ST_double GtoolsStatsVarianceUnweighted       (ST_double *source, GT_size N);
@@ -117,6 +121,8 @@ ST_double GtoolsStatsNormUnweighted           (ST_double *source, GT_size N);
 
 ST_double GtoolsStatsDotWeighted            (ST_double *v1, ST_double *v2, GT_size N, ST_double *weights);
 ST_double GtoolsStatsSSWeighted             (ST_double *source, GT_size N, ST_double *weights);
+ST_double GtoolsStatsSSDWeighted            (ST_double *source, GT_size N, ST_double *weights);
+ST_double GtoolsStatsSumWeighted            (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsMeanWeighted           (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsBiasedStdWeighted      (ST_double *source, GT_size N, ST_double *weights);
 ST_double GtoolsStatsBiasedVarianceWeighted (ST_double *source, GT_size N, ST_double *weights);
@@ -317,6 +323,45 @@ ST_double GtoolsAbsorbBergeWeighted(
     ST_double *weights,
     ST_double *targets,
     GT_size   ktargets,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
+GT_int GtoolsSaveAlphas(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol
+);
+
+ST_double GtoolsSaveAlphasAbsorb(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
+ST_double GtoolsSaveAlphasAbsorbWeighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
+    ST_double tol,
+    ST_double *allbuffer
+);
+
+ST_double GtoolsSaveAlphasAbsorbUnweighted(
+    struct GtoolsHash *GtoolsHashInfo,
+    GT_size   khashes,
+    ST_double *source,
+    ST_double *weights,
+    ST_double *alphas,
     ST_double tol,
     ST_double *allbuffer
 );

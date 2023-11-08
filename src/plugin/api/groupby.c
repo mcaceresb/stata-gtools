@@ -12,6 +12,7 @@
 #include "groupby/base.c"
 #include "groupby/accelerators.c"
 #include "groupby/berge.c"
+#include "groupby/alphas.c"
 
 // // basically this is egen bulk
 // void GtoolsGroupByMerge (

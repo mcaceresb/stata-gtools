@@ -1,4 +1,4 @@
-*! version 0.2.1 14Apr2020 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.1 03Apr2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate linear regression via OLS by group and with HDFE
 
 capture program drop gregress
@@ -207,7 +207,7 @@ program gregress, rclass
     * little added value.
 
     confirm var `varlist'
-    if ( `:list sizeof varlist' == 1 ) {
+    if ( `:list sizeof varlist' == 1 & (`"`absorb'"' == "" | `ivok') ) {
         disp as err "constant-only models not allowed; varlist required"
         exit 198
     }
@@ -387,16 +387,16 @@ program Display, eclass
             FreeMatrix b V
             mata st_local("caller", `namelist'.caller)
             mata st_local("setype", `namelist'.setype)
-            mata st_matrix("`b'", `namelist'.b[1, .])
-            mata st_matrix("`V'", `namelist'.Vcov)
-            mata `colnames' = `namelist'.xvarlist, J(1, `namelist'.cons, "_cons")
+            mata st_matrix("`b'", `namelist'.kx? `namelist'.b[1, .]: `namelist'.consest)
+            mata st_matrix("`V'", `namelist'.kx? `namelist'.Vcov: 0)
+            mata `colnames' = `namelist'.kx? (`namelist'.xvarlist, J(1, `namelist'.cons, "_cons")): "_cons"
             mata `nmiss'    = missing(`namelist'.se)
             mata `sel'      = selectindex(`namelist'.se :>= .)
             mata `colnames'[`sel'] = J(1, `nmiss', "o.") :+ `colnames'[`sel']
-            mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
             mata st_matrixrowstripe("`b'", ("", `namelist'.yvarlist[1]))
-            mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixcolstripe("`b'", (J(cols(`colnames'), 1, ""), `colnames''))
             mata st_matrixrowstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
+            mata st_matrixcolstripe("`V'", (J(cols(`colnames'), 1, ""), `colnames''))
             if "`repost'" == "" {
                 if ( "`touse'" != "" ) qui count if `touse'
                 else qui count
@@ -408,7 +408,7 @@ program Display, eclass
             if ( "`setype'" == "cluster" ) ereturn local vcetype "Cluster"
             if ( "`setype'" == "robust"  ) ereturn local vcetype "Robust"
             if ( "`setype'" != "homoskedastic"  ) ereturn local vce "`setype'"
-            disp _n(1) "`caller' with `setype' SE"
+            _coef_table_header, nomodeltest title(`caller' with `setype' SE)
             _coef_table, `options'
         }
         else {

@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.1  14Apr2020}{...}
+{* *! version 1.11.1 03Apr2023}}{...}
 {viewerdialog gregress "dialog gregress"}{...}
 {vieweralsosee "[R] gregress" "mansection R gregress"}{...}
 {viewerjumpto "Syntax" "gregress##syntax"}{...}
@@ -69,6 +69,12 @@ is, this assumes that the weight refers to the number of available
 {synopt:{opth cluster(varlist)}}One-way or nested cluster SE.
 {p_end}
 {synopt:{opth absorb(varlist)}}Multi-way high-dimensional fixed effects.
+{p_end}
+{synopt:{opt alphas(varlist)}}One per absorb variable; save FE (normalized to be mean zero).
+{p_end}
+{synopt:{opt predict(varname)}}Save linear fit.
+{p_end}
+{synopt:{opt resid(varname)}}Save residuals.
 {p_end}
 {synopt:{opth hdfetol(real)}}Tolerance level for HDFE algoritm (default 1e-8).
 {p_end}

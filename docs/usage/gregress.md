@@ -63,6 +63,9 @@ Options
 - `robust` Robust SE.
 - `cluster(varlist)` One-way or nested cluster SE.
 - `absorb(varlist)` Multi-way high-dimensional fixed effects.
+- `alphas(varlist)` One per absorb variable; save FE (normalized to be mean zero).
+- `predict(varname)` Save linear fit.
+- `resid(varname)` Save residuals.
 - `hdfetol(real)` Tolerance level for HDFE algoritm (default 1e-8).
 - `algorithm(str)` Algorithm used to absorb HDFE: CG (conjugate gradient; default)
             MAP (alternating projections), SQUAREM (squared extrapolation),

@@ -13,7 +13,7 @@ provide a massive speed improvements to common Stata commands, including:
 reshape, collapse, xtile, tabstat, isid, egen, pctile, winsor, contract,
 levelsof, duplicates, unique/distinct, and more.
 
-![Beta Version](https://img.shields.io/badge/beta-v1.10.1-blue.svg?longCache=true&style=flat-square)
+![Beta Version](https://img.shields.io/badge/beta-v1.11.5-blue.svg?longCache=true&style=flat-square)
 ![Supported Platforms](https://img.shields.io/badge/platforms-linux--64%20%7C%20osx--64%20%7C%20win--64-blue.svg?longCache=true&style=flat-square)
 [![github linux status](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml/badge.svg?branch=master)](https://github.com/mcaceresb/stata-gtools/actions/workflows/linux.yml)
 [![github osx status](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml/badge.svg?branch=master)](https://github.com/mcaceresb/stata-gtools/actions/workflows/osx.yml)

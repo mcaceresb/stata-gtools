@@ -355,14 +355,14 @@ program gquantiles, rclass
 
     local opts `compress' `forcestrl' `_ctolerance'
     local opts `opts' `verbose' `benchmark' `benchmarklevel'
-    local opts `opts' `oncollision' `hashmethod' `debug'
+    local opts `opts' `oncollision' `hashmethod' `debug' `init'
     local opts `opts' gen(`groupid') `tag' `counts' `fill' `weights'
 
     local gqopts `varlist', xsources(`xsources') `_pctile' `pctile' `genp'
     local gqopts `gqopts' `binadd' `binaddvar' `nquantiles' `quantiles'
     local gqopts `gqopts' `cutoffs' `cutpoints' `quantmatrix'
     local gqopts `gqopts' `cutmatrix' `cutquantiles' `cutifin' `cutby'
-    local gqopts `gqopts' `dedup' `replace' `init' `altdef' `method' `strict'
+    local gqopts `gqopts' `dedup' `replace' `altdef' `method' `strict'
     local gqopts `gqopts' `minmax' returnlimit(`returnlimit')
 
     cap noi _gtools_internal `by' `ifin', missing unsorted `opts' gquantiles(`gqopts') gfunction(quantiles)

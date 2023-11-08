@@ -88,6 +88,39 @@ ST_double GtoolsStatsSSWeighted (
     return (ssx);
 }
 
+ST_double GtoolsStatsSSDWeighted (
+    ST_double *source,
+    GT_size   N,
+    ST_double *weights)
+{
+    GT_size i;
+    ST_double *x = source, *w = weights, ssx = 0, sum = 0, wsum = 0;
+    for (i = 0; i < N; i++, x++, w++) {
+        wsum += *w;
+        sum  += *w * *x;
+        ssx  += *w * *x * *x;
+    }
+    if ( wsum == 0 ) {
+        return(0);
+    }
+    else {
+        return (ssx - sum * sum / wsum);
+    }
+}
+
+ST_double GtoolsStatsSumWeighted (
+    ST_double *source,
+    GT_size   N,
+    ST_double *weights)
+{
+    GT_size i;
+    ST_double *x = source, *w = weights, sum = 0;
+    for (i = 0; i < N; i++, x++, w++) {
+        sum  += *w * *x;
+    }
+    return (sum);
+}
+
 ST_double GtoolsStatsMeanWeighted (
     ST_double *source,
     GT_size   N,
@@ -141,10 +174,5 @@ ST_double GtoolsStatsNormWeighted (
     GT_size   N,
     ST_double *weights)
 {
-    GT_size i;
-    ST_double *x = source, ssx = 0, *w = weights;
-    for (i = 0; i < N; i++, x++, w++) {
-        ssx += *w * *x * *x;
-    }
-    return (sqrt(ssx));
+    return (sqrt(GtoolsStatsSSWeighted(source, N, weights)));
 }

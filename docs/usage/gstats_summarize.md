@@ -261,6 +261,9 @@ printing options
     void printOutput()
         print summary table
 
+    string matrix formatOutput()
+        formatted summary table (as a string mata matrix)
+
     real scalar maxlbl
         max by variable label/value width
 

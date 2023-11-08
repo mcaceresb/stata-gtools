@@ -3017,6 +3017,7 @@ DEBUG: MAP comparison failed (weighted)
 DEBUG: IT comparison failed (weighted)
 DEBUG: SQUAREM comparison failed (weighted)
 
+NOTE:  These failed because the first time they were run reghdfe was not installed; see https://www.statalist.org/forums/forum/general-stata-discussion/general/1692552-help-testing-gtools-package-on-osx for details. Subsequent runs were successful.
 
 
 
@@ -20999,6 +21000,8 @@ WARNING: 16:26:53  8 Dec 2022
 tests ran with non-0 exit status
 
 tests ran but Stata gave error code r(9)
+
+NOTE:  These failed because there was (is?) a Stata 17 bug with iweights and percentiles in collapse. See https://www.statalist.org/forums/forum/general-stata-discussion/general/1656639-bug-in-collapse-percentiles-with-iweight for details.
 
 Start: 15:46:15 8 Dec 2022
 End: 16:26:53  8 Dec 2022

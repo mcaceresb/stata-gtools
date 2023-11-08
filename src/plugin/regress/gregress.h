@@ -34,7 +34,7 @@ ST_retcode gf_regress_absorb (
     GT_size kabs,
     GT_size kx,
     GT_size *kmodel,
-    ST_double *njabsptr,
+    ST_double **njabsptr,
     ST_double *xptr,
     ST_double *yptr,
     ST_double *wptr,
@@ -53,7 +53,7 @@ ST_retcode gf_regress_absorb_iter(
     GT_size *nj,
     GT_size kabs,
     GT_size kx,
-    ST_double *njabsptr,
+    ST_double **njabsptr,
     ST_double *xptr,
     ST_double *yptr,
     ST_double *wptr,
@@ -88,10 +88,12 @@ void gf_regress_warnings (
     GT_size warnsingular,
     GT_size warnivnotiden,
     GT_size warnnocols,
+    GT_size warnalpha,
     char *buf1,
     char *buf2,
     char *buf3,
-    char *buf4
+    char *buf4,
+    char *buf5
 );
 
 

@@ -1,6 +1,58 @@
 Change Log
 ==========
 
+## gtools-1.11.5 (2023-10-27)
+
+### Bug fixes
+
+- `greg` computes `rss`, `tss` internally with by (previous version would not
+  work because the error term was not saved by group, it was overwritten; now
+  the full residual vector is saved).
+
+## gtools-1.11.4 (2023-10-24)
+
+### Features
+
+- `greg` saves `rss`, `tss`, `r2` in mata (not with `by()`)
+- `greg` saves `cons` in mata with absorb (not with `by()`)
+
+## gtools-1.11.3 (2023-09-20)
+
+### Bug fixes
+
+- Allow `var`, `sd`, `semean`, `cv` with `aw` and weights that add up to 1
+  (previously if weights added up to 1 the function exited, but with `aw`
+  the bias adjustment is based on the number of observations, not the sum).
+
+## gtools-1.11.2 (2023-08-27)
+
+### Bug fixes
+
+- Allow replace with `fasterxtile` and `gegen xtile`
+- `greg` `njabsorb` fills correctly with `by` (pointer was not incrementing in fun)
+
+## gtools-1.11.1 (2023-04-03)
+
+### Bug fixes
+
+- `gegen` now accepts quotes in expressions
+- `gregress` no longer forces diagonal vcov matrix (!)
+- `gregress` gets header when displaying results
+- `fasterxtile` now takes init
+
+## gtools-1.11.0 (2023-03-24)
+
+### Features
+
+- `gregress` adds `alphas()` to save individual fixed effects; `predict()`
+  gives right prediction across functions.
+
+## gtools-1.10.2 (2023-02-21)
+
+### Features
+
+- `gstats tab` adds `formatOutput()` to get a matrix with outptu formatted.
+
 ## gtools-1.10.1 (2022-12-05)
 
 ### Bug fixes

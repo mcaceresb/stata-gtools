@@ -113,6 +113,14 @@ ST_double GtoolsStatsSS (
     return(weights == NULL? GtoolsStatsSSUnweighted(source, N): GtoolsStatsSSWeighted(source, N, weights));
 }
 
+ST_double GtoolsStatsSum (
+    ST_double *source,
+    GT_size   N,
+    ST_double *weights)
+{
+    return(weights == NULL? GtoolsStatsSumUnweighted(source, N): GtoolsStatsSumWeighted(source, N, weights));
+}
+
 ST_double GtoolsStatsMean (
     ST_double *source,
     GT_size   N,
@@ -144,3 +152,12 @@ ST_double GtoolsStatsNorm (
 {
     return(weights == NULL? GtoolsStatsNormUnweighted(source, N): GtoolsStatsNormWeighted(source, N, weights));
 }
+
+ST_double GtoolsStatsSSD (
+    ST_double *source,
+    GT_size   N,
+    ST_double *weights)
+{
+    return(weights == NULL? GtoolsStatsSSDUnweighted(source, N): GtoolsStatsSSDWeighted(source, N, weights));
+}
+

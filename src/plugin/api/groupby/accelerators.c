@@ -11,6 +11,7 @@ GT_int GtoolsAlgorithmCG(
     GT_size   ktargets,
     ST_double tol)
 {
+    if ( ktargets == 0 ) return(0);
     GT_int rc = 0;
     GT_size N        = GtoolsHashInfo->nobs;
     GT_size nonmiss  = GtoolsHashInfo->_nobspanel;
@@ -21,13 +22,19 @@ GT_int GtoolsAlgorithmCG(
     ST_double idiff = 1, diff, buff;
     ST_double *xptr, *rptr, *uptr, *vptr, *x = targets;
     GT_size i, k, iter = 0, feval = 0;
-    GT_size bufferk = (weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N;
-    ST_double alpha[ktargets], beta[ktargets], rr[ktargets], r0[ktargets], xx[ktargets], r1[ktargets], sd[ktargets];
+    GT_size bufferk = GTOOLS_PWMAX((weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N,1);
+    ST_double alpha[GTOOLS_PWMAX(ktargets,1)],
+              beta[GTOOLS_PWMAX(ktargets,1)],
+              rr[GTOOLS_PWMAX(ktargets,1)],
+              r0[GTOOLS_PWMAX(ktargets,1)],
+              xx[GTOOLS_PWMAX(ktargets,1)],
+              r1[GTOOLS_PWMAX(ktargets,1)],
+              sd[GTOOLS_PWMAX(ktargets,1)];
 
-    ST_double *r = calloc(ktargets * N, sizeof *r);
-    ST_double *u = calloc(ktargets * N, sizeof *u);
-    ST_double *v = calloc(ktargets * N, sizeof *v);
-    ST_double *b = calloc(bufferk,      sizeof *b);
+    ST_double *r = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *r);
+    ST_double *u = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *u);
+    ST_double *v = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *v);
+    ST_double *b = calloc(bufferk, sizeof *b);
 
     if ( r == NULL ) return(17902);
     if ( u == NULL ) return(17902);
@@ -179,6 +186,7 @@ GT_int GtoolsAlgorithmSQUAREM(
     GT_size   ktargets,
     ST_double tol)
 {
+    if ( ktargets == 0 ) return(0);
     GT_int rc = 0;
     GT_size N        = GtoolsHashInfo->nobs;
     GT_size nonmiss  = GtoolsHashInfo->_nobspanel;
@@ -186,17 +194,17 @@ GT_int GtoolsAlgorithmSQUAREM(
     GT_size maxiter  = GtoolsHashInfo->hdfeMaxIter;
     GT_bool verbose  = GtoolsHashInfo->hdfeTraceIter;
 
-    ST_double alpha[ktargets], sr2[ktargets], sv2[ktargets], sd[ktargets];
+    ST_double alpha[GTOOLS_PWMAX(ktargets,1)], sr2[GTOOLS_PWMAX(ktargets,1)], sv2[GTOOLS_PWMAX(ktargets,1)], sd[GTOOLS_PWMAX(ktargets,1)];
     ST_double *xptr, *x1ptr, *x2ptr, *q1ptr, *q2ptr, *x = targets;
-    ST_double diff, stepmax[ktargets], stepmin[ktargets], mstep;
-    GT_size bufferk = (weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N;
+    ST_double diff, stepmax[GTOOLS_PWMAX(ktargets,1)], stepmin[GTOOLS_PWMAX(ktargets,1)], mstep;
+    GT_size bufferk = GTOOLS_PWMAX((weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N,1);
     GT_size i, k, iter = 0, feval = 0;
 
-    ST_double *x1 = calloc(ktargets * N, sizeof *x1);
-    ST_double *x2 = calloc(ktargets * N, sizeof *x2);
-    ST_double *q1 = calloc(ktargets * N, sizeof *q1);
-    ST_double *q2 = calloc(ktargets * N, sizeof *q2);
-    ST_double *b  = calloc(bufferk,      sizeof *b);
+    ST_double *x1 = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *x1);
+    ST_double *x2 = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *x2);
+    ST_double *q1 = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *q1);
+    ST_double *q2 = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *q2);
+    ST_double *b  = calloc(bufferk, sizeof *b);
 
     if ( x1 == NULL ) return(17902);
     if ( x2 == NULL ) return(17902);
@@ -311,6 +319,7 @@ GT_int GtoolsAlgorithmIronsTuck(
     GT_size   ktargets,
     ST_double tol)
 {
+    if ( ktargets == 0 ) return(0);
     GT_int rc = 0;
     GT_size N        = GtoolsHashInfo->nobs;
     GT_size nonmiss  = GtoolsHashInfo->_nobspanel;
@@ -318,17 +327,17 @@ GT_int GtoolsAlgorithmIronsTuck(
     GT_size maxiter  = GtoolsHashInfo->hdfeMaxIter;
     GT_bool verbose  = GtoolsHashInfo->hdfeTraceIter;
 
-    ST_double diff = 1, step[ktargets], DgXD2X[ktargets], D2XD2X[ktargets], sd[ktargets];
+    ST_double diff = 1, step[GTOOLS_PWMAX(ktargets,1)], DgXD2X[GTOOLS_PWMAX(ktargets,1)], D2XD2X[GTOOLS_PWMAX(ktargets,1)], sd[GTOOLS_PWMAX(ktargets,1)];
     ST_double *xptr, *gXptr, *ggXptr, *DXptr, *DgXptr, *D2Xptr, *x = targets;
-    GT_size bufferk = (weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N;
+    GT_size bufferk = GTOOLS_PWMAX((weights == NULL? 1: 2) * (GTOOLSOMP? ktargets: 1) * N,1);
     GT_size i, k, iter = 0, feval = 0;
 
-    ST_double *g   = calloc(ktargets * N, sizeof *g);
-    ST_double *gX  = calloc(ktargets * N, sizeof *gX);
-    ST_double *ggX = calloc(ktargets * N, sizeof *ggX);
-    ST_double *DX  = calloc(ktargets * N, sizeof *DX);
-    ST_double *DgX = calloc(ktargets * N, sizeof *DgX);
-    ST_double *D2X = calloc(ktargets * N, sizeof *D2X);
+    ST_double *g   = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *g);
+    ST_double *gX  = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *gX);
+    ST_double *ggX = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *ggX);
+    ST_double *DX  = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *DX);
+    ST_double *DgX = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *DgX);
+    ST_double *D2X = calloc(GTOOLS_PWMAX(ktargets * N,1), sizeof *D2X);
     ST_double *b   = calloc(bufferk,      sizeof *b);
 
     if ( gX  == NULL ) return(17902);

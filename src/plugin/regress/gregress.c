@@ -2566,7 +2566,7 @@ ST_retcode gf_regress_absorb(
         ghptr = AbsorbHashes;
         for (k = 0; k < kabs; k++, ghptr++) {
             *kmodel += ghptr->nlevels;
-            if ( *njabsptr != NULL ) {
+            if ( njabsptr != NULL ) {
                 **njabsptr = ghptr->nlevels; (*njabsptr)++;
             }
         }
@@ -2618,7 +2618,7 @@ ST_retcode gf_regress_absorb_iter(
             if (rc == 17902) return(sf_oom_error("sf_regress", "AbsorbHashes")); else if (rc) goto exit;
 
             ghptr = AbsorbHashes;
-            if ( *njabsptr != NULL ) {
+            if ( njabsptr != NULL ) {
                 for (k = 0; k < kabs; k++, ghptr++) {
                     **njabsptr = ghptr->nlevels; (*njabsptr)++;
                 }

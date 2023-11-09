@@ -1,6 +1,18 @@
 Change Log
 ==========
 
+## gtools-1.11.7 (2023-11-08)
+
+### Bug fixes
+
+- `greg` with `alphas()` saves `cons` with IV and only one absvar.
+
+## gtools-1.11.6 (2023-11-08)
+
+### Bug fixes
+
+- `greg` with `glm` and absorb no longer gives error (can't dereference NULL)
+
 ## gtools-1.11.5 (2023-10-27)
 
 ### Bug fixes

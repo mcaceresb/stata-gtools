@@ -1274,8 +1274,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 }
                                 else etptr[i] -= eptr[i];
                             }
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
                                     etptr[i] -= cons[j];
                                 }
@@ -1418,8 +1418,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 }
                                 else etptr[i] -= eptr[i];
                             }
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
                                     etptr[i] -= cons[j];
                                 }
@@ -1557,8 +1557,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                                 }
                                 else etptr[i] -= eptr[i];
                             }
+                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             if ( (kabs > 1) && (skipalpha == 0) ) {
-                                cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                                 for (i = 0; i < njobs; i++) {
                                     etptr[i] -= cons[j];
                                 }
@@ -1676,8 +1676,8 @@ ST_retcode sf_regress (struct StataInfo *st_info, int level, char *fname)
                             }
                             else etptr[i] -= eptr[i];
                         }
+                        cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                         if ( (kabs > 1) && (skipalpha == 0) ) {
-                            cons[j] = GtoolsStatsMean(etptr, njobs, wptr);
                             for (i = 0; i < njobs; i++) {
                                 etptr[i] -= cons[j];
                             }

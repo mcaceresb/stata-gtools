@@ -1,4 +1,4 @@
-*! version 1.11.6 08Nov2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.7 08Nov2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -3470,8 +3470,10 @@ program clean_all
     cap scalar drop __gtools_gfile_topmat
     cap scalar drop __gtools_gfile_gregb
     cap scalar drop __gtools_gfile_gregse
+    cap scalar drop __gtools_gfile_gregvcov
     cap scalar drop __gtools_gfile_gregclus
     cap scalar drop __gtools_gfile_gregabs
+    cap scalar drop __gtools_gfile_ghdfeabs
     cap scalar drop __gtools_gfile_hdfeabs
     cap scalar drop __gtools_init_targ
     cap scalar drop __gtools_any_if

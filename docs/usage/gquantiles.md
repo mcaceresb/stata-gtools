@@ -29,13 +29,13 @@ pctile}</span>
 This function accepts `by()` with `xtile` and `pctile`.  However, you
 can simply use it as a replacement for native Stata commands.
 
-__*Equivaent to pctile*__ (store the quantiles of `exp` in `newvar`):
+__*Equivalent to pctile*__ (store the quantiles of `exp` in `newvar`):
 ```stata
 gquantiles newvar = exp [if] [in] [weight], pctile [nquantiles(#) genp(newvarname) altdef]
 ```
 
 <br>
-__*Equivaent to xtile*__ (store the categories of `exp` in `newvar`):
+__*Equivalent to xtile*__ (store the categories of `exp` in `newvar`):
 ```stata
 gquantiles newvar = exp [if] [in] [weight], xtile [nquantiles(#) cutpoints(numlist) altdef]
 
@@ -43,7 +43,7 @@ fasterxtile newvar = exp [if] [in] [weight], [nquantiles(#) cutpoints(numlist) a
 ```
 
 <br>
-__*Equivaent to \_pctile*__ (return the percentiles of `exp`):
+__*Equivalent to \_pctile*__ (return the percentiles of `exp`):
 ```stata
 gquantiles exp [if] [in] [weight], _pctile [nquantiles(#) percentiles(numlist) altdef]
 ```
@@ -339,7 +339,7 @@ In theory there is no reason to limit NQ. For example, the question
 well-defined question. Even if there will be at least 996 categories
 contain no values, there is no reason to limit the number of categories
 to 4 (of course, since the 1000 categories are created from those 4
-values, in practice this might not be adviseable).
+values, in practice this might not be advisable).
 
 So why does the limit exist in `xtile`? It is actually a limit in `pctile`,
 which is used internally. Since `pctile` stores the percentiles in a variable

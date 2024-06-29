@@ -72,6 +72,8 @@ is, this assumes that the weight refers to the number of available
 {p_end}
 {synopt:{opt alphas(varlist)}}One per absorb variable; save FE (normalized to be mean zero).
 {p_end}
+{synopt:{opt savecons}}Save implied constant in mata (with {opt absorb()}).
+{p_end}
 {synopt:{opt predict(varname)}}Save linear fit.
 {p_end}
 {synopt:{opt resid(varname)}}Save residuals.

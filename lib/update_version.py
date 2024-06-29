@@ -88,18 +88,19 @@ if "base" in args['set']:
     callok = True
 
 if "main" in args['set']:
-    todo += main
+    todo  += main
     callok = True
 
 if "test" in args['set']:
-    todo += test
+    todo  += test
     callok = True
 
 if "plug" in args['set']:
+    todo  += plug
     callok = True
 
 if "all" in args['set']:
-    todo = base + main + test + plug
+    todo   = base + main + test + plug
     callok = True
 
 if not callok:

@@ -1,4 +1,4 @@
-*! version 1.11.1 03Apr2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.8 28Jun2024 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate linear regression via OLS by group and with HDFE
 
 cap program drop greg

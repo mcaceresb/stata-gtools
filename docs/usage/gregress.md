@@ -64,6 +64,7 @@ Options
 - `cluster(varlist)` One-way or nested cluster SE.
 - `absorb(varlist)` Multi-way high-dimensional fixed effects.
 - `alphas(varlist)` One per absorb variable; save FE (normalized to be mean zero).
+- `savecons` Save implied constant in mata (with `absorb()`).
 - `predict(varname)` Save linear fit.
 - `resid(varname)` Save residuals.
 - `hdfetol(real)` Tolerance level for HDFE algoritm (default 1e-8).

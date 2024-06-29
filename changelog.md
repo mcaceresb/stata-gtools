@@ -1,6 +1,26 @@
 Change Log
 ==========
 
+## gtools-1.11.8 (2024-06-28)
+
+### Features
+
+- `greg, savecons` saves `rss`, `tss`, `r2`, `consest` without
+  having to specify `alphas`
+- `greg` can now save `rss`, `tss`, `r2`, `consest` with `by()`
+
+## gtools-1.11.7 (2023-11-08)
+
+### Bug fixes
+
+- `greg` with `alphas()` saves `consest` with IV and only one absvar.
+
+## gtools-1.11.6 (2023-11-08)
+
+### Bug fixes
+
+- `greg` with `glm` and absorb no longer gives error (can't dereference NULL)
+
 ## gtools-1.11.5 (2023-10-27)
 
 ### Bug fixes
@@ -14,7 +34,7 @@ Change Log
 ### Features
 
 - `greg` saves `rss`, `tss`, `r2` in mata (not with `by()`)
-- `greg` saves `cons` in mata with absorb (not with `by()`)
+- `greg` saves `consest` in mata with absorb (not with `by()`)
 
 ## gtools-1.11.3 (2023-09-20)
 

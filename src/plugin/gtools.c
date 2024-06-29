@@ -5,13 +5,13 @@
  * Updated: Mon Dec 05 09:40:10 EST 2022
  * Purpose: Stata plugin for faster group operations
  * Note:    See stata.com/plugins for more on Stata plugins
- * Version: 1.11.7
+ * Version: 1.11.8
  *********************************************************************/
 
 /**
  * @file gtools.c
  * @author Mauricio Caceres Bravo
- * @date 08 Nov 2023
+ * @date 28 Jun 2024
  * @brief Stata plugin
  *
  * This file should only ever be called from gtools.ado
@@ -467,6 +467,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gfile_gregvcov,
             gfile_gregclus,
             gfile_gregabs,
+            gfile_greginfo,
             gfile_ghdfeabs,
             top_miss,
             top_groupmiss,
@@ -539,6 +540,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
             gregress_savegresid,
             gregress_savegpred,
             gregress_savegalph,
+            gregress_savecons,
             gregress_range,
             gregress_glmfam,
             gregress_glmlogit,
@@ -667,6 +669,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gfile_gregvcov",        &gfile_gregvcov)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregclus",        &gfile_gregclus)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_gregabs",         &gfile_gregabs)         )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gfile_greginfo",        &gfile_greginfo)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gfile_ghdfeabs",        &gfile_ghdfeabs)        )) goto exit;
 
     if ( (rc = sf_scalar_size("__gtools_seecount",              &seecount)              )) goto exit;
@@ -759,6 +762,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     if ( (rc = sf_scalar_size("__gtools_gregress_savegresid",   &gregress_savegresid)   )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_savegpred",    &gregress_savegpred)    )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_savegalph",    &gregress_savegalph)    )) goto exit;
+    if ( (rc = sf_scalar_size("__gtools_gregress_savecons",     &gregress_savecons)     )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_range",        &gregress_range)        )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_glmfam",       &gregress_glmfam)       )) goto exit;
     if ( (rc = sf_scalar_size("__gtools_gregress_glmlogit",     &gregress_glmlogit)     )) goto exit;
@@ -1165,6 +1169,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gfile_gregvcov        = gfile_gregvcov;
     st_info->gfile_gregclus        = gfile_gregclus;
     st_info->gfile_gregabs         = gfile_gregabs;
+    st_info->gfile_greginfo        = gfile_greginfo;
     st_info->gfile_ghdfeabs        = gfile_ghdfeabs;
 
     st_info->unsorted              = unsorted;
@@ -1257,6 +1262,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     st_info->gregress_savegresid   = gregress_savegresid;
     st_info->gregress_savegpred    = gregress_savegpred;
     st_info->gregress_savegalph    = gregress_savegalph;
+    st_info->gregress_savecons     = gregress_savecons;
     st_info->gregress_moving       = gregress_moving;
     st_info->gregress_moving_l     = gregress_moving_l;
     st_info->gregress_moving_u     = gregress_moving_u;
@@ -1407,6 +1413,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
         sf_printf_debug("\tgregress_savegresid:   "GT_size_cfmt"\n",  gregress_savegresid  );
         sf_printf_debug("\tgregress_savegpred:    "GT_size_cfmt"\n",  gregress_savegpred   );
         sf_printf_debug("\tgregress_savegalph:    "GT_size_cfmt"\n",  gregress_savegalph   );
+        sf_printf_debug("\tgregress_savecons:     "GT_size_cfmt"\n",  gregress_savecons    );
         sf_printf_debug("\tgregress_moving:       "GT_size_cfmt"\n",  gregress_moving      );
         sf_printf_debug("\tgregress_moving_l:     "GT_size_cfmt"\n",  gregress_moving_l    );
         sf_printf_debug("\tgregress_moving_u:     "GT_size_cfmt"\n",  gregress_moving_u    );

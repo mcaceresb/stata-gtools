@@ -1,4 +1,4 @@
-*! version 1.11.7 08Nov2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.8 28Jun2024 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! gtools function internals
 
 * rc 17000
@@ -49,6 +49,7 @@ program _gtools_internal, rclass
         tempfile gregvcovfile
         tempfile gregclusfile
         tempfile gregabsfile
+        tempfile greginfofile
         tempfile ghdfeabsfile
         tempfile gstatsfile
         tempfile gbyvarfile
@@ -64,6 +65,7 @@ program _gtools_internal, rclass
         GtoolsTempFile gregvcovfile
         GtoolsTempFile gregclusfile
         GtoolsTempFile gregabsfile
+        GtoolsTempFile greginfofile
         GtoolsTempFile ghdfeabsfile
         GtoolsTempFile gstatsfile
         GtoolsTempFile gbyvarfile
@@ -79,6 +81,7 @@ program _gtools_internal, rclass
     global GTOOLS_GREGVCOV_FILE: copy local gregvcovfile
     global GTOOLS_GREGCLUS_FILE: copy local gregclusfile
     global GTOOLS_GREGABS_FILE:  copy local gregabsfile
+    global GTOOLS_GREGINFO_FILE: copy local greginfofile
     global GTOOLS_GHDFEABS_FILE: copy local ghdfeabsfile
     global GTOOLS_GSTATS_FILE:   copy local gstatsfile
     global GTOOLS_BYVAR_FILE:    copy local gbyvarfile
@@ -727,6 +730,7 @@ program _gtools_internal, rclass
     mata: st_numscalar("__gtools_gfile_gregvcov", strlen(st_local("gregvcovfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregclus", strlen(st_local("gregclusfile")) + 1)
     mata: st_numscalar("__gtools_gfile_gregabs",  strlen(st_local("gregabsfile"))  + 1)
+    mata: st_numscalar("__gtools_gfile_greginfo", strlen(st_local("greginfofile")) + 1)
     mata: st_numscalar("__gtools_gfile_ghdfeabs", strlen(st_local("ghdfeabsfile")) + 1)
 
     scalar __gtools_init_targ   = 0
@@ -1710,6 +1714,7 @@ program _gtools_internal, rclass
                 prefix(str)                  /// save prepending prefix
                 PREDict(str)                 /// save fit in `predict'
                 alphas(str)                  /// save fixed effects in `alphas'
+                savecons                     /// save estimate for constant (memory-intensive)
                 resid                        /// save residuals in _resid_`yvarlist'
                 RESIDuals(str)               /// save residuals in `residuals'
                 replace                      /// Replace targets, if they exist
@@ -1905,6 +1910,7 @@ program _gtools_internal, rclass
             scalar __gtools_gregress_kvars         = `:list sizeof varlist'
             scalar __gtools_gregress_cons          = `"`constant'"' != "noconstant"
             scalar __gtools_gregress_consest       = .
+            scalar __gtools_gregress_savecons      = `"`savecons'"' == "savecons"
             scalar __gtools_gregress_rss           = .
             scalar __gtools_gregress_tss           = .
             scalar __gtools_gregress_robust        = `"`robust'"'   != ""
@@ -3454,6 +3460,7 @@ program clean_all
     global GTOOLS_GREGVCOV_FILE
     global GTOOLS_GREGCLUS_FILE
     global GTOOLS_GREGABS_FILE
+    global GTOOLS_GREGINFO_FILE
     global GTOOLS_GHDFEABS_FILE
     global GTOOLS_GSTATS_FILE
     global GTOOLS_BYVAR_FILE
@@ -3473,6 +3480,7 @@ program clean_all
     cap scalar drop __gtools_gfile_gregvcov
     cap scalar drop __gtools_gfile_gregclus
     cap scalar drop __gtools_gfile_gregabs
+    cap scalar drop __gtools_gfile_greginfo
     cap scalar drop __gtools_gfile_ghdfeabs
     cap scalar drop __gtools_gfile_hdfeabs
     cap scalar drop __gtools_init_targ
@@ -5019,6 +5027,7 @@ program gregress_scalars
         scalar __gtools_gregress_kvars         = 0
         scalar __gtools_gregress_cons          = 0
         scalar __gtools_gregress_consest       = .
+        scalar __gtools_gregress_savecons      = 1
         scalar __gtools_gregress_rss           = .
         scalar __gtools_gregress_tss           = .
         scalar __gtools_gregress_robust        = 0
@@ -5065,6 +5074,7 @@ program gregress_scalars
         cap scalar drop __gtools_gregress_kvars
         cap scalar drop __gtools_gregress_cons
         cap scalar drop __gtools_gregress_consest
+        cap scalar drop __gtools_gregress_savecons
         cap scalar drop __gtools_gregress_rss
         cap scalar drop __gtools_gregress_tss
         cap scalar drop __gtools_gregress_robust

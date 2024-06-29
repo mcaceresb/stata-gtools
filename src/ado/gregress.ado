@@ -1,4 +1,4 @@
-*! version 1.11.1 03Apr2023 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
+*! version 1.11.8 28Jun2024 Mauricio Caceres Bravo, mauricio.caceres.bravo@gmail.com
 *! Estimate linear regression via OLS by group and with HDFE
 
 capture program drop gregress
@@ -376,13 +376,14 @@ end
 capture program drop Display
 program Display, eclass
     syntax [namelist(max = 1)], [repost touse(str) *]
-    tempname by
+    tempname by nocoef
     if ( "`namelist'" == "" ) {
         disp as txt "Cannot display table without cached results; use option -mata()- to save"
     }
     else {
-        mata st_numscalar("`by'", `namelist'.by)
-        if ( `=scalar(`by')' == 0)  {
+        mata st_numscalar("`by'",     `namelist'.by)
+        mata st_numscalar("`nocoef'", (`namelist'.saveb == 0) | (`namelist'.savese == 0))
+        if ( (`=scalar(`by')' == 0) & (`=scalar(`nocoef')' == 0) ) {
             tempname colnames sel nmiss
             FreeMatrix b V
             mata st_local("caller", `namelist'.caller)
@@ -412,7 +413,8 @@ program Display, eclass
             _coef_table, `options'
         }
         else {
-            disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+            if `=scalar(`by')'     disp as txt "Cannot display table with by(); use {stata mata `namelist'.print()}"
+            if `=scalar(`nocoef')' disp as txt "Cannot display table with -nob- or -nose-"
         }
     }
 end

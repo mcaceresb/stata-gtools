@@ -3213,6 +3213,11 @@ program _gtools_internal, rclass
                 mata: `GstatsMataSave' = __gstats_summarize_results()
                 disp as txt _n "(note: raw results saved in `GstatsMataSave';" /*
                             */ " see {stata mata `GstatsMataSave'.desc()})"
+
+                if ( `"`GstatsOutputMatrix'"' != "" ) {
+                    mata: `GstatsOutputMatrix' = `GstatsMataSave'.output
+                    mata: st_matrix("`GstatsOutputMatrix'", `GstatsOutputMatrix')
+                }
             }
             else {
                 mata: (void) __gstats_summarize_results()
@@ -7010,24 +7015,26 @@ end
 
 capture program drop gstats_summarize
 program gstats_summarize
-    syntax [varlist], [   ///
-        noDetail          ///
-        Meanonly          ///
-        TABstat           ///
-                          ///
-        SEParator(int 5)  ///
-                          ///
-        COLumns(str)      ///
-        Format            ///
-        POOLed            ///
-        PRETTYstats       ///
-        noPRINT           ///
-        MATAsave          ///
-        MATAsavename(str) ///
-        save              ///
-        *                 ///
+    syntax [varlist], [    ///
+        noDetail           ///
+        Meanonly           ///
+        TABstat            ///
+                           ///
+        SEParator(int 5)   ///
+                           ///
+        COLumns(str)       ///
+        Format             ///
+        POOLed             ///
+        PRETTYstats        ///
+        noPRINT            ///
+        OUTputmatrix(name) ///
+        MATAsave           ///
+        MATAsavename(str)  ///
+        save               ///
+        *                  ///
     ]
 
+    if ( `"`outputmatrix'"' != "" ) local matasave     matasave
     if ( `"`matasavename'"' != "" ) local matasave     matasave
     if ( `"`matasavename'"' == "" ) local matasavename GstatsOutput
 
@@ -7100,8 +7107,9 @@ program gstats_summarize
     * Stats to compute
     * ----------------
 
-    c_local GstatsMataSave: copy local matasavename
-    c_local varlist: copy local statlist
+    c_local GstatsOutputMatrix: copy local outputmatrix
+    c_local GstatsMataSave:     copy local matasavename
+    c_local varlist:            copy local statlist
 
     scalar __gtools_gstats_code = 2
     scalar __gtools_summarize_pretty = (`"`prettystats'"' == "prettystats")
@@ -7213,29 +7221,31 @@ end
 
 capture program drop gstats_tabstat
 program gstats_tabstat
-    syntax [varlist], [    ///
-        noDetail           ///
-        Meanonly           ///
-        TABstat            ///
-                           ///
-        _sum               ///
-        Statistics(str)    ///
-        stats(str)         ///
-        LABELWidth(int 16) ///
-                           ///
-        COLumns(str)       ///
-        Formatvar          ///
-        Format(str)        ///
-        POOLed             ///
-        PRETTYstats        ///
-        noSEParator        ///
-        noPRINT            ///
-        MATAsave           ///
-        MATAsavename(str)  ///
-        save               ///
-        *                  ///
+    syntax [varlist], [     ///
+        noDetail            ///
+        Meanonly            ///
+        TABstat             ///
+                            ///
+        _sum                ///
+        Statistics(str)     ///
+        stats(str)          ///
+        LABELWidth(int 16)  ///
+                            ///
+        COLumns(str)        ///
+        Formatvar           ///
+        Format(str)         ///
+        POOLed              ///
+        PRETTYstats         ///
+        noSEParator         ///
+        noPRINT             ///
+        OUTputmatrix(name)  ///
+        MATAsave            ///
+        MATAsavename(str)   ///
+        save                ///
+        *                   ///
     ]
 
+    if ( `"`outputmatrix'"' != "" ) local matasave     matasave
     if ( `"`matasavename'"' != "" ) local matasave     matasave
     if ( `"`matasavename'"' == "" ) local matasavename GstatsOutput
     if ( `"`format'"'       == "" ) local format %9.0g
@@ -7388,8 +7398,9 @@ program gstats_tabstat
     mata: st_matrix("__gtools_summarize_codes", __gtools_summarize_codes)
     scalar __gtools_summarize_kstats = `kstats'
 
-    c_local GstatsMataSave: copy local matasavename
-    c_local varlist: copy local statlist
+    c_local GstatsOutputMatrix: copy local outputmatrix
+    c_local GstatsMataSave:     copy local matasavename
+    c_local varlist:            copy local statlist
 
     * Auto-columns for _sum
     * ---------------------

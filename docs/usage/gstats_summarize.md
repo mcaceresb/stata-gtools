@@ -91,6 +91,7 @@ Options
 ### Common Options
 
 - `matasave[(str)]`        Save results in mata object (default name is GstatsOutput).
+- `outputmatrix(name)`     Save output table in mata and stata matrix of specified name (note: automatically sets `matasave`).
 - `pooled`                 Pool varlist
 - `noprint`                Do not print
 - `format`                 Use variable's display format.

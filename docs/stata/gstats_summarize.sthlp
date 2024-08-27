@@ -80,6 +80,8 @@ Use format to display summary stats; default %9.0g
 {syntab :Common Options}
 {synopt:{opt mata:save}[{cmd:(}{it:str}{cmd:)}]}Save results in mata object (default name is {bf:GstatsOutput})
 {p_end}
+{synopt:{opt out:putmatrix(name)}}Save output table in mata and stata matrix (note: automatically adds option {opt matasave})
+{p_end}
 {synopt:{opt pool:ed}}Pool varlist
 {p_end}
 {synopt:{opt noprint}}Do not print

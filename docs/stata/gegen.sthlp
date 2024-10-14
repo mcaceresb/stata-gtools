@@ -379,5 +379,5 @@ help for
 {help fegen} (if installed),
 {help fcollapse} (if installed),
 {help ftools} (if installed)
-p_end}
+{p_end}
 

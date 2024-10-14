@@ -994,7 +994,7 @@ ST_retcode sf_parse_info (struct StataInfo *st_info, int level)
     GTOOLS_GC_ALLOCATED("st_info->transform_cumsum")
     GTOOLS_GC_ALLOCATED("st_info->transform_cumsign")
     GTOOLS_GC_ALLOCATED("st_info->transform_cumvars")
-    GTOOLS_GC_ALLOCATED("st_info->transform_aux8_shfit")
+    GTOOLS_GC_ALLOCATED("st_info->transform_aux8_shift")
 
     GTOOLS_GC_ALLOCATED("st_info->pos_targets")
     GTOOLS_GC_ALLOCATED("st_info->statcode")

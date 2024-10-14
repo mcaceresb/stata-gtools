@@ -136,7 +136,7 @@ part of {cmd:by()} and the new variables are simply named after the values of
 
 {p 8 8 2}
 This does {opt not} check for duplicates or sorts the data. Variables not
-named are assumed to be part of {cmd:by()}).  The values of the variables in
+named are assumed to be part of {cmd:by()}.  The values of the variables in
 {it:varlist} are saved in {cmd:values()}, with their names saved in {it:keys()}.
 
 {p 8 8 2}

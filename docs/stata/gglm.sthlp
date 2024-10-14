@@ -137,7 +137,7 @@ is, this assumes that the weight refers to the number of available
 {cmd:gglm} estimates GLM via IRLS, optionally weighted, by group, with
 cluster SE, and/or with multi-way high-dimensional fixed effects.
 The results are by default saved into a mata object (e.g.  {opt GtoolsLogit},
-{opt GtoolsPoisson}, and so on; run {opt mata GtoolsLogit.desc()}) for details).
+{opt GtoolsPoisson}, and so on; run {opt mata GtoolsLogit.desc()} for details).
 The following data is stored:
 
         regression info

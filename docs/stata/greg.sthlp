@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.11.1 03Apr2023}}{...}
+{* *! version 1.11.1 03Apr2023}{...}
 {viewerdialog gregress "dialog gregress"}{...}
 {vieweralsosee "[R] gregress" "mansection R gregress"}{...}
 {viewerjumpto "Syntax" "gregress##syntax"}{...}

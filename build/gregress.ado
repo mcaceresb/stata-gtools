@@ -15,6 +15,7 @@ program gregress, rclass
 
     if ( ("${GTOOLS_GREGTABLE}" == "1")  & replay() ) {
         Replay `0'
+        return add
         exit 0
     }
 
@@ -364,7 +365,10 @@ program gregress, rclass
     return local cmd    = "gregress"
     return local mata: copy local saveGregressMata
 
-    if ( "${GTOOLS_GREGTABLE}" == "1" ) Display `saveGregressMata', touse(`touse')
+    if ( "${GTOOLS_GREGTABLE}" == "1" ) {
+        Display `saveGregressMata', touse(`touse')
+        return add
+    }
 end
 
 capture program drop Replay

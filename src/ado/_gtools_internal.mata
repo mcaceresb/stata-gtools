@@ -3,6 +3,7 @@ cap mata: mata drop GtoolsByLevels()
 cap mata: mata drop GtoolsRegressOutput()
 
 cap mata: mata drop GtoolsReadMatrix()
+cap mata: mata drop GtoolsChunkReadMatrix()
 cap mata: mata drop GtoolsDecodeStat()
 cap mata: mata drop GtoolsDecodePth()
 cap mata: mata drop GtoolsSmartLevels()
@@ -175,7 +176,8 @@ void function GtoolsByLevels::read(string scalar numfmt, real scalar valuelabels
 
         }
         else {
-            numx  = fbufget(C, fbyvar, "%8z", J, ncol)[., 1::(ncol - 1)]
+            // numx  = fbufget(C, fbyvar, "%8z", J, ncol)[., 1::(ncol - 1)]
+            numx  = GtoolsChunkReadMatrix(C, fbyvar, J, ncol)[., 1::(ncol - 1)]
             charx = ""
             if ( numfmt != "" ) {
                 if ( valuelabels ) {
@@ -1397,9 +1399,41 @@ real matrix function GtoolsReadMatrix(
     colvector C
     fh = fopen(fname, "r")
     C  = bufio()
-    X  = fbufget(C, fh, "%8z", nrow, ncol)
+    X  = GtoolsChunkReadMatrix(C, fh, nrow, ncol)
     fclose(fh)
     return (X)
+}
+
+// NOTE: fbufget and fbufput are limited to under 2^31 bytes
+real matrix function GtoolsChunkReadMatrix(
+    C,
+    real scalar fh,
+    real scalar nrow,
+    real scalar ncol)
+{
+    real matrix X
+    real scalar chunkfr, chunkto, chunksize
+    if ( (nrow * ncol * 8) > (2^31-1) ) {
+        X         = J(nrow, ncol, .)
+        chunksize = floor((2^31-1)/8/ncol)
+        chunkfr   = 1
+        chunkto   = chunksize
+        while ( chunkfr <= nrow ) {
+            X[|chunkfr, 1 \ chunkto, ncol|] = fbufget(C, fh, "%8z", chunksize, ncol)
+            chunkfr = chunkto + 1
+            if ( (chunkto + chunksize) < nrow ) {
+                chunkto = chunkto + chunksize
+            }
+            else {
+                chunkto   = nrow
+                chunksize = chunkto-chunkfr+1
+            }
+        }
+    }
+    else {
+        X = fbufget(C, fh, "%8z", nrow, ncol)
+    }
+    return(X)
 }
 
 string scalar function GtoolsDecodeStat(real scalar scode, real scalar pretty)
